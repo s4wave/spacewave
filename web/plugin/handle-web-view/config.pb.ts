@@ -16,14 +16,14 @@ export interface Config {
   /** HandlePluginId is the plugin the web plugin should send WebViews to. */
   handlePluginId: string
   /**
-   * WebViewidRegex is the regex of web view IDs to handle with handlePluginId.
+   * WebViewidRe is the regex of web view IDs to handle with handlePluginId.
    * If empty, will forward any.
    */
-  webViewIdRegex: string
+  webViewIdRe: string
 }
 
 function createBaseConfig(): Config {
-  return { webPluginId: '', handlePluginId: '', webViewIdRegex: '' }
+  return { webPluginId: '', handlePluginId: '', webViewIdRe: '' }
 }
 
 export const Config = {
@@ -37,8 +37,8 @@ export const Config = {
     if (message.handlePluginId !== '') {
       writer.uint32(18).string(message.handlePluginId)
     }
-    if (message.webViewIdRegex !== '') {
-      writer.uint32(26).string(message.webViewIdRegex)
+    if (message.webViewIdRe !== '') {
+      writer.uint32(26).string(message.webViewIdRe)
     }
     return writer
   },
@@ -70,7 +70,7 @@ export const Config = {
             break
           }
 
-          message.webViewIdRegex = reader.string()
+          message.webViewIdRe = reader.string()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -121,9 +121,7 @@ export const Config = {
       handlePluginId: isSet(object.handlePluginId)
         ? String(object.handlePluginId)
         : '',
-      webViewIdRegex: isSet(object.webViewIdRegex)
-        ? String(object.webViewIdRegex)
-        : '',
+      webViewIdRe: isSet(object.webViewIdRe) ? String(object.webViewIdRe) : '',
     }
   },
 
@@ -132,8 +130,7 @@ export const Config = {
     message.webPluginId !== undefined && (obj.webPluginId = message.webPluginId)
     message.handlePluginId !== undefined &&
       (obj.handlePluginId = message.handlePluginId)
-    message.webViewIdRegex !== undefined &&
-      (obj.webViewIdRegex = message.webViewIdRegex)
+    message.webViewIdRe !== undefined && (obj.webViewIdRe = message.webViewIdRe)
     return obj
   },
 
@@ -145,7 +142,7 @@ export const Config = {
     const message = createBaseConfig()
     message.webPluginId = object.webPluginId ?? ''
     message.handlePluginId = object.handlePluginId ?? ''
-    message.webViewIdRegex = object.webViewIdRegex ?? ''
+    message.webViewIdRe = object.webViewIdRe ?? ''
     return message
   },
 }

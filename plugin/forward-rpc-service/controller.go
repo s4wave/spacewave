@@ -35,8 +35,8 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	// note: checked in Validate()
-	serviceIdRe, _ := conf.ParseServiceIdRegex()
-	serverIdRe, _ := conf.ParseServerIdRegex()
+	serviceIdRe, _ := conf.ParseServiceIdRe()
+	serverIdRe, _ := conf.ParseServerIdRe()
 	c := &Controller{
 		bus:  bus,
 		conf: conf,

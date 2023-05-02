@@ -15,9 +15,9 @@ service WebPlugin {
 message HandleWebViewViaPluginRequest {
   // HandlePluginId is the plugin the web plugin should send WebViews to.
   string handle_plugin_id = 1;
-  // WebViewidRegex is the regex of web view IDs to handle with handlePluginId.
+  // WebViewidRe is the regex of web view IDs to handle with handlePluginId.
   // If empty, will forward any.
-  string web_view_id_regex = 2;
+  string web_view_id_re = 2;
 }
 
 // HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin.
@@ -32,12 +32,12 @@ message HandleWebViewViaPluginResponse {
 message HandleRpcViaPluginRequest {
   // HandlePluginId is the plugin the web plugin should send Rpcs to.
   string handle_plugin_id = 1;
-  // ServiceIdRegex is the regex of service IDs to forward.
+  // ServiceIdRe is the regex of service IDs to forward.
   // If empty, will forward any.
-  string service_id_regex = 2;
-  // ServerIdRegex is the regex of server IDs to forward for.
+  string service_id_re = 2;
+  // ServerIdRe is the regex of server IDs to forward for.
   // If empty, will forward any.
-  string server_id_regex = 3;
+  string server_id_re = 3;
   // Backoff is the backoff config for calling the RPC service.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff backoff = 4;

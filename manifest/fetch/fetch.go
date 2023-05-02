@@ -9,6 +9,6 @@ type Config interface {
 	// Config is the base config interface.
 	config.Config
 
-	// SetFetchManifestIdRegex sets the regex of manifest IDs to fetch with this controller.
-	SetFetchManifestIdRegex(re string)
+	// SetFetchManifestIdRe sets the regex of manifest IDs to fetch with this controller.
+	SetFetchManifestIdRe(re string)
 }

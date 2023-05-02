@@ -12,12 +12,12 @@ message Config {
   string web_plugin_id = 1;
   // HandlePluginId is the plugin the web plugin should send RPCs to.
   string handle_plugin_id = 2;
-  // ServiceIdRegex is the regex of service IDs to forward.
+  // ServiceIdRe is the regex of service IDs to forward.
   // If empty, will forward any.
-  string service_id_regex = 3;
-  // ServerIdRegex is the regex of server IDs to forward for.
+  string service_id_re = 3;
+  // ServerIdRe is the regex of server IDs to forward for.
   // If empty, will forward any.
-  string server_id_regex = 4;
+  string server_id_re = 4;
   // Backoff is the backoff config for calling the RPC service.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff backoff = 5;

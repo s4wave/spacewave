@@ -92,14 +92,14 @@ manifests:
             config:
               webPluginId: web
               handlePluginId: bldr-demo
-              serverIdRegex: web-view/.*
+              serverIdRe: web-view/.*
         hostConfigSet:
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:
             id: bldr/manifest/fetch/plugin
             config:
               pluginId: bldr-demo
-              fetchManifestIdRegex: demo-.*
+              fetchManifestIdRe: demo-.*
   dist:
     builder:
       id: bldr/dist/compiler

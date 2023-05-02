@@ -13,14 +13,14 @@ export interface Config {
   /** PluginId is the plugin to load and use as a ManifestFetch service. */
   pluginId: string;
   /**
-   * FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
+   * FetchManifestIdRe is the regex of manifest IDs to fetch with this controller.
    * If empty, will forward any FetchManifest directive to the plugin.
    */
-  fetchManifestIdRegex: string;
+  fetchManifestIdRe: string;
 }
 
 function createBaseConfig(): Config {
-  return { pluginId: "", fetchManifestIdRegex: "" };
+  return { pluginId: "", fetchManifestIdRe: "" };
 }
 
 export const Config = {
@@ -28,8 +28,8 @@ export const Config = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.fetchManifestIdRegex !== "") {
-      writer.uint32(18).string(message.fetchManifestIdRegex);
+    if (message.fetchManifestIdRe !== "") {
+      writer.uint32(18).string(message.fetchManifestIdRe);
     }
     return writer;
   },
@@ -53,7 +53,7 @@ export const Config = {
             break;
           }
 
-          message.fetchManifestIdRegex = reader.string();
+          message.fetchManifestIdRe = reader.string();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -99,14 +99,14 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      fetchManifestIdRegex: isSet(object.fetchManifestIdRegex) ? String(object.fetchManifestIdRegex) : "",
+      fetchManifestIdRe: isSet(object.fetchManifestIdRe) ? String(object.fetchManifestIdRe) : "",
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.fetchManifestIdRegex !== undefined && (obj.fetchManifestIdRegex = message.fetchManifestIdRegex);
+    message.fetchManifestIdRe !== undefined && (obj.fetchManifestIdRe = message.fetchManifestIdRe);
     return obj;
   },
 
@@ -117,7 +117,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.pluginId = object.pluginId ?? "";
-    message.fetchManifestIdRegex = object.fetchManifestIdRegex ?? "";
+    message.fetchManifestIdRe = object.fetchManifestIdRe ?? "";
     return message;
   },
 };

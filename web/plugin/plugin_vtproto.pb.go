@@ -27,7 +27,7 @@ func (m *HandleWebViewViaPluginRequest) CloneVT() *HandleWebViewViaPluginRequest
 	}
 	r := &HandleWebViewViaPluginRequest{
 		HandlePluginId: m.HandlePluginId,
-		WebViewIdRegex: m.WebViewIdRegex,
+		WebViewIdRe:    m.WebViewIdRe,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -77,8 +77,8 @@ func (m *HandleRpcViaPluginRequest) CloneVT() *HandleRpcViaPluginRequest {
 	}
 	r := &HandleRpcViaPluginRequest{
 		HandlePluginId: m.HandlePluginId,
-		ServiceIdRegex: m.ServiceIdRegex,
-		ServerIdRegex:  m.ServerIdRegex,
+		ServiceIdRe:    m.ServiceIdRe,
+		ServerIdRe:     m.ServerIdRe,
 	}
 	if rhs := m.Backoff; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
@@ -138,7 +138,7 @@ func (this *HandleWebViewViaPluginRequest) EqualVT(that *HandleWebViewViaPluginR
 	if this.HandlePluginId != that.HandlePluginId {
 		return false
 	}
-	if this.WebViewIdRegex != that.WebViewIdRegex {
+	if this.WebViewIdRe != that.WebViewIdRe {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -205,10 +205,10 @@ func (this *HandleRpcViaPluginRequest) EqualVT(that *HandleRpcViaPluginRequest) 
 	if this.HandlePluginId != that.HandlePluginId {
 		return false
 	}
-	if this.ServiceIdRegex != that.ServiceIdRegex {
+	if this.ServiceIdRe != that.ServiceIdRe {
 		return false
 	}
-	if this.ServerIdRegex != that.ServerIdRegex {
+	if this.ServerIdRe != that.ServerIdRe {
 		return false
 	}
 	if equal, ok := interface{}(this.Backoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
@@ -303,10 +303,10 @@ func (m *HandleWebViewViaPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.WebViewIdRegex) > 0 {
-		i -= len(m.WebViewIdRegex)
-		copy(dAtA[i:], m.WebViewIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.WebViewIdRegex)))
+	if len(m.WebViewIdRe) > 0 {
+		i -= len(m.WebViewIdRe)
+		copy(dAtA[i:], m.WebViewIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.WebViewIdRe)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -431,17 +431,17 @@ func (m *HandleRpcViaPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.ServerIdRegex) > 0 {
-		i -= len(m.ServerIdRegex)
-		copy(dAtA[i:], m.ServerIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.ServerIdRegex)))
+	if len(m.ServerIdRe) > 0 {
+		i -= len(m.ServerIdRe)
+		copy(dAtA[i:], m.ServerIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.ServerIdRe)))
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.ServiceIdRegex) > 0 {
-		i -= len(m.ServiceIdRegex)
-		copy(dAtA[i:], m.ServiceIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.ServiceIdRegex)))
+	if len(m.ServiceIdRe) > 0 {
+		i -= len(m.ServiceIdRe)
+		copy(dAtA[i:], m.ServiceIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.ServiceIdRe)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -535,7 +535,7 @@ func (m *HandleWebViewViaPluginRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.WebViewIdRegex)
+	l = len(m.WebViewIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -575,11 +575,11 @@ func (m *HandleRpcViaPluginRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.ServiceIdRegex)
+	l = len(m.ServiceIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.ServerIdRegex)
+	l = len(m.ServerIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -689,7 +689,7 @@ func (m *HandleWebViewViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebViewIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field WebViewIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -717,7 +717,7 @@ func (m *HandleWebViewViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.WebViewIdRegex = string(dAtA[iNdEx:postIndex])
+			m.WebViewIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -876,7 +876,7 @@ func (m *HandleRpcViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ServiceIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -904,11 +904,11 @@ func (m *HandleRpcViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ServiceIdRegex = string(dAtA[iNdEx:postIndex])
+			m.ServiceIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ServerIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServerIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -936,7 +936,7 @@ func (m *HandleRpcViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ServerIdRegex = string(dAtA[iNdEx:postIndex])
+			m.ServerIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {

@@ -27,7 +27,7 @@ func (m *Config) CloneVT() *Config {
 	r := &Config{
 		WebPluginId:    m.WebPluginId,
 		HandlePluginId: m.HandlePluginId,
-		WebViewIdRegex: m.WebViewIdRegex,
+		WebViewIdRe:    m.WebViewIdRe,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -52,7 +52,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.HandlePluginId != that.HandlePluginId {
 		return false
 	}
-	if this.WebViewIdRegex != that.WebViewIdRegex {
+	if this.WebViewIdRe != that.WebViewIdRe {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -95,10 +95,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.WebViewIdRegex) > 0 {
-		i -= len(m.WebViewIdRegex)
-		copy(dAtA[i:], m.WebViewIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.WebViewIdRegex)))
+	if len(m.WebViewIdRe) > 0 {
+		i -= len(m.WebViewIdRe)
+		copy(dAtA[i:], m.WebViewIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.WebViewIdRe)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -144,7 +144,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.WebViewIdRegex)
+	l = len(m.WebViewIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -253,7 +253,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebViewIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field WebViewIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -281,7 +281,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.WebViewIdRegex = string(dAtA[iNdEx:postIndex])
+			m.WebViewIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

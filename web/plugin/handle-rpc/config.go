@@ -43,8 +43,8 @@ func (c *Config) Validate() error {
 func (c *Config) ToRequest() *bldr_web_plugin.HandleRpcViaPluginRequest {
 	return &bldr_web_plugin.HandleRpcViaPluginRequest{
 		HandlePluginId: c.GetHandlePluginId(),
-		ServiceIdRegex: c.GetServiceIdRegex(),
-		ServerIdRegex:  c.GetServerIdRegex(),
+		ServiceIdRe:    c.GetServiceIdRe(),
+		ServerIdRe:     c.GetServerIdRe(),
 		Backoff:        c.GetBackoff().CloneVT(),
 	}
 }
@@ -52,10 +52,10 @@ func (c *Config) ToRequest() *bldr_web_plugin.HandleRpcViaPluginRequest {
 // ToForwardConfig converts the config into a plugin forward-rpc-service config.
 func (c *Config) ToForwardConfig() *handle_rpc_viaplugin.Config {
 	return &handle_rpc_viaplugin.Config{
-		PluginId:       c.GetHandlePluginId(),
-		ServiceIdRegex: c.GetServiceIdRegex(),
-		ServerIdRegex:  c.GetServerIdRegex(),
-		Backoff:        c.GetBackoff().CloneVT(),
+		PluginId:    c.GetHandlePluginId(),
+		ServiceIdRe: c.GetServiceIdRe(),
+		ServerIdRe:  c.GetServerIdRe(),
+		Backoff:     c.GetBackoff().CloneVT(),
 	}
 }
 

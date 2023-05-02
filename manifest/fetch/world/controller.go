@@ -40,7 +40,7 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	// note: checked in Validate()
-	manifestIdRe, _ := conf.ParseFetchManifestIdRegex()
+	manifestIdRe, _ := conf.ParseFetchManifestIdRe()
 	return &Controller{
 		le:                le,
 		bus:               bus,

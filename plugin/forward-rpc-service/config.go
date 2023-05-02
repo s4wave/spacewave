@@ -30,7 +30,7 @@ func (c *Config) Validate() error {
 	if c.GetPluginId() == "" {
 		return plugin.ErrEmptyPluginID
 	}
-	if _, err := c.ParseServiceIdRegex(); err != nil {
+	if _, err := c.ParseServiceIdRe(); err != nil {
 		return err
 	}
 	if err := c.GetBackoff().Validate(true); err != nil {
@@ -39,26 +39,26 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// SetServiceIdRegex sets the service id regex.
-func (c *Config) SetServiceIdRegex(re string) {
-	c.ServiceIdRegex = re
+// SetServiceIdRe sets the service id regex.
+func (c *Config) SetServiceIdRe(re string) {
+	c.ServiceIdRe = re
 }
 
-// ParseServiceIdRegex parses the service id regex.
+// ParseServiceIdRe parses the service id regex.
 // Returns nil if the field was empty.
-func (c *Config) ParseServiceIdRegex() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(c.GetServiceIdRegex())
+func (c *Config) ParseServiceIdRe() (*regexp.Regexp, error) {
+	return confparse.ParseRegexp(c.GetServiceIdRe())
 }
 
-// SetServerIdRegex sets the server id regex.
-func (c *Config) SetServerIdRegex(re string) {
-	c.ServerIdRegex = re
+// SetServerIdRe sets the server id regex.
+func (c *Config) SetServerIdRe(re string) {
+	c.ServerIdRe = re
 }
 
-// ParseServerIdRegex parses the server id regex.
+// ParseServerIdRe parses the server id regex.
 // Returns nil if the field was empty.
-func (c *Config) ParseServerIdRegex() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(c.GetServerIdRegex())
+func (c *Config) ParseServerIdRe() (*regexp.Regexp, error) {
+	return confparse.ParseRegexp(c.GetServerIdRe())
 }
 
 // _ is a type assertion

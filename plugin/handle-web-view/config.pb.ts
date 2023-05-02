@@ -13,14 +13,14 @@ export interface Config {
   /** PluginId is the plugin to load and use as a HandleWebView service. */
   pluginId: string;
   /**
-   * WebViewidRegex is the regex of web view IDs to fetch with this controller.
+   * WebViewidRe is the regex of web view IDs to fetch with this controller.
    * If empty, will forward any.
    */
-  webViewIdRegex: string;
+  webViewIdRe: string;
 }
 
 function createBaseConfig(): Config {
-  return { pluginId: "", webViewIdRegex: "" };
+  return { pluginId: "", webViewIdRe: "" };
 }
 
 export const Config = {
@@ -28,8 +28,8 @@ export const Config = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.webViewIdRegex !== "") {
-      writer.uint32(18).string(message.webViewIdRegex);
+    if (message.webViewIdRe !== "") {
+      writer.uint32(18).string(message.webViewIdRe);
     }
     return writer;
   },
@@ -53,7 +53,7 @@ export const Config = {
             break;
           }
 
-          message.webViewIdRegex = reader.string();
+          message.webViewIdRe = reader.string();
           continue;
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -99,14 +99,14 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      webViewIdRegex: isSet(object.webViewIdRegex) ? String(object.webViewIdRegex) : "",
+      webViewIdRe: isSet(object.webViewIdRe) ? String(object.webViewIdRe) : "",
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.webViewIdRegex !== undefined && (obj.webViewIdRegex = message.webViewIdRegex);
+    message.webViewIdRe !== undefined && (obj.webViewIdRe = message.webViewIdRe);
     return obj;
   },
 
@@ -117,7 +117,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.pluginId = object.pluginId ?? "";
-    message.webViewIdRegex = object.webViewIdRegex ?? "";
+    message.webViewIdRe = object.webViewIdRe ?? "";
     return message;
   },
 };

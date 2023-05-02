@@ -7,7 +7,7 @@ package bldr.plugin.handle_web_view;
 message Config {
   // PluginId is the plugin to load and use as a HandleWebView service.
   string plugin_id = 1;
-  // WebViewidRegex is the regex of web view IDs to fetch with this controller.
+  // WebViewidRe is the regex of web view IDs to fetch with this controller.
   // If empty, will forward any.
-  string web_view_id_regex = 2;
+  string web_view_id_re = 2;
 }

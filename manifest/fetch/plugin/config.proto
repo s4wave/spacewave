@@ -7,7 +7,7 @@ package manifest.fetch.plugin;
 message Config {
   // PluginId is the plugin to load and use as a ManifestFetch service.
   string plugin_id = 1;
-  // FetchManifestIdRegex is the regex of manifest IDs to fetch with this controller.
+  // FetchManifestIdRe is the regex of manifest IDs to fetch with this controller.
   // If empty, will forward any FetchManifest directive to the plugin.
-  string fetch_manifest_id_regex = 2;
+  string fetch_manifest_id_re = 2;
 }

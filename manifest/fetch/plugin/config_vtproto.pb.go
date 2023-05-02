@@ -25,8 +25,8 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		PluginId:             m.PluginId,
-		FetchManifestIdRegex: m.FetchManifestIdRegex,
+		PluginId:          m.PluginId,
+		FetchManifestIdRe: m.FetchManifestIdRe,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -48,7 +48,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
-	if this.FetchManifestIdRegex != that.FetchManifestIdRegex {
+	if this.FetchManifestIdRe != that.FetchManifestIdRe {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -91,10 +91,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.FetchManifestIdRegex) > 0 {
-		i -= len(m.FetchManifestIdRegex)
-		copy(dAtA[i:], m.FetchManifestIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.FetchManifestIdRegex)))
+	if len(m.FetchManifestIdRe) > 0 {
+		i -= len(m.FetchManifestIdRe)
+		copy(dAtA[i:], m.FetchManifestIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.FetchManifestIdRe)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -129,7 +129,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.FetchManifestIdRegex)
+	l = len(m.FetchManifestIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -206,7 +206,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FetchManifestIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchManifestIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -234,7 +234,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.FetchManifestIdRegex = string(dAtA[iNdEx:postIndex])
+			m.FetchManifestIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

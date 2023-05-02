@@ -17,15 +17,15 @@ export interface Config {
   /** HandlePluginId is the plugin the web plugin should send RPCs to. */
   handlePluginId: string
   /**
-   * ServiceIdRegex is the regex of service IDs to forward.
+   * ServiceIdRe is the regex of service IDs to forward.
    * If empty, will forward any.
    */
-  serviceIdRegex: string
+  serviceIdRe: string
   /**
-   * ServerIdRegex is the regex of server IDs to forward for.
+   * ServerIdRe is the regex of server IDs to forward for.
    * If empty, will forward any.
    */
-  serverIdRegex: string
+  serverIdRe: string
   /**
    * Backoff is the backoff config for calling the RPC service.
    * If unset, defaults to reasonable defaults.
@@ -37,8 +37,8 @@ function createBaseConfig(): Config {
   return {
     webPluginId: '',
     handlePluginId: '',
-    serviceIdRegex: '',
-    serverIdRegex: '',
+    serviceIdRe: '',
+    serverIdRe: '',
     backoff: undefined,
   }
 }
@@ -54,11 +54,11 @@ export const Config = {
     if (message.handlePluginId !== '') {
       writer.uint32(18).string(message.handlePluginId)
     }
-    if (message.serviceIdRegex !== '') {
-      writer.uint32(26).string(message.serviceIdRegex)
+    if (message.serviceIdRe !== '') {
+      writer.uint32(26).string(message.serviceIdRe)
     }
-    if (message.serverIdRegex !== '') {
-      writer.uint32(34).string(message.serverIdRegex)
+    if (message.serverIdRe !== '') {
+      writer.uint32(34).string(message.serverIdRe)
     }
     if (message.backoff !== undefined) {
       Backoff.encode(message.backoff, writer.uint32(42).fork()).ldelim()
@@ -93,14 +93,14 @@ export const Config = {
             break
           }
 
-          message.serviceIdRegex = reader.string()
+          message.serviceIdRe = reader.string()
           continue
         case 4:
           if (tag != 34) {
             break
           }
 
-          message.serverIdRegex = reader.string()
+          message.serverIdRe = reader.string()
           continue
         case 5:
           if (tag != 42) {
@@ -158,12 +158,8 @@ export const Config = {
       handlePluginId: isSet(object.handlePluginId)
         ? String(object.handlePluginId)
         : '',
-      serviceIdRegex: isSet(object.serviceIdRegex)
-        ? String(object.serviceIdRegex)
-        : '',
-      serverIdRegex: isSet(object.serverIdRegex)
-        ? String(object.serverIdRegex)
-        : '',
+      serviceIdRe: isSet(object.serviceIdRe) ? String(object.serviceIdRe) : '',
+      serverIdRe: isSet(object.serverIdRe) ? String(object.serverIdRe) : '',
       backoff: isSet(object.backoff)
         ? Backoff.fromJSON(object.backoff)
         : undefined,
@@ -175,10 +171,8 @@ export const Config = {
     message.webPluginId !== undefined && (obj.webPluginId = message.webPluginId)
     message.handlePluginId !== undefined &&
       (obj.handlePluginId = message.handlePluginId)
-    message.serviceIdRegex !== undefined &&
-      (obj.serviceIdRegex = message.serviceIdRegex)
-    message.serverIdRegex !== undefined &&
-      (obj.serverIdRegex = message.serverIdRegex)
+    message.serviceIdRe !== undefined && (obj.serviceIdRe = message.serviceIdRe)
+    message.serverIdRe !== undefined && (obj.serverIdRe = message.serverIdRe)
     message.backoff !== undefined &&
       (obj.backoff = message.backoff
         ? Backoff.toJSON(message.backoff)
@@ -194,8 +188,8 @@ export const Config = {
     const message = createBaseConfig()
     message.webPluginId = object.webPluginId ?? ''
     message.handlePluginId = object.handlePluginId ?? ''
-    message.serviceIdRegex = object.serviceIdRegex ?? ''
-    message.serverIdRegex = object.serverIdRegex ?? ''
+    message.serviceIdRe = object.serviceIdRe ?? ''
+    message.serverIdRe = object.serverIdRe ?? ''
     message.backoff =
       object.backoff !== undefined && object.backoff !== null
         ? Backoff.fromPartial(object.backoff)

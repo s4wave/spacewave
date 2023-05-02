@@ -35,28 +35,28 @@ func (c *Config) Validate() error {
 	if c.GetHandlePluginId() == "" {
 		return errors.Wrap(plugin.ErrEmptyPluginID, "handle_plugin_id")
 	}
-	if _, err := c.ParseWebViewIdRegex(); err != nil {
+	if _, err := c.ParseWebViewIdRe(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// SetWebViewIdRegex sets the web view id regex.
-func (c *Config) SetWebViewIdRegex(re string) {
-	c.WebViewIdRegex = re
+// SetWebViewIdRe sets the web view id regex.
+func (c *Config) SetWebViewIdRe(re string) {
+	c.WebViewIdRe = re
 }
 
-// ParseWebViewIdRegex parses the handle web view id regex.
+// ParseWebViewIdRe parses the handle web view id regex.
 // Returns nil if the field was empty.
-func (c *Config) ParseWebViewIdRegex() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(c.GetWebViewIdRegex())
+func (c *Config) ParseWebViewIdRe() (*regexp.Regexp, error) {
+	return confparse.ParseRegexp(c.GetWebViewIdRe())
 }
 
 // ToRequest converts the config into a request.
 func (c *Config) ToRequest() *bldr_web_plugin.HandleWebViewViaPluginRequest {
 	return &bldr_web_plugin.HandleWebViewViaPluginRequest{
 		HandlePluginId: c.GetHandlePluginId(),
-		WebViewIdRegex: c.GetWebViewIdRegex(),
+		WebViewIdRe:    c.GetWebViewIdRe(),
 	}
 }
 

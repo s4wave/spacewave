@@ -41,7 +41,7 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	// note: checked in Validate()
-	webViewIdRe, _ := conf.ParseWebViewIdRegex()
+	webViewIdRe, _ := conf.ParseWebViewIdRe()
 	return &Controller{
 		le:          le,
 		bus:         bus,

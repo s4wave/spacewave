@@ -10,7 +10,7 @@ message Config {
   string web_plugin_id = 1;
   // HandlePluginId is the plugin the web plugin should send WebViews to.
   string handle_plugin_id = 2;
-  // WebViewidRegex is the regex of web view IDs to handle with handlePluginId.
+  // WebViewidRe is the regex of web view IDs to handle with handlePluginId.
   // If empty, will forward any.
-  string web_view_id_regex = 3;
+  string web_view_id_re = 3;
 }

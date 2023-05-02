@@ -1,21 +1,21 @@
 syntax = "proto3";
-package bldr.plugin.forward_rpc_service;
+package bldr.plugin.forward_lookup_block;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 
-// Config configures forwarding rpc services to plugins.
+// Config configures forwarding block lookups to plugins.
 // Loads a plugin with LoadPlugin and uses its RPC client.
 // Calls the AccessRpcService service.
-// Resolves the LookupRpcService directive.
+// Resolves the LookupBlockFromNetwork directive.
 message Config {
-  // PluginId is the plugin to load and use as AccessRpcService.
+  // PluginId is the plugin to load and use as .
   string plugin_id = 1;
-  // ServiceIdRe is the regex of service IDs to forward.
+  // ServiceIdRegex is the regex of service IDs to forward.
   // If empty, will forward any.
-  string service_id_re = 2;
-  // ServerIdRe is the regex of server IDs to forward for.
+  string service_id_regex = 2;
+  // ServerIdRegex is the regex of server IDs to forward for.
   // If empty, will forward any.
-  string server_id_re = 3;
+  string server_id_regex = 3;
   // Backoff is the backoff config for calling the RPC service.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff backoff = 4;

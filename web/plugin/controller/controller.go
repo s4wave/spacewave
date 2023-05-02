@@ -106,8 +106,8 @@ func (c *Controller) HandleWebViewViaPlugin(
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebViewViaPluginStream,
 ) error {
 	conf := &plugin_handle_web_view.Config{
-		PluginId:       req.GetHandlePluginId(),
-		WebViewIdRegex: req.GetWebViewIdRegex(),
+		PluginId:    req.GetHandlePluginId(),
+		WebViewIdRe: req.GetWebViewIdRe(),
 	}
 	if err := conf.Validate(); err != nil {
 		return err
@@ -143,10 +143,10 @@ func (c *Controller) HandleRpcViaPlugin(
 	strm bldr_web_plugin.SRPCWebPlugin_HandleRpcViaPluginStream,
 ) error {
 	conf := &plugin_forward_rpc_service.Config{
-		PluginId:       req.GetHandlePluginId(),
-		ServiceIdRegex: req.GetServiceIdRegex(),
-		ServerIdRegex:  req.GetServerIdRegex(),
-		Backoff:        req.GetBackoff(),
+		PluginId:    req.GetHandlePluginId(),
+		ServiceIdRe: req.GetServiceIdRe(),
+		ServerIdRe:  req.GetServerIdRe(),
+		Backoff:     req.GetBackoff(),
 	}
 	if err := conf.Validate(); err != nil {
 		return err

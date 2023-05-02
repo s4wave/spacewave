@@ -26,9 +26,9 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		PluginId:       m.PluginId,
-		ServiceIdRegex: m.ServiceIdRegex,
-		ServerIdRegex:  m.ServerIdRegex,
+		PluginId:    m.PluginId,
+		ServiceIdRe: m.ServiceIdRe,
+		ServerIdRe:  m.ServerIdRe,
 	}
 	if rhs := m.Backoff; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
@@ -57,10 +57,10 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
-	if this.ServiceIdRegex != that.ServiceIdRegex {
+	if this.ServiceIdRe != that.ServiceIdRe {
 		return false
 	}
-	if this.ServerIdRegex != that.ServerIdRegex {
+	if this.ServerIdRe != that.ServerIdRe {
 		return false
 	}
 	if equal, ok := interface{}(this.Backoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
@@ -132,17 +132,17 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.ServerIdRegex) > 0 {
-		i -= len(m.ServerIdRegex)
-		copy(dAtA[i:], m.ServerIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.ServerIdRegex)))
+	if len(m.ServerIdRe) > 0 {
+		i -= len(m.ServerIdRe)
+		copy(dAtA[i:], m.ServerIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.ServerIdRe)))
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.ServiceIdRegex) > 0 {
-		i -= len(m.ServiceIdRegex)
-		copy(dAtA[i:], m.ServiceIdRegex)
-		i = encodeVarint(dAtA, i, uint64(len(m.ServiceIdRegex)))
+	if len(m.ServiceIdRe) > 0 {
+		i -= len(m.ServiceIdRe)
+		copy(dAtA[i:], m.ServiceIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.ServiceIdRe)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -177,11 +177,11 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.ServiceIdRegex)
+	l = len(m.ServiceIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.ServerIdRegex)
+	l = len(m.ServerIdRe)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -268,7 +268,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ServiceIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -296,11 +296,11 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ServiceIdRegex = string(dAtA[iNdEx:postIndex])
+			m.ServiceIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ServerIdRegex", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServerIdRe", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -328,7 +328,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ServerIdRegex = string(dAtA[iNdEx:postIndex])
+			m.ServerIdRe = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {

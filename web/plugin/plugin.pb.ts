@@ -10,10 +10,10 @@ export interface HandleWebViewViaPluginRequest {
   /** HandlePluginId is the plugin the web plugin should send WebViews to. */
   handlePluginId: string
   /**
-   * WebViewidRegex is the regex of web view IDs to handle with handlePluginId.
+   * WebViewidRe is the regex of web view IDs to handle with handlePluginId.
    * If empty, will forward any.
    */
-  webViewIdRegex: string
+  webViewIdRe: string
 }
 
 /** HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin. */
@@ -26,15 +26,15 @@ export interface HandleRpcViaPluginRequest {
   /** HandlePluginId is the plugin the web plugin should send Rpcs to. */
   handlePluginId: string
   /**
-   * ServiceIdRegex is the regex of service IDs to forward.
+   * ServiceIdRe is the regex of service IDs to forward.
    * If empty, will forward any.
    */
-  serviceIdRegex: string
+  serviceIdRe: string
   /**
-   * ServerIdRegex is the regex of server IDs to forward for.
+   * ServerIdRe is the regex of server IDs to forward for.
    * If empty, will forward any.
    */
-  serverIdRegex: string
+  serverIdRe: string
   /**
    * Backoff is the backoff config for calling the RPC service.
    * If unset, defaults to reasonable defaults.
@@ -48,7 +48,7 @@ export interface HandleRpcViaPluginResponse {
 }
 
 function createBaseHandleWebViewViaPluginRequest(): HandleWebViewViaPluginRequest {
-  return { handlePluginId: '', webViewIdRegex: '' }
+  return { handlePluginId: '', webViewIdRe: '' }
 }
 
 export const HandleWebViewViaPluginRequest = {
@@ -59,8 +59,8 @@ export const HandleWebViewViaPluginRequest = {
     if (message.handlePluginId !== '') {
       writer.uint32(10).string(message.handlePluginId)
     }
-    if (message.webViewIdRegex !== '') {
-      writer.uint32(18).string(message.webViewIdRegex)
+    if (message.webViewIdRe !== '') {
+      writer.uint32(18).string(message.webViewIdRe)
     }
     return writer
   },
@@ -88,7 +88,7 @@ export const HandleWebViewViaPluginRequest = {
             break
           }
 
-          message.webViewIdRegex = reader.string()
+          message.webViewIdRe = reader.string()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -144,9 +144,7 @@ export const HandleWebViewViaPluginRequest = {
       handlePluginId: isSet(object.handlePluginId)
         ? String(object.handlePluginId)
         : '',
-      webViewIdRegex: isSet(object.webViewIdRegex)
-        ? String(object.webViewIdRegex)
-        : '',
+      webViewIdRe: isSet(object.webViewIdRe) ? String(object.webViewIdRe) : '',
     }
   },
 
@@ -154,8 +152,7 @@ export const HandleWebViewViaPluginRequest = {
     const obj: any = {}
     message.handlePluginId !== undefined &&
       (obj.handlePluginId = message.handlePluginId)
-    message.webViewIdRegex !== undefined &&
-      (obj.webViewIdRegex = message.webViewIdRegex)
+    message.webViewIdRe !== undefined && (obj.webViewIdRe = message.webViewIdRe)
     return obj
   },
 
@@ -170,7 +167,7 @@ export const HandleWebViewViaPluginRequest = {
   ): HandleWebViewViaPluginRequest {
     const message = createBaseHandleWebViewViaPluginRequest()
     message.handlePluginId = object.handlePluginId ?? ''
-    message.webViewIdRegex = object.webViewIdRegex ?? ''
+    message.webViewIdRe = object.webViewIdRe ?? ''
     return message
   },
 }
@@ -297,8 +294,8 @@ export const HandleWebViewViaPluginResponse = {
 function createBaseHandleRpcViaPluginRequest(): HandleRpcViaPluginRequest {
   return {
     handlePluginId: '',
-    serviceIdRegex: '',
-    serverIdRegex: '',
+    serviceIdRe: '',
+    serverIdRe: '',
     backoff: undefined,
   }
 }
@@ -311,11 +308,11 @@ export const HandleRpcViaPluginRequest = {
     if (message.handlePluginId !== '') {
       writer.uint32(10).string(message.handlePluginId)
     }
-    if (message.serviceIdRegex !== '') {
-      writer.uint32(18).string(message.serviceIdRegex)
+    if (message.serviceIdRe !== '') {
+      writer.uint32(18).string(message.serviceIdRe)
     }
-    if (message.serverIdRegex !== '') {
-      writer.uint32(26).string(message.serverIdRegex)
+    if (message.serverIdRe !== '') {
+      writer.uint32(26).string(message.serverIdRe)
     }
     if (message.backoff !== undefined) {
       Backoff.encode(message.backoff, writer.uint32(34).fork()).ldelim()
@@ -346,14 +343,14 @@ export const HandleRpcViaPluginRequest = {
             break
           }
 
-          message.serviceIdRegex = reader.string()
+          message.serviceIdRe = reader.string()
           continue
         case 3:
           if (tag != 26) {
             break
           }
 
-          message.serverIdRegex = reader.string()
+          message.serverIdRe = reader.string()
           continue
         case 4:
           if (tag != 34) {
@@ -412,12 +409,8 @@ export const HandleRpcViaPluginRequest = {
       handlePluginId: isSet(object.handlePluginId)
         ? String(object.handlePluginId)
         : '',
-      serviceIdRegex: isSet(object.serviceIdRegex)
-        ? String(object.serviceIdRegex)
-        : '',
-      serverIdRegex: isSet(object.serverIdRegex)
-        ? String(object.serverIdRegex)
-        : '',
+      serviceIdRe: isSet(object.serviceIdRe) ? String(object.serviceIdRe) : '',
+      serverIdRe: isSet(object.serverIdRe) ? String(object.serverIdRe) : '',
       backoff: isSet(object.backoff)
         ? Backoff.fromJSON(object.backoff)
         : undefined,
@@ -428,10 +421,8 @@ export const HandleRpcViaPluginRequest = {
     const obj: any = {}
     message.handlePluginId !== undefined &&
       (obj.handlePluginId = message.handlePluginId)
-    message.serviceIdRegex !== undefined &&
-      (obj.serviceIdRegex = message.serviceIdRegex)
-    message.serverIdRegex !== undefined &&
-      (obj.serverIdRegex = message.serverIdRegex)
+    message.serviceIdRe !== undefined && (obj.serviceIdRe = message.serviceIdRe)
+    message.serverIdRe !== undefined && (obj.serverIdRe = message.serverIdRe)
     message.backoff !== undefined &&
       (obj.backoff = message.backoff
         ? Backoff.toJSON(message.backoff)
@@ -450,8 +441,8 @@ export const HandleRpcViaPluginRequest = {
   ): HandleRpcViaPluginRequest {
     const message = createBaseHandleRpcViaPluginRequest()
     message.handlePluginId = object.handlePluginId ?? ''
-    message.serviceIdRegex = object.serviceIdRegex ?? ''
-    message.serverIdRegex = object.serverIdRegex ?? ''
+    message.serviceIdRe = object.serviceIdRe ?? ''
+    message.serverIdRe = object.serverIdRe ?? ''
     message.backoff =
       object.backoff !== undefined && object.backoff !== null
         ? Backoff.fromPartial(object.backoff)

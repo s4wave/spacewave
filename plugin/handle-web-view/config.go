@@ -30,21 +30,21 @@ func (c *Config) Validate() error {
 	if c.GetPluginId() == "" {
 		return plugin.ErrEmptyPluginID
 	}
-	if _, err := c.ParseWebViewIdRegex(); err != nil {
+	if _, err := c.ParseWebViewIdRe(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// SetWebViewIdRegex sets the web view id regex.
-func (c *Config) SetWebViewIdRegex(re string) {
-	c.WebViewIdRegex = re
+// SetWebViewIdRe sets the web view id regex.
+func (c *Config) SetWebViewIdRe(re string) {
+	c.WebViewIdRe = re
 }
 
-// ParseWebViewIdRegex parses the handle web view id regex.
+// ParseWebViewIdRe parses the handle web view id regex.
 // Returns nil if the field was empty.
-func (c *Config) ParseWebViewIdRegex() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(c.GetWebViewIdRegex())
+func (c *Config) ParseWebViewIdRe() (*regexp.Regexp, error) {
+	return confparse.ParseRegexp(c.GetWebViewIdRe())
 }
 
 // _ is a type assertion

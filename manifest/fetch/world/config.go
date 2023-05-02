@@ -31,21 +31,21 @@ func (c *Config) Validate() error {
 	if c.GetEngineId() == "" {
 		return world.ErrEmptyEngineID
 	}
-	if _, err := c.ParseFetchManifestIdRegex(); err != nil {
+	if _, err := c.ParseFetchManifestIdRe(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// SetFetchManifestIdRegex sets the fetch_manifest_id regex.
-func (c *Config) SetFetchManifestIdRegex(re string) {
-	c.FetchManifestIdRegex = re
+// SetFetchManifestIdRe sets the fetch_manifest_id regex.
+func (c *Config) SetFetchManifestIdRe(re string) {
+	c.FetchManifestIdRe = re
 }
 
-// ParseFetchManifestIdRegex parses the fetch_manifest_id regex.
+// ParseFetchManifestIdRe parses the fetch_manifest_id regex.
 // Returns nil if the field was empty.
-func (c *Config) ParseFetchManifestIdRegex() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(c.GetFetchManifestIdRegex())
+func (c *Config) ParseFetchManifestIdRe() (*regexp.Regexp, error) {
+	return confparse.ParseRegexp(c.GetFetchManifestIdRe())
 }
 
 // _ is a type assertion

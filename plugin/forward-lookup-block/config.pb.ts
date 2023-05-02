@@ -3,27 +3,27 @@ import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "bldr.plugin.forward_rpc_service";
+export const protobufPackage = "bldr.plugin.forward_lookup_block";
 
 /**
- * Config configures forwarding rpc services to plugins.
+ * Config configures forwarding block lookups to plugins.
  * Loads a plugin with LoadPlugin and uses its RPC client.
  * Calls the AccessRpcService service.
- * Resolves the LookupRpcService directive.
+ * Resolves the LookupBlockFromNetwork directive.
  */
 export interface Config {
-  /** PluginId is the plugin to load and use as AccessRpcService. */
+  /** PluginId is the plugin to load and use as . */
   pluginId: string;
   /**
-   * ServiceIdRe is the regex of service IDs to forward.
+   * ServiceIdRegex is the regex of service IDs to forward.
    * If empty, will forward any.
    */
-  serviceIdRe: string;
+  serviceIdRegex: string;
   /**
-   * ServerIdRe is the regex of server IDs to forward for.
+   * ServerIdRegex is the regex of server IDs to forward for.
    * If empty, will forward any.
    */
-  serverIdRe: string;
+  serverIdRegex: string;
   /**
    * Backoff is the backoff config for calling the RPC service.
    * If unset, defaults to reasonable defaults.
@@ -32,7 +32,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { pluginId: "", serviceIdRe: "", serverIdRe: "", backoff: undefined };
+  return { pluginId: "", serviceIdRegex: "", serverIdRegex: "", backoff: undefined };
 }
 
 export const Config = {
@@ -40,11 +40,11 @@ export const Config = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.serviceIdRe !== "") {
-      writer.uint32(18).string(message.serviceIdRe);
+    if (message.serviceIdRegex !== "") {
+      writer.uint32(18).string(message.serviceIdRegex);
     }
-    if (message.serverIdRe !== "") {
-      writer.uint32(26).string(message.serverIdRe);
+    if (message.serverIdRegex !== "") {
+      writer.uint32(26).string(message.serverIdRegex);
     }
     if (message.backoff !== undefined) {
       Backoff.encode(message.backoff, writer.uint32(34).fork()).ldelim();
@@ -71,14 +71,14 @@ export const Config = {
             break;
           }
 
-          message.serviceIdRe = reader.string();
+          message.serviceIdRegex = reader.string();
           continue;
         case 3:
           if (tag != 26) {
             break;
           }
 
-          message.serverIdRe = reader.string();
+          message.serverIdRegex = reader.string();
           continue;
         case 4:
           if (tag != 34) {
@@ -131,8 +131,8 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      serviceIdRe: isSet(object.serviceIdRe) ? String(object.serviceIdRe) : "",
-      serverIdRe: isSet(object.serverIdRe) ? String(object.serverIdRe) : "",
+      serviceIdRegex: isSet(object.serviceIdRegex) ? String(object.serviceIdRegex) : "",
+      serverIdRegex: isSet(object.serverIdRegex) ? String(object.serverIdRegex) : "",
       backoff: isSet(object.backoff) ? Backoff.fromJSON(object.backoff) : undefined,
     };
   },
@@ -140,8 +140,8 @@ export const Config = {
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.serviceIdRe !== undefined && (obj.serviceIdRe = message.serviceIdRe);
-    message.serverIdRe !== undefined && (obj.serverIdRe = message.serverIdRe);
+    message.serviceIdRegex !== undefined && (obj.serviceIdRegex = message.serviceIdRegex);
+    message.serverIdRegex !== undefined && (obj.serverIdRegex = message.serverIdRegex);
     message.backoff !== undefined && (obj.backoff = message.backoff ? Backoff.toJSON(message.backoff) : undefined);
     return obj;
   },
@@ -153,8 +153,8 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.pluginId = object.pluginId ?? "";
-    message.serviceIdRe = object.serviceIdRe ?? "";
-    message.serverIdRe = object.serverIdRe ?? "";
+    message.serviceIdRegex = object.serviceIdRegex ?? "";
+    message.serverIdRegex = object.serverIdRegex ?? "";
     message.backoff = (object.backoff !== undefined && object.backoff !== null)
       ? Backoff.fromPartial(object.backoff)
       : undefined;
