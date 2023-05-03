@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	block_store_rpc "github.com/aperturerobotics/hydra/block/store/rpc"
-	block_store_rpc_lookup "github.com/aperturerobotics/hydra/block/store/rpc/server"
+	block_store_rpc_lookup "github.com/aperturerobotics/hydra/block/store/rpc/lookup"
 	block_store_rpc_server "github.com/aperturerobotics/hydra/block/store/rpc/server"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
