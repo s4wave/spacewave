@@ -116,7 +116,7 @@ func (c *Controller) resolveLookupRpcService(
 func (r *lookupRpcServiceResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	handler.ClearValues()
 
-	client, _, clientRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, r.c.GetBus(), r.accessWebViewsServiceID, ControllerID, true)
+	client, _, clientRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, r.c.GetBus(), r.accessWebViewsServiceID, ControllerID, true, nil)
 	if err != nil {
 		return err
 	}

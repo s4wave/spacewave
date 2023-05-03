@@ -87,7 +87,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		le.Debug("attempting to lookup Echo() service")
 		// TODO: add a srpc.Client which calls LookupRpcClientSet on-demand with refcount per-service
 		hostEchoServiceID := plugin.HostServiceIDPrefix + echo.SRPCEchoerServiceID
-		echoClientSet, _, echoClientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, b, hostEchoServiceID, ControllerID, true)
+		echoClientSet, _, echoClientSetRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, b, hostEchoServiceID, ControllerID, true, nil)
 		if err != nil {
 			le.WithError(err).Warn("unable to lookup rpc client set for echo service")
 			return

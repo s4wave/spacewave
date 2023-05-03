@@ -11,8 +11,8 @@ func TestToBuildType(t *testing.T) {
 		"dEV":            BuildType_DEV,
 		"   pRoDuCtioN ": BuildType_RELEASE,
 		"   deV ":        BuildType_DEV,
+		"":               BuildType_DEV,
 		" fubar ":        "",
-		"":               "",
 	}
 	for val, expected := range cases {
 		bt := ToBuildType(val)
