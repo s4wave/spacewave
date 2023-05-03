@@ -1,4 +1,4 @@
-package block_rpc_client
+package block_rpc
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
-	block_rpc "github.com/aperturerobotics/hydra/block/rpc"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 )
 
@@ -15,17 +14,17 @@ type BlockStore struct {
 	// ctx is used for volume lookups
 	ctx context.Context
 	// client is the client to use
-	client block_rpc.SRPCBlockStoreClient
+	client SRPCBlockStoreClient
 	// hashType is the preferred hash type to use for writes
 	hashType hash.HashType
-	// readOnly disables write calls
+	// readOnly disables any non-read calls.
 	readOnly bool
 }
 
 // NewBlockStore constructs a new BlockStore.
 func NewBlockStore(
 	ctx context.Context,
-	client block_rpc.SRPCBlockStoreClient,
+	client SRPCBlockStoreClient,
 	hashType hash.HashType,
 	readOnly bool,
 ) *BlockStore {
@@ -51,7 +50,7 @@ func (v *BlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef
 	if v.readOnly {
 		return nil, false, block_store.ErrReadOnlyStore
 	}
-	resp, err := v.client.PutBlock(v.ctx, &block_rpc.PutBlockRequest{
+	resp, err := v.client.PutBlock(v.ctx, &PutBlockRequest{
 		Data:    data,
 		PutOpts: opts,
 	})
@@ -72,7 +71,7 @@ func (v *BlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
 func (v *BlockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
-	resp, err := v.client.GetBlock(v.ctx, &block_rpc.GetBlockRequest{
+	resp, err := v.client.GetBlock(v.ctx, &GetBlockRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {
@@ -88,7 +87,7 @@ func (v *BlockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
 func (v *BlockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
-	resp, err := v.client.GetBlockExists(v.ctx, &block_rpc.GetBlockExistsRequest{
+	resp, err := v.client.GetBlockExists(v.ctx, &GetBlockExistsRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {
@@ -107,7 +106,7 @@ func (v *BlockStore) RmBlock(ref *block.BlockRef) error {
 	if v.readOnly {
 		return block_store.ErrReadOnlyStore
 	}
-	resp, err := v.client.RmBlock(v.ctx, &block_rpc.RmBlockRequest{
+	resp, err := v.client.RmBlock(v.ctx, &RmBlockRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {

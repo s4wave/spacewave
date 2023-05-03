@@ -66,8 +66,8 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFI
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.15.0 h1:VHHr3zphgX2fHHAVs/qhPNfWyAhDv5roNWg975Lrfro=
-github.com/aperturerobotics/bifrost v0.15.0/go.mod h1:JQfFXZjuWWc+5g/JEArCzjyJL4qWeXNu/l1eARTigwU=
+github.com/aperturerobotics/bifrost v0.15.2 h1:LYaVORIYy5ZhAUZiIJ2c2R3+VdcSRpF9TU+YeZ8TcUk=
+github.com/aperturerobotics/bifrost v0.15.2/go.mod h1:A+VeFnTyJVMA+2483sPtVAg3HScBJJMoYSeC4TURT/U=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -76,8 +76,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20230429053515-683e596f554e h1:5VYxh
 github.com/aperturerobotics/cayley v0.7.7-0.20230429053515-683e596f554e/go.mod h1:61Dk5zSTlvpFCeInRQRbYLQDalkYxayJy7lyxTGhp+E=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d h1:fBzEjft3+GPHtLifQRWktm5gySeq47Vya7VKN5QiJZs=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d/go.mod h1:ZkxRjf+PpwE8T8EXy9x8sJElgK+wv4C2x3dECK5dZEQ=
-github.com/aperturerobotics/controllerbus v0.26.2 h1:4nd5bEfPgnZSklnmAOyFhitIbeeYG5oSqqZr7LBiTUs=
-github.com/aperturerobotics/controllerbus v0.26.2/go.mod h1:Ak9iK0+kuEOIUZNDNYLNZ2WvTdoWyNme+fnSwERs718=
+github.com/aperturerobotics/controllerbus v0.26.3-0.20230429125108-1156ec9fbf2b h1:J9ns/J713RF0YVmSckEETabHbSkCgBMlEeS6sDC7gGU=
+github.com/aperturerobotics/controllerbus v0.26.3-0.20230429125108-1156ec9fbf2b/go.mod h1:Ak9iK0+kuEOIUZNDNYLNZ2WvTdoWyNme+fnSwERs718=
 github.com/aperturerobotics/entitygraph v0.4.0 h1:V73zfiFrF6f8tBQ6Lg3YoptciPMFvfO0XySFRODWEuo=
 github.com/aperturerobotics/entitygraph v0.4.0/go.mod h1:k3re4TkpTDmCA2PVkZ/bGdq5GSG/OFLkeviainSQKFQ=
 github.com/aperturerobotics/go-kvfile v0.0.0-20230413052644-4277c9f67d91 h1:XUBQKSz+tsOYC/bffY+bk5BMTDh0r4deCXPhO7cGjus=
@@ -607,8 +607,8 @@ github.com/twmb/murmur3 v1.1.6/go.mod h1:Qq/R7NUyOfr65zD+6Q5IHKsJLwP7exErjN6lyyq
 github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 h1:7X4KYG3guI2mPQGxm/ZNNsiu4BjKnef0KG0TblMC+Z8=
 github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8/go.mod h1:OYRfF6eb5wY9VRFkXJH8FFBi3plw2v+giaIu7P054pM=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
-github.com/urfave/cli/v2 v2.25.1 h1:zw8dSP7ghX0Gmm8vugrs6q9Ku0wzweqPyshy+syu9Gw=
-github.com/urfave/cli/v2 v2.25.1/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
+github.com/urfave/cli/v2 v2.25.3 h1:VJkt6wvEBOoSjPFQvOkv6iWIrsJyCrKGtCtxXWwmGeY=
+github.com/urfave/cli/v2 v2.25.3/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
 github.com/valyala/fastjson v1.6.4 h1:uAUNq9Z6ymTgGhcm0UynUAB6tlbakBrz6CQFax3BXVQ=
 github.com/valyala/fastjson v1.6.4/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vmihailenco/msgpack/v5 v5.3.5 h1:5gO0H1iULLWGhs2H5tbAHIZTV8/cYafcFOr9znI5mJU=
@@ -949,8 +949,8 @@ golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
-gonum.org/v1/gonum v0.12.0 h1:xKuo6hzt+gMav00meVPUlXwSdoEJP46BR+wdxQEFK2o=
-gonum.org/v1/gonum v0.12.0/go.mod h1:73TDxJfAAHeA8Mk9mf8NlIppyhQNo5GLTcYeqgo2lvY=
+gonum.org/v1/gonum v0.13.0 h1:a0T3bh+7fhRyqeNbiC3qVHYmkiQgit3wnNan/2c0HMM=
+gonum.org/v1/gonum v0.13.0/go.mod h1:/WPYRckkfWrhWefxyYTfrTtQR0KH4iyHNuzxqXAKyAU=
 google.golang.org/api v0.3.1/go.mod h1:6wY9I6uQWHQ8EM57III9mq/AjF+i8G65rmVagqKMtkk=
 google.golang.org/api v0.3.2/go.mod h1:6wY9I6uQWHQ8EM57III9mq/AjF+i8G65rmVagqKMtkk=
 google.golang.org/api v0.4.0/go.mod h1:8k5glujaEP+g9n7WNsDg8QP6cUVNI86fCNMcbazEtwE=

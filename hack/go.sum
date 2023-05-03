@@ -65,8 +65,8 @@ github.com/alexkohler/prealloc v1.0.0 h1:Hbq0/3fJPQhNkN0dR95AVrr6R7tou91y0uHG5pO
 github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cvfHR56wJVlKE=
 github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQRnw=
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
-github.com/aperturerobotics/bifrost v0.15.0 h1:VHHr3zphgX2fHHAVs/qhPNfWyAhDv5roNWg975Lrfro=
-github.com/aperturerobotics/bifrost v0.15.0/go.mod h1:JQfFXZjuWWc+5g/JEArCzjyJL4qWeXNu/l1eARTigwU=
+github.com/aperturerobotics/bifrost v0.15.2-0.20230503024857-fa81f03d3451 h1:vC+Dec3EJT7N6AkEQ0T4+GhYqHoBVjvTh8YoqRKkp1A=
+github.com/aperturerobotics/bifrost v0.15.2-0.20230503024857-fa81f03d3451/go.mod h1:A+VeFnTyJVMA+2483sPtVAg3HScBJJMoYSeC4TURT/U=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
 github.com/aperturerobotics/starpc v0.19.1 h1:bSTrADGQZU1I7SgOTIiz2AMqUmEfRM6/vFjKjK4bYEw=
@@ -872,8 +872,8 @@ golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
-gonum.org/v1/gonum v0.12.0 h1:xKuo6hzt+gMav00meVPUlXwSdoEJP46BR+wdxQEFK2o=
-gonum.org/v1/gonum v0.12.0/go.mod h1:73TDxJfAAHeA8Mk9mf8NlIppyhQNo5GLTcYeqgo2lvY=
+gonum.org/v1/gonum v0.13.0 h1:a0T3bh+7fhRyqeNbiC3qVHYmkiQgit3wnNan/2c0HMM=
+gonum.org/v1/gonum v0.13.0/go.mod h1:/WPYRckkfWrhWefxyYTfrTtQR0KH4iyHNuzxqXAKyAU=
 google.golang.org/api v0.4.0/go.mod h1:8k5glujaEP+g9n7WNsDg8QP6cUVNI86fCNMcbazEtwE=
 google.golang.org/api v0.7.0/go.mod h1:WtwebWUNSVBH/HAw79HIFXZNqEvBhG+Ra+ax0hx3E3M=
 google.golang.org/api v0.8.0/go.mod h1:o4eAsZoiT+ibD93RtjEohWalFOjRDx6CVaqeizhEnKg=
