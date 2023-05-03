@@ -5,10 +5,11 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -38,7 +39,9 @@ type Controller struct {
 	// info contains the controller info
 	info *controller.Info
 	// host is the plugin host
-	host plugin_host.PluginHost
+	host bldr_plugin_host.PluginHost
+	// hostClient is a loopback srpc client to the host.
+	hostClient srpc.Client
 	// hostPluginPlatformID is the plugin platform ID to use.
 	hostPluginPlatformID *promise.PromiseContainer[string]
 	// objKey is the PluginHost object key (from the config)
@@ -88,7 +91,7 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 	info *controller.Info,
-	host plugin_host.PluginHost,
+	host bldr_plugin_host.PluginHost,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
@@ -112,6 +115,7 @@ func NewController(
 		c.objKey,
 		c.ProcessState,
 	)
+	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
 	return c
 }
 
@@ -243,8 +247,10 @@ func (c *Controller) HandleDirective(
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
-	case plugin.LoadPlugin:
+	case bldr_plugin.LoadPlugin:
 		return directive.R(c.resolveLoadPlugin(ctx, inst, d))
+	case bifrost_rpc.LookupRpcClient:
+		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
 	}
 	return nil, nil
 }
@@ -253,7 +259,7 @@ func (c *Controller) HandleDirective(
 // handle and a release function.
 //
 // Returns nil, nil, err if any error occurs.
-func (c *Controller) AddPluginReference(pluginID string) (plugin.RunningPlugin, func()) {
+func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPlugin, func()) {
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
@@ -277,13 +283,13 @@ func (c *Controller) buildPluginMux(
 	mux := srpc.NewMux() // busInvoker
 
 	// register access host volume via rpc service
-	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, plugin.HostVolumeServiceIDPrefix)
+	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
 
 	// register access web views via bus service
 	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
 
 	// register plugin host service
-	_ = plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest, proxyHostVolInfo))
+	_ = bldr_plugin.SRPCRegisterPluginHost(mux, newPluginHostServer(c, pluginID, manifest, proxyHostVolInfo))
 
 	// register echoer (sanity test) service
 	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
@@ -291,5 +297,38 @@ func (c *Controller) buildPluginMux(
 	return mux
 }
 
+// WaitPluginHostClient waits for an RPC client for the plugin host.
+//
+// Released is a function to call if the client becomes invalid.
+// Returns nil, nil, err if any error.
+// Returns nil, nil, nil to skip resolving the client.
+// Otherwise returns client, releaseFunc, nil
+func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) (srpc.Client, func(), error) {
+	return c.hostClient, nil, nil
+}
+
+// WaitPluginClient waits for an RPC client for a plugin.
+//
+// if pluginID is invalid, returns an error.
+//
+// Released is a function to call if the client becomes invalid.
+// Returns nil, nil, err if any error.
+// Returns nil, nil, nil to skip resolving the client.
+// Otherwise returns client, releaseFunc, nil
+func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
+	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
+		return nil, nil, err
+	}
+
+	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, released)
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, ref.Release, nil
+}
+
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var (
+	_ controller.Controller              = ((*Controller)(nil))
+	_ bldr_plugin.LookupRpcClientHandler = ((*Controller)(nil))
+)
