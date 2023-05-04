@@ -19,9 +19,7 @@ import (
 // There are three options: use constant size chunks, or use a global constant
 // rabin polynomial, or set the polynomial in the options and use the same when
 // encoding in the future. The default is now to use this constant.
-//
-// This constant is the same as the one used in IPFS.
-const defRabinPol = chunker.Pol(17437180132763653)
+const defRabinPol = chunker.Pol(16983672372569473)
 
 // buildChunkIndexRabin builds the rabin-chunked block index.
 // appends if there are already chunks

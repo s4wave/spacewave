@@ -13,6 +13,6 @@ func (a *UtilArgs) RunGenerateRabinPoly(cctx *ucli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%#v\n", poly)
+	fmt.Printf("%d\n", uint64(poly))
 	return nil
 }
