@@ -26,7 +26,7 @@ type BusEngine struct {
 	// buildSema guards below fields
 	buildSema *semaphore.Weighted
 	// handle is the current engine handle
-	handle EngineHandle
+	handle Engine
 	// rel is the current release func
 	rel func()
 }
@@ -114,7 +114,7 @@ func (e *BusEngine) Close() {
 }
 
 // getOrBuildHandle gets or builds the handle.
-func (e *BusEngine) getOrBuildHandle() (EngineHandle, error) {
+func (e *BusEngine) getOrBuildHandle() (Engine, error) {
 	// lookup the engine
 	ctx := e.ctx
 	err := e.buildSema.Acquire(ctx, 1)
@@ -123,17 +123,25 @@ func (e *BusEngine) getOrBuildHandle() (EngineHandle, error) {
 	}
 	defer e.buildSema.Release(1)
 
-	handle := e.handle
-	if handle != nil {
-		select {
-		case <-handle.GetContext().Done():
-			handle = nil
-		default:
-		}
-	}
 	var rel func()
+	handle := e.handle
 	if handle == nil {
-		lookupVal, _, lookupRef, err := ExLookupWorldEngine(e.ctx, e.b, false, e.engineID, nil)
+		lookupVal, _, lookupRef, err := ExLookupWorldEngine(e.ctx, e.b, false, e.engineID, func() {
+			go func() {
+				err := e.buildSema.Acquire(context.Background(), 1)
+				if err != nil {
+					return
+				}
+				if e.handle == handle {
+					e.handle = nil
+					if e.rel != nil {
+						e.rel()
+						e.rel = nil
+					}
+				}
+				e.buildSema.Release(1)
+			}()
+		})
 		if err != nil {
 			return nil, err
 		}

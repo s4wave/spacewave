@@ -5,7 +5,7 @@ import (
 )
 
 // LookupWorldEngine is a directive to lookup a running World Graph engine.
-// Value type: world.EngineHandle.
+// Value type: world.Engine.
 type LookupWorldEngine interface {
 	// Directive indicates LookupWorldEngine is a directive.
 	directive.Directive
@@ -16,7 +16,7 @@ type LookupWorldEngine interface {
 }
 
 // LookupWorldEngineValue is the value type for LookupWorldEngine.
-type LookupWorldEngineValue = EngineHandle
+type LookupWorldEngineValue = Engine
 
 // lookupWorldEngine implements LookupWorldEngine
 type lookupWorldEngine struct {

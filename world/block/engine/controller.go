@@ -29,7 +29,7 @@ type Controller struct {
 	// conf is the config
 	conf *Config
 	// engineCtr contains the engine object
-	engineCtr *ccontainer.CContainer[*EngineHandle]
+	engineCtr *ccontainer.CContainer[*Engine]
 	// engineID is the engine id we are listening on
 	engineID string
 
@@ -59,7 +59,7 @@ func NewController(
 		le:        le.WithField("engine-id", conf.GetEngineId()),
 		conf:      conf,
 		bus:       bus,
-		engineCtr: ccontainer.NewCContainer[*EngineHandle](nil),
+		engineCtr: ccontainer.NewCContainer[*Engine](nil),
 		engineID:  conf.GetEngineId(),
 
 		sfs:       sfs,
@@ -209,13 +209,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
 	}
-	eh := world.NewEngineHandle(ctx, wengine, nil)
-	c.engineCtr.SetValue(&eh)
+	c.engineCtr.SetValue(&wengine)
 
 	<-rctx.Done()
 	le.Debug("shutting down")
 	c.engineCtr.SetValue(nil)
-	eh.Release()
 
 	return nil
 }
@@ -232,8 +230,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // GetWorldEngine waits for the engine to be built.
-// Returns a new EngineHandle, be sure to call Release when done.
-func (c *Controller) GetWorldEngine(ctx context.Context) (EngineHandle, error) {
+// Returns the Engine managed by the controller.
+func (c *Controller) GetWorldEngine(ctx context.Context) (Engine, error) {
 	val, err := c.engineCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err

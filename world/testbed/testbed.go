@@ -118,11 +118,11 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	rels = append(rels, worldCtrlRef.Release)
 	t.EngineController = worldCtrl
 
-	eng, err := worldCtrl.GetWorldEngine(ctx)
+	engh, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		return nil, err
 	}
-	t.Engine = eng
+	t.Engine = engh
 	t.BusEngine = world.NewBusEngine(ctx, b, t.EngineID)
 	t.WorldState = world.NewEngineWorldState(ctx, t.BusEngine, true)
 	return t, nil
