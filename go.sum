@@ -66,8 +66,8 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFI
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aperturerobotics/bifrost v0.15.2 h1:LYaVORIYy5ZhAUZiIJ2c2R3+VdcSRpF9TU+YeZ8TcUk=
-github.com/aperturerobotics/bifrost v0.15.2/go.mod h1:A+VeFnTyJVMA+2483sPtVAg3HScBJJMoYSeC4TURT/U=
+github.com/aperturerobotics/bifrost v0.15.3 h1:8qdXpuIOhr7/uCM1JfjhLreON+wJ8eBYhMVKCA8lhWQ=
+github.com/aperturerobotics/bifrost v0.15.3/go.mod h1:0cv4CIy//GRiDPqHnSP452OwWXG5YvF3JNGIGTCMco0=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -76,8 +76,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20230429053515-683e596f554e h1:5VYxh
 github.com/aperturerobotics/cayley v0.7.7-0.20230429053515-683e596f554e/go.mod h1:61Dk5zSTlvpFCeInRQRbYLQDalkYxayJy7lyxTGhp+E=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d h1:fBzEjft3+GPHtLifQRWktm5gySeq47Vya7VKN5QiJZs=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d/go.mod h1:ZkxRjf+PpwE8T8EXy9x8sJElgK+wv4C2x3dECK5dZEQ=
-github.com/aperturerobotics/controllerbus v0.26.3-0.20230429125108-1156ec9fbf2b h1:J9ns/J713RF0YVmSckEETabHbSkCgBMlEeS6sDC7gGU=
-github.com/aperturerobotics/controllerbus v0.26.3-0.20230429125108-1156ec9fbf2b/go.mod h1:Ak9iK0+kuEOIUZNDNYLNZ2WvTdoWyNme+fnSwERs718=
+github.com/aperturerobotics/controllerbus v0.26.4 h1:J1VJZeSVVWRnSk7w0u2w5DEm+cz97m4wcIAxJDJneq4=
+github.com/aperturerobotics/controllerbus v0.26.4/go.mod h1:QwgINokk5UhL5qI3QqDhl1Qx8dKdTXrdYi2NyaEuJ5I=
 github.com/aperturerobotics/entitygraph v0.4.0 h1:V73zfiFrF6f8tBQ6Lg3YoptciPMFvfO0XySFRODWEuo=
 github.com/aperturerobotics/entitygraph v0.4.0/go.mod h1:k3re4TkpTDmCA2PVkZ/bGdq5GSG/OFLkeviainSQKFQ=
 github.com/aperturerobotics/go-kvfile v0.0.0-20230413052644-4277c9f67d91 h1:XUBQKSz+tsOYC/bffY+bk5BMTDh0r4deCXPhO7cGjus=
@@ -94,8 +94,8 @@ github.com/aperturerobotics/timestamp v0.7.2 h1:4XfGTlqqm1446E5lWeppiGMbX7Q4QAFi
 github.com/aperturerobotics/timestamp v0.7.2/go.mod h1:YaAs7+vux5LeXCeWxucuFelqz6K+HcSyTMQySRxb3qk=
 github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 h1:6ek/umunZbcedghrndY717bDSJcqbGdrcbJJlAL9CPM=
 github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52/go.mod h1:9laEIasGYksCg0ZBeBwZQZbLQ/dyYVY2j7qcl/T0fLc=
-github.com/aperturerobotics/util v1.2.1-0.20230427202427-d37ff1ac37f9 h1:NlMg2w/Qt+f/OSFOjbx3zDFrOj1jg8oxBvv1dkU6+iQ=
-github.com/aperturerobotics/util v1.2.1-0.20230427202427-d37ff1ac37f9/go.mod h1:VB5a5FURpm7EujJsErIY8UZrhrLPN/bj84H8FxN0gD4=
+github.com/aperturerobotics/util v1.3.0 h1:rxax5NXYjhrsLn5ZBeqJPTU/tVkTjms4g/AQnhjvi7M=
+github.com/aperturerobotics/util v1.3.0/go.mod h1:HeYXEiCZ4TqMHqZo2ryPbRXiIM1N/i55Q3AAHFWprI4=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
@@ -392,8 +392,8 @@ github.com/lestrrat-go/strftime v1.0.4/go.mod h1:E1nN3pCbtMSu1yjSVeyuRFVm/U0xoR7
 github.com/lib/pq v1.1.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/libp2p/go-buffer-pool v0.1.0 h1:oK4mSFcQz7cTQIfqbe4MIj9gLW+mnanjyFtc6cdF0Y8=
 github.com/libp2p/go-buffer-pool v0.1.0/go.mod h1:N+vh8gMqimBzdKkSMVuydVDq+UV5QTWy5HSiZacSbPg=
-github.com/libp2p/go-libp2p v0.27.1 h1:k1u6RHsX3hqKnslDjsSgLNURxJ3O1atIZCY4gpMbbus=
-github.com/libp2p/go-libp2p v0.27.1/go.mod h1:FAvvfQa/YOShUYdiSS03IR9OXzkcJXwcNA2FUCh9ImE=
+github.com/libp2p/go-libp2p v0.27.2 h1:I1fxqxdm/O0TFoAZKje8wSMu9tfLlLdzTQvgT3HA6v0=
+github.com/libp2p/go-libp2p v0.27.2/go.mod h1:FAvvfQa/YOShUYdiSS03IR9OXzkcJXwcNA2FUCh9ImE=
 github.com/libp2p/go-libp2p-testing v0.12.0 h1:EPvBb4kKMWO29qP4mZGyhVzUyR25dvfUIK5WDu6iPUA=
 github.com/libp2p/go-msgio v0.3.0 h1:mf3Z8B1xcFN314sWX+2vOTShIE0Mmn2TXn3YCUQGNj0=
 github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 h1:fxyHejZvFIBqlznQDuHUkw9BThYKyoT3DclP/C2g8Wc=
