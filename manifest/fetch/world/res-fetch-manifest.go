@@ -37,9 +37,8 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	_ = handler.ClearValues()
 	res, err := r.c.FetchManifest(ctx, r.manifestMeta, false)
 	if err == nil && res == nil {
-		r.c.le.
-			WithField("manifest-id", r.manifestMeta.GetManifestId()).
-			Debug("manifest not found in world")
+		le := r.manifestMeta.Logger(r.c.le)
+		le.Debug("manifest not found in world")
 		return nil
 	}
 	if err == nil {
@@ -47,7 +46,8 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	}
 	if err != nil {
 		if err != context.Canceled {
-			r.c.le.
+			le := r.manifestMeta.Logger(r.c.le)
+			le.
 				WithError(err).
 				WithField("manifest-id", r.manifestMeta.GetManifestId()).
 				Warn("failed to fetch manifest")
@@ -55,7 +55,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 		return err
 	}
 
-	r.manifestMeta.Logger(r.c.le).Debug("fetched manifest")
+	res.ManifestRef.Meta.Logger(r.c.le).Debug("fetched manifest")
 	var val manifest.FetchManifestValue = res
 	_, _ = handler.AddValue(val)
 	return nil
