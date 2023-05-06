@@ -44,10 +44,10 @@ func CommitManifest(
 		return nil, manifestRef, err
 	}
 
-	le.
+	out.Meta.Logger(le).
 		WithField("object-key", manifestObjKey).
 		WithField("link-object-keys", linkObjKeys).
-		Infof("committing manifest to world: %s", manifestRef.MarshalString())
+		Info("committing manifest to world")
 	_, _, err = ws.ApplyWorldOp(
 		NewStoreManifestOp(
 			manifestObjKey,
