@@ -57,7 +57,7 @@ func CopyObjectToBucket(
 	// We do this by recursively following the block refs.
 	// Note that GetBlockRefCtor must be implemented for this to work properly.
 	// TODO: handle garbage collection (set parent in PutOpts)
-	WalkObjectBlocks(
+	if err := WalkObjectBlocks(
 		ctx,
 		NewWalkObjectBlocksWithRef(srcRef.GetRootRef(), rootCtor),
 		func(ent *WalkObjectBlocksEntry) (cntu bool, err error) {
@@ -66,8 +66,8 @@ func CopyObjectToBucket(
 				cntu, err = cb(ent)
 			} else {
 				cntu, err = true, ent.Err
-				if err == nil && !ent.Found {
-					err = block.ErrNotFound
+				if err == nil && !ent.Found && !ent.IsSubBlock {
+					err = errors.Wrap(block.ErrNotFound, ent.Ref.MarshalString())
 				}
 			}
 			if err != nil || ent.IsSubBlock || !ent.Found || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
@@ -93,7 +93,9 @@ func CopyObjectToBucket(
 		readBkt, readXfrm,
 		maxConcurrency,
 		false,
-	)
+	); err != nil {
+		return nil, err
+	}
 
 	return destinationRef, nil
 }
