@@ -134,9 +134,6 @@ func (c *LookupController) LookupBlock(
 			wait = true
 		}
 		if lookupDirective && !opts.LocalOnly {
-			// NOTE: The controller implementing LookupBlockFromNetwork is also responsible for writing the found block
-			// into one or more local volumes, as appropriate. If the controller that responds to LookupBlockFromNetwork
-			// does not store the result in a local volume, then the directive will be fired on every lookup.
 			data, found, err = c.lookupWithDirective(reqCtx, ref, wait)
 		}
 		if found && err == nil {
