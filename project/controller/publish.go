@@ -186,8 +186,8 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			// Copy the manifests to the destination world.
 			pErr := func() error {
 				for _, manifestID := range manifestIDs {
-					le := le.WithField("copy-manifest-id", manifestID)
 					for _, manifest := range cmanifests[manifestID] {
+						le := manifest.Manifest.Meta.Logger(le)
 						destRemoteTx, err := destRemoteEng.NewTransaction(true)
 						if err != nil {
 							return err
@@ -196,7 +196,6 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 
 						destManifestObjKey := bldr_manifest.NewManifestKey(destStoreObjKey, manifest.Manifest.GetMeta())
 						le.
-							WithField("copy-manifest-rev", manifest.GetRev()).
 							WithField("copy-manifest-dest-key", destManifestObjKey).
 							Debug("copying manifest to destination remote")
 
@@ -261,7 +260,8 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							return err
 						}
 
-						le.Infof("wrote manifest to destination: %s", destManifestObjRef.MarshalB58())
+						_ = destManifestObjRef
+						le.Info("wrote manifest to destination")
 					}
 				}
 				return nil
