@@ -138,7 +138,15 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 		}
 		defer writeCursor.Release()
 
-		wroteManifestRef, err = bucket_lookup.CopyObjectToBucket(ctx, writeCursor, manifestCursor, bldr_manifest.NewManifestBlock)
+		concurrentLimit := t.c.conf.GetFetchConcurrency()
+		wroteManifestRef, err = bucket_lookup.CopyObjectToBucket(
+			ctx,
+			writeCursor,
+			manifestCursor,
+			bldr_manifest.NewManifestBlock,
+			int(concurrentLimit),
+			nil,
+		)
 		return err
 	})
 	if err != nil {

@@ -160,35 +160,35 @@ export const SetRenderModeRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.renderMode = reader.int32() as any
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.wait = reader.bool()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.scriptPath = reader.string()
           continue
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break
           }
 
           message.props = reader.bytes()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -300,7 +300,7 @@ export const SetRenderModeResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -400,21 +400,21 @@ export const SetHtmlLinksRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.clear = reader.bool()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.remove.push(reader.string())
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
@@ -427,7 +427,7 @@ export const SetHtmlLinksRequest = {
           }
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -560,21 +560,21 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.key = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.value = HtmlLink.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -685,21 +685,21 @@ export const HtmlLink = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.href = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.rel = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -793,7 +793,7 @@ export const SetHtmlLinksResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -884,7 +884,7 @@ export const RemoveWebViewRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -978,14 +978,14 @@ export const RemoveWebViewResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.removed = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

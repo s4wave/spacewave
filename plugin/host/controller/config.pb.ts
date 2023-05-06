@@ -32,6 +32,15 @@ export interface Config {
    * This is used if we are watching the same world as the manifest compiler.
    */
   disableStoreManifest: boolean;
+  /**
+   * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
+   * If zero, uses no limit to the number of concurrent fetches.
+   *
+   * Note: the concurrency is limited by the number of blocks that we have seen
+   * so far. Fetches blocks, then the references those blocks reference. We only
+   * know about the blocks on the frontier of the blocks fetched so far.
+   */
+  fetchConcurrency: number;
 }
 
 function createBaseConfig(): Config {
@@ -42,6 +51,7 @@ function createBaseConfig(): Config {
     volumeId: "",
     alwaysFetchManifest: false,
     disableStoreManifest: false,
+    fetchConcurrency: 0,
   };
 }
 
@@ -65,6 +75,9 @@ export const Config = {
     if (message.disableStoreManifest === true) {
       writer.uint32(48).bool(message.disableStoreManifest);
     }
+    if (message.fetchConcurrency !== 0) {
+      writer.uint32(56).uint32(message.fetchConcurrency);
+    }
     return writer;
   },
 
@@ -76,49 +89,56 @@ export const Config = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break;
           }
 
           message.engineId = reader.string();
           continue;
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break;
           }
 
           message.objectKey = reader.string();
           continue;
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break;
           }
 
           message.peerId = reader.string();
           continue;
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break;
           }
 
           message.volumeId = reader.string();
           continue;
         case 5:
-          if (tag != 40) {
+          if (tag !== 40) {
             break;
           }
 
           message.alwaysFetchManifest = reader.bool();
           continue;
         case 6:
-          if (tag != 48) {
+          if (tag !== 48) {
             break;
           }
 
           message.disableStoreManifest = reader.bool();
           continue;
+        case 7:
+          if (tag !== 56) {
+            break;
+          }
+
+          message.fetchConcurrency = reader.uint32();
+          continue;
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break;
       }
       reader.skipType(tag & 7);
@@ -166,6 +186,7 @@ export const Config = {
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
       alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? Boolean(object.alwaysFetchManifest) : false,
       disableStoreManifest: isSet(object.disableStoreManifest) ? Boolean(object.disableStoreManifest) : false,
+      fetchConcurrency: isSet(object.fetchConcurrency) ? Number(object.fetchConcurrency) : 0,
     };
   },
 
@@ -177,6 +198,7 @@ export const Config = {
     message.volumeId !== undefined && (obj.volumeId = message.volumeId);
     message.alwaysFetchManifest !== undefined && (obj.alwaysFetchManifest = message.alwaysFetchManifest);
     message.disableStoreManifest !== undefined && (obj.disableStoreManifest = message.disableStoreManifest);
+    message.fetchConcurrency !== undefined && (obj.fetchConcurrency = Math.round(message.fetchConcurrency));
     return obj;
   },
 
@@ -192,6 +214,7 @@ export const Config = {
     message.volumeId = object.volumeId ?? "";
     message.alwaysFetchManifest = object.alwaysFetchManifest ?? false;
     message.disableStoreManifest = object.disableStoreManifest ?? false;
+    message.fetchConcurrency = object.fetchConcurrency ?? 0;
     return message;
   },
 };

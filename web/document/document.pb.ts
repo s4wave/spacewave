@@ -77,7 +77,7 @@ export const WatchWebDocumentStatusRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -175,21 +175,21 @@ export const WebDocumentStatus = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.snapshot = reader.bool()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -305,35 +305,35 @@ export const WebViewStatus = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.id = reader.string()
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.deleted = reader.bool()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.parentId = reader.string()
           continue
         case 4:
-          if (tag != 32) {
+          if (tag !== 32) {
             break
           }
 
           message.permanent = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -440,14 +440,14 @@ export const CreateWebViewRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.id = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -543,14 +543,14 @@ export const CreateWebViewResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.created = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

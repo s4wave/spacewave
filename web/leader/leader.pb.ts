@@ -96,21 +96,21 @@ export const ElectionEvent = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.eventType = reader.int32() as any
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.workerId = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

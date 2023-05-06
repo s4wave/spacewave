@@ -31,6 +31,7 @@ func (m *Config) CloneVT() *Config {
 		VolumeId:             m.VolumeId,
 		AlwaysFetchManifest:  m.AlwaysFetchManifest,
 		DisableStoreManifest: m.DisableStoreManifest,
+		FetchConcurrency:     m.FetchConcurrency,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -65,6 +66,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DisableStoreManifest != that.DisableStoreManifest {
+		return false
+	}
+	if this.FetchConcurrency != that.FetchConcurrency {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -106,6 +110,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.FetchConcurrency != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.FetchConcurrency))
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.DisableStoreManifest {
 		i--
@@ -196,6 +205,9 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.DisableStoreManifest {
 		n += 2
+	}
+	if m.FetchConcurrency != 0 {
+		n += 1 + sov(uint64(m.FetchConcurrency))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -404,6 +416,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableStoreManifest = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchConcurrency", wireType)
+			}
+			m.FetchConcurrency = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FetchConcurrency |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

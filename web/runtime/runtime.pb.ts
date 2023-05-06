@@ -162,14 +162,14 @@ export const WebRuntimeHostInit = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.webRuntimeId = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -267,7 +267,7 @@ export const WatchWebRuntimeStatusRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -363,14 +363,14 @@ export const WebRuntimeStatus = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.snapshot = reader.bool()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
@@ -379,7 +379,7 @@ export const WebRuntimeStatus = {
           )
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -492,28 +492,28 @@ export const WebDocumentStatus = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.id = reader.string()
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.deleted = reader.bool()
           continue
         case 3:
-          if (tag != 24) {
+          if (tag !== 24) {
             break
           }
 
           message.permanent = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -617,14 +617,14 @@ export const CreateWebDocumentRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.id = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -720,14 +720,14 @@ export const CreateWebDocumentResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.created = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -823,14 +823,14 @@ export const RemoveWebDocumentRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.id = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -926,14 +926,14 @@ export const RemoveWebDocumentResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.removed = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1035,28 +1035,28 @@ export const WebRuntimeClientInit = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.webRuntimeId = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.clientUuid = reader.string()
           continue
         case 3:
-          if (tag != 24) {
+          if (tag !== 24) {
             break
           }
 
           message.clientType = reader.int32() as any
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

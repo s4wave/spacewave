@@ -165,7 +165,7 @@ export const FetchRequest = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
@@ -175,7 +175,7 @@ export const FetchRequest = {
           }
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
@@ -185,7 +185,7 @@ export const FetchRequest = {
           }
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -361,21 +361,21 @@ export const FetchRequestInfo = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.method = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.url = reader.string()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
@@ -388,63 +388,63 @@ export const FetchRequestInfo = {
           }
           continue
         case 4:
-          if (tag != 32) {
+          if (tag !== 32) {
             break
           }
 
           message.hasBody = reader.bool()
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.clientId = reader.string()
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.destination = reader.string()
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
           message.integrity = reader.string()
           continue
         case 8:
-          if (tag != 66) {
+          if (tag !== 66) {
             break
           }
 
           message.mode = reader.string()
           continue
         case 9:
-          if (tag != 74) {
+          if (tag !== 74) {
             break
           }
 
           message.redirect = reader.string()
           continue
         case 10:
-          if (tag != 82) {
+          if (tag !== 82) {
             break
           }
 
           message.referrer = reader.string()
           continue
         case 11:
-          if (tag != 90) {
+          if (tag !== 90) {
             break
           }
 
           message.referrerPolicy = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -598,21 +598,21 @@ export const FetchRequestInfo_HeadersEntry = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.key = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.value = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -717,21 +717,21 @@ export const FetchRequestData = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.data = reader.bytes()
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.done = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -845,7 +845,7 @@ export const FetchResponse = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
@@ -855,7 +855,7 @@ export const FetchResponse = {
           }
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
@@ -865,7 +865,7 @@ export const FetchResponse = {
           }
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1021,7 +1021,7 @@ export const ResponseInfo = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
@@ -1034,42 +1034,42 @@ export const ResponseInfo = {
           }
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.ok = reader.bool()
           continue
         case 3:
-          if (tag != 24) {
+          if (tag !== 24) {
             break
           }
 
           message.redirected = reader.bool()
           continue
         case 4:
-          if (tag != 32) {
+          if (tag !== 32) {
             break
           }
 
           message.status = reader.uint32()
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.statusText = reader.string()
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.responseType = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1208,21 +1208,21 @@ export const ResponseInfo_HeadersEntry = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.key = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.value = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1323,21 +1323,21 @@ export const ResponseData = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.data = reader.bytes()
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.done = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
