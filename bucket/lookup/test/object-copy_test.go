@@ -81,7 +81,14 @@ func TestCopyObjectToBucket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	outRef, err := bucket_lookup.CopyObjectToBucket(ctx, destCursor, srcCursor, block_mock.NewRootBlock)
+	outRef, err := bucket_lookup.CopyObjectToBucket(
+		ctx,
+		destCursor,
+		srcCursor,
+		block_mock.NewRootBlock,
+		-1,
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
