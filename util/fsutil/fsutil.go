@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -59,13 +58,13 @@ func CheckDirEmpty(path string) (bool, error) {
 func ConvertPathsToRelative(baseDir string, paths []string) error {
 	var err error
 	for i := range paths {
-		if path.IsAbs(paths[i]) {
+		if filepath.IsAbs(paths[i]) {
 			paths[i], err = filepath.Rel(baseDir, paths[i])
 			if err != nil {
 				return err
 			}
 		}
-		paths[i] = path.Clean(paths[i])
+		paths[i] = filepath.Clean(paths[i])
 		if strings.HasPrefix(paths[i], "..") {
 			return errors.New("path cannot be above the base dir")
 		}

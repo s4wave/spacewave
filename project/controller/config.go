@@ -1,7 +1,7 @@
 package bldr_project_controller
 
 import (
-	"path"
+	"path/filepath"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_project "github.com/aperturerobotics/bldr/project"
@@ -48,13 +48,13 @@ func (c *Config) Validate() error {
 	if c.GetSourcePath() == "" {
 		return errors.Wrap(bldr_manifest.ErrEmptyPath, "source path")
 	}
-	if !path.IsAbs(c.GetSourcePath()) {
+	if !filepath.IsAbs(c.GetSourcePath()) {
 		return errors.New("source path must be absolute")
 	}
 	if c.GetWorkingPath() == "" {
 		return errors.Wrap(bldr_manifest.ErrEmptyPath, "working path")
 	}
-	if !path.IsAbs(c.GetWorkingPath()) {
+	if !filepath.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
 	}
 	if err := c.GetProjectConfig().Validate(); err != nil {

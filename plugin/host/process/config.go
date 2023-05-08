@@ -1,7 +1,7 @@
 package plugin_host_process
 
 import (
-	"path"
+	"path/filepath"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
@@ -58,10 +58,10 @@ func (c *Config) Validate() error {
 	if err := c.ToControllerConfig().Validate(); err != nil {
 		return err
 	}
-	if !path.IsAbs(c.GetStateDir()) {
+	if !filepath.IsAbs(c.GetStateDir()) {
 		return errors.New("state dir: must be absolute path")
 	}
-	if !path.IsAbs(c.GetDistDir()) {
+	if !filepath.IsAbs(c.GetDistDir()) {
 		return errors.New("dist dir: must be absolute path")
 	}
 	if len(c.GetVolumeId()) == 0 {

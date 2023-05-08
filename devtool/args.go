@@ -3,7 +3,7 @@ package devtool
 import (
 	"errors"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime/debug"
 
 	"github.com/aperturerobotics/bldr"
@@ -318,12 +318,12 @@ func (a *DevtoolArgs) FindRepoRoot() (string, error) {
 // GetStateRoot returns the state directory according to the config.
 func (a *DevtoolArgs) GetStateRoot(repoRoot string) string {
 	if confStatePath := a.StatePath; confStatePath != "" {
-		if path.IsAbs(confStatePath) {
+		if filepath.IsAbs(confStatePath) {
 			return confStatePath
 		}
-		return path.Join(repoRoot, confStatePath)
+		return filepath.Join(repoRoot, confStatePath)
 	}
-	return path.Join(repoRoot, ".bldr")
+	return filepath.Join(repoRoot, ".bldr")
 }
 
 // InitRepoRoot finds an initializes the repo root.
@@ -339,12 +339,12 @@ func (a *DevtoolArgs) InitRepoRoot() (
 	stateRoot = a.GetStateRoot(repoRoot)
 	err = os.MkdirAll(stateRoot, 0755)
 	if err == nil {
-		licenseFile := path.Join(stateRoot, "LICENSE.bldr")
+		licenseFile := filepath.Join(stateRoot, "LICENSE.bldr")
 		licenseBody := "The Bldr sources are covered by this license:\n\n" + bldr.GetLicense()
 		err = os.WriteFile(licenseFile, []byte(licenseBody), 0644)
 	}
 	if err == nil {
-		gitIgnoreFile := path.Join(stateRoot, ".gitignore")
+		gitIgnoreFile := filepath.Join(stateRoot, ".gitignore")
 		gitIgnoreBody := "*\n!LICENSE.bldr\n!.gitignore\n"
 		err = os.WriteFile(gitIgnoreFile, []byte(gitIgnoreBody), 0644)
 	}
@@ -354,8 +354,8 @@ func (a *DevtoolArgs) InitRepoRoot() (
 // GetOutputRoot returns the output path root relative to the project root.
 func (a *DevtoolArgs) GetOutputRoot(repoRoot string) string {
 	outputPath := a.OutputPath
-	if !path.IsAbs(outputPath) {
-		outputPath = path.Join(repoRoot, outputPath)
+	if !filepath.IsAbs(outputPath) {
+		outputPath = filepath.Join(repoRoot, outputPath)
 	}
 	return outputPath
 }

@@ -3,7 +3,7 @@ package bldr_manifest_builder
 import (
 	"context"
 	"io/fs"
-	"path"
+	"path/filepath"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
@@ -33,13 +33,13 @@ func (c *BuilderConfig) Validate() error {
 	if c.GetSourcePath() == "" {
 		return errors.Wrap(manifest.ErrEmptyPath, "source path")
 	}
-	if !path.IsAbs(c.GetSourcePath()) {
+	if !filepath.IsAbs(c.GetSourcePath()) {
 		return errors.New("source path must be absolute")
 	}
 	if c.GetWorkingPath() == "" {
 		return errors.Wrap(manifest.ErrEmptyPath, "working path")
 	}
-	if !path.IsAbs(c.GetWorkingPath()) {
+	if !filepath.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
 	}
 	return nil

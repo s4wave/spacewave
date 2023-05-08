@@ -21,7 +21,7 @@
   "scripts": {
     "check": "npm run typecheck && npm run lint && npm run deps",
     "clean": "rimraf ./.bldr",
-    "bldr": "go run -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr",
+    "bldr": "go run -v -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr",
     "serve": "npm run start:web",
     "start": "npm run start:web",
     "start:native": "npm run bldr -- start native",
@@ -47,7 +47,8 @@
     "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "precommit": "npm run format",
     "setup": "npm run bldr -- setup",
-    "prepare": "npm run patch && npm run clean && go mod vendor && npm run setup"
+    "vendor": "go mod vendor -v",
+    "prepare": "npm run patch && npm run clean && npm run vendor && npm run setup"
   },
   "prettier": {
     "semi": false,
