@@ -6,7 +6,7 @@ package pipesock
 import (
 	"context"
 	"net"
-	"path"
+	"path/filepath"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/sirupsen/logrus"
@@ -14,14 +14,14 @@ import (
 
 // BuildPipeListener builds the pipe listener in the directory.
 func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener, error) {
-	pipeName := path.Join(rootDir, ".pipe", pipeUuid)
+	pipeName := filepath.Join(rootDir, ".pipe", pipeUuid)
 	le.Debugf("listening on winio socket: %s", pipeUuid)
 	return winio.ListenPipe(pipeName, nil)
 }
 
 // DialPipeListener connects to the pipe listener in the directory.
 func DialPipeListener(ctx context.Context, le *logrus.Entry, rootDir, pipeUuid string) (net.Conn, error) {
-	pipePath := path.Join(rootDir, ".pipe-"+pipeUuid)
+	pipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 	addr := &net.UnixAddr{
 		Net:  "unix",
 		Name: pipePath,

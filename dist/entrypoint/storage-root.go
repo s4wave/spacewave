@@ -2,7 +2,7 @@ package dist_entrypoint
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 )
 
 // DetermineStorageRoot determines the root dir to store data.
@@ -12,6 +12,6 @@ func DetermineStorageRoot(projectID string) (string, error) {
 		return "", err
 	}
 
-	outDir := path.Join(configDir, "aperture_robotics", projectID)
+	outDir := filepath.Join(configDir, "aperture_robotics", projectID)
 	return outDir, nil
 }

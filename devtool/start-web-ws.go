@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
@@ -71,8 +71,8 @@ func (b *DevtoolBus) ExecuteWebWs(
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
 	distSrcDir := b.GetDistSrcDir()
-	entrypointDataDir := path.Join(stateDir, "entry")
-	entrypointDir := path.Join(entrypointDataDir, "web/ws")
+	entrypointDataDir := filepath.Join(stateDir, "entry")
+	entrypointDir := filepath.Join(entrypointDataDir, "web/ws")
 
 	// run esbuild to compile the web entrypoint
 	le.Info("building websocket entrypoint")
@@ -89,7 +89,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 	}
 
 	// compile the entrypoint
-	wsRuntimeDir := path.Join(entrypointDir, "runtime")
+	wsRuntimeDir := filepath.Join(entrypointDir, "runtime")
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}

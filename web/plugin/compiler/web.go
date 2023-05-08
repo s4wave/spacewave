@@ -2,7 +2,7 @@ package bldr_web_plugin_compiler
 
 import (
 	"context"
-	"path"
+	"path/filepath"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest "github.com/aperturerobotics/bldr/manifest"
@@ -120,7 +120,7 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
-	workingDir := path.Join(builderConf.GetWorkingPath(), "build")
+	workingDir := filepath.Join(builderConf.GetWorkingPath(), "build")
 	if !GetElectronApplicable(buildPlatform) {
 		// TODO: build web plugin shim for web platform
 		// TODO: return error if unrecognized platform id
@@ -134,8 +134,8 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	le.Debug("building web plugin with plugin compiler")
 
 	// clean / create electron assets dir
-	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
-	electronDistPath := path.Join(outDistPath, "electron")
+	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
+	electronDistPath := filepath.Join(outDistPath, "electron")
 	if err := fsutil.CleanCreateDir(electronDistPath); err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	}
 
 	// create a dir for building the web entrypoint
-	workingEntrypointDir := path.Join(workingDir, "web-entry")
+	workingEntrypointDir := filepath.Join(workingDir, "web-entry")
 	if err := fsutil.CleanCreateDir(workingEntrypointDir); err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	}
 
 	// build the bundle asar
-	distAsarPath := path.Join(outDistPath, "app.asar")
+	distAsarPath := filepath.Join(outDistPath, "app.asar")
 	if err := entrypoint_electron_bundle.BuildAsar(ctx, le, workingEntrypointDir, distAsarPath); err != nil {
 		return nil, errors.Wrap(err, "build app.asar")
 	}
@@ -180,7 +180,7 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 
 	// build config set to start the electron entrypoint on startup
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &electron.Config{
-		ElectronPath:  path.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
+		ElectronPath:  filepath.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
 		RendererPath:  "app.asar",
 		ElectronFlags: extraElectronFlags,
 	}), false)

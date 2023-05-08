@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr "github.com/aperturerobotics/bldr"
@@ -124,13 +124,13 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 
 	// build the plugin state paths on disk
 	pluginHostObjectKey := "devtool"
-	pluginsRoot := path.Join(stateRoot, "plugin")
-	pluginsDistRoot := path.Join(pluginsRoot, "dist")
+	pluginsRoot := filepath.Join(stateRoot, "plugin")
+	pluginsDistRoot := filepath.Join(pluginsRoot, "dist")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
 		rel()
 		return nil, err
 	}
-	pluginsStateRoot := path.Join(pluginsRoot, "state")
+	pluginsStateRoot := filepath.Join(pluginsRoot, "state")
 	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
 		rel()
 		return nil, err
@@ -290,7 +290,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// distSrcDir is the path to the dist sources dir
-	distSrcDir := path.Join(stateRoot, "bldr")
+	distSrcDir := filepath.Join(stateRoot, "bldr")
 	return &DevtoolBus{
 		ctx:                 ctx,
 		b:                   b,
@@ -350,7 +350,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 	}
 
 	// parse modfile
-	bldrGoModPath := path.Join(d.distSrcRoot, "go.mod")
+	bldrGoModPath := filepath.Join(d.distSrcRoot, "go.mod")
 	bldrGoModData, err := os.ReadFile(bldrGoModPath)
 	if err != nil {
 		return err
@@ -384,7 +384,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 		goModInnerSum := sha256.Sum256([]byte(goModInner))
 		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
 
-		bldrGoSumPath := path.Join(d.distSrcRoot, "go.sum")
+		bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
 		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
@@ -495,7 +495,7 @@ func (d *DevtoolBus) StartProjectController(
 	directive.Reference,
 	error,
 ) {
-	absConfigPath := path.Join(repoRoot, configPath)
+	absConfigPath := filepath.Join(repoRoot, configPath)
 	projCtrlConf := bldr_project_controller.NewConfig(
 		repoRoot,
 		d.GetStateRoot(),

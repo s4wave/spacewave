@@ -3,7 +3,7 @@ package dist_entrypoint
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
@@ -89,13 +89,13 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 
 	// build the plugin state paths on disk
 	pluginHostObjectKey := "plugin-host"
-	pluginsRoot := path.Join(stateRoot, "p")
-	pluginsDistRoot := path.Join(pluginsRoot, "d")
+	pluginsRoot := filepath.Join(stateRoot, "p")
+	pluginsDistRoot := filepath.Join(pluginsRoot, "d")
 	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
 		ctxCancel()
 		return nil, err
 	}
-	pluginsStateRoot := path.Join(pluginsRoot, "s")
+	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
 	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
 		ctxCancel()
 		return nil, err

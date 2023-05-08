@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -133,7 +133,7 @@ func (h *ProcessHost) ExecutePlugin(
 	defer ctxCancel()
 
 	// double-check the entrypoint exists and is executable
-	entrypoint = path.Clean(entrypoint)
+	entrypoint = filepath.Clean(entrypoint)
 	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
@@ -149,11 +149,11 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// create the plugin bin and state dir
-	pluginDistDir := path.Join(h.distDir, pluginID)
+	pluginDistDir := filepath.Join(h.distDir, pluginID)
 	if err := os.MkdirAll(pluginDistDir, 0755); err != nil {
 		return err
 	}
-	pluginStateDir := path.Join(h.stateDir, pluginID)
+	pluginStateDir := filepath.Join(h.stateDir, pluginID)
 	if err := os.MkdirAll(pluginStateDir, 0755); err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// the "embed" io/fs will clear the permissions bits
 	// set the executable to chmod +x
-	entrypointPath := path.Join(pluginDistDir, entrypoint)
+	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
 	if err := os.Chmod(entrypointPath, 0755); err != nil {
 		return err
 	}
@@ -333,9 +333,9 @@ func (h *ProcessHost) execPluginIPC(
 
 // DeletePlugin clears cached plugin data for the given plugin ID.
 func (h *ProcessHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	pluginDistDir := path.Join(h.distDir, pluginID)
+	pluginDistDir := filepath.Join(h.distDir, pluginID)
 	e1 := os.RemoveAll(pluginDistDir)
-	pluginStateDir := path.Join(h.stateDir, pluginID)
+	pluginStateDir := filepath.Join(h.stateDir, pluginID)
 	e2 := os.RemoveAll(pluginStateDir)
 	if e1 != nil {
 		return e1

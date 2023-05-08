@@ -7,7 +7,7 @@ import (
 	"context"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -15,7 +15,7 @@ import (
 
 // BuildPipeListener builds the pipe listener in the directory.
 func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener, error) {
-	pipePath := path.Join(rootDir, ".pipe-"+pipeUuid)
+	pipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 
 	// remove old pipe file, if exists
 	if _, err := os.Stat(pipePath); !os.IsNotExist(err) {
@@ -34,7 +34,7 @@ func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener
 
 // DialPipeListener connects to the pipe listener in the directory.
 func DialPipeListener(ctx context.Context, le *logrus.Entry, rootDir, pipeUuid string) (net.Conn, error) {
-	pipePath := path.Join(rootDir, ".pipe-"+pipeUuid)
+	pipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 	addr := &net.UnixAddr{
 		Net:  "unix",
 		Name: pipePath,

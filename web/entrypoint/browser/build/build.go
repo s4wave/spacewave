@@ -3,7 +3,7 @@ package browser_build
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 
@@ -24,12 +24,12 @@ var webEntrypointBrowserDir = "web/entrypoint/browser"
 func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir string) error {
 	le.Info("building runtime-wasm.js")
 	goRootDir := runtime.GOROOT()
-	wasmExecFile := path.Join(goRootDir, "misc/wasm/wasm_exec.js")
+	wasmExecFile := filepath.Join(goRootDir, "misc/wasm/wasm_exec.js")
 	if _, err := os.Stat(wasmExecFile); err != nil {
 		return errors.Wrapf(err, "cannot find wasm_exec.js in goroot: %s", wasmExecFile)
 	}
-	entrypointDir := path.Join(repoRoot, webEntrypointBrowserDir)
-	runtimeJsOut := path.Join(buildDir, "runtime-wasm.js")
+	entrypointDir := filepath.Join(repoRoot, webEntrypointBrowserDir)
+	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.js")
 	res := esbuild_api.Build(esbuild_api.BuildOptions{
 		AbsWorkingDir: entrypointDir,
 		Banner: map[string]string{
@@ -56,7 +56,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 	entrypointPkg := bldrGoMod + "/" + webEntrypointBrowserDir
 
 	le.Info("building runtime.wasm")
-	runtimeOut := path.Join(buildDir, "runtime.wasm")
+	runtimeOut := filepath.Join(buildDir, "runtime.wasm")
 	goArgs := append([]string{
 		"build",
 		"-ldflags", "-s -w",
@@ -81,8 +81,8 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 // builds to buildDir/runtime-ws.js
 func BuildWsRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir string) error {
 	le.Info("building runtime-ws.js")
-	entrypointDir := path.Join(repoRoot, webEntrypointBrowserDir)
-	runtimeJsOut := path.Join(buildDir, "runtime-ws.js")
+	entrypointDir := filepath.Join(repoRoot, webEntrypointBrowserDir)
+	runtimeJsOut := filepath.Join(buildDir, "runtime-ws.js")
 	res := esbuild_api.Build(esbuild_api.BuildOptions{
 		AbsWorkingDir: entrypointDir,
 		Banner: map[string]string{

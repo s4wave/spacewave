@@ -1,7 +1,7 @@
 package electron_storage
 
 import (
-	"path"
+	"path/filepath"
 
 	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -41,7 +41,7 @@ func (i *BoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
 // Returns nil if the storage cannot produce Volume.
 func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
 	return &volume_bolt.Config{
-		Path:         path.Join(i.rootDir, id+BoltDBExt),
+		Path:         filepath.Join(i.rootDir, id+BoltDBExt),
 		Verbose:      i.verbose,
 		Sync:         true,
 		VolumeConfig: baseVolCtrlConf,

@@ -6,7 +6,6 @@ import (
 	gast "go/ast"
 	"go/token"
 	"go/types"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,7 +61,7 @@ func ParseAssetHrefComments(values []string, spec *gast.ValueSpec) (*AssetHrefAr
 	}
 
 	assetPath := fs.Arg(narg - 1)
-	if path.IsAbs(assetPath) {
+	if filepath.IsAbs(assetPath) {
 		return nil, true, errors.Errorf("to path must be relative: %s", assetPath)
 	}
 
@@ -91,7 +90,7 @@ func BuildDefAssetHrefs(
 			return nil, errors.Errorf("failed to find corresponding ast.File for package: %s", pkgImportPath)
 		}
 		for pkgVar, assetArgs := range pkgVars {
-			destPath := path.Join(outAssetsPath, assetArgs.AssetPath)
+			destPath := filepath.Join(outAssetsPath, assetArgs.AssetPath)
 			if !strings.HasPrefix(destPath, outAssetsPath) {
 				return nil, errors.Errorf("path must be child of current dir: %s", assetArgs.AssetPath)
 			}
@@ -99,6 +98,7 @@ func BuildDefAssetHrefs(
 			if err != nil {
 				return nil, err
 			}
+			destPathRel = filepath.ToSlash(destPathRel)
 
 			defs = append(defs, NewGoVarDef(
 				pkgImportPath,

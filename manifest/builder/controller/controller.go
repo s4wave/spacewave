@@ -2,7 +2,7 @@ package bldr_manifest_builder_controller
 
 import (
 	"context"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -191,7 +191,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		for filePath := range nextWatchedFiles {
 			watchedFiles[filePath] = struct{}{}
-			sourcePath := path.Join(builderConfig.GetSourcePath(), filePath)
+			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
 			le.Debugf("adding watcher for file: %s", filePath)
 			if err := watcher.Add(sourcePath); err != nil {
 				return err

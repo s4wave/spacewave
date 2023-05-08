@@ -3,7 +3,7 @@ package gocompiler
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -20,7 +20,7 @@ func RunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) error {
 // MaybeRunGoModTidy conditionally runs go mod tidy if the go.mod has any
 // unresolved non-canonical versions.
 func MaybeRunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) error {
-	baseGoModPath := path.Join(workDir, "go.mod")
+	baseGoModPath := filepath.Join(workDir, "go.mod")
 	baseGoModData, err := os.ReadFile(baseGoModPath)
 	if err != nil {
 		return err

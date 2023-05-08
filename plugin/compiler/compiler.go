@@ -3,7 +3,7 @@ package bldr_plugin_compiler
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -119,13 +119,14 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	le.Debug("building plugin manifest")
 
 	// clean / create dist dir
-	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
+	workingPath := builderConf.GetWorkingPath()
+	outDistPath := filepath.Join(workingPath, "dist")
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
 	}
 
 	// clean / create assets dir
-	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "assets")
+	outAssetsPath := filepath.Join(workingPath, "assets")
 	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
 		return nil, err
 	}
@@ -219,7 +220,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		buildType,
 		buildPlatform,
 		outBinName,
-		builderConf.GetWorkingPath(),
+		workingPath,
 		sourcePath,
 		outDistPath,
 		outAssetsPath,
@@ -432,7 +433,7 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 
-	outDistBinary := path.Join(outDistPath, outBinName)
+	outDistBinary := filepath.Join(outDistPath, outBinName)
 	if isRelease {
 		le.Info("compiling release binary")
 		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo); err != nil {
@@ -445,7 +446,7 @@ func (c *Controller) BuildPlugin(
 		}
 
 		copyFile := func(filename string) error {
-			srcPath := path.Join(mc.pluginCodegenPath, filename)
+			srcPath := filepath.Join(mc.pluginCodegenPath, filename)
 			if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 				return nil
 			}

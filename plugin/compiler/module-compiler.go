@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -74,14 +73,14 @@ func (m *ModuleCompiler) GenerateModule(
 	}
 
 	// Create the output code plugin go.mod.
-	outPluginModFilePath := path.Join(m.pluginCodegenPath, "go.mod")
-	outPluginCodeFilePath := path.Join(m.pluginCodegenPath, "plugin.go")
+	outPluginModFilePath := filepath.Join(m.pluginCodegenPath, "go.mod")
+	outPluginCodeFilePath := filepath.Join(m.pluginCodegenPath, "plugin.go")
 
 	// Create the embedded config set file, if necessary.
 	var configSetBinFiles []string
 	if len(configSetBinary) != 0 {
 		configSetBinFilename := "config-set.bin"
-		outConfigSetBinPath := path.Join(m.pluginCodegenPath, configSetBinFilename)
+		outConfigSetBinPath := filepath.Join(m.pluginCodegenPath, configSetBinFilename)
 		if err := os.WriteFile(outConfigSetBinPath, configSetBinary, 0644); err != nil {
 			return err
 		}
@@ -108,7 +107,7 @@ func (m *ModuleCompiler) GenerateModule(
 		}
 
 		// If the module exists within the source repository:
-		modPathAbs := path.Dir(mod.GoMod)
+		modPathAbs := filepath.Dir(mod.GoMod)
 		if !strings.HasPrefix(modPathAbs, analysis.workDir) {
 			m.le.
 				WithField("mod-path", mod.Path).
@@ -190,8 +189,8 @@ func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, ou
 // If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
 func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus.Entry, outFile, dlvAddr string, enableCgo bool) error {
 	// write the plugin dev wrapper entrypoint
-	devSrcDir := path.Join(m.pluginCodegenPath, "dev")
-	devSrcMain := path.Join(devSrcDir, "main.go")
+	devSrcDir := filepath.Join(m.pluginCodegenPath, "dev")
+	devSrcMain := filepath.Join(devSrcDir, "main.go")
 	if err := os.MkdirAll(devSrcDir, 0755); err != nil {
 		return err
 	}

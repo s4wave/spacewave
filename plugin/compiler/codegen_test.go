@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -73,7 +73,7 @@ func TestCodegen(t *testing.T) {
 		"github.com/aperturerobotics/bldr/example",
 	}
 	workDir, _ := os.Getwd()
-	workDir = path.Join(workDir, "../..")
+	workDir = filepath.Join(workDir, "../..")
 	an, err := AnalyzePackages(ctx, le, workDir, packagePaths)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -3,7 +3,6 @@ package entrypoint_electron_bundle
 import (
 	"context"
 	"os"
-	"path"
 	"path/filepath"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
@@ -51,7 +50,7 @@ func BuildPreloadBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	opts.EntryPoints = []string{
 		"web/electron/main/preload.ts",
 	}
-	opts.Outfile = path.Join(buildDir, "preload.js")
+	opts.Outfile = filepath.Join(buildDir, "preload.js")
 	opts.Platform = esbuild.PlatformNode
 	opts.Write = true
 	if !minify {
@@ -73,7 +72,7 @@ func BuildMainBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) e
 	opts.EntryPoints = []string{
 		"web/electron/main/index.ts",
 	}
-	opts.Outfile = path.Join(buildDir, "index.js")
+	opts.Outfile = filepath.Join(buildDir, "index.js")
 	opts.Platform = esbuild.PlatformNode
 	opts.Write = true
 	if !minify {
@@ -90,20 +89,20 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 	le.Debug("generating web renderer bundle")
 
 	// index.html
-	distSrcDir := path.Join(repoRoot, "web")
-	indexHtmlPath := path.Join(distSrcDir, "index.html")
+	distSrcDir := filepath.Join(repoRoot, "web")
+	indexHtmlPath := filepath.Join(distSrcDir, "index.html")
 	ihtml, err := os.ReadFile(indexHtmlPath)
 	if err != nil {
 		return err
 	}
-	rendererHtmlOut := path.Join(buildDir, "index.html")
+	rendererHtmlOut := filepath.Join(buildDir, "index.html")
 	err = os.WriteFile(rendererHtmlOut, ihtml, 0644)
 	if err != nil {
 		return err
 	}
 
 	// entrypoint
-	webEntrypointOut := path.Join(buildDir, "entrypoint")
+	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
 	opts := ElectronBuildOpts(repoRoot, minify)
 	opts.Outdir = webEntrypointOut
 	opts.EntryPointsAdvanced = nil
@@ -123,12 +122,12 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 // BuildRuntimeBundle copies all runtime files including runtime-electron.ts
 func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	// runtime
-	runtimeOut := path.Join(buildDir, "runtime")
+	runtimeOut := filepath.Join(buildDir, "runtime")
 	err := os.MkdirAll(runtimeOut, 0755)
 	if err != nil {
 		return err
 	}
-	runtimeDir := path.Join(repoRoot, "web/entrypoint/electron")
+	runtimeDir := filepath.Join(repoRoot, "web/entrypoint/electron")
 	runtimeDir, err = filepath.Abs(runtimeDir)
 	if err != nil {
 		return err
@@ -206,7 +205,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 		return err
 	}
 
-	npmDir := path.Join(buildDir, "dl-electron")
+	npmDir := filepath.Join(buildDir, "dl-electron")
 	if err := fsutil.CleanCreateDir(npmDir); err != nil {
 		return err
 	}
@@ -227,8 +226,8 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 	}
 
 	// move the redistributable out of node_modules
-	nodeModulesPath := path.Join(npmDir, "node_modules")
-	electronDistPath := path.Join(nodeModulesPath, "electron", "dist")
+	nodeModulesPath := filepath.Join(npmDir, "node_modules")
+	electronDistPath := filepath.Join(nodeModulesPath, "electron", "dist")
 	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
 		return err
 	}

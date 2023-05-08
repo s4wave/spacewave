@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"go/build"
 	"os"
-	"path"
+	"path/filepath"
 
 	// "go/parser"
 	"go/token"
@@ -50,7 +50,7 @@ func AnalyzePackages(
 	packagePaths []string,
 ) (*Analysis, error) {
 	// expect go.mod go.sum in the work dir for base module
-	baseGoModPath := path.Join(workDir, "go.mod")
+	baseGoModPath := filepath.Join(workDir, "go.mod")
 	baseGoModData, err := os.ReadFile(baseGoModPath)
 	if err != nil {
 		return nil, err

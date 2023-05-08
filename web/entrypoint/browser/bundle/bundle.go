@@ -2,7 +2,7 @@ package entrypoint_browser_bundle
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 
 	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
@@ -66,7 +66,7 @@ func ServiceWorkerBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 // BuildServiceWorkerBundle builds specifically the service worker files.
 func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	le.Debug("generating service-worker bundle")
-	swOut := path.Join(buildDir, "sw.js")
+	swOut := filepath.Join(buildDir, "sw.js")
 	swOpts := ServiceWorkerBuildOpts(repoRoot, minify)
 	swOpts.Outfile = swOut
 	swOpts.Write = true
@@ -81,20 +81,20 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir, runtimeJsPath str
 	le.Debug("generating web renderer bundle")
 
 	// index.html
-	webSrcDir := path.Join(repoRoot, "web")
-	indexHtmlPath := path.Join(webSrcDir, "index.html")
+	webSrcDir := filepath.Join(repoRoot, "web")
+	indexHtmlPath := filepath.Join(webSrcDir, "index.html")
 	ihtml, err := os.ReadFile(indexHtmlPath)
 	if err != nil {
 		return err
 	}
-	rendererHtmlOut := path.Join(buildDir, "index.html")
+	rendererHtmlOut := filepath.Join(buildDir, "index.html")
 	err = os.WriteFile(rendererHtmlOut, ihtml, 0644)
 	if err != nil {
 		return err
 	}
 
 	// entrypoint
-	webEntrypointOut := path.Join(buildDir, "entrypoint")
+	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
 	rendererBuildOpts := BrowserEntrypointBuildOpts(repoRoot, minify)
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true

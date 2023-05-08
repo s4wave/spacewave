@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
@@ -60,8 +60,8 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
 	distSrcDir := b.GetDistSrcDir()
-	entrypointDataDir := path.Join(stateDir, "entry")
-	entrypointDir := path.Join(entrypointDataDir, "web/wasm")
+	entrypointDataDir := filepath.Join(stateDir, "entry")
+	entrypointDir := filepath.Join(entrypointDataDir, "web/wasm")
 
 	// run esbuild to compile the web entrypoint
 	le.Info("building web wasm entrypoint")
@@ -78,7 +78,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	}
 
 	// compile the entrypoint wasm
-	wasmRuntimeDir := path.Join(entrypointDir, "runtime")
+	wasmRuntimeDir := filepath.Join(entrypointDir, "runtime")
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}

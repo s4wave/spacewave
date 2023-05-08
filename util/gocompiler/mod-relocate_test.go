@@ -1,7 +1,7 @@
 package gocompiler
 
 import (
-	"path"
+	"path/filepath"
 	"testing"
 
 	"golang.org/x/mod/modfile"
@@ -31,8 +31,8 @@ require github.com/blang/semver v3.5.1+incompatible
 
 // TestRelocateGoModFile tests relocating a sample go.mod file.
 func TestRelocateGoModFile(t *testing.T) {
-	srcModPath := path.Join(testRootDir, "go.mod")
-	destModPath := path.Join(testRootDir, "../next/target-module/go.mod")
+	srcModPath := filepath.Join(testRootDir, "go.mod")
+	destModPath := filepath.Join(testRootDir, "../next/target-module/go.mod")
 
 	mf, err := modfile.Parse(srcModPath, []byte(testModFile), nil)
 	// mf, err := parseGoModFile(srcModPath)

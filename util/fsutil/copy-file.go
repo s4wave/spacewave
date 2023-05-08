@@ -4,7 +4,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -30,8 +29,8 @@ func CopyFile(dst, src string, perm os.FileMode) error {
 
 // CopyFileToDir copies the file to the dir maintaining the filename.
 func CopyFileToDir(dstDir, src string, perm os.FileMode) error {
-	_, srcFilename := path.Split(src)
-	return CopyFile(path.Join(dstDir, srcFilename), src, perm)
+	_, srcFilename := filepath.Split(src)
+	return CopyFile(filepath.Join(dstDir, srcFilename), src, perm)
 }
 
 // CopyRecursive copies regular files & directories from src to dest.
@@ -52,8 +51,8 @@ func CopyRecursive(dstDir, src string, cb fs.WalkDirFunc) error {
 		if err != nil {
 			return err
 		}
-		dstPath := path.Join(dstDir, srcRel)
-		dstParent := path.Dir(dstPath)
+		dstPath := filepath.Join(dstDir, srcRel)
+		dstParent := filepath.Dir(dstPath)
 		if err := os.MkdirAll(dstParent, 0755); err != nil {
 			return err
 		}

@@ -6,7 +6,6 @@ import (
 	gast "go/ast"
 	"go/token"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -69,7 +68,7 @@ func BuildDefEsbuild(
 		if len(pkgCodeFiles) == 0 {
 			return nil, nil, errors.Errorf("failed to find ast.File for package: %s", pkgImportPath)
 		}
-		pkgCodePath := path.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
+		pkgCodePath := filepath.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
 		relPkgCodePath, err := filepath.Rel(codeRootPath, pkgCodePath)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "unable to determine relative path")
@@ -91,7 +90,8 @@ func BuildDefEsbuild(
 					entryPointPath = entryPointPath[1:]
 				}
 				// determine path relative to the project root
-				return path.Join(relPkgCodePath, path.Clean(entryPointPath))
+				adjPath := filepath.Join(relPkgCodePath, filepath.Clean(entryPointPath))
+				return filepath.ToSlash(adjPath)
 			}
 
 			// note: we only allow 1 entrypoint currently
@@ -194,20 +194,22 @@ func BuildDefEsbuild(
 			var outpEntrypointPath string
 			var err error
 			if entrypointOutp.EntryPoint != "" {
-				outpEntrypointPath = path.Join(codeRootPath, entrypointOutpPath)
+				outpEntrypointPath = filepath.Join(codeRootPath, entrypointOutpPath)
 				outpEntrypointPath, err = filepath.Rel(outAssetsPath, outpEntrypointPath)
 				if err != nil {
 					return nil, nil, err
 				}
+				outpEntrypointPath = filepath.ToSlash(outpEntrypointPath)
 			}
 			var outpCssPath string
 			if entrypointOutp.CssBundle != "" {
 				// NOTE: outp.CssBundle is relative to buildSrcPath
-				outpCssPath = path.Join(codeRootPath, entrypointOutp.CssBundle)
+				outpCssPath = filepath.Join(codeRootPath, entrypointOutp.CssBundle)
 				outpCssPath, err = filepath.Rel(outAssetsPath, outpCssPath)
 				if err != nil {
 					return nil, nil, err
 				}
+				outpCssPath = filepath.ToSlash(outpCssPath)
 			}
 
 			buildStringLit := func(lit string) *gast.BasicLit {

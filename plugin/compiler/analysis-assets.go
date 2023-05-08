@@ -8,7 +8,6 @@ import (
 	"go/types"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -79,12 +78,12 @@ func ParseAssetComments(values []string, spec *gast.ValueSpec) (*AssetArgs, bool
 	}
 
 	fromPath := fs.Arg(narg - 2)
-	if path.IsAbs(fromPath) {
+	if filepath.IsAbs(fromPath) {
 		return nil, true, errors.Errorf("from path must be relative: %s", fromPath)
 	}
 
 	toPath := fs.Arg(narg - 1)
-	if path.IsAbs(toPath) {
+	if filepath.IsAbs(toPath) {
 		return nil, true, errors.Errorf("to path must be relative: %s", toPath)
 	}
 
@@ -114,7 +113,7 @@ func BuildDefAssets(
 			return nil, nil, errors.Errorf("failed to find corresponding ast.File for package: %s", pkgImportPath)
 		}
 		for pkgVar, assetArgs := range pkgVars {
-			destPath := path.Join(outAssetsPath, assetArgs.ToPath)
+			destPath := filepath.Join(outAssetsPath, assetArgs.ToPath)
 			if !strings.HasPrefix(destPath, outAssetsPath) {
 				return nil, nil, errors.Errorf("path must be child of current dir: %s", assetArgs.ToPath)
 			}
@@ -122,9 +121,10 @@ func BuildDefAssets(
 			if err != nil {
 				return nil, nil, err
 			}
+			destPathRel = filepath.ToSlash(destPathRel)
 
-			pkgCodePath := path.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
-			srcPath := path.Join(pkgCodePath, assetArgs.FromPath)
+			pkgCodePath := filepath.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
+			srcPath := filepath.Join(pkgCodePath, assetArgs.FromPath)
 			if !strings.HasPrefix(srcPath, pkgCodePath) {
 				return nil, nil, errors.Errorf("path must be child of current dir: %s", assetArgs.FromPath)
 			}

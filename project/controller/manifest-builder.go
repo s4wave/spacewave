@@ -3,6 +3,7 @@ package bldr_project_controller
 import (
 	"context"
 	"path"
+	"path/filepath"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -123,8 +124,8 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	}
 
 	// TODO: could there be a path collision here?
-	buildWorkingPath := path.Join(t.c.c.GetWorkingPath(), "build", platformIDPath, manifestID)
-	distSrcPath := path.Join(t.c.c.GetWorkingPath(), "bldr")
+	buildWorkingPath := filepath.Join(t.c.c.GetWorkingPath(), "build", platformIDPath, manifestID)
+	distSrcPath := filepath.Join(t.c.c.GetWorkingPath(), "bldr")
 
 	// load plugin config from project config
 	projectConfig := t.c.c.GetProjectConfig()

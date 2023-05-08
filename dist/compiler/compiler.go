@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -115,13 +115,13 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 	le.Debug("building dist manifest")
 
 	// clean / create dist dir
-	outDistPath := path.Join(builderConf.GetWorkingPath(), "dist")
+	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
 	}
 
 	// clean / create assets dir
-	outAssetsPath := path.Join(builderConf.GetWorkingPath(), "assets")
+	outAssetsPath := filepath.Join(builderConf.GetWorkingPath(), "assets")
 	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
 		return nil, err
 	}

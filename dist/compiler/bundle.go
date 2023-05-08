@@ -4,7 +4,7 @@ import (
 	"context"
 	io "io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -50,7 +50,7 @@ func BuildDistBundle(
 
 	// Write the bldr license file.
 	bldrLicense := bldr.GetLicense()
-	if err := os.WriteFile(path.Join(workingPath, "LICENSE"), []byte(bldrLicense), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(workingPath, "LICENSE"), []byte(bldrLicense), 0644); err != nil {
 		return err
 	}
 
@@ -72,13 +72,13 @@ func BuildDistBundle(
 	}
 
 	// EntrypointBuildDir is the directory we will run "go build"
-	entrypointBuildDir := path.Join(workingPath, "entrypoint")
+	entrypointBuildDir := filepath.Join(workingPath, "entrypoint")
 	if err := os.MkdirAll(entrypointBuildDir, 0755); err != nil {
 		return err
 	}
 
 	// Write the configset bin file.
-	outConfigSetPath := path.Join(entrypointBuildDir, "config-set.bin")
+	outConfigSetPath := filepath.Join(entrypointBuildDir, "config-set.bin")
 	if err := os.WriteFile(outConfigSetPath, hostConfigSetBin, 0644); err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func BuildDistBundle(
 	workingID := strings.Join([]string{ControllerID, meta.GetProjectId(), buildPlatform.GetPlatformID()}, "/")
 
 	// start with a boltdb on-disk in the working dir
-	workingDb := path.Join(workingPath, "assets.db")
+	workingDb := filepath.Join(workingPath, "assets.db")
 	workingDbVolID := "dist-working-vol"
 	workingDbConf := &volume_bolt.Config{
 		Path:       workingDb,
@@ -208,7 +208,7 @@ func BuildDistBundle(
 
 	// Build a seekable-zstd compressed kvfile with the embedded volume contents.
 	le.Debug("packing embedded volume to seekable-zstd kvfile")
-	embeddedVolumePath := path.Join(entrypointBuildDir, "volume.kvfile")
+	embeddedVolumePath := filepath.Join(entrypointBuildDir, "volume.kvfile")
 	embeddedVolFile, err := os.OpenFile(embeddedVolumePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -233,11 +233,11 @@ func BuildDistBundle(
 	// TODO: process the kvfile in the dist entrypoint
 	le.Debug("compiling dist entrypoint")
 	entrypointSrc := FormatDistEntrypoint(meta)
-	entrypointMainPath := path.Join(entrypointBuildDir, "main.go")
+	entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
 	if err := os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0644); err != nil {
 		return err
 	}
 
-	outBinPath := path.Join(outputPath, outBinName)
+	outBinPath := filepath.Join(outputPath, outBinName)
 	return gocompiler.ExecBuildEntrypoint(le, buildPlatform, entrypointBuildDir, outBinPath, enableCgo)
 }
