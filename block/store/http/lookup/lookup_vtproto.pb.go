@@ -25,8 +25,9 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
-		BucketId: m.BucketId,
-		Url:      m.Url,
+		BucketId:     m.BucketId,
+		Url:          m.Url,
+		SkipNotFound: m.SkipNotFound,
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -49,6 +50,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Url != that.Url {
+		return false
+	}
+	if this.SkipNotFound != that.SkipNotFound {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -91,6 +95,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SkipNotFound {
+		i--
+		if m.SkipNotFound {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.Url) > 0 {
 		i -= len(m.Url)
 		copy(dAtA[i:], m.Url)
@@ -132,6 +146,9 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.Url)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
+	}
+	if m.SkipNotFound {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -236,6 +253,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Url = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkipNotFound", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SkipNotFound = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

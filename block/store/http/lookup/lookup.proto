@@ -16,4 +16,6 @@ message Config {
   //  - DELETE /block/rm
   // Must be set and a valid http or https url.
   string url = 2;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 3;
 }

@@ -25,6 +25,7 @@ type LookupBlockFromNetworkValue interface {
 	// GetError returns any error.
 	GetError() error
 	// GetData returns the returned data.
+	// Returns nil if not found.
 	GetData() []byte
 	// GetProvider returns the peer who provided the data.
 	// May be empty.
@@ -48,6 +49,7 @@ func (v *lookupBlockFromNetworkValue) GetError() error {
 }
 
 // GetData returns the returned data.
+// Returns nil if not found.
 func (v *lookupBlockFromNetworkValue) GetData() []byte {
 	return v.data
 }

@@ -23,10 +23,12 @@ export interface Config {
    * Must be set and a valid http or https url.
    */
   url: string
+  /** SkipNotFound skips returning a value if the block was not found. */
+  skipNotFound: boolean
 }
 
 function createBaseConfig(): Config {
-  return { bucketId: '', url: '' }
+  return { bucketId: '', url: '', skipNotFound: false }
 }
 
 export const Config = {
@@ -39,6 +41,9 @@ export const Config = {
     }
     if (message.url !== '') {
       writer.uint32(18).string(message.url)
+    }
+    if (message.skipNotFound === true) {
+      writer.uint32(24).bool(message.skipNotFound)
     }
     return writer
   },
@@ -64,6 +69,13 @@ export const Config = {
           }
 
           message.url = reader.string()
+          continue
+        case 3:
+          if (tag != 24) {
+            break
+          }
+
+          message.skipNotFound = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -112,6 +124,9 @@ export const Config = {
     return {
       bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
       url: isSet(object.url) ? String(object.url) : '',
+      skipNotFound: isSet(object.skipNotFound)
+        ? Boolean(object.skipNotFound)
+        : false,
     }
   },
 
@@ -119,6 +134,8 @@ export const Config = {
     const obj: any = {}
     message.bucketId !== undefined && (obj.bucketId = message.bucketId)
     message.url !== undefined && (obj.url = message.url)
+    message.skipNotFound !== undefined &&
+      (obj.skipNotFound = message.skipNotFound)
     return obj
   },
 
@@ -130,6 +147,7 @@ export const Config = {
     const message = createBaseConfig()
     message.bucketId = object.bucketId ?? ''
     message.url = object.url ?? ''
+    message.skipNotFound = object.skipNotFound ?? false
     return message
   },
 }

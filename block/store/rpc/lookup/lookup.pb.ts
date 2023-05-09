@@ -22,10 +22,12 @@ export interface Config {
    * Can be empty.
    */
   clientId: string
+  /** SkipNotFound skips returning a value if the block was not found. */
+  skipNotFound: boolean
 }
 
 function createBaseConfig(): Config {
-  return { bucketId: '', serviceId: '', clientId: '' }
+  return { bucketId: '', serviceId: '', clientId: '', skipNotFound: false }
 }
 
 export const Config = {
@@ -41,6 +43,9 @@ export const Config = {
     }
     if (message.clientId !== '') {
       writer.uint32(26).string(message.clientId)
+    }
+    if (message.skipNotFound === true) {
+      writer.uint32(32).bool(message.skipNotFound)
     }
     return writer
   },
@@ -73,6 +78,13 @@ export const Config = {
           }
 
           message.clientId = reader.string()
+          continue
+        case 4:
+          if (tag != 32) {
+            break
+          }
+
+          message.skipNotFound = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -122,6 +134,9 @@ export const Config = {
       bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
       serviceId: isSet(object.serviceId) ? String(object.serviceId) : '',
       clientId: isSet(object.clientId) ? String(object.clientId) : '',
+      skipNotFound: isSet(object.skipNotFound)
+        ? Boolean(object.skipNotFound)
+        : false,
     }
   },
 
@@ -130,6 +145,8 @@ export const Config = {
     message.bucketId !== undefined && (obj.bucketId = message.bucketId)
     message.serviceId !== undefined && (obj.serviceId = message.serviceId)
     message.clientId !== undefined && (obj.clientId = message.clientId)
+    message.skipNotFound !== undefined &&
+      (obj.skipNotFound = message.skipNotFound)
     return obj
   },
 
@@ -142,6 +159,7 @@ export const Config = {
     message.bucketId = object.bucketId ?? ''
     message.serviceId = object.serviceId ?? ''
     message.clientId = object.clientId ?? ''
+    message.skipNotFound = object.skipNotFound ?? false
     return message
   },
 }

@@ -13,4 +13,6 @@ message Config {
   // ClientId is the client id to use with LookupRpcClient.
   // Can be empty.
   string client_id = 3;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 4;
 }
