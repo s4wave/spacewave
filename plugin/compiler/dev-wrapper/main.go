@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"strings"
 	"unicode/utf8"
 )
@@ -106,14 +107,20 @@ func run() error {
 		)
 	}
 
-	goArgs := []string{"build", "-o", "plugin"}
+	var executableSuffix string
+	if runtime.GOOS == "windows" {
+		executableSuffix = ".exe"
+	}
+
+	binPath := strings.Join([]string{".", string(os.PathSeparator), "plugin", executableSuffix}, "")
+	goArgs := []string{"build", "-o", binPath}
 	goArgs = append(goArgs, BuildFlags...)
 
 	if err := runCmd("go", false, goArgs...); err != nil {
 		return err
 	}
 
-	return runCmd("./plugin", true, "exec-plugin")
+	return runCmd(binPath, true, "exec-plugin")
 }
 
 // NOTE: the below is from go-shellquote (MIT License)
