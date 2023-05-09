@@ -16,7 +16,6 @@ message Config {
   // WebRuntimeId is the value to use for the runtime uuid.
   // Used for the Unix pipe paths and for the BroadcastChannel ids.
   // Should be unique against other running Electron instances.
-  // If unset, uses "default"
   string web_runtime_id = 3;
   // ElectronFlags are additional flags to pass to electron.
   repeated string electron_flags = 4;

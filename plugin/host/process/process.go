@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
@@ -188,9 +189,15 @@ func (h *ProcessHost) ExecutePlugin(
 	// set pwd to plugin bin dir
 	entrypointProc.Dir = pluginDistDir
 
+	// create unique plugin instance id
+	pluginInstanceID := randstring.RandomIdentifier(0)
+
 	// NOTE: the pluginID is validated to be a valid-dns-identifier
-	entrypointProc.Env = os.Environ()
-	entrypointProc.Env = append(entrypointProc.Env, "BLDR_PLUGIN="+pluginID)
+	entrypointProc.Env = append(
+		os.Environ(),
+		"BLDR_PLUGIN="+pluginID,
+		"BLDR_PLUGIN_INSTANCE="+pluginInstanceID,
+	)
 
 	// stderr: contains any logs
 	le := h.le.WithField("plugin-id", pluginID)
@@ -199,7 +206,7 @@ func (h *ProcessHost) ExecutePlugin(
 	// entrypointProc.Stdout = debugWriter
 
 	// attach to pipe
-	pipeListener, err := pipesock.BuildPipeListener(le, pluginDistDir, "plugin")
+	pipeListener, err := pipesock.BuildPipeListener(le, pluginDistDir, pluginInstanceID)
 	if err != nil {
 		return err
 	}

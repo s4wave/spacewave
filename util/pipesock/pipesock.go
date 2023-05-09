@@ -13,7 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// BuildPipeListener builds the pipe listener in the directory.
+// BuildPipeListener builds the pipe listener.
+// The rootDir is used for unix sockets if this is a linux system.
+// The pipeUuid is used for the socket path OR the Windows Pipe Name.
+// The pipeUuid should be unique to the local device and pipe.
 func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener, error) {
 	pipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
 

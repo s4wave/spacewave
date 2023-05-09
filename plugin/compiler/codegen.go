@@ -134,6 +134,43 @@ func CodegenPluginWrapperFromAnalysis(
 		})
 	}
 
+	// InstanceID contains the plugin instance id from the environment.
+	allDecls = append(allDecls, &gast.GenDecl{
+		Doc: &gast.CommentGroup{
+			List: []*gast.Comment{{
+				Text: "// InstanceID contains the plugin instance id.\n",
+			}},
+		},
+		Tok: token.VAR,
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{gast.NewIdent("InstanceID")},
+				Values: []gast.Expr{
+					&gast.CallExpr{
+						Fun: &gast.SelectorExpr{
+							X:   gast.NewIdent("strings"),
+							Sel: gast.NewIdent("TrimSpace"),
+						},
+						Args: []gast.Expr{
+							&gast.CallExpr{
+								Fun: &gast.SelectorExpr{
+									X:   gast.NewIdent("os"),
+									Sel: gast.NewIdent("Getenv"),
+								},
+								Args: []gast.Expr{
+									&gast.BasicLit{
+										Kind:  token.STRING,
+										Value: `"BLDR_PLUGIN_INSTANCE"`,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
 	// PluginMeta contains the b58 encoded plugin metadata.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: &gast.CommentGroup{
@@ -329,6 +366,7 @@ func CodegenPluginWrapperFromAnalysis(
 						Sel: gast.NewIdent("Main"),
 					},
 					Args: []gast.Expr{
+						gast.NewIdent("InstanceID"),
 						gast.NewIdent("PluginMeta"),
 						gast.NewIdent("LogLevel"),
 						gast.NewIdent("Factories"),

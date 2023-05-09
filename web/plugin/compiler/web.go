@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 
+	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -179,7 +180,9 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	}
 
 	// build config set to start the electron entrypoint on startup
+	webRuntimeId := random_id.RandomIdentifier(0)
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &electron.Config{
+		WebRuntimeId:  webRuntimeId,
 		ElectronPath:  filepath.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
 		RendererPath:  "app.asar",
 		ElectronFlags: extraElectronFlags,

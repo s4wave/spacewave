@@ -5,6 +5,7 @@ package plugin_entrypoint
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 
@@ -19,7 +20,13 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // Main runs the default main entrypoint for a plugin.
-func Main(pluginMetaB58 string, logLevel logrus.Level, addFactoryFuncs []AddFactoryFunc, configSetFuncs []BuildConfigSetFunc) {
+func Main(
+	pluginInstanceID,
+	pluginMetaB58 string,
+	logLevel logrus.Level,
+	addFactoryFuncs []AddFactoryFunc,
+	configSetFuncs []BuildConfigSetFunc,
+) {
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors:    true,
@@ -37,7 +44,7 @@ func Main(pluginMetaB58 string, logLevel logrus.Level, addFactoryFuncs []AddFact
 			return err
 		}
 
-		err = Run(ctx, le, pluginMeta, addFactoryFuncs, configSetFuncs)
+		err = Run(ctx, le, pluginInstanceID, pluginMeta, addFactoryFuncs, configSetFuncs)
 		if err != context.Canceled {
 			return err
 		}
@@ -52,6 +59,7 @@ func Main(pluginMetaB58 string, logLevel logrus.Level, addFactoryFuncs []AddFact
 func Run(
 	ctx context.Context,
 	le *logrus.Entry,
+	pluginInstanceID string,
 	pluginMeta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
@@ -61,8 +69,13 @@ func Run(
 		return err
 	}
 
+	// check instance id
+	if pluginInstanceID == "" {
+		return errors.New("instance id was not set")
+	}
+
 	// construct pipe socket
-	conn, err := pipesock.DialPipeListener(ctx, le, wd, "plugin")
+	conn, err := pipesock.DialPipeListener(ctx, le, wd, pluginInstanceID)
 	if err != nil {
 		return err
 	}

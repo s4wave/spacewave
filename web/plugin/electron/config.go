@@ -1,10 +1,9 @@
 package electron
 
 import (
-	"errors"
-
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -18,10 +17,8 @@ func (c *Config) Validate() error {
 	if c.GetRendererPath() == "" {
 		return errors.New("renderer path must be set")
 	}
-	if id := c.GetWebRuntimeId(); id != "" {
-		if err := web_runtime.ValidateRuntimeId(id); err != nil {
-			return err
-		}
+	if err := web_runtime.ValidateRuntimeId(c.GetWebRuntimeId()); err != nil {
+		return errors.Wrap(err, "web_runtime_id")
 	}
 	return nil
 }
