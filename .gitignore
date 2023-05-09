@@ -4,6 +4,7 @@
 /.husky
 /.bldr
 __debug_bin
+__debug_bin.exe
 
 # misc
 .DS_Store
