@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
@@ -67,10 +66,6 @@ func (m *ModuleCompiler) GenerateModule(
 		return errors.New("must load at least one module")
 	}
 
-	// Create the output code plugin go.mod.
-	outPluginModFilePath := filepath.Join(m.pluginCodegenPath, "go.mod")
-	outPluginCodeFilePath := filepath.Join(m.pluginCodegenPath, "plugin.go")
-
 	// Create the embedded config set file, if necessary.
 	var configSetBinFiles []string
 	if len(configSetBinary) != 0 {
@@ -83,60 +78,63 @@ func (m *ModuleCompiler) GenerateModule(
 	}
 
 	// outGoMod will contain the go.mod for the plugin.
-	outGoMod := analysis.GetBaseModFile()
-	if err := gocompiler.RelocateGoModFile(outGoMod, outPluginModFilePath); err != nil {
-		return err
-	}
-	if err := outGoMod.AddModuleStmt(m.pluginGoModule); err != nil {
-		return err
-	}
-
-	for _, mod := range loadedModules {
-		srcMod := mod
-		for mod.Replace != nil {
-			m.le.
-				WithField("mod-curr-path", mod.Path).
-				WithField("mod-next-path", mod.Replace.Path).
-				Debug("module was replaced with another")
-			mod = mod.Replace
+	/*
+		outPluginModFilePath := filepath.Join(m.pluginCodegenPath, "go.mod")
+		outGoMod := analysis.GetBaseModFile()
+		if err := gocompiler.RelocateGoModFile(outGoMod, outPluginModFilePath); err != nil {
+			return err
 		}
-
-		// If the module exists within the source repository:
-		modPathAbs := filepath.Dir(mod.GoMod)
-		if !strings.HasPrefix(modPathAbs, analysis.workDir) {
-			m.le.
-				WithField("mod-path", mod.Path).
-				Debug("skipping replacing out-of-tree module")
-			continue
-		}
-
-		// Add a replace to the relative path of the containing repo.
-		//
-		// Ex: github.com/my/package => ../../
-		modPathRel, err := filepath.Rel(m.pluginCodegenPath, modPathAbs)
-		if err != nil {
+		if err := outGoMod.AddModuleStmt(m.pluginGoModule); err != nil {
 			return err
 		}
 
-		err = outGoMod.AddReplace(srcMod.Path, "", modPathRel, "")
+		for _, mod := range loadedModules {
+			srcMod := mod
+			for mod.Replace != nil {
+				m.le.
+					WithField("mod-curr-path", mod.Path).
+					WithField("mod-next-path", mod.Replace.Path).
+					Debug("module was replaced with another")
+				mod = mod.Replace
+			}
+
+			// If the module exists within the source repository:
+			modPathAbs := filepath.Dir(mod.GoMod)
+			if !strings.HasPrefix(modPathAbs, analysis.workDir) {
+				m.le.
+					WithField("mod-path", mod.Path).
+					Debug("skipping replacing out-of-tree module")
+				continue
+			}
+
+			// Add a replace to the relative path of the containing repo.
+			//
+			// Ex: github.com/my/package => ../../
+			modPathRel, err := filepath.Rel(m.pluginCodegenPath, modPathAbs)
+			if err != nil {
+				return err
+			}
+
+			err = outGoMod.AddReplace(srcMod.Path, "", modPathRel, "")
+			if err != nil {
+				return err
+			}
+		}
+
+		// cleanup go mod file
+		outGoMod.SortBlocks()
+		outGoMod.Cleanup()
+
+		// format & write go mod file
+		pluginGoMod, err := outGoMod.Format()
 		if err != nil {
 			return err
 		}
-	}
-
-	// cleanup go mod file
-	outGoMod.SortBlocks()
-	outGoMod.Cleanup()
-
-	// format & write go mod file
-	pluginGoMod, err := outGoMod.Format()
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(outPluginModFilePath, pluginGoMod, 0644)
-	if err != nil {
-		return err
-	}
+		err = os.WriteFile(outPluginModFilePath, pluginGoMod, 0644)
+		if err != nil {
+			return err
+		}
+	*/
 
 	// Build the plugin main() code file.
 	gfile, err := CodegenPluginWrapperFromAnalysis(
@@ -154,6 +152,7 @@ func (m *ModuleCompiler) GenerateModule(
 		return err
 	}
 	// remove any unused imports
+	outPluginCodeFilePath := filepath.Join(m.pluginCodegenPath, "plugin.go")
 	pluginCodeData, err = imports.Process(outPluginCodeFilePath, pluginCodeData, nil)
 	if err != nil {
 		return err
@@ -171,9 +170,11 @@ func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, ou
 	workDir := m.pluginCodegenPath
 
 	// go mod tidy
-	if err := gocompiler.RunGoModTidy(ctx, le, workDir); err != nil {
-		return err
-	}
+	/*
+		if err := gocompiler.RunGoModTidy(ctx, le, workDir); err != nil {
+			return err
+		}
+	*/
 
 	return gocompiler.ExecBuildEntrypoint(le, platform, workDir, outFile, enableCgo)
 }
@@ -228,9 +229,11 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus
 	// build path: .
 	args = append(args, ".")
 
-	if err := gocompiler.RunGoModTidy(ctx, le, devSrcDir); err != nil {
-		return err
-	}
+	/*
+		if err := gocompiler.RunGoModTidy(ctx, le, devSrcDir); err != nil {
+			return err
+		}
+	*/
 
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
 	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host, ignore cgo-enabled
