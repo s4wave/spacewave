@@ -19,6 +19,8 @@ message Config {
   .hash.HashType force_hash_type = 4;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
   repeated string bucket_ids = 5;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 6;
   // Verbose enables verbose logging of the block store.
-  bool verbose = 6;
+  bool verbose = 7;
 }

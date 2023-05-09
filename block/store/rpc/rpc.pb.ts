@@ -42,8 +42,6 @@ export interface Config {
    * If unset, accepts any hash type.
    */
   forceHashType: HashType
-  /** Verbose enables verbose logging of the block store. */
-  verbose: boolean
   /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
   bucketIds: string[]
   /**
@@ -51,6 +49,10 @@ export interface Config {
    * If false, waits until at least one directive references it.
    */
   lookupOnStart: boolean
+  /** SkipNotFound skips returning a value if the block was not found. */
+  skipNotFound: boolean
+  /** Verbose enables verbose logging of the block store. */
+  verbose: boolean
 }
 
 function createBaseConfig(): Config {
@@ -61,9 +63,10 @@ function createBaseConfig(): Config {
     clientId: '',
     readOnly: false,
     forceHashType: 0,
-    verbose: false,
     bucketIds: [],
     lookupOnStart: false,
+    skipNotFound: false,
+    verbose: false,
   }
 }
 
@@ -90,14 +93,17 @@ export const Config = {
     if (message.forceHashType !== 0) {
       writer.uint32(48).int32(message.forceHashType)
     }
-    if (message.verbose === true) {
-      writer.uint32(56).bool(message.verbose)
-    }
     for (const v of message.bucketIds) {
-      writer.uint32(66).string(v!)
+      writer.uint32(58).string(v!)
     }
     if (message.lookupOnStart === true) {
-      writer.uint32(72).bool(message.lookupOnStart)
+      writer.uint32(64).bool(message.lookupOnStart)
+    }
+    if (message.skipNotFound === true) {
+      writer.uint32(72).bool(message.skipNotFound)
+    }
+    if (message.verbose === true) {
+      writer.uint32(80).bool(message.verbose)
     }
     return writer
   },
@@ -153,25 +159,32 @@ export const Config = {
           message.forceHashType = reader.int32() as any
           continue
         case 7:
-          if (tag != 56) {
-            break
-          }
-
-          message.verbose = reader.bool()
-          continue
-        case 8:
-          if (tag != 66) {
+          if (tag != 58) {
             break
           }
 
           message.bucketIds.push(reader.string())
+          continue
+        case 8:
+          if (tag != 64) {
+            break
+          }
+
+          message.lookupOnStart = reader.bool()
           continue
         case 9:
           if (tag != 72) {
             break
           }
 
-          message.lookupOnStart = reader.bool()
+          message.skipNotFound = reader.bool()
+          continue
+        case 10:
+          if (tag != 80) {
+            break
+          }
+
+          message.verbose = reader.bool()
           continue
       }
       if ((tag & 7) == 4 || tag == 0) {
@@ -230,13 +243,16 @@ export const Config = {
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
-      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
       bucketIds: Array.isArray(object?.bucketIds)
         ? object.bucketIds.map((e: any) => String(e))
         : [],
       lookupOnStart: isSet(object.lookupOnStart)
         ? Boolean(object.lookupOnStart)
         : false,
+      skipNotFound: isSet(object.skipNotFound)
+        ? Boolean(object.skipNotFound)
+        : false,
+      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
 
@@ -254,7 +270,6 @@ export const Config = {
     message.readOnly !== undefined && (obj.readOnly = message.readOnly)
     message.forceHashType !== undefined &&
       (obj.forceHashType = hashTypeToJSON(message.forceHashType))
-    message.verbose !== undefined && (obj.verbose = message.verbose)
     if (message.bucketIds) {
       obj.bucketIds = message.bucketIds.map((e) => e)
     } else {
@@ -262,6 +277,9 @@ export const Config = {
     }
     message.lookupOnStart !== undefined &&
       (obj.lookupOnStart = message.lookupOnStart)
+    message.skipNotFound !== undefined &&
+      (obj.skipNotFound = message.skipNotFound)
+    message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
 
@@ -277,9 +295,10 @@ export const Config = {
     message.clientId = object.clientId ?? ''
     message.readOnly = object.readOnly ?? false
     message.forceHashType = object.forceHashType ?? 0
-    message.verbose = object.verbose ?? false
     message.bucketIds = object.bucketIds?.map((e) => e) || []
     message.lookupOnStart = object.lookupOnStart ?? false
+    message.skipNotFound = object.skipNotFound ?? false
+    message.verbose = object.verbose ?? false
     return message
   },
 }

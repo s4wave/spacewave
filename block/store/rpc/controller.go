@@ -37,6 +37,7 @@ func NewController(b bus.Bus, le *logrus.Entry, conf *Config) *Controller {
 		matchBlockStoreIDs,
 		conf.GetLookupOnStart(),
 		conf.GetBucketIds(),
+		conf.GetSkipNotFound(),
 		conf.GetVerbose(),
 	)
 }

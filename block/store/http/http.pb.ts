@@ -25,6 +25,8 @@ export interface Config {
   forceHashType: HashType
   /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
   bucketIds: string[]
+  /** SkipNotFound skips returning a value if the block was not found. */
+  skipNotFound: boolean
   /** Verbose enables verbose logging of the block store. */
   verbose: boolean
 }
@@ -100,6 +102,7 @@ function createBaseConfig(): Config {
     readOnly: false,
     forceHashType: 0,
     bucketIds: [],
+    skipNotFound: false,
     verbose: false,
   }
 }
@@ -124,8 +127,11 @@ export const Config = {
     for (const v of message.bucketIds) {
       writer.uint32(42).string(v!)
     }
+    if (message.skipNotFound === true) {
+      writer.uint32(48).bool(message.skipNotFound)
+    }
     if (message.verbose === true) {
-      writer.uint32(48).bool(message.verbose)
+      writer.uint32(56).bool(message.verbose)
     }
     return writer
   },
@@ -175,6 +181,13 @@ export const Config = {
           continue
         case 6:
           if (tag != 48) {
+            break
+          }
+
+          message.skipNotFound = reader.bool()
+          continue
+        case 7:
+          if (tag != 56) {
             break
           }
 
@@ -236,6 +249,9 @@ export const Config = {
       bucketIds: Array.isArray(object?.bucketIds)
         ? object.bucketIds.map((e: any) => String(e))
         : [],
+      skipNotFound: isSet(object.skipNotFound)
+        ? Boolean(object.skipNotFound)
+        : false,
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
@@ -253,6 +269,8 @@ export const Config = {
     } else {
       obj.bucketIds = []
     }
+    message.skipNotFound !== undefined &&
+      (obj.skipNotFound = message.skipNotFound)
     message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
@@ -268,6 +286,7 @@ export const Config = {
     message.readOnly = object.readOnly ?? false
     message.forceHashType = object.forceHashType ?? 0
     message.bucketIds = object.bucketIds?.map((e) => e) || []
+    message.skipNotFound = object.skipNotFound ?? false
     message.verbose = object.verbose ?? false
     return message
   },

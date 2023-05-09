@@ -31,8 +31,9 @@ func (m *Config) CloneVT() *Config {
 		ClientId:      m.ClientId,
 		ReadOnly:      m.ReadOnly,
 		ForceHashType: m.ForceHashType,
-		Verbose:       m.Verbose,
 		LookupOnStart: m.LookupOnStart,
+		SkipNotFound:  m.SkipNotFound,
+		Verbose:       m.Verbose,
 	}
 	if rhs := m.BlockStoreIds; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
@@ -85,9 +86,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.ForceHashType != that.ForceHashType {
 		return false
 	}
-	if this.Verbose != that.Verbose {
-		return false
-	}
 	if len(this.BucketIds) != len(that.BucketIds) {
 		return false
 	}
@@ -98,6 +96,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 	}
 	if this.LookupOnStart != that.LookupOnStart {
+		return false
+	}
+	if this.SkipNotFound != that.SkipNotFound {
+		return false
+	}
+	if this.Verbose != that.Verbose {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -140,25 +144,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.LookupOnStart {
-		i--
-		if m.LookupOnStart {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x48
-	}
-	if len(m.BucketIds) > 0 {
-		for iNdEx := len(m.BucketIds) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.BucketIds[iNdEx])
-			copy(dAtA[i:], m.BucketIds[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.BucketIds[iNdEx])))
-			i--
-			dAtA[i] = 0x42
-		}
-	}
 	if m.Verbose {
 		i--
 		if m.Verbose {
@@ -167,7 +152,36 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x50
+	}
+	if m.SkipNotFound {
+		i--
+		if m.SkipNotFound {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.LookupOnStart {
+		i--
+		if m.LookupOnStart {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.BucketIds) > 0 {
+		for iNdEx := len(m.BucketIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BucketIds[iNdEx])
+			copy(dAtA[i:], m.BucketIds[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.BucketIds[iNdEx])))
+			i--
+			dAtA[i] = 0x3a
+		}
 	}
 	if m.ForceHashType != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.ForceHashType))
@@ -258,9 +272,6 @@ func (m *Config) SizeVT() (n int) {
 	if m.ForceHashType != 0 {
 		n += 1 + sov(uint64(m.ForceHashType))
 	}
-	if m.Verbose {
-		n += 2
-	}
 	if len(m.BucketIds) > 0 {
 		for _, s := range m.BucketIds {
 			l = len(s)
@@ -268,6 +279,12 @@ func (m *Config) SizeVT() (n int) {
 		}
 	}
 	if m.LookupOnStart {
+		n += 2
+	}
+	if m.SkipNotFound {
+		n += 2
+	}
+	if m.Verbose {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -477,26 +494,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Verbose = bool(v != 0)
-		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BucketIds", wireType)
 			}
@@ -528,7 +525,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.BucketIds = append(m.BucketIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 9:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LookupOnStart", wireType)
 			}
@@ -548,6 +545,46 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.LookupOnStart = bool(v != 0)
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkipNotFound", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SkipNotFound = bool(v != 0)
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Verbose = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

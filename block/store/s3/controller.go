@@ -28,6 +28,7 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 		[]string{conf.GetBlockStoreId()},
 		true,
 		conf.GetBucketIds(),
+		conf.GetSkipNotFound(),
 		conf.GetVerbose(),
 	)
 }

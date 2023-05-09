@@ -25,11 +25,13 @@ message Config {
   // ForceHashType forces writing the given hash type to the store.
   // If unset, accepts any hash type.
   .hash.HashType force_hash_type = 6;
-  // Verbose enables verbose logging of the block store.
-  bool verbose = 7;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
-  repeated string bucket_ids = 8;
+  repeated string bucket_ids = 7;
   // LookupOnStart creates the LookupRpcClient directive on startup.
   // If false, waits until at least one directive references it.
-  bool lookup_on_start = 9;
+  bool lookup_on_start = 8;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 9;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 10;
 }

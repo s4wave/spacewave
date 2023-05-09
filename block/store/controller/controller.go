@@ -28,6 +28,8 @@ type Controller struct {
 	blockStoreIds []string
 	// bucketIDs is a list of bucket ids to resolve LookupBlockFromNetwork directives.
 	bucketIDs []string
+	// skipNotFound returns no value if not found. otherwise returns found=false
+	skipNotFound bool
 	// verbose wraps the block store with a verbose logger
 	verbose bool
 }
@@ -44,6 +46,7 @@ func NewController(
 	blockStoreIds []string,
 	buildOnStart bool,
 	bucketIDs []string,
+	skipNotFound,
 	verbose bool,
 ) *Controller {
 	h := &Controller{
@@ -52,6 +55,7 @@ func NewController(
 		errCtr:        ccontainer.NewCContainer[*error](nil),
 		blockStoreIds: blockStoreIds,
 		bucketIDs:     bucketIDs,
+		skipNotFound:  skipNotFound,
 		verbose:       verbose,
 	}
 	if verbose && resolver != nil {
