@@ -69,7 +69,10 @@ func AnalyzePackages(
 		workDir:      workDir,
 		imports: map[string]*types.Package{
 			// "context": nil,
-			"embed": nil,
+			"embed":   nil,
+			"os":      nil,
+			"strings": nil,
+
 			"github.com/aperturerobotics/controllerbus/bus":        nil,
 			"github.com/aperturerobotics/controllerbus/controller": nil,
 			"github.com/aperturerobotics/bldr/values":              types.NewPackage("github.com/aperturerobotics/bldr/values", "bldr_values"),

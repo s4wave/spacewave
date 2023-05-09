@@ -19,6 +19,8 @@ const expectedCodegen = `package main
 
 import (
 	"embed"
+	"os"
+	"strings"
 
 	bldr_example "github.com/aperturerobotics/bldr/example"
 	plugin_entrypoint "github.com/aperturerobotics/bldr/plugin/entrypoint"
@@ -33,6 +35,9 @@ import (
 //
 //go:embed config-set.bin
 var StaticFS embed.FS
+
+// InstanceID contains the plugin instance id.
+var InstanceID = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_INSTANCE"))
 
 // PluginMeta contains the b58 encoded plugin metadata.
 var PluginMeta = "8j7eujJNz6qYqGbGLPN2CjBPAtpgeC7tBgcj2dMrNafy5U5nPjF8K4e3SBpgNs5Hpg3"
@@ -55,7 +60,7 @@ func init() {
 
 // main is the main entrypoint.
 func main() {
-	plugin_entrypoint.Main(PluginMeta, LogLevel, Factories, ConfigSets)
+	plugin_entrypoint.Main(InstanceID, PluginMeta, LogLevel, Factories, ConfigSets)
 }
 
 // _ ensures that at least one reference to bldr_values is present.
