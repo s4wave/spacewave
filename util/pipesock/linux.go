@@ -8,12 +8,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 
-	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // BuildPipeListener builds the pipe listener in the directory.
