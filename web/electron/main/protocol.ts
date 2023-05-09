@@ -43,12 +43,12 @@ function appRequestHandler(
 ) {
   const reqUrl = new URL(req.url)
   let reqPath = path.normalize(reqUrl.pathname)
-  if (reqPath === '/') {
-    reqPath = '/index.html'
+  if (reqPath.length === 0 || reqPath === path.sep) {
+    reqPath = path.sep + 'index.html'
   }
   const reqFilename = path.basename(reqPath)
   let filePath = distPath
-  if (reqPath.startsWith('/node_modules/')) {
+  if (reqPath.startsWith(path.sep + 'node_modules' + path.sep)) {
     filePath = path.join(filePath, '../../../')
   }
   filePath = path.join(filePath, reqPath)
