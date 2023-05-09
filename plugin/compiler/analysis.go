@@ -114,6 +114,9 @@ func AnalyzePackages(
 	}
 	conf.BuildFlags = append(conf.BuildFlags, "-mod=vendor")
 
+	// for analysis purposes, use a constant GOOS / GOARCH
+	conf.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "GO111MODULE=on")
+
 	loadedPackages, err := packages.Load(&conf, packagePaths...)
 	if err != nil {
 		return nil, err

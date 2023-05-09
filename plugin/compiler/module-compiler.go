@@ -58,11 +58,6 @@ func (m *ModuleCompiler) GenerateModule(
 	configSetBinary []byte,
 	goVarDefs []*GoVarDef,
 ) error {
-	// sanity checks
-	if os.PathSeparator != '/' {
-		// this is sort of hacky but we expect to generally use this on linux.
-		return errors.New("can only work on systems where / is the path separator")
-	}
 	if _, err := os.Stat(m.pluginCodegenPath); err != nil {
 		return err
 	}
