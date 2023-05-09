@@ -40,7 +40,6 @@ type Config struct {
 	// WebRuntimeId is the value to use for the runtime uuid.
 	// Used for the Unix pipe paths and for the BroadcastChannel ids.
 	// Should be unique against other running Electron instances.
-	// If unset, uses "default"
 	WebRuntimeId string `protobuf:"bytes,3,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"web_runtime_id,omitempty"`
 	// ElectronFlags are additional flags to pass to electron.
 	ElectronFlags []string `protobuf:"bytes,4,rep,name=electron_flags,json=electronFlags,proto3" json:"electron_flags,omitempty"`

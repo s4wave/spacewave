@@ -94,10 +94,10 @@ function setupSocket(workdir: string, runtimeUuid: string) {
   }
   debugConsole.log('setupSocket', workdir, runtimeUuid)
 
-    // see: util/pipesock
+  // see: util/pipesock
   let ipcPath: string
   if (process.platform === 'win32') {
-    ipcPath = '\\\\.\\pipe\\bldr\\' + runtimeUuid;
+    ipcPath = '\\\\.\\pipe\\bldr\\' + runtimeUuid
   } else {
     ipcPath = path.join(workdir, `.pipe-${runtimeUuid}`)
   }

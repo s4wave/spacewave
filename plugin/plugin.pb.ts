@@ -66,6 +66,12 @@ export interface PluginMeta {
   platformId: string;
 }
 
+/** PluginStartInfo are details passed to the plugin by the plugin host. */
+export interface PluginStartInfo {
+  /** InstanceId is the plugin instance id. */
+  instanceId: string;
+}
+
 function createBasePluginStatus(): PluginStatus {
   return { pluginId: "", running: false };
 }
@@ -664,6 +670,94 @@ export const PluginMeta = {
     message.projectId = object.projectId ?? "";
     message.pluginId = object.pluginId ?? "";
     message.platformId = object.platformId ?? "";
+    return message;
+  },
+};
+
+function createBasePluginStartInfo(): PluginStartInfo {
+  return { instanceId: "" };
+}
+
+export const PluginStartInfo = {
+  encode(message: PluginStartInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.instanceId !== "") {
+      writer.uint32(10).string(message.instanceId);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PluginStartInfo {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePluginStartInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.instanceId = reader.string();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<PluginStartInfo, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<PluginStartInfo | PluginStartInfo[]> | Iterable<PluginStartInfo | PluginStartInfo[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PluginStartInfo.encode(p).finish()];
+        }
+      } else {
+        yield* [PluginStartInfo.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, PluginStartInfo>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<PluginStartInfo> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [PluginStartInfo.decode(p)];
+        }
+      } else {
+        yield* [PluginStartInfo.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): PluginStartInfo {
+    return { instanceId: isSet(object.instanceId) ? String(object.instanceId) : "" };
+  },
+
+  toJSON(message: PluginStartInfo): unknown {
+    const obj: any = {};
+    message.instanceId !== undefined && (obj.instanceId = message.instanceId);
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PluginStartInfo>, I>>(base?: I): PluginStartInfo {
+    return PluginStartInfo.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PluginStartInfo>, I>>(object: I): PluginStartInfo {
+    const message = createBasePluginStartInfo();
+    message.instanceId = object.instanceId ?? "";
     return message;
   },
 };

@@ -134,17 +134,17 @@ func CodegenPluginWrapperFromAnalysis(
 		})
 	}
 
-	// InstanceID contains the plugin instance id from the environment.
+	// PluginStartInfo contains the plugin instance id from the environment.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: &gast.CommentGroup{
 			List: []*gast.Comment{{
-				Text: "// InstanceID contains the plugin instance id.\n",
+				Text: "// PluginStartInfo contains the b58 encoded startup information.\n",
 			}},
 		},
 		Tok: token.VAR,
 		Specs: []gast.Spec{
 			&gast.ValueSpec{
-				Names: []*gast.Ident{gast.NewIdent("InstanceID")},
+				Names: []*gast.Ident{gast.NewIdent("PluginStartInfo")},
 				Values: []gast.Expr{
 					&gast.CallExpr{
 						Fun: &gast.SelectorExpr{
@@ -160,7 +160,7 @@ func CodegenPluginWrapperFromAnalysis(
 								Args: []gast.Expr{
 									&gast.BasicLit{
 										Kind:  token.STRING,
-										Value: `"BLDR_PLUGIN_INSTANCE"`,
+										Value: `"BLDR_PLUGIN_START_INFO"`,
 									},
 								},
 							},
@@ -366,7 +366,7 @@ func CodegenPluginWrapperFromAnalysis(
 						Sel: gast.NewIdent("Main"),
 					},
 					Args: []gast.Expr{
-						gast.NewIdent("InstanceID"),
+						gast.NewIdent("PluginStartInfo"),
 						gast.NewIdent("PluginMeta"),
 						gast.NewIdent("LogLevel"),
 						gast.NewIdent("Factories"),

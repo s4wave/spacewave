@@ -180,30 +180,39 @@ func (h *ProcessHost) ExecutePlugin(
 	// configure entrypoint process
 	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
 
-	// call any os-specific pre-start adjustment
-	preStartObj, err := preStartCmd(entrypointProc)
-	if err != nil {
-		return err
-	}
-
 	// set pwd to plugin bin dir
 	entrypointProc.Dir = pluginDistDir
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(0)
+	pluginStartInfo := &plugin.PluginStartInfo{
+		InstanceId: pluginInstanceID,
+	}
+	pluginStartInfoB58 := pluginStartInfo.MarshalB58()
 
 	// NOTE: the pluginID is validated to be a valid-dns-identifier
 	entrypointProc.Env = append(
 		os.Environ(),
-		"BLDR_PLUGIN="+pluginID,
-		"BLDR_PLUGIN_INSTANCE="+pluginInstanceID,
+		"BLDR_PLUGIN_START_INFO="+pluginStartInfoB58,
 	)
+
+	// write start info to a file as well
+	instanceDetailsPath := filepath.Join(pluginDistDir, ".plugin-start-info")
+	if err := os.WriteFile(instanceDetailsPath, []byte(pluginStartInfoB58), 0600); err != nil {
+		return err
+	}
 
 	// stderr: contains any logs
 	le := h.le.WithField("plugin-id", pluginID)
 	debugWriter := le.WriterLevel(logrus.DebugLevel)
 	entrypointProc.Stderr = debugWriter
 	// entrypointProc.Stdout = debugWriter
+
+	// call any os-specific pre-start adjustment
+	preStartObj, err := preStartCmd(entrypointProc)
+	if err != nil {
+		return err
+	}
 
 	// attach to pipe
 	pipeListener, err := pipesock.BuildPipeListener(le, pluginDistDir, pluginInstanceID)

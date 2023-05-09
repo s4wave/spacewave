@@ -7,19 +7,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewPluginMeta constructs a new PluginMeta.
-func NewPluginMeta(projectID, pluginID, platformID string) *PluginMeta {
-	return &PluginMeta{
-		ProjectId:  projectID,
-		PluginId:   pluginID,
-		PlatformId: platformID,
+// NewPluginStartInfo constructs a new PluginStartInfo.
+func NewPluginStartInfo(instanceID string) *PluginStartInfo {
+	return &PluginStartInfo{
+		InstanceId: instanceID,
 	}
 }
 
-// UnmarshalPluginMetaB58 unmarshals a b58 meta.
+// UnmarshalPluginStartInfoB58 unmarshals a b58 meta.
 // Note: we compress with s2 compression.
-func UnmarshalPluginMetaB58(str string) (*PluginMeta, error) {
-	m := &PluginMeta{}
+func UnmarshalPluginStartInfoB58(str string) (*PluginStartInfo, error) {
+	m := &PluginStartInfo{}
 	data, err := b58.Decode(str)
 	if err != nil {
 		return nil, err
@@ -35,19 +33,16 @@ func UnmarshalPluginMetaB58(str string) (*PluginMeta, error) {
 }
 
 // Validate checks the plugin meta.
-func (m *PluginMeta) Validate() error {
-	if err := labels.ValidateDNSLabel(m.GetProjectId()); err != nil {
-		return errors.Wrap(err, "project_id")
-	}
-	if err := labels.ValidateDNSLabel(m.GetPluginId()); err != nil {
-		return errors.Wrap(err, "plugin_id")
+func (m *PluginStartInfo) Validate() error {
+	if err := labels.ValidateDNSLabel(m.GetInstanceId()); err != nil {
+		return errors.Wrap(err, "instance_id")
 	}
 	return nil
 }
 
 // MarshalB58 marshals the conf to a b58 string.
 // note: we compress with s2 compression & encrypt with a psk.
-func (m *PluginMeta) MarshalB58() string {
+func (m *PluginStartInfo) MarshalB58() string {
 	dat, _ := m.MarshalVT()
 	dat = s2.EncodeBest(nil, dat)
 	return b58.Encode(dat)

@@ -75,3 +75,9 @@ message PluginMeta {
   // PlatformId is the destination platform ID.
   string platform_id = 3;
 }
+
+// PluginStartInfo are details passed to the plugin by the plugin host.
+message PluginStartInfo {
+  // InstanceId is the plugin instance id.
+  string instance_id = 1;
+}

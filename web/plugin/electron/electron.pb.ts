@@ -24,7 +24,6 @@ export interface Config {
    * WebRuntimeId is the value to use for the runtime uuid.
    * Used for the Unix pipe paths and for the BroadcastChannel ids.
    * Should be unique against other running Electron instances.
-   * If unset, uses "default"
    */
   webRuntimeId: string
   /** ElectronFlags are additional flags to pass to electron. */

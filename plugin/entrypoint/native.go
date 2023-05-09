@@ -5,14 +5,15 @@ package plugin_entrypoint
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,7 @@ var Version = semver.MustParse("0.0.1")
 
 // Main runs the default main entrypoint for a plugin.
 func Main(
-	pluginInstanceID,
+	pluginStartInfoB58,
 	pluginMetaB58 string,
 	logLevel logrus.Level,
 	addFactoryFuncs []AddFactoryFunc,
@@ -39,12 +40,35 @@ func Main(
 	defer ctxCancel()
 
 	if err := func() error {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+
 		pluginMeta, err := bldr_plugin.UnmarshalPluginMetaB58(pluginMetaB58)
 		if err != nil {
 			return err
 		}
 
-		err = Run(ctx, le, pluginInstanceID, pluginMeta, addFactoryFuncs, configSetFuncs)
+		// If the environment variable with the startup info was empty, try to load
+		// it from the .plugin-start-info file in the current working dir.
+		if pluginStartInfoB58 == "" {
+			startInfoBin, err := os.ReadFile(filepath.Join(wd, ".plugin-start-info"))
+			if err != nil {
+				if err == os.ErrNotExist {
+					return errors.New("start info not found")
+				}
+				return errors.Wrap(err, "load start info")
+			}
+			pluginStartInfoB58 = string(startInfoBin)
+		}
+
+		pluginStartInfo, err := bldr_plugin.UnmarshalPluginStartInfoB58(pluginStartInfoB58)
+		if err != nil {
+			return err
+		}
+
+		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs)
 		if err != context.Canceled {
 			return err
 		}
@@ -59,7 +83,7 @@ func Main(
 func Run(
 	ctx context.Context,
 	le *logrus.Entry,
-	pluginInstanceID string,
+	pluginStartInfo *bldr_plugin.PluginStartInfo,
 	pluginMeta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
@@ -69,13 +93,13 @@ func Run(
 		return err
 	}
 
-	// check instance id
-	if pluginInstanceID == "" {
-		return errors.New("instance id was not set")
+	if err := pluginStartInfo.Validate(); err != nil {
+		return err
 	}
 
 	// construct pipe socket
-	conn, err := pipesock.DialPipeListener(ctx, le, wd, pluginInstanceID)
+	instanceID := pluginStartInfo.GetInstanceId()
+	conn, err := pipesock.DialPipeListener(ctx, le, wd, instanceID)
 	if err != nil {
 		return err
 	}
