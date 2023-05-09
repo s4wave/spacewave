@@ -428,7 +428,7 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
-	an.AddVariableDefImports(goVariableDefs)
+	an.AddVariableDefImports(le, goVariableDefs)
 	if err := mc.GenerateModule(an, pluginMeta, configSetBin, goVariableDefs); err != nil {
 		return nil, nil, err
 	}

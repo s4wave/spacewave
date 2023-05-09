@@ -250,13 +250,19 @@ func (a *Analysis) GetImportedModules() map[string]*packages.Module {
 }
 
 // AddVariableDefImports adds imports for the given variable defs.
-func (a *Analysis) AddVariableDefImports(varDefs []*GoVarDef) {
+func (a *Analysis) AddVariableDefImports(le *logrus.Entry, varDefs []*GoVarDef) {
 	for _, varDef := range varDefs {
 		if pkgPath := varDef.PackagePath; pkgPath != "" {
 			_, ok := a.imports[pkgPath]
 			if !ok {
 				pkg := a.packages[pkgPath]
-				a.imports[pkgPath] = types.NewPackage(pkgPath, pkg.Name)
+				pkgPath := pkg.Types.Path()
+				pkgName := pkg.Types.Name()
+				a.imports[pkgPath] = types.NewPackage(pkgPath, pkgName)
+				le.
+					WithField("import-path", pkgPath).
+					WithField("import-type-name", pkgName).
+					Debug("added package to plugin-file imports list")
 			}
 		}
 	}
