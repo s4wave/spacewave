@@ -2,12 +2,14 @@ package dist_entrypoint
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"strings"
 
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	manifest_fetch_world "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	"github.com/aperturerobotics/bldr/util/iofs"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -89,11 +91,20 @@ func Run(
 	}
 	defer staticVolFile.Close()
 
+	// NOTE: pre-go1.21 does not support ReadAt on embed:
+	// https://go-review.googlesource.com/c/go/+/483235
+	kvfileReaderAt, ok := staticVolFile.(kvfile_compress.ReadSeekerAt)
+	if !ok {
+		// shim ReadAt
+		staticVolFileReadSeeker := staticVolFile.(io.ReadSeeker)
+		kvfileReaderAt = iofs.NewReadSeekerAt(staticVolFileReadSeeker)
+	}
+
 	staticVolID := "dist-volume"
 	staticVolCtrl := NewStaticVolumeController(
 		le,
 		b,
-		staticVolFile.(kvfile_compress.ReadSeekerAt),
+		kvfileReaderAt,
 		&volume_kvfile.Config{
 			VolumeConfig: &volume_controller.Config{
 				VolumeIdAlias: []string{staticVolID},
