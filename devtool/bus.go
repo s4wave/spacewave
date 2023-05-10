@@ -275,8 +275,6 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 			pluginsStateRoot,
 			pluginsDistRoot,
 		)
-		// we will store the manifests via the project controller
-		pluginHostProcessConf.DisableStoreManifest = true
 		pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
 			ctx,
 			b,
