@@ -30,7 +30,7 @@ func ExAuthLookupMethod(
 	methodID string,
 	returnIfIdle bool,
 ) (AuthLookupMethodValue, error) {
-	val, _, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), returnIfIdle, nil)
+	val, _, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), bus.ReturnIfIdle(returnIfIdle), nil)
 	if err != nil {
 		return nil, err
 	}

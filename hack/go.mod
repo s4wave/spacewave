@@ -37,7 +37,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.15.5 // indirect
 	github.com/aperturerobotics/controllerbus v0.27.1-0.20230512225029-073bdff7defe // indirect
 	github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230512231241-5340730e45c4 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230512231624-d0e7327b832f // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
 	github.com/aperturerobotics/util v1.3.0 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect

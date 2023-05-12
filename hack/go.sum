@@ -78,8 +78,8 @@ github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlz
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
 github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad h1:eypdsSTP5LqTbNXeEuGECHVH2bv2DWH+xqyl0525vII=
 github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad/go.mod h1:GkM06cW5AaOdzuOMZxLh3CcYi49DltuKDG4pMZOKMbY=
-github.com/aperturerobotics/identity v0.0.0-20230512231241-5340730e45c4 h1:PAXeGAR72/2pkjBdGXa6lzdWx9BWkYDqD6dEbgl3N0I=
-github.com/aperturerobotics/identity v0.0.0-20230512231241-5340730e45c4/go.mod h1:6SpMpbfI350hwu4ByBzrJutbhy8xoMo3t1cwPc09GrA=
+github.com/aperturerobotics/identity v0.0.0-20230512231624-d0e7327b832f h1:RLqF4h/i0a3qA/RVHgWOxQZC9hq2tuXzSW0+3feusDE=
+github.com/aperturerobotics/identity v0.0.0-20230512231624-d0e7327b832f/go.mod h1:6SpMpbfI350hwu4ByBzrJutbhy8xoMo3t1cwPc09GrA=
 github.com/aperturerobotics/starpc v0.19.1 h1:bSTrADGQZU1I7SgOTIiz2AMqUmEfRM6/vFjKjK4bYEw=
 github.com/aperturerobotics/starpc v0.19.1/go.mod h1:9LQcvKR+PPOg7jgHk1OJRmRk1hVLVa1LG9zjDRTTJ4k=
 github.com/aperturerobotics/timestamp v0.7.2 h1:4XfGTlqqm1446E5lWeppiGMbX7Q4QAFimzEhpGrs4gw=

@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad // indirect; master
-	github.com/aperturerobotics/identity v0.0.0-20230512231241-5340730e45c4 // master
+	github.com/aperturerobotics/identity v0.0.0-20230512231624-d0e7327b832f // master
 	github.com/keybase/go-triplesec v0.0.0-20221220225315-06ddee08f3c2
 )
 
