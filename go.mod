@@ -2,11 +2,11 @@ module github.com/aperturerobotics/identity
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230429060038-b58edfea7b77
+require github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.15.0 // master
+require github.com/aperturerobotics/bifrost v0.15.5 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -30,10 +30,10 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.26.2 // master
+	github.com/aperturerobotics/controllerbus v0.27.1-0.20230512225029-073bdff7defe // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.1 // latest
-	github.com/aperturerobotics/util v1.2.1-0.20230427202427-d37ff1ac37f9 // master
+	github.com/aperturerobotics/util v1.3.0 // master
 )
 
 // aperture: use compatibility forks
@@ -54,7 +54,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
-	github.com/libp2p/go-libp2p v0.27.1
+	github.com/libp2p/go-libp2p v0.27.3
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
@@ -62,8 +62,8 @@ require (
 	github.com/quic-go/quic-go v0.34.0 // indirect
 	github.com/sirupsen/logrus v1.9.0
 	github.com/zeebo/blake3 v0.2.3 // indirect
-	golang.org/x/crypto v0.8.0 // indirect
-	gonum.org/v1/gonum v0.12.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
+	gonum.org/v1/gonum v0.13.0 // indirect
 	google.golang.org/protobuf v1.30.0
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
 )
@@ -116,13 +116,13 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
+	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/term v0.7.0 // indirect
-	golang.org/x/tools v0.8.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/tools v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.1.8-0.20220321170924-7afca5966e5e // indirect
 )
