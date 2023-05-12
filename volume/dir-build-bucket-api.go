@@ -48,7 +48,7 @@ func ExBuildBucketAPI(
 		ctx,
 		b,
 		NewBuildBucketAPI(bucketID, volumeID),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCb,
 		nil,
 	)

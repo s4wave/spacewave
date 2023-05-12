@@ -23,7 +23,7 @@ func StartBucketLookupOperation(
 		ctx,
 		b,
 		NewBuildBucketLookup(args.GetBucketId()),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		nil,
 		nil,
 	)

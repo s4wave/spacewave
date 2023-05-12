@@ -310,21 +310,39 @@ func (c *LookupController) putBlockAllVolumes(
 
 // lookupWithDirective uses the dex directive to lookup a block.
 func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) ([]byte, bool, error) {
-	bucketID := c.conf.GetBucketConf().GetId()
-	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 	subCtx, subCtxCancel := context.WithCancel(reqCtx)
 	defer subCtxCancel()
-	lval, _, aref, err := bus.ExecWaitValue[dex.LookupBlockFromNetworkValue](
+
+	bucketID := c.conf.GetBucketConf().GetId()
+	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
+
+	var notFoundSeen atomic.Bool
+	var idleCb bus.ExecIdleCallback = func(errs []error) (cwait bool, err error) {
+		cwait, err = bus.ReturnIfIdle(!wait)(errs)
+		if cwait && err == nil && notFoundSeen.Load() {
+			// don't wait if we saw not-found or an error
+			cwait = false
+		}
+		return cwait, err
+	}
+
+	lval, _, aref, err := bus.ExecWaitValue(
 		subCtx,
 		c.b,
 		dir,
-		!wait,
+		idleCb,
 		nil,
 		func(val dex.LookupBlockFromNetworkValue) (bool, error) {
-			if len(val.GetData()) != 0 || val.GetError() != nil {
-				return true, nil
+			// if IgnoreNotFound is set in the lookup controller: prevents
+			// resolving the directive with a not-found result.
+			if err := val.GetError(); err != nil && err != block.ErrNotFound {
+				return true, err
 			}
-			return false, nil
+			if len(val.GetData()) == 0 {
+				notFoundSeen.Store(true)
+				return false, nil
+			}
+			return true, nil
 		},
 	)
 	if aref != nil {
@@ -333,6 +351,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 	if err != nil || lval == nil {
 		return nil, false, err
 	}
+
 	return lval.GetData(), len(lval.GetData()) > 0 && lval.GetError() == nil, lval.GetError()
 }
 

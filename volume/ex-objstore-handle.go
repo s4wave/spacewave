@@ -22,7 +22,7 @@ func BuildObjectStoreAPIEx(
 		NewBuildObjectStoreAPI(
 			storeID, storeVolume,
 		),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		disposeCb,
 		nil,
 	)

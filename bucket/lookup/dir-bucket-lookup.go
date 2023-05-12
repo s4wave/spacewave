@@ -45,7 +45,7 @@ func ExBuildBucketLookup(
 		ctx,
 		b,
 		NewBuildBucketLookup(bucketID),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		disposeCb,
 		nil,
 	)

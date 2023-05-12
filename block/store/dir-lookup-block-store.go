@@ -62,7 +62,7 @@ func ExLookupFirstBlockStore(
 		ctx,
 		b,
 		NewLookupBlockStore(blockStoreId),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCb,
 		nil,
 	)

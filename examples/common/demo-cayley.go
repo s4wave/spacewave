@@ -117,7 +117,7 @@ func RunDemoCayley(
 		ctx,
 		b,
 		volume.NewBuildObjectStoreAPI("cayley-test", vol.GetID()),
-		false,
+		nil,
 		nil,
 	)
 	if err != nil {

@@ -53,7 +53,7 @@ func ExLookupVolume(
 		ctx,
 		b,
 		NewLookupVolume(volumeID, peerID),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		nil,
 		nil,
 	)

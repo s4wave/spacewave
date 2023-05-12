@@ -20,7 +20,7 @@ func ExLookupWorldEngine(
 		ctx,
 		b,
 		NewLookupWorldEngine(id),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		disposeCb,
 		nil,
 	)

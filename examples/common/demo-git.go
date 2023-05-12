@@ -58,7 +58,7 @@ func RunDemoGit(
 			bucketConf,
 			vol.GetID(),
 		),
-		false,
+		nil,
 		nil,
 	)
 	if err != nil {

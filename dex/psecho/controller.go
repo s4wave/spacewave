@@ -141,7 +141,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ctx,
 		c.b,
 		pubsub.NewBuildChannelSubscription(channelID, privKey),
-		false,
+		nil,
 		subCtxCancel,
 	)
 	if err != nil {

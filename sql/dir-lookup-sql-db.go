@@ -44,7 +44,7 @@ func ExLookupSqlStore(
 		ctx,
 		b,
 		NewLookupSqlStore(dbID),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCb,
 		nil,
 	)

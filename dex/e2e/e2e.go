@@ -195,7 +195,7 @@ func TestMultiNodeDEX(
 				ctx,
 				tb.Bus,
 				resolver.NewLoadControllerWithConfig(c),
-				false,
+				nil,
 				nil,
 			)
 			if err != nil {
@@ -218,7 +218,7 @@ func TestMultiNodeDEX(
 			bucket.NewApplyBucketConfigToVolume(
 				bc,
 				tbb.Volume.GetID(),
-			), false, nil,
+			), nil, nil,
 		)
 		if err != nil {
 			t.Fatal(err.Error())

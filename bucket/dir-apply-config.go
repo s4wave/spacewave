@@ -67,7 +67,7 @@ func NewApplyBucketConfigToVolumes(bucketConf *Config, volumeIDs []string) Apply
 
 // ExApplyBucketConfig executes applying a bucket config directive.
 func ExApplyBucketConfig(ctx context.Context, b bus.Bus, apply ApplyBucketConfig) (ApplyBucketConfigValue, error) {
-	av, _, avRel, err := bus.ExecOneOff(ctx, b, apply, false, nil)
+	av, _, avRel, err := bus.ExecOneOff(ctx, b, apply, nil, nil)
 	if err != nil {
 		return nil, err
 	}
