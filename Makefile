@@ -32,7 +32,7 @@ $(PROTOC_GEN_GO):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/protoc-gen-go \
-		github.com/golang/protobuf/protoc-gen-go
+		google.golang.org/protobuf/cmd/protoc-gen-go
 
 $(PROTOC_GEN_VTPROTO):
 	cd ./hack; \
@@ -153,15 +153,3 @@ fix: $(GOLANGCI_LINT)
 .PHONY: test
 test:
 	go test -v ./...
-
-.PHONY: start-electron
-start-electron: node_modules vendor
-	$(BLDR) start electron
-
-.PHONY: start-web
-start-web: node_modules vendor
-	$(BLDR) start web
-
-.PHONY: start-web
-start-web-wasm: node_modules vendor
-	$(BLDR) start web --wasm
