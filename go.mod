@@ -2,11 +2,11 @@ module github.com/aperturerobotics/bldr
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230509054627-fa83dc5ee40a // master
+require github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad // master
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.15.3 // master
+require github.com/aperturerobotics/bifrost v0.15.5 // master
 
 // cayley has not been updated to support v0.2.0
 require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa // indirect
@@ -33,7 +33,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.26.4 // master
+	github.com/aperturerobotics/controllerbus v0.27.1-0.20230512225029-073bdff7defe // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
@@ -60,7 +60,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.5
-	github.com/libp2p/go-libp2p v0.27.2
+	github.com/libp2p/go-libp2p v0.27.3
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20220919134236-1c09f2ab3ec1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
@@ -79,11 +79,11 @@ require (
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.25.3
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.8.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	google.golang.org/protobuf v1.30.0
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e
-	storj.io/drpc v0.0.32 // indirect
+	storj.io/drpc v0.0.33 // indirect
 )
 
 require (
@@ -99,10 +99,10 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
+	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
 	golang.org/x/mod v0.10.0
-	golang.org/x/sync v0.1.0
-	golang.org/x/tools v0.8.0
+	golang.org/x/sync v0.2.0
+	golang.org/x/tools v0.9.1
 )
 
 require (
@@ -208,9 +208,9 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4 // indirect

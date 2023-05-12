@@ -140,7 +140,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 
 	// start the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
-	_, _, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, false, nil)
+	_, _, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, nil, nil)
 	if err != nil {
 		ctxCancel()
 		return nil, err

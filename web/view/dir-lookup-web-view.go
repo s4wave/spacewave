@@ -51,7 +51,7 @@ func ExLookupWebView(
 		ctx,
 		b,
 		NewLookupWebView(webViewID, wait),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		nil,
 		nil,
 	)

@@ -40,7 +40,7 @@ func ExFetchManifest(
 	manifestMeta *ManifestMeta,
 	returnIfIdle bool,
 ) (FetchManifestValue, error) {
-	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewFetchManifest(manifestMeta), returnIfIdle, nil)
+	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewFetchManifest(manifestMeta), bus.ReturnIfIdle(returnIfIdle), nil)
 	if err != nil {
 		return nil, err
 	}

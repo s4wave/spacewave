@@ -55,7 +55,7 @@ func ExLoadPlugin(
 		ctx,
 		b,
 		NewLoadPlugin(pluginID),
-		returnIfIdle,
+		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCallback,
 		nil,
 	)

@@ -36,8 +36,8 @@ import (
 //go:embed config-set.bin
 var StaticFS embed.FS
 
-// InstanceID contains the plugin instance id.
-var InstanceID = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_INSTANCE"))
+// PluginStartInfo contains the b58 encoded startup information.
+var PluginStartInfo = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_START_INFO"))
 
 // PluginMeta contains the b58 encoded plugin metadata.
 var PluginMeta = "8j7eujJNz6qYqGbGLPN2CjBPAtpgeC7tBgcj2dMrNafy5U5nPjF8K4e3SBpgNs5Hpg3"
@@ -60,7 +60,7 @@ func init() {
 
 // main is the main entrypoint.
 func main() {
-	plugin_entrypoint.Main(InstanceID, PluginMeta, LogLevel, Factories, ConfigSets)
+	plugin_entrypoint.Main(PluginStartInfo, PluginMeta, LogLevel, Factories, ConfigSets)
 }
 
 // _ ensures that at least one reference to bldr_values is present.
