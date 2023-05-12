@@ -4,7 +4,7 @@ go 1.19
 
 replace github.com/aperturerobotics/forge => ../
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.28.2-0.20221202092004-7e5a6a8cf680 // aperture
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.50.1
@@ -34,12 +34,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.14.2 // indirect
-	github.com/aperturerobotics/controllerbus v0.26.0 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230425032318-ca65427168ab // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230215122505-c118c6d6fbbc // indirect
-	github.com/aperturerobotics/timestamp v0.6.4 // indirect
-	github.com/aperturerobotics/util v1.1.3-0.20230424231845-1ded341f7d4e // indirect
+	github.com/aperturerobotics/bifrost v0.15.5 // indirect
+	github.com/aperturerobotics/controllerbus v0.27.1-0.20230512225029-073bdff7defe // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230512231624-d0e7327b832f // indirect
+	github.com/aperturerobotics/timestamp v0.7.2 // indirect
+	github.com/aperturerobotics/util v1.3.0 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -130,7 +130,7 @@ require (
 	github.com/ldez/tagliatelle v0.3.1 // indirect
 	github.com/leonklingele/grouper v1.1.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
-	github.com/libp2p/go-libp2p v0.27.1 // indirect
+	github.com/libp2p/go-libp2p v0.27.3 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
@@ -223,16 +223,16 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.8.0 // indirect
-	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb // indirect
+	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
-	golang.org/x/tools v0.8.0 // indirect
-	gonum.org/v1/gonum v0.12.0 // indirect
+	golang.org/x/tools v0.9.1 // indirect
+	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

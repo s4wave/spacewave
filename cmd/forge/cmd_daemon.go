@@ -232,7 +232,7 @@ func runDaemon(c *cli.Context) error {
 
 	for _, e := range []error{
 		daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true),
-		daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true),
+		daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true, nil),
 	} {
 		if e != nil {
 			return e

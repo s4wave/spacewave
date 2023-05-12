@@ -1,9 +1,9 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
-import { Value } from "../../value/value.pb.js";
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
+import { Value } from '../../value/value.pb.js'
 
-export const protobufPackage = "forge.lib.kvtx";
+export const protobufPackage = 'forge.lib.kvtx'
 
 /** OpType is the list of operation codes for kvtx. */
 export enum OpType {
@@ -50,67 +50,67 @@ export enum OpType {
 export function opTypeFromJSON(object: any): OpType {
   switch (object) {
     case 0:
-    case "OpType_NONE":
-      return OpType.OpType_NONE;
+    case 'OpType_NONE':
+      return OpType.OpType_NONE
     case 1:
-    case "OpType_GET":
-      return OpType.OpType_GET;
+    case 'OpType_GET':
+      return OpType.OpType_GET
     case 2:
-    case "OpType_GET_EXISTS":
-      return OpType.OpType_GET_EXISTS;
+    case 'OpType_GET_EXISTS':
+      return OpType.OpType_GET_EXISTS
     case 3:
-    case "OpType_CHECK":
-      return OpType.OpType_CHECK;
+    case 'OpType_CHECK':
+      return OpType.OpType_CHECK
     case 4:
-    case "OpType_CHECK_BLOB":
-      return OpType.OpType_CHECK_BLOB;
+    case 'OpType_CHECK_BLOB':
+      return OpType.OpType_CHECK_BLOB
     case 5:
-    case "OpType_CHECK_EXISTS":
-      return OpType.OpType_CHECK_EXISTS;
+    case 'OpType_CHECK_EXISTS':
+      return OpType.OpType_CHECK_EXISTS
     case 6:
-    case "OpType_CHECK_NOT_EXISTS":
-      return OpType.OpType_CHECK_NOT_EXISTS;
+    case 'OpType_CHECK_NOT_EXISTS':
+      return OpType.OpType_CHECK_NOT_EXISTS
     case 7:
-    case "OpType_SET":
-      return OpType.OpType_SET;
+    case 'OpType_SET':
+      return OpType.OpType_SET
     case 8:
-    case "OpType_SET_BLOB":
-      return OpType.OpType_SET_BLOB;
+    case 'OpType_SET_BLOB':
+      return OpType.OpType_SET_BLOB
     case 9:
-    case "OpType_DELETE":
-      return OpType.OpType_DELETE;
+    case 'OpType_DELETE':
+      return OpType.OpType_DELETE
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return OpType.UNRECOGNIZED;
+      return OpType.UNRECOGNIZED
   }
 }
 
 export function opTypeToJSON(object: OpType): string {
   switch (object) {
     case OpType.OpType_NONE:
-      return "OpType_NONE";
+      return 'OpType_NONE'
     case OpType.OpType_GET:
-      return "OpType_GET";
+      return 'OpType_GET'
     case OpType.OpType_GET_EXISTS:
-      return "OpType_GET_EXISTS";
+      return 'OpType_GET_EXISTS'
     case OpType.OpType_CHECK:
-      return "OpType_CHECK";
+      return 'OpType_CHECK'
     case OpType.OpType_CHECK_BLOB:
-      return "OpType_CHECK_BLOB";
+      return 'OpType_CHECK_BLOB'
     case OpType.OpType_CHECK_EXISTS:
-      return "OpType_CHECK_EXISTS";
+      return 'OpType_CHECK_EXISTS'
     case OpType.OpType_CHECK_NOT_EXISTS:
-      return "OpType_CHECK_NOT_EXISTS";
+      return 'OpType_CHECK_NOT_EXISTS'
     case OpType.OpType_SET:
-      return "OpType_SET";
+      return 'OpType_SET'
     case OpType.OpType_SET_BLOB:
-      return "OpType_SET_BLOB";
+      return 'OpType_SET_BLOB'
     case OpType.OpType_DELETE:
-      return "OpType_DELETE";
+      return 'OpType_DELETE'
     case OpType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -129,37 +129,37 @@ export function opTypeToJSON(object: OpType): string {
  */
 export interface Config {
   /** Ops is the list of operations to apply. */
-  ops: Op[];
+  ops: Op[]
   /**
    * ConfigInput is the name of an Input to load additional ops from.
    * The referenced block should contain a ConfigInput object.
    */
-  configInput: string;
+  configInput: string
   /** IgnoreErrors warns on errors and continues w/o failing. */
-  ignoreErrors: boolean;
+  ignoreErrors: boolean
 }
 
 /** ConfigInput is a block containing additional ops from an Input. */
 export interface ConfigInput {
   /** Ops is the list of operations to apply. */
-  ops: Op[];
+  ops: Op[]
 }
 
 /** Op is an operation definition. */
 export interface Op {
   /** OpType is the operation type to apply. */
-  opType: OpType;
+  opType: OpType
   /**
    * KeyInput is the name of the Input to use for the Key.
    * The raw block data will be used as the key.
    */
-  keyInput: string;
+  keyInput: string
   /**
    * Key is the in-line configured key to use.
    * Converted to []byte without nil terminator.
    * If set, overrides input_key.
    */
-  key: string;
+  key: string
   /**
    * ValueInput is the name of the Input to use for the Value argument.
    *
@@ -172,20 +172,18 @@ export interface Op {
    * Note: overridden by inline value if set and not empty.
    * Note: overridden by value_string if set and not empty.
    */
-  valueInput: string;
+  valueInput: string
   /**
    * Value is the in-line value argument.
    *
    * See input field for additional notes.
    */
-  value:
-    | Value
-    | undefined;
+  value: Value | undefined
   /**
    * ValueString is an in-line string specification of the value.
    * Note: overridden by inline value if set and not empty.
    */
-  valueString: string;
+  valueString: string
   /**
    * Output is the name of the output to use for the Value.
    *
@@ -197,81 +195,85 @@ export interface Op {
    * Note: contains the single most recently set value only.
    * Note: stores the block reference as the output Value.
    */
-  output: string;
+  output: string
   /**
    * Ops is the list of sub-operations to apply.
    * The sub-operations inherit the parent config.
    */
-  ops: Op[];
+  ops: Op[]
 }
 
 function createBaseConfig(): Config {
-  return { ops: [], configInput: "", ignoreErrors: false };
+  return { ops: [], configInput: '', ignoreErrors: false }
 }
 
 export const Config = {
-  encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: Config,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.ops) {
-      Op.encode(v!, writer.uint32(10).fork()).ldelim();
+      Op.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    if (message.configInput !== "") {
-      writer.uint32(18).string(message.configInput);
+    if (message.configInput !== '') {
+      writer.uint32(18).string(message.configInput)
     }
     if (message.ignoreErrors === true) {
-      writer.uint32(24).bool(message.ignoreErrors);
+      writer.uint32(24).bool(message.ignoreErrors)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Config {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConfig();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfig()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.ops.push(Op.decode(reader, reader.uint32()));
-          continue;
+          message.ops.push(Op.decode(reader, reader.uint32()))
+          continue
         case 2:
-          if (tag != 18) {
-            break;
+          if (tag !== 18) {
+            break
           }
 
-          message.configInput = reader.string();
-          continue;
+          message.configInput = reader.string()
+          continue
         case 3:
-          if (tag != 24) {
-            break;
+          if (tag !== 24) {
+            break
           }
 
-          message.ignoreErrors = reader.bool();
-          continue;
+          message.ignoreErrors = reader.bool()
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.encode(p).finish()];
+          yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt).finish()]
       }
     }
   },
@@ -279,99 +281,112 @@ export const Config = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Config>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Config.decode(p)];
+          yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      ops: Array.isArray(object?.ops) ? object.ops.map((e: any) => Op.fromJSON(e)) : [],
-      configInput: isSet(object.configInput) ? String(object.configInput) : "",
-      ignoreErrors: isSet(object.ignoreErrors) ? Boolean(object.ignoreErrors) : false,
-    };
+      ops: Array.isArray(object?.ops)
+        ? object.ops.map((e: any) => Op.fromJSON(e))
+        : [],
+      configInput: isSet(object.configInput) ? String(object.configInput) : '',
+      ignoreErrors: isSet(object.ignoreErrors)
+        ? Boolean(object.ignoreErrors)
+        : false,
+    }
   },
 
   toJSON(message: Config): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.ops) {
-      obj.ops = message.ops.map((e) => e ? Op.toJSON(e) : undefined);
+      obj.ops = message.ops.map((e) => (e ? Op.toJSON(e) : undefined))
     } else {
-      obj.ops = [];
+      obj.ops = []
     }
-    message.configInput !== undefined && (obj.configInput = message.configInput);
-    message.ignoreErrors !== undefined && (obj.ignoreErrors = message.ignoreErrors);
-    return obj;
+    message.configInput !== undefined && (obj.configInput = message.configInput)
+    message.ignoreErrors !== undefined &&
+      (obj.ignoreErrors = message.ignoreErrors)
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {});
+    return Config.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
-    const message = createBaseConfig();
-    message.ops = object.ops?.map((e) => Op.fromPartial(e)) || [];
-    message.configInput = object.configInput ?? "";
-    message.ignoreErrors = object.ignoreErrors ?? false;
-    return message;
+    const message = createBaseConfig()
+    message.ops = object.ops?.map((e) => Op.fromPartial(e)) || []
+    message.configInput = object.configInput ?? ''
+    message.ignoreErrors = object.ignoreErrors ?? false
+    return message
   },
-};
+}
 
 function createBaseConfigInput(): ConfigInput {
-  return { ops: [] };
+  return { ops: [] }
 }
 
 export const ConfigInput = {
-  encode(message: ConfigInput, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ConfigInput,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.ops) {
-      Op.encode(v!, writer.uint32(10).fork()).ldelim();
+      Op.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ConfigInput {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConfigInput();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseConfigInput()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.ops.push(Op.decode(reader, reader.uint32()));
-          continue;
+          message.ops.push(Op.decode(reader, reader.uint32()))
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ConfigInput, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<ConfigInput | ConfigInput[]> | Iterable<ConfigInput | ConfigInput[]>,
+    source:
+      | AsyncIterable<ConfigInput | ConfigInput[]>
+      | Iterable<ConfigInput | ConfigInput[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ConfigInput.encode(p).finish()];
+          yield* [ConfigInput.encode(p).finish()]
         }
       } else {
-        yield* [ConfigInput.encode(pkt).finish()];
+        yield* [ConfigInput.encode(pkt).finish()]
       }
     }
   },
@@ -379,159 +394,179 @@ export const ConfigInput = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ConfigInput>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ConfigInput> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ConfigInput.decode(p)];
+          yield* [ConfigInput.decode(p)]
         }
       } else {
-        yield* [ConfigInput.decode(pkt)];
+        yield* [ConfigInput.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ConfigInput {
-    return { ops: Array.isArray(object?.ops) ? object.ops.map((e: any) => Op.fromJSON(e)) : [] };
+    return {
+      ops: Array.isArray(object?.ops)
+        ? object.ops.map((e: any) => Op.fromJSON(e))
+        : [],
+    }
   },
 
   toJSON(message: ConfigInput): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.ops) {
-      obj.ops = message.ops.map((e) => e ? Op.toJSON(e) : undefined);
+      obj.ops = message.ops.map((e) => (e ? Op.toJSON(e) : undefined))
     } else {
-      obj.ops = [];
+      obj.ops = []
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<ConfigInput>, I>>(base?: I): ConfigInput {
-    return ConfigInput.fromPartial(base ?? {});
+    return ConfigInput.fromPartial(base ?? {})
   },
 
-  fromPartial<I extends Exact<DeepPartial<ConfigInput>, I>>(object: I): ConfigInput {
-    const message = createBaseConfigInput();
-    message.ops = object.ops?.map((e) => Op.fromPartial(e)) || [];
-    return message;
+  fromPartial<I extends Exact<DeepPartial<ConfigInput>, I>>(
+    object: I
+  ): ConfigInput {
+    const message = createBaseConfigInput()
+    message.ops = object.ops?.map((e) => Op.fromPartial(e)) || []
+    return message
   },
-};
+}
 
 function createBaseOp(): Op {
-  return { opType: 0, keyInput: "", key: "", valueInput: "", value: undefined, valueString: "", output: "", ops: [] };
+  return {
+    opType: 0,
+    keyInput: '',
+    key: '',
+    valueInput: '',
+    value: undefined,
+    valueString: '',
+    output: '',
+    ops: [],
+  }
 }
 
 export const Op = {
   encode(message: Op, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.opType !== 0) {
-      writer.uint32(8).int32(message.opType);
+      writer.uint32(8).int32(message.opType)
     }
-    if (message.keyInput !== "") {
-      writer.uint32(18).string(message.keyInput);
+    if (message.keyInput !== '') {
+      writer.uint32(18).string(message.keyInput)
     }
-    if (message.key !== "") {
-      writer.uint32(26).string(message.key);
+    if (message.key !== '') {
+      writer.uint32(26).string(message.key)
     }
-    if (message.valueInput !== "") {
-      writer.uint32(50).string(message.valueInput);
+    if (message.valueInput !== '') {
+      writer.uint32(50).string(message.valueInput)
     }
     if (message.value !== undefined) {
-      Value.encode(message.value, writer.uint32(58).fork()).ldelim();
+      Value.encode(message.value, writer.uint32(58).fork()).ldelim()
     }
-    if (message.valueString !== "") {
-      writer.uint32(66).string(message.valueString);
+    if (message.valueString !== '') {
+      writer.uint32(66).string(message.valueString)
     }
-    if (message.output !== "") {
-      writer.uint32(74).string(message.output);
+    if (message.output !== '') {
+      writer.uint32(74).string(message.output)
     }
     for (const v of message.ops) {
-      Op.encode(v!, writer.uint32(82).fork()).ldelim();
+      Op.encode(v!, writer.uint32(82).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Op {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOp();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseOp()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
-            break;
+          if (tag !== 8) {
+            break
           }
 
-          message.opType = reader.int32() as any;
-          continue;
+          message.opType = reader.int32() as any
+          continue
         case 2:
-          if (tag != 18) {
-            break;
+          if (tag !== 18) {
+            break
           }
 
-          message.keyInput = reader.string();
-          continue;
+          message.keyInput = reader.string()
+          continue
         case 3:
-          if (tag != 26) {
-            break;
+          if (tag !== 26) {
+            break
           }
 
-          message.key = reader.string();
-          continue;
+          message.key = reader.string()
+          continue
         case 6:
-          if (tag != 50) {
-            break;
+          if (tag !== 50) {
+            break
           }
 
-          message.valueInput = reader.string();
-          continue;
+          message.valueInput = reader.string()
+          continue
         case 7:
-          if (tag != 58) {
-            break;
+          if (tag !== 58) {
+            break
           }
 
-          message.value = Value.decode(reader, reader.uint32());
-          continue;
+          message.value = Value.decode(reader, reader.uint32())
+          continue
         case 8:
-          if (tag != 66) {
-            break;
+          if (tag !== 66) {
+            break
           }
 
-          message.valueString = reader.string();
-          continue;
+          message.valueString = reader.string()
+          continue
         case 9:
-          if (tag != 74) {
-            break;
+          if (tag !== 74) {
+            break
           }
 
-          message.output = reader.string();
-          continue;
+          message.output = reader.string()
+          continue
         case 10:
-          if (tag != 82) {
-            break;
+          if (tag !== 82) {
+            break
           }
 
-          message.ops.push(Op.decode(reader, reader.uint32()));
-          continue;
+          message.ops.push(Op.decode(reader, reader.uint32()))
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Op, Uint8Array>
-  async *encodeTransform(source: AsyncIterable<Op | Op[]> | Iterable<Op | Op[]>): AsyncIterable<Uint8Array> {
+  async *encodeTransform(
+    source: AsyncIterable<Op | Op[]> | Iterable<Op | Op[]>
+  ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Op.encode(p).finish()];
+          yield* [Op.encode(p).finish()]
         }
       } else {
-        yield* [Op.encode(pkt).finish()];
+        yield* [Op.encode(pkt).finish()]
       }
     }
   },
@@ -539,15 +574,17 @@ export const Op = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Op>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Op> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Op.decode(p)];
+          yield* [Op.decode(p)]
         }
       } else {
-        yield* [Op.decode(pkt)];
+        yield* [Op.decode(pkt)]
       }
     }
   },
@@ -555,69 +592,94 @@ export const Op = {
   fromJSON(object: any): Op {
     return {
       opType: isSet(object.opType) ? opTypeFromJSON(object.opType) : 0,
-      keyInput: isSet(object.keyInput) ? String(object.keyInput) : "",
-      key: isSet(object.key) ? String(object.key) : "",
-      valueInput: isSet(object.valueInput) ? String(object.valueInput) : "",
+      keyInput: isSet(object.keyInput) ? String(object.keyInput) : '',
+      key: isSet(object.key) ? String(object.key) : '',
+      valueInput: isSet(object.valueInput) ? String(object.valueInput) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
-      valueString: isSet(object.valueString) ? String(object.valueString) : "",
-      output: isSet(object.output) ? String(object.output) : "",
-      ops: Array.isArray(object?.ops) ? object.ops.map((e: any) => Op.fromJSON(e)) : [],
-    };
+      valueString: isSet(object.valueString) ? String(object.valueString) : '',
+      output: isSet(object.output) ? String(object.output) : '',
+      ops: Array.isArray(object?.ops)
+        ? object.ops.map((e: any) => Op.fromJSON(e))
+        : [],
+    }
   },
 
   toJSON(message: Op): unknown {
-    const obj: any = {};
-    message.opType !== undefined && (obj.opType = opTypeToJSON(message.opType));
-    message.keyInput !== undefined && (obj.keyInput = message.keyInput);
-    message.key !== undefined && (obj.key = message.key);
-    message.valueInput !== undefined && (obj.valueInput = message.valueInput);
-    message.value !== undefined && (obj.value = message.value ? Value.toJSON(message.value) : undefined);
-    message.valueString !== undefined && (obj.valueString = message.valueString);
-    message.output !== undefined && (obj.output = message.output);
+    const obj: any = {}
+    message.opType !== undefined && (obj.opType = opTypeToJSON(message.opType))
+    message.keyInput !== undefined && (obj.keyInput = message.keyInput)
+    message.key !== undefined && (obj.key = message.key)
+    message.valueInput !== undefined && (obj.valueInput = message.valueInput)
+    message.value !== undefined &&
+      (obj.value = message.value ? Value.toJSON(message.value) : undefined)
+    message.valueString !== undefined && (obj.valueString = message.valueString)
+    message.output !== undefined && (obj.output = message.output)
     if (message.ops) {
-      obj.ops = message.ops.map((e) => e ? Op.toJSON(e) : undefined);
+      obj.ops = message.ops.map((e) => (e ? Op.toJSON(e) : undefined))
     } else {
-      obj.ops = [];
+      obj.ops = []
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Op>, I>>(base?: I): Op {
-    return Op.fromPartial(base ?? {});
+    return Op.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Op>, I>>(object: I): Op {
-    const message = createBaseOp();
-    message.opType = object.opType ?? 0;
-    message.keyInput = object.keyInput ?? "";
-    message.key = object.key ?? "";
-    message.valueInput = object.valueInput ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
-    message.valueString = object.valueString ?? "";
-    message.output = object.output ?? "";
-    message.ops = object.ops?.map((e) => Op.fromPartial(e)) || [];
-    return message;
+    const message = createBaseOp()
+    message.opType = object.opType ?? 0
+    message.keyInput = object.keyInput ?? ''
+    message.key = object.key ?? ''
+    message.valueInput = object.valueInput ?? ''
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined
+    message.valueString = object.valueString ?? ''
+    message.output = object.output ?? ''
+    message.ops = object.ops?.map((e) => Op.fromPartial(e)) || []
+    return message
   },
-};
+}
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }

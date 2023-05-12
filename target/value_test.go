@@ -31,7 +31,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	// construct & mount world controller
 	engineID := "forge-target-test"
 	volumeID := tb.Volume.GetID()
-	bucketID := testbed.BucketId
+	bucketID := tb.BucketId
 	objectStoreID := engineID
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,

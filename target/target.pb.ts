@@ -1,10 +1,10 @@
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal.js";
-import { ControllerConfig } from "../../controllerbus/controller/configset/proto/configset.pb.js";
-import { Value } from "../value/value.pb.js";
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import Long from 'long'
+import _m0 from 'protobufjs/minimal.js'
+import { Value } from '../value/value.pb.js'
 
-export const protobufPackage = "forge.target";
+export const protobufPackage = 'forge.target'
 
 /** InputType is the list of possible input types. */
 export enum InputType {
@@ -27,42 +27,42 @@ export enum InputType {
 export function inputTypeFromJSON(object: any): InputType {
   switch (object) {
     case 0:
-    case "InputType_UNKNOWN":
-      return InputType.InputType_UNKNOWN;
+    case 'InputType_UNKNOWN':
+      return InputType.InputType_UNKNOWN
     case 1:
-    case "InputType_VALUE":
-      return InputType.InputType_VALUE;
+    case 'InputType_VALUE':
+      return InputType.InputType_VALUE
     case 2:
-    case "InputType_ALIAS":
-      return InputType.InputType_ALIAS;
+    case 'InputType_ALIAS':
+      return InputType.InputType_ALIAS
     case 3:
-    case "InputType_WORLD":
-      return InputType.InputType_WORLD;
+    case 'InputType_WORLD':
+      return InputType.InputType_WORLD
     case 4:
-    case "InputType_WORLD_OBJECT":
-      return InputType.InputType_WORLD_OBJECT;
+    case 'InputType_WORLD_OBJECT':
+      return InputType.InputType_WORLD_OBJECT
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return InputType.UNRECOGNIZED;
+      return InputType.UNRECOGNIZED
   }
 }
 
 export function inputTypeToJSON(object: InputType): string {
   switch (object) {
     case InputType.InputType_UNKNOWN:
-      return "InputType_UNKNOWN";
+      return 'InputType_UNKNOWN'
     case InputType.InputType_VALUE:
-      return "InputType_VALUE";
+      return 'InputType_VALUE'
     case InputType.InputType_ALIAS:
-      return "InputType_ALIAS";
+      return 'InputType_ALIAS'
     case InputType.InputType_WORLD:
-      return "InputType_WORLD";
+      return 'InputType_WORLD'
     case InputType.InputType_WORLD_OBJECT:
-      return "InputType_WORLD_OBJECT";
+      return 'InputType_WORLD_OBJECT'
     case InputType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -80,32 +80,32 @@ export enum OutputType {
 export function outputTypeFromJSON(object: any): OutputType {
   switch (object) {
     case 0:
-    case "OutputType_UNKNOWN":
-      return OutputType.OutputType_UNKNOWN;
+    case 'OutputType_UNKNOWN':
+      return OutputType.OutputType_UNKNOWN
     case 1:
-    case "OutputType_EXEC":
-      return OutputType.OutputType_EXEC;
+    case 'OutputType_EXEC':
+      return OutputType.OutputType_EXEC
     case 2:
-    case "OutputType_VALUE":
-      return OutputType.OutputType_VALUE;
+    case 'OutputType_VALUE':
+      return OutputType.OutputType_VALUE
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
-      return OutputType.UNRECOGNIZED;
+      return OutputType.UNRECOGNIZED
   }
 }
 
 export function outputTypeToJSON(object: OutputType): string {
   switch (object) {
     case OutputType.OutputType_UNKNOWN:
-      return "OutputType_UNKNOWN";
+      return 'OutputType_UNKNOWN'
     case OutputType.OutputType_EXEC:
-      return "OutputType_EXEC";
+      return 'OutputType_EXEC'
     case OutputType.OutputType_VALUE:
-      return "OutputType_VALUE";
+      return 'OutputType_VALUE'
     case OutputType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED'
   }
 }
 
@@ -115,49 +115,45 @@ export interface Target {
    * Inputs is the mapping of inputs.
    * Not necessarily sorted or unique, later values override earlier.
    */
-  inputs: Input[];
+  inputs: Input[]
   /**
    * Outputs is the mapping of outputs.
    * Not necessarily sorted or unique, later values override earlier.
    */
-  outputs: Output[];
+  outputs: Output[]
   /** Exec is the execution pass configuration. */
-  exec: Exec | undefined;
+  exec: Exec | undefined
 }
 
 /** Input contains configuration for a Task target input. */
 export interface Input {
   /** Name is the unique name of the input. */
-  name: string;
+  name: string
   /**
    * InputType is the type of input.
    * If UNKNOWN and Alias is set, assumes ALIAS.
    */
-  inputType: InputType;
+  inputType: InputType
   /** Alias is the name of the target aliased Input. */
-  alias: string;
+  alias: string
   /** WatchChanges will restart the Task if the Value changes. */
-  watchChanges: boolean;
+  watchChanges: boolean
   /**
    * Value is the in-line data for the value input type.
    * InputType_VALUE
    */
-  value:
-    | Value
-    | undefined;
+  value: Value | undefined
   /**
    * World contains the args for the world input type.
    * InputType_WORLD
    */
-  world:
-    | InputWorld
-    | undefined;
+  world: InputWorld | undefined
   /**
    * WorldObject contains the args for the world object input type.
    * Can be used for change detection: re-run Target when object changes.
    * InputType_WORLD_OBJECT
    */
-  worldObject: InputWorldObject | undefined;
+  worldObject: InputWorldObject | undefined
 }
 
 /**
@@ -166,14 +162,14 @@ export interface Input {
  */
 export interface InputWorld {
   /** EngineId is the world engine ID to lookup. */
-  engineId: string;
+  engineId: string
   /**
    * LookupImmediate indicates the execution controller should lookup and wait
    * for the world engine to be ready before starting execution. If false, the
    * execution controller will pass a BusEngine handle which will lookup the
    * engine lazily (on first request).
    */
-  lookupImmediate: boolean;
+  lookupImmediate: boolean
 }
 
 /**
@@ -185,15 +181,15 @@ export interface InputWorldObject {
    * World is the name of the world input to lookup on.
    * If unset, defaults to the Forge Job world.
    */
-  world: string;
+  world: string
   /** ObjectKey is the object key to lookup. */
-  objectKey: string;
+  objectKey: string
   /**
    * ObjectRev is the minimum object rev to wait for.
    * If set, waits for the object to exist.
    * If object_rev == 0, does not wait for the object to exist.
    */
-  objectRev: Long;
+  objectRev: Long
 }
 
 /**
@@ -202,27 +198,27 @@ export interface InputWorldObject {
  */
 export interface Output {
   /** Name is the unique name of the output. */
-  name: string;
+  name: string
   /** OutputType is the type of output. */
-  outputType: OutputType;
+  outputType: OutputType
   /**
    * ExecOutput is the name of the exec output to mount.
    * OutputType_EXEC
    */
-  execOutput: string;
+  execOutput: string
   /**
    * Value is an in-line output value.
    * OutputType_VALUE
    */
-  value: Value | undefined;
+  value: Value | undefined
 }
 
 /** Exec contains target execution configuration. */
 export interface Exec {
   /** Disable is a flag to ignore the below contents and inhibit the exec step. */
-  disable: boolean;
+  disable: boolean
   /** Controller indicates to run a controllerbus controller. */
-  controller: ControllerConfig | undefined;
+  controller: ControllerConfig | undefined
 }
 
 /** ValueSet is the set of values satisfying inputs/outputs of a target. */
@@ -232,82 +228,86 @@ export interface ValueSet {
    * Unique by the "name" field.
    * Sorted by name.
    */
-  inputs: Value[];
+  inputs: Value[]
   /**
    * Outputs is the set of outputs.
    * Unique by the "name" field.
    * Sorted by name.
    */
-  outputs: Value[];
+  outputs: Value[]
 }
 
 function createBaseTarget(): Target {
-  return { inputs: [], outputs: [], exec: undefined };
+  return { inputs: [], outputs: [], exec: undefined }
 }
 
 export const Target = {
-  encode(message: Target, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: Target,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.inputs) {
-      Input.encode(v!, writer.uint32(10).fork()).ldelim();
+      Input.encode(v!, writer.uint32(10).fork()).ldelim()
     }
     for (const v of message.outputs) {
-      Output.encode(v!, writer.uint32(18).fork()).ldelim();
+      Output.encode(v!, writer.uint32(18).fork()).ldelim()
     }
     if (message.exec !== undefined) {
-      Exec.encode(message.exec, writer.uint32(26).fork()).ldelim();
+      Exec.encode(message.exec, writer.uint32(26).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Target {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTarget();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTarget()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.inputs.push(Input.decode(reader, reader.uint32()));
-          continue;
+          message.inputs.push(Input.decode(reader, reader.uint32()))
+          continue
         case 2:
-          if (tag != 18) {
-            break;
+          if (tag !== 18) {
+            break
           }
 
-          message.outputs.push(Output.decode(reader, reader.uint32()));
-          continue;
+          message.outputs.push(Output.decode(reader, reader.uint32()))
+          continue
         case 3:
-          if (tag != 26) {
-            break;
+          if (tag !== 26) {
+            break
           }
 
-          message.exec = Exec.decode(reader, reader.uint32());
-          continue;
+          message.exec = Exec.decode(reader, reader.uint32())
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Target, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Target | Target[]> | Iterable<Target | Target[]>,
+    source: AsyncIterable<Target | Target[]> | Iterable<Target | Target[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Target.encode(p).finish()];
+          yield* [Target.encode(p).finish()]
         }
       } else {
-        yield* [Target.encode(pkt).finish()];
+        yield* [Target.encode(pkt).finish()]
       }
     }
   },
@@ -315,171 +315,187 @@ export const Target = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Target>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Target> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Target.decode(p)];
+          yield* [Target.decode(p)]
         }
       } else {
-        yield* [Target.decode(pkt)];
+        yield* [Target.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Target {
     return {
-      inputs: Array.isArray(object?.inputs) ? object.inputs.map((e: any) => Input.fromJSON(e)) : [],
-      outputs: Array.isArray(object?.outputs) ? object.outputs.map((e: any) => Output.fromJSON(e)) : [],
+      inputs: Array.isArray(object?.inputs)
+        ? object.inputs.map((e: any) => Input.fromJSON(e))
+        : [],
+      outputs: Array.isArray(object?.outputs)
+        ? object.outputs.map((e: any) => Output.fromJSON(e))
+        : [],
       exec: isSet(object.exec) ? Exec.fromJSON(object.exec) : undefined,
-    };
+    }
   },
 
   toJSON(message: Target): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.inputs) {
-      obj.inputs = message.inputs.map((e) => e ? Input.toJSON(e) : undefined);
+      obj.inputs = message.inputs.map((e) => (e ? Input.toJSON(e) : undefined))
     } else {
-      obj.inputs = [];
+      obj.inputs = []
     }
     if (message.outputs) {
-      obj.outputs = message.outputs.map((e) => e ? Output.toJSON(e) : undefined);
+      obj.outputs = message.outputs.map((e) =>
+        e ? Output.toJSON(e) : undefined
+      )
     } else {
-      obj.outputs = [];
+      obj.outputs = []
     }
-    message.exec !== undefined && (obj.exec = message.exec ? Exec.toJSON(message.exec) : undefined);
-    return obj;
+    message.exec !== undefined &&
+      (obj.exec = message.exec ? Exec.toJSON(message.exec) : undefined)
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Target>, I>>(base?: I): Target {
-    return Target.fromPartial(base ?? {});
+    return Target.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Target>, I>>(object: I): Target {
-    const message = createBaseTarget();
-    message.inputs = object.inputs?.map((e) => Input.fromPartial(e)) || [];
-    message.outputs = object.outputs?.map((e) => Output.fromPartial(e)) || [];
-    message.exec = (object.exec !== undefined && object.exec !== null) ? Exec.fromPartial(object.exec) : undefined;
-    return message;
+    const message = createBaseTarget()
+    message.inputs = object.inputs?.map((e) => Input.fromPartial(e)) || []
+    message.outputs = object.outputs?.map((e) => Output.fromPartial(e)) || []
+    message.exec =
+      object.exec !== undefined && object.exec !== null
+        ? Exec.fromPartial(object.exec)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseInput(): Input {
   return {
-    name: "",
+    name: '',
     inputType: 0,
-    alias: "",
+    alias: '',
     watchChanges: false,
     value: undefined,
     world: undefined,
     worldObject: undefined,
-  };
+  }
 }
 
 export const Input = {
   encode(message: Input, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name)
     }
     if (message.inputType !== 0) {
-      writer.uint32(16).int32(message.inputType);
+      writer.uint32(16).int32(message.inputType)
     }
-    if (message.alias !== "") {
-      writer.uint32(26).string(message.alias);
+    if (message.alias !== '') {
+      writer.uint32(26).string(message.alias)
     }
     if (message.watchChanges === true) {
-      writer.uint32(56).bool(message.watchChanges);
+      writer.uint32(56).bool(message.watchChanges)
     }
     if (message.value !== undefined) {
-      Value.encode(message.value, writer.uint32(34).fork()).ldelim();
+      Value.encode(message.value, writer.uint32(34).fork()).ldelim()
     }
     if (message.world !== undefined) {
-      InputWorld.encode(message.world, writer.uint32(42).fork()).ldelim();
+      InputWorld.encode(message.world, writer.uint32(42).fork()).ldelim()
     }
     if (message.worldObject !== undefined) {
-      InputWorldObject.encode(message.worldObject, writer.uint32(50).fork()).ldelim();
+      InputWorldObject.encode(
+        message.worldObject,
+        writer.uint32(50).fork()
+      ).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Input {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInput();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseInput()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.name = reader.string();
-          continue;
+          message.name = reader.string()
+          continue
         case 2:
-          if (tag != 16) {
-            break;
+          if (tag !== 16) {
+            break
           }
 
-          message.inputType = reader.int32() as any;
-          continue;
+          message.inputType = reader.int32() as any
+          continue
         case 3:
-          if (tag != 26) {
-            break;
+          if (tag !== 26) {
+            break
           }
 
-          message.alias = reader.string();
-          continue;
+          message.alias = reader.string()
+          continue
         case 7:
-          if (tag != 56) {
-            break;
+          if (tag !== 56) {
+            break
           }
 
-          message.watchChanges = reader.bool();
-          continue;
+          message.watchChanges = reader.bool()
+          continue
         case 4:
-          if (tag != 34) {
-            break;
+          if (tag !== 34) {
+            break
           }
 
-          message.value = Value.decode(reader, reader.uint32());
-          continue;
+          message.value = Value.decode(reader, reader.uint32())
+          continue
         case 5:
-          if (tag != 42) {
-            break;
+          if (tag !== 42) {
+            break
           }
 
-          message.world = InputWorld.decode(reader, reader.uint32());
-          continue;
+          message.world = InputWorld.decode(reader, reader.uint32())
+          continue
         case 6:
-          if (tag != 50) {
-            break;
+          if (tag !== 50) {
+            break
           }
 
-          message.worldObject = InputWorldObject.decode(reader, reader.uint32());
-          continue;
+          message.worldObject = InputWorldObject.decode(reader, reader.uint32())
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Input, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Input | Input[]> | Iterable<Input | Input[]>,
+    source: AsyncIterable<Input | Input[]> | Iterable<Input | Input[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Input.encode(p).finish()];
+          yield* [Input.encode(p).finish()]
         }
       } else {
-        yield* [Input.encode(pkt).finish()];
+        yield* [Input.encode(pkt).finish()]
       }
     }
   },
@@ -487,122 +503,149 @@ export const Input = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Input>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Input> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Input.decode(p)];
+          yield* [Input.decode(p)]
         }
       } else {
-        yield* [Input.decode(pkt)];
+        yield* [Input.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Input {
     return {
-      name: isSet(object.name) ? String(object.name) : "",
-      inputType: isSet(object.inputType) ? inputTypeFromJSON(object.inputType) : 0,
-      alias: isSet(object.alias) ? String(object.alias) : "",
-      watchChanges: isSet(object.watchChanges) ? Boolean(object.watchChanges) : false,
+      name: isSet(object.name) ? String(object.name) : '',
+      inputType: isSet(object.inputType)
+        ? inputTypeFromJSON(object.inputType)
+        : 0,
+      alias: isSet(object.alias) ? String(object.alias) : '',
+      watchChanges: isSet(object.watchChanges)
+        ? Boolean(object.watchChanges)
+        : false,
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
-      world: isSet(object.world) ? InputWorld.fromJSON(object.world) : undefined,
-      worldObject: isSet(object.worldObject) ? InputWorldObject.fromJSON(object.worldObject) : undefined,
-    };
+      world: isSet(object.world)
+        ? InputWorld.fromJSON(object.world)
+        : undefined,
+      worldObject: isSet(object.worldObject)
+        ? InputWorldObject.fromJSON(object.worldObject)
+        : undefined,
+    }
   },
 
   toJSON(message: Input): unknown {
-    const obj: any = {};
-    message.name !== undefined && (obj.name = message.name);
-    message.inputType !== undefined && (obj.inputType = inputTypeToJSON(message.inputType));
-    message.alias !== undefined && (obj.alias = message.alias);
-    message.watchChanges !== undefined && (obj.watchChanges = message.watchChanges);
-    message.value !== undefined && (obj.value = message.value ? Value.toJSON(message.value) : undefined);
-    message.world !== undefined && (obj.world = message.world ? InputWorld.toJSON(message.world) : undefined);
+    const obj: any = {}
+    message.name !== undefined && (obj.name = message.name)
+    message.inputType !== undefined &&
+      (obj.inputType = inputTypeToJSON(message.inputType))
+    message.alias !== undefined && (obj.alias = message.alias)
+    message.watchChanges !== undefined &&
+      (obj.watchChanges = message.watchChanges)
+    message.value !== undefined &&
+      (obj.value = message.value ? Value.toJSON(message.value) : undefined)
+    message.world !== undefined &&
+      (obj.world = message.world ? InputWorld.toJSON(message.world) : undefined)
     message.worldObject !== undefined &&
-      (obj.worldObject = message.worldObject ? InputWorldObject.toJSON(message.worldObject) : undefined);
-    return obj;
+      (obj.worldObject = message.worldObject
+        ? InputWorldObject.toJSON(message.worldObject)
+        : undefined)
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Input>, I>>(base?: I): Input {
-    return Input.fromPartial(base ?? {});
+    return Input.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Input>, I>>(object: I): Input {
-    const message = createBaseInput();
-    message.name = object.name ?? "";
-    message.inputType = object.inputType ?? 0;
-    message.alias = object.alias ?? "";
-    message.watchChanges = object.watchChanges ?? false;
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
-    message.world = (object.world !== undefined && object.world !== null)
-      ? InputWorld.fromPartial(object.world)
-      : undefined;
-    message.worldObject = (object.worldObject !== undefined && object.worldObject !== null)
-      ? InputWorldObject.fromPartial(object.worldObject)
-      : undefined;
-    return message;
+    const message = createBaseInput()
+    message.name = object.name ?? ''
+    message.inputType = object.inputType ?? 0
+    message.alias = object.alias ?? ''
+    message.watchChanges = object.watchChanges ?? false
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined
+    message.world =
+      object.world !== undefined && object.world !== null
+        ? InputWorld.fromPartial(object.world)
+        : undefined
+    message.worldObject =
+      object.worldObject !== undefined && object.worldObject !== null
+        ? InputWorldObject.fromPartial(object.worldObject)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseInputWorld(): InputWorld {
-  return { engineId: "", lookupImmediate: false };
+  return { engineId: '', lookupImmediate: false }
 }
 
 export const InputWorld = {
-  encode(message: InputWorld, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.engineId !== "") {
-      writer.uint32(10).string(message.engineId);
+  encode(
+    message: InputWorld,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.engineId !== '') {
+      writer.uint32(10).string(message.engineId)
     }
     if (message.lookupImmediate === true) {
-      writer.uint32(16).bool(message.lookupImmediate);
+      writer.uint32(16).bool(message.lookupImmediate)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): InputWorld {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInputWorld();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseInputWorld()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.engineId = reader.string();
-          continue;
+          message.engineId = reader.string()
+          continue
         case 2:
-          if (tag != 16) {
-            break;
+          if (tag !== 16) {
+            break
           }
 
-          message.lookupImmediate = reader.bool();
-          continue;
+          message.lookupImmediate = reader.bool()
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<InputWorld, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<InputWorld | InputWorld[]> | Iterable<InputWorld | InputWorld[]>,
+    source:
+      | AsyncIterable<InputWorld | InputWorld[]>
+      | Iterable<InputWorld | InputWorld[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [InputWorld.encode(p).finish()];
+          yield* [InputWorld.encode(p).finish()]
         }
       } else {
-        yield* [InputWorld.encode(pkt).finish()];
+        yield* [InputWorld.encode(pkt).finish()]
       }
     }
   },
@@ -610,112 +653,125 @@ export const InputWorld = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, InputWorld>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<InputWorld> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [InputWorld.decode(p)];
+          yield* [InputWorld.decode(p)]
         }
       } else {
-        yield* [InputWorld.decode(pkt)];
+        yield* [InputWorld.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): InputWorld {
     return {
-      engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      lookupImmediate: isSet(object.lookupImmediate) ? Boolean(object.lookupImmediate) : false,
-    };
+      engineId: isSet(object.engineId) ? String(object.engineId) : '',
+      lookupImmediate: isSet(object.lookupImmediate)
+        ? Boolean(object.lookupImmediate)
+        : false,
+    }
   },
 
   toJSON(message: InputWorld): unknown {
-    const obj: any = {};
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.lookupImmediate !== undefined && (obj.lookupImmediate = message.lookupImmediate);
-    return obj;
+    const obj: any = {}
+    message.engineId !== undefined && (obj.engineId = message.engineId)
+    message.lookupImmediate !== undefined &&
+      (obj.lookupImmediate = message.lookupImmediate)
+    return obj
   },
 
   create<I extends Exact<DeepPartial<InputWorld>, I>>(base?: I): InputWorld {
-    return InputWorld.fromPartial(base ?? {});
+    return InputWorld.fromPartial(base ?? {})
   },
 
-  fromPartial<I extends Exact<DeepPartial<InputWorld>, I>>(object: I): InputWorld {
-    const message = createBaseInputWorld();
-    message.engineId = object.engineId ?? "";
-    message.lookupImmediate = object.lookupImmediate ?? false;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<InputWorld>, I>>(
+    object: I
+  ): InputWorld {
+    const message = createBaseInputWorld()
+    message.engineId = object.engineId ?? ''
+    message.lookupImmediate = object.lookupImmediate ?? false
+    return message
   },
-};
+}
 
 function createBaseInputWorldObject(): InputWorldObject {
-  return { world: "", objectKey: "", objectRev: Long.UZERO };
+  return { world: '', objectKey: '', objectRev: Long.UZERO }
 }
 
 export const InputWorldObject = {
-  encode(message: InputWorldObject, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.world !== "") {
-      writer.uint32(10).string(message.world);
+  encode(
+    message: InputWorldObject,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.world !== '') {
+      writer.uint32(10).string(message.world)
     }
-    if (message.objectKey !== "") {
-      writer.uint32(18).string(message.objectKey);
+    if (message.objectKey !== '') {
+      writer.uint32(18).string(message.objectKey)
     }
     if (!message.objectRev.isZero()) {
-      writer.uint32(24).uint64(message.objectRev);
+      writer.uint32(24).uint64(message.objectRev)
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): InputWorldObject {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInputWorldObject();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseInputWorldObject()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.world = reader.string();
-          continue;
+          message.world = reader.string()
+          continue
         case 2:
-          if (tag != 18) {
-            break;
+          if (tag !== 18) {
+            break
           }
 
-          message.objectKey = reader.string();
-          continue;
+          message.objectKey = reader.string()
+          continue
         case 3:
-          if (tag != 24) {
-            break;
+          if (tag !== 24) {
+            break
           }
 
-          message.objectRev = reader.uint64() as Long;
-          continue;
+          message.objectRev = reader.uint64() as Long
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<InputWorldObject, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<InputWorldObject | InputWorldObject[]> | Iterable<InputWorldObject | InputWorldObject[]>,
+    source:
+      | AsyncIterable<InputWorldObject | InputWorldObject[]>
+      | Iterable<InputWorldObject | InputWorldObject[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [InputWorldObject.encode(p).finish()];
+          yield* [InputWorldObject.encode(p).finish()]
         }
       } else {
-        yield* [InputWorldObject.encode(pkt).finish()];
+        yield* [InputWorldObject.encode(pkt).finish()]
       }
     }
   },
@@ -723,127 +779,141 @@ export const InputWorldObject = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, InputWorldObject>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<InputWorldObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [InputWorldObject.decode(p)];
+          yield* [InputWorldObject.decode(p)]
         }
       } else {
-        yield* [InputWorldObject.decode(pkt)];
+        yield* [InputWorldObject.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): InputWorldObject {
     return {
-      world: isSet(object.world) ? String(object.world) : "",
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
-      objectRev: isSet(object.objectRev) ? Long.fromValue(object.objectRev) : Long.UZERO,
-    };
+      world: isSet(object.world) ? String(object.world) : '',
+      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectRev: isSet(object.objectRev)
+        ? Long.fromValue(object.objectRev)
+        : Long.UZERO,
+    }
   },
 
   toJSON(message: InputWorldObject): unknown {
-    const obj: any = {};
-    message.world !== undefined && (obj.world = message.world);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
-    message.objectRev !== undefined && (obj.objectRev = (message.objectRev || Long.UZERO).toString());
-    return obj;
+    const obj: any = {}
+    message.world !== undefined && (obj.world = message.world)
+    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
+    message.objectRev !== undefined &&
+      (obj.objectRev = (message.objectRev || Long.UZERO).toString())
+    return obj
   },
 
-  create<I extends Exact<DeepPartial<InputWorldObject>, I>>(base?: I): InputWorldObject {
-    return InputWorldObject.fromPartial(base ?? {});
+  create<I extends Exact<DeepPartial<InputWorldObject>, I>>(
+    base?: I
+  ): InputWorldObject {
+    return InputWorldObject.fromPartial(base ?? {})
   },
 
-  fromPartial<I extends Exact<DeepPartial<InputWorldObject>, I>>(object: I): InputWorldObject {
-    const message = createBaseInputWorldObject();
-    message.world = object.world ?? "";
-    message.objectKey = object.objectKey ?? "";
-    message.objectRev = (object.objectRev !== undefined && object.objectRev !== null)
-      ? Long.fromValue(object.objectRev)
-      : Long.UZERO;
-    return message;
+  fromPartial<I extends Exact<DeepPartial<InputWorldObject>, I>>(
+    object: I
+  ): InputWorldObject {
+    const message = createBaseInputWorldObject()
+    message.world = object.world ?? ''
+    message.objectKey = object.objectKey ?? ''
+    message.objectRev =
+      object.objectRev !== undefined && object.objectRev !== null
+        ? Long.fromValue(object.objectRev)
+        : Long.UZERO
+    return message
   },
-};
+}
 
 function createBaseOutput(): Output {
-  return { name: "", outputType: 0, execOutput: "", value: undefined };
+  return { name: '', outputType: 0, execOutput: '', value: undefined }
 }
 
 export const Output = {
-  encode(message: Output, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
+  encode(
+    message: Output,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name)
     }
     if (message.outputType !== 0) {
-      writer.uint32(16).int32(message.outputType);
+      writer.uint32(16).int32(message.outputType)
     }
-    if (message.execOutput !== "") {
-      writer.uint32(26).string(message.execOutput);
+    if (message.execOutput !== '') {
+      writer.uint32(26).string(message.execOutput)
     }
     if (message.value !== undefined) {
-      Value.encode(message.value, writer.uint32(34).fork()).ldelim();
+      Value.encode(message.value, writer.uint32(34).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Output {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutput();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseOutput()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.name = reader.string();
-          continue;
+          message.name = reader.string()
+          continue
         case 2:
-          if (tag != 16) {
-            break;
+          if (tag !== 16) {
+            break
           }
 
-          message.outputType = reader.int32() as any;
-          continue;
+          message.outputType = reader.int32() as any
+          continue
         case 3:
-          if (tag != 26) {
-            break;
+          if (tag !== 26) {
+            break
           }
 
-          message.execOutput = reader.string();
-          continue;
+          message.execOutput = reader.string()
+          continue
         case 4:
-          if (tag != 34) {
-            break;
+          if (tag !== 34) {
+            break
           }
 
-          message.value = Value.decode(reader, reader.uint32());
-          continue;
+          message.value = Value.decode(reader, reader.uint32())
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Output, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Output | Output[]> | Iterable<Output | Output[]>,
+    source: AsyncIterable<Output | Output[]> | Iterable<Output | Output[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Output.encode(p).finish()];
+          yield* [Output.encode(p).finish()]
         }
       } else {
-        yield* [Output.encode(pkt).finish()];
+        yield* [Output.encode(pkt).finish()]
       }
     }
   },
@@ -851,106 +921,121 @@ export const Output = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Output>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Output> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Output.decode(p)];
+          yield* [Output.decode(p)]
         }
       } else {
-        yield* [Output.decode(pkt)];
+        yield* [Output.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): Output {
     return {
-      name: isSet(object.name) ? String(object.name) : "",
-      outputType: isSet(object.outputType) ? outputTypeFromJSON(object.outputType) : 0,
-      execOutput: isSet(object.execOutput) ? String(object.execOutput) : "",
+      name: isSet(object.name) ? String(object.name) : '',
+      outputType: isSet(object.outputType)
+        ? outputTypeFromJSON(object.outputType)
+        : 0,
+      execOutput: isSet(object.execOutput) ? String(object.execOutput) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
-    };
+    }
   },
 
   toJSON(message: Output): unknown {
-    const obj: any = {};
-    message.name !== undefined && (obj.name = message.name);
-    message.outputType !== undefined && (obj.outputType = outputTypeToJSON(message.outputType));
-    message.execOutput !== undefined && (obj.execOutput = message.execOutput);
-    message.value !== undefined && (obj.value = message.value ? Value.toJSON(message.value) : undefined);
-    return obj;
+    const obj: any = {}
+    message.name !== undefined && (obj.name = message.name)
+    message.outputType !== undefined &&
+      (obj.outputType = outputTypeToJSON(message.outputType))
+    message.execOutput !== undefined && (obj.execOutput = message.execOutput)
+    message.value !== undefined &&
+      (obj.value = message.value ? Value.toJSON(message.value) : undefined)
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Output>, I>>(base?: I): Output {
-    return Output.fromPartial(base ?? {});
+    return Output.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Output>, I>>(object: I): Output {
-    const message = createBaseOutput();
-    message.name = object.name ?? "";
-    message.outputType = object.outputType ?? 0;
-    message.execOutput = object.execOutput ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
-    return message;
+    const message = createBaseOutput()
+    message.name = object.name ?? ''
+    message.outputType = object.outputType ?? 0
+    message.execOutput = object.execOutput ?? ''
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseExec(): Exec {
-  return { disable: false, controller: undefined };
+  return { disable: false, controller: undefined }
 }
 
 export const Exec = {
   encode(message: Exec, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.disable === true) {
-      writer.uint32(8).bool(message.disable);
+      writer.uint32(8).bool(message.disable)
     }
     if (message.controller !== undefined) {
-      ControllerConfig.encode(message.controller, writer.uint32(18).fork()).ldelim();
+      ControllerConfig.encode(
+        message.controller,
+        writer.uint32(18).fork()
+      ).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): Exec {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseExec();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseExec()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
-            break;
+          if (tag !== 8) {
+            break
           }
 
-          message.disable = reader.bool();
-          continue;
+          message.disable = reader.bool()
+          continue
         case 2:
-          if (tag != 18) {
-            break;
+          if (tag !== 18) {
+            break
           }
 
-          message.controller = ControllerConfig.decode(reader, reader.uint32());
-          continue;
+          message.controller = ControllerConfig.decode(reader, reader.uint32())
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<Exec, Uint8Array>
-  async *encodeTransform(source: AsyncIterable<Exec | Exec[]> | Iterable<Exec | Exec[]>): AsyncIterable<Uint8Array> {
+  async *encodeTransform(
+    source: AsyncIterable<Exec | Exec[]> | Iterable<Exec | Exec[]>
+  ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Exec.encode(p).finish()];
+          yield* [Exec.encode(p).finish()]
         }
       } else {
-        yield* [Exec.encode(pkt).finish()];
+        yield* [Exec.encode(pkt).finish()]
       }
     }
   },
@@ -958,15 +1043,17 @@ export const Exec = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, Exec>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<Exec> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [Exec.decode(p)];
+          yield* [Exec.decode(p)]
         }
       } else {
-        yield* [Exec.decode(pkt)];
+        yield* [Exec.decode(pkt)]
       }
     }
   },
@@ -974,89 +1061,100 @@ export const Exec = {
   fromJSON(object: any): Exec {
     return {
       disable: isSet(object.disable) ? Boolean(object.disable) : false,
-      controller: isSet(object.controller) ? ControllerConfig.fromJSON(object.controller) : undefined,
-    };
+      controller: isSet(object.controller)
+        ? ControllerConfig.fromJSON(object.controller)
+        : undefined,
+    }
   },
 
   toJSON(message: Exec): unknown {
-    const obj: any = {};
-    message.disable !== undefined && (obj.disable = message.disable);
+    const obj: any = {}
+    message.disable !== undefined && (obj.disable = message.disable)
     message.controller !== undefined &&
-      (obj.controller = message.controller ? ControllerConfig.toJSON(message.controller) : undefined);
-    return obj;
+      (obj.controller = message.controller
+        ? ControllerConfig.toJSON(message.controller)
+        : undefined)
+    return obj
   },
 
   create<I extends Exact<DeepPartial<Exec>, I>>(base?: I): Exec {
-    return Exec.fromPartial(base ?? {});
+    return Exec.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<Exec>, I>>(object: I): Exec {
-    const message = createBaseExec();
-    message.disable = object.disable ?? false;
-    message.controller = (object.controller !== undefined && object.controller !== null)
-      ? ControllerConfig.fromPartial(object.controller)
-      : undefined;
-    return message;
+    const message = createBaseExec()
+    message.disable = object.disable ?? false
+    message.controller =
+      object.controller !== undefined && object.controller !== null
+        ? ControllerConfig.fromPartial(object.controller)
+        : undefined
+    return message
   },
-};
+}
 
 function createBaseValueSet(): ValueSet {
-  return { inputs: [], outputs: [] };
+  return { inputs: [], outputs: [] }
 }
 
 export const ValueSet = {
-  encode(message: ValueSet, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ValueSet,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.inputs) {
-      Value.encode(v!, writer.uint32(10).fork()).ldelim();
+      Value.encode(v!, writer.uint32(10).fork()).ldelim()
     }
     for (const v of message.outputs) {
-      Value.encode(v!, writer.uint32(18).fork()).ldelim();
+      Value.encode(v!, writer.uint32(18).fork()).ldelim()
     }
-    return writer;
+    return writer
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ValueSet {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseValueSet();
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseValueSet()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
-            break;
+          if (tag !== 10) {
+            break
           }
 
-          message.inputs.push(Value.decode(reader, reader.uint32()));
-          continue;
+          message.inputs.push(Value.decode(reader, reader.uint32()))
+          continue
         case 2:
-          if (tag != 18) {
-            break;
+          if (tag !== 18) {
+            break
           }
 
-          message.outputs.push(Value.decode(reader, reader.uint32()));
-          continue;
+          message.outputs.push(Value.decode(reader, reader.uint32()))
+          continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
-        break;
+      if ((tag & 7) === 4 || tag === 0) {
+        break
       }
-      reader.skipType(tag & 7);
+      reader.skipType(tag & 7)
     }
-    return message;
+    return message
   },
 
   // encodeTransform encodes a source of message objects.
   // Transform<ValueSet, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<ValueSet | ValueSet[]> | Iterable<ValueSet | ValueSet[]>,
+    source:
+      | AsyncIterable<ValueSet | ValueSet[]>
+      | Iterable<ValueSet | ValueSet[]>
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ValueSet.encode(p).finish()];
+          yield* [ValueSet.encode(p).finish()]
         }
       } else {
-        yield* [ValueSet.encode(pkt).finish()];
+        yield* [ValueSet.encode(pkt).finish()]
       }
     }
   },
@@ -1064,71 +1162,98 @@ export const ValueSet = {
   // decodeTransform decodes a source of encoded messages.
   // Transform<Uint8Array, ValueSet>
   async *decodeTransform(
-    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>
   ): AsyncIterable<ValueSet> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
         for (const p of pkt) {
-          yield* [ValueSet.decode(p)];
+          yield* [ValueSet.decode(p)]
         }
       } else {
-        yield* [ValueSet.decode(pkt)];
+        yield* [ValueSet.decode(pkt)]
       }
     }
   },
 
   fromJSON(object: any): ValueSet {
     return {
-      inputs: Array.isArray(object?.inputs) ? object.inputs.map((e: any) => Value.fromJSON(e)) : [],
-      outputs: Array.isArray(object?.outputs) ? object.outputs.map((e: any) => Value.fromJSON(e)) : [],
-    };
+      inputs: Array.isArray(object?.inputs)
+        ? object.inputs.map((e: any) => Value.fromJSON(e))
+        : [],
+      outputs: Array.isArray(object?.outputs)
+        ? object.outputs.map((e: any) => Value.fromJSON(e))
+        : [],
+    }
   },
 
   toJSON(message: ValueSet): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.inputs) {
-      obj.inputs = message.inputs.map((e) => e ? Value.toJSON(e) : undefined);
+      obj.inputs = message.inputs.map((e) => (e ? Value.toJSON(e) : undefined))
     } else {
-      obj.inputs = [];
+      obj.inputs = []
     }
     if (message.outputs) {
-      obj.outputs = message.outputs.map((e) => e ? Value.toJSON(e) : undefined);
+      obj.outputs = message.outputs.map((e) =>
+        e ? Value.toJSON(e) : undefined
+      )
     } else {
-      obj.outputs = [];
+      obj.outputs = []
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<ValueSet>, I>>(base?: I): ValueSet {
-    return ValueSet.fromPartial(base ?? {});
+    return ValueSet.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ValueSet>, I>>(object: I): ValueSet {
-    const message = createBaseValueSet();
-    message.inputs = object.inputs?.map((e) => Value.fromPartial(e)) || [];
-    message.outputs = object.outputs?.map((e) => Value.fromPartial(e)) || [];
-    return message;
+    const message = createBaseValueSet()
+    message.inputs = object.inputs?.map((e) => Value.fromPartial(e)) || []
+    message.outputs = object.outputs?.map((e) => Value.fromPartial(e)) || []
+    return message
   },
-};
+}
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+  ? string | number | Long
+  : T extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+      $case: T['$case']
+    }
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
+  _m0.util.Long = Long as any
+  _m0.configure()
 }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }
