@@ -101,7 +101,7 @@ func NewIdentityLookupEntity(
 
 // ExIdentityLookupEntity executes the lookup entity directive.
 func ExIdentityLookupEntity(ctx context.Context, b bus.Bus, domainID, entityID string) (IdentityLookupEntityValue, error) {
-	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewIdentityLookupEntity(domainID, entityID), false, nil)
+	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewIdentityLookupEntity(domainID, entityID), nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,7 @@ func ExSelectIdentityEntity(
 	domainID string,
 	prevErr error,
 ) (SelectIdentityEntityValue, error) {
-	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectIdentityEntity(purpose, domainID, prevErr), false, nil)
+	av, _, dirRef, err := bus.ExecOneOff(ctx, b, NewSelectIdentityEntity(purpose, domainID, prevErr), nil, nil)
 	if err != nil {
 		return nil, err
 	}
