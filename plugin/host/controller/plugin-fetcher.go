@@ -36,8 +36,6 @@ func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *
 
 // execute executes the pass tracker.
 func (t *pluginManifestFetcher) execute(ctx context.Context) error {
-	resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
-	t.resultPromise.SetPromise(resultProm)
 	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
@@ -54,6 +52,8 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 		ctx,
 		t.c.le.WithField("plugin-id", t.pluginID),
 		func(ctx context.Context, success func()) error {
+			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
+			t.resultPromise.SetPromise(resultProm)
 			resp, err := t.fetchManifest(ctx)
 			resultProm.SetResult(resp, err)
 			if err == nil {
