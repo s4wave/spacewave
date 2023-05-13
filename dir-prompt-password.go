@@ -53,7 +53,7 @@ func ExPromptPassword(
 			},
 			prevErr,
 		),
-		bus.WaitWhenIdle(false),
+		bus.ReturnWhenIdle(),
 		nil,
 	)
 	if valRef != nil {
