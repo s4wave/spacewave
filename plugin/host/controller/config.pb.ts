@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -41,6 +42,11 @@ export interface Config {
    * know about the blocks on the frontier of the blocks fetched so far.
    */
   fetchConcurrency: number;
+  /**
+   * FetchBackoff is the backoff config for fetching plugin manifests.
+   * If unset, defaults to reasonable defaults.
+   */
+  fetchBackoff: Backoff | undefined;
 }
 
 function createBaseConfig(): Config {
@@ -52,6 +58,7 @@ function createBaseConfig(): Config {
     alwaysFetchManifest: false,
     disableStoreManifest: false,
     fetchConcurrency: 0,
+    fetchBackoff: undefined,
   };
 }
 
@@ -77,6 +84,9 @@ export const Config = {
     }
     if (message.fetchConcurrency !== 0) {
       writer.uint32(56).uint32(message.fetchConcurrency);
+    }
+    if (message.fetchBackoff !== undefined) {
+      Backoff.encode(message.fetchBackoff, writer.uint32(66).fork()).ldelim();
     }
     return writer;
   },
@@ -137,6 +147,13 @@ export const Config = {
 
           message.fetchConcurrency = reader.uint32();
           continue;
+        case 8:
+          if (tag !== 66) {
+            break;
+          }
+
+          message.fetchBackoff = Backoff.decode(reader, reader.uint32());
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -187,6 +204,7 @@ export const Config = {
       alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? Boolean(object.alwaysFetchManifest) : false,
       disableStoreManifest: isSet(object.disableStoreManifest) ? Boolean(object.disableStoreManifest) : false,
       fetchConcurrency: isSet(object.fetchConcurrency) ? Number(object.fetchConcurrency) : 0,
+      fetchBackoff: isSet(object.fetchBackoff) ? Backoff.fromJSON(object.fetchBackoff) : undefined,
     };
   },
 
@@ -199,6 +217,8 @@ export const Config = {
     message.alwaysFetchManifest !== undefined && (obj.alwaysFetchManifest = message.alwaysFetchManifest);
     message.disableStoreManifest !== undefined && (obj.disableStoreManifest = message.disableStoreManifest);
     message.fetchConcurrency !== undefined && (obj.fetchConcurrency = Math.round(message.fetchConcurrency));
+    message.fetchBackoff !== undefined &&
+      (obj.fetchBackoff = message.fetchBackoff ? Backoff.toJSON(message.fetchBackoff) : undefined);
     return obj;
   },
 
@@ -215,6 +235,9 @@ export const Config = {
     message.alwaysFetchManifest = object.alwaysFetchManifest ?? false;
     message.disableStoreManifest = object.disableStoreManifest ?? false;
     message.fetchConcurrency = object.fetchConcurrency ?? 0;
+    message.fetchBackoff = (object.fetchBackoff !== undefined && object.fetchBackoff !== null)
+      ? Backoff.fromPartial(object.fetchBackoff)
+      : undefined;
     return message;
   },
 };

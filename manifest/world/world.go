@@ -119,7 +119,10 @@ func SetManifest(
 		return nil, err
 	}
 	if objOk {
-		_, err = obj.SetRootRef(rootRef)
+		currRootRef, _, err := obj.GetRootRef()
+		if err != nil || !currRootRef.EqualVT(rootRef) {
+			_, err = obj.SetRootRef(rootRef)
+		}
 	} else {
 		_, err = ws.CreateObject(objKey, rootRef)
 		if err == nil {

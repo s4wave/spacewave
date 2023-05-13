@@ -7,8 +7,10 @@ import (
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	"github.com/aperturerobotics/util/retry"
 	"github.com/pkg/errors"
 )
 
@@ -36,9 +38,24 @@ func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *
 func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 	resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
 	t.resultPromise.SetPromise(resultProm)
-	resp, err := t.fetchManifest(ctx)
-	resultProm.SetResult(resp, err)
-	return err
+	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
+	if backoffConf.BackoffKind == 0 {
+		backoffConf.Exponential = &backoff.Exponential{MaxInterval: 4200}
+	}
+	bo := backoffConf.Construct()
+	return retry.Retry(
+		ctx,
+		t.c.le.WithField("plugin-id", t.pluginID),
+		func(ctx context.Context, success func()) error {
+			resp, err := t.fetchManifest(ctx)
+			resultProm.SetResult(resp, err)
+			if err == nil {
+				success()
+			}
+			return err
+		},
+		bo,
+	)
 }
 
 // fetchManifest attempts to fetch the manifest.
@@ -160,34 +177,36 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 
 	// check if the stored manifest is equivalent (skip store)
 	manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, pluginManifest.GetMeta())
-	prevManifestState, prevManifestFound, err := ws.GetObject(manifestKey)
+	/*
+		prevManifestState, prevManifestFound, err := ws.GetObject(manifestKey)
+		if err != nil {
+			return nil, err
+		}
+		var skipRegisterManifest bool
+		if prevManifestFound {
+			prevRootRef, _, err := prevManifestState.GetRootRef()
+			if err != nil {
+				return nil, err
+			}
+			skipRegisterManifest = prevRootRef.EqualsRef(wroteManifestRef)
+		}
+
+		// submit operation to update + link plugin manifest
+		if !skipRegisterManifest {
+	*/
+	le.Debug("registering fetched plugin manifest")
+	err = bldr_manifest_world.ExStoreManifestOp(
+		ctx,
+		ws,
+		t.c.peerID,
+		manifestKey,
+		[]string{t.c.objKey},
+		storedManifestRef,
+	)
 	if err != nil {
 		return nil, err
 	}
-	var skipRegisterManifest bool
-	if prevManifestFound {
-		prevRootRef, _, err := prevManifestState.GetRootRef()
-		if err != nil {
-			return nil, err
-		}
-		skipRegisterManifest = prevRootRef.EqualsRef(wroteManifestRef)
-	}
-
-	// submit operation to update + link plugin manifest
-	if !skipRegisterManifest {
-		le.Debug("registering fetched plugin manifest")
-		err = bldr_manifest_world.ExStoreManifestOp(
-			ctx,
-			ws,
-			t.c.peerID,
-			manifestKey,
-			[]string{t.c.objKey},
-			storedManifestRef,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// }
 
 	le.Infof("successfully fetched manifest for plugin: %s", t.pluginID)
 	return &bldr_manifest.FetchManifestResponse{ManifestRef: storedManifestRef}, nil

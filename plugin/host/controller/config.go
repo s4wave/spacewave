@@ -5,6 +5,7 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/pkg/errors"
 )
 
 // NewConfig constructs a new controller config.
@@ -45,6 +46,9 @@ func (c *Config) Validate() error {
 	}
 	if len(c.GetVolumeId()) == 0 {
 		return volume.ErrVolumeIDEmpty
+	}
+	if err := c.GetFetchBackoff().Validate(true); err != nil {
+		return errors.Wrap(err, "fetch_backoff")
 	}
 	return nil
 }

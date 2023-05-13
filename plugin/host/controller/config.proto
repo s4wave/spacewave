@@ -1,6 +1,8 @@
 syntax = "proto3";
 package plugin.host.controller;
 
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
 // Config is the plugin host controller configuration.
 message Config {
   // EngineId is the world engine id to attach to.
@@ -28,4 +30,7 @@ message Config {
   // so far. Fetches blocks, then the references those blocks reference. We only
   // know about the blocks on the frontier of the blocks fetched so far.
   uint32 fetch_concurrency = 7;
+  // FetchBackoff is the backoff config for fetching plugin manifests.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff fetch_backoff = 8;
 }
