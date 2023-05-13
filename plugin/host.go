@@ -44,7 +44,7 @@ func PluginServerID(pluginID, remoteServerID string) string {
 const PluginServiceIDPrefix = "plugin/"
 
 // HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
-const HostVolumeServiceIDPrefix = "host-volume"
+const HostVolumeServiceIDPrefix = "host-volume/"
 
 // PluginAssetsFsId is the identifier to use for the plugin assets fs.
 const PluginAssetsFsId = "plugin-assets"
