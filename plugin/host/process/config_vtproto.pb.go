@@ -9,6 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
+	backoff "github.com/aperturerobotics/util/backoff"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -31,8 +32,16 @@ func (m *Config) CloneVT() *Config {
 		VolumeId:             m.VolumeId,
 		AlwaysFetchManifest:  m.AlwaysFetchManifest,
 		DisableStoreManifest: m.DisableStoreManifest,
+		FetchConcurrency:     m.FetchConcurrency,
 		StateDir:             m.StateDir,
 		DistDir:              m.DistDir,
+	}
+	if rhs := m.FetchBackoff; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
+			r.FetchBackoff = vtpb.CloneVT()
+		} else {
+			r.FetchBackoff = proto.Clone(rhs).(*backoff.Backoff)
+		}
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -67,6 +76,16 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DisableStoreManifest != that.DisableStoreManifest {
+		return false
+	}
+	if this.FetchConcurrency != that.FetchConcurrency {
+		return false
+	}
+	if equal, ok := interface{}(this.FetchBackoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
+		if !equal.EqualVT(that.FetchBackoff) {
+			return false
+		}
+	} else if !proto.Equal(this.FetchBackoff, that.FetchBackoff) {
 		return false
 	}
 	if this.StateDir != that.StateDir {
@@ -120,14 +139,41 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.DistDir)
 		i = encodeVarint(dAtA, i, uint64(len(m.DistDir)))
 		i--
-		dAtA[i] = 0x42
+		dAtA[i] = 0x52
 	}
 	if len(m.StateDir) > 0 {
 		i -= len(m.StateDir)
 		copy(dAtA[i:], m.StateDir)
 		i = encodeVarint(dAtA, i, uint64(len(m.StateDir)))
 		i--
-		dAtA[i] = 0x3a
+		dAtA[i] = 0x4a
+	}
+	if m.FetchBackoff != nil {
+		if vtmsg, ok := interface{}(m.FetchBackoff).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.FetchBackoff)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.FetchConcurrency != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.FetchConcurrency))
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.DisableStoreManifest {
 		i--
@@ -218,6 +264,19 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.DisableStoreManifest {
 		n += 2
+	}
+	if m.FetchConcurrency != 0 {
+		n += 1 + sov(uint64(m.FetchConcurrency))
+	}
+	if m.FetchBackoff != nil {
+		if size, ok := interface{}(m.FetchBackoff).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.FetchBackoff)
+		}
+		n += 1 + l + sov(uint64(l))
 	}
 	l = len(m.StateDir)
 	if l > 0 {
@@ -435,6 +494,69 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DisableStoreManifest = bool(v != 0)
 		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchConcurrency", wireType)
+			}
+			m.FetchConcurrency = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FetchConcurrency |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchBackoff", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.FetchBackoff == nil {
+				m.FetchBackoff = &backoff.Backoff{}
+			}
+			if unmarshal, ok := interface{}(m.FetchBackoff).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.FetchBackoff); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StateDir", wireType)
 			}
@@ -466,7 +588,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StateDir = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DistDir", wireType)
 			}

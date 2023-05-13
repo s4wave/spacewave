@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -32,6 +33,22 @@ export interface Config {
    * This is used if we are watching the same world as the manifest compiler.
    */
   disableStoreManifest: boolean;
+  /**
+   * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
+   * If zero, uses no limit to the number of concurrent fetches.
+   *
+   * Note: the concurrency is limited by the number of blocks that we have seen
+   * so far. Fetches blocks, then the references those blocks reference. We only
+   * know about the blocks on the frontier of the blocks fetched so far.
+   */
+  fetchConcurrency: number;
+  /**
+   * FetchBackoff is the backoff config for fetching plugin manifests.
+   * If unset, defaults to reasonable defaults.
+   */
+  fetchBackoff:
+    | Backoff
+    | undefined;
   /** StateDir is the directory to use for state. */
   stateDir: string;
   /** DistDir is the directory to use for plugin distribution files */
@@ -46,6 +63,8 @@ function createBaseConfig(): Config {
     volumeId: "",
     alwaysFetchManifest: false,
     disableStoreManifest: false,
+    fetchConcurrency: 0,
+    fetchBackoff: undefined,
     stateDir: "",
     distDir: "",
   };
@@ -71,11 +90,17 @@ export const Config = {
     if (message.disableStoreManifest === true) {
       writer.uint32(48).bool(message.disableStoreManifest);
     }
+    if (message.fetchConcurrency !== 0) {
+      writer.uint32(56).uint32(message.fetchConcurrency);
+    }
+    if (message.fetchBackoff !== undefined) {
+      Backoff.encode(message.fetchBackoff, writer.uint32(66).fork()).ldelim();
+    }
     if (message.stateDir !== "") {
-      writer.uint32(58).string(message.stateDir);
+      writer.uint32(74).string(message.stateDir);
     }
     if (message.distDir !== "") {
-      writer.uint32(66).string(message.distDir);
+      writer.uint32(82).string(message.distDir);
     }
     return writer;
   },
@@ -130,14 +155,28 @@ export const Config = {
           message.disableStoreManifest = reader.bool();
           continue;
         case 7:
-          if (tag !== 58) {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.fetchConcurrency = reader.uint32();
+          continue;
+        case 8:
+          if (tag !== 66) {
+            break;
+          }
+
+          message.fetchBackoff = Backoff.decode(reader, reader.uint32());
+          continue;
+        case 9:
+          if (tag !== 74) {
             break;
           }
 
           message.stateDir = reader.string();
           continue;
-        case 8:
-          if (tag !== 66) {
+        case 10:
+          if (tag !== 82) {
             break;
           }
 
@@ -192,6 +231,8 @@ export const Config = {
       volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
       alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? Boolean(object.alwaysFetchManifest) : false,
       disableStoreManifest: isSet(object.disableStoreManifest) ? Boolean(object.disableStoreManifest) : false,
+      fetchConcurrency: isSet(object.fetchConcurrency) ? Number(object.fetchConcurrency) : 0,
+      fetchBackoff: isSet(object.fetchBackoff) ? Backoff.fromJSON(object.fetchBackoff) : undefined,
       stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
       distDir: isSet(object.distDir) ? String(object.distDir) : "",
     };
@@ -205,6 +246,9 @@ export const Config = {
     message.volumeId !== undefined && (obj.volumeId = message.volumeId);
     message.alwaysFetchManifest !== undefined && (obj.alwaysFetchManifest = message.alwaysFetchManifest);
     message.disableStoreManifest !== undefined && (obj.disableStoreManifest = message.disableStoreManifest);
+    message.fetchConcurrency !== undefined && (obj.fetchConcurrency = Math.round(message.fetchConcurrency));
+    message.fetchBackoff !== undefined &&
+      (obj.fetchBackoff = message.fetchBackoff ? Backoff.toJSON(message.fetchBackoff) : undefined);
     message.stateDir !== undefined && (obj.stateDir = message.stateDir);
     message.distDir !== undefined && (obj.distDir = message.distDir);
     return obj;
@@ -222,6 +266,10 @@ export const Config = {
     message.volumeId = object.volumeId ?? "";
     message.alwaysFetchManifest = object.alwaysFetchManifest ?? false;
     message.disableStoreManifest = object.disableStoreManifest ?? false;
+    message.fetchConcurrency = object.fetchConcurrency ?? 0;
+    message.fetchBackoff = (object.fetchBackoff !== undefined && object.fetchBackoff !== null)
+      ? Backoff.fromPartial(object.fetchBackoff)
+      : undefined;
     message.stateDir = object.stateDir ?? "";
     message.distDir = object.distDir ?? "";
     return message;

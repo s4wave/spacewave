@@ -1,6 +1,8 @@
 syntax = "proto3";
 package plugin.host.process;
 
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
 // Config is the Process PluginHost controller configuration.
 message Config {
   // EngineId is the world engine id to attach to.
@@ -21,9 +23,19 @@ message Config {
   // DisableStoreManifest disables storing manifests fetched with FetchManifest.
   // This is used if we are watching the same world as the manifest compiler.
   bool disable_store_manifest = 6;
+  // FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
+  // If zero, uses no limit to the number of concurrent fetches.
+  //
+  // Note: the concurrency is limited by the number of blocks that we have seen
+  // so far. Fetches blocks, then the references those blocks reference. We only
+  // know about the blocks on the frontier of the blocks fetched so far.
+  uint32 fetch_concurrency = 7;
+  // FetchBackoff is the backoff config for fetching plugin manifests.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff fetch_backoff = 8;
 
   // StateDir is the directory to use for state.
-  string state_dir = 7;
+  string state_dir = 9;
   // DistDir is the directory to use for plugin distribution files
-  string dist_dir = 8;
+  string dist_dir = 10;
 }

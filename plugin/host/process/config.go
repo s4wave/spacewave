@@ -31,6 +31,7 @@ func NewConfig(
 		VolumeId:            volumeID,
 		PeerId:              peerID.Pretty(),
 		AlwaysFetchManifest: alwaysFetchManifest,
+		FetchConcurrency:    10,
 
 		StateDir: stateDir,
 		DistDir:  distDir,
@@ -77,7 +78,7 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 
 // ToControllerConfig builds the controller config.
 func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
-	return plugin_host_controller.NewConfig(
+	conf := plugin_host_controller.NewConfig(
 		c.GetEngineId(),
 		c.GetObjectKey(),
 		c.GetVolumeId(),
@@ -85,6 +86,9 @@ func (c *Config) ToControllerConfig() *plugin_host_controller.Config {
 		c.GetAlwaysFetchManifest(),
 		c.GetDisableStoreManifest(),
 	)
+	conf.FetchConcurrency = c.GetFetchConcurrency()
+	conf.FetchBackoff = c.GetFetchBackoff().CloneVT()
+	return conf
 }
 
 // _ is a type assertion
