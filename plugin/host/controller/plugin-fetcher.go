@@ -39,8 +39,11 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 	resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
 	t.resultPromise.SetPromise(resultProm)
 	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
-	if backoffConf.BackoffKind == 0 {
-		backoffConf.Exponential = &backoff.Exponential{MaxInterval: 4200}
+	if backoffConf.GetBackoffKind() == 0 {
+		if backoffConf.Exponential == nil {
+			backoffConf.Exponential = &backoff.Exponential{}
+		}
+		backoffConf.Exponential.MaxInterval = 4200
 	}
 	bo := backoffConf.Construct()
 	return retry.Retry(
