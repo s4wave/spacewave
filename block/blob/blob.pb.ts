@@ -158,12 +158,12 @@ export interface RabinArgs {
   randomPol: boolean
   /**
    * ChunkingMinSize is the minimum size for a chunk.
-   * Defaults to 262KB.
+   * Defaults to 256KB.
    */
   chunkingMinSize: Long
   /**
    * ChunkingMaxSize is the maxmium size for a chunk.
-   * Defaults to 512KB.
+   * Defaults to ~786KB (786432 bytes).
    */
   chunkingMaxSize: Long
 }

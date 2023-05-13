@@ -136,6 +136,13 @@ export interface Config {
   putBlockBehavior: PutBlockBehavior
   /** WritebackBehavior controls what to do after fetching a block. */
   writebackBehavior: WritebackBehavior
+  /**
+   * LookupTimeoutDur is the duration to wait for looking up a block.
+   * Examples: 1s, 1m, 1h
+   * If this timeout is exceeded, returns context.ErrDeadlineExceeded.
+   * If unset, waits forever.
+   */
+  lookupTimeoutDur: string
   /** Verbose enables verbose debug logging. */
   verbose: boolean
 }
@@ -146,6 +153,7 @@ function createBaseConfig(): Config {
     notFoundBehavior: 0,
     putBlockBehavior: 0,
     writebackBehavior: 0,
+    lookupTimeoutDur: '',
     verbose: false,
   }
 }
@@ -166,6 +174,9 @@ export const Config = {
     }
     if (message.writebackBehavior !== 0) {
       writer.uint32(32).int32(message.writebackBehavior)
+    }
+    if (message.lookupTimeoutDur !== '') {
+      writer.uint32(50).string(message.lookupTimeoutDur)
     }
     if (message.verbose === true) {
       writer.uint32(40).bool(message.verbose)
@@ -208,6 +219,13 @@ export const Config = {
           }
 
           message.writebackBehavior = reader.int32() as any
+          continue
+        case 6:
+          if (tag != 50) {
+            break
+          }
+
+          message.lookupTimeoutDur = reader.string()
           continue
         case 5:
           if (tag != 40) {
@@ -273,6 +291,9 @@ export const Config = {
       writebackBehavior: isSet(object.writebackBehavior)
         ? writebackBehaviorFromJSON(object.writebackBehavior)
         : 0,
+      lookupTimeoutDur: isSet(object.lookupTimeoutDur)
+        ? String(object.lookupTimeoutDur)
+        : '',
       verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
@@ -291,6 +312,8 @@ export const Config = {
       (obj.writebackBehavior = writebackBehaviorToJSON(
         message.writebackBehavior
       ))
+    message.lookupTimeoutDur !== undefined &&
+      (obj.lookupTimeoutDur = message.lookupTimeoutDur)
     message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
@@ -308,6 +331,7 @@ export const Config = {
     message.notFoundBehavior = object.notFoundBehavior ?? 0
     message.putBlockBehavior = object.putBlockBehavior ?? 0
     message.writebackBehavior = object.writebackBehavior ?? 0
+    message.lookupTimeoutDur = object.lookupTimeoutDur ?? ''
     message.verbose = object.verbose ?? false
     return message
   },

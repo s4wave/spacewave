@@ -2,6 +2,7 @@ package bucket_lookup
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -14,6 +15,11 @@ import (
 type LookupBlockOpts struct {
 	// LocalOnly indicates we should not use the network for the call.
 	LocalOnly bool
+	// Timeout is the lookup timeout duration.
+	// Ignored if unset (zero).
+	Timeout time.Duration
+	// TimeoutNotFound returns not found if the timeout is exceeded instead of an error.
+	TimeoutNotFound bool
 }
 
 // LookupBlockOption is a option for the LookupBlock call.
@@ -32,6 +38,16 @@ func NewLookupBlockOpts(opts ...LookupBlockOption) *LookupBlockOpts {
 func WithLocalOnly() LookupBlockOption {
 	return func(opts *LookupBlockOpts) {
 		opts.LocalOnly = true
+	}
+}
+
+// WithTimeout indicates we should use the timeout for looking up a block.
+// Returns ErrDeadlineExceeded if the timeout is exceeded.
+// If notFound is set, returns not found instead of an error.
+func WithTimeout(dur time.Duration, notFound bool) LookupBlockOption {
+	return func(opts *LookupBlockOpts) {
+		opts.Timeout = dur
+		opts.TimeoutNotFound = notFound
 	}
 }
 

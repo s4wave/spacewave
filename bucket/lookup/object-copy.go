@@ -65,10 +65,11 @@ func CopyObjectToBucket(
 			if cb != nil {
 				cntu, err = cb(ent)
 			} else {
-				cntu, err = true, ent.Err
+				err = ent.Err
 				if err == nil && !ent.Found && !ent.IsSubBlock {
 					err = errors.Wrap(block.ErrNotFound, ent.Ref.MarshalString())
 				}
+				cntu = err == nil
 			}
 			if err != nil || ent.IsSubBlock || !ent.Found || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
 				return

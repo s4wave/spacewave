@@ -396,10 +396,10 @@ type RabinArgs struct {
 	// If pol != 0 this field is ignored.
 	RandomPol bool `protobuf:"varint,4,opt,name=random_pol,json=randomPol,proto3" json:"random_pol,omitempty"`
 	// ChunkingMinSize is the minimum size for a chunk.
-	// Defaults to 262KB.
+	// Defaults to 256KB.
 	ChunkingMinSize uint64 `protobuf:"varint,2,opt,name=chunking_min_size,json=chunkingMinSize,proto3" json:"chunking_min_size,omitempty"`
 	// ChunkingMaxSize is the maxmium size for a chunk.
-	// Defaults to 512KB.
+	// Defaults to ~786KB (786432 bytes).
 	ChunkingMaxSize uint64 `protobuf:"varint,3,opt,name=chunking_max_size,json=chunkingMaxSize,proto3" json:"chunking_max_size,omitempty"`
 }
 

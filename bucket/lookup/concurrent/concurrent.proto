@@ -41,6 +41,12 @@ message Config {
   PutBlockBehavior put_block_behavior = 3;
   // WritebackBehavior controls what to do after fetching a block.
   WritebackBehavior writeback_behavior = 4;
+  // LookupTimeoutDur is the duration to wait for looking up a block.
+  // Examples: 1s, 1m, 1h
+  // Note: this can be overridden by the lookup options.
+  // If this timeout is exceeded, returns context.ErrDeadlineExceeded.
+  // If unset, waits forever.
+  string lookup_timeout_dur = 6;
   // Verbose enables verbose debug logging.
   bool verbose = 5;
 }

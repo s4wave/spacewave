@@ -66,8 +66,6 @@ enum ChunkerType {
   ChunkerType_DEFAULT = 0;
   // ChunkerType_RABIN uses rabin fingerprinting to chunk.
   ChunkerType_RABIN = 1;
-  // TODO: ChunkerType_CONSTANT uses constant chunk sizes.
-  // Default size: 256KB (half of default max chunk size).
 }
 
 // RabinArgs are arguments for the rabin chunker.
@@ -83,10 +81,10 @@ message RabinArgs {
   bool random_pol = 4;
 
   // ChunkingMinSize is the minimum size for a chunk.
-  // Defaults to 262KB.
+  // Defaults to 256KB.
   uint64 chunking_min_size = 2;
   // ChunkingMaxSize is the maxmium size for a chunk.
-  // Defaults to 512KB.
+  // Defaults to ~786KB (786432 bytes).
   uint64 chunking_max_size = 3;
 }
 

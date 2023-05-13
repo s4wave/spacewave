@@ -1,6 +1,8 @@
 package lookup_concurrent
 
 import (
+	"time"
+
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -20,6 +22,9 @@ func (c *Config) Validate() error {
 	}
 	if err := c.GetNotFoundBehavior().Validate(); err != nil {
 		return err
+	}
+	if _, err := c.ParseLookupTimeoutDur(); err != nil {
+		return errors.Wrap(err, "lookup_timeout_dur")
 	}
 	return nil
 }
@@ -65,6 +70,16 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	}
 
 	return c.EqualVT(ot)
+}
+
+// ParseLookupTimeoutDur parses the lookup timeout field.
+// Returns 0, nil if empty.
+func (c *Config) ParseLookupTimeoutDur() (time.Duration, error) {
+	delayStr := c.GetLookupTimeoutDur()
+	if delayStr == "" {
+		return 0, nil
+	}
+	return time.ParseDuration(delayStr)
 }
 
 // _ is a type assertion

@@ -63,13 +63,36 @@ func (c *LookupController) Execute(ctx context.Context) error {
 // LookupBlock searches for a block using the bucket lookup controller.
 // If lookup is disabled, will return an error.
 func (c *LookupController) LookupBlock(
-	reqCtx context.Context,
+	rctx context.Context,
 	ref *block.BlockRef,
 	optf ...lookup.LookupBlockOption,
-) ([]byte, bool, error) {
+) (retData []byte, retFound bool, retErr error) {
 	opts := lookup.NewLookupBlockOpts(optf...)
 	if ref.GetEmpty() {
 		return nil, false, block.ErrEmptyBlockRef
+	}
+
+	// apply lookup timeout
+	var reqCtx context.Context
+	var reqCtxCancel context.CancelFunc
+	timeoutDur := opts.Timeout
+	if timeoutDur == 0 {
+		timeoutDur, _ = c.conf.ParseLookupTimeoutDur()
+	}
+	if timeoutDur > 0 {
+		reqCtx, reqCtxCancel = context.WithTimeout(rctx, timeoutDur)
+	} else {
+		reqCtx, reqCtxCancel = context.WithCancel(rctx)
+	}
+	defer reqCtxCancel()
+
+	// if timeout not found is set, transform DeadlineExceeded to not found.
+	if opts.TimeoutNotFound {
+		defer func() {
+			if retErr == context.DeadlineExceeded {
+				retErr, retFound, retData = nil, false, nil
+			}
+		}()
 	}
 
 	// acquire handles
@@ -310,14 +333,13 @@ func (c *LookupController) putBlockAllVolumes(
 
 // lookupWithDirective uses the dex directive to lookup a block.
 func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) ([]byte, bool, error) {
-	subCtx, subCtxCancel := context.WithCancel(reqCtx)
-	defer subCtxCancel()
-
 	bucketID := c.conf.GetBucketConf().GetId()
 	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 
 	var notFoundSeen atomic.Bool
+	var idle atomic.Bool
 	var idleCb bus.ExecIdleCallback = func(errs []error) (cwait bool, err error) {
+		idle.Store(true)
 		cwait, err = bus.ReturnIfIdle(!wait)(errs)
 		if cwait && err == nil && notFoundSeen.Load() {
 			// don't wait if we saw not-found or an error
@@ -327,7 +349,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 	}
 
 	lval, _, aref, err := bus.ExecWaitValue(
-		subCtx,
+		reqCtx,
 		c.b,
 		dir,
 		idleCb,
@@ -340,7 +362,10 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 			}
 			if len(val.GetData()) == 0 {
 				notFoundSeen.Store(true)
-				return false, nil
+
+				// if we already saw idle=true and not-found is returned,
+				// return the not-found result immediately.
+				return idle.Load(), nil
 			}
 			return true, nil
 		},
