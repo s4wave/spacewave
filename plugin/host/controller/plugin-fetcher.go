@@ -172,6 +172,11 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 			int(concurrentLimit),
 			nil,
 		)
+		if err == nil {
+			le.Infof("completed copying manifest to %s", pluginHostBucketID)
+		} else {
+			le.WithError(err).Warn("failed to copy manifest to %s", pluginHostBucketID)
+		}
 		return err
 	})
 	if err != nil {
