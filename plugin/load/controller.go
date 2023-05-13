@@ -61,17 +61,20 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	_, dirRef, err := c.GetBus().AddDirective(
-		bldr_plugin.NewLoadPlugin(
-			c.GetConfig().GetPluginId(),
-		),
-		nil,
-	)
-	if err != nil {
-		return err
+	pluginIDs := c.GetConfig().CleanupPluginIds()
+	for _, pluginID := range pluginIDs {
+		_, dirRef, err := c.GetBus().AddDirective(
+			bldr_plugin.NewLoadPlugin(
+				pluginID,
+			),
+			nil,
+		)
+		if err != nil {
+			return err
+		}
+		defer dirRef.Release()
 	}
 	<-ctx.Done()
-	dirRef.Release()
 	return context.Canceled
 }
 

@@ -1,8 +1,12 @@
 package bldr_plugin_load
 
 import (
+	"sort"
+	"strings"
+
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
+	"golang.org/x/exp/slices"
 )
 
 // ConfigID is the config identifier.
@@ -29,10 +33,30 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // Validate checks the config.
 func (c *Config) Validate() error {
-	if c.GetPluginId() == "" {
+	ids := c.CleanupPluginIds()
+	if len(ids) == 0 {
 		return plugin.ErrEmptyPluginID
 	}
+	for _, id := range ids {
+		if err := plugin.ValidatePluginID(id, false); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// CleanupPluginIds returns a sorted copy of the list of plugin IDs to load.
+func (c *Config) CleanupPluginIds() []string {
+	ids := append([]string{c.GetPluginId()}, c.GetPluginIds()...)
+	for i := range ids {
+		ids[i] = strings.TrimSpace(ids[i])
+	}
+	sort.Strings(ids)
+	ids = slices.Compact(ids)
+	if ids[0] == "" {
+		ids = ids[1:]
+	}
+	return ids
 }
 
 // _ is a type assertion

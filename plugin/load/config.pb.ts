@@ -8,16 +8,24 @@ export const protobufPackage = "bldr.plugin.load";
 export interface Config {
   /** PluginId is the plugin to load. */
   pluginId: string;
+  /**
+   * PluginIds is a list of plugins to load.
+   * Appended to plugin_id.
+   */
+  pluginIds: string[];
 }
 
 function createBaseConfig(): Config {
-  return { pluginId: "" };
+  return { pluginId: "", pluginIds: [] };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
+    }
+    for (const v of message.pluginIds) {
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
@@ -35,6 +43,13 @@ export const Config = {
           }
 
           message.pluginId = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.pluginIds.push(reader.string());
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -78,12 +93,20 @@ export const Config = {
   },
 
   fromJSON(object: any): Config {
-    return { pluginId: isSet(object.pluginId) ? String(object.pluginId) : "" };
+    return {
+      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      pluginIds: Array.isArray(object?.pluginIds) ? object.pluginIds.map((e: any) => String(e)) : [],
+    };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
     message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    if (message.pluginIds) {
+      obj.pluginIds = message.pluginIds.map((e) => e);
+    } else {
+      obj.pluginIds = [];
+    }
     return obj;
   },
 
@@ -94,6 +117,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.pluginId = object.pluginId ?? "";
+    message.pluginIds = object.pluginIds?.map((e) => e) || [];
     return message;
   },
 };
