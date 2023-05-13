@@ -10,6 +10,7 @@ import (
 	block_store_redis "github.com/aperturerobotics/hydra/block/store/redis"
 	block_store_ristretto "github.com/aperturerobotics/hydra/block/store/ristretto"
 	block_store_s3 "github.com/aperturerobotics/hydra/block/store/s3"
+	block_store_s3_lookup "github.com/aperturerobotics/hydra/block/store/s3/lookup"
 	"github.com/aperturerobotics/hydra/core"
 	api_controller "github.com/aperturerobotics/hydra/daemon/api/controller"
 	hydraeg "github.com/aperturerobotics/hydra/entitygraph"
@@ -45,6 +46,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	sr.AddFactory(block_store_http.NewFactory(b))
 	sr.AddFactory(block_store_s3.NewFactory(b))
+	sr.AddFactory(block_store_s3_lookup.NewFactory(b))
 	sr.AddFactory(block_store_ristretto.NewFactory(b))
 	sr.AddFactory(block_store_redis.NewFactory(b))
 }

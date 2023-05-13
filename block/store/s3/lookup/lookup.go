@@ -1,0 +1,74 @@
+package block_store_s3_lookup
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/dex"
+	"github.com/blang/semver"
+)
+
+// ControllerID is the controller id.
+const ControllerID = "hydra/block/store/s3/lookup"
+
+// Version is the API version.
+var Version = semver.MustParse("0.0.1")
+
+// Controller looks up blocks via an S3 HTTP service for LookupBlockFromNetwork directives.
+type Controller struct {
+	// conf is the config
+	conf *Config
+	// client is the client to use
+	client *http.Client
+}
+
+// NewController constructs a controller that looks up blocks via an HTTP
+// service for LookupBlockFromNetwork directives.
+//
+// if client is nil, uses http.DefaultClient
+func NewController(conf *Config, client *http.Client) *Controller {
+	if client == nil {
+		client = http.DefaultClient
+	}
+	return &Controller{
+		conf:   conf,
+		client: client,
+	}
+}
+
+// GetControllerInfo returns information about the controller.
+func (c *Controller) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		ControllerID,
+		Version,
+		"lookup blocks via s3 http",
+	)
+}
+
+// Execute executes the controller.
+func (c *Controller) Execute(ctx context.Context) error {
+	return nil
+}
+
+// HandleDirective asks if the handler can resolve the directive.
+// If it can, it returns resolver(s). If not, returns nil.
+// It is safe to add a reference to the directive during this call.
+// The context passed is canceled when the directive instance expires.
+func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	switch d := di.GetDirective().(type) {
+	case dex.LookupBlockFromNetwork:
+		return c.resolveLookupBlockFromNetwork(ctx, di, d)
+	}
+	return nil, nil
+}
+
+// Close releases any resources used by the controller.
+// Error indicates any issue encountered releasing.
+func (c *Controller) Close() error {
+	return nil
+}
+
+// _ is a type assertion
+var _ controller.Controller = ((*Controller)(nil))
