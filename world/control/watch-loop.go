@@ -97,14 +97,12 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 		return nil
 	}
 
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
 	for {
 		var rootRef *bucket.ObjectRef
 		var rev uint64
 
 		select {
-		case <-subCtx.Done():
+		case <-ctx.Done():
 			return context.Canceled
 		default:
 		}
@@ -156,7 +154,7 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			return err
 		}
 
-		wakeCtx, wakeCtxCancel := context.WithCancel(subCtx)
+		wakeCtx, wakeCtxCancel := context.WithCancel(ctx)
 		c.mtx.Lock()
 		c.wake = wakeCtxCancel
 		c.mtx.Unlock()
