@@ -38,7 +38,7 @@ func StoreDomainInfo(
 	}
 
 	key := NewDomainInfoKey(domainID)
-	obj, objFound, err := w.GetObject(key)
+	obj, objFound, err := w.GetObject(ctx, key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -62,7 +62,7 @@ func StoreDomainInfo(
 	}
 
 	op := NewDomainInfoUpdateOp(kpRef)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -106,23 +106,22 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 	objKey := NewDomainInfoKey(domainID)
 
 	// create the object if it doesn't exist.
-	obj, objFound, err := worldHandle.GetObject(objKey)
+	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
 	if objFound {
-		_, err = obj.SetRootRef(kpRef)
+		_, err = obj.SetRootRef(ctx, kpRef)
 		return false, err
 	}
 
-	_, err = worldHandle.CreateObject(objKey, kpRef)
+	_, err = worldHandle.CreateObject(ctx, objKey, kpRef)
 	if err != nil {
 		return false, err
 	}
 
 	// DomainInfo type -> types/identity/domain
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	if err := typesState.SetObjectType(objKey, DomainInfoTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, worldHandle, objKey, DomainInfoTypeID); err != nil {
 		return false, err
 	}
 
@@ -144,7 +143,7 @@ func (o *DomainInfoUpdateOp) ApplyWorldObjectOp(
 	}
 
 	// update the object
-	_, err = objectHandle.SetRootRef(domainInfoRef)
+	_, err = objectHandle.SetRootRef(ctx, domainInfoRef)
 	return false, err
 }
 

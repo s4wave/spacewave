@@ -40,11 +40,11 @@ func StoreKeypair(
 
 	pidPretty := pid.Pretty()
 	key := NewKeypairKey(pidPretty)
-	seqno, err := w.GetSeqno()
+	seqno, err := w.GetSeqno(ctx)
 	if err != nil {
 		return 0, false, err
 	}
-	obj, objFound, err := w.GetObject(key)
+	obj, objFound, err := w.GetObject(ctx, key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -71,7 +71,7 @@ func StoreKeypair(
 	}
 
 	op := NewKeypairUpdateOp(kpRef)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // LookupOrStoreKeypair looks up the keypair with peer ID or stores a new keypair.
@@ -196,23 +196,22 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 	objKey := NewKeypairKey(pidPretty)
 
 	// create the object if it doesn't exist.
-	obj, objFound, err := worldHandle.GetObject(objKey)
+	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
 	if objFound {
-		_, err = obj.SetRootRef(kpRef)
+		_, err = obj.SetRootRef(ctx, kpRef)
 		return false, err
 	}
 
-	_, err = worldHandle.CreateObject(objKey, kpRef)
+	_, err = worldHandle.CreateObject(ctx, objKey, kpRef)
 	if err != nil {
 		return false, err
 	}
 
 	// set keypair type ref
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	if err := typesState.SetObjectType(objKey, KeypairTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, worldHandle, objKey, KeypairTypeID); err != nil {
 		return false, err
 	}
 
@@ -234,7 +233,7 @@ func (o *KeypairUpdateOp) ApplyWorldObjectOp(
 	}
 
 	// update the object
-	_, err = objectHandle.SetRootRef(keypairRef)
+	_, err = objectHandle.SetRootRef(ctx, keypairRef)
 	return false, err
 }
 

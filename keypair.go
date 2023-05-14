@@ -1,6 +1,8 @@
 package identity
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/block"
@@ -49,8 +51,8 @@ func NewKeypairBlock() block.Block {
 
 // UnmarshalKeypair unmarshals a Keypair from a cursor.
 // If empty, returns nil, nil
-func UnmarshalKeypair(bcs *block.Cursor) (*Keypair, error) {
-	return block.UnmarshalBlock[*Keypair](bcs, NewKeypairBlock)
+func UnmarshalKeypair(ctx context.Context, bcs *block.Cursor) (*Keypair, error) {
+	return block.UnmarshalBlock[*Keypair](ctx, bcs, NewKeypairBlock)
 }
 
 // Validate validates the keypair.

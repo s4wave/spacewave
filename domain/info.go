@@ -1,6 +1,8 @@
 package identity_domain
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/identity"
 	"github.com/pkg/errors"
@@ -13,8 +15,8 @@ func NewDomainInfoBlock() block.Block {
 
 // UnmarshalDomainInfo unmarshals a DomainInfo from a cursor.
 // If empty, returns nil, nil
-func UnmarshalDomainInfo(bcs *block.Cursor) (*DomainInfo, error) {
-	return block.UnmarshalBlock[*DomainInfo](bcs, NewDomainInfoBlock)
+func UnmarshalDomainInfo(ctx context.Context, bcs *block.Cursor) (*DomainInfo, error) {
+	return block.UnmarshalBlock[*DomainInfo](ctx, bcs, NewDomainInfoBlock)
 }
 
 // Filter value is the value we use when filtering against this item when

@@ -59,7 +59,7 @@ func FollowKeypair(
 	_, err = world.AccessObject(ctx, accessState, keypairRef, func(bcs *block.Cursor) error {
 		// Confirm valid Keypair object.
 		var err error
-		entity, err = identity.UnmarshalKeypair(bcs)
+		entity, err = identity.UnmarshalKeypair(ctx, bcs)
 		return err
 	})
 	if err == nil {
@@ -83,7 +83,7 @@ func LookupKeypairOp(ctx context.Context, opTypeID string) (world.Operation, err
 // LookupKeypair looks up an entity with the given key.
 // returns nil, nil, nil if not found.
 func LookupKeypair(ctx context.Context, w world.WorldState, objKey string) (*identity.Keypair, world.ObjectState, error) {
-	obj, objFound, err := w.GetObject(objKey)
+	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,7 +93,7 @@ func LookupKeypair(ctx context.Context, w world.WorldState, objKey string) (*ide
 	var entity *identity.Keypair
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		entity, err = identity.UnmarshalKeypair(bcs)
+		entity, err = identity.UnmarshalKeypair(ctx, bcs)
 		return err
 	})
 	if err != nil {
@@ -119,8 +119,7 @@ func LookupKeypairs(ctx context.Context, w world.WorldState, objKeys []string) (
 // returns list of entities and object keys
 func CollectAllKeypairs(ctx context.Context, w world.WorldState) ([]*identity.Keypair, []string, error) {
 	var objKeys []string
-	ts := world_types.NewTypesState(ctx, w)
-	err := ts.IterateObjectsWithType(KeypairTypeID, func(objKey string) (bool, error) {
+	err := world_types.IterateObjectsWithType(ctx, w, KeypairTypeID, func(objKey string) (bool, error) {
 		if !strings.HasPrefix(objKey, KeypairPrefix) {
 			return true, nil
 		}
@@ -230,6 +229,6 @@ func LinkObjectToKeypair(
 	}
 
 	// link the object with the keypair
-	err = w.SetGraphQuad(NewObjectToKeypairQuad(objKey, kpKey))
+	err = w.SetGraphQuad(ctx, NewObjectToKeypairQuad(objKey, kpKey))
 	return kp, kpKey, err
 }

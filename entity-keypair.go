@@ -1,6 +1,8 @@
 package identity
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
@@ -74,8 +76,8 @@ func NewEntityKeypairBlock() block.Block {
 
 // UnmarshalEntityKeypair unmarshals a EntityKeypair from a cursor.
 // If empty, returns nil, nil
-func UnmarshalEntityKeypair(bcs *block.Cursor) (*EntityKeypair, error) {
-	return block.UnmarshalBlock[*EntityKeypair](bcs, NewEntityKeypairBlock)
+func UnmarshalEntityKeypair(ctx context.Context, bcs *block.Cursor) (*EntityKeypair, error) {
+	return block.UnmarshalBlock[*EntityKeypair](ctx, bcs, NewEntityKeypairBlock)
 }
 
 // Validate validates the keypair.

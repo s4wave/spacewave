@@ -44,7 +44,7 @@ func FollowDomainInfo(
 	_, err = world.AccessObject(ctx, accessState, domainInfoRef, func(bcs *block.Cursor) error {
 		// Confirm valid DomainInfo object.
 		var err error
-		domain, err = identity_domain.UnmarshalDomainInfo(bcs)
+		domain, err = identity_domain.UnmarshalDomainInfo(ctx, bcs)
 		return err
 	})
 	if err == nil {
@@ -68,7 +68,7 @@ func LookupDomainInfoOp(ctx context.Context, opTypeID string) (world.Operation, 
 // LookupDomainInfo looks up an entity with the given key.
 // returns nil, nil, nil if not found.
 func LookupDomainInfo(ctx context.Context, w world.WorldState, objKey string) (*identity_domain.DomainInfo, world.ObjectState, error) {
-	obj, objFound, err := w.GetObject(objKey)
+	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -78,7 +78,7 @@ func LookupDomainInfo(ctx context.Context, w world.WorldState, objKey string) (*
 	var entity *identity_domain.DomainInfo
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		entity, err = identity_domain.UnmarshalDomainInfo(bcs)
+		entity, err = identity_domain.UnmarshalDomainInfo(ctx, bcs)
 		return err
 	})
 	if err != nil {
@@ -104,8 +104,7 @@ func LookupDomainInfos(ctx context.Context, w world.WorldState, objKeys []string
 // returns list of entities and object keys
 func CollectAllDomainInfos(ctx context.Context, w world.WorldState) ([]*identity_domain.DomainInfo, []string, error) {
 	var objKeys []string
-	ts := world_types.NewTypesState(ctx, w)
-	err := ts.IterateObjectsWithType(DomainInfoTypeID, func(objKey string) (bool, error) {
+	err := world_types.IterateObjectsWithType(ctx, w, DomainInfoTypeID, func(objKey string) (bool, error) {
 		if !strings.HasPrefix(objKey, DomainInfoPrefix) {
 			return true, nil
 		}

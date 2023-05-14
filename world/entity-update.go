@@ -36,7 +36,7 @@ func StoreEntity(
 ) (uint64, bool, error) {
 	domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
 	key := NewEntityKey(domainID, entityID)
-	obj, objFound, err := w.GetObject(key)
+	obj, objFound, err := w.GetObject(ctx, key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -60,7 +60,7 @@ func StoreEntity(
 	}
 
 	op := NewEntityUpdateOp(sessRef)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -97,7 +97,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 	objKey := NewEntityKey(domainID, entityID)
 
 	// create the entity if it doesn't exist.
-	obj, objFound, err := worldHandle.GetObject(objKey)
+	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
@@ -112,21 +112,18 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 		for _, id := range kpObjectIDs {
 			prevLinkedKp[id] = struct{}{}
 		}
-
-		// TODO: Verify at least one of the old keypairs signed-off.
-		_, err = obj.SetRootRef(entityRef)
+		_, err = obj.SetRootRef(ctx, entityRef)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		_, err = worldHandle.CreateObject(objKey, entityRef)
+		_, err = worldHandle.CreateObject(ctx, objKey, entityRef)
 		if err != nil {
 			return false, err
 		}
 
 		// Entity type
-		typesState := world_types.NewTypesState(ctx, worldHandle)
-		if err := typesState.SetObjectType(objKey, EntityTypeID); err != nil {
+		if err := world_types.SetObjectType(ctx, worldHandle, objKey, EntityTypeID); err != nil {
 			return false, err
 		}
 	}
@@ -148,20 +145,20 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 	// Create/update links to keypairs.
 	for _, kpObjKey := range kpObjectKeys {
 		kpQuad := NewObjectToKeypairQuad(objKey, kpObjKey)
-		if err := worldHandle.SetGraphQuad(kpQuad); err != nil {
+		if err := worldHandle.SetGraphQuad(ctx, kpQuad); err != nil {
 			return false, err
 		}
 	}
 
 	// Create/update link to domain info (if exists)
 	diKey := NewDomainInfoKey(domainID)
-	_, diExists, err := worldHandle.GetObject(diKey)
+	_, diExists, err := worldHandle.GetObject(ctx, diKey)
 	if err != nil {
 		return false, err
 	}
 	if diExists {
 		diQuad := NewEntityToDomainInfoQuad(objKey, diKey)
-		if err := worldHandle.SetGraphQuad(diQuad); err != nil {
+		if err := worldHandle.SetGraphQuad(ctx, diQuad); err != nil {
 			return false, err
 		}
 	}

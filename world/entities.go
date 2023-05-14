@@ -60,7 +60,7 @@ func FollowEntity(
 	_, err = world.AccessObject(ctx, accessState, entityRef, func(bcs *block.Cursor) error {
 		// Confirm valid Entity object.
 		var err error
-		entity, err = identity.UnmarshalEntity(bcs)
+		entity, err = identity.UnmarshalEntity(ctx, bcs)
 		return err
 	})
 	if err == nil {
@@ -84,7 +84,7 @@ func LookupEntityOp(ctx context.Context, opTypeID string) (world.Operation, erro
 // LookupEntity looks up an entity with the given key.
 // returns nil, nil, nil if not found.
 func LookupEntity(ctx context.Context, w world.WorldState, objKey string) (*identity.Entity, world.ObjectState, error) {
-	obj, objFound, err := w.GetObject(objKey)
+	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +94,7 @@ func LookupEntity(ctx context.Context, w world.WorldState, objKey string) (*iden
 	var entity *identity.Entity
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		entity, err = identity.UnmarshalEntity(bcs)
+		entity, err = identity.UnmarshalEntity(ctx, bcs)
 		return err
 	})
 	if err != nil {
@@ -121,8 +121,7 @@ func LookupEntities(ctx context.Context, w world.WorldState, objKeys []string) (
 // returns list of entities and object keys
 func CollectAllEntities(ctx context.Context, w world.WorldState) ([]*identity.Entity, []string, error) {
 	var objKeys []string
-	ts := world_types.NewTypesState(ctx, w)
-	err := ts.IterateObjectsWithType(EntityTypeID, func(objKey string) (bool, error) {
+	err := world_types.IterateObjectsWithType(ctx, w, EntityTypeID, func(objKey string) (bool, error) {
 		if !strings.HasPrefix(objKey, EntityPrefix) {
 			return true, nil
 		}

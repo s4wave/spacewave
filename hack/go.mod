@@ -31,11 +31,11 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.15.5 // indirect
-	github.com/aperturerobotics/controllerbus v0.27.1-0.20230512225029-073bdff7defe // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad // indirect
+	github.com/aperturerobotics/bifrost v0.15.6-0.20230513202020-b53252510b89 // indirect
+	github.com/aperturerobotics/controllerbus v0.27.1 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230514010316-13ce1412cf88 // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
-	github.com/aperturerobotics/util v1.3.0 // indirect
+	github.com/aperturerobotics/util v1.3.1 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
