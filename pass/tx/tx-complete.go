@@ -53,7 +53,7 @@ func (t *TxComplete) ExecuteTx(
 	root *forge_pass.Pass,
 ) error {
 	// unmarshal the target
-	tgt, _, err := root.FollowTargetRef(bcs)
+	tgt, _, err := root.FollowTargetRef(ctx, bcs)
 	if err != nil {
 		return err
 	}

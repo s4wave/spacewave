@@ -34,12 +34,12 @@ func (c *Controller) ProcessState(
 	var tgt *forge_target.Target
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		passState, berr = forge_pass.UnmarshalPass(bcs)
+		passState, berr = forge_pass.UnmarshalPass(ctx, bcs)
 		if berr != nil {
 			return berr
 		}
 
-		tgt, _, berr = passState.FollowTargetRef(bcs)
+		tgt, _, berr = passState.FollowTargetRef(ctx, bcs)
 		return berr
 	})
 	if err != nil {
@@ -72,7 +72,7 @@ func (c *Controller) ProcessState(
 			// COMPLETE w/ success=false
 			le.WithError(err).Warn("marking pass as failed w/ error")
 			txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithError(err))
-			_, _, err = ws.ApplyWorldOp(txd, c.peerID)
+			_, _, err = ws.ApplyWorldOp(ctx, txd, c.peerID)
 			return false, err
 		}
 
@@ -87,7 +87,7 @@ func (c *Controller) ProcessState(
 		// COMPLETE w/ success=true
 		// this will use the values from the first ExecState
 		txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithSuccess())
-		_, _, err = ws.ApplyWorldOp(txd, c.peerID)
+		_, _, err = ws.ApplyWorldOp(ctx, txd, c.peerID)
 		return true, err
 	}
 
@@ -106,7 +106,7 @@ func (c *Controller) ProcessState(
 		// the control loop will see the change & run ProcessState again
 		le.Debug("starting pass")
 		txd := pass_transaction.NewTxStart(objKey, execSpecs, true)
-		_, _, err = ws.ApplyWorldOp(txd, c.peerID)
+		_, _, err = ws.ApplyWorldOp(ctx, txd, c.peerID)
 		return true, err
 	}
 

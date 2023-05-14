@@ -146,7 +146,7 @@ func (t *Tx) ApplyWorldObjectOp(
 
 	// access & update the execution object
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
-		ex, err := forge_execution.UnmarshalExecution(bcs)
+		ex, err := forge_execution.UnmarshalExecution(ctx, bcs)
 		if err != nil {
 			return err
 		}

@@ -35,7 +35,7 @@ func CreateCluster(
 	sender peer.ID,
 ) (uint64, bool, error) {
 	op := NewClusterCreateOp(clusterKey, name, clusterPeerID)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -87,8 +87,7 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 	}
 
 	// create the <type> ref
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	err = typesState.SetObjectType(clusterKey, ClusterTypeID)
+	err = world_types.SetObjectType(ctx, worldHandle, clusterKey, ClusterTypeID)
 	if err != nil {
 		return false, err
 	}

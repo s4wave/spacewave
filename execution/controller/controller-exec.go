@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	forge_execution "github.com/aperturerobotics/forge/execution"
+	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/world"
@@ -17,20 +17,62 @@ import (
 // targetWorldInput is the default input name for the target world.
 const targetWorldInput = "world"
 
-// processExec processes the exec portion of the Target config.
-func (c *Controller) processExec(
-	ctx context.Context,
-	t *forge_target.Target,
-	ws world.WorldState,
-	exState *forge_execution.Execution,
-) error {
-	var ctxCancel func()
-	ctx, ctxCancel = context.WithCancel(ctx)
+// executeWithConfig is the routine to execute the Execution controller.
+func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfig) error {
+	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	execConf := t.GetExec()
-	ctrlConf := execConf.GetController()
-	if execConf.GetDisable() || ctrlConf.GetId() == "" {
+	// process the execution
+	execErr := c.processExec(ctx, execConf)
+
+	// ignore error if context canceled
+	if cerr := rctx.Err(); cerr != nil {
+		return context.Canceled
+	}
+
+	// mark the execution as complete
+	var res *forge_value.Result
+	if execErr != nil {
+		c.le.WithError(execErr).Warn("marking execution as failed w/ error")
+		res = forge_value.NewResultWithError(execErr)
+	} else {
+		c.le.Info("marking execution as complete")
+		res = forge_value.NewResultWithSuccess()
+	}
+
+	// COMPLETE w/ success=true
+	completeTx, err := c.busEngine.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer completeTx.Discard()
+
+	execObjState, err := world.MustGetObject(ctx, completeTx, c.conf.GetObjectKey())
+	if err != nil {
+		return err
+	}
+
+	txd := execution_transaction.NewTxComplete(res)
+	_, _, err = execObjState.ApplyObjectOp(ctx, txd, c.peerID)
+	if err != nil {
+		return err
+	}
+
+	return completeTx.Commit(ctx)
+}
+
+// processExec processes the exec portion of the Target config.
+//
+// if any error is returned, that error is set as the execution result.
+func (c *Controller) processExec(
+	ctx context.Context,
+	execConf *ExecConfig,
+) error {
+	tgt := execConf.GetTarget()
+	tgtExecConf := tgt.GetExec()
+	ctrlConf := tgtExecConf.GetController()
+	exState := execConf.GetExecution()
+	if tgtExecConf.GetDisable() || ctrlConf.GetId() == "" {
 		// skip - configuration is empty
 		return nil
 	}
@@ -122,7 +164,7 @@ func (c *Controller) processExec(
 		ctx,
 		tgtBus,
 		targetWorld,
-		t,
+		tgt,
 		inputsValMap,
 	)
 	if err != nil {
@@ -155,7 +197,7 @@ func (c *Controller) processExec(
 	}
 
 	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(ctx, c, ws, exState.GetTimestamp())
+	execCtrlHandle := newExecControllerHandle(ctx, c, c.ws, exState.GetTimestamp())
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		err = execCtrl.InitForgeExecController(
 			ctx,
@@ -170,11 +212,9 @@ func (c *Controller) processExec(
 			le.Debug("controller does not implement exec-controller interface")
 		}
 	}
-	select {
-	case <-ctx.Done():
+	if ctx.Err() != nil {
 		// note: ignore err if context was canceled
 		return context.Canceled
-	default:
 	}
 	if err != nil {
 		if err == context.Canceled {
@@ -197,7 +237,7 @@ func (c *Controller) processExec(
 		durLe.WithError(err).Warn("exec controller failed")
 		return err
 	}
-	durLe.Debug("exec controller completed")
 
+	durLe.Debug("exec controller completed")
 	return nil
 }

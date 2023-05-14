@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,7 +32,7 @@ func AssignClusterLeaderPeer(
 	clusterKey string, leaderPeer peer.ID,
 ) (uint64, bool, error) {
 	op := NewClusterAssignPeerOp(clusterKey, leaderPeer)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -81,8 +80,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 	}
 
 	// check the <type> of the cluster
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	err = CheckClusterType(typesState, clusterKey)
+	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
@@ -90,7 +88,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 	var cluster *Cluster
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, clusterKey, true, func(bcs *block.Cursor) error {
 		var err error
-		cluster, err = UnmarshalCluster(bcs)
+		cluster, err = UnmarshalCluster(ctx, bcs)
 		if err == nil {
 			err = cluster.Validate()
 		}
@@ -128,7 +126,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		return false, err
 	}
 	for _, oldKpKey := range oldKpKeys {
-		err = worldHandle.DeleteGraphQuad(world.NewGraphQuadWithKeys(
+		err = worldHandle.DeleteGraphQuad(ctx, world.NewGraphQuadWithKeys(
 			clusterKey,
 			identity_world.PredObjectToKeypair.String(),
 			oldKpKey,

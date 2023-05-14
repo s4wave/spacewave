@@ -1,6 +1,7 @@
 syntax = "proto3";
 package execution.controller;
 
+import "github.com/aperturerobotics/forge/execution/execution.proto";
 import "github.com/aperturerobotics/forge/target/target.proto";
 
 // Config is the execution controller configuration.
@@ -22,4 +23,14 @@ message Config {
 
   // InputWorld is the default value for the "world" input.
   .forge.target.InputWorld input_world = 6;
+}
+
+// ExecConfig is a configuration for the execution routine.
+message ExecConfig {
+  // Execution is the current state of the execution.
+  // NOTE: value_set and result are set to nil.
+  .forge.execution.Execution execution = 1;
+  // Target is the current target to execute.
+  // This is the value of the TargetRef in execution.
+  .forge.target.Target target = 2;
 }

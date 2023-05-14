@@ -28,12 +28,12 @@ func (i *InputWorld) ResolveValue(ctx context.Context, b bus.Bus) (InputValueWor
 		if err != nil {
 			return nil, nil, err
 		}
-		ws := world.NewEngineWorldState(ctx, v, true)
+		ws := world.NewEngineWorldState(v, true)
 		return NewInputValueWorld(v, ws), ref.Release, nil
 	}
 
 	// deferred lookup
 	eng := world.NewBusEngine(ctx, b, engineID)
-	ws := world.NewEngineWorldState(ctx, eng, true)
-	return NewInputValueWorld(eng, ws), eng.Close, nil
+	ws := world.NewEngineWorldState(eng, true)
+	return NewInputValueWorld(eng, ws), func() {}, nil
 }

@@ -35,9 +35,9 @@ func (c *Controller) ProcessState(
 	var taskTarget *forge_target.Target
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		taskState, berr = forge_task.UnmarshalTask(bcs)
+		taskState, berr = forge_task.UnmarshalTask(ctx, bcs)
 		if berr == nil {
-			taskTarget, _, berr = taskState.FollowTargetRef(bcs)
+			taskTarget, _, berr = taskState.FollowTargetRef(ctx, bcs)
 		}
 		return berr
 	})
@@ -148,7 +148,7 @@ func (c *Controller) ProcessState(
 			})
 		}
 		txInner.ValueSet.SortValues()
-		_, _, err = ws.ApplyWorldOp(txUpdateInputs, c.peerID)
+		_, _, err = ws.ApplyWorldOp(ctx, txUpdateInputs, c.peerID)
 		if err != nil {
 			return true, errors.Wrap(err, "update inputs")
 		}
@@ -168,7 +168,7 @@ func (c *Controller) ProcessState(
 	// start the task if pending
 	if currState == forge_task.State_TaskState_PENDING {
 		txStart := task_tx.NewTxStart(objKey, c.conf.GetAssignSelf())
-		_, _, err = ws.ApplyWorldOp(txStart, c.peerID)
+		_, _, err = ws.ApplyWorldOp(ctx, txStart, c.peerID)
 		if err != nil {
 			return true, errors.Wrap(err, "start task")
 		}
@@ -189,7 +189,7 @@ func (c *Controller) ProcessState(
 
 			// active pass is nil, submit a tx to go back to pending
 			txUpdate := task_tx.NewTxUpdateWithPassState(objKey)
-			_, _, err = ws.ApplyWorldOp(txUpdate, c.peerID)
+			_, _, err = ws.ApplyWorldOp(ctx, txUpdate, c.peerID)
 			return true, errors.Wrap(err, "update with pass state")
 		}
 		// watch the pass for completion
@@ -251,13 +251,13 @@ func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldS
 	if err != nil {
 		c.le.WithError(err).Warn("marking task as failed w/ error")
 		tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithError(err))
-		_, _, err = ws.ApplyWorldOp(tx, c.peerID)
+		_, _, err = ws.ApplyWorldOp(ctx, tx, c.peerID)
 		return err
 	}
 
 	c.le.Info("marking task as complete")
 	tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithSuccess())
-	_, _, err = ws.ApplyWorldOp(tx, c.peerID)
+	_, _, err = ws.ApplyWorldOp(ctx, tx, c.peerID)
 	return err
 }
 

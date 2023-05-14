@@ -176,7 +176,7 @@ func (q *OpQueue) resolveKeyInput(op *Op) ([]byte, error) {
 				func(bls *bucket_lookup.Cursor) error {
 					_, bcs := bls.BuildTransactionAtRef(nil, bktRef.GetRootRef())
 					var berr error
-					opKey, _, berr = bcs.Fetch()
+					opKey, _, berr = bcs.Fetch(q.ctx)
 					return berr
 				},
 			)

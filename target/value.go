@@ -136,7 +136,7 @@ func LoadMsgpackValue[T any](
 	}
 	var outObj T
 	_, err := AccessValue(ctx, handle, value, func(bcs *block.Cursor) error {
-		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(bcs, ctor)
+		outBlk, berr := block_msgpack.UnmarshalMsgpackBlock(ctx, bcs, ctor)
 		if berr != nil {
 			return berr
 		}
@@ -213,7 +213,7 @@ func CopyValueToBucket(
 				// TODO: copy full reference graph
 				// for now, just copy the root block.
 				var berr error
-				rootBlockData, rootBlockFound, berr = bcs.Fetch()
+				rootBlockData, rootBlockFound, berr = bcs.Fetch(ctx)
 				return berr
 			},
 		)
@@ -229,7 +229,7 @@ func CopyValueToBucket(
 		}
 		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 			var berr error
-			outputRef, _, berr = bls.PutBlock(rootBlockData, nil)
+			outputRef, _, berr = bls.PutBlock(ctx, rootBlockData, nil)
 			return berr
 		})
 		if err != nil {

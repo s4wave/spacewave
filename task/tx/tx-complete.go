@@ -67,7 +67,7 @@ func (t *TxComplete) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
-	tgt, _, err := root.FollowTargetRef(bcs)
+	tgt, _, err := root.FollowTargetRef(ctx, bcs)
 	if err != nil {
 		return err
 	}

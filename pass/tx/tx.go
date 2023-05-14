@@ -131,7 +131,7 @@ func (t *Tx) ApplyWorldOp(
 
 	objKey := t.GetPassObjectKey()
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
-		ps, err := forge_pass.UnmarshalPass(bcs)
+		ps, err := forge_pass.UnmarshalPass(ctx, bcs)
 		if err != nil {
 			return err
 		}

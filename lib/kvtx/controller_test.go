@@ -88,7 +88,7 @@ func TestKvtx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	testObj, err := ws.CreateObject("test-blob", testBlob.GetBucketRef())
+	testObj, err := ws.CreateObject(ctx, "test-blob", testBlob.GetBucketRef())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -188,7 +188,7 @@ func TestKvtx(t *testing.T) {
 	}
 	le.Infof("output store reference was: %s", stv.GetBucketRef().MarshalString())
 	_, err = forge_target.AccessValue(ctx, h, stv, func(bcs *block.Cursor) error {
-		kvs, err := kvtx_block.LoadKeyValueStore(bcs)
+		kvs, err := kvtx_block.LoadKeyValueStore(ctx, bcs)
 		if err != nil {
 			return err
 		}
@@ -196,7 +196,7 @@ func TestKvtx(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		nkeys, err := btx.Size()
+		nkeys, err := btx.Size(ctx)
 		if err != nil {
 			return err
 		}
@@ -204,7 +204,7 @@ func TestKvtx(t *testing.T) {
 			return errors.Errorf("expected %d keys but got %d", 2, nkeys)
 		}
 		// bug: vbcs is pointing to a node in iavl tree
-		tdata, tfound, err := btx.Get([]byte("test-1"))
+		tdata, tfound, err := btx.Get(ctx, []byte("test-1"))
 		if err != nil {
 			err = errors.Wrap(err, "lookup test-1 in access-value")
 		}

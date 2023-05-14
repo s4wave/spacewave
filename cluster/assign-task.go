@@ -8,7 +8,6 @@ import (
 	forge_task "github.com/aperturerobotics/forge/task"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -35,7 +34,7 @@ func AssignTaskToCluster(
 	sender peer.ID,
 ) (uint64, bool, error) {
 	op := NewClusterAssignTaskOp(clusterKey, jobKey, taskKey)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -68,19 +67,17 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	clusterKey, jobKey, taskKey := o.GetClusterKey(), o.GetJobKey(), o.GetTaskKey()
 
 	// check the <type> of the job, cluster, and task objects
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-
-	err = CheckClusterType(typesState, clusterKey)
+	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
 
-	err = forge_job.CheckJobType(typesState, jobKey)
+	err = forge_job.CheckJobType(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}
 
-	err = forge_task.CheckTaskType(typesState, taskKey)
+	err = forge_task.CheckTaskType(ctx, worldHandle, taskKey)
 	if err != nil {
 		return false, err
 	}
@@ -131,7 +128,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 
 	// update the task
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, taskKey, true, func(bcs *block.Cursor) error {
-		task, err := forge_task.UnmarshalTask(bcs)
+		task, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err
 		}

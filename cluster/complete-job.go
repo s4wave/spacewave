@@ -8,7 +8,6 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +32,7 @@ func CompleteJob(
 	sender peer.ID,
 ) (uint64, bool, error) {
 	op := NewClusterCompleteJobOp(clusterKey, jobKey)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -63,12 +62,11 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	clusterKey, jobKey := o.GetClusterKey(), o.GetJobKey()
 
 	// check the <type> of the cluster and job objects
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	if err := CheckClusterType(typesState, clusterKey); err != nil {
+	if err := CheckClusterType(ctx, worldHandle, clusterKey); err != nil {
 		return false, err
 	}
 
-	if err := forge_job.CheckJobType(typesState, jobKey); err != nil {
+	if err := forge_job.CheckJobType(ctx, worldHandle, jobKey); err != nil {
 		return false, err
 	}
 
@@ -85,7 +83,7 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	var jobResult *forge_value.Result
 	var job *forge_job.Job
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, jobKey, false, func(bcs *block.Cursor) error {
-		job, err = forge_job.UnmarshalJob(bcs)
+		job, err = forge_job.UnmarshalJob(ctx, bcs)
 		if err == nil {
 			err = job.Validate()
 		}

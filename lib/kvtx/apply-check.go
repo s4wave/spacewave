@@ -22,7 +22,7 @@ func ApplyOpCheck(
 	valueIsBlob bool,
 	outputName string,
 ) error {
-	bcs, err := btx.GetCursorAtKey(key)
+	bcs, err := btx.GetCursorAtKey(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func ApplyOpCheck(
 	valueBktRef := value.GetBucketRef()
 	if value.GetValueType() == forge_value.ValueType_ValueType_BUCKET_REF &&
 		valueBktRef.GetBucketId() != "" {
-		bcsData, bcsOk, err := bcs.Fetch()
+		bcsData, bcsOk, err := bcs.Fetch(ctx)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func ApplyOpCheck(
 		}
 		var wasEqual bool
 		_, err = forge_target.AccessValue(ctx, handle, value, func(cs *block.Cursor) error {
-			data, dataOk, err := cs.Fetch()
+			data, dataOk, err := cs.Fetch(ctx)
 			if err != nil {
 				return err
 			}
@@ -97,7 +97,7 @@ func ApplyOpCheckExists(
 	key []byte,
 	shouldExist bool,
 ) error {
-	doesExist, err := btx.Exists(key)
+	doesExist, err := btx.Exists(ctx, key)
 	if err != nil {
 		return err
 	}

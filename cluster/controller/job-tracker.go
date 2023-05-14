@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
@@ -68,8 +67,7 @@ func (t *jobTracker) processState(
 	jobKey, clusterKey := t.objKey, t.c.objKey
 
 	// check the <type> of the job object
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = forge_job.CheckJobType(typesState, jobKey)
+	err = forge_job.CheckJobType(ctx, ws, jobKey)
 	if err != nil {
 		return false, err
 	}
@@ -78,7 +76,7 @@ func (t *jobTracker) processState(
 	var job *forge_job.Job
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		job, berr = forge_job.UnmarshalJob(bcs)
+		job, berr = forge_job.UnmarshalJob(ctx, bcs)
 		if berr == nil {
 			berr = job.Validate()
 		}

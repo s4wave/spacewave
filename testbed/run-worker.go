@@ -67,6 +67,28 @@ func (tb *Testbed) RunWorkerWithTasks(
 	}
 	defer workerPeerRel()
 
+	// create the Job and Task with empty peer ID
+	createJobTx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	_, _, err = forge_job.CreateJobWithTasks(
+		ctx,
+		createJobTx,
+		sender,
+		jobKey,
+		taskMap,
+		"",
+		ts,
+	)
+	if err == nil {
+		err = createJobTx.Commit(ctx)
+	}
+	if err != nil {
+		createJobTx.Discard()
+		return nil, err
+	}
+
 	// create the Cluster object in the world
 	clusterName := "test-cluster"
 	_, _, err = forge_cluster.CreateCluster(
@@ -115,20 +137,6 @@ func (tb *Testbed) RunWorkerWithTasks(
 
 	// assign the Worker to the Cluster
 	_, _, err = forge_cluster.AssignWorkerToCluster(ctx, worldState, clusterKey, workerKey, sender)
-	if err != nil {
-		return nil, err
-	}
-
-	// create the Job and Task with empty peer ID
-	_, _, err = forge_job.CreateJobWithTasks(
-		ctx,
-		worldState,
-		sender,
-		jobKey,
-		taskMap,
-		"",
-		ts,
-	)
 	if err != nil {
 		return nil, err
 	}

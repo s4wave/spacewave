@@ -64,8 +64,8 @@ func LookupClusterOp(ctx context.Context, opTypeID string) (world.Operation, err
 }
 
 // UnmarshalCluster unmarshals a worker block from the cursor.
-func UnmarshalCluster(bcs *block.Cursor) (*Cluster, error) {
-	return block.UnmarshalBlock[*Cluster](bcs, NewClusterBlock)
+func UnmarshalCluster(ctx context.Context, bcs *block.Cursor) (*Cluster, error) {
+	return block.UnmarshalBlock[*Cluster](ctx, bcs, NewClusterBlock)
 }
 
 // Validate performs cursory checks of the Cluster object.

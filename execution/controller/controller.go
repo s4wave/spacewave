@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -44,8 +45,15 @@ type Controller struct {
 	uniqueID string
 	// peerID is the parsed peer id
 	peerID peer.ID
+	// busEngine is the bus world engine handle
+	busEngine *world.BusEngine
+	// ws is the world state handle for busEngine
+	ws world.WorldState
 	// objLoop is the object tracking loop
 	objLoop *world_control.WatchLoop
+	// execRoutine is the execution routine resolving execResult
+	// note: value_set and result are set to nil
+	execRoutine *routine.StateRoutineContainer[*ExecConfig]
 }
 
 // NewController constructs a new Execution controller.
@@ -64,11 +72,18 @@ func NewController(
 		uniqueID: uniqueID,
 		peerID:   peerID,
 	}
+	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
+	c.ws = world.NewEngineWorldState(c.busEngine, true)
 	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "execution"),
 		conf.GetObjectKey(),
 		c.ProcessState,
 	)
+	c.execRoutine = routine.NewStateRoutineContainerWithLogger(
+		routine.CompareEqualVT[*ExecConfig](),
+		le.WithField("routine", "execution"),
+	)
+	c.execRoutine.SetStateRoutine(c.executeWithConfig)
 	return c
 }
 
@@ -109,16 +124,15 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	return world_control.ExecuteBusWatchLoop(
-		ctx,
-		c.bus,
-		c.conf.GetEngineId(),
-		true,
-		c.objLoop,
-	)
+	c.execRoutine.SetContext(ctx, true)
+	c.busEngine.SetContext(ctx)
+	return c.objLoop.Execute(ctx, c.ws)
 }
 
 // ProcessState implements the state reconciliation loop.
+//
+// NOTE: the Execution may be updated by the controller several times during
+// execution.
 func (c *Controller) ProcessState(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -128,34 +142,36 @@ func (c *Controller) ProcessState(
 ) (waitForChanges bool, err error) {
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
+		c.execRoutine.SetState(nil)
 		return true, nil
 	}
 
 	// get latest root ref
-	objRef, _, err := obj.GetRootRef()
+	objRef, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		if err == world.ErrObjectNotFound {
+			le.Debug("object does not exist, waiting")
+			c.execRoutine.SetState(nil)
 			return true, nil
 		}
 		return false, err
 	}
 
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
-
 	// unmarshal Execution state + build read cursor
 	var exState *forge_execution.Execution
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, objRef, func(bcs *block.Cursor) error {
 		var berr error
-		exState, berr = forge_execution.UnmarshalExecution(bcs)
+		exState, berr = forge_execution.UnmarshalExecution(ctx, bcs)
 		return berr
 	})
 	if err != nil {
+		c.execRoutine.SetState(nil)
 		return false, err
 	}
 
 	// check execution state
 	if err := exState.Validate(); err != nil {
+		c.execRoutine.SetState(nil)
 		return false, errors.Wrap(err, "initial state is invalid")
 	}
 
@@ -165,6 +181,7 @@ func (c *Controller) ProcessState(
 		// use the peer ID specified on the state
 		peerID, err = exState.ParsePeerID()
 		if err != nil {
+			c.execRoutine.SetState(nil)
 			return true, errors.Wrap(err, "parse peer id on execution state")
 		}
 	}
@@ -173,17 +190,20 @@ func (c *Controller) ProcessState(
 	currState := exState.GetExecutionState()
 	if currState == forge_execution.State_ExecutionState_COMPLETE {
 		le.Debug("execution is marked as complete")
+		c.execRoutine.SetState(nil)
 		return false, nil
 	}
 
 	// check peer id matches if set
 	if err := exState.CheckPeerID(peerID); err != nil {
+		c.execRoutine.SetState(nil)
 		return true, err
 	}
 
-	// lookup the peer on the bus
+	// lookup the peer on the bus (wait for it to exist)
 	exPeer, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
 	if err != nil {
+		c.execRoutine.SetState(nil)
 		return false, err
 	}
 	defer peerRef.Release()
@@ -191,6 +211,7 @@ func (c *Controller) ProcessState(
 
 	// promote pending -> running
 	if currState == forge_execution.State_ExecutionState_PENDING {
+		c.execRoutine.SetState(nil)
 		le.Debugf(
 			"marking execution as running with peer id: %s",
 			peerID.Pretty(),
@@ -199,7 +220,7 @@ func (c *Controller) ProcessState(
 		if err != nil {
 			return false, err
 		}
-		_, _, err = obj.ApplyObjectOp(txd, peerID)
+		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
 		if err != nil {
 			return false, err
 		}
@@ -209,48 +230,47 @@ func (c *Controller) ProcessState(
 
 	// check if running, otherwise, this is some unknown state
 	if currState != forge_execution.State_ExecutionState_RUNNING {
+		c.execRoutine.SetState(nil)
 		return true, errors.Wrapf(
 			forge_value.ErrUnknownState,
 			"%s", currState.String(),
 		)
 	}
 
-	// process the exec portion of the target
-	// note: if an error occurs in exec controller,
-	// processExec marks the execution as complete w/ the error and returns nil.
-	var tgt *forge_target.Target
-	_, err = world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		bcs = bcs.Detach(true)
-		bcs.ClearAllRefs()
-		bcs.SetRefAtCursor(exState.GetTargetRef(), true)
-
-		var berr error
-		tgt, berr = forge_target.UnmarshalTarget(bcs)
-		return berr
-	})
-	if err != nil {
-		return true, errors.Wrap(err, "lookup target configuration")
-	}
-
-	err = c.processExec(subCtx, tgt, ws, exState)
-	if err == context.Canceled {
-		return false, err
-	}
-
-	// mark the execution as complete w/o error
-	var res *forge_value.Result
-	if err != nil {
-		le.WithError(err).Warn("marking execution as failed w/ error")
-		res = forge_value.NewResultWithError(err)
+	// check if equivalent to the current
+	execConfigState := exState.CloneVT()
+	execConfigState.Result = nil
+	if execConfigState.ValueSet == nil {
+		execConfigState.ValueSet = &forge_target.ValueSet{}
 	} else {
-		le.Info("marking execution as complete")
-		res = forge_value.NewResultWithSuccess()
+		execConfigState.ValueSet.Outputs = nil
+	}
+	prevConfigState := c.execRoutine.GetState()
+	if !prevConfigState.GetExecution().EqualVT(execConfigState) {
+		var tgt *forge_target.Target
+		_, err = world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+			bcs = bcs.Detach(true)
+			bcs.ClearAllRefs()
+			bcs.SetRefAtCursor(exState.GetTargetRef(), true)
+
+			var berr error
+			tgt, berr = forge_target.UnmarshalTarget(ctx, bcs)
+			return berr
+		})
+		if err != nil {
+			c.execRoutine.SetState(nil)
+			return true, errors.Wrap(err, "lookup target configuration")
+		}
+
+		// update the exec configuration
+		// note: SetState checks ExecConfig for equality.
+		c.execRoutine.SetState(&ExecConfig{
+			Execution: execConfigState,
+			Target:    tgt,
+		})
 	}
 
-	// COMPLETE w/ success=true
-	txd := execution_transaction.NewTxComplete(res)
-	_, _, err = obj.ApplyObjectOp(txd, c.peerID)
-	return false, err // done
+	return true, nil
 }
 
 // _ is a type assertion

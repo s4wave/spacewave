@@ -28,15 +28,15 @@ func FetchConfigInput(
 	err = handle.AccessStorage(ctx, objRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
 		var berr error
-		confInput, berr = UnmarshalConfigInput(bcs)
+		confInput, berr = UnmarshalConfigInput(ctx, bcs)
 		return berr
 	})
 	return confInput, err
 }
 
 // UnmarshalConfigInput unmarshals a config input block from the cursor.
-func UnmarshalConfigInput(bcs *block.Cursor) (*ConfigInput, error) {
-	return block.UnmarshalBlock[*ConfigInput](bcs, NewConfigInputBlock)
+func UnmarshalConfigInput(ctx context.Context, bcs *block.Cursor) (*ConfigInput, error) {
+	return block.UnmarshalBlock[*ConfigInput](ctx, bcs, NewConfigInputBlock)
 }
 
 // MarshalBlock marshals the block to binary.

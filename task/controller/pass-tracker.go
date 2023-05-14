@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -64,14 +63,14 @@ func (t *passTracker) processState(
 ) (waitForChanges bool, err error) {
 	objKey := t.objKey
 
-	// check the <type> of the object
-	typesState := world_types.NewTypesState(ctx, ws)
-	objType, err := typesState.GetObjectType(objKey)
-	if err != nil {
-		return true, err
+	if obj == nil {
+		le.Debugf("pass object not found: %s", objKey)
+		return true, nil
 	}
-	if objType != forge_pass.PassTypeID {
-		return true, errors.Errorf("ignoring object with incorrect type: expected pass but got %s", objType)
+
+	// check the <type> of the object
+	if err := forge_pass.CheckPassType(ctx, ws, objKey); err != nil {
+		return true, err
 	}
 
 	passObj, _, err := forge_pass.LookupPass(ctx, ws, t.objKey)

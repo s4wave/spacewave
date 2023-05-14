@@ -15,8 +15,8 @@ func NewTargetBlock() block.Block {
 }
 
 // UnmarshalTarget unmarshals an target block from the cursor.
-func UnmarshalTarget(bcs *block.Cursor) (*Target, error) {
-	return block.UnmarshalBlock[*Target](bcs, NewTargetBlock)
+func UnmarshalTarget(ctx context.Context, bcs *block.Cursor) (*Target, error) {
+	return block.UnmarshalBlock[*Target](ctx, bcs, NewTargetBlock)
 }
 
 // CreateTarget writes the Target to a world object.

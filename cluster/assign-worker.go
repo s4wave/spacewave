@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_worker "github.com/aperturerobotics/forge/worker"
 	"github.com/aperturerobotics/hydra/world"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +30,7 @@ func AssignWorkerToCluster(
 	sender peer.ID,
 ) (uint64, bool, error) {
 	op := NewClusterAssignWorkerOp(clusterKey, workerKey)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -60,21 +59,18 @@ func (o *ClusterAssignWorkerOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	clusterKey, workerKey := o.GetClusterKey(), o.GetWorkerKey()
 
-	// check the <type> of the worker and cluster objects
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-
-	err = CheckClusterType(typesState, clusterKey)
+	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
 
-	err = forge_worker.CheckWorkerType(typesState, workerKey)
+	err = forge_worker.CheckWorkerType(ctx, worldHandle, workerKey)
 	if err != nil {
 		return false, err
 	}
 
 	// assign the worker to the cluster
-	err = worldHandle.SetGraphQuad(NewClusterToWorkerQuad(clusterKey, workerKey))
+	err = worldHandle.SetGraphQuad(ctx, NewClusterToWorkerQuad(clusterKey, workerKey))
 	if err != nil {
 		return false, err
 	}

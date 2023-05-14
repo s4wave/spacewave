@@ -74,7 +74,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 		}
 
 		// lookup the latest referenced Target block.
-		existingTgt, existingTgtBcs, err := root.FollowTargetRef(bcs)
+		existingTgt, existingTgtBcs, err := root.FollowTargetRef(ctx, bcs)
 		if err != nil {
 			return errors.Wrap(err, "follow target ref")
 		}
@@ -159,7 +159,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 				passKey,
 				forge_value.NewResultWithCanceled(errors.New("task inputs changed")),
 			)
-			_, _, err = worldState.ApplyWorldOp(passCompleteTx, sender)
+			_, _, err = worldState.ApplyWorldOp(ctx, passCompleteTx, sender)
 			if err != nil {
 				return err
 			}

@@ -118,7 +118,7 @@ func (t *Tx) ApplyWorldOp(
 
 	objKey := t.GetClusterObjectKey()
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
-		ps, err := forge_cluster.UnmarshalCluster(bcs)
+		ps, err := forge_cluster.UnmarshalCluster(ctx, bcs)
 		if err != nil {
 			return err
 		}

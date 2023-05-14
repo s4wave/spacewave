@@ -28,8 +28,8 @@ func LookupWorkerOp(ctx context.Context, opTypeID string) (world.Operation, erro
 }
 
 // UnmarshalWorker unmarshals a worker block from the cursor.
-func UnmarshalWorker(bcs *block.Cursor) (*Worker, error) {
-	return block.UnmarshalBlock[*Worker](bcs, NewWorkerBlock)
+func UnmarshalWorker(ctx context.Context, bcs *block.Cursor) (*Worker, error) {
+	return block.UnmarshalBlock[*Worker](ctx, bcs, NewWorkerBlock)
 }
 
 // Validate performs cursory checks of the Worker object.

@@ -4,16 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/aperturerobotics/bifrost/peer"
-	forge_target "github.com/aperturerobotics/forge/target"
-	forge_task "github.com/aperturerobotics/forge/task"
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
-	world_parent "github.com/aperturerobotics/hydra/world/parent"
-	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 )
@@ -41,8 +34,8 @@ func NewJobToTaskQuad(jobObjKey, taskObjKey string) world.GraphQuad {
 	)
 }
 
-// NewTaskKey creates a key for a task on a job with a name.
-func NewTaskKey(jobKey, taskName string) string {
+// NewJobTaskKey creates a key for a task on a job with a name.
+func NewJobTaskKey(jobKey, taskName string) string {
 	return strings.Join([]string{
 		jobKey,
 		"task",
@@ -50,73 +43,9 @@ func NewTaskKey(jobKey, taskName string) string {
 	}, "/")
 }
 
-// CreateJobWithTasks creates a pending Job object in the world.
-//
-// TasksPeer sets the peer ID to set on the tasks. Can be empty.
-func CreateJobWithTasks(
-	ctx context.Context,
-	ws world.WorldState,
-	sender peer.ID,
-	objKey string,
-	tasks map[string]*forge_target.Target,
-	tasksPeer peer.ID,
-	ts *timestamp.Timestamp,
-) (world.ObjectState, *bucket.ObjectRef, error) {
-	njob := &Job{
-		JobState:  State_JobState_PENDING,
-		Timestamp: ts,
-	}
-	if err := njob.Validate(); err != nil {
-		return nil, nil, err
-	}
-	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
-		bcs.ClearAllRefs()
-		bcs.SetBlock(njob, true)
-		return nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// create the <type> ref
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = typesState.SetObjectType(objKey, JobTypeID)
-	if err != nil {
-		return objState, rootRef, err
-	}
-
-	// create the tasks & targets & links
-	parentState := world_parent.NewParentState(ws)
-	for taskName, taskTgt := range tasks {
-		if err := forge_task.ValidateName(taskName); err != nil {
-			return nil, nil, errors.Wrapf(err, "tasks[%s]", taskName)
-		}
-		taskKey := NewTaskKey(objKey, taskName)
-		replicas := uint32(1)
-		_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, ts)
-		if err != nil {
-			return objState, rootRef, errors.Wrapf(err, "tasks[%s]", taskName)
-		}
-
-		// create parent link
-		err = parentState.SetObjectParent(ctx, taskKey, objKey, false)
-		if err != nil {
-			return objState, rootRef, err
-		}
-
-		// create job -> task link
-		err = ws.SetGraphQuad(NewJobToTaskQuad(objKey, taskKey))
-		if err != nil {
-			return objState, rootRef, err
-		}
-	}
-
-	return objState, rootRef, nil
-}
-
 // UnmarshalJob unmarshals a pass block from the cursor.
-func UnmarshalJob(bcs *block.Cursor) (*Job, error) {
-	return block.UnmarshalBlock[*Job](bcs, NewJobBlock)
+func UnmarshalJob(ctx context.Context, bcs *block.Cursor) (*Job, error) {
+	return block.UnmarshalBlock[*Job](ctx, bcs, NewJobBlock)
 }
 
 // IsComplete checks if the execution is in the COMPLETE state.

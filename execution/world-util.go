@@ -33,7 +33,7 @@ func WaitExecutionComplete(
 				if obj == nil {
 					return true, nil
 				}
-				exec, err := UnmarshalExecution(rootCs)
+				exec, err := UnmarshalExecution(ctx, rootCs)
 				if err != nil {
 					return false, err
 				}

@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	forge_job "github.com/aperturerobotics/forge/job"
 	"github.com/aperturerobotics/hydra/world"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +30,7 @@ func AssignJobToCluster(
 	sender peer.ID,
 ) (uint64, bool, error) {
 	op := NewClusterAssignJobOp(clusterKey, jobKey)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -61,20 +60,18 @@ func (o *ClusterAssignJobOp) ApplyWorldOp(
 	clusterKey, jobKey := o.GetClusterKey(), o.GetJobKey()
 
 	// check the <type> of the job and cluster objects
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-
-	err = CheckClusterType(typesState, clusterKey)
+	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
 
-	err = forge_job.CheckJobType(typesState, jobKey)
+	err = forge_job.CheckJobType(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}
 
 	// assign the job to the cluster
-	err = worldHandle.SetGraphQuad(NewClusterToJobQuad(clusterKey, jobKey))
+	err = worldHandle.SetGraphQuad(ctx, NewClusterToJobQuad(clusterKey, jobKey))
 	if err != nil {
 		return false, err
 	}

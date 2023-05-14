@@ -130,7 +130,7 @@ func (t *Tx) ApplyWorldOp(
 
 	objKey := t.GetTaskObjectKey()
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, objKey, true, func(bcs *block.Cursor) error {
-		ps, err := forge_task.UnmarshalTask(bcs)
+		ps, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err
 		}

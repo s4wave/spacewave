@@ -37,7 +37,7 @@ func CreateWorker(
 	sender peer.ID,
 ) (uint64, bool, error) {
 	op := NewWorkerCreateOp(objKey, name, keypairs)
-	return w.ApplyWorldOp(op, sender)
+	return w.ApplyWorldOp(ctx, op, sender)
 }
 
 // Validate performs cursory validation of the operation.
@@ -83,8 +83,7 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 	}
 
 	// create the <type> ref
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	err = typesState.SetObjectType(objKey, WorkerTypeID)
+	err = world_types.SetObjectType(ctx, worldHandle, objKey, WorkerTypeID)
 	if err != nil {
 		return false, err
 	}
@@ -98,7 +97,7 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 
 	// link to the keypair objects
 	for _, kpKey := range kpKeys {
-		err := worldHandle.SetGraphQuad(identity_world.NewObjectToKeypairQuad(objKey, kpKey))
+		err := worldHandle.SetGraphQuad(ctx, identity_world.NewObjectToKeypairQuad(objKey, kpKey))
 		if err != nil {
 			return false, errors.Wrap(err, "link worker to keypair")
 		}

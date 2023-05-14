@@ -18,7 +18,7 @@ import (
 func TestWorkerController(t *testing.T) {
 	ctx := context.Background()
 
-	verbose := false
+	verbose := true
 	tb, err := testbed.Default(ctx, world_testbed.WithWorldVerbose(verbose))
 	if err != nil {
 		t.Fatal(err.Error())

@@ -47,16 +47,14 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_ = worldCtrlRef
-	// defer worldCtrlRef.Release()
+	defer worldCtrlRef.Release()
 
 	wh, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	// defer wh.Release()
 
-	worldState := world.NewEngineWorldState(ctx, wh, true)
+	worldState := world.NewEngineWorldState(wh, true)
 	ts := timestamp.Now()
 	uniqueID := "test-handle"
 	handle := ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), wh, worldState.AccessWorldState, &ts)

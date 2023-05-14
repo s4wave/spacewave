@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
@@ -65,8 +64,7 @@ func (t *taskTracker) processState(
 	taskKey, jobKey, clusterKey := t.objKey, t.jt.objKey, t.jt.c.objKey
 
 	// check the <type> of the task object
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = forge_task.CheckTaskType(typesState, taskKey)
+	err = forge_task.CheckTaskType(ctx, ws, taskKey)
 	if err != nil {
 		return false, err
 	}
@@ -75,7 +73,7 @@ func (t *taskTracker) processState(
 	var task *forge_task.Task
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		task, berr = forge_task.UnmarshalTask(bcs)
+		task, berr = forge_task.UnmarshalTask(ctx, bcs)
 		if berr == nil {
 			berr = task.Validate()
 		}

@@ -186,8 +186,7 @@ func (t *objectTracker) processState(
 	}()
 
 	// check the <type> of the object
-	typesState := world_types.NewTypesState(ctx, ws)
-	objType, err := typesState.GetObjectType(objKey)
+	objType, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return false, err
 	}

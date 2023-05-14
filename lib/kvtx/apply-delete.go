@@ -23,7 +23,7 @@ func ApplyOpDelete(
 		}
 	}
 
-	err := btx.Delete(key)
+	err := btx.Delete(ctx, key)
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ import (
 //
 // ws: can be nil, if unset, type and parents will be empty.
 func NewWorldObjectSnapshot(ctx context.Context, obj world.ObjectState, ws world.WorldState) (*WorldObjectSnapshot, error) {
-	objRef, rev, err := obj.GetRootRef()
+	objRef, rev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -26,15 +26,14 @@ func NewWorldObjectSnapshot(ctx context.Context, obj world.ObjectState, ws world
 	}
 
 	if ws != nil {
-		ts := world_types.NewTypesState(ctx, ws)
-		objType, err := ts.GetObjectType(snap.Key)
+		objType, err := world_types.GetObjectType(ctx, ws, snap.Key)
 		if err != nil {
 			return nil, err
 		}
 		snap.ObjectType = objType
 
 		objParentState := world_parent.NewParentState(ws)
-		objParent, err := objParentState.GetObjectParent(snap.Key)
+		objParent, err := objParentState.GetObjectParent(ctx, snap.Key)
 		if err != nil {
 			return nil, err
 		}

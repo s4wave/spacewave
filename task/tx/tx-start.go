@@ -61,7 +61,7 @@ func (t *TxStart) ExecuteTx(
 	}
 
 	// lookup the target
-	taskTarget, _, err := root.FollowTargetRef(bcs)
+	taskTarget, _, err := root.FollowTargetRef(ctx, bcs)
 	if err == nil {
 		err = taskTarget.Validate()
 	}
@@ -85,7 +85,7 @@ func (t *TxStart) ExecuteTx(
 				passKey,
 				forge_value.NewResultWithCanceled(errors.New("starting new pass")),
 			)
-			_, _, err = worldState.ApplyWorldOp(passCompleteTx, sender)
+			_, _, err = worldState.ApplyWorldOp(ctx, passCompleteTx, sender)
 			if err != nil {
 				return err
 			}
@@ -135,7 +135,7 @@ func (t *TxStart) ExecuteTx(
 	}
 
 	// link the pass to the task
-	err = worldState.SetGraphQuad(forge_task.NewTaskToPassQuad(objKey, passKey, nextNonce))
+	err = worldState.SetGraphQuad(ctx, forge_task.NewTaskToPassQuad(objKey, passKey, nextNonce))
 	if err != nil {
 		return err
 	}

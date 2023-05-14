@@ -34,6 +34,11 @@ func NewTaskBlock() block.Block {
 	return &Task{}
 }
 
+// UnmarshalTask unmarshals a task block from the cursor.
+func UnmarshalTask(ctx context.Context, bcs *block.Cursor) (*Task, error) {
+	return block.UnmarshalBlock[*Task](ctx, bcs, NewTaskBlock)
+}
+
 // NewTaskToTargetQuad creates a quad linking a Task to a Target.
 func NewTaskToTargetQuad(taskObjKey, targetObjKey string) world.GraphQuad {
 	return world.NewGraphQuadWithKeys(
@@ -109,8 +114,7 @@ func CreateTaskWithTarget(
 	}
 
 	// create the <type> ref
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = typesState.SetObjectType(objKey, TaskTypeID)
+	err = world_types.SetObjectType(ctx, ws, objKey, TaskTypeID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -130,7 +134,7 @@ func CreateTaskWithTarget(
 	}
 
 	// link to the target
-	err = ws.SetGraphQuad(NewTaskToTargetQuad(objKey, tgtObjKey))
+	err = ws.SetGraphQuad(ctx, NewTaskToTargetQuad(objKey, tgtObjKey))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -144,11 +148,6 @@ func CreateTaskWithTarget(
 	}
 
 	return objState, rootRef, err
-}
-
-// UnmarshalTask unmarshals a pass block from the cursor.
-func UnmarshalTask(bcs *block.Cursor) (*Task, error) {
-	return block.UnmarshalBlock[*Task](bcs, NewTaskBlock)
 }
 
 // ValidateName validates the name of a task.
@@ -212,9 +211,9 @@ func (e *Task) IsComplete() bool {
 
 // FollowTargetRef follows the reference to the Task target.
 // bcs should point to the task.
-func (e *Task) FollowTargetRef(bcs *block.Cursor) (*forge_target.Target, *block.Cursor, error) {
+func (e *Task) FollowTargetRef(ctx context.Context, bcs *block.Cursor) (*forge_target.Target, *block.Cursor, error) {
 	tgtCs := bcs.FollowRef(7, e.GetTargetRef())
-	tgt, err := forge_target.UnmarshalTarget(tgtCs)
+	tgt, err := forge_target.UnmarshalTarget(ctx, tgtCs)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -15,20 +15,13 @@ import (
 )
 
 // CheckPassType checks the type graph quad for a Pass.
-func CheckPassType(typesState *world_types.TypesState, objKey string) error {
-	passType, err := typesState.GetObjectType(objKey)
-	if err != nil {
-		return err
-	}
-	if passType != PassTypeID {
-		return errors.Errorf("expected pass type %s but got %q", PassTypeID, passType)
-	}
-	return err
+func CheckPassType(ctx context.Context, ws world.WorldState, objKey string) error {
+	return world_types.CheckObjectType(ctx, ws, objKey, PassTypeID)
 }
 
 // LookupPass looks up a Pass in the world.
 func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass, *forge_target.Target, error) {
-	obj, err := world.MustGetObject(ws, objKey)
+	obj, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -36,9 +29,9 @@ func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass,
 	var tgt *forge_target.Target
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		pass, err = UnmarshalPass(bcs)
+		pass, err = UnmarshalPass(ctx, bcs)
 		if err == nil && !pass.GetTargetRef().GetEmpty() {
-			tgt, _, err = pass.FollowTargetRef(bcs)
+			tgt, _, err = pass.FollowTargetRef(ctx, bcs)
 		}
 		return err
 	})
@@ -63,7 +56,7 @@ func WaitPassComplete(
 				if obj == nil {
 					return true, nil
 				}
-				pass, err := UnmarshalPass(rootCs)
+				pass, err := UnmarshalPass(ctx, rootCs)
 				if err != nil {
 					return false, err
 				}

@@ -16,7 +16,7 @@ func ApplyOpGet(
 	key []byte,
 	outputName string,
 ) error {
-	bcs, err := btx.GetCursorAtKey(key)
+	bcs, err := btx.GetCursorAtKey(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func ApplyOpGetExists(
 	key []byte,
 	outputName string,
 ) error {
-	doesExist, err := btx.Exists(key)
+	doesExist, err := btx.Exists(ctx, key)
 	if err != nil {
 		return err
 	}

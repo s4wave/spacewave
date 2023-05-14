@@ -33,7 +33,7 @@ func (c *Controller) ProcessState(
 	var workerState *forge_worker.Worker
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		workerState, berr = forge_worker.UnmarshalWorker(bcs)
+		workerState, berr = forge_worker.UnmarshalWorker(ctx, bcs)
 		if berr != nil {
 			return berr
 		}

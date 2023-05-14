@@ -17,15 +17,8 @@ func LookupCluster(ctx context.Context, ws world.WorldState, objKey string) (*Cl
 }
 
 // CheckClusterType checks the type graph quad for a cluster.
-func CheckClusterType(typesState *world_types.TypesState, objKey string) error {
-	clusterType, err := typesState.GetObjectType(objKey)
-	if err != nil {
-		return err
-	}
-	if clusterType != ClusterTypeID {
-		return errors.Errorf("expected cluster type %s but got %q", ClusterTypeID, clusterType)
-	}
-	return err
+func CheckClusterType(ctx context.Context, ws world.WorldState, objKey string) error {
+	return world_types.CheckObjectType(ctx, ws, objKey, ClusterTypeID)
 }
 
 // ListClusterJobs lists all Job object keys that are linked to by the Cluster.
@@ -68,7 +61,7 @@ func CollectClusterJobs(
 
 // CheckClusterHasJob checks if the cluster is linked to a job.
 func CheckClusterHasJob(ctx context.Context, w world.WorldState, clusterKey, jobKey string) (bool, error) {
-	gq, err := w.LookupGraphQuads(world.NewGraphQuad(
+	gq, err := w.LookupGraphQuads(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(clusterKey).String(),
 		PredClusterToJob.String(),
 		world.KeyToGraphValue(jobKey).String(),

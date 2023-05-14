@@ -11,9 +11,9 @@ import (
 )
 
 // ListWorkers lists all of the worker keys in the world.
-func ListWorkers(typesState *world_types.TypesState) ([]string, error) {
+func ListWorkers(ctx context.Context, ws world.WorldState) ([]string, error) {
 	var workerKeys []string
-	err := typesState.IterateObjectsWithType(WorkerTypeID, func(objKey string) (bool, error) {
+	err := world_types.IterateObjectsWithType(ctx, ws, WorkerTypeID, func(objKey string) (bool, error) {
 		workerKeys = append(workerKeys, objKey)
 		return true, nil
 	})
@@ -26,8 +26,8 @@ func LookupWorker(ctx context.Context, ws world.WorldState, objKey string) (*Wor
 }
 
 // CheckWorkerType checks the type graph quad for a worker.
-func CheckWorkerType(typesState *world_types.TypesState, objKey string) error {
-	workerType, err := typesState.GetObjectType(objKey)
+func CheckWorkerType(ctx context.Context, ws world.WorldState, objKey string) error {
+	workerType, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return err
 	}

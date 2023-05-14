@@ -12,15 +12,8 @@ import (
 )
 
 // CheckTaskType checks the type graph quad for a Task.
-func CheckTaskType(typesState *world_types.TypesState, objKey string) error {
-	taskType, err := typesState.GetObjectType(objKey)
-	if err != nil {
-		return err
-	}
-	if taskType != TaskTypeID {
-		return errors.Errorf("expected task type %s but got %q", TaskTypeID, taskType)
-	}
-	return err
+func CheckTaskType(ctx context.Context, ws world.WorldState, objKey string) error {
+	return world_types.CheckObjectType(ctx, ws, objKey, TaskTypeID)
 }
 
 // LookupTask looks up a task in the world.
@@ -77,7 +70,7 @@ func LookupTaskPass(
 	taskKey string,
 	nonce uint64,
 ) (*forge_pass.Pass, *forge_target.Target, string, error) {
-	gqs, err := ws.LookupGraphQuads(NewTaskToPassQuad(taskKey, "", nonce), 1)
+	gqs, err := ws.LookupGraphQuads(ctx, NewTaskToPassQuad(taskKey, "", nonce), 1)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -101,7 +94,7 @@ func LookupTaskPass(
 
 // CheckTaskHasPass checks if the Task is linked to a Pass.
 func CheckTaskHasPass(ctx context.Context, w world.WorldState, taskKey, passKey string) (bool, error) {
-	gq, err := w.LookupGraphQuads(world.NewGraphQuad(
+	gq, err := w.LookupGraphQuads(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(taskKey).String(),
 		PredTaskToPass.String(),
 		world.KeyToGraphValue(passKey).String(),

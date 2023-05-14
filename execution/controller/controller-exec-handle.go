@@ -82,7 +82,7 @@ func (h *execControllerHandle) SetOutputs(
 	default:
 	}
 
-	obj, err := world.MustGetObject(h.ws, h.c.conf.GetObjectKey())
+	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
 	if err != nil {
 		return err
 	}
@@ -93,10 +93,7 @@ func (h *execControllerHandle) SetOutputs(
 	}
 
 	// execution_transaction.ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS
-	_, _, err = obj.ApplyObjectOp(
-		tx,
-		h.c.peerID,
-	)
+	_, _, err = obj.ApplyObjectOp(ctx, tx, h.c.peerID)
 	return err
 }
 

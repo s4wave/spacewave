@@ -57,8 +57,7 @@ func CreateExecutionWithTarget(
 	}
 
 	// create the <type> ref
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = typesState.SetObjectType(objKey, ExecutionTypeID)
+	err = world_types.SetObjectType(ctx, ws, objKey, ExecutionTypeID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +72,8 @@ func CreateExecutionWithTarget(
 }
 
 // UnmarshalExecution unmarshals an execution block from the cursor.
-func UnmarshalExecution(bcs *block.Cursor) (*Execution, error) {
-	return block.UnmarshalBlock[*Execution](bcs, NewExecutionBlock)
+func UnmarshalExecution(ctx context.Context, bcs *block.Cursor) (*Execution, error) {
+	return block.UnmarshalBlock[*Execution](ctx, bcs, NewExecutionBlock)
 }
 
 // Validate performs cursory checks of the execution object.

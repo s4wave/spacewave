@@ -39,7 +39,7 @@ func (i *InputWorldObject) ResolveValue(
 	objKey := i.GetObjectKey()
 	if inpWorld != nil && !inpWorld.IsEmpty() {
 		ws := inpWorld.GetWorldState()
-		inpObjs, inpObjsExists, err = ws.GetObject(objKey)
+		inpObjs, inpObjsExists, err = ws.GetObject(ctx, objKey)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -56,7 +56,7 @@ func (i *InputWorldObject) ResolveValue(
 
 	var inpObjsRev uint64
 	if inpObjsExists {
-		_, inpObjsRev, err = inpObjs.GetRootRef()
+		_, inpObjsRev, err = inpObjs.GetRootRef(ctx)
 		if err != nil {
 			return nil, nil, err
 		}

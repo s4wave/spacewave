@@ -3,11 +3,16 @@ package forge_job
 import (
 	"context"
 
+	"github.com/aperturerobotics/bifrost/peer"
+	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
+	"github.com/aperturerobotics/timestamp"
 	"github.com/cayleygraph/cayley"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -19,20 +24,13 @@ func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, e
 }
 
 // CheckJobType checks the type graph quad for a cluster.
-func CheckJobType(typesState *world_types.TypesState, objKey string) error {
-	jobType, err := typesState.GetObjectType(objKey)
-	if err != nil {
-		return err
-	}
-	if jobType != JobTypeID {
-		return errors.Errorf("expected job type %s but got %q", JobTypeID, jobType)
-	}
-	return err
+func CheckJobType(ctx context.Context, ws world.WorldState, objKey string) error {
+	return world_types.CheckObjectType(ctx, ws, objKey, JobTypeID)
 }
 
 // CheckJobHasTask checks if the job is linked to a task.
 func CheckJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey string) (bool, error) {
-	gq, err := w.LookupGraphQuads(world.NewGraphQuad(
+	gq, err := w.LookupGraphQuads(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(jobKey).String(),
 		PredJobToTask.String(),
 		world.KeyToGraphValue(taskKey).String(),
@@ -53,6 +51,69 @@ func EnsureJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey s
 	return err
 }
 
+// CreateJobWithTasks creates a pending Job object in the world.
+//
+// TasksPeer sets the peer ID to set on the tasks. Can be empty.
+func CreateJobWithTasks(
+	ctx context.Context,
+	ws world.WorldState,
+	sender peer.ID,
+	objKey string,
+	tasks map[string]*forge_target.Target,
+	tasksPeer peer.ID,
+	ts *timestamp.Timestamp,
+) (world.ObjectState, *bucket.ObjectRef, error) {
+	njob := &Job{
+		JobState:  State_JobState_PENDING,
+		Timestamp: ts,
+	}
+	if err := njob.Validate(); err != nil {
+		return nil, nil, err
+	}
+	objState, rootRef, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+		bcs.ClearAllRefs()
+		bcs.SetBlock(njob, true)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// create the <type> ref
+	err = world_types.SetObjectType(ctx, ws, objKey, JobTypeID)
+	if err != nil {
+		return objState, rootRef, err
+	}
+
+	// create the tasks & targets & links
+	parentState := world_parent.NewParentState(ws)
+	for taskName, taskTgt := range tasks {
+		if err := forge_task.ValidateName(taskName); err != nil {
+			return nil, nil, errors.Wrapf(err, "tasks[%s]", taskName)
+		}
+		taskKey := NewJobTaskKey(objKey, taskName)
+		replicas := uint32(1)
+		_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, ts)
+		if err != nil {
+			return objState, rootRef, errors.Wrapf(err, "tasks[%s]", taskName)
+		}
+
+		// create parent link
+		err = parentState.SetObjectParent(ctx, taskKey, objKey, false)
+		if err != nil {
+			return objState, rootRef, err
+		}
+
+		// create job -> task link
+		err = ws.SetGraphQuad(ctx, NewJobToTaskQuad(objKey, taskKey))
+		if err != nil {
+			return objState, rootRef, err
+		}
+	}
+
+	return objState, rootRef, nil
+}
+
 // WaitJobComplete waits until the Job is in the COMPLETE state.
 func WaitJobComplete(
 	ctx context.Context,
@@ -71,9 +132,9 @@ func WaitJobComplete(
 				if obj == nil {
 					return true, nil
 				}
-				job, err := UnmarshalJob(rootCs)
+				job, err := UnmarshalJob(ctx, rootCs)
 				if err != nil {
-					return false, err
+					return true, err
 				}
 				nextState := job.GetJobState()
 				if nextState != lastState {

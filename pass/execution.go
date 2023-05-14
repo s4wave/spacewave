@@ -31,7 +31,7 @@ func CreateExecutionWithPass(
 		return nil, world.ErrEmptyObjectKey
 	}
 
-	tgt, _, err := passObj.FollowTargetRef(passObjBcs)
+	tgt, _, err := passObj.FollowTargetRef(ctx, passObjBcs)
 	if err != nil {
 		return nil, err
 	}

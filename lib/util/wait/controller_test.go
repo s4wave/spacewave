@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/aperturerobotics/hydra/world"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 )
@@ -39,7 +40,7 @@ exec:
 //
 // Also tests mechanics of waiting for the world object to exist,
 func TestUtilWait(t *testing.T) {
-	tb, err := testbed.Default(context.Background())
+	tb, err := testbed.Default(context.Background(), world_testbed.WithWorldVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

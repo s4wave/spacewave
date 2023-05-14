@@ -101,7 +101,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	ws := ipv.GetWorldState()
 	repoObjKey := c.conf.GetObjectKey()
-	alreadyExistsObj, alreadyExists, err := ws.GetObject(repoObjKey)
+	alreadyExistsObj, alreadyExists, err := ws.GetObject(ctx, repoObjKey)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if alreadyExists {
 		// TODO: should we do a "git fetch" here and add/or add/update the remote?
 		// NOTE: in future we might configure a custom behavior here.
-		repoRef, repoRev, err = alreadyExistsObj.GetRootRef()
+		repoRef, repoRev, err = alreadyExistsObj.GetRootRef(ctx)
 		if err != nil {
 			return err
 		}

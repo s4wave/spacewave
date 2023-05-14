@@ -83,8 +83,7 @@ func CreatePassWithTarget(
 	}
 
 	// create the <type> ref
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = typesState.SetObjectType(objKey, PassTypeID)
+	err = world_types.SetObjectType(ctx, ws, objKey, PassTypeID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,8 +100,8 @@ func CreatePassWithTarget(
 }
 
 // UnmarshalPass unmarshals a pass block from the cursor.
-func UnmarshalPass(bcs *block.Cursor) (*Pass, error) {
-	return block.UnmarshalBlock[*Pass](bcs, NewPassBlock)
+func UnmarshalPass(ctx context.Context, bcs *block.Cursor) (*Pass, error) {
+	return block.UnmarshalBlock[*Pass](ctx, bcs, NewPassBlock)
 }
 
 // Validate performs cursory checks of the Pass object.
@@ -183,9 +182,9 @@ func (e *Pass) IsComplete() bool {
 
 // FollowTargetRef follows the reference to the pass target.
 // bcs should point to the pass.
-func (e *Pass) FollowTargetRef(bcs *block.Cursor) (*forge_target.Target, *block.Cursor, error) {
+func (e *Pass) FollowTargetRef(ctx context.Context, bcs *block.Cursor) (*forge_target.Target, *block.Cursor, error) {
 	tgtCs := bcs.FollowRef(3, e.GetTargetRef())
-	tgt, err := forge_target.UnmarshalTarget(tgtCs)
+	tgt, err := forge_target.UnmarshalTarget(ctx, tgtCs)
 	if err != nil {
 		return nil, nil, err
 	}

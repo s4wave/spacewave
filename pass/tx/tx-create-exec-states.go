@@ -85,7 +85,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 			var execObj *forge_execution.Execution
 			_, _, err := world.AccessWorldObject(ctx, worldState, execObjKey, false, func(bcs *block.Cursor) error {
 				var err error
-				execObj, err = forge_execution.UnmarshalExecution(bcs)
+				execObj, err = forge_execution.UnmarshalExecution(ctx, bcs)
 				return err
 			})
 			if err != nil {
@@ -97,7 +97,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 			}
 		}
 
-		if _, err := worldState.DeleteObject(execObjKey); err != nil {
+		if _, err := worldState.DeleteObject(ctx, execObjKey); err != nil {
 			return err
 		}
 	}
@@ -133,7 +133,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 		}
 
 		// link the pass to the execution object
-		err = worldState.SetGraphQuad(forge_pass.NewPassToExecutionQuad(objKey, execObjKey))
+		err = worldState.SetGraphQuad(ctx, forge_pass.NewPassToExecutionQuad(objKey, execObjKey))
 		if err != nil {
 			return errors.Wrapf(err, "exec_specs[%d]", i)
 		}

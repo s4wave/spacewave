@@ -94,7 +94,7 @@ func (e *execWatcher) processState(
 	var exState *forge_execution.Execution
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		exState, berr = forge_execution.UnmarshalExecution(bcs)
+		exState, berr = forge_execution.UnmarshalExecution(ctx, bcs)
 		return berr
 	})
 	if err != nil {

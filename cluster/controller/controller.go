@@ -14,7 +14,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -130,8 +129,7 @@ func (c *Controller) ProcessState(
 	}
 
 	// check the <type> of the cluster objects
-	typesState := world_types.NewTypesState(ctx, ws)
-	err = forge_cluster.CheckClusterType(typesState, objKey)
+	err = forge_cluster.CheckClusterType(ctx, ws, objKey)
 	if err != nil {
 		return false, err
 	}
@@ -140,7 +138,7 @@ func (c *Controller) ProcessState(
 	var clusterState *forge_cluster.Cluster
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
-		clusterState, berr = forge_cluster.UnmarshalCluster(bcs)
+		clusterState, berr = forge_cluster.UnmarshalCluster(ctx, bcs)
 		if berr == nil {
 			berr = clusterState.Validate()
 		}

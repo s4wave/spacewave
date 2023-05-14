@@ -140,13 +140,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 				return berr
 			}
 			defer kvtx.Discard()
-			sizeBefore, berr = kvtx.Size()
+			sizeBefore, berr = kvtx.Size(ctx)
 			if berr != nil {
 				return err
 			}
 			berr = opQueue.ApplyOps(kvtx, true, c.conf.GetIgnoreErrors())
 			if berr == nil {
-				sizeAfter, berr = kvtx.Size()
+				sizeAfter, berr = kvtx.Size(ctx)
 			}
 			if berr == nil {
 				berr = kvtx.Commit(ctx)

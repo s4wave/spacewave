@@ -143,12 +143,12 @@ func (c *Controller) Execute(rctx context.Context) error {
 		case <-c.syncExecutionsCh:
 			// submit transaction to synchronize executions
 			c.le.Debug("updating pass execution state snapshots")
-			wtx, err := busEngine.NewTransaction(true)
+			wtx, err := busEngine.NewTransaction(ctx, true)
 			if err != nil {
 				return err
 			}
 			txd := pass_transaction.NewTxUpdateExecStates(c.objKey)
-			_, _, err = wtx.ApplyWorldOp(txd, c.peerID)
+			_, _, err = wtx.ApplyWorldOp(ctx, txd, c.peerID)
 			if err != nil {
 				wtx.Discard()
 			} else {

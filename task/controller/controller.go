@@ -127,11 +127,12 @@ func (c *Controller) Execute(rctx context.Context) error {
 func (c *Controller) updateWithPassState(ctx context.Context) error {
 	// submit transaction to synchronize pass state
 	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
-	defer busEngine.Close()
-	wtx, err := busEngine.NewTransaction(true)
+	wtx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
+	defer wtx.Discard()
+
 	// lookup the task and make sure it is still in RUNNING state
 	// ... and peer id matches
 	taskObjKey := c.objKey
@@ -145,7 +146,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 	}
 
 	txd := task_transaction.NewTxUpdateWithPassState(c.objKey)
-	_, _, err = wtx.ApplyWorldOp(txd, c.peerID)
+	_, _, err = wtx.ApplyWorldOp(ctx, txd, c.peerID)
 	if err != nil {
 		wtx.Discard()
 	} else {

@@ -46,7 +46,7 @@ func ApplyOpSet(
 		nvalCursor.ClearAllRefs()
 		nvalCursor.SetRefAtCursor(value.GetBlockRef(), true)
 	}
-	err = btx.SetCursorAtKey(key, nvalCursor, valueIsBlob)
+	err = btx.SetCursorAtKey(ctx, key, nvalCursor, valueIsBlob)
 	if err != nil {
 		return err
 	}
