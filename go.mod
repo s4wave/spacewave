@@ -3,14 +3,14 @@ module github.com/aperturerobotics/auth
 go 1.20
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20230512230243-c0489e4ed2ad // indirect; master
-	github.com/aperturerobotics/identity v0.0.0-20230512231624-d0e7327b832f // master
+	github.com/aperturerobotics/hydra v0.0.0-20230514010316-13ce1412cf88 // indirect; master
+	github.com/aperturerobotics/identity v0.0.0-20230514011554-871de8442e9e // master
 	github.com/keybase/go-triplesec v0.0.0-20221220225315-06ddee08f3c2
 )
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.15.5 // master
+require github.com/aperturerobotics/bifrost v0.15.6-0.20230513202020-b53252510b89 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -34,10 +34,10 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.27.1-0.20230512225029-073bdff7defe // master
+	github.com/aperturerobotics/controllerbus v0.27.1 // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.1 // indirect; latest
-	github.com/aperturerobotics/util v1.3.0 // indirect; master
+	github.com/aperturerobotics/util v1.3.1 // indirect; master
 )
 
 // aperture: use compatibility forks
