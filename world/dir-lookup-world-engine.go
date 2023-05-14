@@ -1,6 +1,8 @@
 package world
 
 import (
+	"time"
+
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -44,7 +46,11 @@ func (d *lookupWorldEngine) Validate() error {
 
 // GetValueOptions returns options relating to value handling.
 func (d *lookupWorldEngine) GetValueOptions() directive.ValueOptions {
-	return directive.ValueOptions{}
+	return directive.ValueOptions{
+		// debounce LookupWorldEngine by 250ms
+		UnrefDisposeDur:            time.Millisecond * 250,
+		UnrefDisposeEmptyImmediate: true,
+	}
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
