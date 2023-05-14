@@ -48,9 +48,10 @@ func NewFSTree(ctx context.Context, bcs *block.Cursor, ntype NodeType) (*FSTree,
 }
 
 // newTxFSTree constructs a new transaction-based fstree.
-func newTxFSTree(bcs *block.Cursor, node *FSNode) *FSTree {
+func newTxFSTree(ctx context.Context, bcs *block.Cursor, node *FSNode) *FSTree {
 	// btx = nil
 	return &FSTree{
+		ctx:  ctx,
 		node: node,
 		bcs:  bcs,
 	}
@@ -166,7 +167,7 @@ func (f *FSTree) Mknod(
 			dcs.GetRef().MarshalString(),
 		)
 	}
-	return newTxFSTree(dnodeCs, dnode), nil
+	return newTxFSTree(f.ctx, dnodeCs, dnode), nil
 }
 
 // Symlink creates a symbolic link from a location to a path.
@@ -213,7 +214,7 @@ func (f *FSTree) Symlink(
 	dnode.Symlink = lnk
 	dnodeCs := dcs.FollowRef(2, nil)
 	dnodeCs.SetBlock(dnode, true)
-	return newTxFSTree(dnodeCs, dnode), nil
+	return newTxFSTree(f.ctx, dnodeCs, dnode), nil
 }
 
 // Readdir returns a stream of directory entries.
@@ -371,7 +372,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamp.Timestamp, dirs ..
 		dnodeCs := dcs.FollowRef(2, nil)
 		dnodeCs.SetBlock(dnode, true)
 
-		outputCursors[dirs[i]] = newTxFSTree(dnodeCs, dnode)
+		outputCursors[dirs[i]] = newTxFSTree(f.ctx, dnodeCs, dnode)
 	}
 	dslice.SortDirents()
 

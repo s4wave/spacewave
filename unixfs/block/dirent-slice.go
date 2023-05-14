@@ -221,7 +221,7 @@ func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dir
 	if err != nil {
 		return nil, dirent, err
 	}
-	return newTxFSTree(nodeRef, node), dirent, nil
+	return newTxFSTree(ctx, nodeRef, node), dirent, nil
 }
 
 // RemoveDirents removes one or more directory entries.

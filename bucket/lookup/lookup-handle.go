@@ -16,13 +16,12 @@ var (
 
 // lookupBucket implements bucket.Bucket with a lookup handle.
 type lookupBucket struct {
-	ctx context.Context
-	h   Handle
+	h Handle
 }
 
 // NewBucketFromHandle implements the Bucket api with a Lookup handle.
-func NewBucketFromHandle(ctx context.Context, h Handle) bucket.Bucket {
-	return &lookupBucket{ctx: ctx, h: h}
+func NewBucketFromHandle(h Handle) bucket.Bucket {
+	return &lookupBucket{h: h}
 }
 
 // GetBucketConfig returns a copy of the bucket configuration.
@@ -48,27 +47,27 @@ func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
 func (l *lookupBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	lb, err := l.h.GetLookup(l.ctx)
+	lb, err := l.h.GetLookup(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 	if lb == nil {
 		return nil, false, errors.New("bucket config not found")
 	}
-	return lb.LookupBlock(l.ctx, ref)
+	return lb.LookupBlock(ctx, ref)
 }
 
 // GetBlockExists checks if a block exists with a cid reference.
 // Note: the block may not be in the specified bucket.
 func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	lb, err := l.h.GetLookup(l.ctx)
+	lb, err := l.h.GetLookup(ctx)
 	if err != nil {
 		return false, err
 	}
 	if lb == nil {
 		return false, errors.New("bucket config not found")
 	}
-	_, ok, err := lb.LookupBlock(l.ctx, ref, WithLocalOnly())
+	_, ok, err := lb.LookupBlock(ctx, ref, WithLocalOnly())
 	return ok, err
 }
 

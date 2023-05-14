@@ -27,7 +27,7 @@ func StartBucketRWOperation(
 	if err != nil {
 		return nil, nil, err
 	}
-	readHandle := NewBucketFromHandle(ctx, blv)
+	readHandle := NewBucketFromHandle(blv)
 
 	// 2. acquire the write handle
 	var writeHandle bucket.Bucket
