@@ -1,6 +1,7 @@
 package world_block
 
 import (
+	"context"
 	"io"
 
 	"github.com/aperturerobotics/hydra/world"
@@ -11,21 +12,21 @@ import (
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (t *WorldState) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
 	hd := t.graphHd
-	// TODO: wrap the graph handle to update the changelog if writes are applied here.
+	// TODO TODO: wrap the graph handle to update the changelog if writes are applied here.
 	return cb(hd)
 }
 
 // LookupGraphQuads searches for graph quads in the store.
-func (t *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	cq, err := world.GraphQuadToCayleyQuad(filter, false)
 	if err != nil {
 		return nil, err
 	}
 
 	var quads []world.GraphQuad
-	err = world.FilterIterateQuads(t.ctx, t.graphHd, cq, func(q quad.Quad) error {
+	err = world.FilterIterateQuads(ctx, t.graphHd, cq, func(q quad.Quad) error {
 		quads = append(quads, world.CayleyQuadToGraphQuad(q))
 		if limit != 0 && uint32(len(quads)) >= limit {
 			return io.EOF
@@ -40,14 +41,14 @@ func (t *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]w
 
 // SetGraphQuad sets a quad in the graph store.
 // If already exists, returns nil.
-func (t *WorldState) SetGraphQuad(q world.GraphQuad) error {
+func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	cq, err := world.GraphQuadToCayleyQuad(q, true)
 	if err != nil {
 		return err
 	}
 
 	// check if already exists
-	ex, err := world.CheckQuadExists(t.ctx, t.graphHd, cq)
+	ex, err := world.CheckQuadExists(ctx, t.graphHd, cq)
 	if err != nil {
 		return err
 	}
@@ -61,7 +62,7 @@ func (t *WorldState) SetGraphQuad(q world.GraphQuad) error {
 	if err != nil {
 		return err
 	}
-	subjRef, err := world.MustGetObject(t, subjKey)
+	subjRef, err := world.MustGetObject(ctx, t, subjKey)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func (t *WorldState) SetGraphQuad(q world.GraphQuad) error {
 	if err != nil {
 		return err
 	}
-	objRef, err := world.MustGetObject(t, objKey)
+	objRef, err := world.MustGetObject(ctx, t, objKey)
 	if err != nil {
 		return err
 	}
@@ -81,21 +82,19 @@ func (t *WorldState) SetGraphQuad(q world.GraphQuad) error {
 		return err
 	}
 
-	// TODO: below type assertions don't work if verbose=true
-
 	// increment rev # on the affected objects
 	// note: does not add INCREMENT_REV to changelog
-	_, err = subjRef.(*ObjectState).incrementRev(false)
+	_, err = subjRef.(*ObjectState).incrementRev(ctx, false)
 	if err != nil {
 		return err
 	}
-	_, err = objRef.(*ObjectState).incrementRev(false)
+	_, err = objRef.(*ObjectState).incrementRev(ctx, false)
 	if err != nil {
 		return err
 	}
 
 	// update changelog with graph set
-	_, err = t.queueWorldChange(&WorldChange{
+	_, err = t.queueWorldChange(ctx, &WorldChange{
 		ChangeType: WorldChangeType_WorldChange_GRAPH_SET,
 		Quad:       world.GraphQuadToQuad(q),
 	})
@@ -104,30 +103,30 @@ func (t *WorldState) SetGraphQuad(q world.GraphQuad) error {
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
-func (t *WorldState) DeleteGraphQuad(q world.GraphQuad) error {
+func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	if q == nil {
 		return world.ErrNilQuad
 	}
 
 	subjKey := q.GetSubject()
-	subj, subjFound, err := t.GetObject(subjKey)
+	subj, subjFound, err := t.GetObject(ctx, subjKey)
 	if err != nil {
 		return err
 	}
 	if subjFound {
-		_, err = subj.(*ObjectState).incrementRev(false)
+		_, err = subj.(*ObjectState).incrementRev(ctx, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	objKey := q.GetObj()
-	obj, objFound, err := t.GetObject(objKey)
+	obj, objFound, err := t.GetObject(ctx, objKey)
 	if err != nil {
 		return err
 	}
 	if objFound {
-		_, err = obj.(*ObjectState).incrementRev(false)
+		_, err = obj.(*ObjectState).incrementRev(ctx, false)
 		if err != nil {
 			return err
 		}
@@ -144,7 +143,7 @@ func (t *WorldState) DeleteGraphQuad(q world.GraphQuad) error {
 	}
 
 	// update changelog
-	_, err = t.queueWorldChange(&WorldChange{
+	_, err = t.queueWorldChange(ctx, &WorldChange{
 		ChangeType: WorldChangeType_WorldChange_GRAPH_DELETE,
 		Quad:       world.GraphQuadToQuad(q),
 	})
@@ -152,18 +151,18 @@ func (t *WorldState) DeleteGraphQuad(q world.GraphQuad) error {
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
-func (t *WorldState) DeleteGraphObject(objKey string) error {
+func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error {
 	value := quad.IRI(objKey)
 	valueStr := value.String()
 
 	// find all matching quads where subject == value
-	subjQuads, err := t.LookupGraphQuads(world.NewGraphQuad(valueStr, "", "", ""), 0)
+	subjQuads, err := t.LookupGraphQuads(ctx, world.NewGraphQuad(valueStr, "", "", ""), 0)
 	if err != nil {
 		return err
 	}
 
 	// find all matching quads where object == value
-	objQuads, err := t.LookupGraphQuads(world.NewGraphQuad("", "", valueStr, ""), 0)
+	objQuads, err := t.LookupGraphQuads(ctx, world.NewGraphQuad("", "", valueStr, ""), 0)
 	if err != nil {
 		return err
 	}
@@ -180,12 +179,12 @@ func (t *WorldState) DeleteGraphObject(objKey string) error {
 	}
 
 	// increment object revision
-	objState, objStateFound, err := t.GetObject(objKey)
+	objState, objStateFound, err := t.GetObject(ctx, objKey)
 	if err != nil {
 		return err
 	}
 	if objStateFound {
-		_, err = objState.(*ObjectState).incrementRev(false)
+		_, err = objState.(*ObjectState).incrementRev(ctx, false)
 		if err != nil {
 			return err
 		}
@@ -193,7 +192,7 @@ func (t *WorldState) DeleteGraphObject(objKey string) error {
 
 	// update changelog
 	queueDel := func(q world.GraphQuad) error {
-		_, err := t.queueWorldChange(&WorldChange{
+		_, err := t.queueWorldChange(ctx, &WorldChange{
 			ChangeType: WorldChangeType_WorldChange_GRAPH_DELETE,
 			Quad:       world.GraphQuadToQuad(q),
 		})

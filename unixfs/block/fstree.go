@@ -23,6 +23,8 @@ var (
 // The handle can be used to manipulate the tree.
 // A FSTree handle can be located at any position in the tree.
 type FSTree struct {
+	// ctx is the context to use for ops
+	ctx context.Context
 	// node is the node located at fstree root
 	node *FSNode
 	// bcs is a block cursor located at node
@@ -32,10 +34,10 @@ type FSTree struct {
 // NewFSTree creates a handle with a root block cursor.
 //
 // Ntype can be set to 0 (Unknown) to allow any.
-func NewFSTree(bcs *block.Cursor, ntype NodeType) (*FSTree, error) {
+func NewFSTree(ctx context.Context, bcs *block.Cursor, ntype NodeType) (*FSTree, error) {
 	var err error
-	t := &FSTree{bcs: bcs}
-	t.node, err = FetchCheckFSNode(bcs, ntype)
+	t := &FSTree{ctx: ctx, bcs: bcs}
+	t.node, err = FetchCheckFSNode(ctx, bcs, ntype)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +130,7 @@ func (f *FSTree) Mknod(
 	if !initRefEmpty {
 		checkCs := f.bcs.DetachTransaction()
 		checkCs.SetRefAtCursor(initRef, true)
-		_, err := FetchCheckFSNode(checkCs, nodeType)
+		_, err := FetchCheckFSNode(f.ctx, checkCs, nodeType)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +155,7 @@ func (f *FSTree) Mknod(
 		dnodeCs.SetBlock(dnode, true)
 	} else {
 		// return the new node
-		dnode, dnodeCs, err = dirent.FollowNodeRef(dcs)
+		dnode, dnodeCs, err = dirent.FollowNodeRef(f.ctx, dcs)
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +260,7 @@ func (f *FSTree) LookupFollowDirent(name string) (*FSTree, *Dirent, error) {
 	if dirent == nil {
 		return nil, nil, nil
 	}
-	nfs, dirent, err := ds.FollowDirent(didx)
+	nfs, dirent, err := ds.FollowDirent(f.ctx, didx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -343,7 +345,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamp.Timestamp, dirs ..
 		// note: didx is idx + 1
 		if didx != 0 {
 			dirName := dirs[i]
-			outputCursors[dirName], _, err = dslice.FollowDirent(didx - 1)
+			outputCursors[dirName], _, err = dslice.FollowDirent(f.ctx, didx-1)
 			if err != nil {
 				return nil, err
 			}
@@ -411,7 +413,7 @@ func (f *FSTree) Remove(
 // FollowDirent follows a dirent with a parent cursor.
 func (f *FSTree) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
-	return ds.FollowDirent(didx)
+	return ds.FollowDirent(f.ctx, didx)
 }
 
 // SetDirent creates or overrides a directory pointing to the node.

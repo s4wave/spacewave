@@ -1,6 +1,8 @@
 package volume_store
 
 import (
+	"context"
+
 	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
@@ -8,8 +10,8 @@ import (
 type Store interface {
 	// LoadPeerPriv attempts to load the volume private key.
 	// May return nil if there is no key stored.
-	LoadPeerPriv() (crypto.PrivKey, error)
+	LoadPeerPriv(ctx context.Context) (crypto.PrivKey, error)
 	// StorePeerPriv overwrites the volume's stored private key.
 	// Note: the store should transform the data to protect the key.
-	StorePeerPriv(crypto.PrivKey) error
+	StorePeerPriv(ctx context.Context, privKey crypto.PrivKey) error
 }

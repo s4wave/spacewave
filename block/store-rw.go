@@ -1,6 +1,10 @@
 package block
 
-import hash "github.com/aperturerobotics/bifrost/hash"
+import (
+	"context"
+
+	hash "github.com/aperturerobotics/bifrost/hash"
+)
 
 // StoreRW combines a read and write store together.
 type StoreRW struct {
@@ -36,29 +40,29 @@ func (b *StoreRW) GetHashType() hash.HashType {
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
-func (b *StoreRW) PutBlock(data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return b.writeHandle.PutBlock(data, opts)
+func (b *StoreRW) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	return b.writeHandle.PutBlock(ctx, data, opts)
 }
 
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (b *StoreRW) GetBlock(ref *BlockRef) ([]byte, bool, error) {
-	return b.readHandle.GetBlock(ref)
+func (b *StoreRW) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	return b.readHandle.GetBlock(ctx, ref)
 }
 
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (b *StoreRW) GetBlockExists(ref *BlockRef) (bool, error) {
-	return b.readHandle.GetBlockExists(ref)
+func (b *StoreRW) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
+	return b.readHandle.GetBlockExists(ctx, ref)
 }
 
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (b *StoreRW) RmBlock(ref *BlockRef) error {
-	return b.writeHandle.RmBlock(ref)
+func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
+	return b.writeHandle.RmBlock(ctx, ref)
 }
 
 // _ is a type assertion

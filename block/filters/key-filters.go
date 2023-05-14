@@ -1,6 +1,8 @@
 package filters
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/bloom"
 )
@@ -12,8 +14,8 @@ func NewKeyFiltersBlock() block.Block {
 
 // UnmarshalKeyFilters unmarshals a world change ll from a cursor.
 // If empty, returns nil, nil
-func UnmarshalKeyFilters(bcs *block.Cursor) (*KeyFilters, error) {
-	return block.UnmarshalBlock[*KeyFilters](bcs, NewKeyFiltersBlock)
+func UnmarshalKeyFilters(ctx context.Context, bcs *block.Cursor) (*KeyFilters, error) {
+	return block.UnmarshalBlock[*KeyFilters](ctx, bcs, NewKeyFiltersBlock)
 }
 
 // IsNil returns if the object is nil.

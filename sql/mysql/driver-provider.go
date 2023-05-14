@@ -11,17 +11,20 @@ import (
 
 // DriverProvider implements the Provider interface for the sql driver.
 type DriverProvider struct {
+	ctx context.Context
 	sql *Tx
 }
 
 // NewDriverProvider constructs a driver provider.
-func NewDriverProvider(sqlTx *Tx) *DriverProvider {
-	return &DriverProvider{sql: sqlTx}
+//
+// ctx is used for the Resolve() function
+func NewDriverProvider(ctx context.Context, sqlTx *Tx) *DriverProvider {
+	return &DriverProvider{ctx: ctx, sql: sqlTx}
 }
 
 // Resolve is called in OpenConnector to lookup the database with the given name.
 func (p *DriverProvider) Resolve(name string, options *gdriver.Options) (string, sql.DatabaseProvider, error) {
-	catalog, err := p.sql.BuildDatabaseProvider()
+	catalog, err := p.sql.BuildDatabaseProvider(p.ctx)
 	if err != nil {
 		return "", nil, err
 	}

@@ -155,7 +155,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 				// append to the range
 				_, rcs := w.rangeSet.Get(rngIdx)
 				rblobCs := rng.FollowBlob(rcs)
-				rcsBlob, err := blob.UnmarshalBlob(rblobCs)
+				rcsBlob, err := blob.UnmarshalBlob(w.ctx, rblobCs)
 				if err != nil {
 					return err
 				}
@@ -320,7 +320,7 @@ func (w *Writer) Truncate(size uint64) error {
 			if irangeEnd > size {
 				// truncate the range + blob
 				irangeBlobBcs := irange.FollowBlob(irangeBcs)
-				irangeBlob, err := blob.UnmarshalBlob(irangeBlobBcs)
+				irangeBlob, err := blob.UnmarshalBlob(w.ctx, irangeBlobBcs)
 				if err != nil {
 					return err
 				}
@@ -435,7 +435,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 	rootRange := ranges[0]
 	_, rangeBcs := w.rangeSet.Get(0)
 	rangeBlobBcs := rangeBcs.FollowRef(4, rootRange.GetRef())
-	nrootBlob, err := blob.UnmarshalBlob(rangeBlobBcs)
+	nrootBlob, err := blob.UnmarshalBlob(w.ctx, rangeBlobBcs)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"strconv"
 
@@ -25,8 +26,8 @@ func NewBlockRefBlock() Block {
 }
 
 // UnmarshalBlockRefBlock unmarshals a BlockRef from a block cursor.
-func UnmarshalBlockRefBlock(bcs *Cursor) (*BlockRef, error) {
-	return UnmarshalBlock[*BlockRef](bcs, NewBlockRefBlock)
+func UnmarshalBlockRefBlock(ctx context.Context, bcs *Cursor) (*BlockRef, error) {
+	return UnmarshalBlock[*BlockRef](ctx, bcs, NewBlockRefBlock)
 }
 
 // BuildBlockRef builds a block ref from put opts by hashing the data.

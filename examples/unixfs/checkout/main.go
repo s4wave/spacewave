@@ -116,15 +116,16 @@ func execute(rctx context.Context) error {
 	// use a wrapper around the Engine directly to avoid this slowdown:
 	// ws := wtb.WorldState
 	eng := wtb.Engine
-	ws := world.NewEngineWorldState(ctx, eng, true)
+	ws := world.NewEngineWorldState(eng, true)
 
 	objKey := "test-filesystem"
-	_, exists, err := ws.GetObject(objKey)
+	_, exists, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		return err
 	}
 	if !exists {
 		_, _, err = ws.ApplyWorldOp(
+			ctx,
 			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, 0, true, time.Now()),
 			senderPeerID,
 		)
@@ -136,7 +137,7 @@ func execute(rctx context.Context) error {
 	// access and add some test data
 	testFilename := "test-file.txt"
 	_, _, err = world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
-		ftree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+		ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			return err
 		}

@@ -83,7 +83,7 @@ func (o *FsSymlinkOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// get the fs object
-	obj, err := world.MustGetObject(worldHandle, o.GetObjectKey())
+	obj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
 	if err != nil {
 		return false, err
 	}

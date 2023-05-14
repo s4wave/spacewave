@@ -1,6 +1,7 @@
 package kvtx_block_iavl
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -16,8 +17,8 @@ func NewNodeBlock() block.Block {
 
 // loadNode follows the node cursor.
 // may return nil
-func loadNode(cursor *block.Cursor) (*Node, error) {
-	ni, err := cursor.Unmarshal(func() block.Block { return &Node{} })
+func loadNode(ctx context.Context, cursor *block.Cursor) (*Node, error) {
+	ni, err := cursor.Unmarshal(ctx, func() block.Block { return &Node{} })
 	if err != nil {
 		return nil, err
 	}
@@ -87,23 +88,23 @@ func (n *Node) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 }
 
 // FollowLeft follows the left child.
-func (n *Node) FollowLeft(cursor *block.Cursor) (*Node, *block.Cursor, error) {
+func (n *Node) FollowLeft(ctx context.Context, cursor *block.Cursor) (*Node, *block.Cursor, error) {
 	bcs := cursor.FollowRef(5, n.GetLeftChildRef())
-	bcv, err := loadNode(bcs)
+	bcv, err := loadNode(ctx, bcs)
 	return bcv, bcs, err
 }
 
 // FollowRight follows the right child.
-func (n *Node) FollowRight(cursor *block.Cursor) (*Node, *block.Cursor, error) {
+func (n *Node) FollowRight(ctx context.Context, cursor *block.Cursor) (*Node, *block.Cursor, error) {
 	bcs := cursor.FollowRef(6, n.GetRightChildRef())
-	bcv, err := loadNode(bcs)
+	bcv, err := loadNode(ctx, bcs)
 	return bcv, bcs, err
 }
 
 // FollowValue follows the value ref.
-func (n *Node) FollowValue(cursor *block.Cursor) (*Node, *block.Cursor, error) {
+func (n *Node) FollowValue(ctx context.Context, cursor *block.Cursor) (*Node, *block.Cursor, error) {
 	bcs := cursor.FollowRef(7, n.GetValueRef())
-	bcv, err := loadNode(bcs)
+	bcv, err := loadNode(ctx, bcs)
 	return bcv, bcs, err
 }
 

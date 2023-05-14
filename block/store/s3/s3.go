@@ -16,7 +16,6 @@ import (
 // Supports any s3-compatible API.
 // Stores blocks at {objectPrefix}/{block ref}
 type S3Block struct {
-	ctx          context.Context
 	write        bool
 	client       *minio.Client
 	bucketName   string
@@ -30,7 +29,6 @@ type S3Block struct {
 // hashType can be 0 to use the default hash type.
 // if write=false, supports read operations only.
 func NewS3Block(
-	ctx context.Context,
 	write bool,
 	client *minio.Client,
 	bucketName,
@@ -38,7 +36,6 @@ func NewS3Block(
 	hashType hash.HashType,
 ) *S3Block {
 	return &S3Block{
-		ctx:          ctx,
 		write:        write,
 		client:       client,
 		bucketName:   bucketName,
@@ -56,7 +53,7 @@ func (b *S3Block) GetHashType() hash.HashType {
 
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
-func (b *S3Block) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+func (b *S3Block) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
 	if !b.write {
 		return nil, false, block_store.ErrReadOnlyStore
 	}
@@ -76,13 +73,13 @@ func (b *S3Block) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRe
 	objectKey := b.objectPrefix + refB58
 
 	// check exists first
-	exists, err = b.getKeyExists(objectKey)
+	exists, err = b.getKeyExists(ctx, objectKey)
 	if err != nil || exists {
 		return ref, exists, err
 	}
 
 	// create object
-	_, err = b.client.PutObject(b.ctx, b.bucketName, objectKey, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+	_, err = b.client.PutObject(ctx, b.bucketName, objectKey, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
 		ContentType: "application/octet-stream",
 	})
 	return ref, false, err
@@ -90,7 +87,7 @@ func (b *S3Block) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRe
 
 // GetBlock looks up a block in the store.
 // Returns data, found, and any exceptional error.
-func (b *S3Block) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (b *S3Block) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if ref.GetEmpty() {
 		return nil, false, block.ErrEmptyBlockRef
 	}
@@ -98,7 +95,7 @@ func (b *S3Block) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
 
-	obj, err := b.client.GetObject(b.ctx, b.bucketName, objectKey, minio.GetObjectOptions{})
+	obj, err := b.client.GetObject(ctx, b.bucketName, objectKey, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, false, err
 	}
@@ -128,19 +125,19 @@ func (b *S3Block) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any exceptional error.
-func (b *S3Block) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (b *S3Block) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	if ref.GetEmpty() {
 		return false, block.ErrEmptyBlockRef
 	}
 
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
-	return b.getKeyExists(objectKey)
+	return b.getKeyExists(ctx, objectKey)
 }
 
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
-func (b *S3Block) RmBlock(ref *block.BlockRef) error {
+func (b *S3Block) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if ref.GetEmpty() {
 		return block.ErrEmptyBlockRef
 	}
@@ -150,7 +147,7 @@ func (b *S3Block) RmBlock(ref *block.BlockRef) error {
 
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
-	err := b.client.RemoveObject(b.ctx, b.bucketName, objectKey, minio.RemoveObjectOptions{})
+	err := b.client.RemoveObject(ctx, b.bucketName, objectKey, minio.RemoveObjectOptions{})
 	if err != nil && isNotFoundErr(err) {
 		return nil
 	}
@@ -158,8 +155,8 @@ func (b *S3Block) RmBlock(ref *block.BlockRef) error {
 }
 
 // getKeyExists checks if the given object key exists.
-func (b *S3Block) getKeyExists(objectKey string) (bool, error) {
-	obj, err := b.client.GetObject(b.ctx, b.bucketName, objectKey, minio.GetObjectOptions{})
+func (b *S3Block) getKeyExists(ctx context.Context, objectKey string) (bool, error) {
+	obj, err := b.client.GetObject(ctx, b.bucketName, objectKey, minio.GetObjectOptions{})
 	if err != nil {
 		return false, err
 	}

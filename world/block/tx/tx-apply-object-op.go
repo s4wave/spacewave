@@ -108,13 +108,13 @@ func (t *TxApplyObjectOp) ExecuteTx(
 	}
 
 	// lookup the object
-	obj, err := world.MustGetObject(worldInstance, t.GetObjectKey())
+	obj, err := world.MustGetObject(ctx, worldInstance, t.GetObjectKey())
 	if err != nil {
 		return false, err
 	}
 
 	// apply the operation
-	_, _, err = obj.ApplyObjectOp(op, sender)
+	_, _, err = obj.ApplyObjectOp(ctx, op, sender)
 	return false, err
 }
 

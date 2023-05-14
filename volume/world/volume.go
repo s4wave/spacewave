@@ -80,7 +80,7 @@ func NewVolume(
 
 	// Construct the bus engine
 	busEngine := world.NewBusEngine(ctx, b, conf.GetEngineId())
-	worldState := world.NewEngineWorldState(ctx, busEngine, true)
+	worldState := world.NewEngineWorldState(busEngine, true)
 
 	// load initial head ref
 	headState, headStateFound, err := v.loadHeadState(ctx, worldState)

@@ -58,7 +58,7 @@ func TestSetupController(t *testing.T) {
 	}
 
 	// check if config applied
-	info, err := vol.GetBucketInfo(bucketID)
+	info, err := vol.GetBucketInfo(ctx, bucketID)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

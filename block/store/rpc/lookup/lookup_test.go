@@ -40,7 +40,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	serverVol := serverTb.Volume
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
-	sampleBlockRef, _, err := serverVol.PutBlock(sampleBlockBody, samplePutOpts)
+	sampleBlockRef, _, err := serverVol.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -147,7 +147,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 	defer readBktRef.Release()
 
-	ex, err := readBkt.GetBucket().GetBlockExists(sampleBlockRef.Clone())
+	ex, err := readBkt.GetBucket().GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

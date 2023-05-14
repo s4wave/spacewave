@@ -50,7 +50,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	store := block_store_http.NewHTTPBlock(ctx, false, http.DefaultClient, baseURL, 0)
+	store := block_store_http.NewHTTPBlock(false, http.DefaultClient, baseURL, 0)
 	c.store.SetValue(store)
 	return nil
 }

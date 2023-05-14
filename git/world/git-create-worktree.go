@@ -31,7 +31,7 @@ func GitCreateWorktree(
 	ts time.Time,
 ) error {
 	createOp := NewGitCreateWorktreeOp(objKey, repoObjKey, workdirRef, createWorkdir, checkoutOpts, disableCheckout, ts)
-	_, _, err := ws.ApplyWorldOp(createOp, sender)
+	_, _, err := ws.ApplyWorldOp(ctx, createOp, sender)
 	return err
 }
 

@@ -70,7 +70,7 @@ func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
 	var storageSize uint64
 
 	// add the size of the root block
-	rootData, _, err := r.bcs.Fetch()
+	rootData, _, err := r.bcs.Fetch(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -93,7 +93,7 @@ func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
 	for i, r := range ranges {
 		rangeBcs := rangesBcs.FollowSubBlock(uint32(i))
 		blobBcs := r.FollowBlob(rangeBcs)
-		bl, err := blob.UnmarshalBlob(blobBcs)
+		bl, err := blob.UnmarshalBlob(ctx, blobBcs)
 		if err != nil {
 			return 0, err
 		}
@@ -399,7 +399,7 @@ func (r *Handle) followRootRangeBlobRef(
 	blobRef *block.BlockRef,
 ) (*blob.Blob, *block.Cursor, error) {
 	ncs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)).FollowRef(4, blobRef)
-	blobi, err := ncs.Unmarshal(blob.NewBlobBlock)
+	blobi, err := ncs.Unmarshal(r.ctx, blob.NewBlobBlock)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -37,8 +37,7 @@ var _ world.LookupOp = LookupFsOp
 // If unset, defaults to FS_NODE.
 // Checks that the type ID is recognized.
 func LookupFsType(ctx context.Context, ws world.WorldState, objKey string) (FSType, bool, error) {
-	ts := world_types.NewTypesState(ctx, ws)
-	ot, err := ts.GetObjectType(objKey)
+	ot, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return 0, false, err
 	}
@@ -82,7 +81,7 @@ func ValidateOrCreateFs(
 				bcs.SetBlock(nroot, true)
 			}
 		} else {
-			nroot, nrootTypeID, err = UnmarshalFSRootWithType(bcs, fsType)
+			nroot, nrootTypeID, err = UnmarshalFSRootWithType(ctx, bcs, fsType)
 			if err == nil && nroot == nil {
 				err = block.ErrNotFound
 			}
@@ -123,7 +122,7 @@ func AccessUnixfsObject(
 			if cbFsTree == nil {
 				return errors.Wrap(ErrInvalidFSType, fsType.String())
 			}
-			ftree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
+			ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 			if err != nil {
 				return err
 			}
@@ -136,7 +135,7 @@ func AccessUnixfsObject(
 				return errors.Wrap(ErrInvalidFSType, fsType.String())
 			}
 
-			hv, err := unixfs_block.UnmarshalFSHostVolume(bcs)
+			hv, err := unixfs_block.UnmarshalFSHostVolume(ctx, bcs)
 			if err != nil {
 				return err
 			}

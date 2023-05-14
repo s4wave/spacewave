@@ -1,6 +1,7 @@
 package block
 
 import (
+	"context"
 	"errors"
 )
 
@@ -560,7 +561,7 @@ func (c *Cursor) ClearAllRefs() {
 // Returns nil, false, ErrBlockStoreUnavailable if the block store is unset.
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
-func (c *Cursor) Fetch() ([]byte, bool, error) {
+func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 	if c == nil {
 		return nil, false, nil
 	}
@@ -572,7 +573,7 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 	if bkt == nil {
 		return nil, false, ErrBlockStoreUnavailable
 	}
-	data, found, err := bkt.GetBlock(c.pos.ref)
+	data, found, err := bkt.GetBlock(ctx, c.pos.ref)
 	if err != nil || !found {
 		if err == nil {
 			err = ErrNotFound
@@ -597,7 +598,7 @@ func (c *Cursor) Fetch() ([]byte, bool, error) {
 // Returns nil, nil if the cursor is nil.
 // Returns value from ctor() without calling Unmarshal if empty.
 // Returns nil, block.ErrNotFound if not found.
-func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
+func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error) {
 	if c == nil {
 		return nil, nil
 	}
@@ -621,7 +622,7 @@ func (c *Cursor) Unmarshal(ctor func() Block) (Block, error) {
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
-	dat, datFound, err := c.Fetch()
+	dat, datFound, err := c.Fetch(ctx)
 	if err != nil {
 		return nil, err
 	}

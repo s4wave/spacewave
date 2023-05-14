@@ -34,7 +34,7 @@ func TestBasicDirectory(t *testing.T) {
 
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
-	ftree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -74,7 +74,7 @@ func TestBasicDirectory(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ftree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -111,7 +111,7 @@ func TestEmptyFstree(t *testing.T) {
 
 	btx, bcs := oc.BuildTransactionAtRef(nil, &block.BlockRef{})
 	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
-	ftree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -155,7 +155,7 @@ func TestEmptyFstree(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ftree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -193,7 +193,7 @@ func TestBasicFile(t *testing.T) {
 
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, nil), true)
-	ftree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -205,7 +205,7 @@ func TestBasicFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ftree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -229,7 +229,7 @@ func TestBasicFile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ftree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	ftree, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

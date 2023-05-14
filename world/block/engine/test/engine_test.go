@@ -101,7 +101,7 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	engTx, err := eng.NewTransaction(true)
+	engTx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -117,7 +117,7 @@ func TestWorldEngineController(t *testing.T) {
 
 	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		wi, err := bcs.Unmarshal(world_block.NewWorldBlock)
+		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -143,11 +143,11 @@ func TestWorldEngineController(t *testing.T) {
 	}
 
 	// second test pass
-	engTx, err = eng.NewTransaction(true)
+	engTx, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, found, err := engTx.GetObject("test-object")
+	_, found, err := engTx.GetObject(ctx, "test-object")
 	if !found && err == nil {
 		err = errors.New("object not found after remounting")
 	}
@@ -232,7 +232,7 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	engTx, err := eng.NewTransaction(true)
+	engTx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -248,7 +248,7 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 
 	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		wi, err := bcs.Unmarshal(world_block.NewWorldBlock)
+		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

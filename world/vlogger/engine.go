@@ -1,6 +1,7 @@
 package world_vlogger
 
 import (
+	"context"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/world"
@@ -28,10 +29,10 @@ func NewEngine(le *logrus.Entry, eng world.Engine) *Engine {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
-func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
+func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	txid := atomic.AddUint64(&e.txInc, 1)
 	le := e.le.WithField("world-vlogger-txid", txid)
-	tx, err := e.Engine.NewTransaction(write)
+	tx, err := e.Engine.NewTransaction(ctx, write)
 	if err != nil {
 		le.WithError(err).Warnf("NewTransaction(%v) errored", write)
 		return nil, err

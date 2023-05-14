@@ -10,11 +10,11 @@ import (
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 // Note: this contains the seqno of the tx if this is a transaction.
-func (e *EngineTx) GetSeqno() (uint64, error) {
+func (e *EngineTx) GetSeqno(ctx context.Context) (uint64, error) {
 	var seqno uint64
 	err := e.performOp(func(tx *Tx) error {
 		var berr error
-		seqno, berr = tx.GetSeqno()
+		seqno, berr = tx.GetSeqno(ctx)
 		return berr
 	})
 	return seqno, err

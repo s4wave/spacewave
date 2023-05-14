@@ -26,7 +26,7 @@ func TestBasicCreateRootBlob(t *testing.T) {
 	}
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

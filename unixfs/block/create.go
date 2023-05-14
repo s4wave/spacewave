@@ -15,7 +15,7 @@ import (
 func CreateFromFS(ctx context.Context, bcs *block.Cursor, iofs fs.FS, ts *timestamp.Timestamp) error {
 	rootFsNode := NewFSNode(NodeType_NodeType_DIRECTORY, 0, ts)
 	bcs.SetBlock(rootFsNode, true)
-	fsTree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+	fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 	if err == nil && iofs != nil {
 		err = CopyFSToFSTree(ctx, iofs, fsTree, nil, ts)
 	}

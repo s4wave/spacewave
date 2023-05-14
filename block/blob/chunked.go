@@ -29,7 +29,7 @@ func BuildChunkIndex(
 		return nil, 0, errors.Wrap(ErrUnknownChunkerType, chunkerType.String())
 	}
 
-	ci, err := UnmarshalChunkIndex(bcs)
+	ci, err := UnmarshalChunkIndex(ctx, bcs)
 	if err != nil {
 		if err != block.ErrUnexpectedType {
 			return nil, 0, err
@@ -67,6 +67,7 @@ func (i *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start
 // The value of outChunkIdx should be saved and passed again when stepping through the chunks sequentially.
 // Returns io.EOF if start is past the last chunk.
 func ReadFromChunks(
+	ctx context.Context,
 	chunkSet *sbset.SubBlockSet,
 	buf []byte,
 	start, chunkIdx int,
@@ -105,7 +106,7 @@ func ReadFromChunks(
 			readEndPos = int(currChunkSize)
 		}
 
-		data, err := currChunk.FetchData(currChunkBcs, false)
+		data, err := currChunk.FetchData(ctx, currChunkBcs, false)
 		if err != nil {
 			return n, outChunkIdx, err
 		}

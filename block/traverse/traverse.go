@@ -93,7 +93,7 @@ func visitRecursive(
 		if refBlk == nil && !refBlkIsSubBlk && locBlockOk {
 			blockRefCtor := locBlock.GetBlockRefCtor(refID)
 			if blockRefCtor != nil {
-				refBlk, err = refCs.Unmarshal(blockRefCtor)
+				refBlk, err = refCs.Unmarshal(ctx, blockRefCtor)
 				if err != nil {
 					return errors.Wrapf(err, "follow ref %d", refID)
 				}

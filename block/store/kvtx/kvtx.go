@@ -34,7 +34,7 @@ func (k *KVTxBlock) GetHashType() hash.HashType {
 
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
-func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
 	if opts == nil {
 		opts = &block.PutOpts{}
 	} else {
@@ -82,7 +82,7 @@ func (k *KVTxBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 
 // GetBlock looks up a block in the store.
 // Returns data, found, and any exceptional error.
-func (k *KVTxBlock) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err
@@ -99,7 +99,7 @@ func (k *KVTxBlock) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any exceptional error.
-func (k *KVTxBlock) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return false, err
@@ -116,7 +116,7 @@ func (k *KVTxBlock) GetBlockExists(ref *block.BlockRef) (bool, error) {
 
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
-func (k *KVTxBlock) RmBlock(ref *block.BlockRef) error {
+func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return err

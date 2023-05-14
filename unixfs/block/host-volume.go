@@ -1,6 +1,7 @@
 package unixfs_block
 
 import (
+	"context"
 	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -23,8 +24,8 @@ func NewFSHostVolumeBlock() block.Block {
 
 // UnmarshalFSHostVolume unmarshals a filesystem node from a cursor.
 // If empty, returns nil, nil
-func UnmarshalFSHostVolume(bcs *block.Cursor) (*FSHostVolume, error) {
-	return block.UnmarshalBlock[*FSHostVolume](bcs, NewFSHostVolumeBlock)
+func UnmarshalFSHostVolume(ctx context.Context, bcs *block.Cursor) (*FSHostVolume, error) {
+	return block.UnmarshalBlock[*FSHostVolume](ctx, bcs, NewFSHostVolumeBlock)
 }
 
 // Validate checks the HostVolume.

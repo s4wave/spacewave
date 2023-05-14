@@ -39,17 +39,17 @@ func TestWorldEngine(ctx context.Context, le *logrus.Entry, eng world.Engine) er
 func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engine) error {
 	objKey := "test-object"
 	// create the object in the world
-	ws, err := eng.NewTransaction(true)
+	ws, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	oref1 := &bucket.ObjectRef{BucketId: "test-1"}
-	_, err = ws.CreateObject(objKey, oref1)
+	_, err = ws.CreateObject(ctx, objKey, oref1)
 	if err != nil {
 		return errors.Wrapf(err, "create object: %s", objKey)
 	}
 	// lookup the object
-	objState, err := world.MustGetObject(ws, objKey)
+	objState, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		return errors.Wrapf(err, "get object: %s", objKey)
 	}
@@ -61,7 +61,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return nil
 	}
 
-	oref1b, _, err := objState.GetRootRef()
+	oref1b, _, err := objState.GetRootRef(ctx)
 	if err == nil {
 		err = assertEqual(oref1b, oref1)
 	}
@@ -76,18 +76,18 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// create read tx
-	ws, err = eng.NewTransaction(false)
+	ws, err = eng.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 	defer ws.Discard()
 
-	objState, err = world.MustGetObject(ws, objKey)
+	objState, err = world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		return errors.Wrapf(err, "get object: %s", objKey)
 	}
 	var orev1b uint64
-	oref1b, orev1b, err = objState.GetRootRef()
+	oref1b, orev1b, err = objState.GetRootRef(ctx)
 	if err == nil {
 		err = assertEqual(oref1b, oref1)
 	}
@@ -103,25 +103,25 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	oref2 := &bucket.ObjectRef{BucketId: "testing-2"}
 
 	// expect ErrNotWrite
-	_, err = objState.SetRootRef(oref2)
+	_, err = objState.SetRootRef(ctx, oref2)
 	if err != tx.ErrNotWrite {
 		return errors.Errorf("expected error %v but got %v", tx.ErrNotWrite, err)
 	}
 
 	// check mechanics of writing while reading
 	// this should be possible with a world engine
-	ws2, err := eng.NewTransaction(true)
+	ws2, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
 	// update object reference & commit
-	objState2, err := world.MustGetObject(ws2, objKey)
+	objState2, err := world.MustGetObject(ctx, ws2, objKey)
 	if err != nil {
 		ws2.Discard()
 		return err
 	}
-	orev, err := objState2.SetRootRef(oref2)
+	orev, err := objState2.SetRootRef(ctx, oref2)
 	if err == nil {
 		err = ws2.Commit(ctx)
 	}
@@ -136,7 +136,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// check if original read tx was updated (we expect yes)
-	oref1b, _, err = objState.GetRootRef()
+	oref1b, _, err = objState.GetRootRef(ctx)
 	if err == nil {
 		err = assertEqual(oref1b, oref2)
 	}
@@ -145,14 +145,14 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// test some graph transactions
-	ws2, err = eng.NewTransaction(true)
+	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
 	// add a second object
 	obj2Key := "test-object-2"
-	_, err = ws2.CreateObject(obj2Key, oref1)
+	_, err = ws2.CreateObject(ctx, obj2Key, oref1)
 	if err != nil {
 		ws2.Discard()
 		return err
@@ -164,7 +164,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		world.KeyToGraphValue(obj2Key).String(),
 		"",
 	)
-	err = ws2.SetGraphQuad(testQuad1)
+	err = ws2.SetGraphQuad(ctx, testQuad1)
 	if err != nil {
 		ws2.Discard()
 		return err
@@ -177,7 +177,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// check quad exists on original read tx
-	quads, err := ws.LookupGraphQuads(testQuad1, 1)
+	quads, err := ws.LookupGraphQuads(ctx, testQuad1, 1)
 	found := len(quads) != 0
 	if err == nil && !found {
 		err = errors.New("graph quad not found after setting")
@@ -187,7 +187,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// attempt a cayley graph query
-	err = ws.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
+	err = ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
 		// check obj <parent> -> ?
 		p := cayley.StartPath(h, world.KeyToGraphValue(objKey)).Out(quad.IRI("parent"))
 		// quad stats + optimization basics
@@ -231,7 +231,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// attempt a parent graph system query using our existing <parent> quad
 	ps := world_parent.NewParentState(ws)
-	parentStr, err := ps.GetObjectParent(objKey)
+	parentStr, err := ps.GetObjectParent(ctx, objKey)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	if err := ps.ClearObjectParent(ctx, objKey); err != nil {
 		return err
 	}
-	parentStr, err = ps.GetObjectParent(objKey)
+	parentStr, err = ps.GetObjectParent(ctx, objKey)
 	if err != nil {
 		return err
 	}
@@ -253,12 +253,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// test a type set/lookup
-	typeState := world_types.NewTypesState(ctx, ws)
 	objTypeKey := "types/mock"
-	if err := typeState.SetObjectType(objKey, objTypeKey); err != nil {
+	if err := world_types.SetObjectType(ctx, ws, objKey, objTypeKey); err != nil {
 		return err
 	}
-	typeStr, err := typeState.GetObjectType(objKey)
+	typeStr, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return err
 	}
@@ -273,7 +272,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// search for objects with the given type via path
-	err = ws.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
+	err = ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
 		p := path.StartPath(h)
 		p = world_types.LimitNodesToTypes(p, objTypeKey)
 		ch := p.Iterate(ctx)
@@ -292,7 +291,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// search for types (iterate references to the type object)
 	var objsWithTypeKey []string
-	err = typeState.IterateObjectsWithType(objTypeKey, func(objKey string) (bool, error) {
+	err = world_types.IterateObjectsWithType(ctx, ws, objTypeKey, func(objKey string) (bool, error) {
 		objsWithTypeKey = append(objsWithTypeKey, objKey)
 		return true, nil
 	})
@@ -334,7 +333,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 		// _, _, err = world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
 		_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-			eb, err := block.UnmarshalBlock[*block_mock.Example](bcs, block_mock.NewExampleBlock)
+			eb, err := block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
 			if err != nil {
 				return err
 			}
@@ -365,13 +364,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 				}
 			} else if rev%10 == 0 {
 				// even numbers divisible by 10, use world op method
-				_, _, err = ws.ApplyWorldOp(NewMockWorldOp(objKey, nextMsg), "")
+				_, _, err = ws.ApplyWorldOp(ctx, NewMockWorldOp(objKey, nextMsg), "")
 			} else if rev%5 == 0 {
 				// even numbers divisible by 5, use object op method
 				// note: passing empty peer id
-				_, _, err = obj.ApplyObjectOp(NewMockObjectOp(nextMsg), "")
+				_, _, err = obj.ApplyObjectOp(ctx, NewMockObjectOp(nextMsg), "")
 			} else {
-				_, err = obj.IncrementRev()
+				_, err = obj.IncrementRev(ctx)
 			}
 			if err != nil {
 				return false, err
@@ -386,7 +385,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	})
 
 	// test control loop
-	engWs := world.NewEngineWorldState(ctx, eng, true)
+	engWs := world.NewEngineWorldState(eng, true)
 	if err := loop.Execute(subCtx, engWs); err != nil {
 		return err
 	}
@@ -395,11 +394,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	if ws2 != nil {
 		ws2.Discard()
 	}
-	ws2, err = eng.NewTransaction(true)
+	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
-	deleted, err := ws2.DeleteObject(objKey)
+	deleted, err := ws2.DeleteObject(ctx, objKey)
 	if err == nil {
 		err = ws2.Commit(ctx)
 	} else {
@@ -413,7 +412,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	blobTestData := []byte("test creating a blob")
-	ws2, err = eng.NewTransaction(true)
+	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -433,7 +432,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// read the data out again
 	le.Infof("stored blob length %d to object %s", len(blobTestData), bref.MarshalString())
-	engWs = world.NewEngineWorldState(ctx, eng, true)
+	engWs = world.NewEngineWorldState(eng, true)
 	var blobReadbackData []byte
 	bref2, _, err := world.AccessWorldObject(ctx, engWs, objKey, false, func(bcs *block.Cursor) error {
 		var berr error

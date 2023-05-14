@@ -41,7 +41,7 @@ func TestMysql(t *testing.T) {
 	}
 
 	sq := NewMysql(oc, nil)
-	tx, err := sq.NewMysqlTransaction(true)
+	tx, err := sq.NewMysqlTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -49,7 +49,7 @@ func TestMysql(t *testing.T) {
 	dbName := "test-db"
 	rctx := sql.NewEmptyContext().WithContext(ctx)
 	rctx.SetCurrentDatabase(dbName)
-	db, err := tx.OpenDatabase(dbName, true)
+	db, err := tx.OpenDatabase(ctx, dbName, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -83,11 +83,11 @@ func TestMysql(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tx, err = sq.NewMysqlTransaction(false)
+	tx, err = sq.NewMysqlTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	db, err = tx.OpenDatabase(dbName, false)
+	db, err = tx.OpenDatabase(ctx, dbName, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -112,15 +112,15 @@ func TestMysql(t *testing.T) {
 	tx.Discard()
 
 	buildEngine := func() (*Tx, *sqle.Engine) {
-		tx, err := sq.NewMysqlTransaction(true)
+		tx, err := sq.NewMysqlTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		db, err = tx.OpenDatabase(dbName, false)
+		db, err = tx.OpenDatabase(ctx, dbName, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		prov, err := tx.BuildDatabaseProvider()
+		prov, err := tx.BuildDatabaseProvider(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

@@ -25,7 +25,7 @@ func (s *BlockStore) PutBlock(
 	ctx context.Context,
 	req *block_rpc.PutBlockRequest,
 ) (*block_rpc.PutBlockResponse, error) {
-	outRef, existed, err := s.store.PutBlock(req.GetData(), req.GetPutOpts())
+	outRef, existed, err := s.store.PutBlock(ctx, req.GetData(), req.GetPutOpts())
 	resp := &block_rpc.PutBlockResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -41,7 +41,7 @@ func (s *BlockStore) GetBlock(
 	ctx context.Context,
 	req *block_rpc.GetBlockRequest,
 ) (*block_rpc.GetBlockResponse, error) {
-	data, existed, err := s.store.GetBlock(req.GetRef())
+	data, existed, err := s.store.GetBlock(ctx, req.GetRef())
 	resp := &block_rpc.GetBlockResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -57,7 +57,7 @@ func (s *BlockStore) GetBlockExists(
 	ctx context.Context,
 	req *block_rpc.GetBlockExistsRequest,
 ) (*block_rpc.GetBlockExistsResponse, error) {
-	existed, err := s.store.GetBlockExists(req.GetRef())
+	existed, err := s.store.GetBlockExists(ctx, req.GetRef())
 	resp := &block_rpc.GetBlockExistsResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -72,7 +72,7 @@ func (s *BlockStore) RmBlock(
 	ctx context.Context,
 	req *block_rpc.RmBlockRequest,
 ) (*block_rpc.RmBlockResponse, error) {
-	err := s.store.RmBlock(req.GetRef())
+	err := s.store.RmBlock(ctx, req.GetRef())
 	resp := &block_rpc.RmBlockResponse{}
 	if err != nil {
 		resp.Error = err.Error()

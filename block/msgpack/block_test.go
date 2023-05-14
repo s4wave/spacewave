@@ -45,7 +45,7 @@ func TestMsgpackBlock(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
-	ublk, err := UnmarshalMsgpackBlock(bcs, func() *testObject {
+	ublk, err := UnmarshalMsgpackBlock(ctx, bcs, func() *testObject {
 		return &testObject{}
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func TestMsgpackBlock(t *testing.T) {
 	if outObj.TestField != sampleObj.TestField || outObj.TestInt != sampleObj.TestInt {
 		t.Fatalf("data was different %#v != %#v", outObj, sampleObj)
 	}
-	rawData, _, _ := bcs.Fetch()
+	rawData, _, _ := bcs.Fetch(ctx)
 	t.Logf("successful end-to-end marshal/unmarshal test, len %d bytes", len(rawData))
 }
 
@@ -95,7 +95,7 @@ func TestBlockToObject(t *testing.T) {
 
 	_, bcs = oc.BuildTransactionAtRef(nil, blockRef)
 	var outObj *testObject // alloc location to store address of output
-	_, err = BlockToObject(bcs, &outObj)
+	_, err = BlockToObject(ctx, bcs, &outObj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

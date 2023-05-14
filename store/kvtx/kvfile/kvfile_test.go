@@ -46,7 +46,7 @@ func TestKvfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := writeKtx.StorePeerPriv(testPeerPriv); err != nil {
+	if err := writeKtx.StorePeerPriv(ctx, testPeerPriv); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -74,7 +74,7 @@ func TestKvfile(t *testing.T) {
 		if err := store_test.TestAll(ctx, ktx); err != nil {
 			t.Fatal(err.Error())
 		}*/
-	_, err = ktx.LoadPeerPriv()
+	_, err = ktx.LoadPeerPriv(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -8,7 +8,7 @@ import (
 
 // SetShallow sets the list of shallow refs.
 func (r *Store) SetShallow(refs []plumbing.Hash) error {
-	_, bcs, err := r.root.FollowShallowRefsStore(r.bcs)
+	_, bcs, err := r.root.FollowShallowRefsStore(r.ctx, r.bcs)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (r *Store) SetShallow(refs []plumbing.Hash) error {
 
 // Shallow returns the list of shallow refs.
 func (r *Store) Shallow() ([]plumbing.Hash, error) {
-	shallowStore, _, err := r.root.FollowShallowRefsStore(r.bcs)
+	shallowStore, _, err := r.root.FollowShallowRefsStore(r.ctx, r.bcs)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,4 @@ func (r *Store) Shallow() ([]plumbing.Hash, error) {
 }
 
 // _ is a type assertion
-var (
-	// ShallowStorer stores shallow refs list.
-	_ storer.ShallowStorer = (*Store)(nil)
-)
+var _ storer.ShallowStorer = (*Store)(nil)

@@ -16,7 +16,7 @@ import (
 //
 // Note: if !filled, implementation might not return queues that are empty.
 // If filled is set, implementation must only return filled queues.
-func (k *KVTx) ListMessageQueues(prefix []byte, filled bool) ([][]byte, error) {
+func (k *KVTx) ListMessageQueues(ctx context.Context, prefix []byte, filled bool) ([][]byte, error) {
 	pr := k.buildMQueueMetaKey(prefix)
 	tx, err := k.store.NewTransaction(false)
 	if err != nil {

@@ -67,7 +67,6 @@ func NewProxyVolumeController(
 				le *logrus.Entry,
 			) (volume.Volume, error) {
 				return NewProxyVolume(
-					ctx,
 					volumeInfo,
 					proxyVolumeClient,
 					blockStoreClient,

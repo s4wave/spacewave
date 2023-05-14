@@ -33,7 +33,7 @@ func (i *ReferenceIter) Next() (*plumbing.Reference, error) {
 	}
 	refName := string(key[1:])
 	encObjCs := i.it.ValueCursor()
-	refObjBlk, err := encObjCs.Unmarshal(NewReferenceBlock)
+	refObjBlk, err := encObjCs.Unmarshal(i.r.ctx, NewReferenceBlock)
 	if err != nil {
 		return nil, err
 	}

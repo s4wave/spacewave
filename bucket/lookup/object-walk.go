@@ -183,7 +183,7 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(
 		if !e.Found && e.Err == nil && !e.IsSubBlock && !e.Ref.GetEmpty() {
 			// returns nil, false, nil if reference was empty.
 			// returns nil, false, ErrNotFound if reference was not found.
-			e.Data, e.Found, e.Err = readBkt.GetBlock(e.Ref)
+			e.Data, e.Found, e.Err = readBkt.GetBlock(ctx, e.Ref)
 		}
 
 		if e.Found && e.Ctor != nil && e.Err == nil && !e.IsSubBlock {

@@ -31,7 +31,7 @@ func NewReader(
 	ctx context.Context,
 	bcs *block.Cursor,
 ) (*Reader, error) {
-	rootBlk, err := UnmarshalBlob(bcs)
+	rootBlk, err := UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		}
 		copy(p, rawBuf[readStart:readEnd])
 	case BlobType_BlobType_CHUNKED:
-		chkRead, outChkIdx, err := ReadFromChunks(r.chunkSet, p, readStart, r.chunkIdx)
+		chkRead, outChkIdx, err := ReadFromChunks(r.ctx, r.chunkSet, p, readStart, r.chunkIdx)
 		if err == io.EOF {
 			// readStart must be past the end of the chunks.
 			// respect totalSize and fill the remainder with zeros.

@@ -32,7 +32,7 @@ func TestFS(t *testing.T) {
 	// init the filesystem root
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
-	_, err = unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+	_, err = unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

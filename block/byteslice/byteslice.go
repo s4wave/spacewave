@@ -1,6 +1,8 @@
 package byteslice
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 )
 
@@ -27,7 +29,7 @@ func NewByteSliceBlock() block.Block {
 // ByteSliceToRef converts a byte slice cursor into a block.BlockRef.
 // If the cursor is empty & apply is set, sets a empty ref.
 // If apply is set, updates the block cursor to hold a BlockRef object.
-func ByteSliceToRef(bcs *block.Cursor, apply bool) (*block.BlockRef, error) {
+func ByteSliceToRef(ctx context.Context, bcs *block.Cursor, apply bool) (*block.BlockRef, error) {
 	nodRefi, _ := bcs.GetBlock()
 	if nodRefi == nil && !apply {
 		return &block.BlockRef{}, nil
@@ -45,7 +47,7 @@ func ByteSliceToRef(bcs *block.Cursor, apply bool) (*block.BlockRef, error) {
 		}
 	}
 
-	return block.UnmarshalBlockRefBlock(bcs)
+	return block.UnmarshalBlockRefBlock(ctx, bcs)
 }
 
 // IsNil returns if the object is nil.

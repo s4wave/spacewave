@@ -316,7 +316,7 @@ func (t *Transaction) Write(clearTree bool) (
 						putOpts.ForceBlockRef = blkRef
 						writeQueue.Enqueue(func() {
 							// ensure that the wrote ref == the expected.
-							wroteRef, _, err := t.store.PutBlock(dat, t.putOpts)
+							wroteRef, _, err := t.store.PutBlock(ctx, dat, t.putOpts)
 							if err == nil && !wroteRef.EqualsRef(blkRef) {
 								err = errors.Errorf("wrote block ref %s != expected %s", wroteRef.MarshalString(), blkRef.MarshalString())
 							}

@@ -177,7 +177,7 @@ func (f *FSCursor) buildChildCursor(name string, dirent *unixfs_block.Dirent, ch
 		}
 
 		var err error
-		ftree, err = unixfs_block.NewFSTree(bcs, dirent.GetNodeType())
+		ftree, err = unixfs_block.NewFSTree(f.fs.ctx, bcs, dirent.GetNodeType())
 		if err != nil {
 			// ignore error here, defer to later.
 			ftree = nil
@@ -357,7 +357,7 @@ func (f *FSCursor) resolveFsCursorOps() error {
 
 	// build initial fsops
 	btx, bcs := f.fs.rootCursor.BuildTransactionAtRef(nil, dirEnt.GetNodeRef())
-	ftree, err := unixfs_block.NewFSTree(bcs, dirEnt.GetNodeType())
+	ftree, err := unixfs_block.NewFSTree(f.fs.ctx, bcs, dirEnt.GetNodeType())
 	if err != nil {
 		if err != context.Canceled && f.fs.writer != nil {
 			f.fs.writer.FilesystemError(err)

@@ -143,7 +143,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // ServeGetBlock serves a get block request.
 // ref must have been validated already.
 func (h *HTTPBlockServer) ServeGetBlock(ctx context.Context, rw http.ResponseWriter, ref *block.BlockRef) {
-	data, exists, err := h.store.GetBlock(ref)
+	data, exists, err := h.store.GetBlock(ctx, ref)
 	resp := &block_store_http.GetResponse{}
 	if err != nil {
 		resp.Err = err.Error()
@@ -159,7 +159,7 @@ func (h *HTTPBlockServer) ServeGetBlock(ctx context.Context, rw http.ResponseWri
 // ServeGetBlockExists serves a get block exists request.
 // ref must have been validated already.
 func (h *HTTPBlockServer) ServeGetBlockExists(ctx context.Context, rw http.ResponseWriter, ref *block.BlockRef) {
-	exists, err := h.store.GetBlockExists(ref)
+	exists, err := h.store.GetBlockExists(ctx, ref)
 	resp := &block_store_http.ExistsResponse{}
 	if err != nil {
 		resp.Err = err.Error()
@@ -181,7 +181,7 @@ func (h *HTTPBlockServer) ServeRmBlock(ctx context.Context, rw http.ResponseWrit
 		return
 	}
 
-	err := h.store.RmBlock(ref)
+	err := h.store.RmBlock(ctx, ref)
 	resp := &block_store_http.RmResponse{}
 	if err != nil {
 		resp.Err = err.Error()
@@ -236,7 +236,7 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 	}
 
 	putOpts.HashType = reqHashType
-	putRef, existed, err := h.store.PutBlock(req.GetData(), putOpts)
+	putRef, existed, err := h.store.PutBlock(ctx, req.GetData(), putOpts)
 	resp := &block_store_http.PutResponse{}
 	if err != nil {
 		resp.Err = err.Error()

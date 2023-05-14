@@ -1,6 +1,10 @@
 package block
 
-import "github.com/aperturerobotics/bifrost/hash"
+import (
+	"context"
+
+	"github.com/aperturerobotics/bifrost/hash"
+)
 
 // Store can read/write blocks.
 type Store interface {
@@ -12,28 +16,28 @@ type Store interface {
 	// The ref should not be modified after return.
 	// The second return value can optionally indicate if the block already existed.
 	// If the hash type is unset, use the type from GetHashType().
-	PutBlock(data []byte, opts *PutOpts) (*BlockRef, bool, error)
+	PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error)
 	// GetBlock gets a block with the given reference.
 	// The ref should not be modified or retained by GetBlock.
 	// Returns data, found, error.
 	// Returns nil, false, nil if not found.
 	// Note: the block may not be in the specified bucket.
-	GetBlock(ref *BlockRef) ([]byte, bool, error)
+	GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error)
 	// GetBlockExists checks if a block exists with a cid reference.
 	// The ref should not be modified or retained by GetBlock.
 	// Note: the block may not be in the specified bucket.
-	GetBlockExists(ref *BlockRef) (bool, error)
+	GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error)
 	// RmBlock deletes a block from the bucket.
 	// Does not return an error if the block was not present.
 	// In some cases, will return before confirming delete.
-	RmBlock(ref *BlockRef) error
+	RmBlock(ctx context.Context, ref *BlockRef) error
 }
 
 // PutBlock marshals & puts a block into a bucket.
-func PutBlock(bk Store, b Block) (*BlockRef, bool, error) {
+func PutBlock(ctx context.Context, bk Store, b Block) (*BlockRef, bool, error) {
 	dat, err := b.MarshalBlock()
 	if err != nil {
 		return nil, false, err
 	}
-	return bk.PutBlock(dat, nil)
+	return bk.PutBlock(ctx, dat, nil)
 }

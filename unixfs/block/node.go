@@ -1,6 +1,7 @@
 package unixfs_block
 
 import (
+	"context"
 	"io/fs"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -51,8 +52,8 @@ func NewFSNodeBlock() block.Block {
 
 // FetchCheckFSNode unmarshals a filesystem node and checks its type.
 // returns nil, nil if empty or nodeType is 0
-func FetchCheckFSNode(bcs *block.Cursor, nt NodeType) (*FSNode, error) {
-	fn, err := UnmarshalFSNode(bcs)
+func FetchCheckFSNode(ctx context.Context, bcs *block.Cursor, nt NodeType) (*FSNode, error) {
+	fn, err := UnmarshalFSNode(ctx, bcs)
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +75,8 @@ func FetchCheckFSNode(bcs *block.Cursor, nt NodeType) (*FSNode, error) {
 
 // UnmarshalFSNode unmarshals a filesystem node from a cursor.
 // If empty, returns nil, nil
-func UnmarshalFSNode(bcs *block.Cursor) (*FSNode, error) {
-	return block.UnmarshalBlock[*FSNode](bcs, NewFSNodeBlock)
+func UnmarshalFSNode(ctx context.Context, bcs *block.Cursor) (*FSNode, error) {
+	return block.UnmarshalBlock[*FSNode](ctx, bcs, NewFSNodeBlock)
 }
 
 // IsNil returns if the object is nil.

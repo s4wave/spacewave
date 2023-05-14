@@ -45,8 +45,8 @@ func BuildMsgpackBlob(
 
 // UnmarshalMsgpackBlob loads a msgpack blob at a cursor.
 // may return nil
-func UnmarshalMsgpackBlob(bcs *block.Cursor) (*MsgpackBlob, error) {
-	return block.UnmarshalBlock[*MsgpackBlob](bcs, NewMsgpackBlobBlock)
+func UnmarshalMsgpackBlob(ctx context.Context, bcs *block.Cursor) (*MsgpackBlob, error) {
+	return block.UnmarshalBlock[*MsgpackBlob](ctx, bcs, NewMsgpackBlobBlock)
 }
 
 // IsNil returns if the object is nil.

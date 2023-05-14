@@ -1,6 +1,8 @@
 package blob
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/pkg/errors"
@@ -36,7 +38,7 @@ func (r *Chunk) Validate() error {
 
 // FetchData fetches the data reference.
 // bcs should be located at chunk
-func (r *Chunk) FetchData(bcs *block.Cursor, copyBuf bool) ([]byte, error) {
+func (r *Chunk) FetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool) ([]byte, error) {
 	var data []byte
 	var dataOk bool
 	var err error
@@ -50,7 +52,7 @@ func (r *Chunk) FetchData(bcs *block.Cursor, copyBuf bool) ([]byte, error) {
 		}
 	}
 	if !dataOk {
-		data, dataOk, err = currChunkDataCs.Fetch()
+		data, dataOk, err = currChunkDataCs.Fetch(ctx)
 		if err != nil {
 			return nil, err
 		}

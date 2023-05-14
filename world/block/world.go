@@ -24,12 +24,10 @@ import (
 // WorldState implements world state backed by a block graph.
 // Note: calls are not concurrency safe. Use Tx if you want a mutex.
 type WorldState struct {
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	le        *logrus.Entry
-	btx       *block.Transaction
-	bcs       *block.Cursor
-	write     bool
+	le    *logrus.Entry
+	btx   *block.Transaction
+	bcs   *block.Cursor
+	write bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -69,8 +67,7 @@ func NewWorldState(
 		storage:  storage,
 		lookupOp: lookupOp,
 	}
-	tx.ctx, tx.ctxCancel = context.WithCancel(ctx)
-	if err := tx.SetBlockTransaction(btx, bcs); err != nil {
+	if err := tx.SetBlockTransaction(ctx, btx, bcs); err != nil {
 		return nil, err
 	}
 	return tx, nil
@@ -105,15 +102,15 @@ func (t *WorldState) GetBcs() *block.Cursor {
 }
 
 // GetRoot builds the Root object from the block cursor.
-func (t *WorldState) GetRoot() (*World, error) {
-	return UnmarshalWorld(t.bcs)
+func (t *WorldState) GetRoot(ctx context.Context) (*World, error) {
+	return UnmarshalWorld(ctx, t.bcs)
 }
 
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
-func (t *WorldState) GetSeqno() (uint64, error) {
-	w, err := t.GetRoot()
+func (t *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
+	w, err := t.GetRoot(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -131,7 +128,7 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 
 	for {
 		t.mtx.Lock()
-		w, err := t.GetRoot()
+		w, err := t.GetRoot(ctx)
 		if err != nil {
 			t.mtx.Unlock()
 			return 0, err
@@ -199,6 +196,7 @@ func (t *WorldState) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *WorldState) ApplyWorldOp(
+	rctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
@@ -210,14 +208,14 @@ func (t *WorldState) ApplyWorldOp(
 		return 0, false, err
 	}
 
-	subCtx, subCtxCancel := context.WithCancel(t.ctx)
+	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	sysErr, err := op.ApplyWorldOp(subCtx, t.le, t, opSender)
+	sysErr, err := op.ApplyWorldOp(ctx, t.le, t, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}
-	seq, err := t.GetSeqno()
+	seq, err := t.GetSeqno(ctx)
 	if err != nil {
 		return 0, true, err
 	}
@@ -262,17 +260,17 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 }
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.
-func (t *WorldState) SetBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
+func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transaction, bcs *block.Cursor) error {
 	// type assert root -> *World
-	_, err := block.UnmarshalBlock[*World](bcs, NewWorldBlock)
+	_, err := block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
 	if err != nil {
 		return err
 	}
-	objTree, err := t.buildObjectTree(bcs)
+	objTree, err := t.buildObjectTree(ctx, bcs)
 	if err != nil {
 		return err
 	}
-	graphTree, graphHandle, err := t.buildGraphTree(bcs)
+	graphTree, graphHandle, err := t.buildGraphTree(ctx, bcs)
 	if err != nil {
 		return err
 	}
@@ -292,20 +290,20 @@ func (t *WorldState) SetBlockTransaction(btx *block.Transaction, bcs *block.Curs
 
 // Commit commits the current pending changes to the block cursor.
 // updates the WorldState with the new root
-func (t *WorldState) Commit() error {
+func (t *WorldState) Commit(ctx context.Context) error {
 	if !t.write {
 		return tx.ErrNotWrite
 	}
 	select {
-	case <-t.ctx.Done():
+	case <-ctx.Done():
 		return tx.ErrDiscarded
 	default:
 	}
-	w, err := t.GetRoot()
+	w, err := t.GetRoot(ctx)
 	if err != nil {
 		return err
 	}
-	err = t.flushWorldChanges(w)
+	err = t.flushWorldChanges(ctx, w)
 	if err != nil || t.btx == nil {
 		return err
 	}
@@ -313,23 +311,17 @@ func (t *WorldState) Commit() error {
 	if err != nil {
 		return err
 	}
-	return t.SetBlockTransaction(t.btx, bcs)
-}
-
-// Close closes the store, canceling the context.
-func (t *WorldState) Close() error {
-	t.ctxCancel()
-	return nil
+	return t.SetBlockTransaction(ctx, t.btx, bcs)
 }
 
 // buildObjectTree builds the object tree handle.
-func (t *WorldState) buildObjectTree(bcs *block.Cursor) (kvtx.BlockTx, error) {
-	return kvtx_block.BuildKvTransaction(t.ctx, bcs.FollowSubBlock(1), true)
+func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.
-func (t *WorldState) buildGraphTree(bcs *block.Cursor) (kvtx.BlockTx, *cayley.Handle, error) {
-	ktx, err := kvtx_block.BuildKvTransaction(t.ctx, bcs.FollowSubBlock(2), true)
+func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *cayley.Handle, error) {
+	ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), true)
 	if err != nil {
 		return nil, nil, err
 	}

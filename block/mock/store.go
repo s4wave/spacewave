@@ -1,6 +1,7 @@
 package block_mock
 
 import (
+	"context"
 	"sync"
 
 	"github.com/aperturerobotics/bifrost/hash"
@@ -29,7 +30,7 @@ func (b *mockStore) GetHashType() hash.HashType {
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
-func (b *mockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (b *mockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	hashType := opts.GetHashType()
 	if hashType == 0 {
 		hashType = b.hashType
@@ -51,7 +52,7 @@ func (b *mockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef,
 
 // GetBlock gets a block with a cid reference.
 // Note: the block may not be in the specified bucket.
-func (b *mockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (b *mockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if err := ref.Validate(); err != nil {
 		return nil, false, err
 	}
@@ -65,7 +66,7 @@ func (b *mockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists with a cid reference.
 // Note: the block may not be in the specified bucket.
-func (b *mockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (b *mockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	if err := ref.Validate(); err != nil {
 		return false, err
 	}
@@ -77,7 +78,7 @@ func (b *mockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (b *mockStore) RmBlock(ref *block.BlockRef) error {
+func (b *mockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if err := ref.Validate(); err != nil {
 		return err
 	}

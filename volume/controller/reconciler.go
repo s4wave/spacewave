@@ -20,7 +20,7 @@ func (c *Controller) wakeFilledReconcilerQueues(
 	if c.config.GetDisableReconcilerQueues() {
 		return volume.ErrReconcilerQueuesDisabled
 	}
-	filledQueues, err := v.ListFilledReconcilerEventQueues()
+	filledQueues, err := v.ListFilledReconcilerEventQueues(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (c *Controller) wakeReconcilerQueueLocked(
 		return exist.reqQueue, nil
 	}
 
-	eq, err := v.GetReconcilerEventQueue(pair)
+	eq, err := v.GetReconcilerEventQueue(ctx, pair)
 	if err != nil {
 		return nil, errors.Wrap(err, "get reconciler event queue")
 	}

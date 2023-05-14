@@ -86,7 +86,7 @@ func AccessRepoWithCursor(
 	if workdir == nil {
 		workdir = memfs.New()
 	}
-	repob, err := git_block.UnmarshalRepo(bcs)
+	repob, err := git_block.UnmarshalRepo(ctx, bcs)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func ValidateOrCreateRepo(
 		}
 		_, err = world.AccessObject(ctx, accessState, repoRef, func(bcs *block.Cursor) error {
 			// Confirm valid repo object.
-			repo, err := git_block.UnmarshalRepo(bcs)
+			repo, err := git_block.UnmarshalRepo(ctx, bcs)
 			if err == nil {
 				err = repo.Validate()
 			}
@@ -169,7 +169,7 @@ func AccessWorktreeWithCursor(
 	bcs *block.Cursor,
 	cb func(bcs *block.Cursor, wt *Worktree) error,
 ) error {
-	wt, err := UnmarshalWorktree(bcs)
+	wt, err := UnmarshalWorktree(ctx, bcs)
 	if err != nil {
 		return err
 	}
@@ -283,7 +283,7 @@ func CreateWorldObjectWorktree(
 ) error {
 	// ensure workdir exists
 	workdirObjKey := workdirRef.GetObjectKey()
-	_, wdObjExists, err := ws.GetObject(workdirObjKey)
+	_, wdObjExists, err := ws.GetObject(ctx, workdirObjKey)
 	if err != nil {
 		return err
 	}
@@ -367,8 +367,7 @@ func CreateWorldObjectWorktree(
 	}
 
 	// worktree type -> types/git/worktree
-	typesState := world_types.NewTypesState(ctx, ws)
-	if err := typesState.SetObjectType(worktreeObjKey, GitWorktreeTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, ws, worktreeObjKey, GitWorktreeTypeID); err != nil {
 		return err
 	}
 
@@ -381,6 +380,7 @@ func CreateWorldObjectWorktree(
 
 	// worktree git/repo -> repo
 	err = ws.SetGraphQuad(
+		ctx,
 		world.NewGraphQuadWithKeys(worktreeObjKey, GitRepoPred, repoObjKey, ""),
 	)
 	if err != nil {
@@ -398,6 +398,7 @@ func CreateWorldObjectWorktree(
 	}
 	refValueGv := world.GraphValueToString(world.KeyToGraphValue(refValueKey))
 	err = ws.SetGraphQuad(
+		ctx,
 		world.NewGraphQuadWithKeys(worktreeObjKey, GitWorktreeWorkdirPred, workdirRef.GetObjectKey(), refValueGv),
 	)
 	if err != nil {
@@ -406,6 +407,7 @@ func CreateWorldObjectWorktree(
 
 	// repo git/worktree -> worktree
 	err = ws.SetGraphQuad(
+		ctx,
 		world.NewGraphQuadWithKeys(repoObjKey, GitRepoWorktreePred, worktreeObjKey, ""),
 	)
 	if err != nil {
@@ -423,7 +425,7 @@ func WorktreeLookupWorkdirRef(
 	objKey string,
 ) (*unixfs_world.UnixfsRef, error) {
 	// access the workdir
-	gqs, err := worldHandle.LookupGraphQuads(world.NewGraphQuadWithKeys(objKey, GitWorktreeWorkdirPred, "", ""), 1)
+	gqs, err := worldHandle.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(objKey, GitWorktreeWorkdirPred, "", ""), 1)
 	if len(gqs) == 0 && err == nil {
 		err = world.ErrQuadNotFound
 	}

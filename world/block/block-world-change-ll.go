@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
@@ -21,6 +23,7 @@ func NewWorldChangeLLBlock() block.Block {
 // if prevBcs is set, it will be checked to ensure same WorldChange type
 // returns the new world change ll node
 func AppendWorldChangeLL(
+	ctx context.Context,
 	nextBcs *block.Cursor,
 	prevBcs *block.Cursor,
 	worldChangesBcs []*block.Cursor,
@@ -35,7 +38,7 @@ func AppendWorldChangeLL(
 			prevBcs = prevBcs.Detach(true)
 		}
 		// unmarshal previous block
-		prevWorldChangeLL, err = UnmarshalWorldChangeLL(prevBcs)
+		prevWorldChangeLL, err = UnmarshalWorldChangeLL(ctx, prevBcs)
 		if err != nil {
 			return nil, err
 		}
@@ -69,8 +72,8 @@ func AppendWorldChangeLL(
 
 // UnmarshalWorldChangeLL unmarshals a world change ll from a cursor.
 // If empty, returns nil, nil
-func UnmarshalWorldChangeLL(bcs *block.Cursor) (*WorldChangeLL, error) {
-	return block.UnmarshalBlock[*WorldChangeLL](bcs, NewWorldChangeLLBlock)
+func UnmarshalWorldChangeLL(ctx context.Context, bcs *block.Cursor) (*WorldChangeLL, error) {
+	return block.UnmarshalBlock[*WorldChangeLL](ctx, bcs, NewWorldChangeLLBlock)
 }
 
 // IsNil returns if the object is nil.

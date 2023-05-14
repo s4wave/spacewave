@@ -1,6 +1,8 @@
 package volume
 
 import (
+	"context"
+
 	hash "github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
@@ -23,24 +25,24 @@ func (v *VolumeBlockStore) GetHashType() hash.HashType {
 }
 
 // PutBlock puts a block into the store.
-func (v *VolumeBlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return v.store.PutBlock(data, opts)
+func (v *VolumeBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	return v.store.PutBlock(ctx, data, opts)
 
 }
 
 // GetBlock gets a block with the given reference.
-func (v *VolumeBlockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
-	return v.store.GetBlock(ref)
+func (v *VolumeBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	return v.store.GetBlock(ctx, ref)
 }
 
 // GetBlockExists checks if a block exists with a cid reference.
-func (v *VolumeBlockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
-	return v.store.GetBlockExists(ref)
+func (v *VolumeBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return v.store.GetBlockExists(ctx, ref)
 }
 
 // RmBlock deletes a block from the bucket.
-func (v *VolumeBlockStore) RmBlock(ref *block.BlockRef) error {
-	return v.store.RmBlock(ref)
+func (v *VolumeBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	return v.store.RmBlock(ctx, ref)
 }
 
 // _ is a type assertion

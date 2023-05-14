@@ -324,7 +324,7 @@ func (o *StoreEncodedObject) Reader() (io.ReadCloser, error) {
 		// uninitialized encoded object
 		return nil, io.EOF
 	}
-	blk, err := block.UnmarshalBlock[*EncodedObject](o.bcs, NewEncodedObjectBlock)
+	blk, err := block.UnmarshalBlock[*EncodedObject](o.r.ctx, o.bcs, NewEncodedObjectBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +363,7 @@ func (r *Store) buildEncodedObjectKey(ot plumbing.ObjectType, h plumbing.Hash) (
 // unmarshalEncodedObject unmarshals the EncodedObject block.
 // returns nil, nil, if empty
 func (e *StoreEncodedObject) unmarshalEncodedObject() (*EncodedObject, error) {
-	return block.UnmarshalBlock[*EncodedObject](e.bcs, NewEncodedObjectBlock)
+	return block.UnmarshalBlock[*EncodedObject](e.r.ctx, e.bcs, NewEncodedObjectBlock)
 }
 
 // lookupEncodedObject tries to build the EncodedObject from a key.
@@ -376,7 +376,7 @@ func (r *Store) lookupEncodedObject(key []byte) (*EncodedObject, *block.Cursor, 
 	if nodCs == nil {
 		return nil, nil, plumbing.ErrObjectNotFound
 	}
-	encObji, err := nodCs.Unmarshal(NewEncodedObjectBlock)
+	encObji, err := nodCs.Unmarshal(r.ctx, NewEncodedObjectBlock)
 	if err != nil {
 		return nil, nil, err
 	}

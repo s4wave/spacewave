@@ -40,7 +40,7 @@ func NewTx(
 	write bool,
 	rootChangedCb func(*block.Cursor),
 ) (*Tx, error) {
-	rn, err := block.UnmarshalBlock[*Node](bcs, NewNodeBlock)
+	rn, err := block.UnmarshalBlock[*Node](ctx, bcs, NewNodeBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 	if err != nil || node == nil || bcs == nil {
 		return nil, false, err
 	}
-	val, err := t.nodeToValue(bcs, node)
+	val, err := t.nodeToValue(t.ctx, bcs, node)
 	if err != nil {
 		return nil, false, err
 	}
@@ -216,7 +216,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
 		func(bcs *block.Cursor, n *Node, _ uint8) error {
 			if n.GetHeight() == 0 &&
 				len(n.GetKey()) != 0 {
-				nodValue, err := t.nodeToValue(bcs, n)
+				nodValue, err := t.nodeToValue(t.ctx, bcs, n)
 				if err != nil {
 					return err
 				}
@@ -297,7 +297,7 @@ func (t *Tx) GetAndDelete(key []byte) (_ []byte, _ bool, err error) {
 	if err != nil {
 		return nil, true, err
 	}
-	val, err := t.nodeToValue(removedBcs, removedNod)
+	val, err := t.nodeToValue(t.ctx, removedBcs, removedNod)
 	return val, true, err
 }
 
@@ -315,7 +315,7 @@ func (t *Tx) removeFromRoot(key []byte) (*block.Cursor, *Node, error) {
 		nextCs.ClearRef(5)
 		nextCs.ClearRef(6)
 	} else {
-		nextNod, err = loadNode(nextCs)
+		nextNod, err = loadNode(t.ctx, nextCs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -388,9 +388,9 @@ func (t *Tx) followKeyFromNode(
 ) (ln *Node, lcs *block.Cursor, left bool, err error) {
 	left = bytes.Compare(key, n.GetKey()) < 0
 	if left {
-		ln, lcs, err = n.FollowLeft(bcs)
+		ln, lcs, err = n.FollowLeft(t.ctx, bcs)
 	} else {
-		ln, lcs, err = n.FollowRight(bcs)
+		ln, lcs, err = n.FollowRight(t.ctx, bcs)
 	}
 	return
 }
@@ -534,9 +534,9 @@ func (t *Tx) removeFromNode(
 		// clear ref to child
 		// set parent ref (left or right) to other link, deleting this node
 		if left {
-			lnod, lcs, err = nod.FollowRight(bcs)
+			lnod, lcs, err = nod.FollowRight(t.ctx, bcs)
 		} else {
-			lnod, lcs, err = nod.FollowLeft(bcs)
+			lnod, lcs, err = nod.FollowLeft(t.ctx, bcs)
 		}
 		return lcs, lnod.GetKey(), removedCursor, removedNode, err
 	}
@@ -560,11 +560,11 @@ func (t *Tx) removeFromNode(
 
 // calcNodeHeightAndSize calcluates a node's height and size.
 func (t *Tx) calcNodeHeightAndSize(nod *Node, bcs *block.Cursor) error {
-	leftNod, _, err := nod.FollowLeft(bcs)
+	leftNod, _, err := nod.FollowLeft(t.ctx, bcs)
 	if err != nil {
 		return err
 	}
-	rightNod, _, err := nod.FollowRight(bcs)
+	rightNod, _, err := nod.FollowRight(t.ctx, bcs)
 	if err != nil {
 		return err
 	}
@@ -576,11 +576,11 @@ func (t *Tx) calcNodeHeightAndSize(nod *Node, bcs *block.Cursor) error {
 
 // calcNodeBalance calcluates a node's balance
 func (t *Tx) calcNodeBalance(nod *Node, bcs *block.Cursor) (int, error) {
-	leftNod, _, err := nod.FollowLeft(bcs)
+	leftNod, _, err := nod.FollowLeft(t.ctx, bcs)
 	if err != nil {
 		return 0, err
 	}
-	rightNod, _, err := nod.FollowRight(bcs)
+	rightNod, _, err := nod.FollowRight(t.ctx, bcs)
 	if err != nil {
 		return 0, err
 	}
@@ -591,13 +591,13 @@ func (t *Tx) calcNodeBalance(nod *Node, bcs *block.Cursor) (int, error) {
 // the parent link to nod needs to be replaced with a link to the new root
 func (t *Tx) rotateNodeRight(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor, error) {
 	// new root node will be nod->left
-	leftNod, leftNodCs, err := nod.FollowLeft(bcs)
+	leftNod, leftNodCs, err := nod.FollowLeft(t.ctx, bcs)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// follow leftNod->right (n4)
-	_, leftNodRightCs, err := leftNod.FollowRight(leftNodCs)
+	_, leftNodRightCs, err := leftNod.FollowRight(t.ctx, leftNodCs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -628,14 +628,14 @@ func (t *Tx) rotateNodeRight(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 // the parent link to nod needs to be replaced with a link to the new root
 func (t *Tx) rotateNodeLeft(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor, error) {
 	// new root node will be nod->right
-	rightNod, rightNodCs, err := nod.FollowRight(bcs)
+	rightNod, rightNodCs, err := nod.FollowRight(t.ctx, bcs)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// follow rightNod->left (n3)
 	// n3 may be a leaf
-	_, rightNodLeftCs, err := rightNod.FollowLeft(rightNodCs)
+	_, rightNodLeftCs, err := rightNod.FollowLeft(t.ctx, rightNodCs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -674,7 +674,7 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 		return nil, nil, err
 	}
 	if balance > 1 {
-		leftNod, leftNodCs, err := nod.FollowLeft(bcs)
+		leftNod, leftNodCs, err := nod.FollowLeft(t.ctx, bcs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -699,7 +699,7 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 		return t.rotateNodeRight(nod, bcs)
 	}
 	if balance < -1 {
-		rightNod, rightNodCs, err := nod.FollowRight(bcs)
+		rightNod, rightNodCs, err := nod.FollowRight(t.ctx, bcs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -727,13 +727,13 @@ func (t *Tx) balanceFromNode(nod *Node, bcs *block.Cursor) (*Node, *block.Cursor
 }
 
 // nodeToValue converts a node into a []byte value, depending on isBlob flag.
-func (t *Tx) nodeToValue(bcs *block.Cursor, n *Node) ([]byte, error) {
+func (t *Tx) nodeToValue(ctx context.Context, bcs *block.Cursor, n *Node) ([]byte, error) {
 	valueCursor := bcs.FollowRef(7, n.GetValueRef())
 	if n.GetValueRefBlob() {
 		return blob.FetchToBytes(t.ctx, valueCursor)
 	}
 	// empty block returns nil
-	dat, _, err := valueCursor.Fetch()
+	dat, _, err := valueCursor.Fetch(ctx)
 	return dat, err
 }
 
@@ -773,8 +773,8 @@ func (t *Tx) traverseFromNode(
 			depth+1, cb,
 		)
 	}
-	chk := func(follow func(*block.Cursor) (*Node, *block.Cursor, error)) error {
-		ln, lncs, err := follow(bcs)
+	chk := func(follow func(ctx context.Context, bcs *block.Cursor) (*Node, *block.Cursor, error)) error {
+		ln, lncs, err := follow(t.ctx, bcs)
 		if err != nil {
 			return err
 		}

@@ -91,12 +91,12 @@ func TestMysqlDb(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	msql := sdb.(*mysql.Mysql)
-	tx, err := msql.NewMysqlTransaction(true)
+	tx, err := msql.NewMysqlTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	// create=false because we are testing CreateDbs above
-	db, err := tx.OpenDatabase(dbName, false)
+	db, err := tx.OpenDatabase(ctx, dbName, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

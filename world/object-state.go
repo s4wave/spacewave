@@ -15,7 +15,7 @@ type ObjectState interface {
 	GetKey() string
 	// GetRootRef returns the root reference.
 	// Returns the revision number.
-	GetRootRef() (*bucket.ObjectRef, uint64, error)
+	GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error)
 
 	// AccessWorldState builds a bucket lookup cursor with an optional ref.
 	// If the ref is empty, will default to the object RootRef.
@@ -30,7 +30,7 @@ type ObjectState interface {
 	// SetRootRef changes the root reference of the object.
 	// Increments the revision of the object if changed.
 	// Returns revision just after the change was applied.
-	SetRootRef(nref *bucket.ObjectRef) (uint64, error)
+	SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error)
 	// ApplyObjectOp applies a batch operation at the object level.
 	// The handling of the operation is operation-type specific.
 	// Returns the revision following the operation execution.
@@ -38,13 +38,14 @@ type ObjectState interface {
 	// If sysErr is set, the error is treated as a transient system error.
 	// Returns rev, sysErr, err
 	ApplyObjectOp(
+		ctx context.Context,
 		op Operation,
 		opSender peer.ID,
 	) (rev uint64, sysErr bool, err error)
 
 	// IncrementRev increments the revision of the object.
 	// Returns revision just after the change was applied.
-	IncrementRev() (uint64, error)
+	IncrementRev(ctx context.Context) (uint64, error)
 
 	// WaitRev waits until the object rev is >= the specified.
 	// Returns ErrObjectNotFound if the object is deleted.

@@ -755,7 +755,7 @@ func (f *FSCursorOps) flushChanges() error {
 	}
 	_, nrootCs, err := f.btx.Write(false)
 	if err == nil {
-		f.fsTree, err = unixfs_block.NewFSTree(nrootCs, f.fsTree.GetFSNode().GetNodeType())
+		f.fsTree, err = unixfs_block.NewFSTree(f.cursor.fs.ctx, nrootCs, f.fsTree.GetFSNode().GetNodeType())
 	}
 	if err != nil {
 		return err

@@ -55,11 +55,11 @@ func (t *Tx) GetReadOnly() bool {
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
-func (t *Tx) GetSeqno() (uint64, error) {
+func (t *Tx) GetSeqno(ctx context.Context) (uint64, error) {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
-	return t.state.GetSeqno()
+	return t.state.GetSeqno(ctx)
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
@@ -92,6 +92,7 @@ func (t *Tx) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *Tx) ApplyWorldOp(
+	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
@@ -102,7 +103,7 @@ func (t *Tx) ApplyWorldOp(
 		return 0, false, tx.ErrDiscarded
 	}
 
-	return t.state.ApplyWorldOp(op, opSender)
+	return t.state.ApplyWorldOp(ctx, op, opSender)
 }
 
 // Commit commits the transaction to storage.
@@ -119,8 +120,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	var err error
 	if !discarded {
 		t.discarded = true
-		err = t.state.Commit()
-		_ = t.state.Close()
+		err = t.state.Commit(ctx)
 	}
 	t.rmtx.Unlock()
 	if discarded {
@@ -138,7 +138,6 @@ func (t *Tx) Discard() {
 	discarded := t.discarded
 	if !discarded {
 		t.discarded = true
-		_ = t.state.Close()
 	}
 	t.rmtx.Unlock()
 }

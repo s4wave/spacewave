@@ -12,8 +12,6 @@ import (
 
 // BlockStore implements a BlockStore backed by a BlockStore service.
 type BlockStore struct {
-	// ctx is used for volume lookups
-	ctx context.Context
 	// client is the client to use
 	client block_rpc.SRPCBlockStoreClient
 	// hashType is the preferred hash type to use for writes
@@ -24,13 +22,11 @@ type BlockStore struct {
 
 // NewBlockStore constructs a new BlockStore.
 func NewBlockStore(
-	ctx context.Context,
 	client block_rpc.SRPCBlockStoreClient,
 	hashType hash.HashType,
 	readOnly bool,
 ) *BlockStore {
 	return &BlockStore{
-		ctx:      ctx,
 		client:   client,
 		hashType: hashType,
 		readOnly: readOnly,
@@ -47,11 +43,11 @@ func (v *BlockStore) GetHashType() hash.HashType {
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
-func (v *BlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if v.readOnly {
 		return nil, false, block_store.ErrReadOnlyStore
 	}
-	resp, err := v.client.PutBlock(v.ctx, &block_rpc.PutBlockRequest{
+	resp, err := v.client.PutBlock(ctx, &block_rpc.PutBlockRequest{
 		Data:    data,
 		PutOpts: opts,
 	})
@@ -71,8 +67,8 @@ func (v *BlockStore) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (v *BlockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
-	resp, err := v.client.GetBlock(v.ctx, &block_rpc.GetBlockRequest{
+func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	resp, err := v.client.GetBlock(ctx, &block_rpc.GetBlockRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {
@@ -87,8 +83,8 @@ func (v *BlockStore) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (v *BlockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
-	resp, err := v.client.GetBlockExists(v.ctx, &block_rpc.GetBlockExistsRequest{
+func (v *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	resp, err := v.client.GetBlockExists(ctx, &block_rpc.GetBlockExistsRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {
@@ -103,11 +99,11 @@ func (v *BlockStore) GetBlockExists(ref *block.BlockRef) (bool, error) {
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (v *BlockStore) RmBlock(ref *block.BlockRef) error {
+func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if v.readOnly {
 		return block_store.ErrReadOnlyStore
 	}
-	resp, err := v.client.RmBlock(v.ctx, &block_rpc.RmBlockRequest{
+	resp, err := v.client.RmBlock(ctx, &block_rpc.RmBlockRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {

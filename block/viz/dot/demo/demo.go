@@ -43,7 +43,7 @@ func runDemo() error {
 
 	// store the bucket
 	bucketID := "test-bucket-1"
-	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
+	_, _, _, err = vol.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  bucketID,
 		Rev: 1,
 	})
@@ -118,7 +118,7 @@ func runDemo() error {
 	}
 
 	btx, bcs := oc.BuildTransactionAtRef(nil, tr.GetRootNodeRef().GetRootRef())
-	rn, err := block.UnmarshalBlock[*iavl.Node](bcs, iavl.NewNodeBlock)
+	rn, err := block.UnmarshalBlock[*iavl.Node](ctx, bcs, iavl.NewNodeBlock)
 	err = dot.PlotToFile(ctx, "demo.dot", rn, btx, bcs, nil)
 	if err != nil {
 		return err

@@ -20,7 +20,7 @@ func NewBucketStore(store bucket_store.Store) *BucketStore {
 
 // GetBucketConfig looks up the bucket config with the bucket id.
 func (b *BucketStore) GetBucketConfig(ctx context.Context, req *bucket_rpc.GetBucketConfigRequest) (*bucket_rpc.GetBucketConfigResponse, error) {
-	bucketConf, err := b.store.GetBucketConfig(req.GetBucketId())
+	bucketConf, err := b.store.GetBucketConfig(ctx, req.GetBucketId())
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (b *BucketStore) ApplyBucketConfig(
 	if err := req.GetConfig().Validate(); err != nil {
 		return nil, err
 	}
-	updated, prev, curr, err := b.store.ApplyBucketConfig(req.GetConfig())
+	updated, prev, curr, err := b.store.ApplyBucketConfig(ctx, req.GetConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (b *BucketStore) ApplyBucketConfig(
 
 // GetBucketInfo returns information about a bucket.
 func (b *BucketStore) GetBucketInfo(ctx context.Context, req *bucket_rpc.GetBucketInfoRequest) (*bucket_rpc.GetBucketInfoResponse, error) {
-	info, err := b.store.GetBucketInfo(req.GetBucketId())
+	info, err := b.store.GetBucketInfo(ctx, req.GetBucketId())
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (b *BucketStore) ListBucketInfo(ctx context.Context, req *bucket_rpc.ListBu
 	if err != nil {
 		return nil, err
 	}
-	infos, err := b.store.ListBucketInfo(re)
+	infos, err := b.store.ListBucketInfo(ctx, re)
 	if err != nil {
 		return nil, err
 	}

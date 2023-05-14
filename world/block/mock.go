@@ -45,13 +45,13 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 	}
 
 	// create the object in the world
-	_, err = ws.CreateObject(objKey, oref)
+	_, err = ws.CreateObject(ctx, objKey, oref)
 	if err != nil {
 		return nil, err
 	}
 
 	// lookup the object
-	objState, found, err := ws.GetObject(objKey)
+	objState, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		return nil, err
 	}

@@ -12,27 +12,19 @@ import (
 
 // BucketStore implements a BucketStore backed by a BucketStore service.
 type BucketStore struct {
-	// ctx is used for volume lookups
-	ctx context.Context
 	// client is the client to use
 	client bucket_rpc.SRPCBucketStoreClient
 }
 
 // NewBucketStore constructs a new BucketStore.
-func NewBucketStore(
-	ctx context.Context,
-	client bucket_rpc.SRPCBucketStoreClient,
-) *BucketStore {
-	return &BucketStore{
-		ctx:    ctx,
-		client: client,
-	}
+func NewBucketStore(client bucket_rpc.SRPCBucketStoreClient) *BucketStore {
+	return &BucketStore{client: client}
 }
 
 // GetBucketConfig gets the bucket config for the bucket ID.
 // Can return nil if no bucket config is found.
-func (v *BucketStore) GetBucketConfig(id string) (*bucket.Config, error) {
-	resp, err := v.client.GetBucketConfig(v.ctx, &bucket_rpc.GetBucketConfigRequest{
+func (v *BucketStore) GetBucketConfig(ctx context.Context, id string) (*bucket.Config, error) {
+	resp, err := v.client.GetBucketConfig(ctx, &bucket_rpc.GetBucketConfigRequest{
 		BucketId: id,
 	})
 	if err != nil {
@@ -49,9 +41,10 @@ func (v *BucketStore) GetBucketConfig(id string) (*bucket.Config, error) {
 // The current configuration may be nil if the volume rejects the bucket.
 // If outdated, prev == curr.
 func (v *BucketStore) ApplyBucketConfig(
+	ctx context.Context,
 	conf *bucket.Config,
 ) (updated bool, prev, curr *bucket.Config, err error) {
-	resp, err := v.client.ApplyBucketConfig(v.ctx, &bucket_rpc.ApplyBucketConfigRequest{
+	resp, err := v.client.ApplyBucketConfig(ctx, &bucket_rpc.ApplyBucketConfigRequest{
 		Config: conf.CloneVT(),
 	})
 	if err != nil {
@@ -61,8 +54,8 @@ func (v *BucketStore) ApplyBucketConfig(
 }
 
 // GetBucketInfo returns bucket information by ID.
-func (v *BucketStore) GetBucketInfo(id string) (*bucket.BucketInfo, error) {
-	resp, err := v.client.GetBucketInfo(v.ctx, &bucket_rpc.GetBucketInfoRequest{
+func (v *BucketStore) GetBucketInfo(ctx context.Context, id string) (*bucket.BucketInfo, error) {
+	resp, err := v.client.GetBucketInfo(ctx, &bucket_rpc.GetBucketInfoRequest{
 		BucketId: id,
 	})
 	if err != nil {
@@ -75,12 +68,12 @@ func (v *BucketStore) GetBucketInfo(id string) (*bucket.BucketInfo, error) {
 }
 
 // ListBucketInfo lists buckets with an optional regex match.
-func (v *BucketStore) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error) {
+func (v *BucketStore) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error) {
 	var idReStr string
 	if idRegex != nil {
 		idReStr = idRegex.String()
 	}
-	resp, err := v.client.ListBucketInfo(v.ctx, &bucket_rpc.ListBucketInfoRequest{
+	resp, err := v.client.ListBucketInfo(ctx, &bucket_rpc.ListBucketInfoRequest{
 		BucketIdRe: idReStr,
 	})
 	if err != nil {
@@ -91,18 +84,18 @@ func (v *BucketStore) ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketIn
 
 // GetReconcilerEventQueue returns a reference to the event queue for a
 // reconciler ID. Should not return nil without an error.
-func (v *BucketStore) GetReconcilerEventQueue(bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
+func (v *BucketStore) GetReconcilerEventQueue(ctx context.Context, p bucket_store.BucketReconcilerPair) (mqueue.Queue, error) {
 	return nil, bucket_rpc.ErrReconcilerUnavailable
 }
 
 // DeleteReconcilerEventQueue purges a reconciler event queue.
-func (v *BucketStore) DeleteReconcilerEventQueue(bucket_store.BucketReconcilerPair) error {
+func (v *BucketStore) DeleteReconcilerEventQueue(ctx context.Context, p bucket_store.BucketReconcilerPair) error {
 	return bucket_rpc.ErrReconcilerUnavailable
 }
 
 // ListFilledReconcilerEventQueues lists reconciler event queues that have
 // at least one event, by reconciler ID.
-func (v *BucketStore) ListFilledReconcilerEventQueues() ([]bucket_store.BucketReconcilerPair, error) {
+func (v *BucketStore) ListFilledReconcilerEventQueues(ctx context.Context) ([]bucket_store.BucketReconcilerPair, error) {
 	return nil, bucket_rpc.ErrReconcilerUnavailable
 }
 

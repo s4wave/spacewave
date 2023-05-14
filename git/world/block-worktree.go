@@ -1,6 +1,8 @@
 package git_world
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	git_block "github.com/aperturerobotics/hydra/git/block"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
@@ -15,8 +17,8 @@ func NewWorktreeBlock() block.Block {
 
 // UnmarshalWorktree unmarshals a repo from a cursor.
 // If empty, returns nil, nil
-func UnmarshalWorktree(bcs *block.Cursor) (*Worktree, error) {
-	return block.UnmarshalBlock[*Worktree](bcs, NewWorktreeBlock)
+func UnmarshalWorktree(ctx context.Context, bcs *block.Cursor) (*Worktree, error) {
+	return block.UnmarshalBlock[*Worktree](ctx, bcs, NewWorktreeBlock)
 }
 
 // Validate performs cursory checks on the repo block.

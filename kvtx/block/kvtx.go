@@ -24,8 +24,8 @@ func NewKeyValueStore(impl KVImplType) *KeyValueStore {
 }
 
 // LoadKeyValueStore loads a key-value store block from a block cursor.
-func LoadKeyValueStore(bcs *block.Cursor) (*KeyValueStore, error) {
-	b, err := block.UnmarshalBlock[*KeyValueStore](bcs, NewKeyValueStoreBlock)
+func LoadKeyValueStore(ctx context.Context, bcs *block.Cursor) (*KeyValueStore, error) {
+	b, err := block.UnmarshalBlock[*KeyValueStore](ctx, bcs, NewKeyValueStoreBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func LoadKeyValueStore(bcs *block.Cursor) (*KeyValueStore, error) {
 //
 // The root ref field in bcs is updated when commit is called.
 func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvtx.BlockTx, error) {
-	kvs, err := LoadKeyValueStore(bcs)
+	kvs, err := LoadKeyValueStore(ctx, bcs)
 	if err != nil {
 		return nil, err
 	}

@@ -17,8 +17,8 @@ func NewBlobBlock() block.Block {
 
 // UnmarshalBlob unmarshals the Blob block.
 // Returns nil, nil if empty
-func UnmarshalBlob(bcs *block.Cursor) (*Blob, error) {
-	return block.UnmarshalBlock[*Blob](bcs, NewBlobBlock)
+func UnmarshalBlob(ctx context.Context, bcs *block.Cursor) (*Blob, error) {
+	return block.UnmarshalBlock[*Blob](ctx, bcs, NewBlobBlock)
 }
 
 // Validate validates the blob type from known types.
@@ -36,7 +36,7 @@ func (b BlobType) Validate() error {
 // FetchToBuffer fetches a full blob to a buffer.
 // Note: the block cursor context is also used.
 func FetchToBuffer(ctx context.Context, bcs *block.Cursor, buf *bytes.Buffer) error {
-	root, err := UnmarshalBlob(bcs)
+	root, err := UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (b *Blob) ComputeStorageSize(
 	var storageSize uint64
 
 	// add the size of the root block
-	rootData, _, err := bcs.Fetch()
+	rootData, _, err := bcs.Fetch(ctx)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -330,7 +330,7 @@ func (b *Blob) AppendData(
 	b.ChunkIndex.Chunks = chunks
 
 	// fetch last chunk data
-	lastChunkData, err := lastChunk.FetchData(lastChunkBcs, false)
+	lastChunkData, err := lastChunk.FetchData(ctx, lastChunkBcs, false)
 	if err != nil {
 		return err
 	}
@@ -450,7 +450,7 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 			nlastChkLen := nsize - int64(lastChunkStart)
 			lastChkBcs := ciChunksBcs.FollowSubBlock(uint32(lastChunkIdx))
 			// fetch last chunk data
-			lastChkData, err := lastChunk.FetchData(lastChkBcs, false)
+			lastChkData, err := lastChunk.FetchData(ctx, lastChkBcs, false)
 			if err != nil {
 				return err
 			}
@@ -506,7 +506,7 @@ func (b *Blob) TransformToRaw(ctx context.Context, bcs *block.Cursor, nsize uint
 	var rn, chkIdx int
 	var err error
 	for pos < len(nraw) {
-		rn, chkIdx, err = ReadFromChunks(ciChunkSet, nraw[pos:], pos, chkIdx)
+		rn, chkIdx, err = ReadFromChunks(ctx, ciChunkSet, nraw[pos:], pos, chkIdx)
 		pos += rn
 		if rn == 0 || err == io.EOF {
 			break

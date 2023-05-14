@@ -68,13 +68,13 @@ func (t *TxObjectIncRev) ExecuteTx(
 	}
 
 	// get the object
-	obj, err := world.MustGetObject(worldInstance, t.GetObjectKey())
+	obj, err := world.MustGetObject(ctx, worldInstance, t.GetObjectKey())
 	if err != nil {
 		return false, err
 	}
 
 	// inc the revision
-	_, err = obj.IncrementRev()
+	_, err = obj.IncrementRev(ctx)
 	return false, err
 }
 

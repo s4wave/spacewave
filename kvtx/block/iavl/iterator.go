@@ -28,7 +28,7 @@ func (o *kvtxIteratorOps) Get(key []byte) (data []byte, found bool, err error) {
 		return nil, false, err
 	}
 	o.it.keyBcs = nodCs.FollowRef(7, nod.GetValueRef())
-	data, err = o.Tx.nodeToValue(nodCs, nod)
+	data, err = o.Tx.nodeToValue(o.Tx.ctx, nodCs, nod)
 	if err != nil {
 		return nil, true, err
 	}

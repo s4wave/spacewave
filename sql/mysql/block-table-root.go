@@ -16,8 +16,8 @@ func NewTableRootBlock() block.Block {
 
 // LoadTableRoot follows the database root cursor.
 // may return nil
-func LoadTableRoot(cursor *block.Cursor) (*TableRoot, error) {
-	ni, err := cursor.Unmarshal(NewTableRootBlock)
+func LoadTableRoot(ctx context.Context, cursor *block.Cursor) (*TableRoot, error) {
+	ni, err := cursor.Unmarshal(ctx, NewTableRootBlock)
 	if err != nil {
 		return nil, err
 	}

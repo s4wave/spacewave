@@ -1,6 +1,7 @@
 package unixfs_block
 
 import (
+	"context"
 	"errors"
 	"sort"
 
@@ -210,13 +211,13 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 // bcs must be set on the dirent slice
 // ensures that the next node type is as expected
 // may return ErrOutOfBounds
-func (d *DirentSlice) FollowDirent(didx int) (*FSTree, *Dirent, error) {
+func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dirent, error) {
 	nodeRef, dirent, err := d.FollowDirentAsCursor(didx)
 	if err != nil {
 		return nil, dirent, err
 	}
 
-	node, err := FetchCheckFSNode(nodeRef, dirent.GetNodeType())
+	node, err := FetchCheckFSNode(ctx, nodeRef, dirent.GetNodeType())
 	if err != nil {
 		return nil, dirent, err
 	}

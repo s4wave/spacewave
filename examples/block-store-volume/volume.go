@@ -50,8 +50,6 @@ var (
 // block cursor as well as underlying stores)
 //
 // TODO write HEAD reference in storage when Commit() is called
-//
-// TODO for this to be viable, a in-memory LRU cache must be implemented.
 
 // NewEncryptedVolume wraps a volume with an encrypted block graph.
 //
@@ -79,7 +77,7 @@ func NewEncryptedVolume(
 		Id:  "hydra/toys/encrypted-volume/bucket",
 		Rev: 1,
 	}
-	_, _, bucketConf, err = vol.ApplyBucketConfig(bucketConf)
+	_, _, bucketConf, err = vol.ApplyBucketConfig(ctx, bucketConf)
 	if err != nil {
 		return nil, err
 	}

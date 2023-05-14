@@ -46,7 +46,7 @@ func TestBasicReader(t *testing.T) {
 	}
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -79,7 +79,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -171,7 +171,7 @@ func TestMultiRangeReader(t *testing.T) {
 	}
 	// root index is eves[len(eves)-1]
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -213,7 +213,7 @@ func TestRandomReads(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	fi, err := UnmarshalFile(bcs)
+	fi, err := UnmarshalFile(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -231,7 +231,7 @@ func TestRandomReads(t *testing.T) {
 
 	// start from scratch: random reads
 	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
-	fi, err = UnmarshalFile(bcs)
+	fi, err = UnmarshalFile(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 )
@@ -17,8 +19,8 @@ func NewWorldBlock() block.Block {
 
 // UnmarshalWorld unmarshals a world block from a cursor.
 // If empty, returns nil, nil
-func UnmarshalWorld(bcs *block.Cursor) (*World, error) {
-	return block.UnmarshalBlock[*World](bcs, NewWorldBlock)
+func UnmarshalWorld(ctx context.Context, bcs *block.Cursor) (*World, error) {
+	return block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
 }
 
 // MarshalBlock marshals the block to binary.

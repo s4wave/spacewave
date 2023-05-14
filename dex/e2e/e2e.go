@@ -245,7 +245,7 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		dataXferRef, _, err = rootCursor.PutBlock(dataXfer, nil)
+		dataXferRef, _, err = rootCursor.PutBlock(ctx, dataXfer, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -272,7 +272,7 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		lkDat, lkOk, err := rootCursor.GetBlock(dataXferRef)
+		lkDat, lkOk, err := rootCursor.GetBlock(ctx, dataXferRef)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -293,7 +293,7 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		dat, datOk, err := bav.GetBucket().GetBlock(dataXferRef)
+		dat, datOk, err := bav.GetBucket().GetBlock(ctx, dataXferRef)
 		if err != nil {
 			avRel.Release()
 			t.Fatal(err.Error())

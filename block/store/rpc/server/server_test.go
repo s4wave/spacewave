@@ -36,7 +36,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	serverVol := serverTb.Volume
 	sampleBlockBody := []byte("testing block store rpc server")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
-	sampleBlockRef, _, err := serverVol.PutBlock(sampleBlockBody, samplePutOpts)
+	sampleBlockRef, _, err := serverVol.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -102,7 +102,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 	defer stRef.Release()
 
-	ex, err := st.GetBlockExists(sampleBlockRef.Clone())
+	ex, err := st.GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -110,7 +110,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 		t.Fatal("expected sample block existed")
 	}
 
-	err = st.RmBlock(sampleBlockRef.Clone())
+	err = st.RmBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

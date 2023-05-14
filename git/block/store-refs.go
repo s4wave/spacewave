@@ -134,7 +134,7 @@ func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 	if nodCs == nil {
 		return nil, nil, plumbing.ErrReferenceNotFound
 	}
-	encObji, err := nodCs.Unmarshal(NewReferenceBlock)
+	encObji, err := nodCs.Unmarshal(r.ctx, NewReferenceBlock)
 	if err != nil {
 		return nil, nil, err
 	}

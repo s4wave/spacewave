@@ -36,6 +36,7 @@ func (e *EngineTx) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (e *EngineTx) ApplyWorldOp(
+	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
@@ -43,7 +44,7 @@ func (e *EngineTx) ApplyWorldOp(
 	var outSysErr bool
 	err := e.performOp(func(tx *Tx) error {
 		var berr error
-		outSeqno, outSysErr, berr = tx.ApplyWorldOp(op, opSender)
+		outSeqno, outSysErr, berr = tx.ApplyWorldOp(ctx, op, opSender)
 		return berr
 	})
 	return outSeqno, outSysErr, err
@@ -51,9 +52,9 @@ func (e *EngineTx) ApplyWorldOp(
 
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
-func (e *EngineTx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	if err := e.performOp(func(tx *Tx) error {
-		_, err := tx.CreateObject(key, rootRef)
+		_, err := tx.CreateObject(ctx, key, rootRef)
 		return err
 	}); err != nil {
 		return nil, err
@@ -64,12 +65,12 @@ func (e *EngineTx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.Ob
 
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
-func (e *EngineTx) GetObject(key string) (world.ObjectState, bool, error) {
+func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	// check if object exists
 	var found bool
 	err := e.performOp(func(tx *Tx) error {
 		var nerr error
-		_, found, nerr = tx.GetObject(key)
+		_, found, nerr = tx.GetObject(ctx, key)
 		return nerr
 	})
 	if err != nil || !found {
@@ -82,11 +83,11 @@ func (e *EngineTx) GetObject(key string) (world.ObjectState, bool, error) {
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
-func (e *EngineTx) DeleteObject(key string) (bool, error) {
+func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	var deleted bool
 	err := e.performOp(func(tx *Tx) error {
 		var nerr error
-		deleted, nerr = tx.DeleteObject(key)
+		deleted, nerr = tx.DeleteObject(ctx, key)
 		return nerr
 	})
 	return deleted, err
@@ -96,18 +97,18 @@ func (e *EngineTx) DeleteObject(key string) (bool, error) {
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (e *EngineTx) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+func (e *EngineTx) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
 	return e.performOp(func(tx *Tx) error {
-		return tx.AccessCayleyGraph(write, cb)
+		return tx.AccessCayleyGraph(ctx, write, cb)
 	})
 }
 
 // LookupGraphQuads searches for graph quads in the store.
-func (e *EngineTx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+func (e *EngineTx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	var quads []world.GraphQuad
 	err := e.performOp(func(tx *Tx) error {
 		var berr error
-		quads, berr = tx.LookupGraphQuads(filter, limit)
+		quads, berr = tx.LookupGraphQuads(ctx, filter, limit)
 		return berr
 	})
 	return quads, err
@@ -118,25 +119,25 @@ func (e *EngineTx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]wor
 // Predicate: a predicate string, e.x. IRI: <ref>
 // Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
-func (e *EngineTx) SetGraphQuad(q world.GraphQuad) error {
+func (e *EngineTx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	return e.performOp(func(tx *Tx) error {
-		return tx.SetGraphQuad(q)
+		return tx.SetGraphQuad(ctx, q)
 	})
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
-func (e *EngineTx) DeleteGraphQuad(q world.GraphQuad) error {
+func (e *EngineTx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	return e.performOp(func(tx *Tx) error {
-		return tx.DeleteGraphQuad(q)
+		return tx.DeleteGraphQuad(ctx, q)
 	})
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
-func (e *EngineTx) DeleteGraphObject(value string) error {
+func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
 	return e.performOp(func(tx *Tx) error {
-		return tx.DeleteGraphObject(value)
+		return tx.DeleteGraphObject(ctx, value)
 	})
 }
 

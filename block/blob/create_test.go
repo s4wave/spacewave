@@ -51,7 +51,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 	}
 
 	_, bcs = cs.BuildTransaction(nil)
-	b1, err := UnmarshalBlob(bcs)
+	b1, err := UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

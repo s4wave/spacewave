@@ -142,6 +142,7 @@ func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
 
 // WriteTransformConf writes a transformation configuration and returns the block ref.
 func WriteTransformConf(
+	ctx context.Context,
 	bk bucket.Bucket,
 	xfrm block.Transformer,
 	putOpts *block.PutOpts,
@@ -157,17 +158,18 @@ func WriteTransformConf(
 			return nil, false, err
 		}
 	}
-	return bk.PutBlock(dat, putOpts)
+	return bk.PutBlock(ctx, dat, putOpts)
 }
 
 // FetchTransformConf fetches a transform config.
 // returns nil if block not found
 func FetchTransformConf(
+	ctx context.Context,
 	bk block.Store,
 	tconfRef *block.BlockRef,
 	xfrm block.Transformer,
 ) (*block_transform.Config, error) {
-	data, ok, err := bk.GetBlock(tconfRef)
+	data, ok, err := bk.GetBlock(ctx, tconfRef)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +288,7 @@ func (c *Cursor) FollowRefWithOpArgs(
 			// transform config ref changed, fetch new transform config
 			// use old transformer to transform the conf
 			var bc *block_transform.Config
-			bc, err = FetchTransformConf(bkt, refTconfRef, xfrm)
+			bc, err = FetchTransformConf(ctx, bkt, refTconfRef, xfrm)
 			if err == nil {
 				err = applyTransformConf(bc)
 			}
@@ -345,7 +347,7 @@ func (c *Cursor) GetTransformer() block.Transformer {
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
 // If the hash type is unset, use the type from GetHashType().
-func (c *Cursor) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (c *Cursor) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	var err error
 	if c.xfrm != nil {
 		// we have to copy the data since EncodeBlock might reuse the buffer.
@@ -357,14 +359,14 @@ func (c *Cursor) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bo
 			return nil, false, err
 		}
 	}
-	return c.bkt.PutBlock(data, opts)
+	return c.bkt.PutBlock(ctx, data, opts)
 }
 
 // GetBlock gets a block with a cid reference, applying any configured transforms.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (c *Cursor) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
-	data, found, err := c.bkt.GetBlock(ref)
+func (c *Cursor) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	data, found, err := c.bkt.GetBlock(ctx, ref)
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -423,6 +425,7 @@ func (c *Cursor) SetStepFactorySet(sfs *block_transform.StepFactorySet) {
 // Unmarshal unmarshals a block at the position.
 // Returns nil if the ref is empty or the block not found.
 func (c *Cursor) Unmarshal(
+	ctx context.Context,
 	ctor func() block.Block,
 ) (block.Block, error) {
 	rr := c.ref.GetRootRef()
@@ -430,7 +433,7 @@ func (c *Cursor) Unmarshal(
 		return nil, nil
 	}
 
-	data, ok, err := c.bkt.GetBlock(rr)
+	data, ok, err := c.bkt.GetBlock(ctx, rr)
 	if err != nil {
 		return nil, err
 	}

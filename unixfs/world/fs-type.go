@@ -1,6 +1,8 @@
 package unixfs_world
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
@@ -78,12 +80,12 @@ func NewFSRootWithType(f FSType, rootType unixfs.FSCursorNodeType, ts *timestamp
 // UnmarshalFSRootWithType unmarshals the filesystem root by type.
 // returns nil, typeID, nil if the root was empty.
 // returns the block, type ID, and error.
-func UnmarshalFSRootWithType(bcs *block.Cursor, f FSType) (block.Block, string, error) {
+func UnmarshalFSRootWithType(ctx context.Context, bcs *block.Cursor, f FSType) (block.Block, string, error) {
 	ctor, typeID, err := GetFSRootWithType(f)
 	if err != nil {
 		return nil, "", err
 	}
-	blk, err := bcs.Unmarshal(ctor)
+	blk, err := bcs.Unmarshal(ctx, ctor)
 	if err != nil {
 		return nil, "", err
 	}

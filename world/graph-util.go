@@ -13,7 +13,7 @@ import (
 
 // QuadEqual checks if two quads are equal.
 func QuadEqual(q1, q2 quad.Quad) bool {
-	// TODO: faster check
+	// TODO faster check
 	return q1.String() == q2.String()
 }
 
@@ -94,7 +94,7 @@ func IteratePathWithKeys(
 		gv[i] = KeyToGraphValue(ek)
 	}
 
-	return ws.AccessCayleyGraph(false, func(h CayleyHandle) error {
+	return ws.AccessCayleyGraph(ctx, false, func(h CayleyHandle) error {
 		p := cayley.StartPath(h, gv...)
 		if pathCb != nil {
 			var err error

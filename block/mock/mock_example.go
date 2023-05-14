@@ -1,6 +1,8 @@
 package block_mock
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 )
 
@@ -16,8 +18,8 @@ func NewExampleBlock() block.Block {
 
 // UnmarshalExample unmarshals the example block.
 // Returns nil, nil if empty
-func UnmarshalExample(bcs *block.Cursor) (*Example, error) {
-	return block.UnmarshalBlock[*Example](bcs, NewExampleBlock)
+func UnmarshalExample(ctx context.Context, bcs *block.Cursor) (*Example, error) {
+	return block.UnmarshalBlock[*Example](ctx, bcs, NewExampleBlock)
 }
 
 // MarshalBlock marshals the block to binary.

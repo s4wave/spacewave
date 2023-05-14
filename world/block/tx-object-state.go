@@ -33,7 +33,7 @@ func (t *TxObjectState) GetKey() string {
 }
 
 // GetRootRef returns the root reference of the object.
-func (t *TxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
+func (t *TxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
@@ -41,7 +41,7 @@ func (t *TxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
 		return nil, 0, tx.ErrDiscarded
 	}
 
-	return t.o.GetRootRef()
+	return t.o.GetRootRef(ctx)
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -57,31 +57,31 @@ func (t *TxObjectState) AccessWorldState(
 }
 
 // SetRootRef changes the root reference of the object.
-func (t *TxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
+func (t *TxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
-	return t.o.SetRootRef(nref)
+	return t.o.SetRootRef(ctx, nref)
 }
 
 // ApplyObjectOp applies a batch operation at the object level.
 // The handling of the operation is operation-type specific.
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *TxObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (uint64, bool, error) {
+func (t *TxObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
-	return t.o.ApplyObjectOp(op, opSender)
+	return t.o.ApplyObjectOp(ctx, op, opSender)
 }
 
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
-func (t *TxObjectState) IncrementRev() (uint64, error) {
+func (t *TxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	t.tx.rmtx.Lock()
 	defer t.tx.rmtx.Unlock()
 
-	return t.o.IncrementRev()
+	return t.o.IncrementRev(ctx)
 }
 
 // WaitRev waits until the object rev is >= the specified.

@@ -78,7 +78,7 @@ func TestEncodeDecode(t *testing.T) {
 		}
 		defer rootCursor.Release()
 
-		dataXferRef, _, err := rootCursor.PutBlock(dataXfer, nil)
+		dataXferRef, _, err := rootCursor.PutBlock(tb.Context, dataXfer, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -88,7 +88,7 @@ func TestEncodeDecode(t *testing.T) {
 			dataXferRef.MarshalString(),
 		)
 
-		lkDat, lkOk, err := rootCursor.GetBlock(dataXferRef)
+		lkDat, lkOk, err := rootCursor.GetBlock(tb.Context, dataXferRef)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

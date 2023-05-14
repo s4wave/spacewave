@@ -27,7 +27,7 @@ func newEngineTx(e *Engine, writeTx *Tx) *EngineTx {
 //
 // Creates a new block transaction.
 func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
-	return e.engine.ForkBlockTransaction(true)
+	return e.engine.ForkBlockTransaction(ctx, true)
 }
 
 // Commit commits the transaction to storage.
@@ -35,17 +35,19 @@ func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
 // If not write, returns ErrNotWrite.
 func (e *EngineTx) Commit(ctx context.Context) error {
 	if e.writeTx == nil {
+		e.Discard()
 		return tx.ErrNotWrite
 	}
 
 	// ensure tx is not already discarded
 	// also marks the tx as discarded
+	// NOTE: we MUST call wmtx.Release below!
 	if !e.release() {
 		return tx.ErrDiscarded
 	}
 
 	// commit
-	commitErr := e.writeTx.Commit(e.engine.ctx)
+	commitErr := e.writeTx.Commit(ctx)
 
 	// validate the new root
 	var nroot *block.BlockRef

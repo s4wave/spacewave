@@ -1,6 +1,7 @@
 package unixfs_block
 
 import (
+	"context"
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -38,9 +39,9 @@ func (d *Dirent) Validate() error {
 
 // FollowNodeRef follows the inode reference.
 // returns nil, bcs, nil if not found
-func (d *Dirent) FollowNodeRef(bcs *block.Cursor) (*FSNode, *block.Cursor, error) {
+func (d *Dirent) FollowNodeRef(ctx context.Context, bcs *block.Cursor) (*FSNode, *block.Cursor, error) {
 	subRef := bcs.FollowRef(2, d.GetNodeRef())
-	fn, err := FetchCheckFSNode(subRef, d.GetNodeType())
+	fn, err := FetchCheckFSNode(ctx, subRef, d.GetNodeType())
 	return fn, subRef, err
 }
 

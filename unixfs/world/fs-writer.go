@@ -42,7 +42,7 @@ func (w *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 		return nil
 	}
 
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (w *FSWriter) Symlink(ctx context.Context, path []string, target []string, 
 		return unixfs_errors.ErrEmptyPath
 	}
 
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (w *FSWriter) Symlink(ctx context.Context, path []string, target []string, 
 // SetPermissions sets the permissions bits of the nodes at the paths.
 // The file mode portion of the value is ignored.
 func (w *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error {
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (w *FSWriter) SetPermissions(ctx context.Context, paths [][]string, fm fs.F
 
 // SetModTimestamp sets the modification timestamp of the nodes at the paths.
 func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error {
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (w *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 
 // WriteAt writes data to an offset in an inode (usually a file).
 func (w *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (w *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, dat
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (w *FSWriter) Truncate(ctx context.Context, path []string, nsize int64, ts time.Time) error {
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (w *FSWriter) Rename(ctx context.Context, srcPath, tgtPath []string, ts tim
 // Parents must be directories.
 // Non-existent paths may not return an error.
 func (w *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) error {
-	wobj, err := w.getWorldObject(true)
+	wobj, err := w.getWorldObject(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -138,8 +138,8 @@ func (w *FSWriter) Remove(ctx context.Context, paths [][]string, ts time.Time) e
 }
 
 // getWorldObject looks up the world fs object.
-func (w *FSWriter) getWorldObject(checkExists bool) (world.ObjectState, error) {
-	wobj, exists, err := w.ws.GetObject(w.objKey)
+func (w *FSWriter) getWorldObject(ctx context.Context, checkExists bool) (world.ObjectState, error) {
+	wobj, exists, err := w.ws.GetObject(ctx, w.objKey)
 	if err == nil && !exists && checkExists {
 		err = unixfs_errors.ErrNotExist
 	}

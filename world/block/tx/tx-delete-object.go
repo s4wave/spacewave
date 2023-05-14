@@ -73,14 +73,14 @@ func (t *TxDeleteObject) ExecuteTx(
 	// check if it exists, if necessary
 	failNotFound := t.GetFailIfNotFound()
 	if failNotFound {
-		_, err := world.MustGetObject(worldInstance, objKey)
+		_, err := world.MustGetObject(ctx, worldInstance, objKey)
 		if err != nil {
 			return false, err
 		}
 	}
 
 	// delete the object
-	deleted, err := worldInstance.DeleteObject(t.GetObjectKey())
+	deleted, err := worldInstance.DeleteObject(ctx, t.GetObjectKey())
 	if err == nil && failNotFound && !deleted {
 		err = world.ErrObjectNotFound
 	}

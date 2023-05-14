@@ -28,7 +28,7 @@ func TestTransaction(t *testing.T) {
 
 	// store the bucket
 	bucketID := "test-bucket-1"
-	_, _, bc, err := vol.ApplyBucketConfig(&bucket.Config{
+	_, _, bc, err := vol.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  bucketID,
 		Rev: 1,
 	})
@@ -57,11 +57,11 @@ func TestTransaction(t *testing.T) {
 		rb := &Root{}
 		rb.ExampleSubBlock = &SubBlock{}
 		ex := &Example{Msg: "hello world"}
-		rb.ExampleSubBlock.ExamplePtr, _, err = block.PutBlock(bk, ex)
+		rb.ExampleSubBlock.ExamplePtr, _, err = block.PutBlock(ctx, bk, ex)
 		if err != nil {
 			return
 		}
-		rootBlock, _, err = block.PutBlock(bk, rb)
+		rootBlock, _, err = block.PutBlock(ctx, bk, rb)
 		return
 	}(); err != nil {
 		t.Fatal(err.Error())
@@ -70,12 +70,13 @@ func TestTransaction(t *testing.T) {
 	// br is the root block ref
 	t.Logf("root block: %s", rootBlock.MarshalString())
 	tr, cr := block.NewTransaction(bk, nil, rootBlock, nil)
-	data, found, err := cr.Fetch()
+	data, found, err := cr.Fetch(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Logf("data fetched: found (%v): %x", found, data)
 	nri, err := cr.Unmarshal(
+		ctx,
 		func() block.Block {
 			return &Root{}
 		},
@@ -89,13 +90,14 @@ func TestTransaction(t *testing.T) {
 	}
 
 	sbPtr := cr.FollowSubBlock(1)
-	sbi, err := sbPtr.Unmarshal(nil)
+	sbi, err := sbPtr.Unmarshal(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	sb := sbi.(*SubBlock)
 	cptr := sbPtr.FollowRef(1, sb.GetExamplePtr())
 	exi, err := cptr.Unmarshal(
+		ctx,
 		func() block.Block {
 			return &Example{}
 		},
@@ -128,13 +130,13 @@ func TestTransaction(t *testing.T) {
 		blockRef,
 		nil,
 	)
-	ri, err := ncr.Unmarshal(NewRootBlock)
+	ri, err := ncr.Unmarshal(ctx, NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	sbcr := ncr.FollowSubBlock(1)
 	nncr := sbcr.FollowRef(1, ri.(*Root).GetExampleSubBlock().GetExamplePtr())
-	eei, err := nncr.Unmarshal(func() block.Block { return &Example{} })
+	eei, err := nncr.Unmarshal(ctx, func() block.Block { return &Example{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -145,7 +147,7 @@ func TestTransaction(t *testing.T) {
 
 	// attempt to set a reference to a subblock from a new block
 	_, cr = block.NewTransaction(bk, nil, blockRef, nil)
-	ri, err = cr.Unmarshal(NewRootBlock)
+	ri, err = cr.Unmarshal(ctx, NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

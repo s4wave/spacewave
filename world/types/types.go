@@ -18,23 +18,6 @@ const TypesPrefix = "types/"
 // TypePred is the predicate linking a object to its type.
 var TypePred quad.Value = quad.IRI("type")
 
-// TypesState wraps a WorldState to implement type references.
-// Objects have a <type> ref to a types/<type-id> object.
-type TypesState struct {
-	// ctx is the context
-	ctx context.Context
-	// world is the underlying world state handle.
-	world world.WorldState
-}
-
-// NewTypesState constructs a new TypesState interface.
-func NewTypesState(ctx context.Context, w world.WorldState) *TypesState {
-	return &TypesState{
-		ctx:   ctx,
-		world: w,
-	}
-}
-
 // BuildTypeQuadValue returns the quad value referring to the type.
 func BuildTypeQuadValue(typeID string) quad.Value {
 	if typeID == "" {
@@ -65,20 +48,20 @@ func LimitNodesToTypes(path *cayley.Path, typeIDs ...string) *cayley.Path {
 
 // GetObjectType returns the type of a given object.
 // Returns "" if the object has no type.
-func (p *TypesState) GetObjectType(key string) (string, error) {
+func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string, error) {
 	// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
 	// All accesses of the handle should complete before returning cb.
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
 	var typeKey string
-	err := p.world.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
+	err := ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
 		it := path.StartPath(h, world.KeyToGraphValue(key)).
 			Out(TypePred).
-			BuildIterator(p.ctx).
+			BuildIterator(ctx).
 			Iterate()
 		defer it.Close()
 		// iterate until we find a suitable type key
-		for it.Next(p.ctx) && typeKey == "" {
+		for it.Next(ctx) && typeKey == "" {
 			res := it.Result()
 			qv, err := h.NameOf(res)
 			if err != nil {
@@ -101,8 +84,8 @@ func (p *TypesState) GetObjectType(key string) (string, error) {
 }
 
 // CheckObjectType asserts that the object key exists and has the given type.
-func (p *TypesState) CheckObjectType(key, typeID string) error {
-	objType, err := p.GetObjectType(key)
+func CheckObjectType(ctx context.Context, ws world.WorldState, key, typeID string) error {
+	objType, err := GetObjectType(ctx, ws, key)
 	if err != nil {
 		return err
 	}
@@ -116,15 +99,15 @@ func (p *TypesState) CheckObjectType(key, typeID string) error {
 }
 
 // SetObjectType sets the type of a given object by writing a graph quad.
-func (p *TypesState) SetObjectType(key, typeID string) error {
+func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string) error {
 	if key == "" || typeID == "" {
 		return world.ErrEmptyObjectKey
 	}
 	nextQuad := BuildTypeQuad(key, typeID)
-	return p.world.AccessCayleyGraph(true, func(h world.CayleyHandle) error {
+	return ws.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
 		var exists bool
 		var delta []graph.Delta
-		err := world.FilterIterateQuads(p.ctx, h, quad.Quad{
+		err := world.FilterIterateQuads(ctx, h, quad.Quad{
 			Subject:   nextQuad.Subject,
 			Predicate: nextQuad.Predicate,
 		}, func(q quad.Quad) error {
@@ -158,7 +141,9 @@ func (p *TypesState) SetObjectType(key, typeID string) error {
 }
 
 // IterateObjectsWithType iterates over object keys with the given type ID.
-func (p *TypesState) IterateObjectsWithType(
+func IterateObjectsWithType(
+	rctx context.Context,
+	ws world.WorldState,
 	typeID string,
 	cb func(objKey string) (bool, error),
 ) error {
@@ -169,15 +154,15 @@ func (p *TypesState) IterateObjectsWithType(
 		return nil
 	}
 
-	subCtx, subCtxCancel := context.WithCancel(p.ctx)
+	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
-	return p.world.AccessCayleyGraph(false, func(h world.CayleyHandle) error {
+	return ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
 		it := path.StartPath(h, BuildTypeQuadValue(typeID)).
 			In(TypePred).
-			BuildIterator(subCtx).
+			BuildIterator(ctx).
 			Iterate()
 		defer it.Close()
-		for it.Next(subCtx) {
+		for it.Next(ctx) {
 			ref := it.Result()
 			qv, err := h.NameOf(ref)
 			if err != nil {

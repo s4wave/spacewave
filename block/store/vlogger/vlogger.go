@@ -1,6 +1,7 @@
 package block_store_vlogger
 
 import (
+	"context"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/hash"
@@ -30,7 +31,7 @@ func (s *VLoggerStore) GetHashType() hash.HashType {
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
 // If the hash type is unset, use the type from GetHashType().
-func (s *VLoggerStore) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
+func (s *VLoggerStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
 	t1 := time.Now()
 	defer func() {
 		s.le.Debugf(
@@ -42,7 +43,7 @@ func (s *VLoggerStore) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Bl
 			err,
 		)
 	}()
-	return s.st.PutBlock(data, opts)
+	return s.st.PutBlock(ctx, data, opts)
 }
 
 // GetBlock gets a block with the given reference.
@@ -50,7 +51,7 @@ func (s *VLoggerStore) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Bl
 // Returns data, found, error.
 // Returns nil, false, nil if not found.
 // Note: the block may not be in the specified bucket.
-func (s *VLoggerStore) GetBlock(ref *block.BlockRef) (data []byte, found bool, err error) {
+func (s *VLoggerStore) GetBlock(ctx context.Context, ref *block.BlockRef) (data []byte, found bool, err error) {
 	t1 := time.Now()
 	defer func() {
 		s.le.Debugf(
@@ -62,13 +63,13 @@ func (s *VLoggerStore) GetBlock(ref *block.BlockRef) (data []byte, found bool, e
 			err,
 		)
 	}()
-	return s.st.GetBlock(ref)
+	return s.st.GetBlock(ctx, ref)
 }
 
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (s *VLoggerStore) GetBlockExists(ref *block.BlockRef) (found bool, err error) {
+func (s *VLoggerStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (found bool, err error) {
 	t1 := time.Now()
 	defer func() {
 		s.le.Debugf(
@@ -79,13 +80,13 @@ func (s *VLoggerStore) GetBlockExists(ref *block.BlockRef) (found bool, err erro
 			err,
 		)
 	}()
-	return s.st.GetBlockExists(ref)
+	return s.st.GetBlockExists(ctx, ref)
 }
 
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (s *VLoggerStore) RmBlock(ref *block.BlockRef) (err error) {
+func (s *VLoggerStore) RmBlock(ctx context.Context, ref *block.BlockRef) (err error) {
 	t1 := time.Now()
 	defer func() {
 		s.le.Debugf(
@@ -95,7 +96,7 @@ func (s *VLoggerStore) RmBlock(ref *block.BlockRef) (err error) {
 			err,
 		)
 	}()
-	return s.st.RmBlock(ref)
+	return s.st.RmBlock(ctx, ref)
 }
 
 // _ is a type assertion

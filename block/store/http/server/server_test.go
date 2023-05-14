@@ -34,7 +34,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	vol := tb.Volume
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
-	sampleBlockRef, _, err := vol.PutBlock(sampleBlockBody, samplePutOpts)
+	sampleBlockRef, _, err := vol.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -51,10 +51,10 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	baseURL = baseURL.JoinPath(blockStorePrefix)
 
 	// Create the client
-	client := block_store_http.NewHTTPBlock(ctx, true, srv.Client(), baseURL, 0)
+	client := block_store_http.NewHTTPBlock(true, srv.Client(), baseURL, 0)
 
 	// Get the sample block
-	retBlockData, retBlockExists, err := client.GetBlock(sampleBlockRef)
+	retBlockData, retBlockExists, err := client.GetBlock(ctx, sampleBlockRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -66,7 +66,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -81,7 +81,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	retBlockData, retBlockExists, err = client.GetBlock(sampleBlockRef2)
+	retBlockData, retBlockExists, err = client.GetBlock(ctx, sampleBlockRef2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -90,7 +90,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 
 	// Check if the block exists (not expected to)
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef2)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -101,7 +101,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	// Put the block
 	samplePutOpts2 := samplePutOpts.CloneVT()
 	samplePutOpts2.ForceBlockRef = sampleBlockRef2.Clone()
-	ref, existed, err := client.PutBlock(sampleBlockBody2, samplePutOpts2)
+	ref, existed, err := client.PutBlock(ctx, sampleBlockBody2, samplePutOpts2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -116,7 +116,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 
 	// Get the block back again
-	retBlockData, retBlockExists, err = client.GetBlock(sampleBlockRef2)
+	retBlockData, retBlockExists, err = client.GetBlock(ctx, sampleBlockRef2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -125,7 +125,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef2)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -134,13 +134,13 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	}
 
 	// Delete the block
-	err = client.RmBlock(sampleBlockRef2)
+	err = client.RmBlock(ctx, sampleBlockRef2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef2)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -174,7 +174,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 
 	// Create the client
 	// note: we create it with write=true expecting this to fail
-	client := block_store_http.NewHTTPBlock(ctx, true, srv.Client(), baseURL, 0)
+	client := block_store_http.NewHTTPBlock(true, srv.Client(), baseURL, 0)
 
 	// Create a sample block
 	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")
@@ -185,7 +185,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	}
 
 	// Check if the block exists
-	retBlockExists, err := client.GetBlockExists(sampleBlockRef)
+	retBlockExists, err := client.GetBlockExists(ctx, sampleBlockRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -194,7 +194,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	}
 
 	// Put the block
-	ref, existed, err := client.PutBlock(sampleBlockBody, samplePutOpts)
+	ref, existed, err := client.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err == nil {
 		t.Fatal("expected PutBlock to fail")
 	} else {
@@ -205,7 +205,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 	}
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -246,7 +246,7 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 	baseURL = baseURL.JoinPath(blockStorePrefix)
 
 	// Create the client
-	client := block_store_http.NewHTTPBlock(ctx, true, srv.Client(), baseURL, 0)
+	client := block_store_http.NewHTTPBlock(true, srv.Client(), baseURL, 0)
 
 	// Create a sample block
 	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")
@@ -257,7 +257,7 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 	}
 
 	// Check if the block exists
-	retBlockExists, err := client.GetBlockExists(sampleBlockRef)
+	retBlockExists, err := client.GetBlockExists(ctx, sampleBlockRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -266,7 +266,7 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 	}
 
 	// Put the block
-	ref, existed, err := client.PutBlock(sampleBlockBody, samplePutOpts)
+	ref, existed, err := client.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -275,7 +275,7 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 	}
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

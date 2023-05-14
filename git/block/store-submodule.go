@@ -48,7 +48,7 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 		return nil, nil, err
 	}
 
-	sub, err := block.UnmarshalBlock[*Submodule](refCs, NewSubmoduleBlock)
+	sub, err := block.UnmarshalBlock[*Submodule](r.ctx, refCs, NewSubmoduleBlock)
 	return sub, refCs, err
 }
 

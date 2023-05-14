@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 )
 
@@ -26,8 +28,8 @@ func NewWorldChangeSubBlockCtor(r **WorldChange) block.SubBlockCtor {
 
 // UnmarshalWorldChange unmarshals a world change from a cursor.
 // If empty, returns nil, nil
-func UnmarshalWorldChange(bcs *block.Cursor) (*WorldChange, error) {
-	return block.UnmarshalBlock[*WorldChange](bcs, NewWorldChangeBlock)
+func UnmarshalWorldChange(ctx context.Context, bcs *block.Cursor) (*WorldChange, error) {
+	return block.UnmarshalBlock[*WorldChange](ctx, bcs, NewWorldChangeBlock)
 }
 
 // IsNil returns if the object is nil.

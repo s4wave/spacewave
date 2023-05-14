@@ -65,7 +65,7 @@ func NewBusWatchLoop(
 	objectKey string, handler WatchLoopHandler,
 ) (*WatchLoop, *world.BusEngine, world.WorldState) {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
-	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	ws := world.NewEngineWorldState(busEngine, true)
 	return NewWatchLoop(le, objectKey, handler), busEngine, ws
 }
 
@@ -77,8 +77,7 @@ func ExecuteBusWatchLoop(
 	objLoop *WatchLoop,
 ) error {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
-	defer busEngine.Close()
-	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	ws := world.NewEngineWorldState(busEngine, true)
 	return objLoop.Execute(ctx, ws)
 }
 
@@ -110,7 +109,7 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 		default:
 		}
 
-		seqno, err := ws.GetSeqno()
+		seqno, err := ws.GetSeqno(ctx)
 		if err != nil {
 			return err
 		}
@@ -119,13 +118,13 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 		var objFound bool
 		if c.objectKey != "" {
 			var err error
-			objState, objFound, err = ws.GetObject(c.objectKey)
+			objState, objFound, err = ws.GetObject(ctx, c.objectKey)
 			if err != nil {
 				return err
 			}
 		}
 		if objFound {
-			rootRef, rev, err = objState.GetRootRef()
+			rootRef, rev, err = objState.GetRootRef(ctx)
 			if err != nil {
 				return err
 			}

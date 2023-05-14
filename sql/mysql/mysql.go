@@ -39,7 +39,7 @@ func (t *Mysql) GetRootNodeRef() *bucket.ObjectRef {
 
 // NewTransaction returns a new SqlDB transaction.
 func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (sql.SqlTransaction, error) {
-	mtx, err := t.NewMysqlTransaction(write)
+	mtx, err := t.NewMysqlTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +52,14 @@ func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (
 }
 
 // NewMysqlTransaction returns a transaction against the db.
-func (t *Mysql) NewMysqlTransaction(write bool) (*Tx, error) {
+func (t *Mysql) NewMysqlTransaction(ctx context.Context, write bool) (*Tx, error) {
 	if write {
 		t.rmtx.Lock()
 	} else {
 		t.rmtx.RLock()
 	}
 
-	rn, btx, bcs, err := t.fetchRoot()
+	rn, btx, bcs, err := t.fetchRoot(ctx)
 	atx := &Tx{
 		t:       t,
 		write:   write,
@@ -76,14 +76,14 @@ func (t *Mysql) NewMysqlTransaction(write bool) (*Tx, error) {
 }
 
 // fetchRoot fetches the root block.
-func (t *Mysql) fetchRoot() (
+func (t *Mysql) fetchRoot(ctx context.Context) (
 	rn *Root,
 	btx *block.Transaction,
 	bcs *block.Cursor,
 	err error,
 ) {
 	btx, bcs = t.rootCursor.BuildTransaction(nil)
-	rn, err = block.UnmarshalBlock[*Root](bcs, NewRootBlock)
+	rn, err = block.UnmarshalBlock[*Root](ctx, bcs, NewRootBlock)
 	return
 }
 

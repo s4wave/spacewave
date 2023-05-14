@@ -1,6 +1,8 @@
 package world_vlogger
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
@@ -32,6 +34,7 @@ func NewWorldState(le *logrus.Entry, worldState world.WorldState) *WorldState {
 // Must support recursive calls to ApplyWorldOp / ApplyObjectOp.
 // Returns seqno, sysErr, err
 func (w *WorldState) ApplyWorldOp(
+	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (seqno uint64, sysErr bool, err error) {
@@ -46,13 +49,13 @@ func (w *WorldState) ApplyWorldOp(
 			seqno, sysErr, err,
 		)
 	}()
-	return w.WorldState.ApplyWorldOp(NewOperation(w.le, op), opSender)
+	return w.WorldState.ApplyWorldOp(ctx, NewOperation(w.le, op), opSender)
 }
 
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 // Appends a OBJECT_SET change to the changelog.
-func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (objs world.ObjectState, err error) {
+func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (objs world.ObjectState, err error) {
 	defer func() {
 		if objs != nil {
 			objs = NewObjectState(w.le, objs)
@@ -63,12 +66,12 @@ func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (objs w
 			err,
 		)
 	}()
-	return w.WorldState.CreateObject(key, rootRef)
+	return w.WorldState.CreateObject(ctx, key, rootRef)
 }
 
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
-func (w *WorldState) GetObject(key string) (objs world.ObjectState, found bool, err error) {
+func (w *WorldState) GetObject(ctx context.Context, key string) (objs world.ObjectState, found bool, err error) {
 	defer func() {
 		if objs != nil {
 			objs = NewObjectState(w.le, objs)
@@ -78,27 +81,27 @@ func (w *WorldState) GetObject(key string) (objs world.ObjectState, found bool, 
 			key, found, err,
 		)
 	}()
-	return w.WorldState.GetObject(key)
+	return w.WorldState.GetObject(ctx, key)
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
-func (w *WorldState) DeleteObject(key string) (found bool, err error) {
+func (w *WorldState) DeleteObject(ctx context.Context, key string) (found bool, err error) {
 	defer func() {
 		w.le.Debugf(
 			"DeleteObject(%s) => found(%v) err(%v)",
 			key, found, err,
 		)
 	}()
-	return w.WorldState.DeleteObject(key)
+	return w.WorldState.DeleteObject(ctx, key)
 }
 
 // LookupGraphQuads searches for graph quads in the store.
 // If the filter fields are empty, matches any for that field.
 // If not found, returns nil, nil
 // If limit is set, stops after finding that number of matching quads.
-func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) (qs []world.GraphQuad, err error) {
+func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) (qs []world.GraphQuad, err error) {
 	defer func() {
 		cq, _ := world.GraphQuadToCayleyQuad(filter, false)
 		w.le.Debugf(
@@ -106,7 +109,7 @@ func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) (qs 
 			cq.String(), limit, len(qs), err,
 		)
 	}()
-	return w.WorldState.LookupGraphQuads(filter, limit)
+	return w.WorldState.LookupGraphQuads(ctx, filter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.
@@ -114,7 +117,7 @@ func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) (qs 
 // Predicate: a predicate string, e.x. IRI: <ref>
 // Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
-func (w *WorldState) SetGraphQuad(q world.GraphQuad) (err error) {
+func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) (err error) {
 	defer func() {
 		cq, _ := world.GraphQuadToCayleyQuad(q, false)
 		w.le.Debugf(
@@ -122,12 +125,12 @@ func (w *WorldState) SetGraphQuad(q world.GraphQuad) (err error) {
 			cq.String(), err,
 		)
 	}()
-	return w.WorldState.SetGraphQuad(q)
+	return w.WorldState.SetGraphQuad(ctx, q)
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
-func (w *WorldState) DeleteGraphQuad(q world.GraphQuad) (err error) {
+func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) (err error) {
 	defer func() {
 		cq, _ := world.GraphQuadToCayleyQuad(q, false)
 		w.le.Debugf(
@@ -135,19 +138,19 @@ func (w *WorldState) DeleteGraphQuad(q world.GraphQuad) (err error) {
 			cq.String(), err,
 		)
 	}()
-	return w.WorldState.DeleteGraphQuad(q)
+	return w.WorldState.DeleteGraphQuad(ctx, q)
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // Note: value should be the object key, NOT the object key <iri> format.
-func (w *WorldState) DeleteGraphObject(value string) (err error) {
+func (w *WorldState) DeleteGraphObject(ctx context.Context, value string) (err error) {
 	defer func() {
 		w.le.Debugf(
 			"DeleteGraphObject(%s) => err(%v)",
 			value, err,
 		)
 	}()
-	return w.WorldState.DeleteGraphObject(value)
+	return w.WorldState.DeleteGraphObject(ctx, value)
 }
 
 // _ is a type assertion

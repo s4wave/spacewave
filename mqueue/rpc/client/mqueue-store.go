@@ -13,21 +13,13 @@ import (
 
 // MqueueStore implements a message queue store backed by a MqueueStore service.
 type MqueueStore struct {
-	// ctx is used for volume lookups
-	ctx context.Context
 	// client is the client to use
 	client mqueue_rpc.SRPCMqueueStoreClient
 }
 
 // NewMqueueStore constructs a new MqueueStore.
-func NewMqueueStore(
-	ctx context.Context,
-	client mqueue_rpc.SRPCMqueueStoreClient,
-) *MqueueStore {
-	return &MqueueStore{
-		ctx:    ctx,
-		client: client,
-	}
+func NewMqueueStore(client mqueue_rpc.SRPCMqueueStoreClient) *MqueueStore {
+	return &MqueueStore{client: client}
 }
 
 // OpenMqueue opens a message queue by ID.
@@ -47,8 +39,8 @@ func (s *MqueueStore) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, 
 //
 // Note: if !filled, implementation might not return queues that are empty.
 // If filled is set, implementation must only return filled queues.
-func (s *MqueueStore) ListMessageQueues(prefix []byte, filled bool) ([][]byte, error) {
-	resp, err := s.client.ListMqueues(s.ctx, &mqueue_rpc.ListMqueuesRequest{
+func (s *MqueueStore) ListMessageQueues(ctx context.Context, prefix []byte, filled bool) ([][]byte, error) {
+	resp, err := s.client.ListMqueues(ctx, &mqueue_rpc.ListMqueuesRequest{
 		Prefix: prefix,
 		Filled: filled,
 	})

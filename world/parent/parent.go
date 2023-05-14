@@ -27,8 +27,9 @@ func NewParentState(w world.WorldState) *ParentState {
 
 // GetObjectParent returns the parent of a given object.
 // Returns "" if the object has no parent.
-func (p *ParentState) GetObjectParent(key string) (string, error) {
+func (p *ParentState) GetObjectParent(ctx context.Context, key string) (string, error) {
 	gq, err := p.world.LookupGraphQuads(
+		ctx,
 		world.NewGraphQuad(
 			world.KeyToGraphValue(key).String(),
 			p.parentPred.String(),
@@ -62,7 +63,7 @@ func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string
 	}
 	// note: nextQuad.Object will be nil if parentKey is empty
 	nextQuad := p.BuildParentQuad(key, parentKey)
-	return p.world.AccessCayleyGraph(true, func(h world.CayleyHandle) error {
+	return p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
 		var exists bool
 		var delta []graph.Delta
 		var err error
@@ -107,7 +108,7 @@ func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
 		return world.ErrEmptyObjectKey
 	}
 	lookupQuad := p.BuildParentQuad(key, "")
-	return p.world.AccessCayleyGraph(true, func(h world.CayleyHandle) error {
+	return p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
 		var delta []graph.Delta
 		var err error
 		err = world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {

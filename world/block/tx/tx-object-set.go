@@ -74,13 +74,13 @@ func (t *TxObjectSet) ExecuteTx(
 	}
 
 	// get the object
-	obj, err := world.MustGetObject(worldInstance, t.GetObjectKey())
+	obj, err := world.MustGetObject(ctx, worldInstance, t.GetObjectKey())
 	if err != nil {
 		return false, err
 	}
 
 	// set the root ref
-	_, err = obj.SetRootRef(t.GetRootRef())
+	_, err = obj.SetRootRef(ctx, t.GetRootRef())
 	return false, err
 }
 

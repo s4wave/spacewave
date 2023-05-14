@@ -46,7 +46,7 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 		return nil
 	}
 	if bucketID := o.dir.ListBucketsBucketId(); bucketID != "" {
-		bc, err := vol.GetBucketInfo(bucketID)
+		bc, err := vol.GetBucketInfo(ctx, bucketID)
 		if err != nil || bc == nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (o *listBucketsResolver) Resolve(ctx context.Context, handler directive.Res
 		}
 	}
 
-	bi, err := vol.ListBucketInfo(nil)
+	bi, err := vol.ListBucketInfo(ctx, nil)
 	if err != nil {
 		return err
 	}

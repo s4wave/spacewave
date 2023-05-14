@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -23,8 +24,8 @@ type Database struct {
 }
 
 // NewDatabase constructs a new database handle.
-func NewDatabase(name string, readOnly bool, bcs *block.Cursor) (*Database, error) {
-	dbr, err := block.UnmarshalBlock[*DatabaseRoot](bcs, NewDatabaseRootBlock)
+func NewDatabase(ctx context.Context, name string, readOnly bool, bcs *block.Cursor) (*Database, error) {
+	dbr, err := block.UnmarshalBlock[*DatabaseRoot](ctx, bcs, NewDatabaseRootBlock)
 	if err != nil {
 		return nil, err
 	}

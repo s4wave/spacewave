@@ -61,7 +61,7 @@ func (m *MockWorldOp) ApplyWorldOp(
 	objectKey := m.GetObjectKey()
 
 	// re-use the logic for the object op
-	objState, err := world.MustGetObject(worldHandle, objectKey)
+	objState, err := world.MustGetObject(ctx, worldHandle, objectKey)
 	if err != nil {
 		return false, err
 	}

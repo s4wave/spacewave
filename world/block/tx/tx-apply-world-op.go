@@ -107,7 +107,7 @@ func (t *TxApplyWorldOp) ExecuteTx(
 	}
 
 	// apply the operation
-	_, sysErr, err = worldInstance.ApplyWorldOp(op, sender)
+	_, sysErr, err = worldInstance.ApplyWorldOp(ctx, op, sender)
 	return sysErr, err
 }
 

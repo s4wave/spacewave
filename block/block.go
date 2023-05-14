@@ -3,6 +3,8 @@
 package block
 
 import (
+	"context"
+
 	"gonum.org/v1/gonum/graph/encoding"
 	proto "google.golang.org/protobuf/proto"
 )
@@ -137,12 +139,12 @@ func CloneBlock(blk interface{}) (interface{}, error) {
 // Incorrect type happens if the cursor already contains a block w/ different type.
 // If bcs == nil, returns empty, nil.
 // If unmarshal() returns nil, returns empty, nil.
-func UnmarshalBlock[T Block](bcs *Cursor, ctor func() Block) (T, error) {
+func UnmarshalBlock[T Block](ctx context.Context, bcs *Cursor, ctor func() Block) (T, error) {
 	var out T
 	if bcs == nil {
 		return out, nil
 	}
-	blk, err := bcs.Unmarshal(ctor)
+	blk, err := bcs.Unmarshal(ctx, ctor)
 	if err != nil {
 		return out, err
 	}

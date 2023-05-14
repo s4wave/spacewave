@@ -33,7 +33,7 @@ func (o *ObjectState) le() *logrus.Entry {
 
 // GetRootRef returns the root reference.
 // Returns the revision number.
-func (o *ObjectState) GetRootRef() (ref *bucket.ObjectRef, rev uint64, err error) {
+func (o *ObjectState) GetRootRef(ctx context.Context) (ref *bucket.ObjectRef, rev uint64, err error) {
 	defer func() {
 		o.le().Debugf(
 			"GetRootRef() => ref(%v) rev(%v) err(%v)",
@@ -43,13 +43,13 @@ func (o *ObjectState) GetRootRef() (ref *bucket.ObjectRef, rev uint64, err error
 		)
 	}()
 
-	return o.ObjectState.GetRootRef()
+	return o.ObjectState.GetRootRef(ctx)
 }
 
 // SetRootRef changes the root reference of the object.
 // Increments the revision of the object if changed.
 // Returns revision just after the change was applied.
-func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (rev uint64, err error) {
+func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (rev uint64, err error) {
 	defer func() {
 		o.le().Debugf(
 			"SetRootRef(%s) => rev(%v) err(%v)",
@@ -59,7 +59,7 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (rev uint64, err error)
 		)
 	}()
 
-	return o.ObjectState.SetRootRef(nref)
+	return o.ObjectState.SetRootRef(ctx, nref)
 }
 
 // ApplyObjectOp applies a batch operation at the object level.
@@ -68,7 +68,7 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (rev uint64, err error)
 // If nil is returned for the error, implies success.
 // If sysErr is set, the error is treated as a transient system error.
 // Returns rev, sysErr, err
-func (o *ObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (rev uint64, sysErr bool, err error) {
+func (o *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (rev uint64, sysErr bool, err error) {
 	if op == nil {
 		return 0, false, world.ErrEmptyOp
 	}
@@ -82,12 +82,12 @@ func (o *ObjectState) ApplyObjectOp(op world.Operation, opSender peer.ID) (rev u
 			rev, sysErr, err,
 		)
 	}()
-	return o.ObjectState.ApplyObjectOp(NewOperation(le, op), opSender)
+	return o.ObjectState.ApplyObjectOp(ctx, NewOperation(le, op), opSender)
 }
 
 // IncrementRev increments the revision of the object.
 // Returns revision just after the change was applied.
-func (o *ObjectState) IncrementRev() (rev uint64, err error) {
+func (o *ObjectState) IncrementRev(ctx context.Context) (rev uint64, err error) {
 	defer func() {
 		o.le().Debugf(
 			"IncrementRev() => rev(%v) err(%v)",
@@ -95,7 +95,7 @@ func (o *ObjectState) IncrementRev() (rev uint64, err error) {
 			err,
 		)
 	}()
-	return o.ObjectState.IncrementRev()
+	return o.ObjectState.IncrementRev(ctx)
 }
 
 // WaitRev waits until the object rev is >= the specified.

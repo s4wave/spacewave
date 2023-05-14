@@ -70,7 +70,7 @@ func (t *TxDeleteGraphQuad) ExecuteTx(
 	}
 
 	gq := world.QuadToGraphQuad(t.GetQuad())
-	err := worldInstance.DeleteGraphQuad(gq)
+	err := worldInstance.DeleteGraphQuad(ctx, gq)
 	return false, err
 }
 

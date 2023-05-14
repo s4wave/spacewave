@@ -12,7 +12,7 @@ type Store interface {
 	//
 	// Note: if !filled, implementation might not return queues that are empty.
 	// If filled is set, implementation must only return filled queues.
-	ListMessageQueues(prefix []byte, filled bool) ([][]byte, error)
+	ListMessageQueues(ctx context.Context, prefix []byte, filled bool) ([][]byte, error)
 	// OpenMqueue opens a message queue by ID.
 	//
 	// If the message queue does not exist, creates it.

@@ -25,15 +25,15 @@ func (e *engineWorldStateObject) GetKey() string {
 }
 
 // GetRootRef returns the root reference.
-func (e *engineWorldStateObject) GetRootRef() (*bucket.ObjectRef, uint64, error) {
+func (e *engineWorldStateObject) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
 	var outRef *bucket.ObjectRef
 	var outRev uint64
-	err := e.e.performOp(false, func(tx Tx) error {
-		obj, err := MustGetObject(tx, e.key)
+	err := e.e.performOp(ctx, false, func(tx Tx) error {
+		obj, err := MustGetObject(ctx, tx, e.key)
 		if err != nil {
 			return err
 		}
-		outRef, outRev, err = obj.GetRootRef()
+		outRef, outRev, err = obj.GetRootRef(ctx)
 		return err
 	})
 	return outRef, outRev, err
@@ -48,13 +48,13 @@ func (e *engineWorldStateObject) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return e.e.performOp(false, func(tx Tx) error {
+	return e.e.performOp(ctx, false, func(tx Tx) error {
 		if ref.GetEmpty() {
-			obj, err := MustGetObject(tx, e.key)
+			obj, err := MustGetObject(ctx, tx, e.key)
 			if err != nil {
 				return err
 			}
-			rootRef, _, err := obj.GetRootRef()
+			rootRef, _, err := obj.GetRootRef(ctx)
 			if err != nil {
 				return err
 			}
@@ -65,12 +65,12 @@ func (e *engineWorldStateObject) AccessWorldState(
 }
 
 // SetRootRef changes the root reference of the object.
-func (e *engineWorldStateObject) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
+func (e *engineWorldStateObject) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
 	var outRev uint64
-	err := e.e.performOp(true, func(tx Tx) error {
-		obj, berr := MustGetObject(tx, e.key)
+	err := e.e.performOp(ctx, true, func(tx Tx) error {
+		obj, berr := MustGetObject(ctx, tx, e.key)
 		if berr == nil {
-			outRev, berr = obj.SetRootRef(nref)
+			outRev, berr = obj.SetRootRef(ctx, nref)
 		}
 		return berr
 	})
@@ -82,15 +82,16 @@ func (e *engineWorldStateObject) SetRootRef(nref *bucket.ObjectRef) (uint64, err
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (e *engineWorldStateObject) ApplyObjectOp(
+	ctx context.Context,
 	op Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
 	var outRev uint64
 	var outSysErr bool
-	err := e.e.performOp(true, func(tx Tx) error {
-		obj, berr := MustGetObject(tx, e.key)
+	err := e.e.performOp(ctx, true, func(tx Tx) error {
+		obj, berr := MustGetObject(ctx, tx, e.key)
 		if berr == nil {
-			outRev, outSysErr, berr = obj.ApplyObjectOp(op, opSender)
+			outRev, outSysErr, berr = obj.ApplyObjectOp(ctx, op, opSender)
 		}
 		return berr
 	})
@@ -99,12 +100,12 @@ func (e *engineWorldStateObject) ApplyObjectOp(
 
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
-func (e *engineWorldStateObject) IncrementRev() (uint64, error) {
+func (e *engineWorldStateObject) IncrementRev(ctx context.Context) (uint64, error) {
 	var val uint64
-	err := e.e.performOp(true, func(tx Tx) error {
-		obj, berr := MustGetObject(tx, e.key)
+	err := e.e.performOp(ctx, true, func(tx Tx) error {
+		obj, berr := MustGetObject(ctx, tx, e.key)
 		if berr == nil {
-			val, berr = obj.IncrementRev()
+			val, berr = obj.IncrementRev(ctx)
 		}
 		return berr
 	})
@@ -129,13 +130,13 @@ func (e *engineWorldStateObject) WaitRev(
 		var found bool
 		var nSeqno uint64
 		var currRev uint64
-		err := e.e.performOp(false, func(tx Tx) error {
-			seqno, err := tx.GetSeqno()
+		err := e.e.performOp(ctx, false, func(tx Tx) error {
+			seqno, err := tx.GetSeqno(ctx)
 			if err != nil {
 				return err
 			}
 			nSeqno = seqno + 1
-			objState, objFound, err := tx.GetObject(e.key)
+			objState, objFound, err := tx.GetObject(ctx, e.key)
 			if err != nil {
 				return err
 			}
@@ -143,7 +144,7 @@ func (e *engineWorldStateObject) WaitRev(
 			if !objFound {
 				currRev = 0
 			} else {
-				_, currRev, err = objState.GetRootRef()
+				_, currRev, err = objState.GetRootRef(ctx)
 				if err != nil {
 					return err
 				}

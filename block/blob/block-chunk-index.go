@@ -1,6 +1,8 @@
 package blob
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/pkg/errors"
@@ -18,8 +20,8 @@ func NewChunkIndexBlock() block.Block {
 
 // UnmarshalChunkIndex unmarshals a chunk index from a cursor.
 // If empty, returns nil, nil
-func UnmarshalChunkIndex(bcs *block.Cursor) (*ChunkIndex, error) {
-	return block.UnmarshalBlock[*ChunkIndex](bcs, NewChunkIndexBlock)
+func UnmarshalChunkIndex(ctx context.Context, bcs *block.Cursor) (*ChunkIndex, error) {
+	return block.UnmarshalBlock[*ChunkIndex](ctx, bcs, NewChunkIndexBlock)
 }
 
 // IsNil returns if the object is nil.

@@ -61,7 +61,7 @@ func TestFile_Basic(t *testing.T) {
 	oc.SetRootRef(bcs.GetRef())
 	_, bcs = oc.BuildTransaction(nil)
 
-	fi, err := block.UnmarshalBlock[*File](bcs, NewFileBlock)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

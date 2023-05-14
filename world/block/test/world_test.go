@@ -88,7 +88,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = ws.Commit()
+	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -98,7 +98,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	sender := tb.Volume.GetPeerID()
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs)
 	if err == nil {
-		_, err = world.MustGetObject(ws, objKey)
+		_, err = world.MustGetObject(ctx, ws, objKey)
 	}
 	if err != nil {
 		t.Fatal(err.Error())
@@ -112,6 +112,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// apply operation, after, rev=3
 	_, _, err = forked.ApplyWorldOp(
+		ctx,
 		world_mock.NewMockWorldOp(objKey, "hello there #2"),
 		sender,
 	)
@@ -121,13 +122,13 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// checkRev asserts a object is at a revision
 	checkRev := func(obj world.ObjectState, expected uint64) {
-		if err := world.AssertObjectRev(obj, expected); err != nil {
+		if err := world.AssertObjectRev(ctx, obj, expected); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
 
 	// ensure original state was still at rev=1
-	obj, err := world.MustGetObject(ws, objKey)
+	obj, err := world.MustGetObject(ctx, ws, objKey)
 	if err == nil {
 		checkRev(obj, 1)
 	}
@@ -136,7 +137,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 
 	// write the forked state
-	err = forked.Commit()
+	err = forked.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -150,7 +151,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 
 	// check if it was applied
-	obj, err = world.MustGetObject(ws, objKey)
+	obj, err = world.MustGetObject(ctx, ws, objKey)
 	if err == nil {
 		checkRev(obj, 2)
 	}
@@ -194,12 +195,12 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	objKey := "test-object"
 
 	// create the object in the world
-	ws, err := eng.NewTransaction(true)
+	ws, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	oref1 := &bucket.ObjectRef{BucketId: "test-1"}
-	_, err = ws.CreateObject(objKey, oref1)
+	_, err = ws.CreateObject(ctx, objKey, oref1)
 	if err == nil {
 		err = ws.Commit(ctx)
 	}
@@ -211,15 +212,15 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	state1 := eng.GetRootRef()
 
 	// change the object
-	ws, err = eng.NewTransaction(true)
+	ws, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	obj1, err := world.MustGetObject(ws, objKey)
+	obj1, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rev2, err := obj1.IncrementRev()
+	rev2, err := obj1.IncrementRev(ctx)
 	if err == nil {
 		err = ws.Commit(ctx)
 	}
@@ -228,7 +229,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	}
 
 	// create a new read tx
-	rtx, err := eng.NewTransaction(false)
+	rtx, err := eng.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -237,10 +238,10 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	state2 := eng.GetRootRef()
 
 	// ensure the rev is correct
-	obj1, err = world.MustGetObject(rtx, objKey)
+	obj1, err = world.MustGetObject(ctx, rtx, objKey)
 	if err == nil {
 		var rev uint64
-		_, rev, err = obj1.GetRootRef()
+		_, rev, err = obj1.GetRootRef(ctx)
 		if err == nil && rev != rev2 {
 			err = errors.Errorf("expected rev %d but got %d", rev2, rev)
 		}
@@ -250,7 +251,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	}
 
 	// create a write tx
-	wtx, err := eng.NewTransaction(true)
+	wtx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -260,7 +261,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	// use the same read tx to get the current rev
 	if err == nil {
 		var rev uint64
-		_, rev, err = obj1.GetRootRef()
+		_, rev, err = obj1.GetRootRef(ctx)
 		if err == nil && rev != rev2-1 {
 			err = errors.Errorf("expected rev %d - 1 = %d but got %d", rev2, rev2-1, rev)
 		}
@@ -331,7 +332,7 @@ func TestWorldState_Basic(t *testing.T) {
 
 	// create the objects in the world
 	forEachObj(func(objKey string) error {
-		_, err = ws.CreateObject(objKey, oref)
+		_, err = ws.CreateObject(ctx, objKey, oref)
 		return err
 	})
 
@@ -340,7 +341,7 @@ func TestWorldState_Basic(t *testing.T) {
 	objStates := make([]world.ObjectState, len(keys))
 	forEachObj(func(objKey string) error {
 		var err error
-		objStates[i], err = world.MustGetObject(ws, objKey)
+		objStates[i], err = world.MustGetObject(ctx, ws, objKey)
 		i++
 		return err
 	})
@@ -355,7 +356,7 @@ func TestWorldState_Basic(t *testing.T) {
 
 	// adjust ref in the state
 	for _, objState := range objStates {
-		_, err = objState.SetRootRef(oref)
+		_, err = objState.SetRootRef(ctx, oref)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -363,14 +364,14 @@ func TestWorldState_Basic(t *testing.T) {
 
 	// increment rev
 	for _, objState := range objStates {
-		_, err = objState.IncrementRev()
+		_, err = objState.IncrementRev(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 	}
 
 	// add a graph quad
-	err = ws.SetGraphQuad(world.NewGraphQuad(
+	err = ws.SetGraphQuad(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(keys[0]).String(),
 		"<mypredicate>",
 		world.KeyToGraphValue(keys[4]).String(),
@@ -380,14 +381,14 @@ func TestWorldState_Basic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = ws.Commit()
+	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	ocs.SetRootRef(ws.GetRootRef())
 
 	// success
-	worldRoot, err := ws.GetRoot()
+	worldRoot, err := ws.GetRoot(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -399,7 +400,7 @@ func TestWorldState_Basic(t *testing.T) {
 
 		le.Infof("changelog entry: %s", lastChange.String())
 		lastChangeBcs = lastChangeBcs.FollowRef(2, lastChange.GetPrevRef())
-		lastChange, err = world_block.UnmarshalChangeLogLL(lastChangeBcs)
+		lastChange, err = world_block.UnmarshalChangeLogLL(ctx, lastChangeBcs)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

@@ -95,8 +95,7 @@ func FollowUnixfsRef(
 	fsType := ref.GetFsType()
 	if fsType == 0 {
 		// determine based on types
-		ts := world_types.NewTypesState(ctx, ws)
-		typeID, err := ts.GetObjectType(objKey)
+		typeID, err := world_types.GetObjectType(ctx, ws, objKey)
 		if err != nil {
 			return nil, err
 		}

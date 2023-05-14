@@ -104,7 +104,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	}
 
 	// initial state lookup
-	objState, objFound, err := f.ws.GetObject(f.objKey)
+	objState, objFound, err := f.ws.GetObject(ctx, f.objKey)
 	if !objFound {
 		err = unixfs_errors.ErrNotExist
 	}
@@ -113,7 +113,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		return nil, err
 	}
 
-	objRef, objRev, err := objState.GetRootRef()
+	objRef, objRev, err := objState.GetRootRef(ctx)
 	if err != nil {
 		// cannot lookup the object ref
 		f.mtx.Unlock()

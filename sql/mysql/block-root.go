@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"strings"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -15,8 +16,8 @@ func NewRootBlock() block.Block {
 
 // LoadRoot follows the root cursor.
 // may return nil
-func LoadRoot(cursor *block.Cursor) (*Root, error) {
-	ni, err := cursor.Unmarshal(NewRootBlock)
+func LoadRoot(ctx context.Context, cursor *block.Cursor) (*Root, error) {
+	ni, err := cursor.Unmarshal(ctx, NewRootBlock)
 	if err != nil {
 		return nil, err
 	}

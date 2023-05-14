@@ -39,9 +39,9 @@ func (r *EncodedObject) ValidateFull(ctx context.Context, bcs *block.Cursor) err
 }
 
 // FollowDataBlob attempts to follow the blob field.
-func (r *EncodedObject) FollowDataBlob(bcs *block.Cursor) (*blob.Blob, *block.Cursor, error) {
+func (r *EncodedObject) FollowDataBlob(ctx context.Context, bcs *block.Cursor) (*blob.Blob, *block.Cursor, error) {
 	dataBlobBcs := bcs.FollowSubBlock(1)
-	bl, err := block.UnmarshalBlock[*blob.Blob](dataBlobBcs, blob.NewBlobBlock)
+	bl, err := block.UnmarshalBlock[*blob.Blob](ctx, dataBlobBcs, blob.NewBlobBlock)
 	return bl, dataBlobBcs, err
 }
 

@@ -1,6 +1,8 @@
 package git_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	block_kvtx "github.com/aperturerobotics/hydra/kvtx/block"
 	gconfig "github.com/go-git/go-git/v5/config"
@@ -29,8 +31,8 @@ func NewRepoBlock() block.Block {
 
 // UnmarshalRepo unmarshals a repo from a cursor.
 // If empty, returns nil, nil
-func UnmarshalRepo(bcs *block.Cursor) (*Repo, error) {
-	return block.UnmarshalBlock[*Repo](bcs, NewRepoBlock)
+func UnmarshalRepo(ctx context.Context, bcs *block.Cursor) (*Repo, error) {
+	return block.UnmarshalBlock[*Repo](ctx, bcs, NewRepoBlock)
 }
 
 // Validate performs cursory checks on the repo block.
@@ -57,9 +59,9 @@ func (r *Repo) Validate() error {
 }
 
 // FollowReferencesStore returns the repo references sub-block.
-func (r *Repo) FollowReferencesStore(bcs *block.Cursor) (*ReferencesStore, *block.Cursor, error) {
+func (r *Repo) FollowReferencesStore(ctx context.Context, bcs *block.Cursor) (*ReferencesStore, *block.Cursor, error) {
 	cs := bcs.FollowSubBlock(1)
-	v, err := cs.Unmarshal(NewReferencesStoreBlock)
+	v, err := cs.Unmarshal(ctx, NewReferencesStoreBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,9 +73,9 @@ func (r *Repo) FollowReferencesStore(bcs *block.Cursor) (*ReferencesStore, *bloc
 }
 
 // FollowModuleReferencesStore returns the submodule references sub-block.
-func (r *Repo) FollowModuleReferencesStore(bcs *block.Cursor) (*ModuleReferencesStore, *block.Cursor, error) {
+func (r *Repo) FollowModuleReferencesStore(ctx context.Context, bcs *block.Cursor) (*ModuleReferencesStore, *block.Cursor, error) {
 	cs := bcs.FollowSubBlock(2)
-	v, err := cs.Unmarshal(NewModuleReferencesStoreBlock)
+	v, err := cs.Unmarshal(ctx, NewModuleReferencesStoreBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -85,9 +87,9 @@ func (r *Repo) FollowModuleReferencesStore(bcs *block.Cursor) (*ModuleReferences
 }
 
 // FollowEncodedObjectStore returns the encoded object store sub-block.
-func (r *Repo) FollowEncodedObjectStore(bcs *block.Cursor) (*EncodedObjectStore, *block.Cursor, error) {
+func (r *Repo) FollowEncodedObjectStore(ctx context.Context, bcs *block.Cursor) (*EncodedObjectStore, *block.Cursor, error) {
 	cs := bcs.FollowSubBlock(3)
-	v, err := cs.Unmarshal(NewEncodedObjectStoreBlock)
+	v, err := cs.Unmarshal(ctx, NewEncodedObjectStoreBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -99,9 +101,9 @@ func (r *Repo) FollowEncodedObjectStore(bcs *block.Cursor) (*EncodedObjectStore,
 }
 
 // FollowShallowRefsStore returns the shallow refs store block.
-func (r *Repo) FollowShallowRefsStore(bcs *block.Cursor) (*ShallowRefsStore, *block.Cursor, error) {
+func (r *Repo) FollowShallowRefsStore(ctx context.Context, bcs *block.Cursor) (*ShallowRefsStore, *block.Cursor, error) {
 	cs := bcs.FollowRef(4, r.GetShallowRefsStoreRef())
-	v, err := cs.Unmarshal(NewShallowRefsStoreBlock)
+	v, err := cs.Unmarshal(ctx, NewShallowRefsStoreBlock)
 	if err != nil {
 		return nil, nil, err
 	}

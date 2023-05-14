@@ -29,7 +29,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	}
 
 	// Check if the block exists
-	retBlockExists, err := client.GetBlockExists(sampleBlockRef)
+	retBlockExists, err := client.GetBlockExists(ctx, sampleBlockRef)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	}
 
 	// Put the block
-	wroteRef, existed, err := client.PutBlock(sampleBlockBody, samplePutOpts)
+	wroteRef, existed, err := client.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	if err != nil {
 		return err
 	}
-	retBlockData, retBlockExists, err := client.GetBlock(sampleBlockRef2)
+	retBlockData, retBlockExists, err := client.GetBlock(ctx, sampleBlockRef2)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	}
 
 	// Check if the block exists (not expected to)
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef2)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef2)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	// Put the block
 	samplePutOpts2 := samplePutOpts.CloneVT()
 	samplePutOpts2.ForceBlockRef = sampleBlockRef2.Clone()
-	ref, existed, err := client.PutBlock(sampleBlockBody2, samplePutOpts2)
+	ref, existed, err := client.PutBlock(ctx, sampleBlockBody2, samplePutOpts2)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	waitAfterPut()
 
 	// Get the block back again
-	retBlockData, retBlockExists, err = client.GetBlock(sampleBlockRef2)
+	retBlockData, retBlockExists, err = client.GetBlock(ctx, sampleBlockRef2)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	}
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef2)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef2)
 	if err != nil {
 		return err
 	}
@@ -110,11 +110,11 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	}
 
 	// Delete the block(s)
-	err = client.RmBlock(sampleBlockRef2)
+	err = client.RmBlock(ctx, sampleBlockRef2)
 	if err != nil {
 		return err
 	}
-	err = client.RmBlock(sampleBlockRef)
+	err = client.RmBlock(ctx, sampleBlockRef)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	waitAfterPut()
 
 	// Check if the block exists
-	retBlockExists, err = client.GetBlockExists(sampleBlockRef2)
+	retBlockExists, err = client.GetBlockExists(ctx, sampleBlockRef2)
 	if err != nil {
 		return err
 	}

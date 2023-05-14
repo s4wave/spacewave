@@ -124,7 +124,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	}
 	t.Engine = engh
 	t.BusEngine = world.NewBusEngine(ctx, b, t.EngineID)
-	t.WorldState = world.NewEngineWorldState(ctx, t.BusEngine, true)
+	t.WorldState = world.NewEngineWorldState(t.BusEngine, true)
 	return t, nil
 }
 

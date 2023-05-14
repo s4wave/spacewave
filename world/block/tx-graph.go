@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
@@ -9,7 +11,7 @@ import (
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (t *Tx) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -17,11 +19,11 @@ func (t *Tx) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) 
 		return tx.ErrDiscarded
 	}
 
-	return t.state.AccessCayleyGraph(write, cb)
+	return t.state.AccessCayleyGraph(ctx, write, cb)
 }
 
 // LookupGraphQuads searches for graph quads in the store.
-func (t *Tx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+func (t *Tx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -29,7 +31,7 @@ func (t *Tx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.Gra
 		return nil, tx.ErrDiscarded
 	}
 
-	return t.state.LookupGraphQuads(filter, limit)
+	return t.state.LookupGraphQuads(ctx, filter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.
@@ -37,29 +39,29 @@ func (t *Tx) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.Gra
 // Predicate: a predicate string, e.x. IRI: <ref>
 // Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
-func (t *Tx) SetGraphQuad(q world.GraphQuad) error {
+func (t *Tx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
-	return t.state.SetGraphQuad(q)
+	return t.state.SetGraphQuad(ctx, q)
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
-func (t *Tx) DeleteGraphQuad(q world.GraphQuad) error {
+func (t *Tx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
-	return t.state.DeleteGraphQuad(q)
+	return t.state.DeleteGraphQuad(ctx, q)
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
-func (t *Tx) DeleteGraphObject(value string) error {
+func (t *Tx) DeleteGraphObject(ctx context.Context, value string) error {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
-	return t.state.DeleteGraphObject(value)
+	return t.state.DeleteGraphObject(ctx, value)
 }
 
 // _ is a type assertion

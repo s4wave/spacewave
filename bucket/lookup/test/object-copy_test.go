@@ -100,7 +100,7 @@ func TestCopyObjectToBucket(t *testing.T) {
 	defer resultCursor.Release()
 
 	_, bcs = resultCursor.BuildTransaction(nil)
-	outRootBlk, err := bcs.Unmarshal(block_mock.NewRootBlock)
+	outRootBlk, err := bcs.Unmarshal(ctx, block_mock.NewRootBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -112,7 +112,7 @@ func TestCopyObjectToBucket(t *testing.T) {
 	outExampleBlk, err := bcs.
 		FollowSubBlock(1).
 		FollowRef(1, outRoot.GetExampleSubBlock().GetExamplePtr()).
-		Unmarshal(block_mock.NewExampleBlock)
+		Unmarshal(ctx, block_mock.NewExampleBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

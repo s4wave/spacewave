@@ -1,6 +1,8 @@
 package hydra_git
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/go-git/go-git/v5/storage"
 )
@@ -27,5 +29,6 @@ type Engine interface {
 	// Indicate write if the transaction will not be read-only.
 	// Always call Discard() after you are done with the transaction.
 	// Check GetReadOnly, might not return a write tx if write=true.
-	NewTransaction(write bool) (Tx, error)
+	// ctx is only used when constructing the transaction.
+	NewTransaction(ctx context.Context, write bool) (Tx, error)
 }

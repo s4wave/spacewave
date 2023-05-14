@@ -9,11 +9,11 @@ import (
 
 // CompareBlobs compares the contents of two blobs for equality.
 func CompareBlobs(ctx context.Context, bcs1, bcs2 *block.Cursor) (bool, error) {
-	bl1, err := UnmarshalBlob(bcs1)
+	bl1, err := UnmarshalBlob(ctx, bcs1)
 	if err != nil {
 		return false, err
 	}
-	bl2, err := UnmarshalBlob(bcs2)
+	bl2, err := UnmarshalBlob(ctx, bcs2)
 	if err != nil {
 		return false, err
 	}

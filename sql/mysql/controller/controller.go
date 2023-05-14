@@ -158,12 +158,12 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	mysql := sql_mysql.NewMysql(cursor, commitFn)
 	createDBs := c.conf.GetCreateDbs()
 	if len(createDBs) != 0 {
-		tx, err := mysql.NewMysqlTransaction(true)
+		tx, err := mysql.NewMysqlTransaction(ctx, true)
 		if err != nil {
 			return err
 		}
 		for _, dbName := range c.conf.GetCreateDbs() {
-			_, err := tx.OpenDatabase(dbName, true)
+			_, err := tx.OpenDatabase(ctx, dbName, true)
 			if err != nil {
 				tx.Discard()
 				return err

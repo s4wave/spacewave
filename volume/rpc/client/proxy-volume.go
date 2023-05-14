@@ -26,8 +26,6 @@ type ProxyVolume struct {
 	*rpc_object_client.ObjectStore
 	*rpc_mqueue_client.MqueueStore
 
-	// ctx is used for volume lookups
-	ctx context.Context
 	// client is the client to use
 	client rpc_volume.SRPCProxyVolumeClient
 	// volInfo is the volume info
@@ -38,7 +36,6 @@ type ProxyVolume struct {
 
 // NewProxyVolume constructs a new ProxyVolume.
 func NewProxyVolume(
-	ctx context.Context,
 	volInfo *volume.VolumeInfo,
 	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient,
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
@@ -52,12 +49,11 @@ func NewProxyVolume(
 	}
 
 	return &ProxyVolume{
-		BlockStore:  rpc_block_client.NewBlockStore(ctx, blockStoreClient, volInfo.GetHashType(), false),
-		BucketStore: rpc_bucket_client.NewBucketStore(ctx, bucketStoreClient),
-		ObjectStore: rpc_object_client.NewObjectStore(ctx, objectStoreClient),
-		MqueueStore: rpc_mqueue_client.NewMqueueStore(ctx, mqueueStoreClient),
+		BlockStore:  rpc_block_client.NewBlockStore(blockStoreClient, volInfo.GetHashType(), false),
+		BucketStore: rpc_bucket_client.NewBucketStore(bucketStoreClient),
+		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
+		MqueueStore: rpc_mqueue_client.NewMqueueStore(mqueueStoreClient),
 
-		ctx:     ctx,
 		client:  proxyVolumeClient,
 		volInfo: volInfo,
 		volPeer: volPeer,
@@ -110,16 +106,16 @@ func (v *ProxyVolume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, er
 // LoadPeerPriv attempts to load the volume private key.
 // May return nil if there is no key stored.
 // May return ErrPrivKeyUnavailable
-func (v *ProxyVolume) LoadPeerPriv() (crypto.PrivKey, error) {
-	p, err := v.GetPeer(v.ctx, true)
+func (v *ProxyVolume) LoadPeerPriv(ctx context.Context) (crypto.PrivKey, error) {
+	p, err := v.GetPeer(ctx, true)
 	if err != nil {
 		return nil, err
 	}
-	return p.GetPrivKey(v.ctx)
+	return p.GetPrivKey(ctx)
 }
 
 // StorePeerPriv overwrites the volume's stored private key.
-func (v *ProxyVolume) StorePeerPriv(crypto.PrivKey) error {
+func (v *ProxyVolume) StorePeerPriv(ctx context.Context, pkey crypto.PrivKey) error {
 	return errors.New("cannot update proxy volume private key")
 }
 

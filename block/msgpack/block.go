@@ -1,6 +1,8 @@
 package msgpack
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -20,8 +22,8 @@ func NewMsgpackBlock[T any](obj T) *MsgpackBlock[T] {
 // UnmarshalMsgpackBlock loads a msgpack block at a cursor.
 // if ctor is nil, uses the empty value of T.
 // may return nil
-func UnmarshalMsgpackBlock[T any](bcs *block.Cursor, ctor func() T) (*MsgpackBlock[T], error) {
-	return block.UnmarshalBlock[*MsgpackBlock[T]](bcs, func() block.Block {
+func UnmarshalMsgpackBlock[T any](ctx context.Context, bcs *block.Cursor, ctor func() T) (*MsgpackBlock[T], error) {
+	return block.UnmarshalBlock[*MsgpackBlock[T]](ctx, bcs, func() block.Block {
 		if ctor == nil {
 			var empty T
 			return NewMsgpackBlock(empty)
@@ -48,11 +50,11 @@ func ObjectToBlock[T any](bcs *block.Cursor, obj T) error {
 // BlockToObject converts the given block cursor into an object.
 // T and dest can be a nil interface{} to unmarshal a dynamic type.
 // if bcs is nil returns dest, nil
-func BlockToObject[T comparable](bcs *block.Cursor, dest T) (T, error) {
+func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T) (T, error) {
 	if bcs == nil {
 		return dest, nil
 	}
-	b, err := UnmarshalMsgpackBlock(bcs, func() T {
+	b, err := UnmarshalMsgpackBlock(ctx, bcs, func() T {
 		return dest
 	})
 	if err != nil {
@@ -61,7 +63,7 @@ func BlockToObject[T comparable](bcs *block.Cursor, dest T) (T, error) {
 	out := b.obj
 	if out != dest {
 		// different object, re-parse
-		data, found, err := bcs.Fetch()
+		data, found, err := bcs.Fetch(ctx)
 		if err != nil {
 			return dest, err
 		}

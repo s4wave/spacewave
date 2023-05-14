@@ -18,9 +18,9 @@ type ObjectState struct {
 }
 
 // NewObjectState constructs a new ObjectState from a block cursor and world state.
-func NewObjectState(w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
+func NewObjectState(ctx context.Context, w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
 	s := &ObjectState{w: w, bcs: bcs}
-	obj, err := s.GetRoot()
+	obj, err := s.GetRoot(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func (o *ObjectState) GetKey() string {
 }
 
 // GetRootRef returns the root reference of the object.
-func (o *ObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
-	root, err := o.GetRoot()
+func (o *ObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
+	root, err := o.GetRoot(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -56,7 +56,7 @@ func (o *ObjectState) AccessWorldState(
 ) error {
 	var err error
 	if ref.GetEmpty() {
-		ref, _, err = o.GetRootRef()
+		ref, _, err = o.GetRootRef(ctx)
 		if err != nil {
 			return err
 		}
@@ -65,11 +65,11 @@ func (o *ObjectState) AccessWorldState(
 }
 
 // SetRootRef changes the root reference of the object.
-func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
+func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
 	if err := nref.Validate(); err != nil {
 		return 0, err
 	}
-	root, err := o.GetRoot()
+	root, err := o.GetRoot(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -84,7 +84,7 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 	root.Rev++
 	r := root.Rev
 	o.bcs.SetBlock(root, true)
-	changeBcs, err := o.w.queueWorldChange(&WorldChange{
+	changeBcs, err := o.w.queueWorldChange(ctx, &WorldChange{
 		Key:        o.key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
 	})
@@ -104,6 +104,7 @@ func (o *ObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (o *ObjectState) ApplyObjectOp(
+	rctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
@@ -114,15 +115,15 @@ func (o *ObjectState) ApplyObjectOp(
 		return 0, false, err
 	}
 
-	subCtx, subCtxCancel := context.WithCancel(o.w.ctx)
+	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	sysErr, err := op.ApplyWorldObjectOp(subCtx, o.w.le, o, opSender)
+	sysErr, err := op.ApplyWorldObjectOp(ctx, o.w.le, o, opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}
 
-	_, rev, err := o.GetRootRef()
+	_, rev, err := o.GetRootRef(ctx)
 	if err != nil {
 		return rev, true, err
 	}
@@ -132,19 +133,19 @@ func (o *ObjectState) ApplyObjectOp(
 
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
-func (o *ObjectState) IncrementRev() (uint64, error) {
-	return o.incrementRev(true)
+func (o *ObjectState) IncrementRev(ctx context.Context) (uint64, error) {
+	return o.incrementRev(ctx, true)
 }
 
 // incrementRev increments the object rev optionally adding a changelog entry.
-func (o *ObjectState) incrementRev(addToChangelog bool) (uint64, error) {
-	root, err := o.GetRoot()
+func (o *ObjectState) incrementRev(ctx context.Context, addToChangelog bool) (uint64, error) {
+	root, err := o.GetRoot(ctx)
 	if err != nil {
 		return 0, err
 	}
 	nrev := root.Rev + 1
 	if addToChangelog {
-		_, err = o.w.queueWorldChange(&WorldChange{
+		_, err = o.w.queueWorldChange(ctx, &WorldChange{
 			Key:        o.key,
 			ChangeType: WorldChangeType_WorldChange_OBJECT_INC_REV,
 			ObjectRev:  nrev,
@@ -171,7 +172,7 @@ func (o *ObjectState) WaitRev(
 	// i.e. it will wait for someone else to change the block graph
 	// for now, return immediately.
 	// return 0, errors.New("TODO world/block object-state wait rev")
-	root, err := o.GetRoot()
+	root, err := o.GetRoot(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -179,8 +180,8 @@ func (o *ObjectState) WaitRev(
 }
 
 // GetRoot unmarshals root from the block cursor
-func (o *ObjectState) GetRoot() (*Object, error) {
-	obji, err := o.bcs.Unmarshal(NewObjectBlock)
+func (o *ObjectState) GetRoot(ctx context.Context) (*Object, error) {
+	obji, err := o.bcs.Unmarshal(ctx, NewObjectBlock)
 	if err != nil {
 		return nil, err
 	}

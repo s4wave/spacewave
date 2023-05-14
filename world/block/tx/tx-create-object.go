@@ -74,7 +74,7 @@ func (t *TxCreateObject) ExecuteTx(
 	}
 
 	// create the object
-	_, err := worldInstance.CreateObject(t.GetObjectKey(), t.GetRootRef())
+	_, err := worldInstance.CreateObject(ctx, t.GetObjectKey(), t.GetRootRef())
 	return false, err
 }
 

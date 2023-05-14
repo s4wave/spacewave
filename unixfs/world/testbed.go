@@ -54,7 +54,7 @@ func InitTestbed(tb *world_testbed.Testbed, objKey string, watchWorldChanges boo
 	// uses directive to look up the engine
 	eng := tb.Engine
 	// uses short-lived engine txs to implement world state
-	ws := world.NewEngineWorldState(ctx, eng, true)
+	ws := world.NewEngineWorldState(eng, true)
 
 	sender := tb.Volume.GetPeerID()
 	fsType := FSType_FSType_FS_NODE
@@ -74,8 +74,7 @@ func InitTestbed(tb *world_testbed.Testbed, objKey string, watchWorldChanges boo
 	}
 
 	// check type
-	ts := world_types.NewTypesState(ctx, ws)
-	typeID, err := ts.GetObjectType(objKey)
+	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return nil, err
 	}

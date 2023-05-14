@@ -56,7 +56,7 @@ func TestBlob_Chunked(t *testing.T) {
 	t2 := time.Now()
 	opDur := t2.Sub(t1)
 
-	b1, err = UnmarshalBlob(bcs)
+	b1, err = UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -74,7 +74,7 @@ func TestBlob_Chunked(t *testing.T) {
 	// Read the data back into a buffer.
 	oc.SetRootRef(rootRef)
 	_, bcs = oc.BuildTransaction(nil)
-	rootBlobData, _, _ := bcs.Fetch()
+	rootBlobData, _, _ := bcs.Fetch(ctx)
 	rootBlobSize := uint64(len(rootBlobData))
 	t.Logf(
 		"index block is %s (overhead of %v%%)",
@@ -113,7 +113,7 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// build the blob again to do the append test
 	btx, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
-	b1, err = UnmarshalBlob(bcs)
+	b1, err = UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -161,7 +161,7 @@ func TestBlob_Chunked(t *testing.T) {
 
 	// build a new cursor to test truncating
 	_, bcs = oc.BuildTransactionAtRef(nil, bcs.GetRef())
-	b1, err = UnmarshalBlob(bcs)
+	b1, err = UnmarshalBlob(ctx, bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

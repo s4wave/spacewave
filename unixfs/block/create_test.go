@@ -27,7 +27,7 @@ func TestCreate(t *testing.T) {
 		}
 		btx, bcs := bls.BuildTransaction(nil)
 		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, &writeTs), true)
-		fsTree, err := NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+		fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -41,7 +41,7 @@ func TestCreate(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		tb.Logger.Infof("wrote test filesystem to block: %s", ref.MarshalString())
-		fsTree, err = NewFSTree(bcs, NodeType_NodeType_DIRECTORY)
+		fsTree, err = NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

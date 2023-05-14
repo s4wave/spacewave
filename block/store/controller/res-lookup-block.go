@@ -42,7 +42,7 @@ func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler di
 	}
 	defer storeRef.Release()
 
-	data, found, err := store.GetBlock(r.d.LookupBlockFromNetworkRef())
+	data, found, err := store.GetBlock(ctx, r.d.LookupBlockFromNetworkRef())
 	if err != nil {
 		return err
 	}

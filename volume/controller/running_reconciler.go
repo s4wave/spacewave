@@ -86,7 +86,7 @@ func (r *runningReconciler) executeReconciler() error {
 		r.le.
 			WithField("reconciler-id", r.pair.ReconcilerID).
 			Debugf("bucket reconciler config not found, purging event queue")
-		return r.v.DeleteReconcilerEventQueue(r.pair)
+		return r.v.DeleteReconcilerEventQueue(ctx, r.pair)
 	}
 
 	bucketRecCc, err := bucketRec.GetController().Resolve(r.ctx, r.b)

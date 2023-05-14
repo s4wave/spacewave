@@ -82,7 +82,7 @@ func (o *FsTruncateOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// get the fs object
-	obj, err := world.MustGetObject(worldHandle, o.GetObjectKey())
+	obj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
 	if err != nil {
 		return false, err
 	}
@@ -106,7 +106,7 @@ func (o *FsTruncateOp) ApplyWorldObjectOp(
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
 		switch o.GetFsType() {
 		case FSType_FSType_FS_NODE:
-			ftree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
+			ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 			if err != nil {
 				return err
 			}

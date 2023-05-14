@@ -43,7 +43,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 
 	ts := timestamp.Now()
 	var errStr string
-	updated, prev, curr, err := vol.ApplyBucketConfig(o.dir.ApplyBucketConfigBucketConf())
+	updated, prev, curr, err := vol.ApplyBucketConfig(ctx, o.dir.ApplyBucketConfigBucketConf())
 	if err != nil {
 		if err == context.Canceled {
 			return err

@@ -27,15 +27,15 @@ func (t *EngineTxObjectState) GetKey() string {
 }
 
 // GetRootRef returns the root reference of the object.
-func (t *EngineTxObjectState) GetRootRef() (*bucket.ObjectRef, uint64, error) {
+func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
 	var rref *bucket.ObjectRef
 	var outRev uint64
 	err := t.t.performOp(func(tx *Tx) error {
-		obj, err := t.lookupObject(tx)
+		obj, err := t.lookupObject(ctx, tx)
 		if err != nil {
 			return err
 		}
-		rref, outRev, err = obj.GetRootRef()
+		rref, outRev, err = obj.GetRootRef(ctx)
 		return err
 	})
 	return rref, outRev, err
@@ -54,16 +54,16 @@ func (t *EngineTxObjectState) AccessWorldState(
 }
 
 // SetRootRef changes the root reference of the object.
-func (t *EngineTxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error) {
+func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
 	if t.t.GetReadOnly() {
 		return 0, tx.ErrNotWrite
 	}
 
 	var outRev uint64
 	err := t.t.performOp(func(tx *Tx) error {
-		obj, berr := t.lookupObject(tx)
+		obj, berr := t.lookupObject(ctx, tx)
 		if berr == nil {
-			outRev, berr = obj.SetRootRef(nref)
+			outRev, berr = obj.SetRootRef(ctx, nref)
 		}
 		return berr
 	})
@@ -75,6 +75,7 @@ func (t *EngineTxObjectState) SetRootRef(nref *bucket.ObjectRef) (uint64, error)
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *EngineTxObjectState) ApplyObjectOp(
+	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
@@ -85,9 +86,9 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 	var outRev uint64
 	var outSysErr bool
 	err := t.t.performOp(func(tx *Tx) error {
-		obj, berr := t.lookupObject(tx)
+		obj, berr := t.lookupObject(ctx, tx)
 		if berr == nil {
-			outRev, outSysErr, berr = obj.ApplyObjectOp(op, opSender)
+			outRev, outSysErr, berr = obj.ApplyObjectOp(ctx, op, opSender)
 		}
 		return berr
 	})
@@ -96,16 +97,16 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
-func (t *EngineTxObjectState) IncrementRev() (uint64, error) {
+func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 	if t.t.GetReadOnly() {
 		return 0, tx.ErrNotWrite
 	}
 
 	var val uint64
 	err := t.t.performOp(func(tx *Tx) error {
-		obj, berr := t.lookupObject(tx)
+		obj, berr := t.lookupObject(ctx, tx)
 		if berr == nil {
-			val, berr = obj.IncrementRev()
+			val, berr = obj.IncrementRev(ctx)
 		}
 		return berr
 	})
@@ -121,14 +122,14 @@ func (t *EngineTxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	seqno, err := t.t.GetSeqno()
+	seqno, err := t.t.GetSeqno(ctx)
 	if err != nil {
 		return 0, err
 	}
 
 	// XXX: optimization: watch changelog for object changes
 	for {
-		_, currRev, err := t.GetRootRef()
+		_, currRev, err := t.GetRootRef(ctx)
 		if err != nil {
 			return 0, err
 		}
@@ -145,8 +146,8 @@ func (t *EngineTxObjectState) WaitRev(
 }
 
 // lookupObject returns the object or ErrObjectNotFound
-func (t *EngineTxObjectState) lookupObject(tx *Tx) (world.ObjectState, error) {
-	obj, found, err := tx.GetObject(t.key)
+func (t *EngineTxObjectState) lookupObject(ctx context.Context, tx *Tx) (world.ObjectState, error) {
+	obj, found, err := tx.GetObject(ctx, t.key)
 	if err != nil {
 		return nil, err
 	}

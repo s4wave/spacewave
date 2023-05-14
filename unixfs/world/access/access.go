@@ -180,7 +180,7 @@ func (c *Controller) resolveFs(ctx context.Context, released func()) (*unixfs.FS
 	fs, err := unixfs_world.BuildFSFromUnixfsRef(
 		ctx,
 		c.GetLogger(),
-		world.NewEngineWorldState(ctx, eng, true),
+		world.NewEngineWorldState(eng, true),
 		c.sender,
 		conf.GetFsRef(),
 		false,

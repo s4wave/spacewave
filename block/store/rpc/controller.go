@@ -51,7 +51,7 @@ func NewBlockStoreBuilder(b bus.Bus, conf *Config) block_store_controller.BlockS
 			return nil, nil, err
 		}
 		blockClient := block_rpc.NewSRPCBlockStoreClientWithServiceID(clientSet, serviceID)
-		blockStore := block_rpc_client.NewBlockStore(ctx, blockClient, conf.GetForceHashType(), conf.GetReadOnly())
+		blockStore := block_rpc_client.NewBlockStore(blockClient, conf.GetForceHashType(), conf.GetReadOnly())
 		var store block_store.Store = blockStore
 		return &store, clientSetRef.Release, nil
 	}

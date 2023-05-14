@@ -35,11 +35,11 @@ func TestControlLoop(t *testing.T) {
 	}()
 
 	// perform a couple revisions
-	obj1, err := ws.CreateObject(objKey, nil)
+	obj1, err := ws.CreateObject(ctx, objKey, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = obj1.IncrementRev()
+	_, err = obj1.IncrementRev(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -50,7 +50,7 @@ func TestControlLoop(t *testing.T) {
 	case err := <-errCh:
 		t.Fatal(err.Error())
 	case res := <-objCh:
-		_, outRev, err = res.GetRootRef()
+		_, outRev, err = res.GetRootRef(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

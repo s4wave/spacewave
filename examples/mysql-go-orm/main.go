@@ -71,7 +71,7 @@ func main() {
 
 	bucketID := "test-bucket-mysql"
 	volID := vol.GetID()
-	_, _, _, err = vol.ApplyBucketConfig(&bucket.Config{
+	_, _, _, err = vol.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  bucketID,
 		Rev: 1,
 	})
@@ -97,12 +97,12 @@ func main() {
 	dbName := "test-db"
 	dsn := "/" + dbName
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
-		tx, err := sq.NewMysqlTransaction(true)
+		tx, err := sq.NewMysqlTransaction(ctx, true)
 		if err != nil {
 			panic(err)
 		}
 		// assert that the database exists
-		_, err = tx.OpenDatabase(dbName, true)
+		_, err = tx.OpenDatabase(ctx, dbName, true)
 		if err != nil {
 			panic(err)
 		}

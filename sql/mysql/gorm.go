@@ -12,7 +12,7 @@ import (
 // NewMysqlGorm constructs a go-orm instance from a Mysql transaction.
 // dsn allows specifying the database name and/or other parameters
 func NewMysqlGorm(ctx context.Context, le *logrus.Entry, tx *Tx, conf *gorm.Config, dsn string) (*gorm.DB, *sql.DB, error) {
-	sqlDb, err := NewSqlDb(tx, dsn)
+	sqlDb, err := NewSqlDb(ctx, tx, dsn)
 	if err != nil {
 		return nil, nil, err
 	}

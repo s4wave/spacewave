@@ -78,7 +78,7 @@ func CopyObjectToBucket(
 			// copy the block
 			// note: most implementations check Exists() inside PutBlock().
 			var writeRef *block.BlockRef
-			writeRef, _, err = writeBkt.PutBlock(ent.Data, &block.PutOpts{
+			writeRef, _, err = writeBkt.PutBlock(ctx, ent.Data, &block.PutOpts{
 				HashType:      ent.Ref.GetHash().GetHashType(),
 				ForceBlockRef: ent.Ref,
 			})

@@ -117,7 +117,7 @@ func TestCursor(t *testing.T) {
 	}
 	defer oc.Release()
 
-	rbi, err := oc.Unmarshal(func() block.Block { return &Root{} })
+	rbi, err := oc.Unmarshal(ctx, func() block.Block { return &Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -133,7 +133,7 @@ func TestCursor(t *testing.T) {
 	}
 	defer occ.Release()
 	_, tcc = occ.BuildTransaction(nil)
-	bmr, err := tcc.Unmarshal(func() block.Block { return &block_mock.Root{} })
+	bmr, err := tcc.Unmarshal(ctx, func() block.Block { return &block_mock.Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -144,7 +144,7 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bmr, err = tcc.Unmarshal(block_mock.NewExampleBlock)
+	bmr, err = tcc.Unmarshal(ctx, block_mock.NewExampleBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -192,7 +192,7 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs = nc.BuildTransaction(nil)
-	ex, err := block.UnmarshalBlock[*block_mock.Example](bcs, block_mock.NewExampleBlock)
+	ex, err := block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

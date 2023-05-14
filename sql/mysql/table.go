@@ -31,7 +31,7 @@ type Table struct {
 // LoadTable constructs a new table handle, loading the root block.
 func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, error) {
 	// follow the database root
-	dbr, err := block.UnmarshalBlock[*TableRoot](bcs, NewTableRootBlock)
+	dbr, err := block.UnmarshalBlock[*TableRoot](ctx, bcs, NewTableRootBlock)
 	if err != nil {
 		return nil, err
 	}

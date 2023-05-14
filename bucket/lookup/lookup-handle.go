@@ -40,14 +40,14 @@ func (l *lookupBucket) GetHashType() hash.HashType {
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
-func (l *lookupBucket) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, ErrNotImplemented
 }
 
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (l *lookupBucket) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (l *lookupBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	lb, err := l.h.GetLookup(l.ctx)
 	if err != nil {
 		return nil, false, err
@@ -60,7 +60,7 @@ func (l *lookupBucket) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists with a cid reference.
 // Note: the block may not be in the specified bucket.
-func (l *lookupBucket) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	lb, err := l.h.GetLookup(l.ctx)
 	if err != nil {
 		return false, err
@@ -75,7 +75,7 @@ func (l *lookupBucket) GetBlockExists(ref *block.BlockRef) (bool, error) {
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (l *lookupBucket) RmBlock(ref *block.BlockRef) error {
+func (l *lookupBucket) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return ErrNotImplemented
 }
 

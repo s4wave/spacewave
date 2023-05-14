@@ -47,7 +47,7 @@ func InitVolume(
 	}
 
 	hstore := store_kvtx.NewKVTx(ctx, storeID, kvkey, bstore, conf.GetStoreConfig())
-	err = hstore.StorePeerPriv(nvolPriv)
+	err = hstore.StorePeerPriv(ctx, nvolPriv)
 	if err != nil {
 		return nil, err
 	}

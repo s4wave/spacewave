@@ -15,7 +15,6 @@ import (
 
 // HTTPBlock is a block store on top of a HTTP client and base URL prefix.
 type HTTPBlock struct {
-	ctx      context.Context
 	write    bool
 	client   *http.Client
 	baseURL  *url.URL
@@ -40,7 +39,7 @@ const (
 // client can be nil to use the default client
 // hashType can be 0 to use the default hash type.
 // if write=false, supports read operations only.
-func NewHTTPBlock(ctx context.Context, write bool, client *http.Client, baseURL *url.URL, hashType hash.HashType) *HTTPBlock {
+func NewHTTPBlock(write bool, client *http.Client, baseURL *url.URL, hashType hash.HashType) *HTTPBlock {
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -49,7 +48,7 @@ func NewHTTPBlock(ctx context.Context, write bool, client *http.Client, baseURL 
 		// at least make sure it's not nil.
 		baseURL = &url.URL{}
 	}
-	return &HTTPBlock{ctx: ctx, write: write, client: client, baseURL: baseURL, hashType: hashType}
+	return &HTTPBlock{write: write, client: client, baseURL: baseURL, hashType: hashType}
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -61,7 +60,7 @@ func (b *HTTPBlock) GetHashType() hash.HashType {
 
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
-func (b *HTTPBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
+func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
 	if !b.write {
 		return nil, false, block_store.ErrReadOnlyStore
 	}
@@ -83,7 +82,7 @@ func (b *HTTPBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 		return nil, false, err
 	}
 
-	req, err := http.NewRequestWithContext(b.ctx, "POST", putURL.String(), bytes.NewReader(bodyDat))
+	req, err := http.NewRequestWithContext(ctx, "POST", putURL.String(), bytes.NewReader(bodyDat))
 	if err != nil {
 		return nil, false, err
 	}
@@ -141,7 +140,7 @@ func (b *HTTPBlock) PutBlock(data []byte, opts *block.PutOpts) (ref *block.Block
 
 // GetBlock looks up a block in the store.
 // Returns data, found, and any exceptional error.
-func (b *HTTPBlock) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if ref.GetEmpty() {
 		return nil, false, block.ErrEmptyBlockRef
 	}
@@ -150,7 +149,7 @@ func (b *HTTPBlock) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	refB58 := ref.MarshalString()
 	getURL := b.baseURL.JoinPath(GetPath, refB58)
 
-	req, err := http.NewRequestWithContext(b.ctx, "GET", getURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", getURL.String(), nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -203,7 +202,7 @@ func (b *HTTPBlock) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any exceptional error.
-func (b *HTTPBlock) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	if ref.GetEmpty() {
 		return false, block.ErrEmptyBlockRef
 	}
@@ -212,7 +211,7 @@ func (b *HTTPBlock) GetBlockExists(ref *block.BlockRef) (bool, error) {
 	refB58 := ref.MarshalString()
 	existsURL := b.baseURL.JoinPath(ExistsPath, refB58)
 
-	req, err := http.NewRequestWithContext(b.ctx, "GET", existsURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", existsURL.String(), nil)
 	if err != nil {
 		return false, err
 	}
@@ -248,7 +247,7 @@ func (b *HTTPBlock) GetBlockExists(ref *block.BlockRef) (bool, error) {
 
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
-func (b *HTTPBlock) RmBlock(ref *block.BlockRef) error {
+func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if ref.GetEmpty() {
 		return block.ErrEmptyBlockRef
 	}
@@ -260,7 +259,7 @@ func (b *HTTPBlock) RmBlock(ref *block.BlockRef) error {
 	refB58 := ref.MarshalString()
 	rmURL := b.baseURL.JoinPath(RmPath, refB58)
 
-	req, err := http.NewRequestWithContext(b.ctx, "DELETE", rmURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", rmURL.String(), nil)
 	if err != nil {
 		return err
 	}

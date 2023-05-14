@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	filters "github.com/aperturerobotics/hydra/block/filters"
 	"github.com/aperturerobotics/hydra/world"
@@ -36,8 +38,8 @@ func NewChangeLogLLSubBlockCtor(r **ChangeLogLL) block.SubBlockCtor {
 
 // UnmarshalChangeLogLL unmarshals a world change ll from a cursor.
 // If empty, returns nil, nil
-func UnmarshalChangeLogLL(bcs *block.Cursor) (*ChangeLogLL, error) {
-	return block.UnmarshalBlock[*ChangeLogLL](bcs, NewChangeLogLLBlock)
+func UnmarshalChangeLogLL(ctx context.Context, bcs *block.Cursor) (*ChangeLogLL, error) {
+	return block.UnmarshalBlock[*ChangeLogLL](ctx, bcs, NewChangeLogLLBlock)
 }
 
 // AppendChangeLogLL appends world changes to the ChangeLogLL, respecting the
@@ -50,6 +52,7 @@ func UnmarshalChangeLogLL(bcs *block.Cursor) (*ChangeLogLL, error) {
 // all world changes must have the same change type
 // Returns the latest HEAD block and sets it into nextBcs.
 func AppendChangeLogLL(
+	ctx context.Context,
 	storeKeyCount uint64,
 	nextBcs *block.Cursor,
 	prevBcs *block.Cursor,
@@ -68,13 +71,13 @@ func AppendChangeLogLL(
 			prevBcs = prevBcs.Detach(true)
 		}
 		// unmarshal previous block
-		prevChangeLogLL, err = UnmarshalChangeLogLL(prevBcs)
+		prevChangeLogLL, err = UnmarshalChangeLogLL(ctx, prevBcs)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	firstChange, err := UnmarshalWorldChange(worldChangesBcs[0])
+	firstChange, err := UnmarshalWorldChange(ctx, worldChangesBcs[0])
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +128,7 @@ func AppendChangeLogLL(
 		// update the key filters
 		if kfb != nil {
 			for _, chBcs := range changeBatch {
-				ch, err := UnmarshalWorldChange(chBcs)
+				ch, err := UnmarshalWorldChange(ctx, chBcs)
 				if err != nil {
 					return nil, err
 				}
@@ -135,7 +138,7 @@ func AppendChangeLogLL(
 
 		// update HEAD of linked list by pushing a node
 		// internally, detaches the previous WorldChangeLL into a new cursor
-		cll.ChangeBatch, err = AppendWorldChangeLL(changeBatchBcs, changeBatchBcs, changeBatch)
+		cll.ChangeBatch, err = AppendWorldChangeLL(ctx, changeBatchBcs, changeBatchBcs, changeBatch)
 		if err != nil {
 			return nil, err
 		}

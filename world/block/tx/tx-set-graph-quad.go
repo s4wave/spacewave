@@ -70,7 +70,7 @@ func (t *TxSetGraphQuad) ExecuteTx(
 	}
 
 	gq := world.QuadToGraphQuad(t.GetQuad())
-	err := worldInstance.SetGraphQuad(gq)
+	err := worldInstance.SetGraphQuad(ctx, gq)
 	return false, err
 }
 

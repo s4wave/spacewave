@@ -27,7 +27,7 @@ func FsRename(
 
 	// perform the fs copy operation
 	wOp := NewFsRenameOp(objKey, fsType, bpaths[0], bpaths[1], ts)
-	_, _, err := ws.ApplyWorldOp(wOp, sender)
+	_, _, err := ws.ApplyWorldOp(ctx, wOp, sender)
 	return err
 }
 
@@ -87,7 +87,7 @@ func (o *FsRenameOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 
 	// get the src fs object
-	fsObj, err := world.MustGetObject(worldHandle, o.GetObjectKey())
+	fsObj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
 	if err != nil {
 		return false, err
 	}
@@ -114,7 +114,7 @@ func (o *FsRenameOp) ApplyWorldObjectOp(
 		srcFsType := o.GetFsType()
 		switch srcFsType {
 		case FSType_FSType_FS_NODE:
-			ftree, err := unixfs_block.NewFSTree(bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
+			ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 			if err != nil {
 				return err
 			}

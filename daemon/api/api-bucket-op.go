@@ -25,7 +25,7 @@ func (a *API) BucketOp(
 	resp := &BucketOpResponse{}
 	switch req.GetOp() {
 	case BucketOp_BucketOp_BLOCK_PUT:
-		ref, existed, err := bk.PutBlock(req.GetData(), req.GetPutOpts())
+		ref, existed, err := bk.PutBlock(ctx, req.GetData(), req.GetPutOpts())
 		if err != nil {
 			return nil, err
 		}
@@ -42,14 +42,14 @@ func (a *API) BucketOp(
 		}
 		_ = existed
 	case BucketOp_BucketOp_BLOCK_GET:
-		dat, ok, err := bk.GetBlock(req.GetBlockRef())
+		dat, ok, err := bk.GetBlock(ctx, req.GetBlockRef())
 		if err != nil {
 			return nil, err
 		}
 		resp.Data = dat
 		resp.Found = ok
 	case BucketOp_BucketOp_BLOCK_RM:
-		if err := bk.RmBlock(req.GetBlockRef()); err != nil {
+		if err := bk.RmBlock(ctx, req.GetBlockRef()); err != nil {
 			return nil, err
 		}
 		resp.Event = &bucket_event.Event{

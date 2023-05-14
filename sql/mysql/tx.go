@@ -84,25 +84,25 @@ func (t *Tx) DatabaseCount() int {
 // OpenDatabase opens a database with the given name.
 //
 // If not exist, create is set, and tx is a write tx, it will be created.
-func (t *Tx) OpenDatabase(name string, create bool) (*Database, error) {
+func (t *Tx) OpenDatabase(ctx context.Context, name string, create bool) (*Database, error) {
 	if name == "" {
 		return nil, ErrEmptyDatabaseName
 	}
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 	readOnly := !t.write
-	return t.openDatabaseLocked(name, create, readOnly)
+	return t.openDatabaseLocked(ctx, name, create, readOnly)
 }
 
 // BuildDatabaseProvider builds the database catalog from the available dbs.
-func (t *Tx) BuildDatabaseProvider() (sql.DatabaseProvider, error) {
+func (t *Tx) BuildDatabaseProvider(ctx context.Context) (sql.DatabaseProvider, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
 	rootDbs := t.root.GetDatabases()
 	dbs := make([]sql.Database, len(rootDbs))
 	for i, v := range rootDbs {
-		db, err := t.openDatabaseLocked(v.GetName(), false, !t.write)
+		db, err := t.openDatabaseLocked(ctx, v.GetName(), false, !t.write)
 		if err != nil {
 			if ErrDatabaseNotFound.Is(err) {
 				continue
@@ -118,7 +118,7 @@ func (t *Tx) BuildDatabaseProvider() (sql.DatabaseProvider, error) {
 }
 
 // openDatabaseLocked implements OpenDatabase when rmtx is locked by caller.
-func (t *Tx) openDatabaseLocked(name string, create, readOnly bool) (*Database, error) {
+func (t *Tx) openDatabaseLocked(ctx context.Context, name string, create, readOnly bool) (*Database, error) {
 	if d, ok := t.openDbs[name]; ok {
 		// note: d may be nil here.
 		return d, nil
@@ -143,7 +143,7 @@ func (t *Tx) openDatabaseLocked(name string, create, readOnly bool) (*Database, 
 		}
 		rcs = rcs.FollowRef(2, dsb.GetRef())
 	}
-	ndb, err := NewDatabase(name, readOnly, rcs)
+	ndb, err := NewDatabase(ctx, name, readOnly, rcs)
 	if err != nil {
 		return nil, err
 	}

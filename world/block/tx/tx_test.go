@@ -46,7 +46,7 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = ws.Commit()
+	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -55,7 +55,7 @@ func TestWorldState(t *testing.T) {
 	// pass 2: test forking it + applying changes
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs)
 	if err == nil {
-		_, err = world.MustGetObject(ws, objKey)
+		_, err = world.MustGetObject(ctx, ws, objKey)
 	}
 	if err != nil {
 		t.Fatal(err.Error())
@@ -70,13 +70,14 @@ func TestWorldState(t *testing.T) {
 
 	// checkRev asserts a object is at a revision
 	checkRev := func(obj world.ObjectState, expected uint64) {
-		if err := world.AssertObjectRev(obj, expected); err != nil {
+		if err := world.AssertObjectRev(ctx, obj, expected); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
 
 	secondMsg := "hello there #2"
 	_, _, err = forkedTx.ApplyWorldOp(
+		ctx,
 		world_mock.NewMockWorldOp(objKey, secondMsg),
 		sender,
 	)
@@ -85,7 +86,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	// ensure the change was applied to the object
-	obj, err := world.MustGetObject(forkedTx, objKey)
+	obj, err := world.MustGetObject(ctx, forkedTx, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -93,7 +94,7 @@ func TestWorldState(t *testing.T) {
 
 	// check the updated field on the object
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		e, err := block_mock.UnmarshalExample(bcs)
+		e, err := block_mock.UnmarshalExample(ctx, bcs)
 		if err == nil && e.GetMsg() != secondMsg {
 			err = errors.Errorf("unexpected block msg field: %s != expected %s", e.GetMsg(), secondMsg)
 		}
@@ -118,7 +119,7 @@ func TestWorldState(t *testing.T) {
 	// pass 3: apply the tx to a fresh state and check result
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs)
 	if err == nil {
-		_, err = world.MustGetObject(ws, objKey)
+		_, err = world.MustGetObject(ctx, ws, objKey)
 	}
 	if err != nil {
 		t.Fatal(err.Error())
@@ -138,7 +139,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	// ensure the change was applied to the object
-	obj, err = world.MustGetObject(ws, objKey)
+	obj, err = world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

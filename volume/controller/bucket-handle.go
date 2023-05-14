@@ -68,7 +68,7 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 		return err
 	}
 
-	bc, err := vol.GetBucketConfig(b.bucketID)
+	bc, err := vol.GetBucketConfig(ctx, b.bucketID)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (b *bucketHandle) GetBucketConfig() *bucket.Config {
 
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
-func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if b.err != nil {
 		return nil, false, b.err
 	}
@@ -178,7 +178,7 @@ func (b *bucketHandle) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockR
 	}
 
 	// store will hash the data
-	br, existed, err := b.v.PutBlock(data, opts)
+	br, existed, err := b.v.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -232,41 +232,41 @@ func (b *bucketHandle) GetHashType() hash.HashType {
 
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
-func (b *bucketHandle) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if b.bucketConf == nil {
 		return nil, false, bucket.ErrBucketUnknown
 	}
 
-	return b.v.GetBlock(ref)
+	return b.v.GetBlock(ctx, ref)
 }
 
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlockExists.
-func (b *bucketHandle) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (b *bucketHandle) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	if b.bucketConf == nil {
 		return false, bucket.ErrBucketUnknown
 	}
 
-	return b.v.GetBlockExists(ref)
+	return b.v.GetBlockExists(ctx, ref)
 }
 
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (b *bucketHandle) RmBlock(ref *block.BlockRef) error {
+func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if b.bucketConf == nil {
 		return nil
 	}
 
 	if !b.t.c.config.GetDisableEventBlockRm() {
-		ok, err := b.v.GetBlockExists(ref)
+		ok, err := b.v.GetBlockExists(ctx, ref)
 		if err == nil && !ok {
 			// skip, does not exist.
 			return nil
 		}
 	}
 
-	if err := b.v.RmBlock(ref); err != nil || b.t.c.config.GetDisableEventBlockRm() {
+	if err := b.v.RmBlock(ctx, ref); err != nil || b.t.c.config.GetDisableEventBlockRm() {
 		return err
 	}
 

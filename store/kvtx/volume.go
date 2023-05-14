@@ -1,12 +1,14 @@
 package store_kvtx
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bifrost/keypem"
 	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
 // LoadPeerPriv attempts to load the peer private key from the volume.
-func (k *KVTx) LoadPeerPriv() (crypto.PrivKey, error) {
+func (k *KVTx) LoadPeerPriv(ctx context.Context) (crypto.PrivKey, error) {
 	tx, err := k.store.NewTransaction(false)
 	if err != nil {
 		return nil, err
@@ -25,7 +27,7 @@ func (k *KVTx) LoadPeerPriv() (crypto.PrivKey, error) {
 }
 
 // StorePeerPriv overwrites the volume's stored private key.
-func (k *KVTx) StorePeerPriv(privKey crypto.PrivKey) error {
+func (k *KVTx) StorePeerPriv(ctx context.Context, privKey crypto.PrivKey) error {
 	dat, err := keypem.MarshalPrivKeyPem(privKey)
 	if err != nil {
 		return err

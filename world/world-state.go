@@ -42,7 +42,7 @@ type WorldWaitSeqno interface {
 	// GetSeqno returns the current seqno of the world state.
 	// This is also the sequence number of the most recent change.
 	// Initializes at 0 for initial world state.
-	GetSeqno() (uint64, error)
+	GetSeqno(ctx context.Context) (uint64, error)
 
 	// WaitSeqno waits for the seqno of the world state to be >= value.
 	// Returns the seqno when the condition is reached.
@@ -87,6 +87,7 @@ type WorldStateOp interface {
 	// Must support recursive calls to ApplyWorldOp / ApplyObjectOp.
 	// Returns seqno, sysErr, err
 	ApplyWorldOp(
+		ctx context.Context,
 		op Operation,
 		opSender peer.ID,
 	) (seqno uint64, sysErr bool, err error)
@@ -97,14 +98,14 @@ type WorldStateObject interface {
 	// CreateObject creates a object with a key and initial root ref.
 	// Returns ErrObjectExists if the object already exists.
 	// Appends a OBJECT_SET change to the changelog.
-	CreateObject(key string, rootRef *bucket.ObjectRef) (ObjectState, error)
+	CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error)
 	// GetObject looks up an object by key.
 	// Returns nil, false if not found.
-	GetObject(key string) (ObjectState, bool, error)
+	GetObject(ctx context.Context, key string) (ObjectState, bool, error)
 	// DeleteObject deletes an object and associated graph quads by ID.
 	// Calls DeleteGraphObject internally.
 	// Returns false, nil if not found.
-	DeleteObject(key string) (bool, error)
+	DeleteObject(ctx context.Context, key string) (bool, error)
 }
 
 // WorldStateGraph contains the graph APIs on WorldState.
@@ -113,24 +114,24 @@ type WorldStateGraph interface {
 	// All accesses of the handle should complete before returning cb.
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
-	AccessCayleyGraph(write bool, cb func(h CayleyHandle) error) error
+	AccessCayleyGraph(ctx context.Context, write bool, cb func(h CayleyHandle) error) error
 	// LookupGraphQuads searches for graph quads in the store.
 	// If the filter fields are empty, matches any for that field.
 	// If not found, returns nil, nil
 	// If limit is set, stops after finding that number of matching quads.
-	LookupGraphQuads(filter GraphQuad, limit uint32) ([]GraphQuad, error)
+	LookupGraphQuads(ctx context.Context, filter GraphQuad, limit uint32) ([]GraphQuad, error)
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-key>
 	// Predicate: a predicate string, e.x. IRI: <ref>
 	// Object: an existing object IRI: <object-key>
 	// If already exists, returns nil.
-	SetGraphQuad(q GraphQuad) error
+	SetGraphQuad(ctx context.Context, q GraphQuad) error
 	// DeleteGraphQuad deletes a quad from the graph store.
 	// Note: if quad did not exist, returns nil.
-	DeleteGraphQuad(q GraphQuad) error
+	DeleteGraphQuad(ctx context.Context, q GraphQuad) error
 	// DeleteGraphObject deletes all quads with Subject or Object set to value.
 	// Note: value should be the object key, NOT the object key <iri> format.
-	DeleteGraphObject(value string) error
+	DeleteGraphObject(ctx context.Context, value string) error
 }
 
 // CayleyHandle is a cayley graph handle.
@@ -188,8 +189,8 @@ func GraphEnsureIsIRI(val string) (quad.IRI, error) {
 }
 
 // MustGetObject looks up an object in a world state or returns ErrObjectNotFound.
-func MustGetObject(w WorldStateObject, key string) (ObjectState, error) {
-	obj, found, err := w.GetObject(key)
+func MustGetObject(ctx context.Context, w WorldStateObject, key string) (ObjectState, error) {
+	obj, found, err := w.GetObject(ctx, key)
 	if err == nil && !found {
 		err = ErrObjectNotFound
 	}
@@ -240,7 +241,7 @@ func CreateWorldObject(
 	objKey string,
 	cb AccessObjectCb,
 ) (ObjectState, *bucket.ObjectRef, error) {
-	_, exists, err := ws.GetObject(objKey)
+	_, exists, err := ws.GetObject(ctx, objKey)
 	if err == nil && exists {
 		err = ErrObjectExists
 	}
@@ -252,7 +253,7 @@ func CreateWorldObject(
 	if err != nil {
 		return nil, nil, err
 	}
-	objs, err := ws.CreateObject(objKey, objRef)
+	objs, err := ws.CreateObject(ctx, objKey, objRef)
 	return objs, objRef, err
 }
 
@@ -272,7 +273,7 @@ func AccessWorldObject(
 		updateWorld = false
 	}
 
-	obj, existed, err := ws.GetObject(objKey)
+	obj, existed, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		return nil, false, err
 	}
@@ -281,7 +282,7 @@ func AccessWorldObject(
 	if !existed {
 		initRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
 		if err == nil && updateWorld {
-			_, err = ws.CreateObject(objKey, initRef)
+			_, err = ws.CreateObject(ctx, objKey, initRef)
 		}
 		return initRef, true, err
 	}
@@ -302,7 +303,7 @@ func AccessObjectState(
 	if obj == nil {
 		return nil, false, ErrObjectNotFound
 	}
-	initRef, _, err := obj.GetRootRef()
+	initRef, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -318,7 +319,7 @@ func AccessObjectState(
 		dirty = true
 	}
 	if updateWorld && dirty {
-		_, err = obj.SetRootRef(outRef)
+		_, err = obj.SetRootRef(ctx, outRef)
 	}
 	return outRef, dirty, err
 }

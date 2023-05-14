@@ -1,9 +1,15 @@
 package block_store
 
 import (
+	"context"
+	"time"
+
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
 )
+
+// writebackTimeout is the maximum time we can take to write back a block.
+const writebackTimeout = time.Minute
 
 // Overlay layers an upper block store over a lower store.
 type Overlay struct {
@@ -30,15 +36,15 @@ func (o *Overlay) GetHashType() hash.HashType {
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
 // If the hash type is unset, use the type from GetHashType().
-func (o *Overlay) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (o *Overlay) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	cacheMode := func(lower, upper Store) (*block.BlockRef, bool, error) {
-		ref, existed, err := upper.PutBlock(data, opts)
+		ref, existed, err := upper.PutBlock(ctx, data, opts)
 		if err != nil {
 			return nil, false, err
 		}
 		lowerOpts := opts.CloneVT()
 		lowerOpts.ForceBlockRef = ref
-		_, lowerExisted, err := lower.PutBlock(data, lowerOpts)
+		_, lowerExisted, err := lower.PutBlock(ctx, data, lowerOpts)
 		if err != nil {
 			return nil, false, err
 		}
@@ -48,7 +54,7 @@ func (o *Overlay) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, b
 	default:
 		fallthrough
 	case BlockStoreMode_BlockStoreMode_DIRECT:
-		return o.upper.PutBlock(data, opts)
+		return o.upper.PutBlock(ctx, data, opts)
 	case BlockStoreMode_BlockStoreMode_CACHE:
 		return cacheMode(o.lower, o.upper)
 	case BlockStoreMode_BlockStoreMode_CACHE_LOWER:
@@ -61,13 +67,13 @@ func (o *Overlay) PutBlock(data []byte, opts *block.PutOpts) (*block.BlockRef, b
 // Returns data, found, error.
 // Returns nil, false, nil if not found.
 // Note: the block may not be in the specified bucket.
-func (o *Overlay) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
+func (o *Overlay) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	cacheMode := func(lower, upper Store) ([]byte, bool, error) {
-		data, found, err := o.upper.GetBlock(ref)
+		data, found, err := o.upper.GetBlock(ctx, ref)
 		if err != nil || found {
 			return data, found, err
 		}
-		data, found, err = o.lower.GetBlock(ref)
+		data, found, err = o.lower.GetBlock(ctx, ref)
 		if err != nil || !found {
 			return data, found, err
 		}
@@ -76,7 +82,9 @@ func (o *Overlay) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 		}
 		go func() {
 			// writeback
-			_, _, _ = o.upper.PutBlock(data, putOpts)
+			writebackCtx, writebackCtxCancel := context.WithTimeout(context.Background(), writebackTimeout)
+			_, _, _ = o.upper.PutBlock(writebackCtx, data, putOpts)
+			writebackCtxCancel()
 		}()
 		return data, true, nil
 	}
@@ -84,7 +92,7 @@ func (o *Overlay) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 	default:
 		fallthrough
 	case BlockStoreMode_BlockStoreMode_DIRECT:
-		return o.upper.GetBlock(ref)
+		return o.upper.GetBlock(ctx, ref)
 	case BlockStoreMode_BlockStoreMode_CACHE:
 		return cacheMode(o.lower, o.upper)
 	case BlockStoreMode_BlockStoreMode_CACHE_LOWER:
@@ -95,19 +103,19 @@ func (o *Overlay) GetBlock(ref *block.BlockRef) ([]byte, bool, error) {
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
-func (o *Overlay) GetBlockExists(ref *block.BlockRef) (bool, error) {
+func (o *Overlay) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	cacheMode := func(lower, upper Store) (bool, error) {
-		found, err := o.upper.GetBlockExists(ref)
+		found, err := o.upper.GetBlockExists(ctx, ref)
 		if err != nil || found {
 			return found, err
 		}
-		return o.lower.GetBlockExists(ref)
+		return o.lower.GetBlockExists(ctx, ref)
 	}
 	switch o.mode {
 	default:
 		fallthrough
 	case BlockStoreMode_BlockStoreMode_DIRECT:
-		return o.upper.GetBlockExists(ref)
+		return o.upper.GetBlockExists(ctx, ref)
 	case BlockStoreMode_BlockStoreMode_CACHE:
 		return cacheMode(o.lower, o.upper)
 	case BlockStoreMode_BlockStoreMode_CACHE_LOWER:
@@ -118,11 +126,11 @@ func (o *Overlay) GetBlockExists(ref *block.BlockRef) (bool, error) {
 // RmBlock deletes a block from the bucket.
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
-func (o *Overlay) RmBlock(ref *block.BlockRef) error {
-	if err := o.upper.RmBlock(ref); err != nil {
+func (o *Overlay) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	if err := o.upper.RmBlock(ctx, ref); err != nil {
 		return err
 	}
-	return o.lower.RmBlock(ref)
+	return o.lower.RmBlock(ctx, ref)
 }
 
 // _ is a type assertion

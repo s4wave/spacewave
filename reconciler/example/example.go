@@ -52,7 +52,7 @@ func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) erro
 		if e.GetEventType() == bucket_event.EventType_EventType_PUT_BLOCK {
 			br := e.GetPutBlock().GetBlockCommon().GetBlockRef()
 			bh := handle.GetBucketHandle().GetBucket()
-			dat, ok, err := bh.GetBlock(br)
+			dat, ok, err := bh.GetBlock(ctx, br)
 			if err != nil {
 				r.le.WithError(err).Warn("unable to lookup put block")
 			} else {

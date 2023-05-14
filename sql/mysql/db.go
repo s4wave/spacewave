@@ -10,15 +10,18 @@ import (
 )
 
 // NewSqlDriver constructs a sql driver from a transaction.
-func NewSqlDriver(tx *Tx, driverOpts *gdriver.Options) *gdriver.Driver {
-	provider := NewDriverProvider(tx)
+//
+// ctx is used for the driver Resolve() function
+func NewSqlDriver(ctx context.Context, tx *Tx, driverOpts *gdriver.Options) *gdriver.Driver {
+	provider := NewDriverProvider(ctx, tx)
 	return gdriver.New(provider, driverOpts)
 }
 
 // NewSqlConnector constructs a new sql conn from a transaction.
 // NOTE: dsn is used to specify arguments and is NOT the db name.
-func NewSqlConnector(tx *Tx, dsn string) (driver.Connector, error) {
-	driver := NewSqlDriver(tx, &gdriver.Options{})
+// ctx is used for the driver Resolve() function
+func NewSqlConnector(ctx context.Context, tx *Tx, dsn string) (driver.Connector, error) {
+	driver := NewSqlDriver(ctx, tx, &gdriver.Options{})
 	return driver.OpenConnector(dsn)
 }
 
@@ -34,7 +37,7 @@ var _ SqlConn = (*gdriver.Conn)(nil)
 // NewSqlConn creates a sql conn from a transaction and dsn.
 // NOTE: dsn is used to specify arguments and is NOT the db name.
 func NewSqlConn(ctx context.Context, tx *Tx, dsn string) (SqlConn, error) {
-	conn, err := NewSqlConnector(tx, dsn)
+	conn, err := NewSqlConnector(ctx, tx, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +50,9 @@ func NewSqlConn(ctx context.Context, tx *Tx, dsn string) (SqlConn, error) {
 
 // NewSqlDb opens the sql database driver.
 // NOTE: dsn is used to specify arguments and is NOT the db name.
-func NewSqlDb(tx *Tx, dsn string) (*sql.DB, error) {
-	conn, err := NewSqlConnector(tx, dsn)
+// ctx is used for the provider Resolve function
+func NewSqlDb(ctx context.Context, tx *Tx, dsn string) (*sql.DB, error) {
+	conn, err := NewSqlConnector(ctx, tx, dsn)
 	if err != nil {
 		return nil, err
 	}

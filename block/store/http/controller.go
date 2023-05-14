@@ -41,7 +41,7 @@ func NewBlockStoreBuilder(conf *Config) block_store_controller.BlockStoreBuilder
 		if err != nil {
 			return nil, nil, err
 		}
-		httpBlock := NewHTTPBlock(ctx, !conf.GetReadOnly(), http.DefaultClient, baseURL, conf.GetForceHashType())
+		httpBlock := NewHTTPBlock(!conf.GetReadOnly(), http.DefaultClient, baseURL, conf.GetForceHashType())
 		var store block_store.Store = httpBlock
 		return &store, nil, nil
 	}

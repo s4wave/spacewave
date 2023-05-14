@@ -37,7 +37,7 @@ func FsInit(
 		overwrite,
 		ts,
 	)
-	_, _, err := ws.ApplyWorldOp(initOp, sender)
+	_, _, err := ws.ApplyWorldOp(ctx, initOp, sender)
 	return err
 }
 
@@ -125,28 +125,27 @@ func (o *FsInitOp) ApplyWorldOp(
 
 	// check if exists
 	objKey := o.GetObjectKey()
-	objState, exists, err := worldHandle.GetObject(objKey)
+	objState, exists, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
 	if exists {
 		if o.GetFsOverwrite() {
-			_, err = objState.SetRootRef(fsRef)
+			_, err = objState.SetRootRef(ctx, fsRef)
 			return false, err
 		} else {
 			return false, world.ErrObjectExists
 		}
 	} else {
 		// create the fs object
-		_, err = worldHandle.CreateObject(objKey, fsRef)
+		_, err = worldHandle.CreateObject(ctx, objKey, fsRef)
 		if err != nil {
 			return false, err
 		}
 	}
 
 	// create the types reference
-	types := world_types.NewTypesState(ctx, worldHandle)
-	if err := types.SetObjectType(objKey, fsTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, worldHandle, objKey, fsTypeID); err != nil {
 		return false, err
 	}
 
@@ -167,7 +166,7 @@ func (o *FsInitOp) ApplyWorldObjectOp(
 	}
 
 	// update the object
-	_, err = objectHandle.SetRootRef(fsRef)
+	_, err = objectHandle.SetRootRef(ctx, fsRef)
 	return false, err
 }
 

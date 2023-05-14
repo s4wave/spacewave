@@ -15,21 +15,13 @@ import (
 
 // ObjectStore implements a ObjectStore backed by a ObjectStore service.
 type ObjectStore struct {
-	// ctx is used for volume lookups
-	ctx context.Context
 	// client is the client to use
 	client object_rpc.SRPCObjectStoreClient
 }
 
 // NewObjectStore constructs a new ObjectStore.
-func NewObjectStore(
-	ctx context.Context,
-	client object_rpc.SRPCObjectStoreClient,
-) *ObjectStore {
-	return &ObjectStore{
-		ctx:    ctx,
-		client: client,
-	}
+func NewObjectStore(client object_rpc.SRPCObjectStoreClient) *ObjectStore {
+	return &ObjectStore{client: client}
 }
 
 // OpenObjectStore opens a object store by ID.

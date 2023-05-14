@@ -52,7 +52,7 @@ func (i *TablePartitionRowIter) GetRow() (sql.Row, error) {
 	// detach to allow Go to garbage-collect the value once we're done.
 	valueCs := i.it.ValueCursor().DetachTransaction()
 	// follow + fetch table row
-	tableRow, err := UnmarshalTableRow(valueCs)
+	tableRow, err := UnmarshalTableRow(i.ctx, valueCs)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,

@@ -79,14 +79,13 @@ func (o *GitInitOp) ApplyWorldOp(
 	}
 
 	// create the repo object
-	_, err = worldHandle.CreateObject(objKey, repoRef)
+	_, err = worldHandle.CreateObject(ctx, objKey, repoRef)
 	if err != nil {
 		return false, err
 	}
 
 	// repo type -> types/git/repo
-	typesState := world_types.NewTypesState(ctx, worldHandle)
-	if err := typesState.SetObjectType(objKey, GitRepoTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, worldHandle, objKey, GitRepoTypeID); err != nil {
 		return false, err
 	}
 
@@ -97,7 +96,7 @@ func (o *GitInitOp) ApplyWorldOp(
 			op = &GitCreateWorktreeOp{}
 		}
 		op.RepoObjectKey = objKey
-		_, sysErr, err = worldHandle.ApplyWorldOp(op, sender)
+		_, sysErr, err = worldHandle.ApplyWorldOp(ctx, op, sender)
 		if err != nil {
 			return sysErr, err
 		}
@@ -124,7 +123,7 @@ func (o *GitInitOp) ApplyWorldObjectOp(
 	}
 
 	// update the object
-	_, err = objectHandle.SetRootRef(repoRef)
+	_, err = objectHandle.SetRootRef(ctx, repoRef)
 	return false, err
 }
 

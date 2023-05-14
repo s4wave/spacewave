@@ -29,7 +29,7 @@ func TestVisit(t *testing.T) {
 
 	// store the bucket
 	bucketID := "test-bucket-1"
-	_, _, bc, err := vol.ApplyBucketConfig(&bucket.Config{
+	_, _, bc, err := vol.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  bucketID,
 		Rev: 1,
 	})
@@ -59,11 +59,11 @@ func TestVisit(t *testing.T) {
 		rb.ExampleSubBlock = &block_mock.SubBlock{}
 		sb := rb.ExampleSubBlock
 		ex := &block_mock.Example{Msg: "hello world"}
-		sb.ExamplePtr, _, err = block.PutBlock(bk, ex)
+		sb.ExamplePtr, _, err = block.PutBlock(ctx, bk, ex)
 		if err != nil {
 			return
 		}
-		rootBlock, _, err = block.PutBlock(bk, rb)
+		rootBlock, _, err = block.PutBlock(ctx, bk, rb)
 		return
 	}(); err != nil {
 		t.Fatal(err.Error())
@@ -72,7 +72,7 @@ func TestVisit(t *testing.T) {
 	// br is the root block ref
 	t.Logf("root block: %s", rootBlock.MarshalString())
 	_, cr := block.NewTransaction(bk, nil, rootBlock, nil)
-	rii, err := cr.Unmarshal(func() block.Block { return &block_mock.Root{} })
+	rii, err := cr.Unmarshal(ctx, func() block.Block { return &block_mock.Root{} })
 	if err != nil {
 		t.Fatal(err.Error())
 	}

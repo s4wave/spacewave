@@ -157,7 +157,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 		if bucketID == "" {
 			bucketID = "test-bucket"
 		}
-		_, _, _, err = v.ApplyBucketConfig(&bucket.Config{
+		_, _, _, err = v.ApplyBucketConfig(ctx, &bucket.Config{
 			Id:  bucketID,
 			Rev: 1,
 		})

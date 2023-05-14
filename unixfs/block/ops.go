@@ -165,7 +165,7 @@ func WriteBlob(
 
 	blobCs := node.GetCursor().DetachTransaction()
 	blobCs.SetRefAtCursor(blobRef, true)
-	blk, err := blobCs.Unmarshal(blob.NewBlobBlock)
+	blk, err := blobCs.Unmarshal(ctx, blob.NewBlobBlock)
 	if err != nil {
 		return err
 	}

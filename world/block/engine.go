@@ -17,8 +17,6 @@ import (
 // Re-tries transaction operations if the underlying transaction is discarded mid-way through.
 // Maintains two WorldState objects: one for readers, one for writer.
 type Engine struct {
-	// ctx is the context
-	ctx context.Context
 	// le is the logger
 	le *logrus.Entry
 	// lookupOp looks up a world operation.
@@ -61,7 +59,6 @@ func NewEngine(
 	commitFn CommitFn,
 ) (*Engine, error) {
 	e := &Engine{
-		ctx:      ctx,
 		le:       le,
 		baseRoot: root,
 		lookupOp: lookupOp,
@@ -70,7 +67,7 @@ func NewEngine(
 
 		wmtx: semaphore.NewWeighted(1),
 	}
-	if err := e.updateReadWriteTxns(); err != nil {
+	if err := e.updateReadWriteTxns(ctx); err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -115,7 +112,7 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 		return err
 	}
 	e.root = nextRoot
-	err = e.updateReadWriteTxns()
+	err = e.updateReadWriteTxns(ctx)
 	if err == nil {
 		oldRoot.Release()
 	} else {
@@ -129,26 +126,26 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
-func (e *Engine) NewTransaction(write bool) (world.Tx, error) {
-	return e.NewBlockEngineTransaction(write)
+func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	return e.NewBlockEngineTransaction(ctx, write)
 }
 
 // NewBlockEngineTransaction returns the world-block specific EngineTx type.
-func (e *Engine) NewBlockEngineTransaction(write bool) (*EngineTx, error) {
+func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*EngineTx, error) {
 	// writeTx is nil if it's a read-only tx
 	if !write {
 		return newEngineTx(e, nil), nil
 	}
 
 	// Released in Discard or Commit
-	if err := e.wmtx.Acquire(e.ctx, 1); err != nil {
+	if err := e.wmtx.Acquire(ctx, 1); err != nil {
 		return nil, err
 	}
 
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 
-	world, err := e.buildWorldState(false)
+	world, err := e.buildWorldState(ctx, false)
 	if err != nil {
 		e.wmtx.Release(1)
 		return nil, err
@@ -160,11 +157,11 @@ func (e *Engine) NewBlockEngineTransaction(write bool) (*EngineTx, error) {
 }
 
 // ForkBlockTransaction forks the transaction at the current state.
-func (e *Engine) ForkBlockTransaction(write bool) (*Tx, error) {
+func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, error) {
 	e.rmtx.RLock()
 	defer e.rmtx.RUnlock()
 
-	ws, err := e.buildWorldState(!write)
+	ws, err := e.buildWorldState(ctx, !write)
 	if err != nil {
 		return nil, err
 	}
@@ -209,9 +206,9 @@ func (e *Engine) AccessWorldState(
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
-func (e *Engine) GetSeqno() (uint64, error) {
+func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 	e.rmtx.Lock()
-	seqno, err := e.readTx.GetSeqno()
+	seqno, err := e.readTx.GetSeqno(ctx)
 	e.rmtx.Unlock()
 	return seqno, err
 }
@@ -222,7 +219,7 @@ func (e *Engine) GetSeqno() (uint64, error) {
 func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	for {
 		e.rmtx.Lock()
-		seqno, err := e.readTx.GetSeqno()
+		seqno, err := e.readTx.GetSeqno(ctx)
 		var waitCh chan uint64
 		tooOld := seqno < value
 		if err == nil && tooOld {
@@ -257,28 +254,27 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 // updateReadWriteTxns updates the readTx and cancels writeTx if the state changed
 // expects caller to hold rmtx lock
 // the state has been affected only if nil is returned
-func (e *Engine) updateReadWriteTxns() error {
+func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 	// If no changes have occurred...
 	if e.readTx != nil &&
 		e.readTx.state.GetRootRef().EqualsRef(e.root.GetRef().GetRootRef()) {
 		return nil
 	}
 
-	world, err := e.buildWorldState(true)
+	world, err := e.buildWorldState(ctx, true)
 	if err != nil {
 		return err
 	}
 	readTx := NewTx(world)
 	var nseqno uint64
 	if len(e.waiters) != 0 {
-		nseqno, err = readTx.GetSeqno()
+		nseqno, err = readTx.GetSeqno(ctx)
 		if err == nil {
 			e.procWaiters(nseqno)
 		}
 	}
 	if err != nil {
 		readTx.Discard()
-		world.Close()
 		return err
 	}
 	// cancel the old write tx if active
@@ -306,13 +302,13 @@ func (e *Engine) procWaiters(nseqno uint64) {
 
 // buildWorldState builds the world state transaction and cursor fields.
 // expects caller to hold rmtx
-func (e *Engine) buildWorldState(readOnly bool) (*WorldState, error) {
+func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldState, error) {
 	btx, bcs := e.root.BuildTransaction(nil)
 	if readOnly {
 		btx = nil
 	}
 	return NewWorldState(
-		e.ctx,
+		ctx,
 		e.le,
 		!readOnly,
 		btx, bcs,

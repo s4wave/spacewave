@@ -94,7 +94,7 @@ func TestGitClone(t *testing.T) {
 	// uses directive to look up the engine
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
 	// uses short-lived engine txs to implement world state
-	ws := world.NewEngineWorldState(ctx, busEngine, true)
+	ws := world.NewEngineWorldState(busEngine, true)
 
 	sender := tb.Volume.GetPeerID()
 	objKey := "test-git-repo"

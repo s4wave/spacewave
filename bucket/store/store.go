@@ -1,6 +1,7 @@
 package bucket_store
 
 import (
+	"context"
 	"regexp"
 
 	"github.com/aperturerobotics/hydra/bucket"
@@ -19,20 +20,20 @@ type Store interface {
 	// Returns the previous and current (updated) configurations.
 	// The current configuration may be nil if the volume rejects the bucket.
 	// If outdated, prev == curr.
-	ApplyBucketConfig(conf *bucket.Config) (updated bool, prev, curr *bucket.Config, err error)
+	ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (updated bool, prev, curr *bucket.Config, err error)
 	// GetBucketConfig gets the bucket config for the bucket ID.
 	// Can return nil if no bucket config is found.
-	GetBucketConfig(id string) (*bucket.Config, error)
+	GetBucketConfig(ctx context.Context, id string) (*bucket.Config, error)
 	// GetBucketInfo returns bucket information by bucket ID.
-	GetBucketInfo(id string) (*bucket.BucketInfo, error)
+	GetBucketInfo(ctx context.Context, id string) (*bucket.BucketInfo, error)
 	// ListBucketInfo lists buckets with an optional regex match.
-	ListBucketInfo(idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error)
+	ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error)
 	// GetReconcilerEventQueue returns a reference to the event queue for a
 	// reconciler ID. Should not return nil without an error.
-	GetReconcilerEventQueue(BucketReconcilerPair) (mqueue.Queue, error)
+	GetReconcilerEventQueue(context.Context, BucketReconcilerPair) (mqueue.Queue, error)
 	// DeleteReconcilerEventQueue purges a reconciler event queue.
-	DeleteReconcilerEventQueue(BucketReconcilerPair) error
+	DeleteReconcilerEventQueue(context.Context, BucketReconcilerPair) error
 	// ListFilledReconcilerEventQueues lists reconciler event queues that have
 	// at least one event, by reconciler ID.
-	ListFilledReconcilerEventQueues() ([]BucketReconcilerPair, error)
+	ListFilledReconcilerEventQueues(ctx context.Context) ([]BucketReconcilerPair, error)
 }

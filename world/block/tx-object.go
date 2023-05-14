@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -8,7 +10,7 @@ import (
 
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
-func (t *Tx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
@@ -16,7 +18,7 @@ func (t *Tx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectSt
 		return nil, tx.ErrDiscarded
 	}
 
-	cobj, err := t.state.CreateObject(key, rootRef)
+	cobj, err := t.state.CreateObject(ctx, key, rootRef)
 	if err != nil || cobj == nil {
 		return nil, err
 	}
@@ -25,7 +27,7 @@ func (t *Tx) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectSt
 
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
-func (t *Tx) GetObject(key string) (world.ObjectState, bool, error) {
+func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -33,7 +35,7 @@ func (t *Tx) GetObject(key string) (world.ObjectState, bool, error) {
 		return nil, false, tx.ErrDiscarded
 	}
 
-	cobj, ok, err := t.state.GetObject(key)
+	cobj, ok, err := t.state.GetObject(ctx, key)
 	if err != nil || !ok || cobj == nil {
 		return nil, ok, err
 	}
@@ -43,11 +45,11 @@ func (t *Tx) GetObject(key string) (world.ObjectState, bool, error) {
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
-func (t *Tx) DeleteObject(key string) (bool, error) {
+func (t *Tx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	t.rmtx.Lock()
 	defer t.rmtx.Unlock()
 
-	return t.state.DeleteObject(key)
+	return t.state.DeleteObject(ctx, key)
 }
 
 // _ is a type assertion

@@ -41,7 +41,6 @@ func NewBlockStoreBuilder(conf *Config) block_store_controller.BlockStoreBuilder
 			return nil, nil, err
 		}
 		s3Block := NewS3Block(
-			ctx,
 			!conf.GetReadOnly(),
 			client,
 			conf.GetBucketName(),

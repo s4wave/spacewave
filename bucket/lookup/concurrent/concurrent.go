@@ -120,7 +120,7 @@ func (c *LookupController) LookupBlock(
 				continue
 			}
 			doFns = append(doFns, func() {
-				_, existed, werr := h.GetBucket().PutBlock(data, putOpts)
+				_, existed, werr := h.GetBucket().PutBlock(reqCtx, data, putOpts)
 				if werr != nil {
 					lastErr.Store(&werr)
 				} else if !existed {
@@ -172,7 +172,7 @@ func (c *LookupController) LookupBlock(
 		return nil, false, errors.Wrap(bucket.ErrBucketUnknown, c.conf.GetBucketConf().GetId())
 	}
 	if len(bh) == 1 {
-		d, ok, err := bh[0].GetBucket().GetBlock(ref)
+		d, ok, err := bh[0].GetBucket().GetBlock(reqCtx, ref)
 		if err != nil {
 			if err != context.Canceled {
 				le().WithError(err).Warn("unable to lookup ref")
@@ -201,7 +201,7 @@ func (c *LookupController) LookupBlock(
 		}
 		running++
 		go func() {
-			d, ok, err := h.GetBucket().GetBlock(ref)
+			d, ok, err := h.GetBucket().GetBlock(reqCtx, ref)
 			mtx.Lock()
 			if err != nil {
 				// prioritize non context canceled errors
@@ -258,14 +258,14 @@ func (c *LookupController) PutBlock(
 
 // putBlockAllVolumes implements PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES
 func (c *LookupController) putBlockAllVolumes(
-	ctx context.Context,
+	rctx context.Context,
 	data []byte,
 	opts *block.PutOpts,
 ) ([]*bucket.ObjectRef, bool, error) {
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
+	ctx, ctxCancel := context.WithCancel(rctx)
+	defer ctxCancel()
 
-	bucketHandles, err := c.getBucketHandles(subCtx)
+	bucketHandles, err := c.getBucketHandles(ctx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -281,7 +281,7 @@ func (c *LookupController) putBlockAllVolumes(
 		if !h.GetExists() {
 			return nil, false, nil
 		}
-		return h.GetBucket().PutBlock(data, opts)
+		return h.GetBucket().PutBlock(ctx, data, opts)
 	}
 
 	var br int
@@ -293,7 +293,7 @@ func (c *LookupController) putBlockAllVolumes(
 		go func(h volume.BucketHandle) {
 			bres, existed, berr := putBlockFn(h)
 			select {
-			case <-subCtx.Done():
+			case <-ctx.Done():
 				return
 			case resCh <- &res{
 				err: berr,
@@ -310,8 +310,8 @@ func (c *LookupController) putBlockAllVolumes(
 	allExisted := true
 	for i := 0; i < br; i++ {
 		select {
-		case <-subCtx.Done():
-			return nil, false, subCtx.Err()
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
 		case res := <-resCh:
 			if res.err != nil {
 				if rerr == nil {

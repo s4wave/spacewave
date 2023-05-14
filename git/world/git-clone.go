@@ -75,7 +75,7 @@ func GitClone(
 
 	// we cloned the repo to repoRef, now create repo and worktree
 	initOp := NewGitInitOp(objKey, repoRef, !enableCheckout, worktreeArgs)
-	_, _, err = ws.ApplyWorldOp(initOp, sender)
+	_, _, err = ws.ApplyWorldOp(ctx, initOp, sender)
 	if err != nil {
 		return nil, err
 	}

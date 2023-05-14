@@ -36,7 +36,7 @@ func NewWorldState(ctx context.Context, world world.WorldState, write bool) (*Wo
 	var seqno uint64
 	if write {
 		var err error
-		seqno, err = world.GetSeqno()
+		seqno, err = world.GetSeqno(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -72,9 +72,9 @@ func (w *WorldState) GetReadOnly() bool {
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 // Note: this will be an estimate ONLY of the final seqno.
-func (w *WorldState) GetSeqno() (uint64, error) {
+func (w *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	w.mtx.Lock()
-	readSeqno, err := w.world.GetSeqno()
+	readSeqno, err := w.world.GetSeqno(ctx)
 	if err == nil {
 		if readSeqno > w.seqno {
 			w.seqno = readSeqno
@@ -115,6 +115,7 @@ func (w *WorldState) AccessWorldState(
 // Returns the seqno following the operation execution.
 // If nil is returned for the error, implies success.
 func (w *WorldState) ApplyWorldOp(
+	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
@@ -134,7 +135,7 @@ func (w *WorldState) ApplyWorldOp(
 		return 0, false, tx.ErrDiscarded
 	}
 
-	seqno, sysErr, err := w.world.ApplyWorldOp(op, opSender)
+	seqno, sysErr, err := w.world.ApplyWorldOp(ctx, op, opSender)
 	if err == nil {
 		w.txBatch.Txs = append(w.txBatch.Txs, t)
 		if seqno > w.seqno {
@@ -148,7 +149,7 @@ func (w *WorldState) ApplyWorldOp(
 }
 
 // CreateObject creates a object with a key and initial root ref.
-func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	if !w.write {
 		return nil, tx.ErrNotWrite
 	}
@@ -165,7 +166,7 @@ func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 		return nil, tx.ErrDiscarded
 	}
 
-	obj, err := w.world.CreateObject(key, rootRef)
+	obj, err := w.world.CreateObject(ctx, key, rootRef)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +178,7 @@ func (w *WorldState) CreateObject(key string, rootRef *bucket.ObjectRef) (world.
 
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
-func (w *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
+func (w *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -185,7 +186,7 @@ func (w *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
 		return nil, false, tx.ErrDiscarded
 	}
 
-	objs, objsFound, err := w.world.GetObject(key)
+	objs, objsFound, err := w.world.GetObject(ctx, key)
 	if err != nil || !objsFound {
 		return nil, false, err
 	}
@@ -195,7 +196,7 @@ func (w *WorldState) GetObject(key string) (world.ObjectState, bool, error) {
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
-func (w *WorldState) DeleteObject(key string) (bool, error) {
+func (w *WorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
 	if !w.write {
 		return false, tx.ErrNotWrite
 	}
@@ -212,7 +213,7 @@ func (w *WorldState) DeleteObject(key string) (bool, error) {
 		return false, tx.ErrDiscarded
 	}
 
-	deleted, err := w.world.DeleteObject(key)
+	deleted, err := w.world.DeleteObject(ctx, key)
 	if err != nil || !deleted {
 		return false, err
 	}
@@ -226,7 +227,7 @@ func (w *WorldState) DeleteObject(key string) (bool, error) {
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (w *WorldState) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle) error) error {
+func (w *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -235,11 +236,11 @@ func (w *WorldState) AccessCayleyGraph(write bool, cb func(h world.CayleyHandle)
 	}
 
 	// note: force write to false, we only allow ApplyObjectOp and ApplyWorldOp here.
-	return w.world.AccessCayleyGraph(false, cb)
+	return w.world.AccessCayleyGraph(ctx, false, cb)
 }
 
 // LookupGraphQuads searches for graph quads in the store.
-func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -247,11 +248,11 @@ func (w *WorldState) LookupGraphQuads(filter world.GraphQuad, limit uint32) ([]w
 		return nil, tx.ErrDiscarded
 	}
 
-	return w.world.LookupGraphQuads(filter, limit)
+	return w.world.LookupGraphQuads(ctx, filter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.
-func (w *WorldState) SetGraphQuad(q world.GraphQuad) error {
+func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -259,12 +260,12 @@ func (w *WorldState) SetGraphQuad(q world.GraphQuad) error {
 		return tx.ErrDiscarded
 	}
 
-	return w.world.SetGraphQuad(q)
+	return w.world.SetGraphQuad(ctx, q)
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
-func (w *WorldState) DeleteGraphQuad(q world.GraphQuad) error {
+func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -272,12 +273,12 @@ func (w *WorldState) DeleteGraphQuad(q world.GraphQuad) error {
 		return tx.ErrDiscarded
 	}
 
-	return w.world.DeleteGraphQuad(q)
+	return w.world.DeleteGraphQuad(ctx, q)
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
-func (w *WorldState) DeleteGraphObject(value string) error {
+func (w *WorldState) DeleteGraphObject(ctx context.Context, value string) error {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -285,7 +286,7 @@ func (w *WorldState) DeleteGraphObject(value string) error {
 		return tx.ErrDiscarded
 	}
 
-	return w.world.DeleteGraphObject(value)
+	return w.world.DeleteGraphObject(ctx, value)
 }
 
 // GetTxBatch returns the transaction batch.

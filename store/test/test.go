@@ -69,7 +69,7 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 		BucketID:     "test-bucket-reconciler",
 		ReconcilerID: "test-reconciler",
 	}
-	mq, err := ktx.GetReconcilerEventQueue(pair)
+	mq, err := ktx.GetReconcilerEventQueue(ctx, pair)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 		return err
 	}
 
-	pairs, err := ktx.ListFilledReconcilerEventQueues()
+	pairs, err := ktx.ListFilledReconcilerEventQueues(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 		return err
 	}
 
-	if err := ktx.DeleteReconcilerEventQueue(pair); err != nil {
+	if err := ktx.DeleteReconcilerEventQueue(ctx, pair); err != nil {
 		return err
 	}
 	if err := checkNoMsg(); err != nil {

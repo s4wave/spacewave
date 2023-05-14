@@ -42,7 +42,7 @@ func (s *MqueueStore) GetMqueueMux(ctx context.Context, mqueueID string) (srpc.I
 
 // ListMqueues lists the message queues in the store.
 func (s *MqueueStore) ListMqueues(ctx context.Context, req *mqueue_rpc.ListMqueuesRequest) (*mqueue_rpc.ListMqueuesResponse, error) {
-	mqueueIDs, err := s.store.ListMessageQueues(req.GetPrefix(), req.GetFilled())
+	mqueueIDs, err := s.store.ListMessageQueues(ctx, req.GetPrefix(), req.GetFilled())
 	var errStr string
 	if err != nil {
 		errStr = err.Error()
