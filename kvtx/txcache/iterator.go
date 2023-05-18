@@ -1,6 +1,8 @@
 package kvtx_txcache
 
 import (
+	"context"
+
 	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
@@ -17,13 +19,13 @@ func newIterOps(t *TXCache) *iterOps {
 }
 
 // Get returns values for a key.
-func (i *iterOps) Get(key []byte) (data []byte, found bool, err error) {
-	return i.t.Get(key)
+func (i *iterOps) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	return i.t.Get(ctx, key)
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
-func (i *iterOps) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	return i.t.scanPrefixUnsorted(prefix, func(key, value []byte) error {
+func (i *iterOps) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	return i.t.scanPrefixUnsorted(ctx, prefix, func(key, value []byte) error {
 		return cb(key)
 	})
 }

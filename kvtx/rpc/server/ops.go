@@ -21,7 +21,7 @@ func NewOps(ops kvtx.TxOps) *Ops {
 
 // KeyCount counts the keys in the store.
 func (o *Ops) KeyCount(ctx context.Context, req *kvtx_rpc.KeyCountRequest) (*kvtx_rpc.KeyCountResponse, error) {
-	count, err := o.ops.Size()
+	count, err := o.ops.Size(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (o *Ops) KeyCount(ctx context.Context, req *kvtx_rpc.KeyCountRequest) (*kvt
 // KeyData looks up data for a key.
 func (o *Ops) KeyData(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_rpc.KvtxKeyDataResponse, error) {
 	key := req.GetKey()
-	data, found, err := o.ops.Get(key)
+	data, found, err := o.ops.Get(ctx, key)
 	resp := &kvtx_rpc.KvtxKeyDataResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -45,7 +45,7 @@ func (o *Ops) KeyData(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_
 // KeyExists checks if the key exists in the store.
 func (o *Ops) KeyExists(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_rpc.KvtxKeyExistsResponse, error) {
 	key := req.GetKey()
-	found, err := o.ops.Exists(key)
+	found, err := o.ops.Exists(ctx, key)
 	resp := &kvtx_rpc.KvtxKeyExistsResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -57,7 +57,7 @@ func (o *Ops) KeyExists(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvt
 
 // SetKey sets the key in the store.
 func (o *Ops) SetKey(ctx context.Context, req *kvtx_rpc.KvtxSetKeyRequest) (*kvtx_rpc.KvtxSetKeyResponse, error) {
-	err := o.ops.Set(req.GetKey(), req.GetValue())
+	err := o.ops.Set(ctx, req.GetKey(), req.GetValue())
 	resp := &kvtx_rpc.KvtxSetKeyResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -66,7 +66,7 @@ func (o *Ops) SetKey(ctx context.Context, req *kvtx_rpc.KvtxSetKeyRequest) (*kvt
 }
 
 func (o *Ops) DeleteKey(ctx context.Context, req *kvtx_rpc.KvtxDeleteKeyRequest) (*kvtx_rpc.KvtxDeleteKeyResponse, error) {
-	err := o.ops.Delete(req.GetKey())
+	err := o.ops.Delete(ctx, req.GetKey())
 	resp := &kvtx_rpc.KvtxDeleteKeyResponse{}
 	if err != nil {
 		resp.Error = err.Error()
@@ -78,13 +78,13 @@ func (o *Ops) DeleteKey(ctx context.Context, req *kvtx_rpc.KvtxDeleteKeyRequest)
 func (o *Ops) ScanPrefix(req *kvtx_rpc.KvtxScanPrefixRequest, strm kvtx_rpc.SRPCKvtxOps_ScanPrefixStream) error {
 	var err error
 	if req.GetOnlyKeys() {
-		err = o.ops.ScanPrefixKeys(req.GetPrefix(), func(key []byte) error {
+		err = o.ops.ScanPrefixKeys(strm.Context(), req.GetPrefix(), func(key []byte) error {
 			return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
 				Key: key,
 			})
 		})
 	} else {
-		err = o.ops.ScanPrefix(req.GetPrefix(), func(key, value []byte) error {
+		err = o.ops.ScanPrefix(strm.Context(), req.GetPrefix(), func(key, value []byte) error {
 			return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
 				Key:   key,
 				Value: value,
@@ -107,7 +107,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 	}
 
 	init := initReq.GetInit()
-	it := o.ops.Iterate(init.GetPrefix(), init.GetSort(), init.GetReverse())
+	it := o.ops.Iterate(strm.Context(), init.GetPrefix(), init.GetSort(), init.GetReverse())
 	if it == nil {
 		err = errors.New("iterate returned nil iterator")
 	} else {

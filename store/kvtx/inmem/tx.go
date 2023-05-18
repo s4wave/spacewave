@@ -40,7 +40,7 @@ func newTx(s *Store, write bool) *Tx {
 }
 
 // Get returns a value for a key.
-func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -75,7 +75,7 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 }
 
 // Size returns the number of keys in the store.
-func (t *Tx) Size() (uint64, error) {
+func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	if t.discarded.Load() {
@@ -91,7 +91,7 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte) error {
+func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -119,7 +119,7 @@ func (t *Tx) Set(key, value []byte) error {
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(key []byte) error {
+func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -137,7 +137,7 @@ func (t *Tx) Delete(key []byte) error {
 }
 
 // ScanPrefix iterates over keys and values with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	t.mtx.RLock()
 	if t.discarded.Load() {
 		t.mtx.RUnlock()
@@ -166,7 +166,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 	t.mtx.RUnlock()
 
 	for _, key := range keys {
-		data, ok, err := t.Get(key)
+		data, ok, err := t.Get(ctx, key)
 		if err != nil {
 			return err
 		}
@@ -181,8 +181,8 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
-func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	return t.ScanPrefix(prefix, func(key, value []byte) error {
+func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		return cb(key)
 	})
 }
@@ -190,12 +190,12 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 // Iterate returns an iterator with a given key prefix.
 //
 // Should always return non-nil, with error field filled if necessary.
-func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
+func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(ctx, t, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(key []byte) (bool, error) {
+func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}

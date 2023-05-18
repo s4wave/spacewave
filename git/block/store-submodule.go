@@ -24,7 +24,7 @@ func (r *Store) SetModuleReference(name string, bcs *block.Cursor) error {
 	refCs.ClearAllRefs()
 	refCs.SetBlock(NewSubmodule(name, bcs.GetRef()), true)
 	refCs.SetRef(2, bcs)
-	return modRefTree.SetCursorAtKey(key, refCs, false)
+	return modRefTree.SetCursorAtKey(r.ctx, key, refCs, false)
 }
 
 // LookupSubmodule looks up module reference by name.
@@ -40,7 +40,7 @@ func (r *Store) LookupSubmodule(name string) (*Submodule, *block.Cursor, error) 
 	}
 
 	modRefTree := r.modTree
-	refCs, err := modRefTree.GetCursorAtKey(key)
+	refCs, err := modRefTree.GetCursorAtKey(r.ctx, key)
 	if err != nil {
 		return nil, nil, err
 	}

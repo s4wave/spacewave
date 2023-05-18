@@ -24,6 +24,7 @@ func NewIterator(s *Store, opts gengine.IteratorOptions) *Iterator {
 	return &Iterator{
 		s: s,
 		Iterator: kvtx_iterator.NewIterator(
+			s.t.ctx,
 			s.t.tx,
 			bytes.Join([][]byte{s.prefixKey, {separator}}, nil),
 			true,

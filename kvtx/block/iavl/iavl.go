@@ -18,7 +18,6 @@ import (
 // AVLTree is a AVL+ tree. Changes are performed by creating a new
 // tree with some internal pointers to parts of the previous tree.
 type AVLTree struct {
-	ctx        context.Context
 	rmtx       sync.RWMutex
 	rootCursor *bucket_lookup.Cursor
 	// todo: freeList
@@ -26,8 +25,8 @@ type AVLTree struct {
 
 // NewAVLTree creates a handle with an optional root object cursor pointing to
 // the tree. The cursor ref can be empty to indicate a new tree.
-func NewAVLTree(ctx context.Context, rootCursor *bucket_lookup.Cursor) *AVLTree {
-	return &AVLTree{ctx: ctx, rootCursor: rootCursor}
+func NewAVLTree(rootCursor *bucket_lookup.Cursor) *AVLTree {
+	return &AVLTree{rootCursor: rootCursor}
 }
 
 // NewAVLTreeSubBlockCtor returns the sub-block constructor.
@@ -55,12 +54,12 @@ func (t *AVLTree) GetRootNodeRef() *bucket.ObjectRef {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-func (t *AVLTree) NewTransaction(write bool) (kvtx.Tx, error) {
-	return t.NewAVLTreeTransaction(write)
+func (t *AVLTree) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	return t.NewAVLTreeTransaction(ctx, write)
 }
 
 // NewAVLTreeTransaction returns a transaction with additional iavl functionality.
-func (t *AVLTree) NewAVLTreeTransaction(write bool) (*Tx, error) {
+func (t *AVLTree) NewAVLTreeTransaction(ctx context.Context, write bool) (*Tx, error) {
 	if write {
 		t.rmtx.Lock()
 	} else {
@@ -75,7 +74,7 @@ func (t *AVLTree) NewAVLTreeTransaction(write bool) (*Tx, error) {
 	}
 
 	btx, bcs := t.rootCursor.BuildTransaction(nil)
-	atx, err := NewTx(t.ctx, bcs, btx, write, nil)
+	atx, err := NewTx(ctx, bcs, btx, write, nil)
 	if err != nil {
 		rel()
 		return nil, err

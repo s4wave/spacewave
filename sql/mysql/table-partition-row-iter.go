@@ -27,7 +27,7 @@ func NewTablePartitionRowIter(
 	tree kvtx.BlockTx,
 	schema sql.Schema,
 ) (*TablePartitionRowIter, error) {
-	it := tree.BlockIterate(nil, false, false)
+	it := tree.BlockIterate(ctx, nil, false, false)
 	return &TablePartitionRowIter{
 		ctx:    ctx,
 		tree:   tree,

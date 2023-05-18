@@ -31,7 +31,7 @@ func NewBusObjectStore(ctx context.Context, b bus.Bus, returnIfIdle bool, storeI
 // NewTransaction returns a new transaction against the store.
 // Always call Discard() after you are done with the transaction.
 // The transaction will be read-only unless write is set.
-func (b *BusObjectStore) NewTransaction(write bool) (kvtx.Tx, error) {
+func (b *BusObjectStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	subCtx, subCtxCancel := context.WithCancel(b.ctx)
 	var tx atomic.Pointer[busObjectStoreTx]
 	handle, ref, err := b.BuildObjectStore(subCtx, func() {
@@ -46,7 +46,7 @@ func (b *BusObjectStore) NewTransaction(write bool) (kvtx.Tx, error) {
 		return nil, err
 	}
 	store := handle.GetObjectStore()
-	utx, err := store.NewTransaction(write)
+	utx, err := store.NewTransaction(ctx, write)
 	if err != nil {
 		subCtxCancel()
 		ref.Release()

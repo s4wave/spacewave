@@ -16,7 +16,7 @@ func TestHashMapKVTX(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	m := NewHashmap()
+	m := NewHashmap[[]byte]()
 	var store kvtx.Store = NewHashmapKvtx(m)
 	store = kvtx_vlogger.NewVLogger(le, store)
 	if err := kvtx_kvtest.TestAll(ctx, store); err != nil {

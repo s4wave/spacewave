@@ -8,12 +8,14 @@ import (
 	"github.com/emirpasic/gods/sets/treeset"
 )
 
+// TODO TODO
+
 // Ops are tx ops.
 type Ops interface {
 	// Get returns values for a key.
-	Get(key []byte) (data []byte, found bool, err error)
+	Get(ctx context.Context, key []byte) (data []byte, found bool, err error)
 	// ScanPrefixKeys iterates over keys only with a prefix.
-	ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error
+	ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error
 }
 
 // Iterator implements the KVTX Iterator interface by scanning all keys into an
@@ -22,6 +24,7 @@ type Ops interface {
 //
 // Note: iterator is tested in store/kvtx/inmem.
 type Iterator struct {
+	ctx context.Context
 	s   Ops
 	err error
 	// TODO: support unsorted iteration
@@ -39,8 +42,9 @@ type Iterator struct {
 
 // NewIterator constructs a new iterator. Initial key fetch is deferred to the
 // first Next() call.
-func NewIterator(s Ops, prefix []byte, sort, reverse bool) *Iterator {
+func NewIterator(ctx context.Context, s Ops, prefix []byte, sort, reverse bool) *Iterator {
 	return &Iterator{
+		ctx: ctx,
 		s:   s,
 		rev: reverse,
 		// TODO sort:   sort,
@@ -61,7 +65,7 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 		b2 := b.([]byte)
 		return bytes.Compare(b1, b2)
 	})
-	err = i.s.ScanPrefixKeys(i.prefix, func(key []byte) error {
+	err = i.s.ScanPrefixKeys(i.ctx, i.prefix, func(key []byte) error {
 		kb := make([]byte, len(key))
 		copy(kb, key)
 		keys.Add(kb)
@@ -212,7 +216,7 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 		val = i.val
 	} else {
 		var found bool
-		val, found, err = i.s.Get(i.Key())
+		val, found, err = i.s.Get(i.ctx, i.Key())
 		if err != nil {
 			return nil, err
 		}

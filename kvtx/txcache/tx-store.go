@@ -1,6 +1,10 @@
 package kvtx_txcache
 
-import "github.com/aperturerobotics/hydra/kvtx"
+import (
+	"context"
+
+	"github.com/aperturerobotics/hydra/kvtx"
+)
 
 // TxStore wraps a single Transaction to create a read/write store.
 // Buffers changes in memory so that Discard() and Commit() work correctly.
@@ -22,7 +26,7 @@ func NewTxStore(tx kvtx.Tx, write bool) *TxStore {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-func (t *TxStore) NewTransaction(write bool) (kvtx.Tx, error) {
+func (t *TxStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if write && !t.write {
 		return nil, kvtx.ErrNotWrite
 	}

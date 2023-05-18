@@ -33,7 +33,7 @@ func (t *TxStoreTx) GetTxOps() TxOps {
 }
 
 // Get returns values for a key.
-func (t *TxStoreTx) Get(key []byte) (data []byte, found bool, err error) {
+func (t *TxStoreTx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	if len(key) == 0 {
 		return nil, false, ErrEmptyKey
 	}
@@ -44,11 +44,11 @@ func (t *TxStoreTx) Get(key []byte) (data []byte, found bool, err error) {
 		return nil, false, tx.ErrDiscarded
 	}
 
-	return t.tx.Get(key)
+	return t.tx.Get(ctx, key)
 }
 
 // Size returns the number of keys in the store.
-func (t *TxStoreTx) Size() (uint64, error) {
+func (t *TxStoreTx) Size(ctx context.Context) (uint64, error) {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -56,12 +56,12 @@ func (t *TxStoreTx) Size() (uint64, error) {
 		return 0, tx.ErrDiscarded
 	}
 
-	return t.tx.Size()
+	return t.tx.Size(ctx)
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *TxStoreTx) Set(key, value []byte) error {
+func (t *TxStoreTx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
@@ -73,13 +73,13 @@ func (t *TxStoreTx) Set(key, value []byte) error {
 		return tx.ErrDiscarded
 	}
 
-	return t.tx.Set(key, value)
+	return t.tx.Set(ctx, key, value)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *TxStoreTx) Delete(key []byte) error {
+func (t *TxStoreTx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
@@ -91,7 +91,7 @@ func (t *TxStoreTx) Delete(key []byte) error {
 		return tx.ErrDiscarded
 	}
 
-	return t.tx.Delete(key)
+	return t.tx.Delete(ctx, key)
 }
 
 // ScanPrefix iterates over keys with a prefix.
@@ -100,7 +100,7 @@ func (t *TxStoreTx) Delete(key []byte) error {
 // copying.
 //
 // Note: the ordering of the scan is not necessarily sorted.
-func (t *TxStoreTx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *TxStoreTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -108,11 +108,11 @@ func (t *TxStoreTx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) 
 		return tx.ErrDiscarded
 	}
 
-	return t.tx.ScanPrefix(prefix, cb)
+	return t.tx.ScanPrefix(ctx, prefix, cb)
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
-func (t *TxStoreTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (t *TxStoreTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -120,7 +120,7 @@ func (t *TxStoreTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) err
 		return tx.ErrDiscarded
 	}
 
-	return t.tx.ScanPrefixKeys(prefix, cb)
+	return t.tx.ScanPrefixKeys(ctx, prefix, cb)
 }
 
 // Iterate returns an iterator with a given key prefix.
@@ -131,7 +131,7 @@ func (t *TxStoreTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) err
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
 // Some implementations return BlockIterator.
-func (t *TxStoreTx) Iterate(prefix []byte, sort, reverse bool) Iterator {
+func (t *TxStoreTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) Iterator {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 
@@ -139,11 +139,11 @@ func (t *TxStoreTx) Iterate(prefix []byte, sort, reverse bool) Iterator {
 		return NewErrIterator(tx.ErrDiscarded)
 	}
 
-	return t.tx.Iterate(prefix, sort, reverse)
+	return t.tx.Iterate(ctx, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.
-func (t *TxStoreTx) Exists(key []byte) (bool, error) {
+func (t *TxStoreTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, ErrEmptyKey
 	}
@@ -154,7 +154,7 @@ func (t *TxStoreTx) Exists(key []byte) (bool, error) {
 		return false, tx.ErrDiscarded
 	}
 
-	return t.tx.Exists(key)
+	return t.tx.Exists(ctx, key)
 }
 
 // Commit commits the transaction to storage.

@@ -10,20 +10,20 @@ import (
 // underlying store implementation.
 type Queue interface {
 	// Peek returns the next message, if any.
-	Peek() (Message, bool, error)
+	Peek(ctx context.Context) (Message, bool, error)
 	// Ack acknowledges the head message by ID, if the head message matches the
 	// given match ID.
-	Ack(id uint64) error
+	Ack(ctx context.Context, id uint64) error
 	// Push pushes a message to the queue.
 	// Note: The data buffer may be reused for GetData() in the message.
-	Push(data []byte) (Message, error)
+	Push(ctx context.Context, data []byte) (Message, error)
 	// Wait() waits for the next message, or context cancellation.
 	//
 	// Returns the message. Equiv to Peek if a message is available.
 	// Acks the message immediately if ack is true.
 	Wait(ctx context.Context, ack bool) (Message, error)
 	// DeleteQueue deletes all messages and metadata from the queue.
-	DeleteQueue() error
+	DeleteQueue(ctx context.Context) error
 }
 
 // Message is a message in the queue.

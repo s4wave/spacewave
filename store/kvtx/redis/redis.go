@@ -108,7 +108,7 @@ func (s *Store) GetPool() *redis.Pool {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
+func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	conn, err := s.buildConn(s.ctx, false)
 	if err != nil {
 		return nil, err

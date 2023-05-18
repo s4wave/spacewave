@@ -1,26 +1,29 @@
 package hashmap
 
-// Hashmap implements an in-memory []byte -> interface{} store.
+import "context"
+
+// Hashmap implements an in-memory key/value store.
 //
 // Concurrency safe.
-type Hashmap interface {
+type Hashmap[V any] interface {
 	// Get looks up an item in the hash map.
-	Get(key []byte) (interface{}, bool)
+	// Returns value, found, error.
+	Get(ctx context.Context, key []byte) (V, bool, error)
 	// Set sets an item in the hash map.
-	Set(key []byte, value interface{})
+	Set(ctx context.Context, key []byte, value V) error
 	// Size returns the size of the hash map.
-	Size() uint64
-	// Remove deletes an item from the hash map.
-	Remove(key []byte)
+	Size(ctx context.Context) (uint64, error)
+	// Delete deletes an item from the hash map.
+	Delete(ctx context.Context, key []byte) error
 	// Exists checks if an item exists in the hash map.
-	Exists(key []byte) bool
+	Exists(ctx context.Context, key []byte) (bool, error)
 	// Iterate iterates over the hashmap.
 	//
 	// Iterator (might) not include items added during iteration.
-	Iterate(cb func(key []byte, value interface{}) error) error
+	Iterate(ctx context.Context, cb func(ctx context.Context, key []byte, value V) error) error
 }
 
 // NewHashmap constructs a new hash map of default type.
-func NewHashmap() Hashmap {
-	return NewCtrieMap()
+func NewHashmap[V any]() Hashmap[V] {
+	return NewCtrieMap[V]()
 }

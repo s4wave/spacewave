@@ -93,7 +93,7 @@ func (t *WorldState) appendChangelogEntry(ctx context.Context, w *World, changes
 	if len(changesBcs) == 0 {
 		return lastChangeBcs, nil
 	}
-	objSize, err := t.objTree.Size()
+	objSize, err := t.objTree.Size(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -45,7 +45,7 @@ func (s *Store) Get(k []byte) (engine.Item, error) {
 	}
 
 	key := buildKey(s.prefixKey, k)
-	data, found, err := s.t.tx.Get(key)
+	data, found, err := s.t.tx.Get(s.t.ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (s *Store) Put(k, v []byte) error {
 		return errors.New("cannot store empty key")
 	}
 
-	return s.t.tx.Set(buildKey(s.prefixKey, k), v)
+	return s.t.tx.Set(s.t.ctx, buildKey(s.prefixKey, k), v)
 }
 
 // Delete a key value pair. If the key is not found, returns ErrKeyNotFound.
@@ -80,7 +80,7 @@ func (s *Store) Delete(k []byte) error {
 	}
 
 	key := buildKey(s.prefixKey, k)
-	_, found, err := s.t.tx.Get(key)
+	_, found, err := s.t.tx.Get(s.t.ctx, key)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (s *Store) Delete(k []byte) error {
 		return gengine.ErrKeyNotFound
 	}
 
-	return s.t.tx.Delete(key)
+	return s.t.tx.Delete(s.t.ctx, key)
 }
 
 // Truncate deletes all the key value pairs from the store.
@@ -97,8 +97,8 @@ func (s *Store) Truncate() error {
 		return err
 	}
 
-	return s.t.tx.ScanPrefix(s.prefixKey, func(key, value []byte) error {
-		return s.t.tx.Delete(key)
+	return s.t.tx.ScanPrefix(s.t.ctx, s.prefixKey, func(key, value []byte) error {
+		return s.t.tx.Delete(s.t.ctx, key)
 	})
 }
 
@@ -118,7 +118,7 @@ func (s *Store) NextSequence() (uint64, error) {
 	if s.seq != nil {
 		seqn = *s.seq
 	} else {
-		seqb, found, err := s.t.tx.Get([]byte(seqnumKey))
+		seqb, found, err := s.t.tx.Get(s.t.ctx, []byte(seqnumKey))
 		if err != nil {
 			return 0, err
 		}
@@ -130,7 +130,7 @@ func (s *Store) NextSequence() (uint64, error) {
 	}
 	ns := seqn + 1
 	seqb := protowire.AppendVarint(nil, ns)
-	if err := s.t.tx.Set([]byte(seqnumKey), seqb); err != nil {
+	if err := s.t.tx.Set(s.t.ctx, []byte(seqnumKey), seqb); err != nil {
 		return 0, err
 	}
 	s.seq = &ns

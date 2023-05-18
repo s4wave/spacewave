@@ -98,11 +98,11 @@ func NewEncryptedVolume(
 	var headCursor *bucket_lookup.Cursor
 
 	// The READ only happens once, or this would be in a separate util function.
-	otx, err := objStore.NewTransaction(true)
+	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
-	headRefDat, headRefOk, err := otx.Get(headRefKey)
+	headRefDat, headRefOk, err := otx.Get(ctx, headRefKey)
 	otx.Discard()
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func NewEncryptedVolume(
 	}
 
 	// Construct iavl block tree.
-	avlTree := iavl.NewAVLTree(ctx, headCursor)
+	avlTree := iavl.NewAVLTree(headCursor)
 
 	// Build kvkey volume on top.
 	return common_kvtx.NewVolume(

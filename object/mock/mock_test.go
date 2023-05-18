@@ -13,7 +13,7 @@ func TestPrefixer(t *testing.T) {
 	objs, _ := BuildTestStore(t)
 	pf := object.NewPrefixer(objs, []byte("test-prefix/"))
 	newTx := func(t *testing.T, write bool) kvtx.Tx {
-		tx, err := pf.NewTransaction(write)
+		tx, err := pf.NewTransaction(ctx, write)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -21,14 +21,14 @@ func TestPrefixer(t *testing.T) {
 	}
 	testSeq := "testing123"
 	tx := newTx(t, true)
-	if err := tx.Set([]byte("test"), []byte(testSeq)); err != nil {
+	if err := tx.Set(ctx, []byte("test"), []byte(testSeq)); err != nil {
 		t.Fatal(err.Error())
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	tx = newTx(t, false)
-	val, found, err := tx.Get([]byte("test"))
+	val, found, err := tx.Get(ctx, []byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -41,7 +41,7 @@ func TestPrefixer(t *testing.T) {
 	tx.Discard()
 	tx = newTx(t, false)
 	var keys []string
-	err = tx.ScanPrefix(nil, func(key, value []byte) error {
+	err = tx.ScanPrefix(ctx, nil, func(key, value []byte) error {
 		keys = append(keys, string(key))
 		return nil
 	})
@@ -54,7 +54,7 @@ func TestPrefixer(t *testing.T) {
 	tx.Discard()
 
 	tx = newTx(t, true)
-	if err := tx.Delete([]byte("test")); err != nil {
+	if err := tx.Delete(ctx, []byte("test")); err != nil {
 		t.Fatal(err.Error())
 	}
 	tx.Discard()

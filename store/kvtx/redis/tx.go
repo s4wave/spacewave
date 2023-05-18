@@ -39,63 +39,63 @@ func (s *Store) newTx(conn redis.Conn, write bool) *Tx {
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
 	if t.write && t.cache != nil {
-		return t.cache.Get(key)
+		return t.cache.Get(ctx, key)
 	}
 
-	return (&t.ops).Get(key)
+	return (&t.ops).Get(ctx, key)
 }
 
 // Size returns number of keys in the store
-func (t *Tx) Size() (uint64, error) {
+func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	if t.write && t.cache != nil {
-		return t.cache.Size()
+		return t.cache.Size(ctx)
 	}
 
-	return (&t.ops).Size()
+	return (&t.ops).Size(ctx)
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte) error {
+func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
 	// assert write connection exists
-	_, err := t.getWriteConn()
+	_, err := t.getWriteConn(ctx)
 	if err != nil {
 		return err
 	}
 
 	// apply change to redis MULTI tx
-	if err := (&t.ops).Set(key, value); err != nil {
+	if err := (&t.ops).Set(ctx, key, value); err != nil {
 		return err
 	}
 
 	// apply change to in-memory cache
-	return t.cache.Set(key, value)
+	return t.cache.Set(ctx, key, value)
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	if t.write && t.cache != nil {
-		return t.cache.ScanPrefix(prefix, cb)
+		return t.cache.ScanPrefix(ctx, prefix, cb)
 	}
 
-	return (&t.ops).ScanPrefix(prefix, cb)
+	return (&t.ops).ScanPrefix(ctx, prefix, cb)
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
-func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	if t.write && t.cache != nil {
-		return t.cache.ScanPrefixKeys(prefix, cb)
+		return t.cache.ScanPrefixKeys(ctx, prefix, cb)
 	}
 
-	return (&t.ops).ScanPrefixKeys(prefix, cb)
+	return (&t.ops).ScanPrefixKeys(ctx, prefix, cb)
 }
 
 // Iterate returns an iterator with a given key prefix.
@@ -105,32 +105,32 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 // The prefix is NOT clipped from the output keys.
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
-func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	if t.write && t.cache != nil {
-		return t.cache.Iterate(prefix, sort, reverse)
+		return t.cache.Iterate(ctx, prefix, sort, reverse)
 	}
 
-	return (&t.ops).Iterate(prefix, sort, reverse)
+	return (&t.ops).Iterate(ctx, prefix, sort, reverse)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(key []byte) error {
+func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
 	// assert write connection exists
-	_, err := t.getWriteConn()
+	_, err := t.getWriteConn(ctx)
 	if err != nil {
 		return err
 	}
 	// apply change to redis MULTI tx
-	if err := (&t.ops).Delete(key); err != nil {
+	if err := (&t.ops).Delete(ctx, key); err != nil {
 		return err
 	}
 	// apply change to in-memory cache
-	return t.cache.Delete(key)
+	return t.cache.Delete(ctx, key)
 }
 
 // Commit commits the transaction to storage.
@@ -155,7 +155,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(key []byte) (bool, error) {
+func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
@@ -182,7 +182,7 @@ func (t *Tx) Discard() {
 }
 
 // getWriteConn gets or establishes the write conn.
-func (t *Tx) getWriteConn() (redis.Conn, error) {
+func (t *Tx) getWriteConn(ctx context.Context) (redis.Conn, error) {
 	if !t.write {
 		return nil, ErrNotWrite
 	}
@@ -203,7 +203,7 @@ func (t *Tx) getWriteConn() (redis.Conn, error) {
 		// re-play any transactions so far in the cache.
 		// this recovers from a timeout mid-transaction
 		if t.cache != nil {
-			ops, err := t.cache.BuildOps(false)
+			ops, err := t.cache.BuildOps(ctx, false)
 			if err != nil {
 				return nil, err
 			}

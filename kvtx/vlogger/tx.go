@@ -35,7 +35,7 @@ func keyForLogging(key []byte) string {
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
+func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Get(%s) => data(%d) found(%v) err(%v)",
@@ -45,11 +45,11 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 			err,
 		)
 	}()
-	return t.Tx.Get(key)
+	return t.Tx.Get(ctx, key)
 }
 
 // Size returns number of keys in the store.
-func (t *Tx) Size() (count uint64, err error) {
+func (t *Tx) Size(ctx context.Context) (count uint64, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Size() => count(%d) err(%v)",
@@ -57,11 +57,11 @@ func (t *Tx) Size() (count uint64, err error) {
 			err,
 		)
 	}()
-	return t.Tx.Size()
+	return t.Tx.Size(ctx)
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err error) {
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) (err error) {
 	ta := time.Now()
 	defer func() {
 		tb := time.Now()
@@ -73,7 +73,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 			dur,
 		)
 	}()
-	return t.Tx.ScanPrefix(prefix, func(key, value []byte) error {
+	return t.Tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		ta := time.Now()
 		err := cb(key, value)
 		tb := time.Now()
@@ -90,7 +90,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) (err er
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
-func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) (err error) {
+func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) (err error) {
 	ta := time.Now()
 	defer func() {
 		tb := time.Now()
@@ -102,7 +102,7 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) (err error
 			dur,
 		)
 	}()
-	return t.Tx.ScanPrefixKeys(prefix, func(key []byte) error {
+	return t.Tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
 		ta := time.Now()
 		err := cb(key)
 		tb := time.Now()
@@ -119,10 +119,10 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) (err error
 }
 
 // Iterate returns an iterator with a given key prefix.
-func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	ta := time.Now()
 	ii := atomic.AddUint32(&t.iter, 1) - 1
-	it := t.Tx.Iterate(prefix, sort, reverse)
+	it := t.Tx.Iterate(ctx, prefix, sort, reverse)
 	t.le.Debugf(
 		"Iterate(%s) => it(%d)",
 		keyForLogging(prefix),
@@ -134,7 +134,7 @@ func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte) (err error) {
+func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 	defer func() {
 		t.le.Debugf(
 			"Set(%s) => value(%d) err(%v)",
@@ -143,13 +143,13 @@ func (t *Tx) Set(key, value []byte) (err error) {
 			err,
 		)
 	}()
-	return t.Tx.Set(key, value)
+	return t.Tx.Set(ctx, key, value)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(key []byte) (err error) {
+func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 	defer func() {
 		t.le.Debugf(
 			"Delete(%s) => err(%v)",
@@ -157,11 +157,11 @@ func (t *Tx) Delete(key []byte) (err error) {
 			err,
 		)
 	}()
-	return t.Tx.Delete(key)
+	return t.Tx.Delete(ctx, key)
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(key []byte) (found bool, err error) {
+func (t *Tx) Exists(ctx context.Context, key []byte) (found bool, err error) {
 	defer func() {
 		t.le.Debugf(
 			"Exists(%s) => found(%v) err(%v)",
@@ -170,7 +170,7 @@ func (t *Tx) Exists(key []byte) (found bool, err error) {
 			err,
 		)
 	}()
-	return t.Tx.Exists(key)
+	return t.Tx.Exists(ctx, key)
 }
 
 // Commit commits the transaction to storage.

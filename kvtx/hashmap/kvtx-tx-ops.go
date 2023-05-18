@@ -15,33 +15,26 @@ type kvtxTxOps struct {
 }
 
 // Get returns values for a key.
-func (o *kvtxTxOps) Get(key []byte) (data []byte, found bool, err error) {
-	dat, ok := o.m.m.Get(key)
-	if !ok {
-		return nil, false, nil
-	}
-	data, found = dat.([]byte)
-	return data, found, nil
+func (o *kvtxTxOps) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	return o.m.m.Get(ctx, key)
 }
 
 // Size returns number of keys in the store
-func (o *kvtxTxOps) Size() (uint64, error) {
-	return o.m.m.Size(), nil
+func (o *kvtxTxOps) Size(ctx context.Context) (uint64, error) {
+	return o.m.m.Size(ctx)
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (o *kvtxTxOps) Set(key, value []byte) error {
-	o.m.m.Set(key, value)
-	return nil
+func (o *kvtxTxOps) Set(ctx context.Context, key, value []byte) error {
+	return o.m.m.Set(ctx, key, value)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (o *kvtxTxOps) Delete(key []byte) error {
-	o.m.m.Remove(key)
-	return nil
+func (o *kvtxTxOps) Delete(ctx context.Context, key []byte) error {
+	return o.m.m.Delete(ctx, key)
 }
 
 // ScanPrefix iterates over keys with a prefix.
@@ -50,10 +43,9 @@ func (o *kvtxTxOps) Delete(key []byte) error {
 // copying.
 //
 // Note: the ordering of the scan is not necessarily sorted.
-func (o *kvtxTxOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
-	return o.m.m.Iterate(func(key []byte, value interface{}) error {
-		dat, ok := value.([]byte)
-		if !ok || !bytes.HasPrefix(key, prefix) {
+func (o *kvtxTxOps) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	return o.m.m.Iterate(ctx, func(ctx context.Context, key, dat []byte) error {
+		if !bytes.HasPrefix(key, prefix) {
 			return nil
 		}
 		return cb(key, dat)
@@ -61,8 +53,8 @@ func (o *kvtxTxOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) 
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
-func (o *kvtxTxOps) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	return o.ScanPrefix(prefix, func(key, value []byte) error {
+func (o *kvtxTxOps) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	return o.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		return cb(key)
 	})
 }
@@ -74,13 +66,13 @@ func (o *kvtxTxOps) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) err
 // The prefix is NOT clipped from the output keys.
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
-func (o *kvtxTxOps) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return kvtx_iterator.NewIterator(o, prefix, sort, reverse)
+func (o *kvtxTxOps) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(ctx, o, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.
-func (o *kvtxTxOps) Exists(key []byte) (bool, error) {
-	return o.m.m.Exists(key), nil
+func (o *kvtxTxOps) Exists(ctx context.Context, key []byte) (bool, error) {
+	return o.m.m.Exists(ctx, key)
 }
 
 // _ is a type assertion

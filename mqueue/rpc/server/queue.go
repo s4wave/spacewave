@@ -20,7 +20,7 @@ func NewQueue(queue mqueue.Queue) *Queue {
 
 // Peek peeks the next value in the queue without removing it.
 func (q *Queue) Peek(ctx context.Context, req *mqueue_rpc.PeekRequest) (*mqueue_rpc.PeekResponse, error) {
-	msg, found, err := q.queue.Peek()
+	msg, found, err := q.queue.Peek(ctx)
 	var errStr string
 	if err != nil {
 		errStr = err.Error()
@@ -34,7 +34,7 @@ func (q *Queue) Peek(ctx context.Context, req *mqueue_rpc.PeekRequest) (*mqueue_
 
 // Ack acknowledges a message by ID if the ID is the current message at the front of the queue.
 func (q *Queue) Ack(ctx context.Context, req *mqueue_rpc.AckRequest) (*mqueue_rpc.AckResponse, error) {
-	err := q.queue.Ack(req.GetId())
+	err := q.queue.Ack(ctx, req.GetId())
 	var errStr string
 	if err != nil {
 		errStr = err.Error()
@@ -44,7 +44,7 @@ func (q *Queue) Ack(ctx context.Context, req *mqueue_rpc.AckRequest) (*mqueue_rp
 
 // Push pushes a message to the queue.
 func (q *Queue) Push(ctx context.Context, req *mqueue_rpc.PushRequest) (*mqueue_rpc.PushResponse, error) {
-	msg, err := q.queue.Push(req.GetData())
+	msg, err := q.queue.Push(ctx, req.GetData())
 	var errStr string
 	if err != nil {
 		errStr = err.Error()
@@ -69,7 +69,7 @@ func (q *Queue) Wait(ctx context.Context, req *mqueue_rpc.WaitRequest) (*mqueue_
 
 // DeleteQueue deletes a queue and its contents.
 func (q *Queue) DeleteQueue(ctx context.Context, req *mqueue_rpc.DeleteQueueRequest) (*mqueue_rpc.DeleteQueueResponse, error) {
-	err := q.queue.DeleteQueue()
+	err := q.queue.DeleteQueue(ctx)
 	var errStr string
 	if err != nil {
 		errStr = err.Error()

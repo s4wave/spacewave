@@ -15,7 +15,7 @@ import (
 func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	ot := t.objTree
 	k := t.buildObjectKey(key)
-	exists, err := ot.Exists(k)
+	exists, err := ot.Exists(ctx, k)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	nbcs := t.bcs.Detach(false)
 	nbcs.ClearAllRefs()
 	nbcs.SetBlock(obj, true)
-	err = t.objTree.SetCursorAtKey(k, nbcs, false)
+	err = t.objTree.SetCursorAtKey(ctx, k, nbcs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	ot := t.objTree
 	k := t.buildObjectKey(key)
-	bcs, err := ot.GetCursorAtKey(k)
+	bcs, err := ot.GetCursorAtKey(ctx, k)
 	if err != nil || bcs == nil {
 		return nil, false, err
 	}
@@ -87,7 +87,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		return true, err
 	}
 
-	err = ot.Delete(k)
+	err = ot.Delete(ctx, k)
 	if err != nil {
 		return true, err
 	}

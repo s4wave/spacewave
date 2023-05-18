@@ -9,13 +9,13 @@ import (
 
 // LoadPeerPriv attempts to load the peer private key from the volume.
 func (k *KVTx) LoadPeerPriv(ctx context.Context) (crypto.PrivKey, error) {
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
 
-	data, found, err := tx.Get(k.kvkey.GetPeerPrivKey())
+	data, found, err := tx.Get(ctx, k.kvkey.GetPeerPrivKey())
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +33,13 @@ func (k *KVTx) StorePeerPriv(ctx context.Context, privKey crypto.PrivKey) error 
 		return err
 	}
 
-	tx, err := k.store.NewTransaction(true)
+	tx, err := k.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 
-	err = tx.Set(k.kvkey.GetPeerPrivKey(), dat)
+	err = tx.Set(ctx, k.kvkey.GetPeerPrivKey(), dat)
 	if err != nil {
 		return err
 	}

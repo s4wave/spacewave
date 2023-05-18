@@ -1,6 +1,7 @@
 package store_kvtx_ristretto
 
 import (
+	"context"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -68,7 +69,7 @@ func (s *Store) GetCache() *ristretto.Cache {
 
 // NewTransaction returns a new transaction against the store.
 // Note that ristretto does not support the tx semantics.
-func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
+func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	return NewTx(s.db, s.ttl), nil
 }
 

@@ -75,14 +75,14 @@ func runDemo() error {
 		return err
 	}
 
-	tr := iavl.NewAVLTree(ctx, oc)
-	atx, err := tr.NewAVLTreeTransaction(true)
+	tr := iavl.NewAVLTree(oc)
+	atx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	for i := 0; i < 5; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
-		err := atx.Set(key, key)
+		err := atx.Set(ctx, key, key)
 		if err != nil {
 			return err
 		}
@@ -91,15 +91,15 @@ func runDemo() error {
 		return err
 	}
 
-	atx, err = tr.NewAVLTreeTransaction(true)
+	atx, err = tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
 	ops := []error{
-		atx.Delete([]byte("key-0")),
+		atx.Delete(ctx, []byte("key-0")),
 		// atx.Delete([]byte("key-2")),
-		atx.Delete([]byte("key-4")),
+		atx.Delete(ctx, []byte("key-4")),
 		/*
 			atx.Delete([]byte("key-0")),
 			atx.Delete([]byte("key-1")),
@@ -124,12 +124,12 @@ func runDemo() error {
 		return err
 	}
 
-	tr = iavl.NewAVLTree(ctx, oc)
-	vtx, err := tr.NewAVLTreeTransaction(false)
+	tr = iavl.NewAVLTree(oc)
+	vtx, err := tr.NewAVLTreeTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	_, vExists, err := vtx.Get([]byte("key-3"))
+	_, vExists, err := vtx.Get(ctx, []byte("key-3"))
 	if err != nil {
 		return err
 	}

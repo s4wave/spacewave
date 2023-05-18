@@ -1,6 +1,7 @@
 package store_kvtx_redis
 
 import (
+	"context"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -17,7 +18,7 @@ type txOps struct {
 }
 
 // Get returns values for a key.
-func (t *txOps) Get(key []byte) ([]byte, bool, error) {
+func (t *txOps) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	data, err := redis.Bytes(t.conn.Do("GET", key))
 	if err != nil {
 		if err == redis.ErrNil {
@@ -30,13 +31,13 @@ func (t *txOps) Get(key []byte) ([]byte, bool, error) {
 }
 
 // Size returns the number of keys in the store.
-func (t *txOps) Size() (uint64, error) {
+func (t *txOps) Size(ctx context.Context) (uint64, error) {
 	return redis.Uint64(t.conn.Do("DBSIZE"))
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *txOps) Set(key, value []byte) error {
+func (t *txOps) Set(ctx context.Context, key, value []byte) error {
 	wc := t.writeConn
 	_, err := wc.Do("SET", key, value)
 	return err
@@ -44,14 +45,14 @@ func (t *txOps) Set(key, value []byte) error {
 
 // SetWithTTL sets the value of a key with a ttl.
 // This will not be committed until Commit is called.
-func (t *txOps) SetWithTTL(key, value []byte, ttl time.Duration) error {
+func (t *txOps) SetWithTTL(ctx context.Context, key, value []byte, ttl time.Duration) error {
 	wc := t.writeConn
 	_, err := wc.Do("SETEX", key, int(ttl.Seconds()), value)
 	return err
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
-func (t *txOps) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (t *txOps) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	var iter int
 	scanPrefix := append(escapeKey(prefix, 1), '*')
 	for {
@@ -78,9 +79,9 @@ func (t *txOps) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *txOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
-	return t.ScanPrefixKeys(prefix, func(key []byte) error {
-		keyValue, keyValueOk, err := t.Get(key)
+func (t *txOps) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	return t.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+		keyValue, keyValueOk, err := t.Get(ctx, key)
 		if err != nil {
 			return err
 		}
@@ -98,20 +99,20 @@ func (t *txOps) ScanPrefix(prefix []byte, cb func(key, value []byte) error) erro
 // The prefix is NOT clipped from the output keys.
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
-func (t *txOps) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return NewIterator(t, prefix, sort, reverse)
+func (t *txOps) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return NewIterator(ctx, t, prefix, sort, reverse)
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *txOps) Delete(key []byte) error {
+func (t *txOps) Delete(ctx context.Context, key []byte) error {
 	_, err := t.writeConn.Do("DEL", key)
 	return err
 }
 
 // Exists checks if a key exists.
-func (t *txOps) Exists(key []byte) (bool, error) {
+func (t *txOps) Exists(ctx context.Context, key []byte) (bool, error) {
 	return redis.Bool(t.conn.Do("EXISTS", key))
 }
 

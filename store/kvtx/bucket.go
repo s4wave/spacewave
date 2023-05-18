@@ -41,7 +41,7 @@ func UnmarshalBucketReconcilerMqueueId(dat []byte) bucket_store.BucketReconciler
 
 // loadBucketConfig loads a bucket config at a key.
 func (k *KVTx) loadBucketConfig(tx kvtx.Tx, key []byte) (*bucket.Config, error) {
-	dat, found, err := tx.Get(key)
+	dat, found, err := tx.Get(k.ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 	}
 
 	key := k.kvkey.GetBucketConfigKey(conf.GetId())
-	tx, err := k.store.NewTransaction(true)
+	tx, err := k.store.NewTransaction(k.ctx, true)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -98,7 +98,7 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 		return false, nil, nil, kvtx.ErrEmptyValue
 	}
 
-	if err := tx.Set(key, dat); err != nil {
+	if err := tx.Set(k.ctx, key, dat); err != nil {
 		return false, nil, nil, err
 	}
 
@@ -112,7 +112,7 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 // GetBucketInfo returns bucket information by string.
 func (k *KVTx) GetBucketInfo(ctx context.Context, id string) (*bucket.BucketInfo, error) {
 	key := k.kvkey.GetBucketConfigKey(id)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (k *KVTx) GetBucketInfo(ctx context.Context, id string) (*bucket.BucketInfo
 
 // ListBucketInfo lists buckets with an optional regex match.
 func (k *KVTx) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*bucket.BucketInfo, error) {
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (k *KVTx) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*b
 	resVals := make(map[string]int)
 	var res []*bucket.BucketInfo
 	prefix := k.kvkey.GetBucketConfigFullPrefix()
-	err = tx.ScanPrefix(prefix, func(key, value []byte) error {
+	err = tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		bc := &bucket.Config{}
 		if err := bc.UnmarshalVT(value); err != nil {
 			return err
@@ -173,7 +173,7 @@ func (k *KVTx) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp) ([]*b
 // Can return nil if no bucket config is found.
 func (k *KVTx) GetBucketConfig(ctx context.Context, id string) (*bucket.Config, error) {
 	key := k.kvkey.GetBucketConfigKey(id)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}

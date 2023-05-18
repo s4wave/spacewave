@@ -1,6 +1,8 @@
 package kvtx_block_iavl
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
@@ -22,13 +24,13 @@ type kvtxIteratorOps struct {
 }
 
 // Get returns values for a key.
-func (o *kvtxIteratorOps) Get(key []byte) (data []byte, found bool, err error) {
-	nodCs, nod, err := o.Tx.getFromRoot(key)
+func (o *kvtxIteratorOps) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	nodCs, nod, err := o.Tx.getFromRoot(ctx, key)
 	if err != nil || nod == nil || nodCs == nil {
 		return nil, false, err
 	}
 	o.it.keyBcs = nodCs.FollowRef(7, nod.GetValueRef())
-	data, err = o.Tx.nodeToValue(o.Tx.ctx, nodCs, nod)
+	data, err = o.Tx.nodeToValue(ctx, nodCs, nod)
 	if err != nil {
 		return nil, true, err
 	}
@@ -39,10 +41,10 @@ func (o *kvtxIteratorOps) Get(key []byte) (data []byte, found bool, err error) {
 var _ kvtx.TxOps = ((*kvtxIteratorOps)(nil))
 
 // NewIterator constructs a new iavl iterator.
-func NewIterator(t *Tx, prefix []byte, sort, reverse bool) *Iterator {
+func NewIterator(ctx context.Context, t *Tx, prefix []byte, sort, reverse bool) *Iterator {
 	ops := &kvtxIteratorOps{Tx: t}
 	n := &Iterator{
-		Iterator: kvtx_iterator.NewIterator(ops, prefix, sort, reverse),
+		Iterator: kvtx_iterator.NewIterator(ctx, ops, prefix, sort, reverse),
 	}
 	ops.it = n
 	return n

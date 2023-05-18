@@ -16,79 +16,76 @@ var (
 
 // tx is a internal fibheap tx holder
 type tx struct {
-	ctx context.Context
-	tx  kvtx.Tx
+	tx kvtx.Tx
 	// entryCache map[[]byte]*Entry
-	entryCache hashmap.Hashmap
+	entryCache hashmap.Hashmap[*Entry]
 	write      bool
 	root       *Root
 }
 
 // startTx starts a transaction.
-func (h *FibbonaciHeap) startTx(write bool) (*tx, error) {
-	ktx, err := h.db.NewTransaction(write)
+func (h *FibbonaciHeap) startTx(ctx context.Context, write bool) (*tx, error) {
+	ktx, err := h.db.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
 	tx := &tx{
-		ctx:   h.ctx,
 		tx:    ktx,
 		write: write,
 		root:  &Root{},
 
 		// entryCache: make(map[string]*Entry),
-		entryCache: hashmap.NewHashmap(),
+		entryCache: hashmap.NewHashmap[*Entry](),
 	}
-	if err := tx.readState(); err != nil {
+	if err := tx.readState(ctx); err != nil {
 		return nil, err
 	}
 	return tx, nil
 }
 
 // finish finishes the tx populating rerr if necessary
-func (t *tx) finish(rerr *error) {
+func (t *tx) finish(ctx context.Context, rerr *error) {
 	defer t.tx.Discard()
 	if rerr == nil || *rerr != nil || !t.write {
 		return
 	}
 
-	err := t.entryCache.Iterate(func(key []byte, value interface{}) error {
+	err := t.entryCache.Iterate(ctx, func(ctx context.Context, key []byte, value *Entry) error {
 		idKey := t.getIDKey(key)
-		e := value.(*Entry)
-		dat, err := e.MarshalVT()
+		dat, err := value.MarshalVT()
 		if err != nil {
 			return err
 		}
-		if err := t.tx.Set(idKey, dat); err != nil {
+		if err := t.tx.Set(ctx, idKey, dat); err != nil {
 			return err
 		}
-		t.entryCache.Remove(key)
-		return nil
+		return t.entryCache.Delete(ctx, key)
 	})
 	if err != nil {
 		*rerr = err
 		return
 	}
 
-	if err := t.writeState(); err != nil {
+	if err := t.writeState(ctx); err != nil {
 		*rerr = err
 	} else {
-		*rerr = t.tx.Commit(t.ctx)
+		*rerr = t.tx.Commit(ctx)
 	}
 }
 
 // getEntry gets the entry with the specified ID from the db.
-func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
+func (t *tx) getEntry(ctx context.Context, key []byte, alloc bool) (*Entry, error) {
 	if len(key) == 0 {
 		return nil, nil
 	}
 
-	if entry, ok := t.entryCache.Get(key); ok {
-		return entry.(*Entry), nil
+	entry, ok, err := t.entryCache.Get(ctx, key)
+	if ok || err != nil {
+		return entry, err
 	}
 
 	idKey := t.getIDKey(key)
-	d, dOk, err := t.tx.Get(idKey)
+	d, dOk, err := t.tx.Get(ctx, idKey)
 	if err != nil {
 		return nil, err
 	}
@@ -97,13 +94,13 @@ func (t *tx) getEntry(key []byte, alloc bool) (*Entry, error) {
 		return nil, nil
 	}
 
-	entry := &Entry{}
+	entry = &Entry{}
 	if dOk {
 		if err := entry.UnmarshalVT(d); err != nil {
 			return nil, err
 		}
 	}
-	t.entryCache.Set(key, entry)
+	_ = t.entryCache.Set(ctx, key, entry)
 	return entry, nil
 }
 
@@ -142,10 +139,11 @@ func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
 
 // getPrevNext returns the previous and next entries for an entry.
 func (t *tx) getPrevNext(
+	ctx context.Context,
 	ent *Entry,
 	entKey []byte,
 ) (prev *Entry, next *Entry, err error) {
-	next, err = t.getEntry(ent.GetNext(), false)
+	next, err = t.getEntry(ctx, ent.GetNext(), false)
 	if err != nil {
 		return
 	}
@@ -155,7 +153,7 @@ func (t *tx) getPrevNext(
 		return
 	}
 
-	prev, err = t.getEntry(ent.GetPrev(), false)
+	prev, err = t.getEntry(ctx, ent.GetPrev(), false)
 	if err != nil {
 		return
 	}
@@ -170,18 +168,19 @@ func (t *tx) getPrevNext(
 
 // getParentChild returns the parent and child entries for an entry.
 func (t *tx) getParentChild(
+	ctx context.Context,
 	ent *Entry,
 	entKey []byte,
 ) (parent *Entry, child *Entry, err error) {
 	if parentID := ent.GetParent(); len(parentID) != 0 {
-		parent, err = t.getEntry(parentID, false)
+		parent, err = t.getEntry(ctx, parentID, false)
 		if err != nil {
 			return
 		}
 	}
 
 	if childID := ent.GetChild(); len(childID) != 0 {
-		child, err = t.getEntry(childID, false)
+		child, err = t.getEntry(ctx, childID, false)
 		if err != nil {
 			return
 		}
@@ -192,27 +191,27 @@ func (t *tx) getParentChild(
 
 // readState reloads the state from the db.
 // if the state does not exist, writes it.
-func (t *tx) readState() error {
-	d, dOk, err := t.tx.Get(fibRootKey)
+func (t *tx) readState(ctx context.Context) error {
+	d, dOk, err := t.tx.Get(ctx, fibRootKey)
 	if err != nil {
 		return err
 	}
 
 	if !dOk {
-		return t.writeState()
+		return t.writeState(ctx)
 	}
 
 	return t.root.UnmarshalVT(d)
 }
 
 // writeState writes state to the db.
-func (t *tx) writeState() error {
+func (t *tx) writeState(ctx context.Context) error {
 	d, err := t.root.MarshalVT()
 	if err != nil {
 		return err
 	}
 
-	return t.tx.Set(fibRootKey, d)
+	return t.tx.Set(ctx, fibRootKey, d)
 }
 
 // getIDKey returns the key for the given ID.

@@ -12,9 +12,10 @@ import (
 // TestMQueueSimple is a simple mqueue test.
 func TestMQueueSimple(t *testing.T) {
 	objs, _ := object_mock.BuildTestStore(t)
-	q := kvtx_mqueue.NewMQueue(context.Background(), objs, &kvtx_mqueue.Config{})
+	ctx := context.Background()
+	q := kvtx_mqueue.NewMQueue(objs, &kvtx_mqueue.Config{})
 	for i := 1; i <= 3; i++ {
-		msg, err := q.Push([]byte(fmt.Sprintf("test-%d", i)))
+		msg, err := q.Push(ctx, []byte(fmt.Sprintf("test-%d", i)))
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -22,7 +23,7 @@ func TestMQueueSimple(t *testing.T) {
 	}
 	nmsg := 0
 	for {
-		msg, ok, err := q.Peek()
+		msg, ok, err := q.Peek(ctx)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -31,7 +32,7 @@ func TestMQueueSimple(t *testing.T) {
 		}
 		nmsg++
 		t.Logf("peek/ack message %d: %s", msg.GetId(), string(msg.GetData()))
-		if err := q.Ack(msg.GetId()); err != nil {
+		if err := q.Ack(ctx, msg.GetId()); err != nil {
 			t.Fatal(err.Error())
 		}
 	}

@@ -1,6 +1,8 @@
 package kvtx
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/tx"
 )
@@ -12,17 +14,17 @@ type BlockTxOps interface {
 	// GetCursorAtKey returns the cursor referenced by the key.
 	//
 	// Returns nil, nil if not found.
-	GetCursorAtKey(key []byte) (*block.Cursor, error)
+	GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, error)
 	// SetCursorAtKey sets the key to a reference to the object at bcs.
 	// if isBlob is set, the object must be a *blob.Blob (for reading with Get).
 	// if bcs == nil, the key is set with a empty block ref.
 	// bcs must not point to a sub-block.
-	SetCursorAtKey(key []byte, bcs *block.Cursor, isBlob bool) error
+	SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cursor, isBlob bool) error
 	// DeleteCursorAtKey deletes the key and returns the cursor to the value.
 	// returns nil, nil if not found.
-	DeleteCursorAtKey(key []byte) (*block.Cursor, error)
+	DeleteCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, error)
 	// BlockIterate returns the block iterator.
-	BlockIterate(prefix []byte, sort, reverse bool) BlockIterator
+	BlockIterate(ctx context.Context, prefix []byte, sort, reverse bool) BlockIterator
 }
 
 // CastBlockTxOps casts a TxOps to a BlockTxOps or returns ErrBlockTxOpsUnimplemented.

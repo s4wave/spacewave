@@ -65,7 +65,7 @@ func InitTx(
 	openStreamClient := srpc.NewClient(openStream)
 	opsClient := kvtx_rpc.NewSRPCKvtxOpsClient(openStreamClient)
 	return &Tx{
-		Ops:    NewOps(ctx, opsClient),
+		Ops:    NewOps(opsClient),
 		client: client,
 	}, nil
 }

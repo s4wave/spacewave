@@ -1,6 +1,10 @@
 package kvtx_txcache
 
-import "github.com/aperturerobotics/hydra/kvtx"
+import (
+	"context"
+
+	"github.com/aperturerobotics/hydra/kvtx"
+)
 
 // Store wraps a kvtx store with a txcache wrapper.
 type Store struct {
@@ -15,8 +19,8 @@ func NewStore(store kvtx.Store) *Store {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
-	t, err := NewTx(s, write)
+func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	t, err := NewTx(ctx, s, write)
 	return t, err
 }
 

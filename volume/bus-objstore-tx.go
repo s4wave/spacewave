@@ -19,27 +19,27 @@ type busObjectStoreTx struct {
 }
 
 // Size returns the number of keys in the store.
-func (t *busObjectStoreTx) Size() (size uint64, err error) {
+func (t *busObjectStoreTx) Size(ctx context.Context) (size uint64, err error) {
 	err = t.do(func() (rerr error) {
-		size, rerr = t.utx.Size()
+		size, rerr = t.utx.Size(ctx)
 		return
 	})
 	return
 }
 
 // Get returns values for a key.
-func (t *busObjectStoreTx) Get(key []byte) (data []byte, found bool, err error) {
+func (t *busObjectStoreTx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	err = t.do(func() (rerr error) {
-		data, found, rerr = t.utx.Get(key)
+		data, found, rerr = t.utx.Get(ctx, key)
 		return
 	})
 	return
 }
 
 // Exists checks if a key exists.
-func (t *busObjectStoreTx) Exists(key []byte) (ex bool, err error) {
+func (t *busObjectStoreTx) Exists(ctx context.Context, key []byte) (ex bool, err error) {
 	err = t.do(func() (rerr error) {
-		ex, rerr = t.utx.Exists(key)
+		ex, rerr = t.utx.Exists(ctx, key)
 		return
 	})
 	return
@@ -47,18 +47,18 @@ func (t *busObjectStoreTx) Exists(key []byte) (ex bool, err error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *busObjectStoreTx) Set(key, value []byte) error {
+func (t *busObjectStoreTx) Set(ctx context.Context, key, value []byte) error {
 	return t.do(func() error {
-		return t.utx.Set(key, value)
+		return t.utx.Set(ctx, key, value)
 	})
 }
 
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *busObjectStoreTx) Delete(key []byte) error {
+func (t *busObjectStoreTx) Delete(ctx context.Context, key []byte) error {
 	return t.do(func() error {
-		return t.utx.Delete(key)
+		return t.utx.Delete(ctx, key)
 	})
 }
 
@@ -68,16 +68,16 @@ func (t *busObjectStoreTx) Delete(key []byte) error {
 // copying.
 //
 // Note: the ordering of the scan is not necessarily sorted.
-func (t *busObjectStoreTx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *busObjectStoreTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	return t.do(func() error {
-		return t.utx.ScanPrefix(prefix, cb)
+		return t.utx.ScanPrefix(ctx, prefix, cb)
 	})
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
-func (t *busObjectStoreTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (t *busObjectStoreTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	return t.do(func() error {
-		return t.utx.ScanPrefixKeys(prefix, cb)
+		return t.utx.ScanPrefixKeys(ctx, prefix, cb)
 	})
 }
 
@@ -89,11 +89,11 @@ func (t *busObjectStoreTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) err
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
 // Some implementations return BlockIterator.
-func (t *busObjectStoreTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+func (t *busObjectStoreTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	if t.rel.Load() {
 		return kvtx.NewErrIterator(tx.ErrDiscarded)
 	}
-	return t.utx.Iterate(prefix, sort, reverse)
+	return t.utx.Iterate(ctx, prefix, sort, reverse)
 }
 
 // Commit commits the transaction to storage.

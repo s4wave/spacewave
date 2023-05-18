@@ -50,7 +50,7 @@ func (a *API) ObjectStoreOp(
 		write = true
 	}
 
-	tx, err := os.NewTransaction(write)
+	tx, err := os.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
@@ -61,17 +61,17 @@ func (a *API) ObjectStoreOp(
 	reqKey := []byte(req.GetKey())
 	switch req.GetOp() {
 	case ObjectStoreOp_ObjectStoreOp_GET_KEY:
-		resp.Data, resp.Found, err = tx.Get(reqKey)
+		resp.Data, resp.Found, err = tx.Get(ctx, reqKey)
 	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
-		err = tx.Set(reqKey, req.GetData())
+		err = tx.Set(ctx, reqKey, req.GetData())
 	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
-		resp.Found, err = tx.Exists(reqKey)
+		resp.Found, err = tx.Exists(ctx, reqKey)
 		if err == nil && resp.Found {
-			err = tx.Delete(reqKey)
+			err = tx.Delete(ctx, reqKey)
 		}
 	case ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
 		var keys []string
-		err = tx.ScanPrefix([]byte(reqKey), func(key, _ []byte) error {
+		err = tx.ScanPrefix(ctx, []byte(reqKey), func(key, _ []byte) error {
 			keys = append(keys, string(key))
 			return nil
 		})

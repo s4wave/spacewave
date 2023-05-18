@@ -75,7 +75,7 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 	}
 
 	checkNoMsg := func() error {
-		msg, ok, err := mq.Peek()
+		msg, ok, err := mq.Peek(ctx)
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 	}
 
 	// break kvtx/test/test.go:42
-	pushedMsg, err := mq.Push([]byte(testData))
+	pushedMsg, err := mq.Push(ctx, []byte(testData))
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 		return errors.New("expected 1 pair")
 	}
 
-	peekedMsg, ok, err := mq.Peek()
+	peekedMsg, ok, err := mq.Peek(ctx)
 	if err != nil {
 		return err
 	}
@@ -131,14 +131,14 @@ func TestReconcilerMqueue(ctx context.Context, ktx store.Store) error {
 		return err
 	}
 
-	if err := mq.Ack(peekedMsg.GetId()); err != nil {
+	if err := mq.Ack(ctx, peekedMsg.GetId()); err != nil {
 		return err
 	}
 	if err := checkNoMsg(); err != nil {
 		return err
 	}
 
-	pushedMsg, err = mq.Push([]byte(testData))
+	pushedMsg, err = mq.Push(ctx, []byte(testData))
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func TestMqueueAPI(rctx context.Context, ktx store.Store) error {
 	srcData := func() []byte {
 		return []byte("hello world")
 	}
-	msg, err := mq.Push(srcData())
+	msg, err := mq.Push(ctx, srcData())
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func TestMqueueAPI(rctx context.Context, ktx store.Store) error {
 	if m2.GetId() != msg.GetId() {
 		return errors.Errorf("expected id %v got %v", m2.GetId(), msg.GetId())
 	}
-	m3, ok, err := mq.Peek()
+	m3, ok, err := mq.Peek(ctx)
 	if !ok {
 		return errors.New("expected peek to get msg, but !ok")
 	}
@@ -200,10 +200,10 @@ func TestMqueueAPI(rctx context.Context, ktx store.Store) error {
 	if m3.GetId() != msg.GetId() {
 		return errors.Errorf("expected %v got %v", m3.GetId(), msg.GetId())
 	}
-	if err := mq.DeleteQueue(); err != nil {
+	if err := mq.DeleteQueue(ctx); err != nil {
 		return err
 	}
-	_, ok, _ = mq.Peek()
+	_, ok, _ = mq.Peek(ctx)
 	if ok {
 		return errors.New("expected !ok after delete queue, got ok")
 	}

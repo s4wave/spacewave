@@ -18,7 +18,7 @@ import (
 // If filled is set, implementation must only return filled queues.
 func (k *KVTx) ListMessageQueues(ctx context.Context, prefix []byte, filled bool) ([][]byte, error) {
 	pr := k.buildMQueueMetaKey(prefix)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (k *KVTx) ListMessageQueues(ctx context.Context, prefix []byte, filled bool
 	ids := treeset.NewWith(func(i, j interface{}) int {
 		return bytes.Compare(i.([]byte), j.([]byte))
 	})
-	err = tx.ScanPrefix(pr, func(key, value []byte) error {
+	err = tx.ScanPrefix(ctx, pr, func(key, value []byte) error {
 		meta := &MqueueMeta{}
 		if err := meta.UnmarshalVT(value); err != nil {
 			// Ignore if we can't parse metadata.
@@ -56,21 +56,21 @@ func (k *KVTx) ListMessageQueues(ctx context.Context, prefix []byte, filled bool
 // If the message queue does not exist, creates it.
 func (k *KVTx) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, error) {
 	metaID := k.buildMQueueMetaKey(id)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
-	exists, err := tx.Exists(metaID)
+	exists, err := tx.Exists(ctx, metaID)
 	tx.Discard()
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		tx, err = k.store.NewTransaction(true)
+		tx, err = k.store.NewTransaction(ctx, true)
 		if err != nil {
 			return nil, err
 		}
-		exists, err = tx.Exists(metaID)
+		exists, err = tx.Exists(ctx, metaID)
 		if err != nil {
 			tx.Discard()
 			return nil, err
@@ -82,7 +82,7 @@ func (k *KVTx) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, error) 
 				tx.Discard()
 				return nil, err
 			}
-			err = tx.Set(metaID, dat)
+			err = tx.Set(ctx, metaID, dat)
 			if err != nil {
 				tx.Discard()
 				return nil, err
@@ -98,7 +98,6 @@ func (k *KVTx) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, error) 
 
 	// build the mqueue store
 	return kvtx_mqueue.NewMQueue(
-		ctx,
 		k.buildMQueueStore(id),
 		k.conf.GetMqueueConfig(),
 	), nil
@@ -109,11 +108,11 @@ func (k *KVTx) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, error) 
 // If not found, should not return an error.
 func (k *KVTx) DelMqueue(ctx context.Context, id []byte) error {
 	metaID := k.buildMQueueMetaKey(id)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	exists, err := tx.Exists(metaID)
+	exists, err := tx.Exists(ctx, metaID)
 	tx.Discard()
 	if err != nil {
 		return err
@@ -121,19 +120,19 @@ func (k *KVTx) DelMqueue(ctx context.Context, id []byte) error {
 	if !exists {
 		return nil
 	}
-	tx, err = k.store.NewTransaction(true)
+	tx, err = k.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 	// delete all with prefix
-	err = tx.ScanPrefixKeys(k.kvkey.GetMQueuePrefix(id), func(key []byte) error {
-		return tx.Delete(key)
+	err = tx.ScanPrefixKeys(ctx, k.kvkey.GetMQueuePrefix(id), func(key []byte) error {
+		return tx.Delete(ctx, key)
 	})
 	if err != nil {
 		return err
 	}
-	err = tx.Delete(metaID)
+	err = tx.Delete(ctx, metaID)
 	if err != nil {
 		return err
 	}

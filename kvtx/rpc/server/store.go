@@ -41,7 +41,7 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 	}
 
 	write := req.GetInit().GetWrite()
-	tx, err := s.store.NewTransaction(write)
+	tx, err := s.store.NewTransaction(strm.Context(), write)
 	var errStr, txID string
 	if err != nil {
 		errStr = err.Error()

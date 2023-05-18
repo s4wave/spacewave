@@ -65,7 +65,7 @@ func (c *Controller) wakeReconcilerQueueLocked(
 	// reconciler instance already exists
 	if exist, ok := c.reconcilers[pair]; ok {
 		if len(event) != 0 {
-			_, err := exist.reqQueue.Push(event)
+			_, err := exist.reqQueue.Push(ctx, event)
 			if err != nil {
 				return nil, err
 			}
@@ -79,7 +79,7 @@ func (c *Controller) wakeReconcilerQueueLocked(
 	}
 
 	if len(event) != 0 {
-		_, err := eq.Push(event)
+		_, err := eq.Push(ctx, event)
 		if err != nil {
 			return nil, err
 		}

@@ -26,7 +26,7 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	inMem := store_kvtx_inmem.NewStore()
 	objStore := kvtx_vlogger.NewVLogger(le, inMem)
 	graphOptions := graph.Options{}
-	graph, err := NewGraph(objStore, graphOptions)
+	graph, err := NewGraph(ctx, objStore, graphOptions)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

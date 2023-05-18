@@ -31,7 +31,7 @@ func (s *MqueueStore) OpenMqueue(ctx context.Context, id []byte) (mqueue.Queue, 
 	openStream := rpcstream.NewRpcStreamOpenStream(s.client.MqueueRpc, idAsStr, false)
 	rpcClient := srpc.NewClient(openStream)
 	queueClient := mqueue_rpc.NewSRPCQueueOpsClient(rpcClient)
-	mqueueClient := NewQueue(ctx, queueClient)
+	mqueueClient := NewQueue(queueClient)
 	return mqueueClient, nil
 }
 

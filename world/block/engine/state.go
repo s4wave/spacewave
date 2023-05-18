@@ -12,7 +12,7 @@ const defaultHeadStateKey = "world-head"
 
 // loadHeadState loads the head ref from the store.
 func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore) (*HeadState, bool, error) {
-	ktx, err := store.NewTransaction(false)
+	ktx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
@@ -23,7 +23,7 @@ func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore
 		headKey = []byte(defaultHeadStateKey)
 	}
 
-	data, found, err := ktx.Get(headKey)
+	data, found, err := ktx.Get(ctx, headKey)
 	if err != nil || !found {
 		return nil, false, err
 	}
@@ -42,7 +42,7 @@ func (c *Controller) loadHeadState(ctx context.Context, store object.ObjectStore
 
 // writeHeadState writes the head state to the store.
 func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStore, nref *bucket.ObjectRef) error {
-	ktx, err := store.NewTransaction(true)
+	ktx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStor
 		return err
 	}
 
-	if err := ktx.Set(headKey, encData); err != nil {
+	if err := ktx.Set(ctx, headKey, encData); err != nil {
 		return err
 	}
 

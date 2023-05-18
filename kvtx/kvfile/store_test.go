@@ -2,6 +2,7 @@ package kvtx_kvfile
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 )
 
 func TestKvfile(t *testing.T) {
+	ctx := context.Background()
 	var buf bytes.Buffer
 	keys := [][]byte{
 		[]byte("test-1"),
@@ -41,11 +43,11 @@ func TestKvfile(t *testing.T) {
 	}
 
 	store := NewKvfileStore(rdr)
-	tx, err := store.NewTransaction(false)
+	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	it := tx.Iterate([]byte("test-"), true, false)
+	it := tx.Iterate(ctx, []byte("test-"), true, false)
 	var n int
 	for it.Next() {
 		n++
@@ -57,7 +59,7 @@ func TestKvfile(t *testing.T) {
 		t.FailNow()
 	}
 
-	it = tx.Iterate([]byte("test-2"), true, false)
+	it = tx.Iterate(ctx, []byte("test-2"), true, false)
 	n = 0
 	for it.Next() {
 		n++
@@ -69,7 +71,7 @@ func TestKvfile(t *testing.T) {
 		t.FailNow()
 	}
 
-	dat, found, err := tx.Get([]byte("test-2"))
+	dat, found, err := tx.Get(ctx, []byte("test-2"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -81,7 +83,7 @@ func TestKvfile(t *testing.T) {
 	}
 
 	n = 0
-	err = tx.ScanPrefix([]byte("test"), func(key, value []byte) error {
+	err = tx.ScanPrefix(ctx, []byte("test"), func(key, value []byte) error {
 		n++
 		return nil
 	})

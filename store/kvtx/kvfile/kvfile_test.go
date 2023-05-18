@@ -52,7 +52,7 @@ func TestKvfile(t *testing.T) {
 
 	// convert it to a kvfile
 	var buf bytes.Buffer
-	if err := kvtx_kvfile.KvfileFromStore(&buf, writeStore); err != nil {
+	if err := kvtx_kvfile.KvfileFromStore(ctx, &buf, writeStore); err != nil {
 		t.Fatal(err.Error())
 	}
 	writeKtxCancel()

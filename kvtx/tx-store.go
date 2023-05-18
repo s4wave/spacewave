@@ -1,5 +1,7 @@
 package kvtx
 
+import "context"
+
 // TxStore implements the Store interface backed by a single Tx instance.
 // This allows many transactions to be batched into one Tx.
 //
@@ -21,7 +23,7 @@ func NewTxStore(ops TxOps) *TxStore {
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
-func (t *TxStore) NewTransaction(write bool) (Tx, error) {
+func (t *TxStore) NewTransaction(ctx context.Context, write bool) (Tx, error) {
 	return NewTxStoreTx(t.tx)
 }
 

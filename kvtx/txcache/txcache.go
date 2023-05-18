@@ -1,6 +1,7 @@
 package kvtx_txcache
 
 import (
+	"context"
 	"sync"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
@@ -71,7 +72,7 @@ func (t *TXCache) WasRemoved(key []byte) bool {
 }
 
 // Get returns values for a key.
-func (t *TXCache) Get(key []byte) (data []byte, found bool, err error) {
+func (t *TXCache) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -86,15 +87,15 @@ func (t *TXCache) Get(key []byte) (data []byte, found bool, err error) {
 	if val, ok := checkWasAdded(snapSet, key); ok {
 		return val, true, nil
 	}
-	return t.underlying.Get(key)
+	return t.underlying.Get(ctx, key)
 }
 
 // Size returns the number of keys in the store plus the added keys from the tx.
-func (t *TXCache) Size() (uint64, error) {
+func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 	t.mtx.RLock()
 	removeN := t.remove.Size()
 	setN := t.set.Size()
-	underlyingN, err := t.underlying.Size()
+	underlyingN, err := t.underlying.Size(ctx)
 	t.mtx.RUnlock()
 	if err != nil {
 		return 0, err
@@ -104,7 +105,7 @@ func (t *TXCache) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *TXCache) Set(key, value []byte) error {
+func (t *TXCache) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -118,7 +119,7 @@ func (t *TXCache) Set(key, value []byte) error {
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *TXCache) Delete(key []byte) error {
+func (t *TXCache) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -132,18 +133,18 @@ func (t *TXCache) Delete(key []byte) error {
 // ScanPrefix iterates over keys with a prefix.
 //
 // To enforce ordering, it builds a set in memory, sorts, then operates.
-func (t *TXCache) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *TXCache) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	if t.sortScan {
-		return t.scanPrefixSorted(prefix, cb)
+		return t.scanPrefixSorted(ctx, prefix, cb)
 	}
-	return t.scanPrefixUnsorted(prefix, cb)
+	return t.scanPrefixUnsorted(ctx, prefix, cb)
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
 //
 // To enforce ordering, it builds a set in memory, sorts, then operates.
-func (t *TXCache) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	return t.ScanPrefix(prefix, func(key, value []byte) error {
+func (t *TXCache) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		return cb(key)
 	})
 }
@@ -152,12 +153,12 @@ func (t *TXCache) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error
 //
 // Should always return non-nil, with error field filled if necessary.
 // Iterates in sorted order, reverse reverses the key iteration.
-func (t *TXCache) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return kvtx_iterator.NewIterator(newIterOps(t), prefix, sort, reverse)
+func (t *TXCache) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(ctx, newIterOps(t), prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.
-func (t *TXCache) Exists(key []byte) (bool, error) {
+func (t *TXCache) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
@@ -172,7 +173,7 @@ func (t *TXCache) Exists(key []byte) (bool, error) {
 	if _, ok := snapSet.Lookup(key); ok {
 		return true, nil
 	}
-	return t.underlying.Exists(key)
+	return t.underlying.Exists(ctx, key)
 }
 
 // _ is a type assertion

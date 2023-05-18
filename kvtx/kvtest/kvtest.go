@@ -11,7 +11,7 @@ import (
 
 // TestAll tests all tests for a kvtx store.
 func TestAll(ctx context.Context, ktx kvtx.Store) error {
-	tx, err := ktx.NewTransaction(false)
+	tx, err := ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 
 	for _, k := range keys {
-		ok, err := tx.Exists(k)
+		ok, err := tx.Exists(ctx, k)
 		if err != nil {
 			return err
 		}
@@ -37,18 +37,18 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(true)
+	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
 	for i := range keys {
 		v := []byte(strconv.Itoa(i))
-		if err := tx.Set(keys[i], v); err != nil {
+		if err := tx.Set(ctx, keys[i], v); err != nil {
 			tx.Discard()
 			return err
 		}
-		val, ok, err := tx.Get(keys[i])
+		val, ok, err := tx.Get(ctx, keys[i])
 		if err != nil {
 			return err
 		}
@@ -65,14 +65,14 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
-	tx, err = ktx.NewTransaction(false)
+	tx, err = ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 
 	for i, k := range keys {
 		v := []byte(strconv.Itoa(i))
-		val, ok, err := tx.Get(k)
+		val, ok, err := tx.Get(ctx, k)
 		if err != nil {
 			return err
 		}
@@ -88,17 +88,17 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(true)
+	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
-	if err := tx.Delete(keys[0]); err != nil {
+	if err := tx.Delete(ctx, keys[0]); err != nil {
 		tx.Discard()
 		return err
 	}
 
-	_, ok, err := tx.Get(keys[0])
+	_, ok, err := tx.Get(ctx, keys[0])
 	if err == nil && ok {
 		err = errors.Errorf("expected key to not exist after delete: %s", string(keys[0]))
 	}
@@ -109,12 +109,12 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(false)
+	tx, err = ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 
-	val, ok, err := tx.Get(keys[0])
+	val, ok, err := tx.Get(ctx, keys[0])
 	if err == nil && !ok {
 		err = errors.Errorf("expected key to exist after delete was discarded: %s", string(keys[0]))
 	}
@@ -130,23 +130,23 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(true)
+	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
-	if err := tx.Set([]byte("test"), []byte{1, 2, 3, 4}); err != nil {
+	if err := tx.Set(ctx, []byte("test"), []byte{1, 2, 3, 4}); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
-	tx, err = ktx.NewTransaction(false)
+	tx, err = ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 	var ks [][]byte
-	err = tx.ScanPrefix([]byte("t"), func(key, val []byte) error {
+	err = tx.ScanPrefix(ctx, []byte("t"), func(key, val []byte) error {
 		k := make([]byte, len(key))
 		copy(k, key)
 		ks = append(ks, k)
@@ -163,11 +163,11 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(false)
+	tx, err = ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	dat, found, err := tx.Get([]byte("test"))
+	dat, found, err := tx.Get(ctx, []byte("test"))
 	if err != nil {
 		return err
 	}
@@ -179,11 +179,11 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(true)
+	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
-	if err := tx.Delete([]byte("test")); err != nil {
+	if err := tx.Delete(ctx, []byte("test")); err != nil {
 		return err
 	}
 	err = tx.Commit(ctx)
@@ -191,11 +191,11 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
-	tx, err = ktx.NewTransaction(false)
+	tx, err = ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	dat, found, err = tx.Get([]byte("test"))
+	dat, found, err = tx.Get(ctx, []byte("test"))
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	tx.Discard()
 
-	tx, err = ktx.NewTransaction(true)
+	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -214,21 +214,21 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		{[]byte("foo-1"), []byte("foo")},
 	}
 	for _, x := range data {
-		_ = tx.Set(x.k, x.v)
+		_ = tx.Set(ctx, x.k, x.v)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
-	tx, err = ktx.NewTransaction(false)
+	tx, err = ktx.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	_, err = kvtx.MustGet(tx, []byte("foo-1"))
+	_, err = kvtx.MustGet(ctx, tx, []byte("foo-1"))
 	if err != nil {
 		return err
 	}
-	it := tx.Iterate([]byte("test-"), true, false)
+	it := tx.Iterate(ctx, []byte("test-"), true, false)
 	vals := 0
 	if err := it.Seek(nil); err != nil {
 		return err
@@ -245,20 +245,20 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	tx.Discard()
 
 	// check the empty key behavior
-	tx, err = ktx.NewTransaction(true)
+	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	expectedEmpty := func(err error) error {
 		return errors.Errorf("expected empty key error but got %v", err)
 	}
-	if _, _, err := tx.Get([]byte{}); err != kvtx.ErrEmptyKey {
+	if _, _, err := tx.Get(ctx, []byte{}); err != kvtx.ErrEmptyKey {
 		return expectedEmpty(err)
 	}
-	if err := tx.Set([]byte{}, []byte("testing")); err != kvtx.ErrEmptyKey {
+	if err := tx.Set(ctx, []byte{}, []byte("testing")); err != kvtx.ErrEmptyKey {
 		return expectedEmpty(err)
 	}
-	if err := tx.Delete([]byte{}); err != kvtx.ErrEmptyKey {
+	if err := tx.Delete(ctx, []byte{}); err != kvtx.ErrEmptyKey {
 		return expectedEmpty(err)
 	}
 	tx.Discard()

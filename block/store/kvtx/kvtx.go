@@ -57,13 +57,13 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(true)
+	tx, err := k.store.NewTransaction(ctx, true)
 	if err != nil {
 		return ref, false, err
 	}
 	defer tx.Discard()
 
-	if exists, _ := tx.Exists(key); exists {
+	if exists, _ := tx.Exists(ctx, key); exists {
 		return ref, true, nil
 	}
 
@@ -73,7 +73,7 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return ref, false, block.ErrEmptyBlock
 	}
 
-	if err := tx.Set(key, data); err != nil {
+	if err := tx.Set(ctx, key, data); err != nil {
 		return ref, false, err
 	}
 
@@ -88,13 +88,13 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
 	defer tx.Discard()
 
-	return tx.Get(key)
+	return tx.Get(ctx, key)
 }
 
 // GetBlockExists checks if a block exists in the store.
@@ -105,13 +105,13 @@ func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 		return false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(false)
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return false, err
 	}
 	defer tx.Discard()
 
-	return tx.Exists(key)
+	return tx.Exists(ctx, key)
 }
 
 // RmBlock deletes a block from the store.
@@ -122,13 +122,13 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return err
 	}
 	key := k.kvkey.GetBlockKey(rm)
-	tx, err := k.store.NewTransaction(true)
+	tx, err := k.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 
-	if err := tx.Delete(key); err != nil {
+	if err := tx.Delete(ctx, key); err != nil {
 		return err
 	}
 

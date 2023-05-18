@@ -30,7 +30,7 @@ func (s *ObjectStore) OpenObjectStore(ctx context.Context, id string) (object.Ob
 	openStream := rpcstream.NewRpcStreamOpenStream(s.client.ObjectStoreRpc, id, false)
 	rpcClient := srpc.NewClient(openStream)
 	storeClient := rpc_kvtx.NewSRPCKvtxClient(rpcClient)
-	objStoreClient := rpc_kvtx_client.NewStore(ctx, storeClient)
+	objStoreClient := rpc_kvtx_client.NewStore(storeClient)
 	return objStoreClient, nil
 }
 

@@ -38,7 +38,7 @@ func (t *Tx) GetStore(name []byte) (gengine.Store, error) {
 	}
 
 	key := buildStoreKey(name)
-	_, found, err := t.tx.Get(key)
+	_, found, err := t.tx.Get(t.ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (t *Tx) CreateStore(name []byte) error {
 	}
 
 	key := buildStoreKey(name)
-	_, found, err := t.tx.Get(key)
+	_, found, err := t.tx.Get(t.ctx, key)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (t *Tx) CreateStore(name []byte) error {
 		return err
 	}
 
-	return t.tx.Set(key, md)
+	return t.tx.Set(t.ctx, key, md)
 }
 
 // Drop a store by name. If the store doesn't exist, it returns ErrStoreNotFound.
@@ -102,7 +102,7 @@ func (t *Tx) DropStore(name []byte) error {
 	if err != nil {
 		return err
 	}
-	return t.tx.Delete(buildStoreKey([]byte(name)))
+	return t.tx.Delete(t.ctx, buildStoreKey([]byte(name)))
 }
 
 // Commit applies all changes made in the transaction.

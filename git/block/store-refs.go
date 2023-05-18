@@ -38,7 +38,7 @@ func (r *Store) SetReference(ref *plumbing.Reference) error {
 
 	refTree := r.refTree
 	/// TODO debug remove
-	return refTree.SetCursorAtKey(key, refCs, false)
+	return refTree.SetCursorAtKey(r.ctx, key, refCs, false)
 }
 
 // Reference returns the reference by name.
@@ -90,7 +90,7 @@ func (r *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
 func (r *Store) IterReferences() (storer.ReferenceIter, error) {
 	prefix := []byte{0x0}
 	treeTx := r.refTree
-	ktxIterator := treeTx.BlockIterate(prefix, false, false)
+	ktxIterator := treeTx.BlockIterate(r.ctx, prefix, false, false)
 	return NewReferenceIter(r, ktxIterator), nil
 }
 
@@ -100,12 +100,12 @@ func (r *Store) RemoveReference(ref plumbing.ReferenceName) error {
 	if err != nil {
 		return err
 	}
-	return r.refTree.Delete(key)
+	return r.refTree.Delete(r.ctx, key)
 }
 
 // CountLooseRefs counts refs without any parent ref.
 func (r *Store) CountLooseRefs() (int, error) {
-	s, err := r.refTree.Size()
+	s, err := r.refTree.Size(r.ctx)
 	return int(s), err
 }
 
@@ -127,7 +127,7 @@ func (r *Store) buildRefKey(refName string) ([]byte, error) {
 // lookupReference tries to build the Reference from a key.
 func (r *Store) lookupReference(key []byte) (*Reference, *block.Cursor, error) {
 	refTree := r.refTree
-	nodCs, err := refTree.GetCursorAtKey(key)
+	nodCs, err := refTree.GetCursorAtKey(r.ctx, key)
 	if err != nil {
 		return nil, nil, err
 	}

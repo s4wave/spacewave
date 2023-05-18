@@ -1,6 +1,8 @@
 package kvtx
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/tx"
 )
 
@@ -9,33 +11,33 @@ type Store interface {
 	// NewTransaction returns a new transaction against the store.
 	// Always call Discard() after you are done with the transaction.
 	// The transaction will be read-only unless write is set.
-	NewTransaction(write bool) (Tx, error)
+	NewTransaction(ctx context.Context, write bool) (Tx, error)
 }
 
 // TxOps contains the database transaction operations.
 type TxOps interface {
 	// Size returns the number of keys in the store.
-	Size() (uint64, error)
+	Size(ctx context.Context) (uint64, error)
 	// Get returns values for a key.
-	Get(key []byte) (data []byte, found bool, err error)
+	Get(ctx context.Context, key []byte) (data []byte, found bool, err error)
 	// Exists checks if a key exists.
-	Exists(key []byte) (bool, error)
+	Exists(ctx context.Context, key []byte) (bool, error)
 	// Set sets the value of a key.
 	// This will not be committed until Commit is called.
-	Set(key, value []byte) error
+	Set(ctx context.Context, key, value []byte) error
 	// Delete deletes a key.
 	// This will not be committed until Commit is called.
 	// Not found should not return an error.
-	Delete(key []byte) error
+	Delete(ctx context.Context, key []byte) error
 	// ScanPrefix iterates over keys with a prefix.
 	//
 	// Note: neither key nor value should be retained outside cb() without
 	// copying.
 	//
 	// Note: the ordering of the scan is not necessarily sorted.
-	ScanPrefix(prefix []byte, cb func(key, value []byte) error) error
+	ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error
 	// ScanPrefixKeys iterates over keys only with a prefix.
-	ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error
+	ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error
 	// Iterate returns an iterator with a given key prefix.
 	//
 	// Should always return non-nil, with error field filled if necessary.
@@ -44,7 +46,9 @@ type TxOps interface {
 	// If !sort, reverse has no effect.
 	// Must call Next() or Seek() before valid.
 	// Some implementations return BlockIterator.
-	Iterate(prefix []byte, sort, reverse bool) Iterator
+	// Context is used for the iterator and internally for iterator operations.
+	// Return an ErrorIterator if anything goes wrong building the iterator.
+	Iterate(ctx context.Context, prefix []byte, sort, reverse bool) Iterator
 }
 
 // Iterator iterates over a kvtx Tx store with a given prefix.

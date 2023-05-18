@@ -2,6 +2,7 @@ package kvtx_prefixer
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
@@ -14,8 +15,8 @@ type Iterator struct {
 }
 
 // NewIterator constructs a new iterator.
-func NewIterator(t *tx, prefix []byte, sort, rev bool) *Iterator {
-	it := t.lower.Iterate(bytes.Join([][]byte{t.prefix, prefix}, nil), sort, rev)
+func NewIterator(ctx context.Context, t *tx, prefix []byte, sort, rev bool) *Iterator {
+	it := t.lower.Iterate(ctx, bytes.Join([][]byte{t.prefix, prefix}, nil), sort, rev)
 	return &Iterator{t: t, it: it, prefix: prefix}
 }
 

@@ -52,11 +52,11 @@ func TestBuildObjectStoreAPI(t *testing.T) {
 	defer ref.Release()
 
 	st := val.GetObjectStore()
-	tx, err := st.NewTransaction(true)
+	tx, err := st.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = tx.Set([]byte("test"), []byte("test-value"))
+	err = tx.Set(ctx, []byte("test"), []byte("test-value"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -65,12 +65,12 @@ func TestBuildObjectStoreAPI(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tx, err = st.NewTransaction(false)
+	tx, err = st.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	tval, found, err := tx.Get([]byte("test"))
+	tval, found, err := tx.Get(ctx, []byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

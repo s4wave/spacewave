@@ -19,8 +19,8 @@ type Tx struct {
 }
 
 // NewTx constructs a new transaction.
-func NewTx(store *Store, write bool) (*Tx, error) {
-	readTx, err := store.store.NewTransaction(false)
+func NewTx(ctx context.Context, store *Store, write bool) (*Tx, error) {
+	readTx, err := store.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func NewTx(store *Store, write bool) (*Tx, error) {
 
 		commitWriteTx: true,
 		newWriteTx: func() (kvtx.Tx, error) {
-			return store.store.NewTransaction(true)
+			return store.store.NewTransaction(ctx, true)
 		},
 		closeReadTx: func() {
 			readTx.Discard()
@@ -84,7 +84,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 		defer writeTx.Discard()
 	}
 
-	ops, err := t.tc.BuildOps(false)
+	ops, err := t.tc.BuildOps(ctx, false)
 	t.tc = nil
 	if err != nil {
 		return err

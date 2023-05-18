@@ -10,23 +10,20 @@ import (
 
 // Queue implements Queue with a QueueOps service.
 type Queue struct {
-	// ctx is used for calls
-	ctx context.Context
 	// client is the service client
 	client mqueue_rpc.SRPCQueueOpsClient
 }
 
 // NewQueue constructs a new TxQueue.
-func NewQueue(ctx context.Context, client mqueue_rpc.SRPCQueueOpsClient) *Queue {
+func NewQueue(client mqueue_rpc.SRPCQueueOpsClient) *Queue {
 	return &Queue{
-		ctx:    ctx,
 		client: client,
 	}
 }
 
 // Peek returns the next message, if any.
-func (q *Queue) Peek() (mqueue.Message, bool, error) {
-	resp, err := q.client.Peek(q.ctx, &mqueue_rpc.PeekRequest{})
+func (q *Queue) Peek(ctx context.Context) (mqueue.Message, bool, error) {
+	resp, err := q.client.Peek(ctx, &mqueue_rpc.PeekRequest{})
 	if err != nil {
 		return nil, false, err
 	}
@@ -41,8 +38,8 @@ func (q *Queue) Peek() (mqueue.Message, bool, error) {
 
 // Ack acknowledges the head message by ID, if the head message matches the
 // given match ID.
-func (q *Queue) Ack(id uint64) error {
-	resp, err := q.client.Ack(q.ctx, &mqueue_rpc.AckRequest{
+func (q *Queue) Ack(ctx context.Context, id uint64) error {
+	resp, err := q.client.Ack(ctx, &mqueue_rpc.AckRequest{
 		Id: id,
 	})
 	if err := q.err(err, resp.GetError()); err != nil {
@@ -53,8 +50,8 @@ func (q *Queue) Ack(id uint64) error {
 
 // Push pushes a message to the queue.
 // Note: The data buffer may be reused for GetData() in the message.
-func (q *Queue) Push(data []byte) (mqueue.Message, error) {
-	resp, err := q.client.Push(q.ctx, &mqueue_rpc.PushRequest{
+func (q *Queue) Push(ctx context.Context, data []byte) (mqueue.Message, error) {
+	resp, err := q.client.Push(ctx, &mqueue_rpc.PushRequest{
 		Data: data,
 	})
 	if err := q.err(err, resp.GetError()); err != nil {
@@ -81,8 +78,8 @@ func (q *Queue) Wait(ctx context.Context, ack bool) (mqueue.Message, error) {
 }
 
 // DeleteQueue deletes all messages and metadata from the queue.
-func (q *Queue) DeleteQueue() error {
-	resp, err := q.client.DeleteQueue(q.ctx, &mqueue_rpc.DeleteQueueRequest{})
+func (q *Queue) DeleteQueue(ctx context.Context) error {
+	resp, err := q.client.DeleteQueue(ctx, &mqueue_rpc.DeleteQueueRequest{})
 	return q.err(err, resp.GetError())
 }
 

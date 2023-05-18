@@ -4,6 +4,8 @@
 package kvtx_kvfile
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/hydra/kvtx"
 )
@@ -27,7 +29,7 @@ func (s *KvfileStore) GetKvfileReader() *kvfile.Reader {
 
 // NewTransaction returns a new transaction against the store.
 // The transaction will be read-only regardless of write.
-func (s *KvfileStore) NewTransaction(write bool) (kvtx.Tx, error) {
+func (s *KvfileStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	return NewTransaction(s.rdr, write), nil
 }
 

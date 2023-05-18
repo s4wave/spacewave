@@ -24,7 +24,7 @@ func NewTx(db *ristretto.Cache, ttl time.Duration) *Tx {
 }
 
 // Size returns the number of keys in the store.
-func (t *Tx) Size() (uint64, error) {
+func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	if t.rel.Load() {
 		return 0, kvtx.ErrDiscarded
 	}
@@ -35,7 +35,7 @@ func (t *Tx) Size() (uint64, error) {
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
+func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	if t.rel.Load() {
 		return nil, false, kvtx.ErrDiscarded
 	}
@@ -47,7 +47,7 @@ func (t *Tx) Get(key []byte) (data []byte, found bool, err error) {
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(key []byte) (bool, error) {
+func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if t.rel.Load() {
 		return false, kvtx.ErrDiscarded
 	}
@@ -59,7 +59,7 @@ func (t *Tx) Exists(key []byte) (bool, error) {
 }
 
 // Set sets the value of a key.
-func (t *Tx) Set(key, value []byte) error {
+func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if t.rel.Load() {
 		return kvtx.ErrDiscarded
 	}
@@ -76,7 +76,7 @@ func (t *Tx) Set(key, value []byte) error {
 }
 
 // Delete deletes a key.
-func (t *Tx) Delete(key []byte) error {
+func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if t.rel.Load() {
 		return kvtx.ErrDiscarded
 	}
@@ -85,7 +85,7 @@ func (t *Tx) Delete(key []byte) error {
 }
 
 // ScanPrefix is not implemented with ristretto.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	if t.rel.Load() {
 		return kvtx.ErrDiscarded
 	}
@@ -93,7 +93,7 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 }
 
 // ScanPrefixKeys is not implemented with ristretto.
-func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	if t.rel.Load() {
 		return kvtx.ErrDiscarded
 	}
@@ -101,7 +101,7 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 }
 
 // Iterate is not implemented with ristretto.
-func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	if t.rel.Load() {
 		return kvtx.NewErrIterator(kvtx.ErrDiscarded)
 	}

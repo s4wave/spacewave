@@ -43,7 +43,7 @@ func (s *Store) GetDB() *bdb.DB {
 // Our application code is not ErrConflict aware, and in many cases
 // expects a single holder for a write transaction at a time.
 // For this reason, a write mutex is used.
-func (s *Store) NewTransaction(write bool) (kvtx.Tx, error) {
+func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if write {
 		s.writeMtx.Lock()
 	}

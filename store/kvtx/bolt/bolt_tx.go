@@ -43,7 +43,7 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(key []byte) ([]byte, bool, error) {
+func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -80,7 +80,7 @@ func (t *Tx) Get(key []byte) ([]byte, bool, error) {
 }
 
 // Size returns the number of keys in the store.
-func (t *Tx) Size() (uint64, error) {
+func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	bkt, err := t.getBucket()
 	if err != nil {
 		return 0, err
@@ -91,7 +91,7 @@ func (t *Tx) Size() (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(key, value []byte) error {
+func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -132,7 +132,7 @@ func (t *Tx) Set(key, value []byte) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -172,8 +172,8 @@ func (t *Tx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
-func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
-	return t.ScanPrefix(prefix, func(key, value []byte) error {
+func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	return t.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		return cb(key)
 	})
 }
@@ -183,7 +183,7 @@ func (t *Tx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
 // Should always return non-nil, with error field filled if necessary.
 // Iterates in sorted order, reverse reverses the key iteration.
 // The prefix is NOT clipped from the output keys.
-func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	bkt, err := t.getBucket()
 	if err != nil {
 		return kvtx.NewErrIterator(err)
@@ -195,7 +195,7 @@ func (t *Tx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(key []byte) error {
+func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -227,7 +227,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(key []byte) (bool, error) {
+func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}

@@ -54,13 +54,13 @@ func TestSimple(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tr := NewAVLTree(ctx, oc)
+	tr := NewAVLTree(oc)
 
-	btx, err := tr.NewAVLTreeTransaction(true)
+	btx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ilen, err := btx.Size()
+	ilen, err := btx.Size(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -69,21 +69,21 @@ func TestSimple(t *testing.T) {
 	}
 
 	key := []byte("test")
-	h, err := btx.Exists(key)
+	h, err := btx.Exists(ctx, key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, ok, err := btx.Get(key); ok || err != nil || h {
+	if _, ok, err := btx.Get(ctx, key); ok || err != nil || h {
 		t.FailNow()
 	}
 
 	val := []byte("tvalue")
-	err = btx.Set(key, val)
+	err = btx.Set(ctx, key, val)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ival, ok, err := btx.Get(key)
+	ival, ok, err := btx.Get(ctx, key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -223,13 +223,13 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tr := NewAVLTree(ctx, oc)
-	btx, err := tr.NewAVLTreeTransaction(true)
+	tr := NewAVLTree(oc)
+	btx, err := tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ilen, err := btx.Size()
+	ilen, err := btx.Size(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -238,11 +238,11 @@ func TestStress(t *testing.T) {
 	}
 
 	key := []byte("test")
-	h, err := btx.Exists(key)
+	h, err := btx.Exists(ctx, key)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, ok, err := btx.Get(key); ok || err != nil || h {
+	if _, ok, err := btx.Get(ctx, key); ok || err != nil || h {
 		t.FailNow()
 	}
 
@@ -252,7 +252,7 @@ func TestStress(t *testing.T) {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		val := []byte(fmt.Sprintf("key-%d", kn-i))
 
-		err := btx.Set(key, val)
+		err := btx.Set(ctx, key, val)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -262,7 +262,7 @@ func TestStress(t *testing.T) {
 	checkAll := func() {
 		for i := kn - 1; i >= 0; i-- {
 			key := []byte(fmt.Sprintf("key-%d", i))
-			ival, ok, err := btx.Get(key)
+			ival, ok, err := btx.Get(ctx, key)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -277,14 +277,14 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	btx, err = tr.NewAVLTreeTransaction(false)
+	btx, err = tr.NewAVLTreeTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	checkAll()
 	keyCount := 0
-	err = btx.ScanPrefix([]byte("key-"), func(key, val []byte) error {
+	err = btx.ScanPrefix(ctx, []byte("key-"), func(key, val []byte) error {
 		if len(key) == 0 || len(val) == 0 {
 			t.FailNow()
 		}
@@ -299,7 +299,7 @@ func TestStress(t *testing.T) {
 	}
 
 	btx.Discard()
-	btx, err = tr.NewAVLTreeTransaction(true)
+	btx, err = tr.NewAVLTreeTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -309,11 +309,11 @@ func TestStress(t *testing.T) {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		if i%2 == 0 {
 			t.Logf("deleting key %s", key)
-			err := btx.Delete(key)
+			err := btx.Delete(ctx, key)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			_, bfound, err := btx.Get(key)
+			_, bfound, err := btx.Get(ctx, key)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -332,14 +332,14 @@ func TestStress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ft := NewAVLTree(ctx, fc)
-	btx, err = ft.NewAVLTreeTransaction(false)
+	ft := NewAVLTree(fc)
+	btx, err = ft.NewAVLTreeTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	expectedSize := kn / 2
-	ns, err := btx.Size()
+	ns, err := btx.Size(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -351,7 +351,7 @@ func TestStress(t *testing.T) {
 	for i := 0; i < kn; i++ {
 		key := []byte(fmt.Sprintf("key-%d", i))
 		keep := i%2 != 0
-		_, exists, err := btx.Get(key)
+		_, exists, err := btx.Get(ctx, key)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

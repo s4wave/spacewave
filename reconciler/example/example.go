@@ -34,7 +34,7 @@ func NewReconciler(
 func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) error {
 	r.le.Info("executing example reconciler")
 	for {
-		m, ok, err := handle.GetEventQueue().Peek()
+		m, ok, err := handle.GetEventQueue().Peek(ctx)
 		if err != nil {
 			return err
 		}
@@ -61,7 +61,7 @@ func (r *Reconciler) Execute(ctx context.Context, handle reconciler.Handle) erro
 		} else {
 			r.le.Infof("read unknown reconciler event: %s", string(dat))
 		}
-		if err := handle.GetEventQueue().Ack(m.GetId()); err != nil {
+		if err := handle.GetEventQueue().Ack(ctx, m.GetId()); err != nil {
 			return err
 		}
 	}

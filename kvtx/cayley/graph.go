@@ -1,6 +1,8 @@
 package kvtx_cayley
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/kvtx"
 	hidalgo "github.com/aperturerobotics/hydra/kvtx/hidalgo"
 	"github.com/cayleygraph/cayley"
@@ -12,10 +14,11 @@ import (
 
 // NewGraph builds a new graph store from a kvtx store.
 func NewGraph(
+	ctx context.Context,
 	objStore kvtx.Store,
 	graphOpts graph.Options,
 ) (*cayley.Handle, error) {
-	hidalgoKv := flat.Upgrade(hidalgo.NewKV(objStore))
+	hidalgoKv := flat.Upgrade(hidalgo.NewKV(ctx, objStore))
 	if err := cayley_kv.Init(hidalgoKv, graphOpts); err != nil {
 		if err != graph.ErrDatabaseExists {
 			return nil, err

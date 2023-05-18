@@ -22,7 +22,7 @@ func NewEngine(store kvtx.Store) *Engine {
 
 // Begin returns a read-only or read/write transaction.
 func (e *Engine) Begin(ctx context.Context, opts gengine.TxOptions) (gengine.Transaction, error) {
-	tx, err := e.store.NewTransaction(opts.Writable)
+	tx, err := e.store.NewTransaction(ctx, opts.Writable)
 	if err != nil {
 		return nil, err
 	}

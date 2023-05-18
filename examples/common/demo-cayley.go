@@ -127,12 +127,12 @@ func RunDemoCayley(
 	objStore := objStoreAv.GetValue().(volume.BuildObjectStoreAPIValue).GetObjectStore()
 
 	// attempt concurrent transactions
-	t1, _ := objStore.NewTransaction(false)
-	t2, _ := objStore.NewTransaction(false)
-	_, _, _ = t2.Get([]byte("test"))
+	t1, _ := objStore.NewTransaction(ctx, false)
+	t2, _ := objStore.NewTransaction(ctx, false)
+	_, _, _ = t2.Get(ctx, []byte("test"))
 	t2.Discard()
 	// expect that t1 is still live (not discarded)
-	_, _, err = t1.Get([]byte("test"))
+	_, _, err = t1.Get(ctx, []byte("test"))
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func RunDemoCayley(
 
 	// build the cayley database
 	graphOptions := graph.Options{}
-	store, err := hydra_kvtx_cayley.NewGraph(objStore, graphOptions)
+	store, err := hydra_kvtx_cayley.NewGraph(ctx, objStore, graphOptions)
 	if err != nil {
 		return err
 	}

@@ -31,23 +31,23 @@ func (s *KvfileTx) GetKvfileReader() *kvfile.Reader {
 }
 
 // Size returns the number of keys in the store.
-func (s *KvfileTx) Size() (uint64, error) {
+func (s *KvfileTx) Size(ctx context.Context) (uint64, error) {
 	return s.rdr.Size(), nil
 }
 
 // Get returns values for a key.
-func (s *KvfileTx) Get(key []byte) (data []byte, found bool, err error) {
+func (s *KvfileTx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	return s.rdr.Get(key)
 }
 
 // Exists checks if a key exists.
-func (s *KvfileTx) Exists(key []byte) (bool, error) {
+func (s *KvfileTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	return s.rdr.Exists(key)
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (s *KvfileTx) Set(key, value []byte) error {
+func (s *KvfileTx) Set(ctx context.Context, key, value []byte) error {
 	if !s.write {
 		return kvtx.ErrNotWrite
 	}
@@ -60,7 +60,7 @@ func (s *KvfileTx) Set(key, value []byte) error {
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (s *KvfileTx) Delete(key []byte) error {
+func (s *KvfileTx) Delete(ctx context.Context, key []byte) error {
 	if !s.write {
 		return kvtx.ErrNotWrite
 	}
@@ -71,7 +71,7 @@ func (s *KvfileTx) Delete(key []byte) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (s *KvfileTx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) error {
+func (s *KvfileTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	if s.discarded.Load() {
 		return kvtx.ErrDiscarded
 	}
@@ -80,7 +80,7 @@ func (s *KvfileTx) ScanPrefix(prefix []byte, cb func(key, value []byte) error) e
 }
 
 // ScanPrefixKeys iterates over keys only with a prefix.
-func (s *KvfileTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (s *KvfileTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	if s.discarded.Load() {
 		return kvtx.ErrDiscarded
 	}
@@ -96,7 +96,7 @@ func (s *KvfileTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) erro
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
 // Some implementations return BlockIterator.
-func (s *KvfileTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
+func (s *KvfileTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	if !sort {
 		reverse = false
 	}

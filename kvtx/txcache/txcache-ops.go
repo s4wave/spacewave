@@ -2,6 +2,7 @@ package kvtx_txcache
 
 import (
 	"bytes"
+	"context"
 	"sort"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -41,7 +42,7 @@ func (s *opsSorter) Swap(i, j int) {
 var _ sort.Interface = ((*opsSorter)(nil))
 
 // BuildOps returns a sorted set of operations.
-func (t *TXCache) BuildOps(sorted bool) ([]Op, error) {
+func (t *TXCache) BuildOps(ctx context.Context, sorted bool) ([]Op, error) {
 	t.mtx.RLock()
 	snapRemove := t.remove.ReadOnlySnapshot()
 	snapSet := t.set.ReadOnlySnapshot()
@@ -57,7 +58,7 @@ func (t *TXCache) BuildOps(sorted bool) ([]Op, error) {
 	for removed := range removeIter {
 		removedKey := removed.Key
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
-			return ops.Delete(removedKey)
+			return ops.Delete(ctx, removedKey)
 		})
 		if sorted {
 			opsKeys = append(opsKeys, removedKey)
@@ -72,7 +73,7 @@ func (t *TXCache) BuildOps(sorted bool) ([]Op, error) {
 		}
 		addedVal := added.Value.([]byte)
 		opsSet = append(opsSet, func(ops kvtx.TxOps) error {
-			return ops.Set(addedKey, addedVal)
+			return ops.Set(ctx, addedKey, addedVal)
 		})
 		if sorted {
 			opsKeys = append(opsKeys, added.Key)

@@ -92,11 +92,11 @@ func TestSimple(t *testing.T) {
 		}
 
 		store, storeTx = buildStore(false)
-		ktx, err := store.NewTransaction(false)
+		ktx, err := store.NewTransaction(ctx, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		_, found, err := ktx.Get([]byte("test-1"))
+		_, found, err := ktx.Get(ctx, []byte("test-1"))
 		if err != nil {
 			t.Fatal(err.Error())
 		}

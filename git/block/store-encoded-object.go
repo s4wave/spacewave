@@ -133,7 +133,7 @@ func (r *Store) SetEncodedObject(eoi plumbing.EncodedObject) (plumbing.Hash, err
 	encObjCs.SetBlock(encObjBlk, true)
 
 	// append to the tree
-	err = encTree.SetCursorAtKey(key, encObjCs, false)
+	err = encTree.SetCursorAtKey(ctx, key, encObjCs, false)
 	if err != nil {
 		return h, err
 	}
@@ -230,7 +230,7 @@ func (r *Store) IterEncodedObjects(ph plumbing.ObjectType) (storer.EncodedObject
 		prefix = []byte{byte(ph)}
 	}
 	treeTx := r.objTree
-	ktxIterator := treeTx.BlockIterate(prefix, false, false)
+	ktxIterator := treeTx.BlockIterate(r.ctx, prefix, false, false)
 	return NewEncodedObjectIter(r, ktxIterator), nil
 }
 
@@ -369,7 +369,7 @@ func (e *StoreEncodedObject) unmarshalEncodedObject() (*EncodedObject, error) {
 // lookupEncodedObject tries to build the EncodedObject from a key.
 func (r *Store) lookupEncodedObject(key []byte) (*EncodedObject, *block.Cursor, error) {
 	encTree := r.objTree
-	nodCs, err := encTree.GetCursorAtKey(key)
+	nodCs, err := encTree.GetCursorAtKey(r.ctx, key)
 	if err != nil {
 		return nil, nil, err
 	}

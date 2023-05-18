@@ -119,7 +119,7 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	}
 
 	// set the row to the rowKey
-	err = tx.SetCursorAtKey(rowKey, rowCursor, false)
+	err = tx.SetCursorAtKey(i.ctx, rowKey, rowCursor, false)
 	if err != nil {
 		return err
 	}

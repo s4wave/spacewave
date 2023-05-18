@@ -10,13 +10,15 @@ import (
 
 // Tx implements the hidalgo kv t/x interface with a kvtx tx.
 type Tx struct {
-	tx kvtx.Tx
+	ctx context.Context
+	tx  kvtx.Tx
 }
 
 // NewTx constructs a new Tx.
-func NewTx(tx kvtx.Tx) *Tx {
+func NewTx(ctx context.Context, tx kvtx.Tx) *Tx {
 	return &Tx{
-		tx: tx,
+		ctx: ctx,
+		tx:  tx,
 	}
 }
 
@@ -26,7 +28,7 @@ func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
 	if len(key) == 0 {
 		return nil, kv.ErrNotFound
 	}
-	data, found, err := t.tx.Get(key)
+	data, found, err := t.tx.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +66,7 @@ func (t *Tx) Put(k kv.Key, v kv.Value) error {
 	if len(k) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	return t.tx.Set(k, v)
+	return t.tx.Set(t.ctx, k, v)
 }
 
 // Del removes the key from the database. See Put for consistency guaranties.
@@ -72,14 +74,14 @@ func (t *Tx) Del(k kv.Key) error {
 	if len(k) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	return t.tx.Delete(k)
+	return t.tx.Delete(t.ctx, k)
 }
 
 // Scan will iterate over all key-value pairs with a specific key prefix.
 // Expects them to arrive in order in the hidalgo kvtest.
 func (t *Tx) Scan(pref kv.Key) kv.Iterator {
 	iter := &txScanIterator{}
-	iter.err = t.tx.ScanPrefix(pref, func(key, value []byte) error {
+	iter.err = t.tx.ScanPrefix(t.ctx, pref, func(key, value []byte) error {
 		// Hidalgo expects them to arrive in order.
 		// Unfortunately hydra does not guarantee this.
 		// Perform a basic insertion sort.
