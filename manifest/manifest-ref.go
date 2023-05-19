@@ -1,6 +1,8 @@
 package bldr_manifest
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/pkg/errors"
@@ -20,8 +22,8 @@ func NewManifestRefBlock() block.Block {
 }
 
 // UnmarshalManifestRef unmarshals a ManifestRef block from the cursor.
-func UnmarshalManifestRef(bcs *block.Cursor) (*ManifestRef, error) {
-	return block.UnmarshalBlock[*ManifestRef](bcs, NewManifestRefBlock)
+func UnmarshalManifestRef(ctx context.Context, bcs *block.Cursor) (*ManifestRef, error) {
+	return block.UnmarshalBlock[*ManifestRef](ctx, bcs, NewManifestRefBlock)
 }
 
 // CreateManifestRef creates the manifest ref at the block cursor.

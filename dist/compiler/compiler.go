@@ -131,7 +131,6 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
-	defer busEngine.Close()
 
 	// build base config sets
 	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetHostConfigSet()))
@@ -228,7 +227,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 
 	// use short-lived read transactions
 	watchLoop := world_control.NewWatchLoop(le, "", handler)
-	ws := world.NewEngineWorldState(ctx, busEngine, false)
+	ws := world.NewEngineWorldState(busEngine, false)
 	if err := watchLoop.Execute(ctx, ws); err != nil {
 		return nil, err
 	}
@@ -252,7 +251,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 				WithField("copy-manifest-id", embedManifestInfo.Manifest.GetMeta().GetManifestId()).
 				WithField("copy-manifest-rev", embedManifestInfo.Manifest.GetMeta().GetRev()).
 				Debug("copying manifest to embedded volume")
-			embedTx, err := embedEngine.NewTransaction(true)
+			embedTx, err := embedEngine.NewTransaction(ctx, true)
 			if err != nil {
 				return err
 			}
@@ -302,7 +301,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		return nil, err
 	}
 
-	tx, err := busEngine.NewTransaction(true)
+	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}

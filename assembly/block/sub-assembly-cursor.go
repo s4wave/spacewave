@@ -49,7 +49,7 @@ func (r *SubAssemblyCursor) ResolveAssemblies(ctx context.Context, b bus.Bus) ([
 			continue
 		}
 		aRefBcs := arefsBcs.FollowRef(uint32(i), ref)
-		a, err := UnmarshalAssembly(aRefBcs)
+		a, err := UnmarshalAssembly(ctx, aRefBcs)
 		if err != nil {
 			return nil, errors.Wrapf(err, "assembly_refs[%d]", i)
 		}

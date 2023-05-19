@@ -260,7 +260,7 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 				return nil, nil, err
 			}
 			_, bcs := cursor.BuildTransaction(nil)
-			pluginManifest, err := manifest.UnmarshalManifest(bcs)
+			pluginManifest, err := manifest.UnmarshalManifest(ctx, bcs)
 			if err != nil {
 				return nil, nil, err
 			}

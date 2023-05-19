@@ -31,7 +31,7 @@ func AccessManifest(
 ) error {
 	return accessFunc(ctx, manifestRef, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		manifest, err := bldr_manifest.UnmarshalManifest(bcs)
+		manifest, err := bldr_manifest.UnmarshalManifest(ctx, bcs)
 		if err != nil {
 			return err
 		}

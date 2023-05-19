@@ -167,8 +167,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.hostVolumeCtr.SetValue(nil)
 
 	// construct the world engine handle
-	ws, wsRel := c.buildWorldState(ctx)
-	defer wsRel()
+	ws := c.buildWorldState(ctx)
 
 	// run initial cleanup
 	if err := c.cleanupUnknownPlugins(ctx, ws, pluginPlatformID); err != nil {
@@ -185,10 +184,9 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 }
 
 // buildWorldState builds the world state handle.
-// returns the release function
-func (c *Controller) buildWorldState(ctx context.Context) (world.WorldState, func()) {
+func (c *Controller) buildWorldState(ctx context.Context) world.WorldState {
 	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
-	return world.NewEngineWorldState(ctx, busEngine, true), busEngine.Close
+	return world.NewEngineWorldState(busEngine, true)
 }
 
 // cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.

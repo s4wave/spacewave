@@ -133,7 +133,6 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
-	defer busEngine.Close()
 
 	// build base config sets
 	configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
@@ -235,7 +234,7 @@ func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_bu
 		return nil, err
 	}
 
-	tx, err := busEngine.NewTransaction(true)
+	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}

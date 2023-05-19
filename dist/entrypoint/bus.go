@@ -196,7 +196,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 		ctxCancel()
 		return nil, err
 	}
-	worldState := world.NewEngineWorldState(ctx, eng, true)
+	worldState := world.NewEngineWorldState(eng, true)
 
 	// register the world operation types for manifests
 	lookupOpCtrl := world.NewLookupOpController("bldr-manifest-ops", engineID, bldr_manifest_world.LookupOp)

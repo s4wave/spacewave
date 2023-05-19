@@ -1,6 +1,8 @@
 package bldr_manifest
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/sbset"
 	"github.com/aperturerobotics/timestamp"
@@ -21,8 +23,8 @@ func NewManifestBundleBlock() block.Block {
 }
 
 // UnmarshalManifestBundle unmarshals a ManifestBundle block from the cursor.
-func UnmarshalManifestBundle(bcs *block.Cursor) (*ManifestBundle, error) {
-	return block.UnmarshalBlock[*ManifestBundle](bcs, NewManifestBundleBlock)
+func UnmarshalManifestBundle(ctx context.Context, bcs *block.Cursor) (*ManifestBundle, error) {
+	return block.UnmarshalBlock[*ManifestBundle](ctx, bcs, NewManifestBundleBlock)
 }
 
 // NewManifestBundleEntryKey builds a ObjectKey for an entry in a bundle.

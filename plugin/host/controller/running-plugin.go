@@ -65,8 +65,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 	t.c.rmtx.Unlock()
 
 	// build world state handle
-	ws, wsRel := t.c.buildWorldState(ctx)
-	defer wsRel()
+	ws := t.c.buildWorldState(ctx)
 
 	// fetch the manifest if it doesn't exist
 	emptyManifest := manifest.GetMeta().GetManifestId() == ""

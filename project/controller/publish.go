@@ -96,7 +96,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		var cmanifests map[string][]*manifest_world.CollectedManifest
 		var cmanifestErrs []error
 		if err := func() error {
-			wtx, err := remoteWorld.NewTransaction(false)
+			wtx, err := remoteWorld.NewTransaction(ctx, false)
 			if err != nil {
 				return err
 			}
@@ -188,7 +188,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 				for _, manifestID := range manifestIDs {
 					for _, manifest := range cmanifests[manifestID] {
 						le := manifest.Manifest.Meta.Logger(le)
-						destRemoteTx, err := destRemoteEng.NewTransaction(true)
+						destRemoteTx, err := destRemoteEng.NewTransaction(ctx, true)
 						if err != nil {
 							return err
 						}

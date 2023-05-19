@@ -96,7 +96,7 @@ func (c *Controller) FetchManifest(
 	}
 	defer worldEngineRef.Release()
 
-	tx, err := worldEngine.NewTransaction(false)
+	tx, err := worldEngine.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}

@@ -49,6 +49,7 @@ func CommitManifest(
 		WithField("link-object-keys", linkObjKeys).
 		Info("committing manifest to world")
 	_, _, err = ws.ApplyWorldOp(
+		ctx,
 		NewStoreManifestOp(
 			manifestObjKey,
 			linkObjKeys,

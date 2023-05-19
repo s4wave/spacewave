@@ -138,7 +138,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	remoteConf := remoteRef.GetRemoteConfig()
 	storeObjKey, storeLinkObjKeys := remoteConf.CleanupLinkObjectKeys()
 
-	tx, err := worldEng.NewTransaction(true)
+	tx, err := worldEng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}

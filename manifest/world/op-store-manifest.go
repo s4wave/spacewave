@@ -27,7 +27,7 @@ func ExStoreManifestOp(
 		linkObjKeys,
 		manifestRef,
 	)
-	_, _, err := ws.ApplyWorldOp(op, sender)
+	_, _, err := ws.ApplyWorldOp(ctx, op, sender)
 	return err
 }
 
@@ -76,7 +76,7 @@ func (o *StoreManifestOp) ApplyWorldOp(
 	var out *manifest.Manifest
 	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, o.GetManifestRef().GetManifestRef(), func(bcs *block.Cursor) error {
 		var err error
-		out, err = manifest.UnmarshalManifest(bcs)
+		out, err = manifest.UnmarshalManifest(ctx, bcs)
 		return err
 	})
 	if err != nil {
@@ -92,7 +92,7 @@ func (o *StoreManifestOp) ApplyWorldOp(
 	// link any LinkObjectKeys
 	for _, objKey := range o.GetLinkObjectKeys() {
 		quad := NewManifestQuad(objKey, o.GetObjectKey(), out.GetMeta().GetManifestId())
-		if err := ws.SetGraphQuad(quad); err != nil {
+		if err := ws.SetGraphQuad(ctx, quad); err != nil {
 			return false, err
 		}
 	}

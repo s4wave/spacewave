@@ -27,7 +27,7 @@ func ExExtractManifestBundleOp(
 		linkObjKeys,
 		manifestBundleRef,
 	)
-	_, _, err := ws.ApplyWorldOp(op, sender)
+	_, _, err := ws.ApplyWorldOp(ctx, op, sender)
 	return err
 }
 
@@ -80,7 +80,7 @@ func (o *ExtractManifestBundleOp) ApplyWorldOp(
 
 	for _, objKey := range o.GetLinkObjectKeys() {
 		quad := NewManifestQuad(objKey, o.GetObjectKey(), "")
-		if err := ws.SetGraphQuad(quad); err != nil {
+		if err := ws.SetGraphQuad(ctx, quad); err != nil {
 			return false, err
 		}
 	}

@@ -233,7 +233,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		rel()
 		return nil, err
 	}
-	worldState := world.NewEngineWorldState(ctx, eng, true)
+	worldState := world.NewEngineWorldState(eng, true)
 
 	// register the world operation types for plugin host
 	lookupOpCtrl := world.NewLookupOpController("bldr-plugin-host-ops", engineID, bldr_manifest_world.LookupOp)
@@ -245,7 +245,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	rels = append(rels, relLookupCtrl)
 
 	// ensure the plugin host exists in the world
-	engTx, err := eng.NewTransaction(true)
+	engTx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		rel()
 		return nil, err

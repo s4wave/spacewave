@@ -71,7 +71,7 @@ func (t *pluginManifestTracker) processState(
 		_, bcs := bls.BuildTransaction(nil)
 		var err error
 		pluginManifestRef = bls.GetRefWithOpArgs()
-		pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
+		pluginManifest, err = bldr_manifest.UnmarshalManifest(ctx, bcs)
 		return err
 	})
 	if err != nil {

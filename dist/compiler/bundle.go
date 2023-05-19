@@ -219,7 +219,7 @@ func BuildDistBundle(
 
 	// Write the kvfile
 	err = kvfile_compress.UseCompressedWriter(embeddedVolFile, func(w io.Writer) error {
-		return kvtx_kvfile.KvfileFromStore(w, workingVolKvtx)
+		return kvtx_kvfile.KvfileFromStore(ctx, w, workingVolKvtx)
 	})
 	if err != nil {
 		_ = embeddedVolFile.Close()

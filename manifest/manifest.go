@@ -72,8 +72,8 @@ func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
 }
 
 // UnmarshalManifest unmarshals a Manifest block from the cursor.
-func UnmarshalManifest(bcs *block.Cursor) (*Manifest, error) {
-	return block.UnmarshalBlock[*Manifest](bcs, NewManifestBlock)
+func UnmarshalManifest(ctx context.Context, bcs *block.Cursor) (*Manifest, error) {
+	return block.UnmarshalBlock[*Manifest](ctx, bcs, NewManifestBlock)
 }
 
 // CreateManifest creates the manifest at the block cursor.

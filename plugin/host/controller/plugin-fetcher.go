@@ -77,8 +77,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 	}
 
 	// build world state handle
-	ws, wsRel := t.c.buildWorldState(ctx)
-	defer wsRel()
+	ws := t.c.buildWorldState(ctx)
 
 	// fetch the manifest for this plugin
 	// wait until the plugin has been fetched
@@ -129,7 +128,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 		defer manifestCursor.Release()
 
 		_, bcs := manifestCursor.BuildTransaction(nil)
-		pluginManifest, err = bldr_manifest.UnmarshalManifest(bcs)
+		pluginManifest, err = bldr_manifest.UnmarshalManifest(ctx, bcs)
 		if err != nil {
 			return err
 		}
@@ -176,6 +175,8 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 			le.Infof("completed copying manifest to %s", pluginHostBucketID)
 		} else {
 			le.WithError(err).Warnf("failed to copy manifest to %s", pluginHostBucketID)
+			panic(err)
+			// TODO TODO TODO TODO
 		}
 		return err
 	})

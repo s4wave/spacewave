@@ -1,6 +1,8 @@
 package assembly_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/bldr/assembly"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/block"
@@ -13,8 +15,8 @@ func NewAssemblyBlock() block.Block {
 
 // UnmarshalAssembly unmarshals a Assembly from a cursor.
 // If empty, returns nil, nil
-func UnmarshalAssembly(bcs *block.Cursor) (*Assembly, error) {
-	return block.UnmarshalBlock[*Assembly](bcs, NewAssemblyBlock)
+func UnmarshalAssembly(ctx context.Context, bcs *block.Cursor) (*Assembly, error) {
+	return block.UnmarshalBlock[*Assembly](ctx, bcs, NewAssemblyBlock)
 }
 
 // IsNil checks if the object is nil.
