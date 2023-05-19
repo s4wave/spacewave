@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/util/refcount"
 )
 
 // BusEngine uses a directive lookup to access the Engine.
@@ -14,9 +13,7 @@ type BusEngine = RefCountEngine
 //
 // ctx can be nil to prevent the lookup from occurring until SetContext is called.
 func NewBusEngine(ctx context.Context, b bus.Bus, engineID string) *BusEngine {
-	return &BusEngine{
-		rc: refcount.NewRefCount(ctx, nil, nil, NewBusEngineResolver(b, engineID)),
-	}
+	return NewRefCountEngine(ctx, NewBusEngineResolver(b, engineID))
 }
 
 // NewBusEngineResolver constructs a resolver function for a bus engine.

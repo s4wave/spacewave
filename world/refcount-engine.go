@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
 )
 
@@ -12,6 +13,27 @@ import (
 type RefCountEngine struct {
 	// rc contains the engine reference counter
 	rc *refcount.RefCount[*Engine]
+}
+
+// NewRefCountEngine constructs a new refcount engine.
+//
+// ctx is used to resolve the value when a reference is added.
+// ctx can be nil and updated with SetContext or ClearContext
+func NewRefCountEngine(ctx context.Context, resolver EngineResolver) *RefCountEngine {
+	return NewRefCountEngineWithCtr(ctx, resolver, nil, nil)
+}
+
+// NewRefCountEngineWithCtr builds a new refcount engine that stores the engine
+// in the target ccontainers. Either of the ccontainers can be nil.
+func NewRefCountEngineWithCtr(
+	ctx context.Context,
+	resolver EngineResolver,
+	target *ccontainer.CContainer[*Engine],
+	targetErr *ccontainer.CContainer[*error],
+) *RefCountEngine {
+	return &RefCountEngine{
+		rc: refcount.NewRefCount(ctx, target, targetErr, resolver),
+	}
 }
 
 // SetContext updates the context used for fetching the bus engine.
@@ -31,10 +53,8 @@ func (e *RefCountEngine) ClearContext() {
 // Always call Discard() after you are done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
 func (e *RefCountEngine) NewTransaction(ctx context.Context, write bool) (Tx, error) {
-	prom, ref := e.rc.AddRefPromise()
-	engine, err := prom.Await(ctx)
+	engine, ref, err := e.rc.Wait(ctx)
 	if err != nil {
-		ref.Release()
 		return nil, err
 	}
 	tx, err := (*engine).NewTransaction(ctx, write)
