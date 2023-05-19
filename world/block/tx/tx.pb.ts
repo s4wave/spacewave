@@ -309,14 +309,14 @@ export const Tx = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 8) {
+          if (tag !== 8) {
             break
           }
 
           message.txType = reader.int32() as any
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
@@ -326,7 +326,7 @@ export const Tx = {
           )
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
@@ -336,7 +336,7 @@ export const Tx = {
           )
           continue
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break
           }
 
@@ -346,14 +346,14 @@ export const Tx = {
           )
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.txObjectSet = TxObjectSet.decode(reader, reader.uint32())
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
@@ -363,7 +363,7 @@ export const Tx = {
           )
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
@@ -373,7 +373,7 @@ export const Tx = {
           )
           continue
         case 8:
-          if (tag != 66) {
+          if (tag !== 66) {
             break
           }
 
@@ -383,7 +383,7 @@ export const Tx = {
           )
           continue
         case 9:
-          if (tag != 74) {
+          if (tag !== 74) {
             break
           }
 
@@ -393,14 +393,14 @@ export const Tx = {
           )
           continue
         case 10:
-          if (tag != 82) {
+          if (tag !== 82) {
             break
           }
 
           message.txBatch = TxBatch.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -589,14 +589,14 @@ export const TxBatch = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.txs.push(Tx.decode(reader, reader.uint32()))
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -694,21 +694,21 @@ export const TxApplyWorldOp = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.operationTypeId = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.operationBody = reader.bytes()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -822,28 +822,28 @@ export const TxApplyObjectOp = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.operationTypeId = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.operationBody = reader.bytes()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.objectKey = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -957,21 +957,21 @@ export const TxCreateObject = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.objectKey = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.rootRef = ObjectRef.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1080,21 +1080,21 @@ export const TxObjectSet = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.objectKey = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.rootRef = ObjectRef.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1198,14 +1198,14 @@ export const TxObjectIncRev = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.objectKey = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1303,21 +1303,21 @@ export const TxDeleteObject = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.objectKey = reader.string()
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.failIfNotFound = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1418,14 +1418,14 @@ export const TxSetGraphQuad = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.quad = Quad.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -1522,14 +1522,14 @@ export const TxDeleteGraphQuad = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.quad = Quad.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

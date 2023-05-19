@@ -1,7 +1,6 @@
 syntax = "proto3";
 package block.store.rpc;
 
-import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 
 // Config configures the block store rpc controller.

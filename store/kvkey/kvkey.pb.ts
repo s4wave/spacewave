@@ -102,63 +102,63 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.prefix = reader.bytes()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.bucketConfigPrefix = reader.bytes()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.peerPrivKey = reader.bytes()
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.blockPrefix = reader.bytes()
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.objectStorePrefix = reader.bytes()
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
           message.mqueuePrefix = reader.bytes()
           continue
         case 8:
-          if (tag != 66) {
+          if (tag !== 66) {
             break
           }
 
           message.mqueueMetaPrefix = reader.bytes()
           continue
         case 9:
-          if (tag != 74) {
+          if (tag !== 74) {
             break
           }
 
           message.bucketMqueuePrefix = reader.bytes()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

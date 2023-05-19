@@ -116,70 +116,70 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.sqlDbId = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.bucketId = reader.string()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.volumeId = reader.string()
           continue
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break
           }
 
           message.objectStoreId = reader.string()
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.objectStorePrefix = reader.string()
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.objectStoreHeadKey = reader.string()
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
           message.initHeadRef = ObjectRef.decode(reader, reader.uint32())
           continue
         case 8:
-          if (tag != 66) {
+          if (tag !== 66) {
             break
           }
 
           message.stateTransformConf = Config1.decode(reader, reader.uint32())
           continue
         case 9:
-          if (tag != 74) {
+          if (tag !== 74) {
             break
           }
 
           message.createDbs.push(reader.string())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -324,14 +324,14 @@ export const HeadState = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.headRef = ObjectRef.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

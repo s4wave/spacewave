@@ -139,6 +139,7 @@ export interface Config {
   /**
    * LookupTimeoutDur is the duration to wait for looking up a block.
    * Examples: 1s, 1m, 1h
+   * Note: this can be overridden by the lookup options.
    * If this timeout is exceeded, returns context.ErrDeadlineExceeded.
    * If unset, waits forever.
    */
@@ -193,49 +194,49 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.bucketConf = Config1.decode(reader, reader.uint32())
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.notFoundBehavior = reader.int32() as any
           continue
         case 3:
-          if (tag != 24) {
+          if (tag !== 24) {
             break
           }
 
           message.putBlockBehavior = reader.int32() as any
           continue
         case 4:
-          if (tag != 32) {
+          if (tag !== 32) {
             break
           }
 
           message.writebackBehavior = reader.int32() as any
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.lookupTimeoutDur = reader.string()
           continue
         case 5:
-          if (tag != 40) {
+          if (tag !== 40) {
             break
           }
 
           message.verbose = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

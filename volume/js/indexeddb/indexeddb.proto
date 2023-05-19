@@ -2,7 +2,7 @@ syntax = "proto3";
 package volume.indexeddb;
 
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
-import "github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/kvtx.proto";
 import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 
 // Config is the JavaScript IndexedDB volume controller config.

@@ -3,7 +3,7 @@ package volume.world;
 
 import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
-import "github.com/aperturerobotics/hydra/store/kvtx/kv_tx.proto";
+import "github.com/aperturerobotics/hydra/store/kvtx/kvtx.proto";
 import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
 import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
 

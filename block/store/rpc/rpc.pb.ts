@@ -117,77 +117,77 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.blockStoreId = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.blockStoreIds.push(reader.string())
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.serviceId = reader.string()
           continue
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break
           }
 
           message.clientId = reader.string()
           continue
         case 5:
-          if (tag != 40) {
+          if (tag !== 40) {
             break
           }
 
           message.readOnly = reader.bool()
           continue
         case 6:
-          if (tag != 48) {
+          if (tag !== 48) {
             break
           }
 
           message.forceHashType = reader.int32() as any
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
           message.bucketIds.push(reader.string())
           continue
         case 8:
-          if (tag != 64) {
+          if (tag !== 64) {
             break
           }
 
           message.lookupOnStart = reader.bool()
           continue
         case 9:
-          if (tag != 72) {
+          if (tag !== 72) {
             break
           }
 
           message.skipNotFound = reader.bool()
           continue
         case 10:
-          if (tag != 80) {
+          if (tag !== 80) {
             break
           }
 
           message.verbose = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

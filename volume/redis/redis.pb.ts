@@ -2,7 +2,7 @@
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { Config as Config1 } from '../../store/kvkey/kvkey.pb.js'
-import { Config as Config3 } from '../../store/kvtx/kv_tx.pb.js'
+import { Config as Config3 } from '../../store/kvtx/kvtx.pb.js'
 import { ClientConfig } from '../../store/kvtx/redis/redis.pb.js'
 import { Config as Config2 } from '../controller/controller.pb.js'
 
@@ -90,56 +90,56 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.client = ClientConfig.decode(reader, reader.uint32())
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.kvKeyOpts = Config1.decode(reader, reader.uint32())
           continue
         case 3:
-          if (tag != 24) {
+          if (tag !== 24) {
             break
           }
 
           message.noGenerateKey = reader.bool()
           continue
         case 7:
-          if (tag != 56) {
+          if (tag !== 56) {
             break
           }
 
           message.noWriteKey = reader.bool()
           continue
         case 4:
-          if (tag != 32) {
+          if (tag !== 32) {
             break
           }
 
           message.verbose = reader.bool()
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.volumeConfig = Config2.decode(reader, reader.uint32())
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.storeConfig = Config3.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

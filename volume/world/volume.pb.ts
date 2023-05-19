@@ -3,7 +3,7 @@ import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Config as Config1 } from '../../store/kvkey/kvkey.pb.js'
-import { Config as Config3 } from '../../store/kvtx/kv_tx.pb.js'
+import { Config as Config3 } from '../../store/kvtx/kvtx.pb.js'
 import { Config as Config2 } from '../controller/controller.pb.js'
 
 export const protobufPackage = 'volume.world'
@@ -124,84 +124,84 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.kvKeyOpts = Config1.decode(reader, reader.uint32())
           continue
         case 2:
-          if (tag != 16) {
+          if (tag !== 16) {
             break
           }
 
           message.verbose = reader.bool()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.volumeConfig = Config2.decode(reader, reader.uint32())
           continue
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break
           }
 
           message.storeConfig = Config3.decode(reader, reader.uint32())
           continue
         case 5:
-          if (tag != 40) {
+          if (tag !== 40) {
             break
           }
 
           message.noGenerateKey = reader.bool()
           continue
         case 11:
-          if (tag != 88) {
+          if (tag !== 88) {
             break
           }
 
           message.noWriteKey = reader.bool()
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.initHeadRef = ObjectRef.decode(reader, reader.uint32())
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
           message.engineId = reader.string()
           continue
         case 8:
-          if (tag != 66) {
+          if (tag !== 66) {
             break
           }
 
           message.objectKey = reader.string()
           continue
         case 9:
-          if (tag != 74) {
+          if (tag !== 74) {
             break
           }
 
           message.bucketId = reader.string()
           continue
         case 10:
-          if (tag != 82) {
+          if (tag !== 82) {
             break
           }
 
           message.volumeId = reader.string()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)

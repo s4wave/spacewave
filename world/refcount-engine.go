@@ -70,7 +70,7 @@ func (e *RefCountEngine) NewTransaction(ctx context.Context, write bool) (Tx, er
 // Be sure to call Release on the cursor when done.
 func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	var bls *bucket_lookup.Cursor
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.rc.Access(ctx, true, func(ctx context.Context, val *Engine) error {
 		var err error
 		bls, err = (*val).BuildStorageCursor(ctx)
 		return err
@@ -92,7 +92,7 @@ func (e *RefCountEngine) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	return e.rc.Access(ctx, true, func(ctx context.Context, val *Engine) error {
 		return (*val).AccessWorldState(ctx, ref, cb)
 	})
 }
@@ -115,7 +115,7 @@ func (e *RefCountEngine) GetSeqno(ctx context.Context) (uint64, error) {
 // If value == 0, this might return immediately unconditionally.
 func (e *RefCountEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	var seqno uint64
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.rc.Access(ctx, true, func(ctx context.Context, val *Engine) error {
 		var err error
 		seqno, err = (*val).WaitSeqno(ctx, value)
 		return err

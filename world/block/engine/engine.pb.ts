@@ -155,98 +155,98 @@ export const Config = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.engineId = reader.string()
           continue
         case 2:
-          if (tag != 18) {
+          if (tag !== 18) {
             break
           }
 
           message.bucketId = reader.string()
           continue
         case 3:
-          if (tag != 26) {
+          if (tag !== 26) {
             break
           }
 
           message.volumeId = reader.string()
           continue
         case 4:
-          if (tag != 34) {
+          if (tag !== 34) {
             break
           }
 
           message.objectStoreId = reader.string()
           continue
         case 5:
-          if (tag != 42) {
+          if (tag !== 42) {
             break
           }
 
           message.objectStorePrefix = reader.string()
           continue
         case 6:
-          if (tag != 50) {
+          if (tag !== 50) {
             break
           }
 
           message.objectStoreHeadKey = reader.string()
           continue
         case 7:
-          if (tag != 58) {
+          if (tag !== 58) {
             break
           }
 
           message.initHeadRef = ObjectRef.decode(reader, reader.uint32())
           continue
         case 11:
-          if (tag != 90) {
+          if (tag !== 90) {
             break
           }
 
           message.stateTransformConf = Config1.decode(reader, reader.uint32())
           continue
         case 13:
-          if (tag != 104) {
+          if (tag !== 104) {
             break
           }
 
           message.disableChangelog = reader.bool()
           continue
         case 8:
-          if (tag != 64) {
+          if (tag !== 64) {
             break
           }
 
           message.disableLookup = reader.bool()
           continue
         case 9:
-          if (tag != 72) {
+          if (tag !== 72) {
             break
           }
 
           message.disableApplyWorldOp = reader.bool()
           continue
         case 10:
-          if (tag != 80) {
+          if (tag !== 80) {
             break
           }
 
           message.disableApplyObjectOp = reader.bool()
           continue
         case 12:
-          if (tag != 96) {
+          if (tag !== 96) {
             break
           }
 
           message.verbose = reader.bool()
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
@@ -409,14 +409,14 @@ export const HeadState = {
       const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1:
-          if (tag != 10) {
+          if (tag !== 10) {
             break
           }
 
           message.headRef = ObjectRef.decode(reader, reader.uint32())
           continue
       }
-      if ((tag & 7) == 4 || tag == 0) {
+      if ((tag & 7) === 4 || tag === 0) {
         break
       }
       reader.skipType(tag & 7)
