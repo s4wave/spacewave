@@ -45,7 +45,8 @@ func newController(base *bus.BusController[*Config]) (*Controller, error) {
 	}
 	ctrl := &Controller{BusController: base, sender: senderPeerID}
 	ctrl.errCtr = ccontainer.NewCContainer[*error](nil)
-	ctrl.fsRc = refcount.NewRefCount(nil, nil, ctrl.errCtr, ctrl.resolveFs)
+	// note: keep the handle if we have zero references and the context is not canceled.
+	ctrl.fsRc = refcount.NewRefCount(nil, true, nil, ctrl.errCtr, ctrl.resolveFs)
 	return ctrl, nil
 }
 

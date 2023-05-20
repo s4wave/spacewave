@@ -61,7 +61,8 @@ func NewController(
 	if verbose && resolver != nil {
 		resolver = WrapVerboseBlockStoreBuilder(le, resolver)
 	}
-	h.rc = refcount.NewRefCount(nil, h.storeCtr, h.errCtr, resolver)
+	keepUnref := buildOnStart // never unreferenced if true, but set anyway.
+	h.rc = refcount.NewRefCount(nil, keepUnref, h.storeCtr, h.errCtr, resolver)
 	if buildOnStart {
 		_ = h.rc.AddRef(nil)
 	}

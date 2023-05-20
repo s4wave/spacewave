@@ -13,7 +13,7 @@ type BusEngine = RefCountEngine
 //
 // ctx can be nil to prevent the lookup from occurring until SetContext is called.
 func NewBusEngine(ctx context.Context, b bus.Bus, engineID string) *BusEngine {
-	return NewRefCountEngine(ctx, NewBusEngineResolver(b, engineID))
+	return NewRefCountEngine(ctx, true, NewBusEngineResolver(b, engineID))
 }
 
 // NewBusEngineResolver constructs a resolver function for a bus engine.

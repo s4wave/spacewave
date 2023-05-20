@@ -23,6 +23,7 @@ import (
 
 // WorldState implements world state backed by a block graph.
 // Note: calls are not concurrency safe. Use Tx if you want a mutex.
+// Note: as an exception, WaitSeqno is concurrency safe.
 type WorldState struct {
 	le    *logrus.Entry
 	btx   *block.Transaction

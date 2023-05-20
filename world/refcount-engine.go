@@ -17,22 +17,26 @@ type RefCountEngine struct {
 
 // NewRefCountEngine constructs a new refcount engine.
 //
+// keepUnref sets if the engine should be kept if there are zero references.
 // ctx is used to resolve the value when a reference is added.
 // ctx can be nil and updated with SetContext or ClearContext
-func NewRefCountEngine(ctx context.Context, resolver EngineResolver) *RefCountEngine {
-	return NewRefCountEngineWithCtr(ctx, resolver, nil, nil)
+func NewRefCountEngine(ctx context.Context, keepUnref bool, resolver EngineResolver) *RefCountEngine {
+	return NewRefCountEngineWithCtr(ctx, keepUnref, resolver, nil, nil)
 }
 
 // NewRefCountEngineWithCtr builds a new refcount engine that stores the engine
 // in the target ccontainers. Either of the ccontainers can be nil.
+//
+// keepUnref sets if the engine should be kept if there are zero references.
 func NewRefCountEngineWithCtr(
 	ctx context.Context,
+	keepUnref bool,
 	resolver EngineResolver,
 	target *ccontainer.CContainer[*Engine],
 	targetErr *ccontainer.CContainer[*error],
 ) *RefCountEngine {
 	return &RefCountEngine{
-		rc: refcount.NewRefCount(ctx, target, targetErr, resolver),
+		rc: refcount.NewRefCount(ctx, keepUnref, target, targetErr, resolver),
 	}
 }
 
