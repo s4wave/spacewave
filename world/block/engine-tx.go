@@ -82,7 +82,6 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 		}
 	}
 	e.engine.rmtx.Unlock()
-	e.engine.writeTx = nil
 	e.engine.wmtx.Release(1)
 
 	return commitErr
