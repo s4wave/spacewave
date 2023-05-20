@@ -44,6 +44,7 @@ func (s *Store) newStoreTx(writeTx kvtx.BlockTx, btx *block.Transaction) *storeT
 // Can return an error to indicate tx failure.
 func (s *storeTx) Commit(ctx context.Context) error {
 	if s.writeTx == nil {
+		s.Discard()
 		return tx.ErrNotWrite
 	}
 
