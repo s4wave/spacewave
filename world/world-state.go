@@ -141,6 +141,23 @@ type CayleyHandle interface {
 	// graph.QuadWriter
 }
 
+// ApplyGraphDeltas applies a set of graph deltas to a WorldStateGraph
+func ApplyGraphDeltas(ctx context.Context, ws WorldStateGraph, deltas []graph.Delta) error {
+	for _, delta := range deltas {
+		var err error
+		switch delta.Action {
+		case graph.Add:
+			err = ws.SetGraphQuad(ctx, CayleyQuadToGraphQuad(delta.Quad))
+		case graph.Delete:
+			err = ws.DeleteGraphQuad(ctx, CayleyQuadToGraphQuad(delta.Quad))
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // KeyToGraphValue is the string representation of the key for a graph IRI.
 func KeyToGraphValue(key string) quad.Value {
 	if key == "" {

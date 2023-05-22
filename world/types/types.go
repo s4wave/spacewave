@@ -18,12 +18,20 @@ const TypesPrefix = "types/"
 // TypePred is the predicate linking a object to its type.
 var TypePred quad.Value = quad.IRI("type")
 
+// BuildTypeObjectKey returns the object key referring to the type.
+func BuildTypeObjectKey(typeID string) string {
+	if typeID == "" {
+		return ""
+	}
+	return TypesPrefix + typeID
+}
+
 // BuildTypeQuadValue returns the quad value referring to the type.
 func BuildTypeQuadValue(typeID string) quad.Value {
 	if typeID == "" {
 		return nil
 	}
-	return world.KeyToGraphValue(TypesPrefix + typeID)
+	return world.KeyToGraphValue(BuildTypeObjectKey(typeID))
 }
 
 // BuildTypeQuad returns a type quad for a key and type.
@@ -104,9 +112,9 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 		return world.ErrEmptyObjectKey
 	}
 	nextQuad := BuildTypeQuad(key, typeID)
-	return ws.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
+	var delta []graph.Delta
+	if err := ws.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
 		var exists bool
-		var delta []graph.Delta
 		err := world.FilterIterateQuads(ctx, h, quad.Quad{
 			Subject:   nextQuad.Subject,
 			Predicate: nextQuad.Predicate,
@@ -130,14 +138,33 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 				Action: graph.Add,
 			})
 		}
-		if len(delta) != 0 {
-			err = h.ApplyDeltas(delta, graph.IgnoreOpts{
-				IgnoreDup:     true,
-				IgnoreMissing: true,
-			})
-		}
 		return err
-	})
+	}); err != nil {
+		return err
+	}
+
+	// check that the object representing the type exists and create it if not
+	if _, err := EnsureTypeExists(ctx, ws, typeID); err != nil {
+		return err
+	}
+
+	return world.ApplyGraphDeltas(ctx, ws, delta)
+}
+
+// EnsureTypeExists creates the object representing the type ID if it doesn't exist.
+func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) (created bool, err error) {
+	objKey := BuildTypeObjectKey(typeID)
+	_, existed, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		return false, err
+	}
+	if existed {
+		return true, nil
+	}
+	if _, err = ws.CreateObject(ctx, objKey, nil); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // IterateObjectsWithType iterates over object keys with the given type ID.

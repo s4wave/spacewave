@@ -63,9 +63,9 @@ func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string
 	}
 	// note: nextQuad.Object will be nil if parentKey is empty
 	nextQuad := p.BuildParentQuad(key, parentKey)
-	return p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
+	var delta []graph.Delta
+	if err := p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
 		var exists bool
-		var delta []graph.Delta
 		var err error
 		if reset {
 			err = world.FilterIterateQuads(ctx, h, quad.Quad{
@@ -92,14 +92,12 @@ func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string
 				Action: graph.Add,
 			})
 		}
-		if len(delta) != 0 {
-			err = h.ApplyDeltas(delta, graph.IgnoreOpts{
-				IgnoreDup:     true,
-				IgnoreMissing: true,
-			})
-		}
 		return err
-	})
+	}); err != nil {
+		return err
+	}
+
+	return world.ApplyGraphDeltas(ctx, p.world, delta)
 }
 
 // ClearObjectParent removes all <parent> quads from an object.
@@ -108,8 +106,8 @@ func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
 		return world.ErrEmptyObjectKey
 	}
 	lookupQuad := p.BuildParentQuad(key, "")
-	return p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
-		var delta []graph.Delta
+	var delta []graph.Delta
+	if err := p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
 		var err error
 		err = world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {
 			delta = append(delta, graph.Delta{
@@ -121,13 +119,12 @@ func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
 		if err != nil {
 			return err
 		}
-		if len(delta) != 0 {
-			err = h.ApplyDeltas(delta, graph.IgnoreOpts{
-				IgnoreMissing: true,
-			})
-		}
 		return err
-	})
+	}); err != nil {
+		return err
+	}
+
+	return world.ApplyGraphDeltas(ctx, p.world, delta)
 }
 
 // TODO: Given a Path (or Shape?), determine which Objects have no <parent>.
