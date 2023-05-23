@@ -39,7 +39,7 @@ type WorldState struct {
 
 	pendingChanges []*block.Cursor // *WorldChange
 
-	// mtx guards below fields
+	// mtx guards below fields only
 	mtx sync.Mutex
 	// waiters are callbacks that should be called when seqno changes
 	waiters []func(seqno uint64)

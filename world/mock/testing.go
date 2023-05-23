@@ -230,43 +230,61 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// attempt a parent graph system query using our existing <parent> quad
-	ps := world_parent.NewParentState(ws)
-	parentStr, err := ps.GetObjectParent(ctx, objKey)
+	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
+	ps := world_parent.NewParentState(ws2)
+	parentStr, err := ps.GetObjectParent(ctx, objKey)
+	if err != nil {
+		ws2.Discard()
+		return err
+	}
 	if parentStr != obj2Key {
+		ws2.Discard()
 		return errors.Errorf(
 			"expected GetObjectParent(%s) -> %s but got %s",
 			objKey, obj2Key, parentStr,
 		)
 	}
 	if err := ps.ClearObjectParent(ctx, objKey); err != nil {
+		ws2.Discard()
 		return err
 	}
 	parentStr, err = ps.GetObjectParent(ctx, objKey)
 	if err != nil {
+		ws2.Discard()
 		return err
 	}
 	if parentStr != "" {
+		ws2.Discard()
 		return errors.Errorf("expected parent to be empty but got: %s", parentStr)
 	}
 
 	// test a type set/lookup
-	objTypeKey := "types/mock"
-	if err := world_types.SetObjectType(ctx, ws, objKey, objTypeKey); err != nil {
+	objTypeID := "mock"
+	if err := world_types.SetObjectType(ctx, ws2, objKey, objTypeID); err != nil {
+		ws2.Discard()
 		return err
 	}
-	typeStr, err := world_types.GetObjectType(ctx, ws, objKey)
+	typeStr, err := world_types.GetObjectType(ctx, ws2, objKey)
 	if err != nil {
+		ws2.Discard()
 		return err
 	}
-	if typeStr != objTypeKey {
+	if typeStr != objTypeID {
+		ws2.Discard()
 		return errors.Errorf(
 			"expected GetObjectType(%s) -> %s but got %s",
-			objKey, objTypeKey, typeStr,
+			objKey, objTypeID, typeStr,
 		)
 	}
+	if err != nil {
+		ws2.Discard()
+		return err
+	}
+
+	err = ws2.Commit(ctx)
 	if err != nil {
 		return err
 	}
@@ -274,14 +292,14 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	// search for objects with the given type via path
 	err = ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
 		p := path.StartPath(h)
-		p = world_types.LimitNodesToTypes(p, objTypeKey)
+		p = world_types.LimitNodesToTypes(p, objTypeID)
 		ch := p.Iterate(ctx)
 		n, err := ch.Count()
 		if err != nil {
 			return err
 		}
 		if n != 1 {
-			return errors.Errorf("expected 1 object w/ type %q but got %d", objTypeKey, n)
+			return errors.Errorf("expected 1 object w/ type %q but got %d", objTypeID, n)
 		}
 		return nil
 	})
@@ -291,7 +309,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// search for types (iterate references to the type object)
 	var objsWithTypeKey []string
-	err = world_types.IterateObjectsWithType(ctx, ws, objTypeKey, func(objKey string) (bool, error) {
+	err = world_types.IterateObjectsWithType(ctx, ws, objTypeID, func(objKey string) (bool, error) {
 		objsWithTypeKey = append(objsWithTypeKey, objKey)
 		return true, nil
 	})
@@ -299,10 +317,10 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 	if n := len(objsWithTypeKey); n != 1 {
-		return errors.Errorf("expected 1 object w/ type %q but got %d", objTypeKey, n)
+		return errors.Errorf("expected 1 object w/ type %q but got %d", objTypeID, n)
 	}
 	if v := objsWithTypeKey[0]; v != objKey {
-		return errors.Errorf("expected object %s w/ type %q but got %s", objKey, objTypeKey, v)
+		return errors.Errorf("expected object %s w/ type %q but got %s", objKey, objTypeID, v)
 	}
 
 	// test a control loop by applying various operations to increase the
@@ -352,7 +370,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 				eb := block_mock.NewExample(nextMsg)
 
 				// write next root object into storage
-				// note: world.AccessWorldObject is a utility for this
+				// note: world.AccessObjectState is a utility for this
 				// var nroot *bucket.ObjectRef
 				var changed bool
 				_, changed, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {

@@ -17,6 +17,7 @@ type Tx struct {
 	// state is the underlying root state object
 	state *WorldState
 	// rmtx guards the world operations, single-writer multi-reader
+	// not used for WaitSeqno
 	rmtx sync.RWMutex
 	// discarded indicates the tx was discarded already
 	discarded bool

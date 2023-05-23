@@ -175,10 +175,8 @@ func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx
 		return tx.ErrNotWrite
 	}
 
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	default:
+	if err := ctx.Err(); err != nil {
+		return ctx.Err()
 	}
 
 	tx, err := e.e.NewTransaction(ctx, write)

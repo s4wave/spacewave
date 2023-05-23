@@ -64,7 +64,6 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 			commitErr = tx.ErrDiscarded
 		}
 	} else {
-		e.engine.writeTx = nil // clear write tx
 		// call commitFn if set
 		if commitErr == nil {
 			nextRootRef := e.engine.root.GetRef().Clone()
@@ -81,6 +80,7 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 			}
 		}
 	}
+	e.engine.writeTx = nil // clear write tx
 	e.engine.rmtx.Unlock()
 	e.engine.wmtx.Release(1)
 

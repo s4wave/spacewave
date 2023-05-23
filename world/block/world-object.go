@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/cayleygraph/quad"
 )
@@ -13,6 +14,10 @@ import (
 // Returns ErrObjectExists if the object already exists.
 // Appends a OBJECT_SET change to the changelog.
 func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	if !t.write {
+		return nil, tx.ErrNotWrite
+	}
+
 	ot := t.objTree
 	k := t.buildObjectKey(key)
 	exists, err := ot.Exists(ctx, k)
@@ -65,6 +70,10 @@ func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
+	if !t.write {
+		return false, tx.ErrNotWrite
+	}
+
 	ot := t.objTree
 	k := t.buildObjectKey(key)
 	objState, found, err := t.GetObject(ctx, key)

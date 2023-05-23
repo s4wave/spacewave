@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/cayleygraph/quad"
 )
@@ -42,6 +43,10 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 // SetGraphQuad sets a quad in the graph store.
 // If already exists, returns nil.
 func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	if !t.write {
+		return tx.ErrNotWrite
+	}
+
 	cq, err := world.GraphQuadToCayleyQuad(q, true)
 	if err != nil {
 		return err
@@ -107,6 +112,9 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 	if q == nil {
 		return world.ErrNilQuad
 	}
+	if !t.write {
+		return tx.ErrNotWrite
+	}
 
 	subjKey := q.GetSubject()
 	subj, subjFound, err := t.GetObject(ctx, subjKey)
@@ -152,6 +160,10 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error {
+	if !t.write {
+		return tx.ErrNotWrite
+	}
+
 	value := quad.IRI(objKey)
 	valueStr := value.String()
 

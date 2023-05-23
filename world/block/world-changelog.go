@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
 
@@ -12,6 +13,9 @@ import (
 func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*block.Cursor, error) {
 	if w == nil {
 		return nil, world.ErrEmptyOp
+	}
+	if !t.write {
+		return nil, tx.ErrNotWrite
 	}
 	r, err := t.GetRoot(ctx)
 	if err != nil {
@@ -31,6 +35,10 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 // flushWorldChanges flushes the queued world changes to the log.
 // if an error is returned, the changelog is likely now in a broken state.
 func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
+	if !t.write {
+		return tx.ErrNotWrite
+	}
+
 	queue := t.pendingChanges
 	t.pendingChanges = nil
 

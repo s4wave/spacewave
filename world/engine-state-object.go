@@ -122,10 +122,8 @@ func (e *engineWorldStateObject) WaitRev(
 	ignoreNotFound bool,
 ) (uint64, error) {
 	for {
-		select {
-		case <-ctx.Done():
+		if err := ctx.Err(); err != nil {
 			return 0, ctx.Err()
-		default:
 		}
 		var found bool
 		var nSeqno uint64

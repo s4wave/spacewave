@@ -266,12 +266,9 @@ func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 		return err
 	}
 	readTx := NewTx(world)
-	var nseqno uint64
-	if len(e.waiters) != 0 {
-		nseqno, err = readTx.GetSeqno(ctx)
-		if err == nil {
-			e.procWaiters(nseqno)
-		}
+	nseqno, err := readTx.GetSeqno(ctx)
+	if err == nil {
+		e.procWaiters(nseqno)
 	}
 	if err != nil {
 		readTx.Discard()
@@ -293,9 +290,15 @@ func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 // procWaiters calls all waiters.
 // expects rmtx to be locked
 func (e *Engine) procWaiters(nseqno uint64) {
-	waiters := e.waiters
+	proc := e.waiters
 	e.waiters = nil
-	for _, w := range waiters {
+	if e.readTx != nil && e.readTx.state != nil {
+		e.readTx.rmtx.Lock()
+		proc = append(proc, e.readTx.state.waiters...)
+		e.readTx.state.waiters = nil
+		e.readTx.rmtx.Unlock()
+	}
+	for _, w := range proc {
 		w(nseqno)
 	}
 }
