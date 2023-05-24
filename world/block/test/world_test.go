@@ -41,6 +41,7 @@ func TestWorldEngine(t *testing.T) {
 		ocs,
 		world_mock.LookupMockOp,
 		nil,
+		true,
 	)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -76,7 +77,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs)
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -96,7 +97,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// test forking it + applying changes
 	sender := tb.Volume.GetPeerID()
-	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs)
+	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
 		_, err = world.MustGetObject(ctx, ws, objKey)
 	}
@@ -145,7 +146,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	// apply the updated ref to the original state.
 	ocs.SetRootRef(forked.GetRootRef())
 	// note: we need a new block transaction to force a new cursor
-	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs)
+	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -187,6 +188,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		ocs,
 		world_mock.LookupMockOp,
 		nil,
+		false,
 	)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -301,7 +303,7 @@ func TestWorldState_Basic(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs)
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

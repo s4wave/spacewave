@@ -21,6 +21,8 @@ type Engine struct {
 	le *logrus.Entry
 	// lookupOp looks up a world operation.
 	lookupOp world.LookupOp
+	// verbose enables verbose logging within world state
+	verbose bool
 	// wmtx ensures only one write transaction is active at a time
 	wmtx *semaphore.Weighted
 	// rmtx locks the read-only world instance field & root field & waiters & read/writeTx
@@ -57,6 +59,7 @@ func NewEngine(
 	root *bucket_lookup.Cursor,
 	lookupOp world.LookupOp,
 	commitFn CommitFn,
+	verbose bool,
 ) (*Engine, error) {
 	e := &Engine{
 		le:       le,
@@ -64,6 +67,7 @@ func NewEngine(
 		lookupOp: lookupOp,
 		root:     root.Clone(),
 		commitFn: commitFn,
+		verbose:  verbose,
 
 		wmtx: semaphore.NewWeighted(1),
 	}
@@ -317,6 +321,7 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		btx, bcs,
 		e,
 		e.lookupOp,
+		e.verbose,
 	)
 }
 

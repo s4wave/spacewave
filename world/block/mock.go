@@ -13,7 +13,7 @@ import (
 )
 
 // BuildMockWorldState builds a mock world state.
-func BuildMockWorldState(ctx context.Context, le *logrus.Entry, write bool, ocs *bucket_lookup.Cursor) (*WorldState, error) {
+func BuildMockWorldState(ctx context.Context, le *logrus.Entry, write bool, ocs *bucket_lookup.Cursor, verbose bool) (*WorldState, error) {
 	return BuildWorldStateFromCursor(
 		ctx,
 		le,
@@ -21,6 +21,7 @@ func BuildMockWorldState(ctx context.Context, le *logrus.Entry, write bool, ocs 
 		ocs,
 		world.NewWorldStorageFromCursor(ocs),
 		world_mock.LookupMockOp,
+		verbose,
 	)
 }
 

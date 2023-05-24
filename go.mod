@@ -9,7 +9,7 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 
 // aperture: use ext-engines forks
 replace (
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230429053515-683e596f554e // aperture
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230524044745-d7e8a547e5da // aperture
 	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d // aperture
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.15.1-0.20230424215448-944f16b19434 // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230423223447-1f5734a618e1 // ext-engines
@@ -103,7 +103,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.6.1
-	github.com/go-sql-driver/mysql v1.6.0
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/minio/minio-go/v7 v7.0.52
 	github.com/paralin/go-indexeddb v1.1.0
@@ -121,7 +121,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.0.1-0.20220803165937-8c58ed0e3550 // indirect
-	github.com/Microsoft/go-winio v0.5.2 // indirect
+	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
@@ -139,10 +139,9 @@ require (
 	github.com/go-git/go-git-fixtures/v4 v4.3.1 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/gobuffalo/envy v1.7.1 // indirect
-	github.com/gobuffalo/logger v1.0.1 // indirect
-	github.com/gobuffalo/packd v0.3.0 // indirect
-	github.com/gobuffalo/packr/v2 v2.7.1 // indirect
+	github.com/gobuffalo/logger v1.0.6 // indirect
+	github.com/gobuffalo/packd v1.0.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.8.3 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
@@ -151,15 +150,15 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
@@ -168,6 +167,9 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
+	github.com/markbates/errx v1.1.0 // indirect
+	github.com/markbates/oncer v1.0.0 // indirect
+	github.com/markbates/safe v1.0.1 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
@@ -193,10 +195,10 @@ require (
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
-	github.com/spf13/cobra v0.0.5 // indirect
+	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/templexxx/cpu v0.0.1 // indirect
@@ -207,7 +209,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tjfoc/gmsm v1.0.1 // indirect
-	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
+	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect

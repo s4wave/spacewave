@@ -175,6 +175,7 @@ func (t *Tx) Set(ctx context.Context, key []byte, val []byte) (err error) {
 			return err
 		}
 	}
+
 	return t.setFromRoot(ctx, key, valueCursor, true)
 }
 

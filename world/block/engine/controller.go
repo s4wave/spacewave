@@ -201,6 +201,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		cursor,
 		lookupWorldOp,
 		commitFn,
+		false,
 	)
 	if err != nil {
 		return err

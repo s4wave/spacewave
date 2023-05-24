@@ -17,10 +17,10 @@ type BlockTx struct {
 	btx kvtx.BlockTx
 }
 
-func NewBlockTx(le *logrus.Entry, tx kvtx.BlockTx) *Tx {
-	return &Tx{
-		Tx: NewTx(le, tx),
-		le: le,
+func NewBlockTx(le *logrus.Entry, tx kvtx.BlockTx) *BlockTx {
+	return &BlockTx{
+		Tx:  NewTx(le, tx),
+		btx: tx,
 	}
 }
 
@@ -35,7 +35,7 @@ func (t *BlockTx) GetCursor() *block.Cursor {
 func (t *BlockTx) GetCursorAtKey(ctx context.Context, key []byte) (rbcs *block.Cursor, rerr error) {
 	defer func() {
 		t.le.Debugf(
-			"GetCursorAtKey(%s) => ref(%d) found(%v) err(%v)",
+			"GetCursorAtKey(%s) => ref(%v) found(%v) err(%v)",
 			keyForLogging(key),
 			rbcs.GetRef().MarshalLog(),
 			rbcs != nil,
@@ -67,7 +67,7 @@ func (t *BlockTx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cur
 func (t *BlockTx) DeleteCursorAtKey(ctx context.Context, key []byte) (rbcs *block.Cursor, rerr error) {
 	defer func() {
 		t.le.Debugf(
-			"DeleteCursorAtKey(%s) => ref(%d) found(%v) err(%v)",
+			"DeleteCursorAtKey(%s) => ref(%v) found(%v) err(%v)",
 			keyForLogging(key),
 			rbcs.GetRef().MarshalLog(),
 			rbcs != nil,

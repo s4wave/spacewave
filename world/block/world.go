@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 	kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
+	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/cayleygraph/cayley"
@@ -25,10 +26,11 @@ import (
 // Note: calls are not concurrency safe. Use Tx if you want a mutex.
 // Note: as an exception, WaitSeqno is concurrency safe.
 type WorldState struct {
-	le    *logrus.Entry
-	btx   *block.Transaction
-	bcs   *block.Cursor
-	write bool
+	le      *logrus.Entry
+	btx     *block.Transaction
+	bcs     *block.Cursor
+	write   bool
+	verbose bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -50,6 +52,7 @@ type WorldState struct {
 // bcs is located at the root of the world (the World block).
 // if bcs is empty, creates a new empty world.
 // world and object op handlers manage applying batch operations.
+// if verbose is true, verbose logging of the graph key/value is enabled.
 func NewWorldState(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -58,12 +61,14 @@ func NewWorldState(
 	bcs *block.Cursor,
 	storage world.WorldStorage,
 	lookupOp world.LookupOp,
+	verbose bool,
 ) (*WorldState, error) {
 	tx := &WorldState{
-		btx:   btx,
-		bcs:   bcs,
-		le:    le,
-		write: write,
+		btx:     btx,
+		bcs:     bcs,
+		le:      le,
+		write:   write,
+		verbose: verbose,
 
 		storage:  storage,
 		lookupOp: lookupOp,
@@ -82,9 +87,10 @@ func BuildWorldStateFromCursor(
 	bls *bucket_lookup.Cursor,
 	storage world.WorldStorage,
 	lookupOp world.LookupOp,
+	verbose bool,
 ) (*WorldState, error) {
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, le, write, btx, bcs, storage, lookupOp)
+	return NewWorldState(ctx, le, write, btx, bcs, storage, lookupOp, verbose)
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -253,6 +259,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		bcs,
 		t.storage,
 		t.lookupOp,
+		t.verbose,
 	)
 	if err != nil {
 		return nil, err
@@ -325,6 +332,10 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), true)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if t.verbose {
+		ktx = kvtx_vlogger.NewBlockTx(t.le, ktx)
 	}
 
 	// makes frequent NewTx() Get() Discard() calls

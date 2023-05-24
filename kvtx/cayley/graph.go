@@ -19,12 +19,12 @@ func NewGraph(
 	graphOpts graph.Options,
 ) (*cayley.Handle, error) {
 	hidalgoKv := flat.Upgrade(hidalgo.NewKV(ctx, objStore))
-	if err := cayley_kv.Init(hidalgoKv, graphOpts); err != nil {
+	if err := cayley_kv.Init(ctx, hidalgoKv, graphOpts); err != nil {
 		if err != graph.ErrDatabaseExists {
 			return nil, err
 		}
 	}
-	quadStore, err := cayley_kv.New(hidalgoKv, graphOpts)
+	quadStore, err := cayley_kv.New(ctx, hidalgoKv, graphOpts)
 	if err != nil {
 		return nil, err
 	}
