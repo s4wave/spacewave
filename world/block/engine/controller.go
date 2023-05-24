@@ -184,7 +184,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	var commitFn world_block.CommitFn = func(nref *bucket.ObjectRef) error {
 		if verbose {
-			le.Debugf("updated root world-block-engine(%s)", nref.MarshalB58())
+			le.
+				WithField("world-root", nref.MarshalB58()).
+				Debug("updated root")
 		}
 		if stateStore != nil {
 			// write state back to state store

@@ -74,7 +74,6 @@ func (s *storeTx) Commit(ctx context.Context) error {
 			commitErr = tx.ErrDiscarded
 		}
 	} else {
-		s.st.writeTx = nil // clear write tx
 		// call commitFn if set
 		if commitErr == nil {
 			nextRootRef := s.st.root.GetRef().Clone()
@@ -88,6 +87,7 @@ func (s *storeTx) Commit(ctx context.Context) error {
 			}
 		}
 	}
+	s.st.writeTx = nil // clear write tx
 	s.st.rmtx.Unlock()
 	s.st.wmtx.Release(1)
 
