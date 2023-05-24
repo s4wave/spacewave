@@ -123,6 +123,16 @@ func (b *BlockRef) MarshalString() string {
 	return b58.Encode(dat)
 }
 
+// MarshalLog marshals the reference for logging.
+// If nil or empty returns <nil>
+func (b *BlockRef) MarshalLog() string {
+	ref := b.MarshalString()
+	if ref == "" {
+		ref = "<nil>"
+	}
+	return ref
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *BlockRef) MarshalBlock() ([]byte, error) {
