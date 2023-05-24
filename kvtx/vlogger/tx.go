@@ -13,7 +13,7 @@ import (
 
 // Tx implements a verbose logger tx.
 type Tx struct {
-	iter uint32
+	iter atomic.Uint32
 	kvtx.Tx
 	le *logrus.Entry
 
@@ -120,15 +120,16 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 
 // Iterate returns an iterator with a given key prefix.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
-	ta := time.Now()
-	ii := atomic.AddUint32(&t.iter, 1) - 1
+	ii := t.iter.Add(1) - 1
 	it := t.Tx.Iterate(ctx, prefix, sort, reverse)
 	t.le.Debugf(
-		"Iterate(%s) => it(%d)",
+		"Iterate(%s, %v, %v) => it(%d)",
 		keyForLogging(prefix),
+		sort, reverse,
 		ii,
 	)
 	le := t.le.WithField("kvtx-vlogger-iter-id", ii)
+	ta := time.Now()
 	return &Iterator{ii: ii, ta: ta, it: it, le: le}
 }
 
