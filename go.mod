@@ -9,7 +9,7 @@ require github.com/hidal-go/hidalgo v0.0.0-20190814174001-42e03f3b5eaa
 
 // aperture: use ext-engines forks
 replace (
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230524064842-250285fc3630 // aperture
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230524210340-e9b53664a1ce // aperture
 	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d // aperture
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.15.1-0.20230424215448-944f16b19434 // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230423223447-1f5734a618e1 // ext-engines
