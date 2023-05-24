@@ -343,6 +343,9 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	graphOpts := make(graph.Options, 1)
 	// disable bloom filter: very slow to allocate during tx processing
 	graphOpts[cayley_kv.OptNoBloom] = true
+	// disable custom indexes: use the default set
+	// reduces the number of Get calls to zero
+	graphOpts[cayley_kv.OptAssumeDefaultIdx] = true
 	graphHd, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(ktx), graphOpts)
 	if err != nil {
 		ktx.Discard()

@@ -77,8 +77,8 @@ github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d04
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
-github.com/aperturerobotics/cayley v0.7.7-0.20230524044745-d7e8a547e5da h1:jzxaGOFxMCUS7FiY6a76yDy7Nm5jafh8itYkMSSmgBw=
-github.com/aperturerobotics/cayley v0.7.7-0.20230524044745-d7e8a547e5da/go.mod h1:ST0IRhjVa2cJaJ8ObfiZm4rHuEguvWQ7+wG5QJU5lCc=
+github.com/aperturerobotics/cayley v0.7.7-0.20230524064842-250285fc3630 h1:yOMAV1QRJzWfIlWmgtYxI3tbfkqm8EukvctFGDovo0Q=
+github.com/aperturerobotics/cayley v0.7.7-0.20230524064842-250285fc3630/go.mod h1:44pcKW8Lzgj2bvPuiVIoTjpv7/xOvi26H/QPpua5Q9Q=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d h1:fBzEjft3+GPHtLifQRWktm5gySeq47Vya7VKN5QiJZs=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230429052655-3e19050a092d/go.mod h1:ZkxRjf+PpwE8T8EXy9x8sJElgK+wv4C2x3dECK5dZEQ=
 github.com/aperturerobotics/controllerbus v0.27.4 h1:Tqb6soiUZHmYDpyhMcOR4hNJH/YWkHnHG+6q+a/lIRI=
