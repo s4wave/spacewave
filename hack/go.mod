@@ -20,7 +20,7 @@ require (
 require (
 	4d63.com/gocheckcompilerdirectives v1.2.1 // indirect
 	4d63.com/gochecknoglobals v0.2.1 // indirect
-	filippo.io/edwards25519 v1.0.0 // indirect
+	filippo.io/edwards25519 v1.0.1-0.20220803165937-8c58ed0e3550 // indirect
 	github.com/Abirdcfly/dupword v0.0.11 // indirect
 	github.com/Antonboom/errname v0.1.9 // indirect
 	github.com/Antonboom/nilnil v0.1.3 // indirect
@@ -31,11 +31,11 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.16.2 // indirect
-	github.com/aperturerobotics/controllerbus v0.27.4 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230523010717-d658aa334cce // indirect
+	github.com/aperturerobotics/bifrost v0.17.1-0.20230526083429-7cd9a8ebe339 // indirect
+	github.com/aperturerobotics/controllerbus v0.27.5-0.20230526083528-37240efbcc54 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230526080107-c71df279e3ef // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
-	github.com/aperturerobotics/util v1.5.0 // indirect
+	github.com/aperturerobotics/util v1.5.1-0.20230520130718-4285cd7294c8 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/jgautheron/goconst v1.5.1 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
@@ -174,14 +174,14 @@ require (
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.6.1 // indirect
+	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stbenjam/no-sprintf-host-port v0.1.1 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/stretchr/testify v1.8.2 // indirect
+	github.com/stretchr/testify v1.8.3 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/t-yuki/gocover-cobertura v0.0.0-20180217150009-aaee18c8195c // indirect
 	github.com/tdakkota/asciicheck v0.2.0 // indirect
@@ -202,7 +202,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230519143937-03e91628a987 // indirect
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
