@@ -59,12 +59,15 @@ func FilterIterateQuads(ctx context.Context, h CayleyHandle, gq quad.Quad, cb fu
 
 // OptimizeIterateQuads optimizes a shape and iterates over the quads.
 func OptimizeIterateQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
-	sh, _ = shape.Optimize(ctx, sh, h)
-	it := sh.BuildIterator(h).Iterate()
+	sh, _, err := shape.Optimize(ctx, sh, h)
+	if err != nil {
+		return err
+	}
+	it := sh.BuildIterator(ctx, h).Iterate(ctx)
 	defer it.Close()
-	rsc := graph.NewResultReader(h, it)
+	rsc := graph.NewResultReader(ctx, h, it)
 	for {
-		q, err := rsc.ReadQuad()
+		q, err := rsc.ReadQuad(ctx)
 		if err == nil {
 			err = cb(q)
 		}
@@ -94,7 +97,7 @@ func IteratePathWithKeys(
 		gv[i] = KeyToGraphValue(ek)
 	}
 
-	return ws.AccessCayleyGraph(ctx, false, func(h CayleyHandle) error {
+	return ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h CayleyHandle) error {
 		p := cayley.StartPath(h, gv...)
 		if pathCb != nil {
 			var err error
@@ -104,11 +107,14 @@ func IteratePathWithKeys(
 			}
 		}
 
-		it := p.BuildIterator(ctx).Iterate()
+		it := p.BuildIterator(ctx).Iterate(ctx)
 		defer it.Close()
 		for it.Next(ctx) {
-			res := it.Result()
-			qv, err := h.NameOf(res)
+			res, err := it.Result(ctx)
+			if err != nil {
+				return err
+			}
+			qv, err := h.NameOf(ctx, res)
 			if err != nil {
 				return err
 			}

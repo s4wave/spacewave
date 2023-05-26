@@ -11,6 +11,7 @@ type txScanIterator struct {
 	err   error
 	first bool
 	value *txScanIteratorValue
+	start *txScanIteratorValue
 }
 
 // txScanIteratorValue contains a value
@@ -23,12 +24,16 @@ type txScanIteratorValue struct {
 // Next advances an iterator.
 func (i *txScanIterator) Next(ctx context.Context) bool {
 	first := i.first
-	if first || i.value == nil || i.value.next == nil {
+	if first && i.start != nil {
 		i.first = false
-		return first
+		i.value = i.start
+		return true
+	}
+	if i.value == nil {
+		return false
 	}
 	i.value = i.value.next
-	return true
+	return i.value != nil
 }
 
 // Err returns a last encountered error.
@@ -58,6 +63,15 @@ func (i *txScanIterator) Val() kv.Value {
 		return nil
 	}
 	return kv.Value(i.value.value)
+}
+
+// Reset the iterator to the starting state. Closed iterator can not reset.
+func (i *txScanIterator) Reset() {
+	i.value = nil
+	i.first = true
+	if i.start != nil {
+		i.err = nil
+	}
 }
 
 // _ is a type assertion

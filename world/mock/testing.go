@@ -187,12 +187,15 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// attempt a cayley graph query
-	err = ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
+	err = ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		// check obj <parent> -> ?
 		p := cayley.StartPath(h, world.KeyToGraphValue(objKey)).Out(quad.IRI("parent"))
 		// quad stats + optimization basics
-		sh, _ := p.Shape().Optimize(ctx, nil)
-		it := sh.BuildIterator(h)
+		sh, _, err := p.Shape().Optimize(ctx, nil)
+		if err != nil {
+			return err
+		}
+		it := sh.BuildIterator(ctx, h)
 		stats, err := it.Stats(ctx)
 		if err != nil {
 			return err
@@ -201,12 +204,15 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			return errors.Errorf("expected size of %d but got %d", 1, stats.Size.Value)
 		}
 		// test iterator basics
-		sc := it.Iterate()
+		sc := it.Iterate(ctx)
 		defer sc.Close()
 		n := 0
 		for sc.Next(ctx) {
-			ref := sc.Result()
-			qv, err := h.NameOf(ref)
+			ref, err := sc.Result(ctx)
+			if err != nil {
+				return err
+			}
+			qv, err := h.NameOf(ctx, ref)
 			if err != nil {
 				return err
 			}
@@ -290,11 +296,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// search for objects with the given type via path
-	err = ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
+	err = ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		p := path.StartPath(h)
 		p = world_types.LimitNodesToTypes(p, objTypeID)
 		ch := p.Iterate(ctx)
-		n, err := ch.Count()
+		n, err := ch.Count(ctx)
 		if err != nil {
 			return err
 		}

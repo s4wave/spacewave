@@ -22,7 +22,6 @@ type bucketHandleTracker struct {
 // bucketHandle contains state resolved by the bucket handle tracker.
 type bucketHandle struct {
 	t          *bucketHandleTracker
-	ctx        context.Context
 	err        error
 	v          volume.Volume
 	volID      string
@@ -58,7 +57,7 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 			if exErr == context.Canceled {
 				b.handleCtr.SetValue(nil)
 			} else {
-				b.handleCtr.SetValue(&bucketHandle{t: b, ctx: ctx, err: exErr})
+				b.handleCtr.SetValue(&bucketHandle{t: b, err: exErr})
 			}
 		}
 	}()
@@ -75,7 +74,6 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 
 	b.handleCtr.SetValue(&bucketHandle{
 		t:          b,
-		ctx:        ctx,
 		v:          vol,
 		volID:      vol.GetID(),
 		bucketConf: bc,
@@ -195,7 +193,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 	// wake reconcilers
 	if !existed {
-		err := b.t.c.pushEventToReconcilers(b.ctx, b.v, b.bucketConf, true, func() ([]byte, error) {
+		err := b.t.c.pushEventToReconcilers(ctx, b.v, b.bucketConf, true, func() ([]byte, error) {
 			if eventData != nil {
 				return eventData, nil
 			}
@@ -295,7 +293,7 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	}
 
 	// wake reconcilers
-	_ = b.t.c.pushEventToReconcilers(b.ctx, b.v, b.bucketConf, true, getEventData)
+	_ = b.t.c.pushEventToReconcilers(ctx, b.v, b.bucketConf, true, getEventData)
 	return nil
 }
 

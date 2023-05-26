@@ -35,8 +35,8 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	// perform the example hello_world from the cayley repository:
 	store := graph
 
-	_ = store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
-	_ = store.AddQuad(quad.Make("phrase of the day", "is of course", "I like trains!", nil))
+	_ = store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "Hello World!", nil))
+	_ = store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "I like trains!", nil))
 
 	// Create path querying the data.
 	p := cayley.
@@ -47,7 +47,7 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	// 1. Optional context used for cancellation.
 	// 2. Quad store, but we can omit it because we have already built path with it.
 	nvals := 0
-	err = p.Iterate(ctx).EachValue(nil, func(value quad.Value) error {
+	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 		nvals++
@@ -61,10 +61,14 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	}
 
 	iterateShape := func(shape iterator.Shape) int {
-		itt := shape.Iterate()
+		itt := shape.Iterate(ctx)
 		var nm int
 		for itt.Next(ctx) {
-			nv, err := store.NameOf(itt.Result())
+			resi, err := itt.Result(ctx)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			nv, err := store.NameOf(ctx, resi)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -78,10 +82,10 @@ func TestCayleyGraph_Basic(t *testing.T) {
 	}
 
 	// Test a path selecting all nodes in the db.
-	shape := store.NodesAllIterator()
+	shape := store.NodesAllIterator(ctx)
 	nodesAllN := iterateShape(shape)
 
-	pshape := path.NewPath(store).Shape().BuildIterator(store)
+	pshape := path.NewPath(store).Shape().BuildIterator(ctx, store)
 	shapeN := iterateShape(pshape)
 	if shapeN != nodesAllN {
 		t.Fatalf("got %d nodes", shapeN)

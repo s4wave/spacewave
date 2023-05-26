@@ -13,10 +13,10 @@ import (
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
+func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
 	hd := t.graphHd
 	// TODO TODO: wrap the graph handle to update the changelog if writes are applied here.
-	return cb(hd)
+	return cb(ctx, hd)
 }
 
 // LookupGraphQuads searches for graph quads in the store.
@@ -82,7 +82,7 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 	}
 
 	// add quad
-	err = t.graphHd.AddQuad(cq)
+	err = t.graphHd.AddQuad(ctx, cq)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 		return err
 	}
 
-	err = t.graphHd.RemoveQuad(cq)
+	err = t.graphHd.RemoveQuad(ctx, cq)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	}
 
 	// clear all quads matching the node
-	err = t.graphHd.RemoveNode(value)
+	err = t.graphHd.RemoveNode(ctx, value)
 	if err != nil {
 		return err
 	}

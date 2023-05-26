@@ -1,7 +1,6 @@
 package kvtx_hidalgo
 
 import (
-	"context"
 	"testing"
 
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
@@ -12,10 +11,9 @@ import (
 )
 
 func TestKVTX(t *testing.T) {
-	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	kvtest.RunTestLocal(t, func(path string) (kv.KV, error) {
-		return flat.Upgrade(NewKV(ctx, store_kvtx_inmem.NewStore())), nil
-	})
+		return flat.Upgrade(NewKV(store_kvtx_inmem.NewStore())), nil
+	}, nil)
 }

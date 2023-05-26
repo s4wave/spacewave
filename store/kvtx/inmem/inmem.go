@@ -10,7 +10,7 @@ import (
 
 // Store is a in-memory key-value store.
 //
-// Uses a fast ctrie (concurrent trie) K/V map.
+// Uses a K/V map.
 type Store struct {
 	// m is the map containing the store
 	// key is encoded with base58

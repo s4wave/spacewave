@@ -125,7 +125,7 @@ func (e *engineWorldState) DeleteObject(ctx context.Context, key string) (bool, 
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (e *engineWorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(h CayleyHandle) error) error {
+func (e *engineWorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h CayleyHandle) error) error {
 	return e.performOp(ctx, write, func(tx Tx) error {
 		return tx.AccessCayleyGraph(ctx, write, cb)
 	})

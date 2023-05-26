@@ -62,16 +62,19 @@ func GetObjectType(ctx context.Context, ws world.WorldState, key string) (string
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
 	var typeKey string
-	err := ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
+	err := ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		it := path.StartPath(h, world.KeyToGraphValue(key)).
 			Out(TypePred).
 			BuildIterator(ctx).
-			Iterate()
+			Iterate(ctx)
 		defer it.Close()
 		// iterate until we find a suitable type key
 		for it.Next(ctx) && typeKey == "" {
-			res := it.Result()
-			qv, err := h.NameOf(res)
+			res, err := it.Result(ctx)
+			if err != nil {
+				return err
+			}
+			qv, err := h.NameOf(ctx, res)
 			if err != nil {
 				return err
 			}
@@ -113,7 +116,7 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 	}
 	nextQuad := BuildTypeQuad(key, typeID)
 	var delta []graph.Delta
-	if err := ws.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
+	if err := ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
 		var exists bool
 		err := world.FilterIterateQuads(ctx, h, quad.Quad{
 			Subject:   nextQuad.Subject,
@@ -183,15 +186,18 @@ func IterateObjectsWithType(
 
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
-	return ws.AccessCayleyGraph(ctx, false, func(h world.CayleyHandle) error {
+	return ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		it := path.StartPath(h, BuildTypeQuadValue(typeID)).
 			In(TypePred).
 			BuildIterator(ctx).
-			Iterate()
+			Iterate(ctx)
 		defer it.Close()
 		for it.Next(ctx) {
-			ref := it.Result()
-			qv, err := h.NameOf(ref)
+			ref, err := it.Result(ctx)
+			if err != nil {
+				return err
+			}
+			qv, err := h.NameOf(ctx, ref)
 			if err != nil {
 				return err
 			}

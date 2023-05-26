@@ -11,7 +11,7 @@ import (
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
+func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
 	t.rmtx.RLock()
 	defer t.rmtx.RUnlock()
 

@@ -64,7 +64,7 @@ func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string
 	// note: nextQuad.Object will be nil if parentKey is empty
 	nextQuad := p.BuildParentQuad(key, parentKey)
 	var delta []graph.Delta
-	if err := p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
+	if err := p.world.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
 		var exists bool
 		var err error
 		if reset {
@@ -107,7 +107,7 @@ func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
 	}
 	lookupQuad := p.BuildParentQuad(key, "")
 	var delta []graph.Delta
-	if err := p.world.AccessCayleyGraph(ctx, true, func(h world.CayleyHandle) error {
+	if err := p.world.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
 		var err error
 		err = world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {
 			delta = append(delta, graph.Delta{

@@ -114,7 +114,7 @@ type WorldStateGraph interface {
 	// All accesses of the handle should complete before returning cb.
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
-	AccessCayleyGraph(ctx context.Context, write bool, cb func(h CayleyHandle) error) error
+	AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h CayleyHandle) error) error
 	// LookupGraphQuads searches for graph quads in the store.
 	// If the filter fields are empty, matches any for that field.
 	// If not found, returns nil, nil

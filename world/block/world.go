@@ -346,6 +346,8 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 	// disable custom indexes: use the default set
 	// reduces the number of Get calls to zero
 	graphOpts[cayley_kv.OptAssumeDefaultIdx] = true
+	// NOTE: the ctx is used here for internal hidalgo k/v transactions!
+	// it must not be canceled while WorldState is in use!
 	graphHd, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(ktx), graphOpts)
 	if err != nil {
 		ktx.Discard()

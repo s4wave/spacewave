@@ -146,7 +146,7 @@ func RunDemoCayley(
 	}
 
 	// perform the example hello_world from the cayley repository:
-	store.AddQuad(quad.Make("phrase of the day", "is of course", "Hello World!", nil))
+	store.AddQuad(ctx, quad.Make("phrase of the day", "is of course", "Hello World!", nil))
 
 	// Now we create the path, to get to our data
 	p := cayley.StartPath(store, quad.String("phrase of the day")).Out(quad.String("is of course"))
@@ -154,7 +154,7 @@ func RunDemoCayley(
 	// Now we iterate over results. Arguments:
 	// 1. Optional context used for cancellation.
 	// 2. Quad store, but we can omit it because we have already built path with it.
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
+	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 		return nil
@@ -172,14 +172,18 @@ func RunDemoCayley(
 	t.AddQuad(quad.Make("food", "want to", "kill you", "actually"))
 	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
 	t.AddQuad(quad.Make("cats", "want to", "love you", "really"))
-	if err := store.ApplyTransaction(t); err != nil {
+	if err := store.ApplyTransaction(ctx, t); err != nil {
 		return err
 	}
 
 	le.Info("printing all quads")
-	it := store.QuadsAllIterator().Iterate()
+	it := store.QuadsAllIterator(ctx).Iterate(ctx)
 	for it.Next(ctx) {
-		q, err := store.Quad(it.Result())
+		res, err := it.Result(ctx)
+		if err != nil {
+			return err
+		}
+		q, err := store.Quad(ctx, res)
 		if err != nil {
 			return err
 		}
@@ -200,7 +204,7 @@ func RunDemoCayley(
 		LabelContext("really").
 		Out(quad.String("want to"))
 
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
+	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 		return err
@@ -215,7 +219,7 @@ func RunDemoCayley(
 		StartPath(store, quad.String("kill you")).
 		LabelContext("actually").
 		In("want to")
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
+	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 		return nil
@@ -236,7 +240,7 @@ func RunDemoCayley(
 	gt.AddQuad(quad.MakeIRI("b", "ref", "d", ""))
 	gt.AddQuad(quad.MakeIRI("e", "ref", "f", ""))
 	gt.AddQuad(quad.MakeIRI("f", "ref", "d", ""))
-	if err := store.ApplyTransaction(gt); err != nil {
+	if err := store.ApplyTransaction(ctx, gt); err != nil {
 		return err
 	}
 	// The third argument, "depthTags" is a set of tags that will return strings of
@@ -245,7 +249,7 @@ func RunDemoCayley(
 	p = cayley.
 		StartPath(store, quad.IRI("e"), quad.IRI("a")).
 		FollowRecursive(quad.IRI("ref"), -1, []string{"depth"})
-	err = p.Iterate(nil).EachValue(nil, func(value quad.Value) error {
+	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
 		return nil

@@ -227,7 +227,7 @@ func (w *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (w *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(h world.CayleyHandle) error) error {
+func (w *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 

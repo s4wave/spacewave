@@ -13,29 +13,37 @@ import (
 //
 // Use hidalgo/kv/flat.Upgrade if [][]byte keys are needed.
 type KV struct {
-	// ctx is the context
-	ctx context.Context
 	// store is the KVTx store
 	store kvtx.Store
 }
 
 // NewKV constructs a new hidalgo KV wrapper.
-func NewKV(ctx context.Context, store kvtx.Store) *KV {
-	return &KV{ctx: ctx, store: store}
+func NewKV(store kvtx.Store) *KV {
+	return &KV{store: store}
 }
 
 // Tx starts a transaction.
-func (k *KV) Tx(rw bool) (kv.Tx, error) {
-	tx, err := k.store.NewTransaction(k.ctx, rw)
+func (k *KV) Tx(ctx context.Context, rw bool) (kv.Tx, error) {
+	tx, err := k.store.NewTransaction(ctx, rw)
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(k.ctx, tx), nil
+	return NewTx(tx), nil
+}
+
+// View creates a read transaction that will be discarded when fn returns.
+func (k *KV) View(ctx context.Context, fn func(tx kv.Tx) error) error {
+	return kv.View(ctx, k, fn)
+}
+
+func (k *KV) Update(ctx context.Context, fn func(tx kv.Tx) error) error {
+	return kv.Update(ctx, k, fn)
 }
 
 // Close closes the store.
+// NOTE: we return nil here and do nothing!
+// We may re-use the same kvtx.Store for multiple KV handles.
 func (k *KV) Close() error {
-	// TODO
 	return nil
 }
 

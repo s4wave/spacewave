@@ -6,19 +6,18 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kv "github.com/hidal-go/hidalgo/kv/flat"
+	"github.com/hidal-go/hidalgo/kv/options"
 )
 
 // Tx implements the hidalgo kv t/x interface with a kvtx tx.
 type Tx struct {
-	ctx context.Context
-	tx  kvtx.Tx
+	tx kvtx.Tx
 }
 
 // NewTx constructs a new Tx.
-func NewTx(ctx context.Context, tx kvtx.Tx) *Tx {
+func NewTx(tx kvtx.Tx) *Tx {
 	return &Tx{
-		ctx: ctx,
-		tx:  tx,
+		tx: tx,
 	}
 }
 
@@ -62,30 +61,40 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 // Put writes a key-value pair to the database.
 // New value will immediately be visible by Get on the same Tx,
 // but implementation might buffer the write until transaction is committed.
-func (t *Tx) Put(k kv.Key, v kv.Value) error {
+func (t *Tx) Put(ctx context.Context, k kv.Key, v kv.Value) error {
 	if len(k) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	return t.tx.Set(t.ctx, k, v)
+	return t.tx.Set(ctx, k, v)
 }
 
 // Del removes the key from the database. See Put for consistency guaranties.
-func (t *Tx) Del(k kv.Key) error {
+func (t *Tx) Del(ctx context.Context, k kv.Key) error {
 	if len(k) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	return t.tx.Delete(t.ctx, k)
+	return t.tx.Delete(ctx, k)
 }
 
-// Scan will iterate over all key-value pairs with a specific key prefix.
+// Scan will iterate over all key-value pairs.
 // Expects them to arrive in order in the hidalgo kvtest.
-func (t *Tx) Scan(pref kv.Key) kv.Iterator {
+// Use hidalgo/options.WithKVPrefix to specify a prefix for scanning.
+func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
 	iter := &txScanIterator{}
-	iter.err = t.tx.ScanPrefix(t.ctx, pref, func(key, value []byte) error {
+	var pref kv.Key
+	for _, opt := range opts {
+		pkv, ok := opt.(options.PrefixKV)
+		if ok {
+			pref = kv.KeyEscape(pkv.Pref)
+		}
+	}
+	iter.err = t.tx.ScanPrefix(ctx, pref, func(key, value []byte) error {
 		// Hidalgo expects them to arrive in order.
 		// Unfortunately hydra does not guarantee this.
 		// Perform a basic insertion sort.
-		// TODO see implementation in kvcache
+		// TODO: is this necessary? it might be OK to iterate out of order.
+		// TODO: ScanPrefix returns sorted values in most of our k/v stores.
+		// TODO: implement a better iterator
 		nv := &txScanIteratorValue{
 			key:   key,
 			value: value,
@@ -107,7 +116,9 @@ func (t *Tx) Scan(pref kv.Key) kv.Iterator {
 		*nextPtr = nv
 		return nil
 	})
-	iter.first = iter.value != nil
+	iter.first = true
+	iter.start = iter.value
+	iter.value = nil
 	return iter
 }
 
