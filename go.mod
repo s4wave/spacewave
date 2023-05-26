@@ -2,23 +2,23 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.17.1-0.20230524011900-310e9af7275e // master
+require github.com/aperturerobotics/bifrost v0.17.1-0.20230526083429-7cd9a8ebe339 // master
 
 // aperture: use ext-engines forks
 replace (
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
-	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.15.1-0.20230424215448-944f16b19434 // ext-engines
 	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230423223447-1f5734a618e1 // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
-	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.2.1-0.20230526002043-6e494c6ad96b // aperture
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
 
 // aperture: use compatibility forks
 replace (
+	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
+	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
+	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.2.1-0.20230526002043-6e494c6ad96b // aperture
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
@@ -27,11 +27,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.27.5-0.20230526010830-3f56870c93ae // master
+	github.com/aperturerobotics/controllerbus v0.27.5-0.20230526083528-37240efbcc54 // master
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.5.0 // master
+	github.com/aperturerobotics/util v1.5.1-0.20230520130718-4285cd7294c8 // master
 )
 
 // aperture: use compatibility forks
