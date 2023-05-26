@@ -69,8 +69,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20230524210705-c6e7359578c3 h1:Rf86VvpYqEXf4sxGgHPvQ10gXz7Pzy9bfGpOafPVPG4=
-github.com/aperturerobotics/hydra v0.0.0-20230524210705-c6e7359578c3/go.mod h1:pTnStB2IzNWx4XXAmhQLaFxDaiXQGYA3QmGkoyo/YjQ=
+github.com/aperturerobotics/hydra v0.0.0-20230526080107-c71df279e3ef h1:6/oNyHf0cDU5jXkc255Emg/8HzxXuaEub5SR7dqSLw0=
+github.com/aperturerobotics/hydra v0.0.0-20230526080107-c71df279e3ef/go.mod h1:neOx1geTPR/hQehvdRJtnLiah/LqewlZ+6YO1RWeStA=
 github.com/aperturerobotics/starpc v0.19.1 h1:bSTrADGQZU1I7SgOTIiz2AMqUmEfRM6/vFjKjK4bYEw=
 github.com/aperturerobotics/starpc v0.19.1/go.mod h1:9LQcvKR+PPOg7jgHk1OJRmRk1hVLVa1LG9zjDRTTJ4k=
 github.com/aperturerobotics/timestamp v0.7.2 h1:4XfGTlqqm1446E5lWeppiGMbX7Q4QAFimzEhpGrs4gw=
@@ -520,8 +520,9 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
-github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.3 h1:RP3t2pwF7cMEbC1dqtB6poj3niw/9gnV4Cjg5oW5gtY=
+github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/subosito/gotenv v1.4.1 h1:jyEFiXpy21Wm81FBN71l9VoMMV8H8jG+qIK3GCpY6Qs=
 github.com/subosito/gotenv v1.4.1/go.mod h1:ayKnFf/c6rvx/2iiLrJUk1e6plDbT3edrFNGqEflhK0=
 github.com/t-yuki/gocover-cobertura v0.0.0-20180217150009-aaee18c8195c h1:+aPplBwWcHBo6q9xrfWdMrT9o4kltkmmvpemgIjep/8=
