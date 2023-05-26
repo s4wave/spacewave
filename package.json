@@ -50,7 +50,7 @@
     "eslint-config-prettier": "^8.8.0",
     "patch-package": "^7.0.0",
     "prettier": "^2.8.8",
-    "ts-proto": "^1.147.3",
+    "ts-proto": "^1.148.1",
     "typescript": "^5.0.4"
   },
   "dependencies": {
