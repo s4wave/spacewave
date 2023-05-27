@@ -53,6 +53,8 @@ type Controller struct {
 	// objLoop is the object watcher loop
 	// watches the PluginHost object
 	objLoop *world_control.WatchLoop
+	// worldStateCtr contains the world state handle
+	worldStateCtr *ccontainer.CContainer[world.WorldState]
 	// hostVolumeCtr is a container with the host volume.
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginInstances manages the list of running plugins by plugin ID.
@@ -105,6 +107,7 @@ func NewController(
 		peerID:               peerID,
 		peerIDStr:            peerID.Pretty(),
 		pluginManifests:      make(map[string]pluginManifestSnapshot),
+		worldStateCtr:        ccontainer.NewCContainer[world.WorldState](nil),
 		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
 	}
 	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le.WithField("tracker", "manifest-watcher"))
@@ -167,7 +170,10 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.hostVolumeCtr.SetValue(nil)
 
 	// construct the world engine handle
-	ws := c.buildWorldState(ctx)
+	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
+	ws := world.NewEngineWorldState(busEngine, true)
+	c.worldStateCtr.SetValue(ws)
+	defer c.worldStateCtr.SetValue(ws)
 
 	// run initial cleanup
 	if err := c.cleanupUnknownPlugins(ctx, ws, pluginPlatformID); err != nil {
@@ -184,9 +190,8 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 }
 
 // buildWorldState builds the world state handle.
-func (c *Controller) buildWorldState(ctx context.Context) world.WorldState {
-	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
-	return world.NewEngineWorldState(busEngine, true)
+func (c *Controller) getWorldState(ctx context.Context) (world.WorldState, error) {
+	return c.worldStateCtr.WaitValue(ctx, nil)
 }
 
 // cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.

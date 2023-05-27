@@ -76,8 +76,11 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 		return nil, err
 	}
 
-	// build world state handle
-	ws := t.c.buildWorldState(ctx)
+	// get world state handle
+	ws, err := t.c.getWorldState(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// fetch the manifest for this plugin
 	// wait until the plugin has been fetched
