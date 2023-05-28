@@ -34,7 +34,7 @@ func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *
 	return tr.execute, tr
 }
 
-// execute executes the pass tracker.
+// execute executes the plugin fetcher.
 func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
 	if backoffConf == nil {
