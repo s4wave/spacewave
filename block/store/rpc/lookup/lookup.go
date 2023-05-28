@@ -36,6 +36,7 @@ func NewController(b bus.Bus, le *logrus.Entry, conf *Config) *Controller {
 			ReadOnly:     true,
 			BucketIds:    []string{conf.GetBucketId()},
 			SkipNotFound: conf.GetSkipNotFound(),
+			Verbose:      conf.GetVerbose(),
 		}),
 	}
 }

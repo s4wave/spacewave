@@ -8,17 +8,21 @@ import (
 	"net/url"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	httplog "github.com/aperturerobotics/bifrost/http/log"
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // HTTPBlock is a block store on top of a HTTP client and base URL prefix.
 type HTTPBlock struct {
+	le       *logrus.Entry
 	write    bool
 	client   *http.Client
 	baseURL  *url.URL
 	hashType hash.HashType
+	verbose  bool
 }
 
 const (
@@ -39,7 +43,9 @@ const (
 // client can be nil to use the default client
 // hashType can be 0 to use the default hash type.
 // if write=false, supports read operations only.
-func NewHTTPBlock(write bool, client *http.Client, baseURL *url.URL, hashType hash.HashType) *HTTPBlock {
+// if verbose=true logs successful cases as well as failures.
+// le can be nil to disable logging entirely
+func NewHTTPBlock(le *logrus.Entry, write bool, client *http.Client, baseURL *url.URL, hashType hash.HashType, verbose bool) *HTTPBlock {
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -48,7 +54,14 @@ func NewHTTPBlock(write bool, client *http.Client, baseURL *url.URL, hashType ha
 		// at least make sure it's not nil.
 		baseURL = &url.URL{}
 	}
-	return &HTTPBlock{write: write, client: client, baseURL: baseURL, hashType: hashType}
+	return &HTTPBlock{
+		le:       le,
+		write:    write,
+		client:   client,
+		baseURL:  baseURL,
+		hashType: hashType,
+		verbose:  verbose,
+	}
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -86,7 +99,7 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	if err != nil {
 		return nil, false, err
 	}
-	resp, err := b.client.Do(req)
+	resp, err := httplog.DoRequest(b.le, b.client, req, b.verbose)
 	if err != nil {
 		return nil, false, err
 	}
@@ -153,7 +166,7 @@ func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	if err != nil {
 		return nil, false, err
 	}
-	resp, err := b.client.Do(req)
+	resp, err := httplog.DoRequest(b.le, b.client, req, b.verbose)
 	if err != nil {
 		return nil, false, err
 	}
@@ -215,7 +228,7 @@ func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	if err != nil {
 		return false, err
 	}
-	resp, err := b.client.Do(req)
+	resp, err := httplog.DoRequest(b.le, b.client, req, b.verbose)
 	if err != nil {
 		return false, err
 	}
@@ -263,7 +276,7 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if err != nil {
 		return err
 	}
-	resp, err := b.client.Do(req)
+	resp, err := httplog.DoRequest(b.le, b.client, req, b.verbose)
 	if err != nil {
 		return err
 	}

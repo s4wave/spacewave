@@ -24,10 +24,18 @@ export interface Config {
   clientId: string
   /** SkipNotFound skips returning a value if the block was not found. */
   skipNotFound: boolean
+  /** Verbose enables verbose logging of the block store. */
+  verbose: boolean
 }
 
 function createBaseConfig(): Config {
-  return { bucketId: '', serviceId: '', clientId: '', skipNotFound: false }
+  return {
+    bucketId: '',
+    serviceId: '',
+    clientId: '',
+    skipNotFound: false,
+    verbose: false,
+  }
 }
 
 export const Config = {
@@ -46,6 +54,9 @@ export const Config = {
     }
     if (message.skipNotFound === true) {
       writer.uint32(32).bool(message.skipNotFound)
+    }
+    if (message.verbose === true) {
+      writer.uint32(40).bool(message.verbose)
     }
     return writer
   },
@@ -85,6 +96,13 @@ export const Config = {
           }
 
           message.skipNotFound = reader.bool()
+          continue
+        case 5:
+          if (tag !== 40) {
+            break
+          }
+
+          message.verbose = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -137,6 +155,7 @@ export const Config = {
       skipNotFound: isSet(object.skipNotFound)
         ? Boolean(object.skipNotFound)
         : false,
+      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
 
@@ -147,6 +166,7 @@ export const Config = {
     message.clientId !== undefined && (obj.clientId = message.clientId)
     message.skipNotFound !== undefined &&
       (obj.skipNotFound = message.skipNotFound)
+    message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
 
@@ -160,6 +180,7 @@ export const Config = {
     message.serviceId = object.serviceId ?? ''
     message.clientId = object.clientId ?? ''
     message.skipNotFound = object.skipNotFound ?? false
+    message.verbose = object.verbose ?? false
     return message
   },
 }

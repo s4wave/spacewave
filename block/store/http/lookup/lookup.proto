@@ -18,4 +18,6 @@ message Config {
   string url = 2;
   // SkipNotFound skips returning a value if the block was not found.
   bool skip_not_found = 3;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 4;
 }

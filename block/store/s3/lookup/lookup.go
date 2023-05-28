@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	httplog "github.com/aperturerobotics/bifrost/http/log"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
@@ -83,7 +84,7 @@ func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRe
 	if err != nil {
 		return nil, false, err
 	}
-	resp, err = httplog.DoRequest(c.le, c.client, req, c.conf.GetVerbose())
+	resp, err := httplog.DoRequest(c.le, c.client, req, c.conf.GetVerbose())
 	if err != nil {
 		return nil, false, err
 	}

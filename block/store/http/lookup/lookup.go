@@ -6,10 +6,14 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
+	block_store_vlogger "github.com/aperturerobotics/hydra/block/store/vlogger"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
+	"github.com/sirupsen/logrus"
 )
 
 // ControllerID is the controller id.
@@ -20,18 +24,21 @@ var Version = semver.MustParse("0.0.1")
 
 // Controller looks up blocks via an HTTP service for LookupBlockFromNetwork directives.
 type Controller struct {
+	// le is the logger
+	le *logrus.Entry
 	// conf is the config
 	conf *Config
 	// store is the http-backed block store
-	store *ccontainer.CContainer[*block_store_http.HTTPBlock]
+	store *ccontainer.CContainer[*block_store.Store]
 }
 
 // NewController constructs a controller that looks up blocks via an HTTP
 // service for LookupBlockFromNetwork directives.
-func NewController(conf *Config) *Controller {
+func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return &Controller{
+		le:    le,
 		conf:  conf,
-		store: ccontainer.NewCContainer[*block_store_http.HTTPBlock](nil),
+		store: ccontainer.NewCContainer[*block_store.Store](nil),
 	}
 }
 
@@ -50,14 +57,31 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	store := block_store_http.NewHTTPBlock(false, http.DefaultClient, baseURL, 0)
-	c.store.SetValue(store)
+	httpStore := block_store_http.NewHTTPBlock(c.le, false, http.DefaultClient, baseURL, 0, c.conf.GetVerbose())
+	var store block_store.Store = httpStore
+	if c.conf.GetVerbose() {
+		store = block_store_vlogger.NewVLoggerStore(c.le, store)
+	}
+	c.store.SetValue(&store)
 	return nil
 }
 
-// GetHTTPStore returns the http store.
-func (c *Controller) GetHTTPStore(ctx context.Context) (*block_store_http.HTTPBlock, error) {
-	return c.store.WaitValue(ctx, nil)
+// GetBlockStore returns the http store.
+func (c *Controller) GetBlockStore(ctx context.Context) (block_store.Store, error) {
+	val, err := c.store.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return *val, nil
+}
+
+// GetBlock looks up a block with the block store.
+func (c *Controller) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	store, err := c.GetBlockStore(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	return store.GetBlock(ctx, ref)
 }
 
 // HandleDirective asks if the handler can resolve the directive.

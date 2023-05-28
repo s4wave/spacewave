@@ -82,10 +82,12 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 
 	// Create the lookup controller
+	conf := NewConfig(bucketID, baseURL.String())
+	conf.Verbose = true
 	_, _, lookupCtrlRel, err := loader.WaitExecControllerRunning(
 		ctx,
 		clientTb.Bus,
-		resolver.NewLoadControllerWithConfig(NewConfig(bucketID, baseURL.String())),
+		resolver.NewLoadControllerWithConfig(conf),
 		nil,
 	)
 	if err != nil {

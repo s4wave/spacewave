@@ -39,9 +39,10 @@ func (t *Factory) Construct(
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
 	cc := conf.(*Config)
+	le := opts.Logger
 
 	// Construct the controller.
-	return NewController(cc), nil
+	return NewController(le, cc), nil
 }
 
 // GetVersion returns the version of this controller.

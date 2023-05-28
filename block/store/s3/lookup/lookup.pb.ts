@@ -22,7 +22,7 @@ export interface Config {
   url: string
   /** SkipNotFound skips returning a value if the block was not found. */
   skipNotFound: boolean
-  /** Verbose logs all HTTP requests as debug logs. */
+  /** Verbose enables verbose logging of the block store. */
   verbose: boolean
 }
 

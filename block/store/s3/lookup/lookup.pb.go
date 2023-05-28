@@ -40,7 +40,7 @@ type Config struct {
 	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	// SkipNotFound skips returning a value if the block was not found.
 	SkipNotFound bool `protobuf:"varint,3,opt,name=skip_not_found,json=skipNotFound,proto3" json:"skip_not_found,omitempty"`
-	// Verbose logs all HTTP requests as debug logs.
+	// Verbose enables verbose logging of the block store.
 	Verbose bool `protobuf:"varint,4,opt,name=verbose,proto3" json:"verbose,omitempty"`
 }
 

@@ -51,7 +51,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	baseURL = baseURL.JoinPath(blockStorePrefix)
 
 	// Create the client
-	client := block_store_http.NewHTTPBlock(true, srv.Client(), baseURL, 0)
+	client := block_store_http.NewHTTPBlock(le, true, srv.Client(), baseURL, 0, true)
 
 	// Get the sample block
 	retBlockData, retBlockExists, err := client.GetBlock(ctx, sampleBlockRef)
@@ -174,7 +174,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 
 	// Create the client
 	// note: we create it with write=true expecting this to fail
-	client := block_store_http.NewHTTPBlock(true, srv.Client(), baseURL, 0)
+	client := block_store_http.NewHTTPBlock(le, true, srv.Client(), baseURL, 0, true)
 
 	// Create a sample block
 	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")
@@ -246,7 +246,7 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 	baseURL = baseURL.JoinPath(blockStorePrefix)
 
 	// Create the client
-	client := block_store_http.NewHTTPBlock(true, srv.Client(), baseURL, 0)
+	client := block_store_http.NewHTTPBlock(le, true, srv.Client(), baseURL, 0, true)
 
 	// Create a sample block
 	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")

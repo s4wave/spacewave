@@ -25,10 +25,12 @@ export interface Config {
   url: string
   /** SkipNotFound skips returning a value if the block was not found. */
   skipNotFound: boolean
+  /** Verbose enables verbose logging of the block store. */
+  verbose: boolean
 }
 
 function createBaseConfig(): Config {
-  return { bucketId: '', url: '', skipNotFound: false }
+  return { bucketId: '', url: '', skipNotFound: false, verbose: false }
 }
 
 export const Config = {
@@ -44,6 +46,9 @@ export const Config = {
     }
     if (message.skipNotFound === true) {
       writer.uint32(24).bool(message.skipNotFound)
+    }
+    if (message.verbose === true) {
+      writer.uint32(32).bool(message.verbose)
     }
     return writer
   },
@@ -76,6 +81,13 @@ export const Config = {
           }
 
           message.skipNotFound = reader.bool()
+          continue
+        case 4:
+          if (tag !== 32) {
+            break
+          }
+
+          message.verbose = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -127,6 +139,7 @@ export const Config = {
       skipNotFound: isSet(object.skipNotFound)
         ? Boolean(object.skipNotFound)
         : false,
+      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
     }
   },
 
@@ -136,6 +149,7 @@ export const Config = {
     message.url !== undefined && (obj.url = message.url)
     message.skipNotFound !== undefined &&
       (obj.skipNotFound = message.skipNotFound)
+    message.verbose !== undefined && (obj.verbose = message.verbose)
     return obj
   },
 
@@ -148,6 +162,7 @@ export const Config = {
     message.bucketId = object.bucketId ?? ''
     message.url = object.url ?? ''
     message.skipNotFound = object.skipNotFound ?? false
+    message.verbose = object.verbose ?? false
     return message
   },
 }
