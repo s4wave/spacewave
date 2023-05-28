@@ -2,13 +2,9 @@ package block_store_s3_lookup
 
 import (
 	"context"
-	"io"
-	"net/http"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/dex"
-	"github.com/pkg/errors"
 )
 
 // lookupBlockFromNetworkResolver resolves LookupBlockFromNetwork
@@ -41,44 +37,11 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 // Values will be maintained from the previous call.
 func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	handler.ClearValues()
-	reqURL, err := r.c.conf.ParseURL()
-	if err != nil {
-		return err
-	}
-	reqURL = reqURL.JoinPath(r.d.LookupBlockFromNetworkRef().MarshalString())
-	req, err := http.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
-	if err != nil {
-		return err
-	}
-	resp, err := r.c.client.Do(req)
-	if err != nil {
-		return err
-	}
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	// exceptional error
-	if resp.StatusCode == 500 {
-		err = errors.Errorf("service returned internal error: %s", strings.TrimSpace(string(respBody)))
-		return err
-	}
-
-	var found bool
-	var data []byte
-	if resp.StatusCode == 200 {
-		found = len(respBody) != 0
-		data = respBody
-	} else if resp.StatusCode == 403 {
-		err = errors.New(resp.Status)
-	} else if resp.StatusCode != 404 {
-		return errors.Errorf("unexpected response status: %d: %s", resp.StatusCode, resp.Status)
-	}
+	data, found, err := r.c.GetBlockFromService(ctx, r.d.LookupBlockFromNetworkRef())
 	if found || !r.c.conf.GetSkipNotFound() || err != nil {
 		var val dex.LookupBlockFromNetworkValue = dex.NewLookupBlockFromNetworkValue(data, err)
 		_, _ = handler.AddValue(val)
 	}
-
 	return err
 }
 

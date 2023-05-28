@@ -2,12 +2,16 @@ package block_store_s3_lookup
 
 import (
 	"context"
+	io "io"
 	"net/http"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 )
 
 // ControllerID is the controller id.
@@ -62,6 +66,45 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 		return c.resolveLookupBlockFromNetwork(ctx, di, d)
 	}
 	return nil, nil
+}
+
+// GetBlockFromService looks up a block from the http service.
+func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	reqURL, err := c.conf.ParseURL()
+	if err != nil {
+		return nil, false, err
+	}
+	reqURL = reqURL.JoinPath(ref.MarshalString())
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
+	if err != nil {
+		return nil, false, err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, false, err
+	}
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, false, err
+	}
+	// exceptional error
+	if resp.StatusCode == 500 {
+		err = errors.Errorf("service returned internal error: %s", strings.TrimSpace(string(respBody)))
+		return nil, false, err
+	}
+
+	var found bool
+	var data []byte
+	if resp.StatusCode == 200 {
+		found = len(respBody) != 0
+		data = respBody
+	} else if resp.StatusCode == 403 {
+		err = errors.New(resp.Status)
+	} else if resp.StatusCode != 404 {
+		err = errors.Errorf("unexpected response status: %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	return data, found, err
 }
 
 // Close releases any resources used by the controller.
