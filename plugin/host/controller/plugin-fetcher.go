@@ -178,8 +178,6 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 			le.Infof("completed copying manifest to %s", pluginHostBucketID)
 		} else {
 			le.WithError(err).Warnf("failed to copy manifest to %s", pluginHostBucketID)
-			panic(err)
-			// TODO TODO TODO TODO
 		}
 		return err
 	})
