@@ -15,4 +15,6 @@ message Config {
   string url = 2;
   // SkipNotFound skips returning a value if the block was not found.
   bool skip_not_found = 3;
+  // Verbose logs all HTTP requests as debug logs.
+  bool verbose = 4;
 }

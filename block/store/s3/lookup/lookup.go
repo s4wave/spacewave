@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ControllerID is the controller id.
@@ -22,6 +23,8 @@ var Version = semver.MustParse("0.0.1")
 
 // Controller looks up blocks via an S3 HTTP service for LookupBlockFromNetwork directives.
 type Controller struct {
+	// le is the logger
+	le *logrus.Entry
 	// conf is the config
 	conf *Config
 	// client is the client to use
@@ -32,11 +35,12 @@ type Controller struct {
 // service for LookupBlockFromNetwork directives.
 //
 // if client is nil, uses http.DefaultClient
-func NewController(conf *Config, client *http.Client) *Controller {
+func NewController(le *logrus.Entry, conf *Config, client *http.Client) *Controller {
 	if client == nil {
 		client = http.DefaultClient
 	}
 	return &Controller{
+		le:     le,
 		conf:   conf,
 		client: client,
 	}
@@ -79,7 +83,7 @@ func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRe
 	if err != nil {
 		return nil, false, err
 	}
-	resp, err := c.client.Do(req)
+	resp, err = httplog.DoRequest(c.le, c.client, req, c.conf.GetVerbose())
 	if err != nil {
 		return nil, false, err
 	}

@@ -32,7 +32,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.17.1-0.20230526083429-7cd9a8ebe339 // indirect
+	github.com/aperturerobotics/bifrost v0.17.1-0.20230528003819-e2f66551ef9b // indirect
 	github.com/aperturerobotics/util v1.5.1-0.20230520130718-4285cd7294c8 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
