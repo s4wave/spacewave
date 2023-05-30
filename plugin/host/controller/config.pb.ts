@@ -46,7 +46,14 @@ export interface Config {
    * FetchBackoff is the backoff config for fetching plugin manifests.
    * If unset, defaults to reasonable defaults.
    */
-  fetchBackoff: Backoff | undefined;
+  fetchBackoff:
+    | Backoff
+    | undefined;
+  /**
+   * ExecBackoff is the backoff config for executing plugin manifests.
+   * If unset, defaults to reasonable defaults.
+   */
+  execBackoff: Backoff | undefined;
 }
 
 function createBaseConfig(): Config {
@@ -59,6 +66,7 @@ function createBaseConfig(): Config {
     disableStoreManifest: false,
     fetchConcurrency: 0,
     fetchBackoff: undefined,
+    execBackoff: undefined,
   };
 }
 
@@ -87,6 +95,9 @@ export const Config = {
     }
     if (message.fetchBackoff !== undefined) {
       Backoff.encode(message.fetchBackoff, writer.uint32(66).fork()).ldelim();
+    }
+    if (message.execBackoff !== undefined) {
+      Backoff.encode(message.execBackoff, writer.uint32(74).fork()).ldelim();
     }
     return writer;
   },
@@ -154,6 +165,13 @@ export const Config = {
 
           message.fetchBackoff = Backoff.decode(reader, reader.uint32());
           continue;
+        case 9:
+          if (tag !== 74) {
+            break;
+          }
+
+          message.execBackoff = Backoff.decode(reader, reader.uint32());
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -205,6 +223,7 @@ export const Config = {
       disableStoreManifest: isSet(object.disableStoreManifest) ? Boolean(object.disableStoreManifest) : false,
       fetchConcurrency: isSet(object.fetchConcurrency) ? Number(object.fetchConcurrency) : 0,
       fetchBackoff: isSet(object.fetchBackoff) ? Backoff.fromJSON(object.fetchBackoff) : undefined,
+      execBackoff: isSet(object.execBackoff) ? Backoff.fromJSON(object.execBackoff) : undefined,
     };
   },
 
@@ -219,6 +238,8 @@ export const Config = {
     message.fetchConcurrency !== undefined && (obj.fetchConcurrency = Math.round(message.fetchConcurrency));
     message.fetchBackoff !== undefined &&
       (obj.fetchBackoff = message.fetchBackoff ? Backoff.toJSON(message.fetchBackoff) : undefined);
+    message.execBackoff !== undefined &&
+      (obj.execBackoff = message.execBackoff ? Backoff.toJSON(message.execBackoff) : undefined);
     return obj;
   },
 
@@ -237,6 +258,9 @@ export const Config = {
     message.fetchConcurrency = object.fetchConcurrency ?? 0;
     message.fetchBackoff = (object.fetchBackoff !== undefined && object.fetchBackoff !== null)
       ? Backoff.fromPartial(object.fetchBackoff)
+      : undefined;
+    message.execBackoff = (object.execBackoff !== undefined && object.execBackoff !== null)
+      ? Backoff.fromPartial(object.execBackoff)
       : undefined;
     return message;
   },

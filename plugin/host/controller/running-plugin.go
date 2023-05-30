@@ -11,8 +11,10 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
+	backoff "github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/retry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,8 +48,36 @@ func (t *runningPlugin) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
 	return t.rpcClientCtr
 }
 
-// execute executes the plugin.
+// execute executes the routine.
 func (t *runningPlugin) execute(ctx context.Context) error {
+	backoffConf := t.c.conf.GetExecBackoff().CloneVT()
+	if backoffConf == nil {
+		backoffConf = &backoff.Backoff{}
+	}
+	if backoffConf.BackoffKind == 0 {
+		if backoffConf.Exponential == nil {
+			backoffConf.Exponential = &backoff.Exponential{}
+		}
+		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
+		backoffConf.Exponential.MaxInterval = 4200
+	}
+	bo := backoffConf.Construct()
+	return retry.Retry(
+		ctx,
+		t.c.le.WithField("plugin-id", t.pluginID),
+		func(ctx context.Context, success func()) error {
+			err := t.execPlugin(ctx)
+			if err == nil {
+				success()
+			}
+			return err
+		},
+		bo,
+	)
+}
+
+// execPlugin executes the plugin.
+func (t *runningPlugin) execPlugin(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le
 
 	// build proxy volume

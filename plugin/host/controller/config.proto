@@ -30,7 +30,11 @@ message Config {
   // so far. Fetches blocks, then the references those blocks reference. We only
   // know about the blocks on the frontier of the blocks fetched so far.
   uint32 fetch_concurrency = 7;
+
   // FetchBackoff is the backoff config for fetching plugin manifests.
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff fetch_backoff = 8;
+  // ExecBackoff is the backoff config for executing plugin manifests.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff exec_backoff = 9;
 }

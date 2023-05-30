@@ -55,9 +55,10 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
 			t.resultPromise.SetPromise(resultProm)
 			resp, err := t.fetchManifest(ctx)
-			resultProm.SetResult(resp, err)
 			if err == nil {
 				success()
+			} else if err != context.Canceled {
+				resultProm.SetResult(resp, err)
 			}
 			return err
 		},
