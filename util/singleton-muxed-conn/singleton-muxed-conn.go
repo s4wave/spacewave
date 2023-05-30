@@ -74,6 +74,7 @@ func (l *SingletonMuxedConn) AcceptPump(list net.Listener) {
 	for {
 		nc, err := list.Accept()
 		if err != nil {
+			_ = list.Close()
 			_ = l.CloseWithErr(err)
 			return
 		}
@@ -87,6 +88,7 @@ func (l *SingletonMuxedConn) AcceptPump(list net.Listener) {
 		if err := l.SetConnection(mc); err != nil {
 			_ = mc.Close()
 			_ = list.Close()
+			_ = l.CloseWithErr(err)
 			return
 		}
 	}
@@ -133,6 +135,13 @@ func (l *SingletonMuxedConn) CloseWithErr(closeErr error) error {
 	}
 	err = l.closedErr
 	l.ctxCancel()
+	if l.conn != nil {
+		cerr := l.conn.Close()
+		if err == nil {
+			err = cerr
+		}
+		l.conn = nil
+	}
 	l.mtx.Unlock()
 	return err
 }

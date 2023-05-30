@@ -2,6 +2,7 @@ package electron
 
 import (
 	"context"
+	"net"
 	"os"
 	oexec "os/exec"
 
@@ -21,7 +22,8 @@ type Electron struct {
 	electronPath string
 	rendererPath string
 
-	ipc *singleton_muxed_conn.SingletonMuxedConn
+	ipc      *singleton_muxed_conn.SingletonMuxedConn
+	listener net.Listener
 }
 
 // RunElectron listens on the IPC pipe and starts Electron sub-process.
@@ -60,6 +62,7 @@ func RunElectron(
 	le.Debugf("starting electron: %s", cmd.String())
 	err = cmd.Start()
 	if err != nil {
+		_ = pipeListener.Close()
 		_ = smc.CloseWithErr(err)
 		return nil, err
 	}
@@ -72,7 +75,8 @@ func RunElectron(
 		electronPath: electronPath,
 		rendererPath: rendererPath,
 
-		ipc: smc,
+		ipc:      smc,
+		listener: pipeListener,
 	}, nil
 }
 
@@ -94,5 +98,8 @@ func (e *Electron) Close() {
 	}
 	if e.ipc != nil {
 		_ = e.ipc.Close()
+	}
+	if e.listener != nil {
+		_ = e.listener.Close()
 	}
 }
