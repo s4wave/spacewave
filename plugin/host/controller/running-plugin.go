@@ -100,7 +100,7 @@ func (t *runningPlugin) execPlugin(ctx context.Context) error {
 		return err
 	}
 
-	// fetch the manifest if it doesn't exist
+	// fetch the manifest if it doesn't exist in the cache
 	emptyManifest := manifest.GetMeta().GetManifestId() == ""
 	if emptyManifest || t.c.conf.GetAlwaysFetchManifest() {
 		ref, fetcher, _ := t.c.pluginManifestFetchers.AddKeyRef(pluginID)

@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/routine"
 )
 
 // LoadPlugin is a directive to execute a plugin.
@@ -115,10 +116,11 @@ func ExPluginLoadWaitClient(
 }
 
 // ExLoadPluginAccessClient calls LoadPlugin and returns the rpc client to be set.
-// if returnIfIdle is set, returns ErrNotFoundPlugin if the directive becomes idle.
+//
 // the callback will be canceled & restarted if the client becomes invalid.
 // the callback context is canceled when the client value changes.
 // the callback should return context.Canceled in that case.
+//
 // if the callback returns nil, the outer function will also return nil.
 func ExPluginLoadAccessClient(
 	ctx context.Context,
@@ -126,7 +128,9 @@ func ExPluginLoadAccessClient(
 	pluginID string,
 	cb func(ctx context.Context, client srpc.Client) error,
 ) error {
-	routineCtr, di, dirRef, err := bus.ExecOneOffWatchRoutine(
+	routineCtr := routine.NewRoutineContainer()
+	di, dirRef, err := bus.ExecOneOffWatchRoutine(
+		routineCtr,
 		b,
 		NewLoadPlugin(pluginID),
 		func(ctx context.Context, val LoadPluginValue) error {

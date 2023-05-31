@@ -266,7 +266,16 @@ func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPlu
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	return plg, ref.Release
+	var fetcherRef *keyed.KeyedRef[string, *pluginManifestFetcher]
+	if c.conf.GetAlwaysFetchManifest() {
+		fetcherRef, _, _ = c.pluginManifestFetchers.AddKeyRef(pluginID)
+	}
+	return plg, func() {
+		ref.Release()
+		if fetcherRef != nil {
+			fetcherRef.Release()
+		}
+	}
 }
 
 // Close releases any resources used by the controller.
