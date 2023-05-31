@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -221,11 +220,6 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
-	dir := di.GetDirective()
-	switch d := dir.(type) {
-	case manifest.FetchManifest:
-		return directive.R(c.resolveFetchManifest(ctx, di, d), nil)
-	}
 	return nil, nil
 }
 

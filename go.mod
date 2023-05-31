@@ -41,7 +41,7 @@ require (
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.5.1 // master
+	github.com/aperturerobotics/util v1.5.2 // master
 )
 
 // aperture: use compatibility forks
