@@ -192,36 +192,34 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 
 	// check if the stored manifest is equivalent (skip store)
 	manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, pluginManifest.GetMeta())
-	/*
-		prevManifestState, prevManifestFound, err := ws.GetObject(manifestKey)
-		if err != nil {
-			return nil, err
-		}
-		var skipRegisterManifest bool
-		if prevManifestFound {
-			prevRootRef, _, err := prevManifestState.GetRootRef()
-			if err != nil {
-				return nil, err
-			}
-			skipRegisterManifest = prevRootRef.EqualsRef(wroteManifestRef)
-		}
-
-		// submit operation to update + link plugin manifest
-		if !skipRegisterManifest {
-	*/
-	le.Debug("registering fetched plugin manifest")
-	err = bldr_manifest_world.ExStoreManifestOp(
-		ctx,
-		ws,
-		t.c.peerID,
-		manifestKey,
-		[]string{t.c.objKey},
-		storedManifestRef,
-	)
+	prevManifestState, prevManifestFound, err := ws.GetObject(ctx, manifestKey)
 	if err != nil {
 		return nil, err
 	}
-	// }
+	var skipRegisterManifest bool
+	if prevManifestFound {
+		prevRootRef, _, err := prevManifestState.GetRootRef(ctx)
+		if err != nil {
+			return nil, err
+		}
+		skipRegisterManifest = prevRootRef.EqualsRef(wroteManifestRef)
+	}
+
+	// submit operation to update + link plugin manifest
+	if !skipRegisterManifest {
+		le.Debug("registering fetched plugin manifest")
+		err = bldr_manifest_world.ExStoreManifestOp(
+			ctx,
+			ws,
+			t.c.peerID,
+			manifestKey,
+			[]string{t.c.objKey},
+			storedManifestRef,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	le.Infof("successfully fetched manifest for plugin: %s", t.pluginID)
 	return &bldr_manifest.FetchManifestResponse{ManifestRef: storedManifestRef}, nil
