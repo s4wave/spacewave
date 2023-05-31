@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.17.1-0.20230528005025-6ea068ab3949 // master
+require github.com/aperturerobotics/bifrost v0.17.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -27,7 +27,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.27.5-0.20230526083528-37240efbcc54 // master
+	github.com/aperturerobotics/controllerbus v0.28.0 // master
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
