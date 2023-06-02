@@ -73,7 +73,8 @@
     "rimraf": "^5.0.1",
     "ts-poet": "^6.4.1",
     "ts-proto": "^1.148.1",
-    "typescript": "^5.0.3"
+    "typescript": "^5.0.3",
+    "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
     "@libp2p/logger": "^2.0.7",

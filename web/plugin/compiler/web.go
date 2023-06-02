@@ -6,7 +6,6 @@ import (
 
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
@@ -117,16 +116,17 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	if err != nil {
 		return nil, err
 	}
-
-	platformID := meta.GetPlatformId()
-	pluginID := meta.GetManifestId()
-	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
-	workingDir := filepath.Join(builderConf.GetWorkingPath(), "build")
 	if !GetElectronApplicable(buildPlatform) {
 		// TODO: build web plugin shim for web platform
 		// TODO: return error if unrecognized platform id
 		return nil, nil
 	}
+
+	platformID := meta.GetPlatformId()
+	pluginID := meta.GetManifestId()
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	minify, debugMode := buildType.IsRelease(), buildType.IsDev()
+	workingDir := filepath.Join(builderConf.GetWorkingPath(), "build")
 
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
@@ -162,8 +162,7 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	minify := manifest.BuildType(meta.GetBuildType()).IsRelease()
-	err = entrypoint_electron_bundle.BuildBrowserBundle(le, distSrcDir, workingEntrypointDir, minify)
+	err = entrypoint_electron_bundle.BuildElectronBundle(le, distSrcDir, workingEntrypointDir, minify, debugMode)
 	if err != nil {
 		return nil, err
 	}

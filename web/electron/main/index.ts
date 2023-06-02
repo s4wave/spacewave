@@ -1,7 +1,7 @@
 import electron, { MessagePortMain, MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
-import { OpenStreamCtr, Conn } from 'starpc'
+import { OpenStreamCtr, Conn, buildPushableSink } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 
@@ -15,7 +15,7 @@ import {
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
-import { buildPushableSink } from 'starpc'
+import debugWhenReady from './debug.js'
 
 const app = electron.app
 const distPath = app.getAppPath()
@@ -197,6 +197,7 @@ function setupRuntimePort() {
 async function startup() {
   const runtimeUuid: string = process.env['BLDR_RUNTIME_ID'] || 'default'
 
+  debugWhenReady()
   initProtocol()
   setupSocket(pipeWorkdir, runtimeUuid)
   setupRuntimePort()

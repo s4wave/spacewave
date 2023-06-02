@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
@@ -17,9 +18,12 @@ import (
 )
 
 // ElectronDefine returns the define mapping for Electron.
-func ElectronDefine() map[string]string {
+//
+// debug enables debug mode.
+func ElectronDefine(debug bool) map[string]string {
 	return map[string]string{
 		"BLDR_IS_ELECTRON": "true",
+		"BLDR_DEBUG":       strconv.FormatBool(debug),
 	}
 }
 
@@ -27,9 +31,9 @@ func ElectronDefine() map[string]string {
 var EsbuildLogLevel = esbuild.LogLevelInfo
 
 // ElectronBuildOpts are general options for building for Electron.
-func ElectronBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
+func ElectronBuildOpts(repoRoot string, minify, debug bool) esbuild.BuildOptions {
 	opts := bundle.BrowserBuildOpts(repoRoot, minify)
-	opts.Define = ElectronDefine()
+	opts.Define = ElectronDefine(debug)
 	opts.External = []string{"electron"}
 	opts.LogLevel = EsbuildLogLevel
 	return opts
@@ -41,10 +45,10 @@ func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minif
 }
 
 // BuildPreloadBundle builds the web renderer bundle files.
-func BuildPreloadBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+func BuildPreloadBundle(le *logrus.Entry, repoRoot, buildDir string, minify, debug bool) error {
 	le.Debug("generating electron preload bundle")
-	opts := ElectronBuildOpts(repoRoot, minify)
-	opts.Define = ElectronDefine()
+	opts := ElectronBuildOpts(repoRoot, minify, debug)
+	opts.Define = ElectronDefine(debug)
 	opts.EntryPointsAdvanced = nil
 	opts.EntryNames = ""
 	opts.EntryPoints = []string{
@@ -63,10 +67,10 @@ func BuildPreloadBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 }
 
 // BuildMainBundle builds the electron Main bundle files.
-func BuildMainBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+func BuildMainBundle(le *logrus.Entry, repoRoot, buildDir string, minify, debug bool) error {
 	le.Debug("generating electron main bundle")
-	opts := ElectronBuildOpts(repoRoot, minify)
-	opts.Define = ElectronDefine()
+	opts := ElectronBuildOpts(repoRoot, minify, debug)
+	opts.Define = ElectronDefine(debug)
 	opts.EntryPointsAdvanced = nil
 	opts.EntryNames = ""
 	opts.EntryPoints = []string{
@@ -85,7 +89,7 @@ func BuildMainBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) e
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify, debug bool) error {
 	le.Debug("generating web renderer bundle")
 
 	// index.html
@@ -103,11 +107,11 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir string, minify boo
 
 	// entrypoint
 	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
-	opts := ElectronBuildOpts(repoRoot, minify)
+	opts := ElectronBuildOpts(repoRoot, minify, debug)
 	opts.Outdir = webEntrypointOut
 	opts.EntryPointsAdvanced = nil
 	opts.EntryNames = ""
-	opts.Define = ElectronDefine()
+	opts.Define = ElectronDefine(debug)
 	opts.EntryPoints = []string{
 		"web/entrypoint/entrypoint.tsx",
 	}
@@ -152,8 +156,11 @@ func BuildRuntimeBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	return util_esbuild.BuildResultToErr(res)
 }
 
-// BuildBrowserBundle builds and outputs the web & service worker files.
-func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
+// BuildElectronBundle builds and outputs the web & service worker files.
+//
+// minify enables file minification in esbuild
+// debug enables debug extensions in Electron
+func BuildElectronBundle(le *logrus.Entry, repoRoot, buildDir string, minify, debug bool) error {
 	err := os.MkdirAll(buildDir, 0755)
 	if err != nil {
 		return err
@@ -165,17 +172,17 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 	}
 
 	// preload
-	if err := BuildPreloadBundle(le, repoRoot, buildDir, minify); err != nil {
+	if err := BuildPreloadBundle(le, repoRoot, buildDir, minify, debug); err != nil {
 		return err
 	}
 
 	// main
-	if err := BuildMainBundle(le, repoRoot, buildDir, minify); err != nil {
+	if err := BuildMainBundle(le, repoRoot, buildDir, minify, debug); err != nil {
 		return err
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, repoRoot, buildDir, minify); err != nil {
+	if err := BuildRendererBundle(le, repoRoot, buildDir, minify, debug); err != nil {
 		return err
 	}
 
@@ -190,7 +197,7 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool
 // BuildAsar builds the app asar using the @electron/asar tool.
 //
 // asarBinPath should be the path to the asar binary.
-// buildDir should be pre-prepared using BuildBrowserBundle.
+// buildDir should be pre-prepared using BuildElectronBundle.
 // outPath should be the path to the output .asar file
 func BuildAsar(ctx context.Context, le *logrus.Entry, buildDir, outPath string) error {
 	cmd := npm.NpmExec("@electron/asar", "pack", buildDir, outPath)
