@@ -2,13 +2,13 @@ module github.com/aperturerobotics/identity
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230526080107-c71df279e3ef // master
+require github.com/aperturerobotics/hydra v0.0.0-20230531230354-c7ae5a3ed914 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.17.1-0.20230526083429-7cd9a8ebe339 // master
+require github.com/aperturerobotics/bifrost v0.17.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -33,7 +33,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.27.5-0.20230526083528-37240efbcc54 // master
+	github.com/aperturerobotics/controllerbus v0.28.0 // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/util v1.5.1-0.20230520130718-4285cd7294c8 // master
