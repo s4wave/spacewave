@@ -160,7 +160,7 @@ have a separate bundle, specify a different `--bundle-id=value` in the comment.
 
 You need the following tools installed:
 
- - [Go](https://golang.org) >= 1.18
+ - [Go](https://golang.org) >= 1.20
  - If using UI: [Node](https://nodejs.org)
  - Yarn `npm install -g yarn`
 
