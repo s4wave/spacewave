@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230531230354-c7ae5a3ed914 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230606222153-63ee7ee7fbd2 // master
 
 require (
 	github.com/evanw/esbuild v0.17.19 // latest
@@ -12,7 +12,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.17.1 // master
+require github.com/aperturerobotics/bifrost v0.17.2 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -37,11 +37,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.28.0 // master
+	github.com/aperturerobotics/controllerbus v0.28.1 // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.1 // latest
 	github.com/aperturerobotics/ts-proto-common-types v0.2.1-0.20230322202507-10c9dfaeac52 // indirect; latest
-	github.com/aperturerobotics/util v1.5.3 // master
+	github.com/aperturerobotics/util v1.5.4 // master
 )
 
 // aperture: use compatibility forks
@@ -64,7 +64,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.5
-	github.com/libp2p/go-libp2p v0.27.3
+	github.com/libp2p/go-libp2p v0.27.5
 	github.com/libp2p/go-yamux/v4 v4.0.1-0.20230515105331-4d6262328ec5 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
@@ -77,11 +77,11 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.4.0 // indirect
-	github.com/quic-go/quic-go v0.34.0 // indirect
-	github.com/sirupsen/logrus v1.9.2
+	github.com/quic-go/quic-go v0.35.1 // indirect
+	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
-	github.com/urfave/cli/v2 v2.25.3
+	github.com/urfave/cli/v2 v2.25.5
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.9.0 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
