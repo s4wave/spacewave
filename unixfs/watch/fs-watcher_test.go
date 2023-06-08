@@ -10,17 +10,28 @@ import (
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	billy_util "github.com/go-git/go-billy/v5/util"
+	"github.com/sirupsen/logrus"
 )
 
 func TestFSWatcher(t *testing.T) {
 	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	objKey := "test-fs"
 	fs, tb, err := unixfs_world.BuildTestbed(
-		ctx,
+		btb,
 		objKey,
 		true,
-		testbed.WithVerbose(true),
+		world_testbed.WithWorldVerbose(true),
 	)
 	if err != nil {
 		t.Fatal(err.Error())

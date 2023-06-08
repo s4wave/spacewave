@@ -407,7 +407,7 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 		return unixfs_errors.ErrInodeUnresolvable
 	}
 	if h == dest {
-		// copy to self? no-op
+		// TODO: copy to self?
 		return nil
 	}
 

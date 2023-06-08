@@ -6,23 +6,39 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
+	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	memfs "github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
+	"github.com/sirupsen/logrus"
 )
 
 // TestSync tests syncing a UnixFS to the disk.
 func TestSync(t *testing.T) {
-	objKey := "fs/test"
 	ctx := context.Background()
-	wfs, wtb, err := unixfs_world.BuildTestbed(ctx, objKey, true)
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(true))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer wtb.Release()
 
-	rref, err := wfs.AddRootReference(ctx)
+	objKey := "test-fs"
+	fs, _, err := unixfs_world.BuildTestbed(
+		btb,
+		objKey,
+		true,
+		world_testbed.WithWorldVerbose(true),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rref, err := fs.AddRootReference(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

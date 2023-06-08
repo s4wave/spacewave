@@ -6,17 +6,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	memfs "github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
+	"github.com/sirupsen/logrus"
 )
 
 // TestCheckout tests checking out a UnixFS to the disk.
 func TestCheckout(t *testing.T) {
-	objKey := "fs/test"
 	ctx := context.Background()
-	wfs, wtb, err := unixfs_world.BuildTestbed(ctx, objKey, true)
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey := "fs/test"
+	wfs, wtb, err := unixfs_world.BuildTestbed(tb, objKey, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

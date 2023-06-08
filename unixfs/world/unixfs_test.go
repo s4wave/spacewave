@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/hydra/testbed"
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
@@ -163,12 +164,27 @@ func TestFsBasic(t *testing.T) {
 // TestFsRename tests random renames.
 func TestFsRename(t *testing.T) {
 	ctx := context.Background()
-	ufs, _, err := BuildTestbed(ctx, objKey, false)
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	btb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	fsHandle, err := ufs.AddRootReference(ctx)
+	objKey := "test-fs"
+	fs, _, err := BuildTestbed(
+		btb,
+		objKey,
+		false,
+		world_testbed.WithWorldVerbose(false),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	fsHandle, err := fs.AddRootReference(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

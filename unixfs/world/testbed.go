@@ -1,7 +1,6 @@
 package unixfs_world
 
 import (
-	"context"
 	"time"
 
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
@@ -10,20 +9,15 @@ import (
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // BuildTestbed builds a unixfs world testbed.
-func BuildTestbed(ctx context.Context, objKey string, watchWorldChanges bool, opts ...world_testbed.Option) (*unixfs.FS, *world_testbed.Testbed, error) {
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(logger)
-
-	tb, err := hydra_testbed.NewTestbed(ctx, le)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func BuildTestbed(
+	tb *hydra_testbed.Testbed,
+	objKey string,
+	watchWorldChanges bool,
+	opts ...world_testbed.Option,
+) (*unixfs.FS, *world_testbed.Testbed, error) {
 	wtb, err := world_testbed.NewTestbed(tb, opts...)
 	if err != nil {
 		return nil, nil, err
@@ -38,7 +32,11 @@ func BuildTestbed(ctx context.Context, objKey string, watchWorldChanges bool, op
 }
 
 // InitTestbed inits the testbed with a new fs.
-func InitTestbed(tb *world_testbed.Testbed, objKey string, watchWorldChanges bool) (*unixfs.FS, error) {
+func InitTestbed(
+	tb *world_testbed.Testbed,
+	objKey string,
+	watchWorldChanges bool,
+) (*unixfs.FS, error) {
 	ctx := tb.Context
 
 	// provide op handlers to bus
