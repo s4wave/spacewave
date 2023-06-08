@@ -531,7 +531,7 @@ func (c *Cursor) ClearRef(refID uint32) {
 	}
 	delete(c.pos.refHandles, refID)
 	// clear parent relation
-	if tgt := r.target; tgt != nil && c.t != nil {
+	if tgt := r.target; tgt != nil {
 		tgtCursor := newCursor(c.t, tgt, c.store)
 		tgtCursor.removeParent(c)
 	}
