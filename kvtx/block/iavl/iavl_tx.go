@@ -288,14 +288,9 @@ func (t *Tx) GetAndDelete(ctx context.Context, key []byte) (_ []byte, _ bool, er
 		return nil, false, nil
 	}
 
-	rcs, err := t.DeleteCursorAtKey(ctx, key)
-	if err != nil || rcs == nil {
-		return nil, false, err
-	}
-
 	removedBcs, removedNod, err := t.removeFromRoot(ctx, key)
-	if err != nil {
-		return nil, true, err
+	if err != nil || removedBcs == nil {
+		return nil, false, err
 	}
 	val, err := t.nodeToValue(ctx, removedBcs, removedNod)
 	return val, true, err
