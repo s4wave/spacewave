@@ -449,7 +449,7 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 		return nil
 	}
 	sbBlk := sbCtor(true)
-	if sbBlk == nil {
+	if sbBlk == nil || sbBlk.IsNil() {
 		return nil
 	}
 	blkHandle := &handle{
