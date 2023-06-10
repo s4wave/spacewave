@@ -34,12 +34,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.17.1-0.20230524011900-310e9af7275e // indirect
-	github.com/aperturerobotics/controllerbus v0.27.5-0.20230526010830-3f56870c93ae // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230526080107-c71df279e3ef // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230523020937-4365df73a7a3 // indirect
+	github.com/aperturerobotics/bifrost v0.17.2 // indirect
+	github.com/aperturerobotics/controllerbus v0.28.1 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230610112557-d4ac7c5c3040 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230604042942-b4b7a77037da // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
-	github.com/aperturerobotics/util v1.5.0 // indirect
+	github.com/aperturerobotics/util v1.5.4 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -129,7 +129,7 @@ require (
 	github.com/ldez/tagliatelle v0.3.1 // indirect
 	github.com/leonklingele/grouper v1.1.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
-	github.com/libp2p/go-libp2p v0.27.3 // indirect
+	github.com/libp2p/go-libp2p v0.27.5 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
@@ -187,7 +187,7 @@ require (
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/securego/gosec/v2 v2.13.1 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
-	github.com/sirupsen/logrus v1.9.2 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sivchari/containedctx v1.0.2 // indirect
 	github.com/sivchari/nosnakecase v1.7.0 // indirect
 	github.com/sivchari/tenv v1.7.0 // indirect
