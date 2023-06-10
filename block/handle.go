@@ -121,8 +121,7 @@ func (r *refHandle) ToPort() (string, string) {
 }
 */
 
-// addParent adds a parent, calls removeParent first to ensure unique.
-// returns the removed parents (if any)
+// addParent adds a parent removing any existing parents from the source.
 func (h *handle) addParent(rh *refHandle) []*refHandle {
 	if rh.target != h {
 		return nil
@@ -132,7 +131,7 @@ func (h *handle) addParent(rh *refHandle) []*refHandle {
 	return out
 }
 
-// removeParent removes a parent.
+// removeParent removes parent references with oh as the source.
 func (h *handle) removeParent(oh *handle) []*refHandle {
 	var removed []*refHandle
 	for i := 0; i < len(h.parents); i++ {

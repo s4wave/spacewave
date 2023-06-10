@@ -464,10 +464,10 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 	return outCursor
 }
 
-// SetAsSubBlock sets the position the cursor points to as a sub-block of
-// another block. Clears any existing parent references. Internally, immediately
-// calls ApplySubBlock on the parent block. Marks the parent block as dirty if
-// the sub-block is already marked as dirty.
+// SetAsSubBlock sets the cursor position as a sub-block of another block.
+//
+// Clears any existing parent references.
+// Immediately calls ApplySubBlock on the parent block.
 //
 // May return ErrNotSubBlock or ErrUnexpectedType if the parent is not a block
 // with sub-blocks.
@@ -489,6 +489,7 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 		parent.pos == nil || parent.pos.blk == nil {
 		return ErrNilBlock
 	}
+
 	parentBlkWithSubBlocks, ok := parent.pos.blk.(BlockWithSubBlocks)
 	if !ok {
 		return ErrNotBlockWithSubBlocks
@@ -497,13 +498,32 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 	if !ok {
 		return ErrNotSubBlock
 	}
+
+	// check if we need to clear the old ref
+	prevRef := parent.pos.refHandles[refID]
+	if prevRef != nil {
+		if c.pos == prevRef.target && c.pos.isSubBlock {
+			// no changes: already set
+			return nil
+		}
+	}
+
+	// remove all parents
+	// sub-block cannot have multiple parents
+	_ = c.removeParent(nil)
+
+	// mark as sub-block and add parent
+	c.pos.isSubBlock = true
+	_ = c.addParent(parent, refID)
+
+	// apply sub-block
 	err := parentBlkWithSubBlocks.ApplySubBlock(refID, subBlk)
 	if err != nil {
 		return err
 	}
-	_ = c.removeParent(nil) // remove all parents
-	c.pos.isSubBlock = true
-	_ = c.addParent(parent, refID)
+
+	// we changed the parent, so mark it dirty
+	parent.markDirty()
 	return nil
 }
 
@@ -521,7 +541,12 @@ func (c *Cursor) ClearRef(refID uint32) {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
 	}
+	c.clearRef(refID)
+}
 
+// clearRef clears a reference removing the parent edge if necessary.
+// expects caller to lock c.t.mtx
+func (c *Cursor) clearRef(refID uint32) {
 	if c.pos.refHandles == nil {
 		return
 	}
@@ -529,12 +554,13 @@ func (c *Cursor) ClearRef(refID uint32) {
 	if !ok {
 		return
 	}
-	delete(c.pos.refHandles, refID)
 	// clear parent relation
 	if tgt := r.target; tgt != nil {
 		tgtCursor := newCursor(c.t, tgt, c.store)
 		tgtCursor.removeParent(c)
 	}
+	// clear ref handle
+	delete(c.pos.refHandles, refID)
 }
 
 // ClearAllRefs clears all references.
@@ -809,21 +835,29 @@ func (c *Cursor) addParent(parent *Cursor, refID uint32) *refHandle {
 		// self edge: not allowed
 		return nil
 	}
+	removedEdges := make([]*refHandle, 0, 4)
+	if parent.pos.refHandles == nil {
+		parent.pos.refHandles = make(map[uint32]*refHandle)
+	} else {
+		oldEdge := parent.pos.refHandles[refID]
+		if oldEdge != nil && oldEdge.target != nil {
+			removedEdges = append(
+				removedEdges,
+				oldEdge.target.removeParent(oldEdge.src)...,
+			)
+		}
+	}
 	nedge := &refHandle{
 		id:     refID,
 		src:    parent.pos,
 		target: c.pos,
 	}
-	removed := c.pos.addParent(nedge)
+	removedEdges = append(removedEdges, c.pos.addParent(nedge)...)
 	if c.t != nil && c.t.blockGraph != nil {
-		// if the edge already existed, remove it first
-		for _, ref := range removed {
+		for _, ref := range removedEdges {
 			c.t.blockGraph.RemoveEdge(ref.src.ID(), ref.target.ID())
 		}
 		c.t.blockGraph.SetEdge(nedge)
-	}
-	if parent.pos.refHandles == nil {
-		parent.pos.refHandles = make(map[uint32]*refHandle)
 	}
 	parent.pos.refHandles[refID] = nedge
 	if c.pos.dirty && !parent.pos.dirty {
@@ -854,6 +888,11 @@ func (c *Cursor) removeParent(parent *Cursor) []*refHandle {
 			c.t.blockGraph.RemoveEdge(ref.src.ID(), ref.target.ID())
 		}
 	}
+	for _, ref := range removed {
+		if ref.src.refHandles[ref.id] == ref {
+			delete(ref.src.refHandles, ref.id)
+		}
+	}
 	return removed
 }
 
@@ -864,11 +903,11 @@ func (c *Cursor) clearRefHandles() {
 		return
 	}
 	for refID, r := range c.pos.refHandles {
-		delete(c.pos.refHandles, refID)
 		if tgt := r.target; tgt != nil && c.t != nil {
 			tgtCursor := newCursor(c.t, tgt, c.store)
 			tgtCursor.removeParent(c)
 		}
+		delete(c.pos.refHandles, refID)
 	}
 }
 

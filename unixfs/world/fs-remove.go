@@ -23,7 +23,6 @@ func FsRemove(
 	ts time.Time,
 ) error {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
-	// perform the fs init operation
 	wOp := NewFsRemoveOp("", fsType, bpaths, ts)
 	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err

@@ -24,7 +24,6 @@ func FsSymlink(
 ) error {
 	bpath, tpath := unixfs_block.NewFSPath(path), unixfs_block.NewFSPath(tgtPath)
 	lnk := unixfs_block.NewFSSymlink(tpath)
-	// perform the fs init operation
 	wOp := NewFsSymlinkOp("", fsType, bpath, lnk, ts)
 	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err

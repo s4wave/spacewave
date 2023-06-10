@@ -28,7 +28,6 @@ func FsMknod(
 ) error {
 	tType := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
-	// perform the fs init operation
 	wOp := NewFsMknodOp("", fsType, bpaths, tType, permissions, ts)
 	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 	return err

@@ -2,11 +2,11 @@ package unixfs_block
 
 import (
 	"context"
-	"errors"
 	"sort"
 
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/pkg/errors"
 )
 
 // DirentSlice implements dirent slice functions.
@@ -58,22 +58,17 @@ func (d *DirentSlice) Swap(i, j int) {
 	}
 	dirents := *d.dirents
 
-	var iref, jref *block.Cursor
 	if d.bcs != nil {
-		iref = d.bcs.FollowSubBlock(uint32(i))
-		jref = d.bcs.FollowSubBlock(uint32(j))
-	}
-
-	// swap slice positions
-	p := dirents[i]
-	dirents[i] = dirents[j]
-	dirents[j] = p
-
-	if d.bcs != nil {
-		// swap & mark as dirty
+		// swap via setting sub-block
+		iref := d.bcs.FollowSubBlock(uint32(i))
+		jref := d.bcs.FollowSubBlock(uint32(j))
 		_ = iref.SetAsSubBlock(uint32(j), d.bcs)
 		_ = jref.SetAsSubBlock(uint32(i), d.bcs)
-		d.bcs.MarkDirty()
+	} else {
+		// swap slice positions directly
+		p := dirents[i]
+		dirents[i] = dirents[j]
+		dirents[j] = p
 	}
 }
 
@@ -212,16 +207,20 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 // ensures that the next node type is as expected
 // may return ErrOutOfBounds
 func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dirent, error) {
-	nodeRef, dirent, err := d.FollowDirentAsCursor(didx)
+	bcs, dirent, err := d.FollowDirentAsCursor(didx)
 	if err != nil {
 		return nil, dirent, err
 	}
 
-	node, err := FetchCheckFSNode(ctx, nodeRef, dirent.GetNodeType())
+	dnode, err := FetchCheckFSNode(ctx, bcs, dirent.GetNodeType())
 	if err != nil {
 		return nil, dirent, err
 	}
-	return newTxFSTree(ctx, nodeRef, node), dirent, nil
+	if dnode == nil {
+		return nil, nil, errors.Errorf("dirent returned empty fsnode: %s", dirent.GetName())
+	}
+
+	return newTxFSTree(ctx, bcs, dnode), dirent, nil
 }
 
 // RemoveDirents removes one or more directory entries.
@@ -338,8 +337,10 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 		return nil
 	}
 
+	// we already appended to the slice: mark the block as dirty
 	subBlk := d.bcs.FollowSubBlock(uint32(nextIdx))
-	subBlk.SetBlock(nent, true)
+	subBlk.MarkDirty()
+	// subBlk.SetBlock(nent, true)
 	return subBlk
 }
 

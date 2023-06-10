@@ -47,9 +47,8 @@ func NewFSTree(ctx context.Context, bcs *block.Cursor, ntype NodeType) (*FSTree,
 	return t, nil
 }
 
-// newTxFSTree constructs a new transaction-based fstree.
+// newTxFSTree constructs a new fstree with a node object.
 func newTxFSTree(ctx context.Context, bcs *block.Cursor, node *FSNode) *FSTree {
-	// btx = nil
 	return &FSTree{
 		ctx:  ctx,
 		node: node,
@@ -150,23 +149,21 @@ func (f *FSTree) Mknod(
 
 	var dnode *FSNode
 	var dnodeCs *block.Cursor
-	if initRefEmpty {
-		dnode = NewFSNode(nodeType, permissions, ts)
-		dnodeCs = dcs.FollowRef(2, nil)
-		dnodeCs.SetBlock(dnode, true)
-	} else {
-		// return the new node
+	if !initRefEmpty {
+		// follow the given ref to the node
 		dnode, dnodeCs, err = dirent.FollowNodeRef(f.ctx, dcs)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	// if the node is empty, create it.
 	if dnode == nil {
-		return nil, errors.Errorf(
-			"inode reference not found: %s",
-			dcs.GetRef().MarshalString(),
-		)
+		dnode = NewFSNode(nodeType, permissions, ts)
+		dnodeCs = dcs.FollowRef(2, nil)
+		dnodeCs.SetBlock(dnode, true)
 	}
+
 	return newTxFSTree(f.ctx, dnodeCs, dnode), nil
 }
 

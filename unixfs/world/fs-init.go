@@ -28,7 +28,6 @@ func FsInit(
 	overwrite bool,
 	ts time.Time,
 ) error {
-	// perform the fs init operation
 	initOp := NewFsInitOp(
 		objKey,
 		fsType,
