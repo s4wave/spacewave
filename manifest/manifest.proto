@@ -27,9 +27,11 @@ message Manifest {
   ManifestMeta meta = 1;
   // Entrypoint is the path in the dist fs to the entrypoint binary.
   string entrypoint = 2;
-  // DistFsRef references a UnixFS FS_NODE containing dist binaries.
+  // DistFsRef references a UnixFS FS_NODE containing distribution files.
+  // Dist files are checked out to the disk when starting the plugin.
   .block.BlockRef dist_fs_ref = 3;
   // AssetsFsRef references a UnixFS FS_NODE containing assets.
+  // Asset files are accessible by the plugin at runtime in-memory.
   .block.BlockRef assets_fs_ref = 4;
 }
 

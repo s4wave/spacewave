@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230606222153-63ee7ee7fbd2 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230610112557-d4ac7c5c3040 // master
 
 require (
 	github.com/evanw/esbuild v0.17.19 // latest

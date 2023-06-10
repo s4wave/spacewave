@@ -33,7 +33,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230606222153-63ee7ee7fbd2 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230610112557-d4ac7c5c3040 // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect

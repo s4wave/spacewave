@@ -37,11 +37,17 @@ export interface Manifest {
     | undefined;
   /** Entrypoint is the path in the dist fs to the entrypoint binary. */
   entrypoint: string;
-  /** DistFsRef references a UnixFS FS_NODE containing dist binaries. */
+  /**
+   * DistFsRef references a UnixFS FS_NODE containing distribution files.
+   * Dist files are checked out to the disk when starting the plugin.
+   */
   distFsRef:
     | BlockRef
     | undefined;
-  /** AssetsFsRef references a UnixFS FS_NODE containing assets. */
+  /**
+   * AssetsFsRef references a UnixFS FS_NODE containing assets.
+   * Asset files are accessible by the plugin at runtime in-memory.
+   */
   assetsFsRef: BlockRef | undefined;
 }
 

@@ -114,9 +114,11 @@ type Manifest struct {
 	Meta *ManifestMeta `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
 	// Entrypoint is the path in the dist fs to the entrypoint binary.
 	Entrypoint string `protobuf:"bytes,2,opt,name=entrypoint,proto3" json:"entrypoint,omitempty"`
-	// DistFsRef references a UnixFS FS_NODE containing dist binaries.
+	// DistFsRef references a UnixFS FS_NODE containing distribution files.
+	// Dist files are checked out to the disk when starting the plugin.
 	DistFsRef *block.BlockRef `protobuf:"bytes,3,opt,name=dist_fs_ref,json=distFsRef,proto3" json:"dist_fs_ref,omitempty"`
 	// AssetsFsRef references a UnixFS FS_NODE containing assets.
+	// Asset files are accessible by the plugin at runtime in-memory.
 	AssetsFsRef *block.BlockRef `protobuf:"bytes,4,opt,name=assets_fs_ref,json=assetsFsRef,proto3" json:"assets_fs_ref,omitempty"`
 }
 
