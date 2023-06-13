@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
-import { BlockRef } from '../../block/block.pb.js'
+import { Node } from './iavl/iavl.pb.js'
 
 export const protobufPackage = 'kvtx.block'
 
@@ -52,7 +52,7 @@ export interface KeyValueStore {
    * IavlRoot is the root node for the iavl tree.
    * KV_IMPL_TYPE_IAVL
    */
-  iavlRoot: BlockRef | undefined
+  iavlRoot: Node | undefined
 }
 
 function createBaseKeyValueStore(): KeyValueStore {
@@ -68,7 +68,7 @@ export const KeyValueStore = {
       writer.uint32(8).int32(message.implType)
     }
     if (message.iavlRoot !== undefined) {
-      BlockRef.encode(message.iavlRoot, writer.uint32(18).fork()).ldelim()
+      Node.encode(message.iavlRoot, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -93,7 +93,7 @@ export const KeyValueStore = {
             break
           }
 
-          message.iavlRoot = BlockRef.decode(reader, reader.uint32())
+          message.iavlRoot = Node.decode(reader, reader.uint32())
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -146,7 +146,7 @@ export const KeyValueStore = {
         ? kVImplTypeFromJSON(object.implType)
         : 0,
       iavlRoot: isSet(object.iavlRoot)
-        ? BlockRef.fromJSON(object.iavlRoot)
+        ? Node.fromJSON(object.iavlRoot)
         : undefined,
     }
   },
@@ -157,7 +157,7 @@ export const KeyValueStore = {
       (obj.implType = kVImplTypeToJSON(message.implType))
     message.iavlRoot !== undefined &&
       (obj.iavlRoot = message.iavlRoot
-        ? BlockRef.toJSON(message.iavlRoot)
+        ? Node.toJSON(message.iavlRoot)
         : undefined)
     return obj
   },
@@ -175,7 +175,7 @@ export const KeyValueStore = {
     message.implType = object.implType ?? 0
     message.iavlRoot =
       object.iavlRoot !== undefined && object.iavlRoot !== null
-        ? BlockRef.fromPartial(object.iavlRoot)
+        ? Node.fromPartial(object.iavlRoot)
         : undefined
     return message
   },

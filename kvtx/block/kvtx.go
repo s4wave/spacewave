@@ -73,9 +73,9 @@ func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Curso
 	impl := k.GetImplType()
 	switch impl {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
-		treeBcs := bcs.FollowRef(2, k.GetIavlRoot())
+		treeBcs := bcs.FollowSubBlock(2)
 		return iavl.NewTx(ctx, treeBcs, nil, write, func(ncs *block.Cursor) {
-			bcs.SetRef(2, ncs)
+			ncs.SetAsSubBlock(2, bcs)
 		})
 	default:
 		return nil, NewErrUnknownImpl(impl)

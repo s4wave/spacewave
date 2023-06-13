@@ -23,11 +23,9 @@ const (
 // returns an error if the typeID was not recognized.
 // if the string is empty, returns UNKNOWN.
 func TypeIDToFSType(typeID string) (FSType, error) {
-	if typeID == "" {
-		return FSType_FSType_UNKNOWN, nil
-	}
-
 	switch typeID {
+	case "":
+		return FSType_FSType_UNKNOWN, nil
 	case FSNodeTypeID:
 		return FSType_FSType_FS_NODE, nil
 	case FSObjectTypeID:
@@ -36,6 +34,23 @@ func TypeIDToFSType(typeID string) (FSType, error) {
 		return FSType_FSType_FS_HOST_VOLUME, nil
 	default:
 		return 0, errors.Wrap(ErrInvalidFSType, typeID)
+	}
+}
+
+// FSTypeToTypeID converts a FSType to a TypeID.
+// returns an error if the typeID was not recognized.
+func FSTypeToTypeID(fsType FSType) (string, error) {
+	switch fsType {
+	case FSType_FSType_UNKNOWN:
+		return "", nil
+	case FSType_FSType_FS_HOST_VOLUME:
+		return FSHostVolumeTypeID, nil
+	case FSType_FSType_FS_NODE:
+		return FSNodeTypeID, nil
+	case FSType_FSType_FS_OBJECT:
+		return FSObjectTypeID, nil
+	default:
+		return "", errors.Wrap(ErrInvalidFSType, fsType.String())
 	}
 }
 

@@ -42,37 +42,52 @@ func (k *KeyValueStore) UnmarshalBlock(data []byte) error {
 	return k.UnmarshalVT(data)
 }
 
-// ApplyBlockRef applies a ref change with a field id.
-// The reference may be nil if the child block is nil.
-func (k *KeyValueStore) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+// ApplySubBlock applies a sub-block change with a field id.
+func (k *KeyValueStore) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {
 	case 2:
-		k.IavlRoot = ptr
+		v, ok := next.(*iavl.Node)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		k.IavlRoot = v
 	}
 	return nil
 }
 
-// GetBlockRefs returns all block references by ID.
+// GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
-func (k *KeyValueStore) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	m := make(map[uint32]*block.BlockRef)
-	m[2] = k.GetIavlRoot()
-	return m, nil
+func (k *KeyValueStore) GetSubBlocks() map[uint32]block.SubBlock {
+	m := make(map[uint32]block.SubBlock)
+	switch k.GetImplType() {
+	case KVImplType_KV_IMPL_TYPE_IAVL:
+		m[2] = k.GetIavlRoot()
+	}
+	return m
 }
 
-// GetBlockRefCtor returns the constructor for the block at the ref id.
-// Return nil to indicate invalid ref ID or unknown.
-func (k *KeyValueStore) GetBlockRefCtor(id uint32) block.Ctor {
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (k *KeyValueStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 2:
-		return iavl.NewNodeBlock
+		return func(create bool) block.SubBlock {
+			x := k.IavlRoot
+			if x == nil && create {
+				x = &iavl.Node{}
+				k.IavlRoot = x
+			}
+			if x == nil {
+				return nil
+			}
+			return x
+		}
 	}
 	return nil
 }
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*KeyValueStore)(nil))
-	_ block.BlockWithRefs = ((*KeyValueStore)(nil))
+	_ block.Block              = ((*KeyValueStore)(nil))
+	_ block.BlockWithSubBlocks = ((*KeyValueStore)(nil))
 )

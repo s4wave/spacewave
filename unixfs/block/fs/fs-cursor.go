@@ -132,6 +132,7 @@ func (f *FSCursor) GetFSCursorOps(ctx context.Context) (unixfs.FSCursorOps, erro
 
 	f.fs.rmtx.Lock()
 	defer f.fs.rmtx.Unlock()
+
 	if f.fsCursorOps != nil {
 		if f.fsCursorOps.CheckReleased() {
 			f.fsCursorOps = nil
@@ -152,6 +153,7 @@ func (f *FSCursor) GetFSCursorOps(ctx context.Context) (unixfs.FSCursorOps, erro
 		f.lockedRelease(true)
 		return nil, unixfs_errors.ErrReleased
 	}
+
 	return v, nil
 }
 

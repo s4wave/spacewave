@@ -82,6 +82,8 @@ func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
 			}
 			x++
 		}
+
+		// append change set
 		changeSet := queue[i:x]
 		_, err = t.appendChangelogEntry(ctx, w, changeSet)
 		if err != nil {

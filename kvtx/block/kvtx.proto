@@ -2,6 +2,7 @@ syntax = "proto3";
 package kvtx.block;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
+import "github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.proto";
 
 // KeyValueStore is the root of a Key-Value Transaction store.
 // Allows for multiple options of underlying block structures.
@@ -11,7 +12,7 @@ message KeyValueStore {
 
   // IavlRoot is the root node for the iavl tree.
   // KV_IMPL_TYPE_IAVL
-  .block.BlockRef iavl_root = 2;
+  .kvtx.block.iavl.Node iavl_root = 2;
 }
 
 // KVImplType is the key/value store implementation enum.

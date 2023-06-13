@@ -2,7 +2,6 @@ package testbed
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
@@ -16,6 +15,7 @@ import (
 	"github.com/aperturerobotics/hydra/util/blockenc"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )
@@ -63,6 +63,8 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		switch o := opt.(type) {
 		case *withWorldVerbose:
 			worldVerbose = o.verbose
+		default:
+			return nil, errors.Errorf("unrecognized testbed option: %#v", o)
 		}
 	}
 

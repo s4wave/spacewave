@@ -415,9 +415,6 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// delete the object
-	if ws2 != nil {
-		ws2.Discard()
-	}
 	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err

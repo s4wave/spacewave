@@ -99,7 +99,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	defer handlerRel()
 
 	// perform a test request via LookupHTTPHandler
-	busHandler := bifrost_http.NewBusHandler(tb.Bus, "test-client", true)
+	busHandler := bifrost_http.NewBusHandler(tb.Bus, "test-client", false)
 	// /bar/ is stripped by the http handler
 	// /foo/ in the URL path is stripped by the http handler controller
 	// /bat/ is added by the FS prefixer.

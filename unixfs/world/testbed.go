@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/pkg/errors"
 )
 
 // BuildTestbed builds a unixfs world testbed.
@@ -56,6 +55,7 @@ func InitTestbed(
 
 	sender := tb.Volume.GetPeerID()
 	fsType := FSType_FSType_FS_NODE
+	typeID, _ := FSTypeToTypeID(fsType)
 	err := FsInit(
 		ctx,
 		ws,
@@ -72,16 +72,12 @@ func InitTestbed(
 	}
 
 	// check type
-	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
-	if err != nil {
+	if err := world_types.CheckObjectType(ctx, ws, objKey, typeID); err != nil {
 		return nil, err
-	}
-	if typeID != FSNodeTypeID {
-		return nil, errors.Errorf("expected type id %s but got %q", FSObjectTypeID, typeID)
 	}
 
 	// construct full fs
-	tb.Logger.Debugf("filesystem initialized w/ type: %s", typeID)
+	tb.Logger.Debug("filesystem initialized")
 	writer := NewFSWriter(ws, objKey, fsType, sender)
 	rootFSCursor := NewFSCursor(tb.Logger, ws, objKey, fsType, writer, watchWorldChanges)
 	ufs := unixfs.NewFS(ctx, tb.Logger, rootFSCursor, nil)

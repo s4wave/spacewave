@@ -110,12 +110,9 @@ func (t *Tx) ApplyWorldOp(
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
+	if err := ctx.Err(); err != nil {
 		return context.Canceled
-	default:
 	}
-
 	t.rmtx.Lock()
 	discarded := t.discarded
 	var err error

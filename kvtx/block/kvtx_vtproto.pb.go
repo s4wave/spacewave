@@ -9,7 +9,7 @@ import (
 	io "io"
 	bits "math/bits"
 
-	block "github.com/aperturerobotics/hydra/block"
+	iavl "github.com/aperturerobotics/hydra/kvtx/block/iavl"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -29,10 +29,10 @@ func (m *KeyValueStore) CloneVT() *KeyValueStore {
 		ImplType: m.ImplType,
 	}
 	if rhs := m.IavlRoot; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.BlockRef }); ok {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *iavl.Node }); ok {
 			r.IavlRoot = vtpb.CloneVT()
 		} else {
-			r.IavlRoot = proto.Clone(rhs).(*block.BlockRef)
+			r.IavlRoot = proto.Clone(rhs).(*iavl.Node)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -55,7 +55,7 @@ func (this *KeyValueStore) EqualVT(that *KeyValueStore) bool {
 	if this.ImplType != that.ImplType {
 		return false
 	}
-	if equal, ok := interface{}(this.IavlRoot).(interface{ EqualVT(*block.BlockRef) bool }); ok {
+	if equal, ok := interface{}(this.IavlRoot).(interface{ EqualVT(*iavl.Node) bool }); ok {
 		if !equal.EqualVT(that.IavlRoot) {
 			return false
 		}
@@ -250,7 +250,7 @@ func (m *KeyValueStore) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.IavlRoot == nil {
-				m.IavlRoot = &block.BlockRef{}
+				m.IavlRoot = &iavl.Node{}
 			}
 			if unmarshal, ok := interface{}(m.IavlRoot).(interface {
 				UnmarshalVT([]byte) error
