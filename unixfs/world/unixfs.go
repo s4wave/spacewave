@@ -70,9 +70,6 @@ func ValidateOrCreateFs(
 	var nroot block.Block
 	var nrootTypeID string
 	fsRef, err = world.AccessObject(ctx, accessState, fsRef, func(bcs *block.Cursor) error {
-		if fsRef.GetEmpty() {
-			bcs.SetBlock(nil, true)
-		}
 		currBlk, _ := bcs.GetBlock()
 		if bcs.GetRef().GetEmpty() && currBlk == nil {
 			// create new root
