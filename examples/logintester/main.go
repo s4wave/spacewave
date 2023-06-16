@@ -69,7 +69,8 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	entityID := "testuser"
-	domainID := "aperturerobotics.com"
+	domainID := "aperture.app"
+	domainName := "Aperture App"
 	hardcodedPassword := "testpassword"
 	entityUUID := uuid.NewV4().String()
 
@@ -155,7 +156,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tbServer.Bus,
 		resolver.NewLoadControllerWithConfig(&identity_static.Config{
-			DomainInfo: &identity_domain.DomainInfo{DomainId: domainID},
+			DomainInfo: &identity_domain.DomainInfo{DomainId: domainID, Name: domainName},
 			Entities: []*identity.Entity{
 				targetEntitySrc,
 			},
@@ -327,7 +328,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	le.Infof("successfully derived private key for peer id %s", derivedPeerIDStr)
-	expectedDerivedPeerID := "12D3KooWCLtgZtLwnrAo6hWpLsju9D68NAhkAs3jy6Xz4NEqtHnU"
+	expectedDerivedPeerID := "12D3KooWQLa43LNvQ2QjjzRYZaXaxtjJyNAvFajNTYNWmoN7ncX2"
 	if derivedPeerIDStr != expectedDerivedPeerID {
 		return errors.Errorf("expected peer id %s but got %s, must be a inconsistency in generation", expectedDerivedPeerID, derivedPeerIDStr)
 	}

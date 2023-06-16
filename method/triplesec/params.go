@@ -9,8 +9,11 @@ import (
 	"github.com/keybase/go-triplesec"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/blake2s"
+	"github.com/zeebo/blake3"
 )
+
+// encContext is the encryption context for blake3.
+var encContext = "aperture/auth 2023-06-15 06:45:32PM PDT auth/method/triplesec salt v1"
 
 // NewParameters constructs the parameters.
 func NewParameters(salt []byte, version uint32) *Parameters {
@@ -26,9 +29,9 @@ func BuildParametersWithUsernamePassword(version uint32, username string, passwo
 		[]byte(username),
 		[]byte(strconv.Itoa(int(version))),
 	}, []byte("-"))
-	saltData := blake2s.Sum256(saltSrc)
-	salt := saltData[:triplesec.SaltLen]
-	cipher, err := crypto_triplesec.BuildCipher(version, salt, password)
+	var salt [triplesec.SaltLen]byte
+	blake3.DeriveKey(encContext, saltSrc, salt[:])
+	cipher, err := crypto_triplesec.BuildCipher(version, salt[:], password)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -37,7 +40,7 @@ func BuildParametersWithUsernamePassword(version uint32, username string, passwo
 		return nil, nil, err
 	}
 	return &Parameters{
-		Salt:    salt,
+		Salt:    salt[:],
 		Version: version,
 	}, privKey, nil
 }

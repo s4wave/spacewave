@@ -4,18 +4,16 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/keybase/go-triplesec"
-	"golang.org/x/crypto/blake2s"
 )
 
 // TestBasicAuthenticate tests deterministic key derivation.
 func TestBasicAuthenticate(t *testing.T) {
 	method := NewTriplesecPassword()
-	salt := blake2s.Sum256([]byte("username"))
-	privKey, err := method.Authenticate(&Parameters{
-		Salt:    salt[:triplesec.SaltLen],
-		Version: 4,
-	}, []byte("password"))
+	params, _, err := BuildParametersWithUsernamePassword(4, "test username", []byte("test password"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	privKey, err := method.Authenticate(params, []byte("test password"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -27,7 +25,7 @@ func TestBasicAuthenticate(t *testing.T) {
 	t.Log(peerIDPretty)
 
 	// determinism check
-	expectedPeerID := "12D3KooWQ5r25i8wnUtXbB4rrRj5sqy51rt58NAvLcjEzcVBbAEB"
+	expectedPeerID := "12D3KooWNZcv3LvXM27oom23NN1CxiQHYFMXGC1gAmgcgLwsbocc"
 	if peerIDPretty != expectedPeerID {
 		t.Fatalf("expected peer ID %s", expectedPeerID)
 	}

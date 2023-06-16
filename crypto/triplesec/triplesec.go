@@ -8,8 +8,11 @@ import (
 	"github.com/keybase/go-triplesec"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/blake2s"
+	"github.com/zeebo/blake3"
 )
+
+// encContext is the encryption context for blake3.
+var encContext = "aperture/auth 2023-06-15 06:44:53PM PDT auth/crypto/triplesec cipher v1"
 
 // DeriveSalt derives the salt from a seed of any length.
 func DeriveSalt(seed []byte) ([]byte, error) {
@@ -20,7 +23,6 @@ func DeriveSalt(seed []byte) ([]byte, error) {
 
 // BuildCipher builds the cipher from the parameters.
 func BuildCipher(version uint32, salt, passphrase []byte) (*triplesec.Cipher, error) {
-	passKey := blake2s.Sum256(passphrase)
 	if len(salt) != triplesec.SaltLen {
 		return nil, errors.Errorf("salt length must be %d", triplesec.SaltLen)
 	}
@@ -31,6 +33,8 @@ func BuildCipher(version uint32, salt, passphrase []byte) (*triplesec.Cipher, er
 	case ver > triplesec.LatestVersion:
 		return nil, errors.Errorf("unknown triplesec version: %v", ver)
 	}
+	var passKey [32]byte
+	blake3.DeriveKey(encContext, passphrase, passKey[:])
 	return triplesec.NewCipher(passKey[:], salt, ver)
 }
 

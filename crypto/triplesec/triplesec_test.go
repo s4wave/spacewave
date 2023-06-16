@@ -44,9 +44,11 @@ func TestBasicEncryptDecrypt(t *testing.T) {
 
 // expectedE2EKey is the expected result of the end to end keygen.
 var expectedE2EKey = `
-7ga8UGbuqQP5mpiejSxZg4nccRWB5GjXiTbwQDSwPt7apAY943Pv3yXwbfmCvRsQG5h3JozQiTSZE
-hcSjYZJuXLtKdpjTyHRAfTerxHczQfturJvGXVPcaH9ooNysaE3JCdxsrtVu72MbZ2dSPnn32vPhe
-CkJ598NqBLiM38jqor56Sw7vJG4x7ngfZiyLB1Lu9rMVGGcLxVM3WqcLPP3oyHqKw
+2cYEegvVAntfRxA49wUQV2eXDNiWzBCuHjPybVWtyb6bV4QWPXF
+BaiFriyvV52x1yAx9eh8YgvGqaJPqt3onQTCs88rbwYgfpPKqJn
+G8BoH896QDSTA2nJP6uLB4HDbFVkh2RcXkGgvURKUtRKY52QSEF
+zTYcKSniWLQzuDk2PKGJ683mUgHCcz9DH8EDxt1aspv1rn87QL2
+v3sTYmeCHKu66zZ
 `
 
 // TestEndToEnd tests an end to end usage.
