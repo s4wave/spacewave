@@ -22,7 +22,7 @@ export interface Parameters {
 export interface Config {}
 
 function createBaseParameters(): Parameters {
-  return { salt: new Uint8Array(), version: 0 }
+  return { salt: new Uint8Array(0), version: 0 }
 }
 
 export const Parameters = {
@@ -110,7 +110,7 @@ export const Parameters = {
     return {
       salt: isSet(object.salt)
         ? bytesFromBase64(object.salt)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       version: isSet(object.version) ? Number(object.version) : 0,
     }
   },
@@ -119,7 +119,7 @@ export const Parameters = {
     const obj: any = {}
     message.salt !== undefined &&
       (obj.salt = base64FromBytes(
-        message.salt !== undefined ? message.salt : new Uint8Array()
+        message.salt !== undefined ? message.salt : new Uint8Array(0)
       ))
     message.version !== undefined && (obj.version = Math.round(message.version))
     return obj
@@ -133,7 +133,7 @@ export const Parameters = {
     object: I
   ): Parameters {
     const message = createBaseParameters()
-    message.salt = object.salt ?? new Uint8Array()
+    message.salt = object.salt ?? new Uint8Array(0)
     message.version = object.version ?? 0
     return message
   },
