@@ -292,11 +292,13 @@ export interface HandleWebViewService {
   ): Promise<HandleWebViewResponse>
 }
 
+export const HandleWebViewServiceServiceID =
+  'web.view.handler.HandleWebViewService'
 export class HandleWebViewServiceClientImpl implements HandleWebViewService {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.view.handler.HandleWebViewService'
+    this.service = opts?.service || HandleWebViewServiceServiceID
     this.rpc = rpc
     this.HandleWebView = this.HandleWebView.bind(this)
   }

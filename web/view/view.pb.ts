@@ -125,7 +125,12 @@ export interface RemoveWebViewResponse {
 }
 
 function createBaseSetRenderModeRequest(): SetRenderModeRequest {
-  return { renderMode: 0, wait: false, scriptPath: '', props: new Uint8Array() }
+  return {
+    renderMode: 0,
+    wait: false,
+    scriptPath: '',
+    props: new Uint8Array(0),
+  }
 }
 
 export const SetRenderModeRequest = {
@@ -241,7 +246,7 @@ export const SetRenderModeRequest = {
       scriptPath: isSet(object.scriptPath) ? String(object.scriptPath) : '',
       props: isSet(object.props)
         ? bytesFromBase64(object.props)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -253,7 +258,7 @@ export const SetRenderModeRequest = {
     message.scriptPath !== undefined && (obj.scriptPath = message.scriptPath)
     message.props !== undefined &&
       (obj.props = base64FromBytes(
-        message.props !== undefined ? message.props : new Uint8Array()
+        message.props !== undefined ? message.props : new Uint8Array(0)
       ))
     return obj
   },
@@ -271,7 +276,7 @@ export const SetRenderModeRequest = {
     message.renderMode = object.renderMode ?? 0
     message.wait = object.wait ?? false
     message.scriptPath = object.scriptPath ?? ''
-    message.props = object.props ?? new Uint8Array()
+    message.props = object.props ?? new Uint8Array(0)
     return message
   },
 }
@@ -1061,11 +1066,12 @@ export const RemoveWebViewResponse = {
  */
 export interface WebViewHost {}
 
+export const WebViewHostServiceID = 'web.view.WebViewHost'
 export class WebViewHostClientImpl implements WebViewHost {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.view.WebViewHost'
+    this.service = opts?.service || WebViewHostServiceID
     this.rpc = rpc
   }
 }
@@ -1101,11 +1107,12 @@ export interface WebView {
   ): Promise<RemoveWebViewResponse>
 }
 
+export const WebViewServiceID = 'web.view.WebView'
 export class WebViewClientImpl implements WebView {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.view.WebView'
+    this.service = opts?.service || WebViewServiceID
     this.rpc = rpc
     this.SetRenderMode = this.SetRenderMode.bind(this)
     this.SetHtmlLinks = this.SetHtmlLinks.bind(this)
@@ -1208,11 +1215,12 @@ export interface AccessWebViews {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const AccessWebViewsServiceID = 'web.view.AccessWebViews'
 export class AccessWebViewsClientImpl implements AccessWebViews {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.view.AccessWebViews'
+    this.service = opts?.service || AccessWebViewsServiceID
     this.rpc = rpc
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }

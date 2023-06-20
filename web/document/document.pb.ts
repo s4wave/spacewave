@@ -636,11 +636,12 @@ export interface WebDocumentHost {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const WebDocumentHostServiceID = 'web.document.WebDocumentHost'
 export class WebDocumentHostClientImpl implements WebDocumentHost {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.document.WebDocumentHost'
+    this.service = opts?.service || WebDocumentHostServiceID
     this.rpc = rpc
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
@@ -713,11 +714,12 @@ export interface WebDocument {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const WebDocumentServiceID = 'web.document.WebDocument'
 export class WebDocumentClientImpl implements WebDocument {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.document.WebDocument'
+    this.service = opts?.service || WebDocumentServiceID
     this.rpc = rpc
     this.WatchWebDocumentStatus = this.WatchWebDocumentStatus.bind(this)
     this.CreateWebView = this.CreateWebView.bind(this)

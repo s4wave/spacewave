@@ -691,7 +691,7 @@ export const FetchRequestInfo_HeadersEntry = {
 }
 
 function createBaseFetchRequestData(): FetchRequestData {
-  return { data: new Uint8Array(), done: false }
+  return { data: new Uint8Array(0), done: false }
 }
 
 export const FetchRequestData = {
@@ -779,7 +779,7 @@ export const FetchRequestData = {
     return {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       done: isSet(object.done) ? Boolean(object.done) : false,
     }
   },
@@ -788,7 +788,7 @@ export const FetchRequestData = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.done !== undefined && (obj.done = message.done)
     return obj
@@ -804,7 +804,7 @@ export const FetchRequestData = {
     object: I
   ): FetchRequestData {
     const message = createBaseFetchRequestData()
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.done = object.done ?? false
     return message
   },
@@ -1297,7 +1297,7 @@ export const ResponseInfo_HeadersEntry = {
 }
 
 function createBaseResponseData(): ResponseData {
-  return { data: new Uint8Array(), done: false }
+  return { data: new Uint8Array(0), done: false }
 }
 
 export const ResponseData = {
@@ -1385,7 +1385,7 @@ export const ResponseData = {
     return {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       done: isSet(object.done) ? Boolean(object.done) : false,
     }
   },
@@ -1394,7 +1394,7 @@ export const ResponseData = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.done !== undefined && (obj.done = message.done)
     return obj
@@ -1410,7 +1410,7 @@ export const ResponseData = {
     object: I
   ): ResponseData {
     const message = createBaseResponseData()
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.done = object.done ?? false
     return message
   },
@@ -1425,11 +1425,12 @@ export interface FetchService {
   ): AsyncIterable<FetchResponse>
 }
 
+export const FetchServiceServiceID = 'web.fetch.FetchService'
 export class FetchServiceClientImpl implements FetchService {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.fetch.FetchService'
+    this.service = opts?.service || FetchServiceServiceID
     this.rpc = rpc
     this.Fetch = this.Fetch.bind(this)
   }

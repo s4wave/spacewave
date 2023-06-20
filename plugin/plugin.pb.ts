@@ -782,11 +782,12 @@ export interface PluginHost {
   PluginRpc(request: AsyncIterable<RpcStreamPacket>, abortSignal?: AbortSignal): AsyncIterable<RpcStreamPacket>;
 }
 
+export const PluginHostServiceID = "bldr.plugin.PluginHost";
 export class PluginHostClientImpl implements PluginHost {
   private readonly rpc: Rpc;
   private readonly service: string;
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || "bldr.plugin.PluginHost";
+    this.service = opts?.service || PluginHostServiceID;
     this.rpc = rpc;
     this.GetPluginInfo = this.GetPluginInfo.bind(this);
     this.ExecController = this.ExecController.bind(this);
@@ -880,11 +881,12 @@ export interface Plugin {
   PluginRpc(request: AsyncIterable<RpcStreamPacket>, abortSignal?: AbortSignal): AsyncIterable<RpcStreamPacket>;
 }
 
+export const PluginServiceID = "bldr.plugin.Plugin";
 export class PluginClientImpl implements Plugin {
   private readonly rpc: Rpc;
   private readonly service: string;
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || "bldr.plugin.Plugin";
+    this.service = opts?.service || PluginServiceID;
     this.rpc = rpc;
     this.PluginRpc = this.PluginRpc.bind(this);
   }

@@ -414,7 +414,7 @@ export const BuilderResult = {
 };
 
 function createBaseInputManifest(): InputManifest {
-  return { files: [], metadata: new Uint8Array() };
+  return { files: [], metadata: new Uint8Array(0) };
 }
 
 export const InputManifest = {
@@ -493,7 +493,7 @@ export const InputManifest = {
   fromJSON(object: any): InputManifest {
     return {
       files: Array.isArray(object?.files) ? object.files.map((e: any) => InputManifest_File.fromJSON(e)) : [],
-      metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(),
+      metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(0),
     };
   },
 
@@ -505,7 +505,7 @@ export const InputManifest = {
       obj.files = [];
     }
     message.metadata !== undefined &&
-      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array()));
+      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array(0)));
     return obj;
   },
 
@@ -516,13 +516,13 @@ export const InputManifest = {
   fromPartial<I extends Exact<DeepPartial<InputManifest>, I>>(object: I): InputManifest {
     const message = createBaseInputManifest();
     message.files = object.files?.map((e) => InputManifest_File.fromPartial(e)) || [];
-    message.metadata = object.metadata ?? new Uint8Array();
+    message.metadata = object.metadata ?? new Uint8Array(0);
     return message;
   },
 };
 
 function createBaseInputManifest_File(): InputManifest_File {
-  return { path: "", metadata: new Uint8Array() };
+  return { path: "", metadata: new Uint8Array(0) };
 }
 
 export const InputManifest_File = {
@@ -603,7 +603,7 @@ export const InputManifest_File = {
   fromJSON(object: any): InputManifest_File {
     return {
       path: isSet(object.path) ? String(object.path) : "",
-      metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(),
+      metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(0),
     };
   },
 
@@ -611,7 +611,7 @@ export const InputManifest_File = {
     const obj: any = {};
     message.path !== undefined && (obj.path = message.path);
     message.metadata !== undefined &&
-      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array()));
+      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array(0)));
     return obj;
   },
 
@@ -622,7 +622,7 @@ export const InputManifest_File = {
   fromPartial<I extends Exact<DeepPartial<InputManifest_File>, I>>(object: I): InputManifest_File {
     const message = createBaseInputManifest_File();
     message.path = object.path ?? "";
-    message.metadata = object.metadata ?? new Uint8Array();
+    message.metadata = object.metadata ?? new Uint8Array(0);
     return message;
   },
 };

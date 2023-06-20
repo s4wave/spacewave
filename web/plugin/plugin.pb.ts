@@ -580,11 +580,12 @@ export interface WebPlugin {
   ): AsyncIterable<HandleRpcViaPluginResponse>
 }
 
+export const WebPluginServiceID = 'bldr.web.plugin.WebPlugin'
 export class WebPluginClientImpl implements WebPlugin {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'bldr.web.plugin.WebPlugin'
+    this.service = opts?.service || WebPluginServiceID
     this.rpc = rpc
     this.HandleWebViewViaPlugin = this.HandleWebViewViaPlugin.bind(this)
     this.HandleRpcViaPlugin = this.HandleRpcViaPlugin.bind(this)

@@ -16,11 +16,12 @@ export interface ServiceWorkerHost {
   ): AsyncIterable<FetchResponse>
 }
 
+export const ServiceWorkerHostServiceID = 'web.runtime.sw.ServiceWorkerHost'
 export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.runtime.sw.ServiceWorkerHost'
+    this.service = opts?.service || ServiceWorkerHostServiceID
     this.rpc = rpc
     this.Fetch = this.Fetch.bind(this)
   }

@@ -1165,11 +1165,12 @@ export interface WebRuntimeHost {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const WebRuntimeHostServiceID = 'web.runtime.WebRuntimeHost'
 export class WebRuntimeHostClientImpl implements WebRuntimeHost {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.runtime.WebRuntimeHost'
+    this.service = opts?.service || WebRuntimeHostServiceID
     this.rpc = rpc
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
@@ -1282,11 +1283,12 @@ export interface WebRuntime {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const WebRuntimeServiceID = 'web.runtime.WebRuntime'
 export class WebRuntimeClientImpl implements WebRuntime {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'web.runtime.WebRuntime'
+    this.service = opts?.service || WebRuntimeServiceID
     this.rpc = rpc
     this.WatchWebRuntimeStatus = this.WatchWebRuntimeStatus.bind(this)
     this.CreateWebDocument = this.CreateWebDocument.bind(this)
