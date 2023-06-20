@@ -89,11 +89,12 @@ export const Config = {
 /** ForgeDaemonService is the control service for a daemon, contacted by the CLI. */
 export interface ForgeDaemonService {}
 
+export const ForgeDaemonServiceServiceName = 'forge.api.ForgeDaemonService'
 export class ForgeDaemonServiceClientImpl implements ForgeDaemonService {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'forge.api.ForgeDaemonService'
+    this.service = opts?.service || ForgeDaemonServiceServiceName
     this.rpc = rpc
   }
 }
