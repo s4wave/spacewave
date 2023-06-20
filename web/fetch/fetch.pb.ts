@@ -1425,12 +1425,12 @@ export interface FetchService {
   ): AsyncIterable<FetchResponse>
 }
 
-export const FetchServiceServiceID = 'web.fetch.FetchService'
+export const FetchServiceServiceName = 'web.fetch.FetchService'
 export class FetchServiceClientImpl implements FetchService {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || FetchServiceServiceID
+    this.service = opts?.service || FetchServiceServiceName
     this.rpc = rpc
     this.Fetch = this.Fetch.bind(this)
   }

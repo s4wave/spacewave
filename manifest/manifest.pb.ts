@@ -768,12 +768,12 @@ export interface ManifestFetch {
   FetchManifest(request: FetchManifestRequest, abortSignal?: AbortSignal): Promise<FetchManifestResponse>;
 }
 
-export const ManifestFetchServiceID = "bldr.manifest.ManifestFetch";
+export const ManifestFetchServiceName = "bldr.manifest.ManifestFetch";
 export class ManifestFetchClientImpl implements ManifestFetch {
   private readonly rpc: Rpc;
   private readonly service: string;
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || ManifestFetchServiceID;
+    this.service = opts?.service || ManifestFetchServiceName;
     this.rpc = rpc;
     this.FetchManifest = this.FetchManifest.bind(this);
   }

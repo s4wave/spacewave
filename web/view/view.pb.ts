@@ -1066,12 +1066,12 @@ export const RemoveWebViewResponse = {
  */
 export interface WebViewHost {}
 
-export const WebViewHostServiceID = 'web.view.WebViewHost'
+export const WebViewHostServiceName = 'web.view.WebViewHost'
 export class WebViewHostClientImpl implements WebViewHost {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || WebViewHostServiceID
+    this.service = opts?.service || WebViewHostServiceName
     this.rpc = rpc
   }
 }
@@ -1107,12 +1107,12 @@ export interface WebView {
   ): Promise<RemoveWebViewResponse>
 }
 
-export const WebViewServiceID = 'web.view.WebView'
+export const WebViewServiceName = 'web.view.WebView'
 export class WebViewClientImpl implements WebView {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || WebViewServiceID
+    this.service = opts?.service || WebViewServiceName
     this.rpc = rpc
     this.SetRenderMode = this.SetRenderMode.bind(this)
     this.SetHtmlLinks = this.SetHtmlLinks.bind(this)
@@ -1215,12 +1215,12 @@ export interface AccessWebViews {
   ): AsyncIterable<RpcStreamPacket>
 }
 
-export const AccessWebViewsServiceID = 'web.view.AccessWebViews'
+export const AccessWebViewsServiceName = 'web.view.AccessWebViews'
 export class AccessWebViewsClientImpl implements AccessWebViews {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || AccessWebViewsServiceID
+    this.service = opts?.service || AccessWebViewsServiceName
     this.rpc = rpc
     this.WebViewRpc = this.WebViewRpc.bind(this)
   }
