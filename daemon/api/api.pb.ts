@@ -898,7 +898,7 @@ function createBaseBucketOpRequest(): BucketOpRequest {
     bucketOpArgs: undefined,
     blockRef: undefined,
     putOpts: undefined,
-    data: new Uint8Array(),
+    data: new Uint8Array(0),
   }
 }
 
@@ -1030,7 +1030,7 @@ export const BucketOpRequest = {
         : undefined,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -1051,7 +1051,7 @@ export const BucketOpRequest = {
         : undefined)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     return obj
   },
@@ -1079,13 +1079,13 @@ export const BucketOpRequest = {
       object.putOpts !== undefined && object.putOpts !== null
         ? PutOpts.fromPartial(object.putOpts)
         : undefined
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     return message
   },
 }
 
 function createBaseBucketOpResponse(): BucketOpResponse {
-  return { event: undefined, data: new Uint8Array(), found: false }
+  return { event: undefined, data: new Uint8Array(0), found: false }
 }
 
 export const BucketOpResponse = {
@@ -1184,7 +1184,7 @@ export const BucketOpResponse = {
       event: isSet(object.event) ? Event.fromJSON(object.event) : undefined,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       found: isSet(object.found) ? Boolean(object.found) : false,
     }
   },
@@ -1195,7 +1195,7 @@ export const BucketOpResponse = {
       (obj.event = message.event ? Event.toJSON(message.event) : undefined)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.found !== undefined && (obj.found = message.found)
     return obj
@@ -1215,14 +1215,20 @@ export const BucketOpResponse = {
       object.event !== undefined && object.event !== null
         ? Event.fromPartial(object.event)
         : undefined
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.found = object.found ?? false
     return message
   },
 }
 
 function createBaseObjectStoreOpRequest(): ObjectStoreOpRequest {
-  return { op: 0, volumeId: '', storeName: '', key: '', data: new Uint8Array() }
+  return {
+    op: 0,
+    volumeId: '',
+    storeName: '',
+    key: '',
+    data: new Uint8Array(0),
+  }
 }
 
 export const ObjectStoreOpRequest = {
@@ -1347,7 +1353,7 @@ export const ObjectStoreOpRequest = {
       key: isSet(object.key) ? String(object.key) : '',
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -1359,7 +1365,7 @@ export const ObjectStoreOpRequest = {
     message.key !== undefined && (obj.key = message.key)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     return obj
   },
@@ -1378,13 +1384,13 @@ export const ObjectStoreOpRequest = {
     message.volumeId = object.volumeId ?? ''
     message.storeName = object.storeName ?? ''
     message.key = object.key ?? ''
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     return message
   },
 }
 
 function createBaseObjectStoreOpResponse(): ObjectStoreOpResponse {
-  return { data: new Uint8Array(), found: false, keys: [] }
+  return { data: new Uint8Array(0), found: false, keys: [] }
 }
 
 export const ObjectStoreOpResponse = {
@@ -1485,7 +1491,7 @@ export const ObjectStoreOpResponse = {
     return {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       found: isSet(object.found) ? Boolean(object.found) : false,
       keys: Array.isArray(object?.keys)
         ? object.keys.map((e: any) => String(e))
@@ -1497,7 +1503,7 @@ export const ObjectStoreOpResponse = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.found !== undefined && (obj.found = message.found)
     if (message.keys) {
@@ -1518,7 +1524,7 @@ export const ObjectStoreOpResponse = {
     object: I
   ): ObjectStoreOpResponse {
     const message = createBaseObjectStoreOpResponse()
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.found = object.found ?? false
     message.keys = object.keys?.map((e) => e) || []
     return message
@@ -1554,11 +1560,12 @@ export interface HydraDaemonService {
   ): Promise<ObjectStoreOpResponse>
 }
 
+export const HydraDaemonServiceServiceName = 'hydra.api.HydraDaemonService'
 export class HydraDaemonServiceClientImpl implements HydraDaemonService {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'hydra.api.HydraDaemonService'
+    this.service = opts?.service || HydraDaemonServiceServiceName
     this.rpc = rpc
     this.ListVolumes = this.ListVolumes.bind(this)
     this.ListBuckets = this.ListBuckets.bind(this)

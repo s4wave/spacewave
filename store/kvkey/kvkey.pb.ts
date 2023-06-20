@@ -50,14 +50,14 @@ export interface Config {
 
 function createBaseConfig(): Config {
   return {
-    prefix: new Uint8Array(),
-    bucketConfigPrefix: new Uint8Array(),
-    peerPrivKey: new Uint8Array(),
-    blockPrefix: new Uint8Array(),
-    objectStorePrefix: new Uint8Array(),
-    mqueuePrefix: new Uint8Array(),
-    mqueueMetaPrefix: new Uint8Array(),
-    bucketMqueuePrefix: new Uint8Array(),
+    prefix: new Uint8Array(0),
+    bucketConfigPrefix: new Uint8Array(0),
+    peerPrivKey: new Uint8Array(0),
+    blockPrefix: new Uint8Array(0),
+    objectStorePrefix: new Uint8Array(0),
+    mqueuePrefix: new Uint8Array(0),
+    mqueueMetaPrefix: new Uint8Array(0),
+    bucketMqueuePrefix: new Uint8Array(0),
   }
 }
 
@@ -204,28 +204,28 @@ export const Config = {
     return {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       bucketConfigPrefix: isSet(object.bucketConfigPrefix)
         ? bytesFromBase64(object.bucketConfigPrefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       peerPrivKey: isSet(object.peerPrivKey)
         ? bytesFromBase64(object.peerPrivKey)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       blockPrefix: isSet(object.blockPrefix)
         ? bytesFromBase64(object.blockPrefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       objectStorePrefix: isSet(object.objectStorePrefix)
         ? bytesFromBase64(object.objectStorePrefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       mqueuePrefix: isSet(object.mqueuePrefix)
         ? bytesFromBase64(object.mqueuePrefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       mqueueMetaPrefix: isSet(object.mqueueMetaPrefix)
         ? bytesFromBase64(object.mqueueMetaPrefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       bucketMqueuePrefix: isSet(object.bucketMqueuePrefix)
         ? bytesFromBase64(object.bucketMqueuePrefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -233,49 +233,49 @@ export const Config = {
     const obj: any = {}
     message.prefix !== undefined &&
       (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array()
+        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
       ))
     message.bucketConfigPrefix !== undefined &&
       (obj.bucketConfigPrefix = base64FromBytes(
         message.bucketConfigPrefix !== undefined
           ? message.bucketConfigPrefix
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.peerPrivKey !== undefined &&
       (obj.peerPrivKey = base64FromBytes(
         message.peerPrivKey !== undefined
           ? message.peerPrivKey
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.blockPrefix !== undefined &&
       (obj.blockPrefix = base64FromBytes(
         message.blockPrefix !== undefined
           ? message.blockPrefix
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.objectStorePrefix !== undefined &&
       (obj.objectStorePrefix = base64FromBytes(
         message.objectStorePrefix !== undefined
           ? message.objectStorePrefix
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.mqueuePrefix !== undefined &&
       (obj.mqueuePrefix = base64FromBytes(
         message.mqueuePrefix !== undefined
           ? message.mqueuePrefix
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.mqueueMetaPrefix !== undefined &&
       (obj.mqueueMetaPrefix = base64FromBytes(
         message.mqueueMetaPrefix !== undefined
           ? message.mqueueMetaPrefix
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.bucketMqueuePrefix !== undefined &&
       (obj.bucketMqueuePrefix = base64FromBytes(
         message.bucketMqueuePrefix !== undefined
           ? message.bucketMqueuePrefix
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     return obj
   },
@@ -286,14 +286,14 @@ export const Config = {
 
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.prefix = object.prefix ?? new Uint8Array()
-    message.bucketConfigPrefix = object.bucketConfigPrefix ?? new Uint8Array()
-    message.peerPrivKey = object.peerPrivKey ?? new Uint8Array()
-    message.blockPrefix = object.blockPrefix ?? new Uint8Array()
-    message.objectStorePrefix = object.objectStorePrefix ?? new Uint8Array()
-    message.mqueuePrefix = object.mqueuePrefix ?? new Uint8Array()
-    message.mqueueMetaPrefix = object.mqueueMetaPrefix ?? new Uint8Array()
-    message.bucketMqueuePrefix = object.bucketMqueuePrefix ?? new Uint8Array()
+    message.prefix = object.prefix ?? new Uint8Array(0)
+    message.bucketConfigPrefix = object.bucketConfigPrefix ?? new Uint8Array(0)
+    message.peerPrivKey = object.peerPrivKey ?? new Uint8Array(0)
+    message.blockPrefix = object.blockPrefix ?? new Uint8Array(0)
+    message.objectStorePrefix = object.objectStorePrefix ?? new Uint8Array(0)
+    message.mqueuePrefix = object.mqueuePrefix ?? new Uint8Array(0)
+    message.mqueueMetaPrefix = object.mqueueMetaPrefix ?? new Uint8Array(0)
+    message.bucketMqueuePrefix = object.bucketMqueuePrefix ?? new Uint8Array(0)
     return message
   },
 }

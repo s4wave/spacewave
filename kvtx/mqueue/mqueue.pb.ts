@@ -413,7 +413,7 @@ export const MQQueueMeta_MetaEntry = {
 }
 
 function createBaseMQMessageWrapper(): MQMessageWrapper {
-  return { timestamp: undefined, data: new Uint8Array() }
+  return { timestamp: undefined, data: new Uint8Array(0) }
 }
 
 export const MQMessageWrapper = {
@@ -504,7 +504,7 @@ export const MQMessageWrapper = {
         : undefined,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -516,7 +516,7 @@ export const MQMessageWrapper = {
         : undefined)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     return obj
   },
@@ -535,7 +535,7 @@ export const MQMessageWrapper = {
       object.timestamp !== undefined && object.timestamp !== null
         ? Timestamp.fromPartial(object.timestamp)
         : undefined
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     return message
   },
 }

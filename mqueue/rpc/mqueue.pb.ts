@@ -132,7 +132,7 @@ export interface DeleteQueueResponse {
 }
 
 function createBaseRmMqueueRequest(): RmMqueueRequest {
-  return { mqueueId: new Uint8Array() }
+  return { mqueueId: new Uint8Array(0) }
 }
 
 export const RmMqueueRequest = {
@@ -210,7 +210,7 @@ export const RmMqueueRequest = {
     return {
       mqueueId: isSet(object.mqueueId)
         ? bytesFromBase64(object.mqueueId)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -218,7 +218,7 @@ export const RmMqueueRequest = {
     const obj: any = {}
     message.mqueueId !== undefined &&
       (obj.mqueueId = base64FromBytes(
-        message.mqueueId !== undefined ? message.mqueueId : new Uint8Array()
+        message.mqueueId !== undefined ? message.mqueueId : new Uint8Array(0)
       ))
     return obj
   },
@@ -233,7 +233,7 @@ export const RmMqueueRequest = {
     object: I
   ): RmMqueueRequest {
     const message = createBaseRmMqueueRequest()
-    message.mqueueId = object.mqueueId ?? new Uint8Array()
+    message.mqueueId = object.mqueueId ?? new Uint8Array(0)
     return message
   },
 }
@@ -339,7 +339,7 @@ export const RmMqueueResponse = {
 }
 
 function createBaseListMqueuesRequest(): ListMqueuesRequest {
-  return { prefix: new Uint8Array(), filled: false }
+  return { prefix: new Uint8Array(0), filled: false }
 }
 
 export const ListMqueuesRequest = {
@@ -427,7 +427,7 @@ export const ListMqueuesRequest = {
     return {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       filled: isSet(object.filled) ? Boolean(object.filled) : false,
     }
   },
@@ -436,7 +436,7 @@ export const ListMqueuesRequest = {
     const obj: any = {}
     message.prefix !== undefined &&
       (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array()
+        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
       ))
     message.filled !== undefined && (obj.filled = message.filled)
     return obj
@@ -452,7 +452,7 @@ export const ListMqueuesRequest = {
     object: I
   ): ListMqueuesRequest {
     const message = createBaseListMqueuesRequest()
-    message.prefix = object.prefix ?? new Uint8Array()
+    message.prefix = object.prefix ?? new Uint8Array(0)
     message.filled = object.filled ?? false
     return message
   },
@@ -557,7 +557,7 @@ export const ListMqueuesResponse = {
     message.error !== undefined && (obj.error = message.error)
     if (message.mqueueIds) {
       obj.mqueueIds = message.mqueueIds.map((e) =>
-        base64FromBytes(e !== undefined ? e : new Uint8Array())
+        base64FromBytes(e !== undefined ? e : new Uint8Array(0))
       )
     } else {
       obj.mqueueIds = []
@@ -994,7 +994,7 @@ export const AckResponse = {
 }
 
 function createBasePushRequest(): PushRequest {
-  return { data: new Uint8Array() }
+  return { data: new Uint8Array(0) }
 }
 
 export const PushRequest = {
@@ -1072,7 +1072,7 @@ export const PushRequest = {
     return {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -1080,7 +1080,7 @@ export const PushRequest = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     return obj
   },
@@ -1093,7 +1093,7 @@ export const PushRequest = {
     object: I
   ): PushRequest {
     const message = createBasePushRequest()
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     return message
   },
 }
@@ -1218,7 +1218,7 @@ export const PushResponse = {
 }
 
 function createBaseMqueueMsg(): MqueueMsg {
-  return { id: Long.UZERO, timestamp: undefined, data: new Uint8Array() }
+  return { id: Long.UZERO, timestamp: undefined, data: new Uint8Array(0) }
 }
 
 export const MqueueMsg = {
@@ -1325,7 +1325,7 @@ export const MqueueMsg = {
         : undefined,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -1336,7 +1336,7 @@ export const MqueueMsg = {
       (obj.timestamp = message.timestamp.toISOString())
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     return obj
   },
@@ -1354,7 +1354,7 @@ export const MqueueMsg = {
         ? Long.fromValue(object.id)
         : Long.UZERO
     message.timestamp = object.timestamp ?? undefined
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     return message
   },
 }
@@ -1779,11 +1779,12 @@ export interface MqueueStore {
   ): Promise<RmMqueueResponse>
 }
 
+export const MqueueStoreServiceName = 'mqueue.rpc.MqueueStore'
 export class MqueueStoreClientImpl implements MqueueStore {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'mqueue.rpc.MqueueStore'
+    this.service = opts?.service || MqueueStoreServiceName
     this.rpc = rpc
     this.MqueueRpc = this.MqueueRpc.bind(this)
     this.ListMqueues = this.ListMqueues.bind(this)
@@ -1904,11 +1905,12 @@ export interface QueueOps {
   ): Promise<DeleteQueueResponse>
 }
 
+export const QueueOpsServiceName = 'mqueue.rpc.QueueOps'
 export class QueueOpsClientImpl implements QueueOps {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'mqueue.rpc.QueueOps'
+    this.service = opts?.service || QueueOpsServiceName
     this.rpc = rpc
     this.Peek = this.Peek.bind(this)
     this.Ack = this.Ack.bind(this)

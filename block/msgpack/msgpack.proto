@@ -15,5 +15,5 @@ message MsgpackBlob {
   // Blob contains the encoded data in a blob.
   //
   // If small enough, the blob will be stored in-line.
-  blob.Blob blob = 1;
+  .blob.Blob blob = 1;
 }

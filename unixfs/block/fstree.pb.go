@@ -155,7 +155,7 @@ type FSNode struct {
 	//
 	// sub-block ID 4
 	File *file.File `protobuf:"bytes,4,opt,name=file,proto3" json:"file,omitempty"`
-	// DirectoryEntries contains a sorted list of directory entries (dirents).
+	// DirectoryEntry contains a sorted list of directory entries (dirents).
 	//
 	// *DirentSlice sub-block ID 5
 	DirectoryEntry []*Dirent `protobuf:"bytes,5,rep,name=directory_entry,json=directoryEntry,proto3" json:"directory_entry,omitempty"`

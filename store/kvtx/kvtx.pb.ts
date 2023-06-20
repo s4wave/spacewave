@@ -159,7 +159,7 @@ export const Config = {
 }
 
 function createBaseMqueueMeta(): MqueueMeta {
-  return { id: new Uint8Array() }
+  return { id: new Uint8Array(0) }
 }
 
 export const MqueueMeta = {
@@ -235,7 +235,7 @@ export const MqueueMeta = {
 
   fromJSON(object: any): MqueueMeta {
     return {
-      id: isSet(object.id) ? bytesFromBase64(object.id) : new Uint8Array(),
+      id: isSet(object.id) ? bytesFromBase64(object.id) : new Uint8Array(0),
     }
   },
 
@@ -243,7 +243,7 @@ export const MqueueMeta = {
     const obj: any = {}
     message.id !== undefined &&
       (obj.id = base64FromBytes(
-        message.id !== undefined ? message.id : new Uint8Array()
+        message.id !== undefined ? message.id : new Uint8Array(0)
       ))
     return obj
   },
@@ -256,7 +256,7 @@ export const MqueueMeta = {
     object: I
   ): MqueueMeta {
     const message = createBaseMqueueMeta()
-    message.id = object.id ?? new Uint8Array()
+    message.id = object.id ?? new Uint8Array(0)
     return message
   },
 }

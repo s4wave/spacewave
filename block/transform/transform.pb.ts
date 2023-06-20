@@ -129,7 +129,7 @@ export const Config = {
 }
 
 function createBaseStepConfig(): StepConfig {
-  return { id: '', config: new Uint8Array() }
+  return { id: '', config: new Uint8Array(0) }
 }
 
 export const StepConfig = {
@@ -218,7 +218,7 @@ export const StepConfig = {
       id: isSet(object.id) ? String(object.id) : '',
       config: isSet(object.config)
         ? bytesFromBase64(object.config)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -227,7 +227,7 @@ export const StepConfig = {
     message.id !== undefined && (obj.id = message.id)
     message.config !== undefined &&
       (obj.config = base64FromBytes(
-        message.config !== undefined ? message.config : new Uint8Array()
+        message.config !== undefined ? message.config : new Uint8Array(0)
       ))
     return obj
   },
@@ -241,7 +241,7 @@ export const StepConfig = {
   ): StepConfig {
     const message = createBaseStepConfig()
     message.id = object.id ?? ''
-    message.config = object.config ?? new Uint8Array()
+    message.config = object.config ?? new Uint8Array(0)
     return message
   },
 }

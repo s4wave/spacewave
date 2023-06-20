@@ -36,10 +36,10 @@ function createBaseEntry(): Entry {
   return {
     degree: 0,
     marked: false,
-    next: new Uint8Array(),
-    prev: new Uint8Array(),
-    child: new Uint8Array(),
-    parent: new Uint8Array(),
+    next: new Uint8Array(0),
+    prev: new Uint8Array(0),
+    child: new Uint8Array(0),
+    parent: new Uint8Array(0),
     priority: 0,
   }
 }
@@ -176,16 +176,16 @@ export const Entry = {
       marked: isSet(object.marked) ? Boolean(object.marked) : false,
       next: isSet(object.next)
         ? bytesFromBase64(object.next)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       prev: isSet(object.prev)
         ? bytesFromBase64(object.prev)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       child: isSet(object.child)
         ? bytesFromBase64(object.child)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       parent: isSet(object.parent)
         ? bytesFromBase64(object.parent)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       priority: isSet(object.priority) ? Number(object.priority) : 0,
     }
   },
@@ -196,19 +196,19 @@ export const Entry = {
     message.marked !== undefined && (obj.marked = message.marked)
     message.next !== undefined &&
       (obj.next = base64FromBytes(
-        message.next !== undefined ? message.next : new Uint8Array()
+        message.next !== undefined ? message.next : new Uint8Array(0)
       ))
     message.prev !== undefined &&
       (obj.prev = base64FromBytes(
-        message.prev !== undefined ? message.prev : new Uint8Array()
+        message.prev !== undefined ? message.prev : new Uint8Array(0)
       ))
     message.child !== undefined &&
       (obj.child = base64FromBytes(
-        message.child !== undefined ? message.child : new Uint8Array()
+        message.child !== undefined ? message.child : new Uint8Array(0)
       ))
     message.parent !== undefined &&
       (obj.parent = base64FromBytes(
-        message.parent !== undefined ? message.parent : new Uint8Array()
+        message.parent !== undefined ? message.parent : new Uint8Array(0)
       ))
     message.priority !== undefined && (obj.priority = message.priority)
     return obj
@@ -222,17 +222,17 @@ export const Entry = {
     const message = createBaseEntry()
     message.degree = object.degree ?? 0
     message.marked = object.marked ?? false
-    message.next = object.next ?? new Uint8Array()
-    message.prev = object.prev ?? new Uint8Array()
-    message.child = object.child ?? new Uint8Array()
-    message.parent = object.parent ?? new Uint8Array()
+    message.next = object.next ?? new Uint8Array(0)
+    message.prev = object.prev ?? new Uint8Array(0)
+    message.child = object.child ?? new Uint8Array(0)
+    message.parent = object.parent ?? new Uint8Array(0)
     message.priority = object.priority ?? 0
     return message
   },
 }
 
 function createBaseRoot(): Root {
-  return { min: new Uint8Array(), minPriority: 0, size: 0 }
+  return { min: new Uint8Array(0), minPriority: 0, size: 0 }
 }
 
 export const Root = {
@@ -323,7 +323,7 @@ export const Root = {
 
   fromJSON(object: any): Root {
     return {
-      min: isSet(object.min) ? bytesFromBase64(object.min) : new Uint8Array(),
+      min: isSet(object.min) ? bytesFromBase64(object.min) : new Uint8Array(0),
       minPriority: isSet(object.minPriority) ? Number(object.minPriority) : 0,
       size: isSet(object.size) ? Number(object.size) : 0,
     }
@@ -333,7 +333,7 @@ export const Root = {
     const obj: any = {}
     message.min !== undefined &&
       (obj.min = base64FromBytes(
-        message.min !== undefined ? message.min : new Uint8Array()
+        message.min !== undefined ? message.min : new Uint8Array(0)
       ))
     message.minPriority !== undefined && (obj.minPriority = message.minPriority)
     message.size !== undefined && (obj.size = Math.round(message.size))
@@ -346,7 +346,7 @@ export const Root = {
 
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
-    message.min = object.min ?? new Uint8Array()
+    message.min = object.min ?? new Uint8Array(0)
     message.minPriority = object.minPriority ?? 0
     message.size = object.size ?? 0
     return message

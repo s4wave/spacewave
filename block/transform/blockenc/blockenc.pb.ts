@@ -18,7 +18,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { blockEnc: 0, key: new Uint8Array() }
+  return { blockEnc: 0, key: new Uint8Array(0) }
 }
 
 export const Config = {
@@ -103,7 +103,7 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       blockEnc: isSet(object.blockEnc) ? blockEncFromJSON(object.blockEnc) : 0,
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
     }
   },
 
@@ -113,7 +113,7 @@ export const Config = {
       (obj.blockEnc = blockEncToJSON(message.blockEnc))
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     return obj
   },
@@ -125,7 +125,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.blockEnc = object.blockEnc ?? 0
-    message.key = object.key ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
     return message
   },
 }

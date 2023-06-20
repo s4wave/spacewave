@@ -470,7 +470,7 @@ function createBaseSyncMessage(): SyncMessage {
   return {
     messageType: 0,
     ref: undefined,
-    chunk: new Uint8Array(),
+    chunk: new Uint8Array(0),
     complete: false,
     blockSize: 0,
   }
@@ -595,7 +595,7 @@ export const SyncMessage = {
       ref: isSet(object.ref) ? BlockRef.fromJSON(object.ref) : undefined,
       chunk: isSet(object.chunk)
         ? bytesFromBase64(object.chunk)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       complete: isSet(object.complete) ? Boolean(object.complete) : false,
       blockSize: isSet(object.blockSize) ? Number(object.blockSize) : 0,
     }
@@ -609,7 +609,7 @@ export const SyncMessage = {
       (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
     message.chunk !== undefined &&
       (obj.chunk = base64FromBytes(
-        message.chunk !== undefined ? message.chunk : new Uint8Array()
+        message.chunk !== undefined ? message.chunk : new Uint8Array(0)
       ))
     message.complete !== undefined && (obj.complete = message.complete)
     message.blockSize !== undefined &&
@@ -630,7 +630,7 @@ export const SyncMessage = {
       object.ref !== undefined && object.ref !== null
         ? BlockRef.fromPartial(object.ref)
         : undefined
-    message.chunk = object.chunk ?? new Uint8Array()
+    message.chunk = object.chunk ?? new Uint8Array(0)
     message.complete = object.complete ?? false
     message.blockSize = object.blockSize ?? 0
     return message

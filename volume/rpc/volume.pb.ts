@@ -681,11 +681,12 @@ export interface AccessVolumes {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const AccessVolumesServiceName = 'rpc.volume.AccessVolumes'
 export class AccessVolumesClientImpl implements AccessVolumes {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'rpc.volume.AccessVolumes'
+    this.service = opts?.service || AccessVolumesServiceName
     this.rpc = rpc
     this.WatchVolumeInfo = this.WatchVolumeInfo.bind(this)
     this.VolumeRpc = this.VolumeRpc.bind(this)
@@ -779,11 +780,12 @@ export interface ProxyVolume {
   ): Promise<GetPeerPrivResponse>
 }
 
+export const ProxyVolumeServiceName = 'rpc.volume.ProxyVolume'
 export class ProxyVolumeClientImpl implements ProxyVolume {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'rpc.volume.ProxyVolume'
+    this.service = opts?.service || ProxyVolumeServiceName
     this.rpc = rpc
     this.GetVolumeInfo = this.GetVolumeInfo.bind(this)
     this.GetPeerPriv = this.GetPeerPriv.bind(this)

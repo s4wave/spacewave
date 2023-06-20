@@ -293,7 +293,7 @@ export const Config = {
 }
 
 function createBasePutRequest(): PutRequest {
-  return { data: new Uint8Array(), putOpts: undefined }
+  return { data: new Uint8Array(0), putOpts: undefined }
 }
 
 export const PutRequest = {
@@ -381,7 +381,7 @@ export const PutRequest = {
     return {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       putOpts: isSet(object.putOpts)
         ? PutOpts.fromJSON(object.putOpts)
         : undefined,
@@ -392,7 +392,7 @@ export const PutRequest = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.putOpts !== undefined &&
       (obj.putOpts = message.putOpts
@@ -409,7 +409,7 @@ export const PutRequest = {
     object: I
   ): PutRequest {
     const message = createBasePutRequest()
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.putOpts =
       object.putOpts !== undefined && object.putOpts !== null
         ? PutOpts.fromPartial(object.putOpts)
@@ -549,7 +549,7 @@ export const PutResponse = {
 }
 
 function createBaseGetResponse(): GetResponse {
-  return { notFound: false, data: new Uint8Array(), err: '' }
+  return { notFound: false, data: new Uint8Array(0), err: '' }
 }
 
 export const GetResponse = {
@@ -648,7 +648,7 @@ export const GetResponse = {
       notFound: isSet(object.notFound) ? Boolean(object.notFound) : false,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       err: isSet(object.err) ? String(object.err) : '',
     }
   },
@@ -658,7 +658,7 @@ export const GetResponse = {
     message.notFound !== undefined && (obj.notFound = message.notFound)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.err !== undefined && (obj.err = message.err)
     return obj
@@ -673,7 +673,7 @@ export const GetResponse = {
   ): GetResponse {
     const message = createBaseGetResponse()
     message.notFound = object.notFound ?? false
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.err = object.err ?? ''
     return message
   },

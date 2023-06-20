@@ -251,11 +251,12 @@ export interface ObjectStore {
   ): Promise<RmObjectStoreResponse>
 }
 
+export const ObjectStoreServiceName = 'object.rpc.ObjectStore'
 export class ObjectStoreClientImpl implements ObjectStore {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'object.rpc.ObjectStore'
+    this.service = opts?.service || ObjectStoreServiceName
     this.rpc = rpc
     this.ObjectStoreRpc = this.ObjectStoreRpc.bind(this)
     this.RmObjectStore = this.RmObjectStore.bind(this)

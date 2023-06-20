@@ -1076,7 +1076,7 @@ export const KeyCountResponse = {
 }
 
 function createBaseKvtxKeyRequest(): KvtxKeyRequest {
-  return { key: new Uint8Array() }
+  return { key: new Uint8Array(0) }
 }
 
 export const KvtxKeyRequest = {
@@ -1152,7 +1152,7 @@ export const KvtxKeyRequest = {
 
   fromJSON(object: any): KvtxKeyRequest {
     return {
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
     }
   },
 
@@ -1160,7 +1160,7 @@ export const KvtxKeyRequest = {
     const obj: any = {}
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     return obj
   },
@@ -1175,13 +1175,13 @@ export const KvtxKeyRequest = {
     object: I
   ): KvtxKeyRequest {
     const message = createBaseKvtxKeyRequest()
-    message.key = object.key ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
     return message
   },
 }
 
 function createBaseKvtxKeyDataResponse(): KvtxKeyDataResponse {
-  return { error: '', found: false, data: new Uint8Array() }
+  return { error: '', found: false, data: new Uint8Array(0) }
 }
 
 export const KvtxKeyDataResponse = {
@@ -1281,7 +1281,7 @@ export const KvtxKeyDataResponse = {
       found: isSet(object.found) ? Boolean(object.found) : false,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -1291,7 +1291,7 @@ export const KvtxKeyDataResponse = {
     message.found !== undefined && (obj.found = message.found)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     return obj
   },
@@ -1308,7 +1308,7 @@ export const KvtxKeyDataResponse = {
     const message = createBaseKvtxKeyDataResponse()
     message.error = object.error ?? ''
     message.found = object.found ?? false
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     return message
   },
 }
@@ -1432,7 +1432,7 @@ export const KvtxKeyExistsResponse = {
 }
 
 function createBaseKvtxSetKeyRequest(): KvtxSetKeyRequest {
-  return { key: new Uint8Array(), value: new Uint8Array() }
+  return { key: new Uint8Array(0), value: new Uint8Array(0) }
 }
 
 export const KvtxSetKeyRequest = {
@@ -1518,10 +1518,10 @@ export const KvtxSetKeyRequest = {
 
   fromJSON(object: any): KvtxSetKeyRequest {
     return {
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
       value: isSet(object.value)
         ? bytesFromBase64(object.value)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -1529,11 +1529,11 @@ export const KvtxSetKeyRequest = {
     const obj: any = {}
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     message.value !== undefined &&
       (obj.value = base64FromBytes(
-        message.value !== undefined ? message.value : new Uint8Array()
+        message.value !== undefined ? message.value : new Uint8Array(0)
       ))
     return obj
   },
@@ -1548,8 +1548,8 @@ export const KvtxSetKeyRequest = {
     object: I
   ): KvtxSetKeyRequest {
     const message = createBaseKvtxSetKeyRequest()
-    message.key = object.key ?? new Uint8Array()
-    message.value = object.value ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
+    message.value = object.value ?? new Uint8Array(0)
     return message
   },
 }
@@ -1655,7 +1655,7 @@ export const KvtxSetKeyResponse = {
 }
 
 function createBaseKvtxDeleteKeyRequest(): KvtxDeleteKeyRequest {
-  return { key: new Uint8Array() }
+  return { key: new Uint8Array(0) }
 }
 
 export const KvtxDeleteKeyRequest = {
@@ -1734,7 +1734,7 @@ export const KvtxDeleteKeyRequest = {
 
   fromJSON(object: any): KvtxDeleteKeyRequest {
     return {
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
     }
   },
 
@@ -1742,7 +1742,7 @@ export const KvtxDeleteKeyRequest = {
     const obj: any = {}
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     return obj
   },
@@ -1757,7 +1757,7 @@ export const KvtxDeleteKeyRequest = {
     object: I
   ): KvtxDeleteKeyRequest {
     const message = createBaseKvtxDeleteKeyRequest()
-    message.key = object.key ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
     return message
   },
 }
@@ -1866,7 +1866,7 @@ export const KvtxDeleteKeyResponse = {
 }
 
 function createBaseKvtxScanPrefixRequest(): KvtxScanPrefixRequest {
-  return { prefix: new Uint8Array(), onlyKeys: false }
+  return { prefix: new Uint8Array(0), onlyKeys: false }
 }
 
 export const KvtxScanPrefixRequest = {
@@ -1957,7 +1957,7 @@ export const KvtxScanPrefixRequest = {
     return {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       onlyKeys: isSet(object.onlyKeys) ? Boolean(object.onlyKeys) : false,
     }
   },
@@ -1966,7 +1966,7 @@ export const KvtxScanPrefixRequest = {
     const obj: any = {}
     message.prefix !== undefined &&
       (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array()
+        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
       ))
     message.onlyKeys !== undefined && (obj.onlyKeys = message.onlyKeys)
     return obj
@@ -1982,14 +1982,14 @@ export const KvtxScanPrefixRequest = {
     object: I
   ): KvtxScanPrefixRequest {
     const message = createBaseKvtxScanPrefixRequest()
-    message.prefix = object.prefix ?? new Uint8Array()
+    message.prefix = object.prefix ?? new Uint8Array(0)
     message.onlyKeys = object.onlyKeys ?? false
     return message
   },
 }
 
 function createBaseKvtxScanPrefixResponse(): KvtxScanPrefixResponse {
-  return { error: '', key: new Uint8Array(), value: new Uint8Array() }
+  return { error: '', key: new Uint8Array(0), value: new Uint8Array(0) }
 }
 
 export const KvtxScanPrefixResponse = {
@@ -2089,10 +2089,10 @@ export const KvtxScanPrefixResponse = {
   fromJSON(object: any): KvtxScanPrefixResponse {
     return {
       error: isSet(object.error) ? String(object.error) : '',
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
       value: isSet(object.value)
         ? bytesFromBase64(object.value)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -2101,11 +2101,11 @@ export const KvtxScanPrefixResponse = {
     message.error !== undefined && (obj.error = message.error)
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     message.value !== undefined &&
       (obj.value = base64FromBytes(
-        message.value !== undefined ? message.value : new Uint8Array()
+        message.value !== undefined ? message.value : new Uint8Array(0)
       ))
     return obj
   },
@@ -2121,8 +2121,8 @@ export const KvtxScanPrefixResponse = {
   ): KvtxScanPrefixResponse {
     const message = createBaseKvtxScanPrefixResponse()
     message.error = object.error ?? ''
-    message.key = object.key ?? new Uint8Array()
-    message.value = object.value ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
+    message.value = object.value ?? new Uint8Array(0)
     return message
   },
 }
@@ -2370,7 +2370,7 @@ export const KvtxIterateRequest = {
 }
 
 function createBaseKvtxIterateInit(): KvtxIterateInit {
-  return { prefix: new Uint8Array(), sort: false, reverse: false }
+  return { prefix: new Uint8Array(0), sort: false, reverse: false }
 }
 
 export const KvtxIterateInit = {
@@ -2468,7 +2468,7 @@ export const KvtxIterateInit = {
     return {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       sort: isSet(object.sort) ? Boolean(object.sort) : false,
       reverse: isSet(object.reverse) ? Boolean(object.reverse) : false,
     }
@@ -2478,7 +2478,7 @@ export const KvtxIterateInit = {
     const obj: any = {}
     message.prefix !== undefined &&
       (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array()
+        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
       ))
     message.sort !== undefined && (obj.sort = message.sort)
     message.reverse !== undefined && (obj.reverse = message.reverse)
@@ -2495,7 +2495,7 @@ export const KvtxIterateInit = {
     object: I
   ): KvtxIterateInit {
     const message = createBaseKvtxIterateInit()
-    message.prefix = object.prefix ?? new Uint8Array()
+    message.prefix = object.prefix ?? new Uint8Array(0)
     message.sort = object.sort ?? false
     message.reverse = object.reverse ?? false
     return message
@@ -2712,7 +2712,7 @@ export const KvtxIterateResponse = {
 }
 
 function createBaseKvtxIterateStatus(): KvtxIterateStatus {
-  return { error: '', valid: false, key: new Uint8Array() }
+  return { error: '', valid: false, key: new Uint8Array(0) }
 }
 
 export const KvtxIterateStatus = {
@@ -2810,7 +2810,7 @@ export const KvtxIterateStatus = {
     return {
       error: isSet(object.error) ? String(object.error) : '',
       valid: isSet(object.valid) ? Boolean(object.valid) : false,
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
     }
   },
 
@@ -2820,7 +2820,7 @@ export const KvtxIterateStatus = {
     message.valid !== undefined && (obj.valid = message.valid)
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     return obj
   },
@@ -2837,7 +2837,7 @@ export const KvtxIterateStatus = {
     const message = createBaseKvtxIterateStatus()
     message.error = object.error ?? ''
     message.valid = object.valid ?? false
-    message.key = object.key ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
     return message
   },
 }
@@ -2864,11 +2864,12 @@ export interface Kvtx {
   ): AsyncIterable<RpcStreamPacket>
 }
 
+export const KvtxServiceName = 'kvtx.rpc.Kvtx'
 export class KvtxClientImpl implements Kvtx {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'kvtx.rpc.Kvtx'
+    this.service = opts?.service || KvtxServiceName
     this.rpc = rpc
     this.KvtxTransaction = this.KvtxTransaction.bind(this)
     this.KvtxTransactionRpc = this.KvtxTransactionRpc.bind(this)
@@ -2985,11 +2986,12 @@ export interface KvtxOps {
   ): AsyncIterable<KvtxIterateResponse>
 }
 
+export const KvtxOpsServiceName = 'kvtx.rpc.KvtxOps'
 export class KvtxOpsClientImpl implements KvtxOps {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'kvtx.rpc.KvtxOps'
+    this.service = opts?.service || KvtxOpsServiceName
     this.rpc = rpc
     this.KeyCount = this.KeyCount.bind(this)
     this.KeyData = this.KeyData.bind(this)

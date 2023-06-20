@@ -69,7 +69,7 @@ export interface RmBlockResponse {
 }
 
 function createBasePutBlockRequest(): PutBlockRequest {
-  return { data: new Uint8Array(), putOpts: undefined }
+  return { data: new Uint8Array(0), putOpts: undefined }
 }
 
 export const PutBlockRequest = {
@@ -157,7 +157,7 @@ export const PutBlockRequest = {
     return {
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       putOpts: isSet(object.putOpts)
         ? PutOpts.fromJSON(object.putOpts)
         : undefined,
@@ -168,7 +168,7 @@ export const PutBlockRequest = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.putOpts !== undefined &&
       (obj.putOpts = message.putOpts
@@ -187,7 +187,7 @@ export const PutBlockRequest = {
     object: I
   ): PutBlockRequest {
     const message = createBasePutBlockRequest()
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.putOpts =
       object.putOpts !== undefined && object.putOpts !== null
         ? PutOpts.fromPartial(object.putOpts)
@@ -435,7 +435,7 @@ export const GetBlockRequest = {
 }
 
 function createBaseGetBlockResponse(): GetBlockResponse {
-  return { exists: false, data: new Uint8Array(), error: '' }
+  return { exists: false, data: new Uint8Array(0), error: '' }
 }
 
 export const GetBlockResponse = {
@@ -534,7 +534,7 @@ export const GetBlockResponse = {
       exists: isSet(object.exists) ? Boolean(object.exists) : false,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       error: isSet(object.error) ? String(object.error) : '',
     }
   },
@@ -544,7 +544,7 @@ export const GetBlockResponse = {
     message.exists !== undefined && (obj.exists = message.exists)
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array()
+        message.data !== undefined ? message.data : new Uint8Array(0)
       ))
     message.error !== undefined && (obj.error = message.error)
     return obj
@@ -561,7 +561,7 @@ export const GetBlockResponse = {
   ): GetBlockResponse {
     const message = createBaseGetBlockResponse()
     message.exists = object.exists ?? false
-    message.data = object.data ?? new Uint8Array()
+    message.data = object.data ?? new Uint8Array(0)
     message.error = object.error ?? ''
     return message
   },
@@ -1028,11 +1028,12 @@ export interface BlockStore {
   ): Promise<RmBlockResponse>
 }
 
+export const BlockStoreServiceName = 'block.rpc.BlockStore'
 export class BlockStoreClientImpl implements BlockStore {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'block.rpc.BlockStore'
+    this.service = opts?.service || BlockStoreServiceName
     this.rpc = rpc
     this.PutBlock = this.PutBlock.bind(this)
     this.GetBlock = this.GetBlock.bind(this)

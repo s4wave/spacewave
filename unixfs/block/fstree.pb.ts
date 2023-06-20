@@ -127,7 +127,7 @@ export interface FSNode {
    */
   file: File | undefined
   /**
-   * DirectoryEntries contains a sorted list of directory entries (dirents).
+   * DirectoryEntry contains a sorted list of directory entries (dirents).
    *
    * *DirentSlice sub-block ID 5
    */

@@ -979,11 +979,12 @@ export interface BucketStore {
   ): Promise<ListBucketInfoResponse>
 }
 
+export const BucketStoreServiceName = 'bucket.rpc.BucketStore'
 export class BucketStoreClientImpl implements BucketStore {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'bucket.rpc.BucketStore'
+    this.service = opts?.service || BucketStoreServiceName
     this.rpc = rpc
     this.GetBucketConfig = this.GetBucketConfig.bind(this)
     this.ApplyBucketConfig = this.ApplyBucketConfig.bind(this)

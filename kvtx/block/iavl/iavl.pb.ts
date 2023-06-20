@@ -42,7 +42,7 @@ function createBaseNode(): Node {
   return {
     height: 0,
     size: Long.UZERO,
-    key: new Uint8Array(),
+    key: new Uint8Array(0),
     valueRef: undefined,
     valueRefBlob: false,
     leftChildRef: undefined,
@@ -180,7 +180,7 @@ export const Node = {
     return {
       height: isSet(object.height) ? Number(object.height) : 0,
       size: isSet(object.size) ? Long.fromValue(object.size) : Long.UZERO,
-      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(),
+      key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
       valueRef: isSet(object.valueRef)
         ? BlockRef.fromJSON(object.valueRef)
         : undefined,
@@ -203,7 +203,7 @@ export const Node = {
       (obj.size = (message.size || Long.UZERO).toString())
     message.key !== undefined &&
       (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array()
+        message.key !== undefined ? message.key : new Uint8Array(0)
       ))
     message.valueRef !== undefined &&
       (obj.valueRef = message.valueRef
@@ -233,7 +233,7 @@ export const Node = {
       object.size !== undefined && object.size !== null
         ? Long.fromValue(object.size)
         : Long.UZERO
-    message.key = object.key ?? new Uint8Array()
+    message.key = object.key ?? new Uint8Array(0)
     message.valueRef =
       object.valueRef !== undefined && object.valueRef !== null
         ? BlockRef.fromPartial(object.valueRef)

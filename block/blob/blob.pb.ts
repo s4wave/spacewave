@@ -188,7 +188,7 @@ function createBaseBlob(): Blob {
   return {
     blobType: 0,
     totalSize: Long.UZERO,
-    rawData: new Uint8Array(),
+    rawData: new Uint8Array(0),
     chunkIndex: undefined,
   }
 }
@@ -297,7 +297,7 @@ export const Blob = {
         : Long.UZERO,
       rawData: isSet(object.rawData)
         ? bytesFromBase64(object.rawData)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       chunkIndex: isSet(object.chunkIndex)
         ? ChunkIndex.fromJSON(object.chunkIndex)
         : undefined,
@@ -312,7 +312,7 @@ export const Blob = {
       (obj.totalSize = (message.totalSize || Long.UZERO).toString())
     message.rawData !== undefined &&
       (obj.rawData = base64FromBytes(
-        message.rawData !== undefined ? message.rawData : new Uint8Array()
+        message.rawData !== undefined ? message.rawData : new Uint8Array(0)
       ))
     message.chunkIndex !== undefined &&
       (obj.chunkIndex = message.chunkIndex
@@ -332,7 +332,7 @@ export const Blob = {
       object.totalSize !== undefined && object.totalSize !== null
         ? Long.fromValue(object.totalSize)
         : Long.UZERO
-    message.rawData = object.rawData ?? new Uint8Array()
+    message.rawData = object.rawData ?? new Uint8Array(0)
     message.chunkIndex =
       object.chunkIndex !== undefined && object.chunkIndex !== null
         ? ChunkIndex.fromPartial(object.chunkIndex)

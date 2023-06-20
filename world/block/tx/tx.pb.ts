@@ -668,7 +668,7 @@ export const TxBatch = {
 }
 
 function createBaseTxApplyWorldOp(): TxApplyWorldOp {
-  return { operationTypeId: '', operationBody: new Uint8Array() }
+  return { operationTypeId: '', operationBody: new Uint8Array(0) }
 }
 
 export const TxApplyWorldOp = {
@@ -759,7 +759,7 @@ export const TxApplyWorldOp = {
         : '',
       operationBody: isSet(object.operationBody)
         ? bytesFromBase64(object.operationBody)
-        : new Uint8Array(),
+        : new Uint8Array(0),
     }
   },
 
@@ -771,7 +771,7 @@ export const TxApplyWorldOp = {
       (obj.operationBody = base64FromBytes(
         message.operationBody !== undefined
           ? message.operationBody
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     return obj
   },
@@ -787,13 +787,17 @@ export const TxApplyWorldOp = {
   ): TxApplyWorldOp {
     const message = createBaseTxApplyWorldOp()
     message.operationTypeId = object.operationTypeId ?? ''
-    message.operationBody = object.operationBody ?? new Uint8Array()
+    message.operationBody = object.operationBody ?? new Uint8Array(0)
     return message
   },
 }
 
 function createBaseTxApplyObjectOp(): TxApplyObjectOp {
-  return { operationTypeId: '', operationBody: new Uint8Array(), objectKey: '' }
+  return {
+    operationTypeId: '',
+    operationBody: new Uint8Array(0),
+    objectKey: '',
+  }
 }
 
 export const TxApplyObjectOp = {
@@ -894,7 +898,7 @@ export const TxApplyObjectOp = {
         : '',
       operationBody: isSet(object.operationBody)
         ? bytesFromBase64(object.operationBody)
-        : new Uint8Array(),
+        : new Uint8Array(0),
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
     }
   },
@@ -907,7 +911,7 @@ export const TxApplyObjectOp = {
       (obj.operationBody = base64FromBytes(
         message.operationBody !== undefined
           ? message.operationBody
-          : new Uint8Array()
+          : new Uint8Array(0)
       ))
     message.objectKey !== undefined && (obj.objectKey = message.objectKey)
     return obj
@@ -924,7 +928,7 @@ export const TxApplyObjectOp = {
   ): TxApplyObjectOp {
     const message = createBaseTxApplyObjectOp()
     message.operationTypeId = object.operationTypeId ?? ''
-    message.operationBody = object.operationBody ?? new Uint8Array()
+    message.operationBody = object.operationBody ?? new Uint8Array(0)
     message.objectKey = object.objectKey ?? ''
     return message
   },
