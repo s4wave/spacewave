@@ -55,7 +55,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.6.0",
+    "@aperturerobotics/ts-common": "^0.6.1",
     "@electron/asar": "^3.2.3",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.2.13",
@@ -72,7 +72,7 @@
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.1",
     "ts-poet": "^6.4.1",
-    "ts-proto": "^1.149.0",
+    "ts-proto": "^1.150.0",
     "typescript": "^5.1.3",
     "unzip-crx-3": "^0.2.0"
   },

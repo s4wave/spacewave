@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@aperturerobotics/ts-common@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.6.0.tgz#1e1ccac8c1b217c00da1a45414400ce6ad1a00f5"
-  integrity sha512-Pqzkg+Jw/fXyVcouZzoWopelWTqIgk4JTYps6hQrl+80McADOUi4toEW9rLU/6b5Zit/kSAOxOOgPtuJRdbYUQ==
+"@aperturerobotics/ts-common@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.6.1.tgz#4cd378e6a003cc72e50ebe0765b56a63e37c181f"
+  integrity sha512-2RJmt8M66fyzOvy1BWwn0BhX0RpVNsLjfTkcbpJmGSOH2ifuqaLd+23B2rjmRf7DwbJcvvzVVTmbvc9RIaM/MQ==
   dependencies:
     bufferutil "^4.0.7"
     long "^5.2.3"
@@ -3155,10 +3155,10 @@ ts-proto-descriptors@1.9.0:
     long "^4.0.0"
     protobufjs "^6.8.8"
 
-ts-proto@^1.149.0:
-  version "1.149.0"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.149.0.tgz#cacd276c7f17c1d0c9ad471c56bfc7ff9d51ab4e"
-  integrity sha512-+KK+diaqj86XHdq+fkbFWeTLVE6s69jApyQF34cwL1M3h+gS1sjDy/lf0rUgeQtgMQ/K3qxQElbVTusV7Z3otQ==
+ts-proto@^1.150.0:
+  version "1.150.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.150.0.tgz#41b9a737caa5bc242274eda01749e4ecfc1a4fa2"
+  integrity sha512-EYnKWkNkWRmnK2nG5D9J1zN959YD/gff+e8/nqpOw7kdrfsnCe1dr/+EYxiRhPnq/umVpBLwI/KaSDg9G+9KPA==
   dependencies:
     "@types/object-hash" "^3.0.2"
     case-anything "^2.1.10"
