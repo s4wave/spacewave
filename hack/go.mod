@@ -34,10 +34,10 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.17.4-0.20230613215639-1fcf1220c862 // indirect
-	github.com/aperturerobotics/controllerbus v0.28.1 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230613220155-27f1a4aade34 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230615022307-58b44e129b74 // indirect
+	github.com/aperturerobotics/bifrost v0.17.5-0.20230620195434-e51e5d7788ad // indirect
+	github.com/aperturerobotics/controllerbus v0.28.2 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230620195734-4e4fe466e0ba // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230620195944-2ba200e0f7a9 // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
 	github.com/aperturerobotics/util v1.5.4 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
@@ -119,7 +119,7 @@ require (
 	github.com/ldez/tagliatelle v0.4.0 // indirect
 	github.com/leonklingele/grouper v1.1.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.28.0 // indirect
+	github.com/libp2p/go-libp2p v0.28.1 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
@@ -212,11 +212,11 @@ require (
 	golang.org/x/crypto v0.10.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/mod v0.11.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
+	golang.org/x/tools v0.10.0 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
