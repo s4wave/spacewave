@@ -486,11 +486,13 @@ export interface IdentityDomain {
   ): Promise<LookupEntityResp>
 }
 
+export const IdentityDomainServiceName =
+  'identity.domain.service.IdentityDomain'
 export class IdentityDomainClientImpl implements IdentityDomain {
   private readonly rpc: Rpc
   private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || 'identity.domain.service.IdentityDomain'
+    this.service = opts?.service || IdentityDomainServiceName
     this.rpc = rpc
     this.LookupEntity = this.LookupEntity.bind(this)
   }

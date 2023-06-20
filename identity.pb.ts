@@ -443,7 +443,7 @@ export const EntityKeypairSet = {
   toJSON(message: EntityKeypairSet): unknown {
     const obj: any = {};
     if (message.entityKeypairs) {
-      obj.entityKeypairs = message.entityKeypairs.map((e) => base64FromBytes(e !== undefined ? e : new Uint8Array()));
+      obj.entityKeypairs = message.entityKeypairs.map((e) => base64FromBytes(e !== undefined ? e : new Uint8Array(0)));
     } else {
       obj.entityKeypairs = [];
     }
@@ -689,7 +689,7 @@ export const EntityRef = {
 };
 
 function createBaseKeypair(): Keypair {
-  return { peerId: "", pubKey: "", authMethodId: "", authMethodParams: new Uint8Array() };
+  return { peerId: "", pubKey: "", authMethodId: "", authMethodParams: new Uint8Array(0) };
 }
 
 export const Keypair = {
@@ -790,7 +790,7 @@ export const Keypair = {
       peerId: isSet(object.peerId) ? String(object.peerId) : "",
       pubKey: isSet(object.pubKey) ? String(object.pubKey) : "",
       authMethodId: isSet(object.authMethodId) ? String(object.authMethodId) : "",
-      authMethodParams: isSet(object.authMethodParams) ? bytesFromBase64(object.authMethodParams) : new Uint8Array(),
+      authMethodParams: isSet(object.authMethodParams) ? bytesFromBase64(object.authMethodParams) : new Uint8Array(0),
     };
   },
 
@@ -801,7 +801,7 @@ export const Keypair = {
     message.authMethodId !== undefined && (obj.authMethodId = message.authMethodId);
     message.authMethodParams !== undefined &&
       (obj.authMethodParams = base64FromBytes(
-        message.authMethodParams !== undefined ? message.authMethodParams : new Uint8Array(),
+        message.authMethodParams !== undefined ? message.authMethodParams : new Uint8Array(0),
       ));
     return obj;
   },
@@ -815,7 +815,7 @@ export const Keypair = {
     message.peerId = object.peerId ?? "";
     message.pubKey = object.pubKey ?? "";
     message.authMethodId = object.authMethodId ?? "";
-    message.authMethodParams = object.authMethodParams ?? new Uint8Array();
+    message.authMethodParams = object.authMethodParams ?? new Uint8Array(0);
     return message;
   },
 };
@@ -965,7 +965,7 @@ export const PendingEntityChange = {
 };
 
 function createBaseRegisterKeypair(): RegisterKeypair {
-  return { registerPeerId: "", authMethodId: "", authMethodState: new Uint8Array() };
+  return { registerPeerId: "", authMethodId: "", authMethodState: new Uint8Array(0) };
 }
 
 export const RegisterKeypair = {
@@ -1055,7 +1055,7 @@ export const RegisterKeypair = {
     return {
       registerPeerId: isSet(object.registerPeerId) ? String(object.registerPeerId) : "",
       authMethodId: isSet(object.authMethodId) ? String(object.authMethodId) : "",
-      authMethodState: isSet(object.authMethodState) ? bytesFromBase64(object.authMethodState) : new Uint8Array(),
+      authMethodState: isSet(object.authMethodState) ? bytesFromBase64(object.authMethodState) : new Uint8Array(0),
     };
   },
 
@@ -1065,7 +1065,7 @@ export const RegisterKeypair = {
     message.authMethodId !== undefined && (obj.authMethodId = message.authMethodId);
     message.authMethodState !== undefined &&
       (obj.authMethodState = base64FromBytes(
-        message.authMethodState !== undefined ? message.authMethodState : new Uint8Array(),
+        message.authMethodState !== undefined ? message.authMethodState : new Uint8Array(0),
       ));
     return obj;
   },
@@ -1078,7 +1078,7 @@ export const RegisterKeypair = {
     const message = createBaseRegisterKeypair();
     message.registerPeerId = object.registerPeerId ?? "";
     message.authMethodId = object.authMethodId ?? "";
-    message.authMethodState = object.authMethodState ?? new Uint8Array();
+    message.authMethodState = object.authMethodState ?? new Uint8Array(0);
     return message;
   },
 };

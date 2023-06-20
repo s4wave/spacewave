@@ -2,13 +2,13 @@ module github.com/aperturerobotics/identity
 
 go 1.20
 
-require github.com/aperturerobotics/hydra v0.0.0-20230613220155-27f1a4aade34 // master
+require github.com/aperturerobotics/hydra v0.0.0-20230620195734-4e4fe466e0ba // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.17.4-0.20230613215639-1fcf1220c862 // master
+require github.com/aperturerobotics/bifrost v0.17.5-0.20230620195434-e51e5d7788ad // master
 
 // aperture: use ext-engines forks
 replace (
@@ -33,7 +33,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.28.1 // master
+	github.com/aperturerobotics/controllerbus v0.28.2 // master
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.2 // latest
 	github.com/aperturerobotics/util v1.5.4 // master
@@ -57,7 +57,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.16.6 // indirect
-	github.com/libp2p/go-libp2p v0.28.0
+	github.com/libp2p/go-libp2p v0.28.1
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
@@ -121,12 +121,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/mod v0.11.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/term v0.9.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
+	golang.org/x/tools v0.10.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
