@@ -20,7 +20,8 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 		return err
 	}
 	if ent != nil {
-		if err := ekp.CheckMatchesEntity(ent); err != nil {
+		// Note: does not check if the entity keypair set contains the entity.
+		if err := ekp.ValidateMatchesEntity(ent); err != nil {
 			return err
 		}
 	}
@@ -97,7 +98,8 @@ func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypai
 			return nil, errors.Wrapf(err, "keypairs[%d]", i)
 		}
 		if ent != nil {
-			if err := ekp.CheckMatchesEntity(ent); err != nil {
+			// Note: does not check if the entity keypair set contains the entity.
+			if err := ekp.ValidateMatchesEntity(ent); err != nil {
 				return nil, errors.Wrapf(err, "keypairs[%d]", i)
 			}
 		}

@@ -109,8 +109,10 @@ func (k *EntityKeypair) GetEntityEmpty() bool {
 	return k.DomainId == "" && k.EntityId == ""
 }
 
-// CheckMatchesEntity checks if the keypair matches the given entity.
-func (k *EntityKeypair) CheckMatchesEntity(e *Entity) error {
+// ValidateMatchesEntity checks if the keypair matches the given entity.
+//
+// Note: does not check if the entity keypair set contains the entity.
+func (k *EntityKeypair) ValidateMatchesEntity(e *Entity) error {
 	if k.GetEntityId() != e.GetEntityId() {
 		return errors.Errorf("entity id mismatch: %s != %s", k.GetEntityId(), e.GetEntityId())
 	}
@@ -118,6 +120,14 @@ func (k *EntityKeypair) CheckMatchesEntity(e *Entity) error {
 		return errors.Errorf("domain id mismatch: %s != %s", k.GetDomainId(), e.GetDomainId())
 	}
 	return nil
+}
+
+// CheckMatchesEntity checks if the keypair matches the given entity.
+//
+// Note: does not check if the entity keypair set contains the entity.
+func (k *EntityKeypair) CheckMatchesEntity(e *Entity) bool {
+	return k.GetEntityId() == e.GetEntityId() &&
+		k.GetDomainId() == e.GetDomainId()
 }
 
 // MarshalBlock marshals the block to binary.
