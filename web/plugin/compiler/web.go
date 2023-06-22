@@ -69,7 +69,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest attempts to compile the manifest once.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
-	builderConf *bldr_manifest_builder.BuilderConfig,
+	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
 	pluginCompilerConf := plugin_compiler.NewConfig()
 	pluginCompilerConf.GoPackages = []string{
@@ -97,10 +97,10 @@ func (c *Controller) BuildManifest(
 	}
 
 	// bundle electron, if applicable.
-	pluginCompilerCtrl.AddPreBuildHook(c.BundleElectron)
+	pluginCompilerCtrl.AddPreBuildHook(c.BundleElectronHook)
 
 	// build the manifest
-	return pluginCompilerCtrl.BuildManifest(ctx, builderConf)
+	return pluginCompilerCtrl.BuildManifest(ctx, args)
 }
 
 // GetElectronApplicable returns if electron should be bundled for this platform.
@@ -109,9 +109,13 @@ func GetElectronApplicable(parsedPlatform bldr_platform.Platform) bool {
 	return ok
 }
 
-// BundleElectron bundles electron for the platform ID, if applicable.
+// BundleElectronHook bundles electron for the platform ID, if applicable.
 // If the platform ID is not applicable, returns nil.
-func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_builder.BuilderConfig, worldEng world.Engine) (*plugin_compiler.PreBuildHookResult, error) {
+func (c *Controller) BundleElectronHook(
+	ctx context.Context,
+	builderConf *manifest_builder.BuilderConfig,
+	worldEng world.Engine,
+) (*plugin_compiler.PreBuildHookResult, error) {
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
@@ -204,6 +208,6 @@ func (c *Controller) BundleElectron(ctx context.Context, builderConf *manifest_b
 
 // _ is a type assertion
 var (
-	_ plugin_compiler.PreBuildHook = ((*Controller)(nil)).BundleElectron
+	_ plugin_compiler.PreBuildHook = ((*Controller)(nil)).BundleElectronHook
 	_ manifest_builder.Controller  = ((*Controller)(nil))
 )

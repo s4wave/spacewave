@@ -274,6 +274,80 @@ func (x *InputManifest) GetMetadata() []byte {
 	return nil
 }
 
+// BuildManifestArgs are arguments passed to the BuildManifest function.
+type BuildManifestArgs struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// BuilderConfig is the builder configuration.
+	// Must be set.
+	BuilderConfig *BuilderConfig `protobuf:"bytes,1,opt,name=builder_config,json=builderConfig,proto3" json:"builder_config,omitempty"`
+	// PrevBuilderResult is the previous builder result, if applicable.
+	// Set only if we are re-building the manifest after a file changed.
+	// May be nil.
+	PrevBuilderResult *BuilderResult `protobuf:"bytes,2,opt,name=prev_builder_result,json=prevBuilderResult,proto3" json:"prev_builder_result,omitempty"`
+	// ChangedFiles is the list of files from PrevBuilderResult InputManifest
+	// filtered to contain only files that changed since the previous build.
+	//
+	// Set only if PrevBuilderResult is set.
+	// May be nil.
+	ChangedFiles []*InputManifest_File `protobuf:"bytes,3,rep,name=changed_files,json=changedFiles,proto3" json:"changed_files,omitempty"`
+}
+
+func (x *BuildManifestArgs) Reset() {
+	*x = BuildManifestArgs{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BuildManifestArgs) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildManifestArgs) ProtoMessage() {}
+
+func (x *BuildManifestArgs) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildManifestArgs.ProtoReflect.Descriptor instead.
+func (*BuildManifestArgs) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *BuildManifestArgs) GetBuilderConfig() *BuilderConfig {
+	if x != nil {
+		return x.BuilderConfig
+	}
+	return nil
+}
+
+func (x *BuildManifestArgs) GetPrevBuilderResult() *BuilderResult {
+	if x != nil {
+		return x.PrevBuilderResult
+	}
+	return nil
+}
+
+func (x *BuildManifestArgs) GetChangedFiles() []*InputManifest_File {
+	if x != nil {
+		return x.ChangedFiles
+	}
+	return nil
+}
+
 // File is a file in the source manifest.
 type InputManifest_File struct {
 	state         protoimpl.MessageState
@@ -290,7 +364,7 @@ type InputManifest_File struct {
 func (x *InputManifest_File) Reset() {
 	*x = InputManifest_File{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3]
+		mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -303,7 +377,7 @@ func (x *InputManifest_File) String() string {
 func (*InputManifest_File) ProtoMessage() {}
 
 func (x *InputManifest_File) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3]
+	mi := &file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -390,8 +464,24 @@ var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDesc
 	0x64, 0x61, 0x74, 0x61, 0x1a, 0x36, 0x0a, 0x04, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x12, 0x0a, 0x04,
 	0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68,
 	0x12, 0x1a, 0x0a, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0c, 0x52, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x62, 0x06, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x33,
+	0x28, 0x0c, 0x52, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x22, 0x86, 0x02, 0x0a,
+	0x11, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x41, 0x72,
+	0x67, 0x73, 0x12, 0x4b, 0x0a, 0x0e, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x5f, 0x63, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x62, 0x6c, 0x64,
+	0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x62, 0x75, 0x69, 0x6c, 0x64,
+	0x65, 0x72, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x52, 0x0d, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12,
+	0x54, 0x0a, 0x13, 0x70, 0x72, 0x65, 0x76, 0x5f, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x5f,
+	0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x62,
+	0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x62, 0x75, 0x69,
+	0x6c, 0x64, 0x65, 0x72, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x75,
+	0x6c, 0x74, 0x52, 0x11, 0x70, 0x72, 0x65, 0x76, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x52,
+	0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x4e, 0x0a, 0x0d, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x64,
+	0x5f, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x62,
+	0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x62, 0x75, 0x69,
+	0x6c, 0x64, 0x65, 0x72, 0x2e, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65,
+	0x73, 0x74, 0x2e, 0x46, 0x69, 0x6c, 0x65, 0x52, 0x0c, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x64,
+	0x46, 0x69, 0x6c, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -406,27 +496,31 @@ func file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDes
 	return file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDescData
 }
 
-var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_goTypes = []interface{}{
 	(*BuilderConfig)(nil),         // 0: bldr.manifest.builder.BuilderConfig
 	(*BuilderResult)(nil),         // 1: bldr.manifest.builder.BuilderResult
 	(*InputManifest)(nil),         // 2: bldr.manifest.builder.InputManifest
-	(*InputManifest_File)(nil),    // 3: bldr.manifest.builder.InputManifest.File
-	(*manifest.ManifestMeta)(nil), // 4: bldr.manifest.ManifestMeta
-	(*manifest.Manifest)(nil),     // 5: bldr.manifest.Manifest
-	(*manifest.ManifestRef)(nil),  // 6: bldr.manifest.ManifestRef
+	(*BuildManifestArgs)(nil),     // 3: bldr.manifest.builder.BuildManifestArgs
+	(*InputManifest_File)(nil),    // 4: bldr.manifest.builder.InputManifest.File
+	(*manifest.ManifestMeta)(nil), // 5: bldr.manifest.ManifestMeta
+	(*manifest.Manifest)(nil),     // 6: bldr.manifest.Manifest
+	(*manifest.ManifestRef)(nil),  // 7: bldr.manifest.ManifestRef
 }
 var file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_depIdxs = []int32{
-	4, // 0: bldr.manifest.builder.BuilderConfig.manifest_meta:type_name -> bldr.manifest.ManifestMeta
-	5, // 1: bldr.manifest.builder.BuilderResult.manifest:type_name -> bldr.manifest.Manifest
-	6, // 2: bldr.manifest.builder.BuilderResult.manifest_ref:type_name -> bldr.manifest.ManifestRef
+	5, // 0: bldr.manifest.builder.BuilderConfig.manifest_meta:type_name -> bldr.manifest.ManifestMeta
+	6, // 1: bldr.manifest.builder.BuilderResult.manifest:type_name -> bldr.manifest.Manifest
+	7, // 2: bldr.manifest.builder.BuilderResult.manifest_ref:type_name -> bldr.manifest.ManifestRef
 	2, // 3: bldr.manifest.builder.BuilderResult.input_manifest:type_name -> bldr.manifest.builder.InputManifest
-	3, // 4: bldr.manifest.builder.InputManifest.files:type_name -> bldr.manifest.builder.InputManifest.File
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 4: bldr.manifest.builder.InputManifest.files:type_name -> bldr.manifest.builder.InputManifest.File
+	0, // 5: bldr.manifest.builder.BuildManifestArgs.builder_config:type_name -> bldr.manifest.builder.BuilderConfig
+	1, // 6: bldr.manifest.builder.BuildManifestArgs.prev_builder_result:type_name -> bldr.manifest.builder.BuilderResult
+	4, // 7: bldr.manifest.builder.BuildManifestArgs.changed_files:type_name -> bldr.manifest.builder.InputManifest.File
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_init() }
@@ -472,6 +566,18 @@ func file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_init()
 			}
 		}
 		file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BuildManifestArgs); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*InputManifest_File); i {
 			case 0:
 				return &v.state
@@ -490,7 +596,7 @@ func file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_init()
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_aperturerobotics_bldr_manifest_builder_builder_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

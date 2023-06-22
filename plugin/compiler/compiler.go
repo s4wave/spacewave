@@ -99,8 +99,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // BuildManifest compiles the manifest once with the given builder args.
-func (c *Controller) BuildManifest(ctx context.Context, builderConf *manifest_builder.BuilderConfig) (*manifest_builder.BuilderResult, error) {
+func (c *Controller) BuildManifest(
+	ctx context.Context,
+	args *manifest_builder.BuildManifestArgs,
+) (*manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
+	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err

@@ -78,6 +78,33 @@ export interface InputManifest_File {
   metadata: Uint8Array;
 }
 
+/** BuildManifestArgs are arguments passed to the BuildManifest function. */
+export interface BuildManifestArgs {
+  /**
+   * BuilderConfig is the builder configuration.
+   * Must be set.
+   */
+  builderConfig:
+    | BuilderConfig
+    | undefined;
+  /**
+   * PrevBuilderResult is the previous builder result, if applicable.
+   * Set only if we are re-building the manifest after a file changed.
+   * May be nil.
+   */
+  prevBuilderResult:
+    | BuilderResult
+    | undefined;
+  /**
+   * ChangedFiles is the list of files from PrevBuilderResult InputManifest
+   * filtered to contain only files that changed since the previous build.
+   *
+   * Set only if PrevBuilderResult is set.
+   * May be nil.
+   */
+  changedFiles: InputManifest_File[];
+}
+
 function createBaseBuilderConfig(): BuilderConfig {
   return {
     manifestMeta: undefined,
@@ -623,6 +650,134 @@ export const InputManifest_File = {
     const message = createBaseInputManifest_File();
     message.path = object.path ?? "";
     message.metadata = object.metadata ?? new Uint8Array(0);
+    return message;
+  },
+};
+
+function createBaseBuildManifestArgs(): BuildManifestArgs {
+  return { builderConfig: undefined, prevBuilderResult: undefined, changedFiles: [] };
+}
+
+export const BuildManifestArgs = {
+  encode(message: BuildManifestArgs, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.builderConfig !== undefined) {
+      BuilderConfig.encode(message.builderConfig, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.prevBuilderResult !== undefined) {
+      BuilderResult.encode(message.prevBuilderResult, writer.uint32(18).fork()).ldelim();
+    }
+    for (const v of message.changedFiles) {
+      InputManifest_File.encode(v!, writer.uint32(26).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): BuildManifestArgs {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildManifestArgs();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.builderConfig = BuilderConfig.decode(reader, reader.uint32());
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prevBuilderResult = BuilderResult.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.changedFiles.push(InputManifest_File.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<BuildManifestArgs, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<BuildManifestArgs | BuildManifestArgs[]> | Iterable<BuildManifestArgs | BuildManifestArgs[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [BuildManifestArgs.encode(p).finish()];
+        }
+      } else {
+        yield* [BuildManifestArgs.encode(pkt).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, BuildManifestArgs>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<BuildManifestArgs> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [BuildManifestArgs.decode(p)];
+        }
+      } else {
+        yield* [BuildManifestArgs.decode(pkt)];
+      }
+    }
+  },
+
+  fromJSON(object: any): BuildManifestArgs {
+    return {
+      builderConfig: isSet(object.builderConfig) ? BuilderConfig.fromJSON(object.builderConfig) : undefined,
+      prevBuilderResult: isSet(object.prevBuilderResult) ? BuilderResult.fromJSON(object.prevBuilderResult) : undefined,
+      changedFiles: Array.isArray(object?.changedFiles)
+        ? object.changedFiles.map((e: any) => InputManifest_File.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: BuildManifestArgs): unknown {
+    const obj: any = {};
+    message.builderConfig !== undefined &&
+      (obj.builderConfig = message.builderConfig ? BuilderConfig.toJSON(message.builderConfig) : undefined);
+    message.prevBuilderResult !== undefined &&
+      (obj.prevBuilderResult = message.prevBuilderResult ? BuilderResult.toJSON(message.prevBuilderResult) : undefined);
+    if (message.changedFiles) {
+      obj.changedFiles = message.changedFiles.map((e) => e ? InputManifest_File.toJSON(e) : undefined);
+    } else {
+      obj.changedFiles = [];
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuildManifestArgs>, I>>(base?: I): BuildManifestArgs {
+    return BuildManifestArgs.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<BuildManifestArgs>, I>>(object: I): BuildManifestArgs {
+    const message = createBaseBuildManifestArgs();
+    message.builderConfig = (object.builderConfig !== undefined && object.builderConfig !== null)
+      ? BuilderConfig.fromPartial(object.builderConfig)
+      : undefined;
+    message.prevBuilderResult = (object.prevBuilderResult !== undefined && object.prevBuilderResult !== null)
+      ? BuilderResult.fromPartial(object.prevBuilderResult)
+      : undefined;
+    message.changedFiles = object.changedFiles?.map((e) => InputManifest_File.fromPartial(e)) || [];
     return message;
   },
 };

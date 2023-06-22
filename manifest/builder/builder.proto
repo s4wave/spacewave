@@ -60,3 +60,20 @@ message InputManifest {
   // Optional.
   bytes metadata = 2;
 }
+
+// BuildManifestArgs are arguments passed to the BuildManifest function.
+message BuildManifestArgs {
+	// BuilderConfig is the builder configuration.
+	// Must be set.
+	BuilderConfig builder_config = 1;
+
+	// PrevBuilderResult is the previous builder result, if applicable.
+	// Set only if we are re-building the manifest after a file changed.
+	// May be nil.
+	BuilderResult prev_builder_result = 2;
+	// ChangedFiles is the list of files from PrevBuilderResult InputManifest
+	// filtered to contain only files that changed since the previous build. //
+	// Set only if PrevBuilderResult is set.
+	// May be nil.
+	repeated InputManifest.File changed_files = 3;
+}

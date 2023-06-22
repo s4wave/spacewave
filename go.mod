@@ -12,7 +12,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.17.5-0.20230620195434-e51e5d7788ad // master
+require github.com/aperturerobotics/bifrost v0.17.5-0.20230622205505-ebb89c091028 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -69,7 +69,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.9.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.9.19 // indirect
-	github.com/nats-io/nats.go v1.27.0 // indirect
+	github.com/nats-io/nats.go v1.27.1 // indirect
 	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -77,7 +77,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.4.0 // indirect
-	github.com/quic-go/quic-go v0.35.1 // indirect
+	github.com/quic-go/quic-go v0.36.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect

@@ -22,7 +22,13 @@ type Controller interface {
 	controller.Controller
 
 	// BuildManifest attempts to compile the manifest once.
-	BuildManifest(ctx context.Context, buildConfig *BuilderConfig) (*BuilderResult, error)
+	//
+	// prevResult contains the previous successful BuilderResult to be used for caching.
+	// prevResult will be nil if the build has not completed successfully before.
+	BuildManifest(
+		ctx context.Context,
+		args *BuildManifestArgs,
+	) (*BuilderResult, error)
 }
 
 // NewInputManifest constructs a new input manifest with a list of files.

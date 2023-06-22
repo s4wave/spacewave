@@ -134,23 +134,34 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	watchedFiles := make(map[string]struct{})
 	// Watcher
 	var watcher *fsnotify.Watcher
+	var watchedFiles map[string]*manifest_builder.InputManifest_File
 	if c.c.GetWatch() {
 		watcher, err = fsnotify.NewWatcher()
 		if err != nil {
 			return err
 		}
 		defer watcher.Close()
+		watchedFiles = make(map[string]*manifest_builder.InputManifest_File)
 	}
 
+	var prevResult *manifest_builder.BuilderResult
+	var changedFiles []*manifest_builder.InputManifest_File
 	for {
 		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
 		c.resultPromise.SetPromise(resultPromise)
 
-		result, err := builderCtrl.BuildManifest(ctx, builderConfig)
+		args := &manifest_builder.BuildManifestArgs{
+			BuilderConfig: builderConfig,
+
+			PrevBuilderResult: prevResult,
+			ChangedFiles:      changedFiles,
+		}
+		prevResult, changedFiles = nil, nil
+		result, err := builderCtrl.BuildManifest(ctx, args)
 		resultPromise.SetResult(result, err)
+		prevResult = result
 		if err != nil {
 			return err
 		}
@@ -165,33 +176,50 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ignoreWatchPrefixes := []string{"vendor", "node_modules", ".bldr"}
 
 		// build file watchlist
-		nextWatchedFiles := make(map[string]struct{})
+		nextWatchedFiles := make(map[string]*manifest_builder.InputManifest_File)
 	FilesLoop:
-		for _, filePath := range inputFiles {
-			fp := filePath.GetPath()
+		for _, inputFile := range inputFiles {
+			filePath := inputFile.GetPath()
 			for _, prefix := range ignoreWatchPrefixes {
-				if strings.HasPrefix(fp, prefix) {
+				if strings.HasPrefix(filePath, prefix) {
 					continue FilesLoop
 				}
 			}
-			nextWatchedFiles[fp] = struct{}{}
+			if _, ok := nextWatchedFiles[filePath]; !ok {
+				nextWatchedFiles[filePath] = inputFile
+			}
+		}
+
+		if len(nextWatchedFiles) == 0 {
+			le.Debug("builder provided no files to watch, returning")
+			return nil
 		}
 
 		// compare list of files with previous list of file
+		watchedSourcePaths := make(map[string]*manifest_builder.InputManifest_File, len(nextWatchedFiles)+len(watchedFiles))
 		for filePath := range watchedFiles {
-			if _, ok := nextWatchedFiles[filePath]; ok {
+			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
+			if v, ok := nextWatchedFiles[filePath]; ok {
+				// file was already watched: update the file pointer
+				watchedFiles[filePath] = v
+				watchedSourcePaths[sourcePath] = v
 				delete(nextWatchedFiles, filePath)
 				continue
 			}
+
 			le.Debugf("removing watcher for file: %s", filePath)
+			delete(watchedFiles, filePath)
+			delete(watchedSourcePaths, sourcePath)
 			if err := watcher.Remove(filePath); err != nil {
 				return err
 			}
 		}
-		for filePath := range nextWatchedFiles {
-			watchedFiles[filePath] = struct{}{}
-			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
+
+		for filePath, v := range nextWatchedFiles {
 			le.Debugf("adding watcher for file: %s", filePath)
+			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
+			watchedFiles[filePath] = v
+			watchedSourcePaths[sourcePath] = v
 			if err := watcher.Add(sourcePath); err != nil {
 				return err
 			}
@@ -208,7 +236,27 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return err
 		}
 
-		le.Infof("re-building after %d filesystem events", len(happened))
+		// build list of changed files
+		// DebounceFSWatcherEvents watches for Create, Rename, Write, Remove
+		seenChangedFiles := make(map[*manifest_builder.InputManifest_File]struct{}, len(happened))
+		for _, event := range happened {
+			inputFile := watchedSourcePaths[event.Name]
+
+			// Shouldn't happen: but log a warning if so.
+			if inputFile == nil {
+				le.
+					WithField("watched-path", event.Name).
+					Warn("filesystem event does not correspond to any watched files")
+				continue
+			}
+
+			if _, ok := seenChangedFiles[inputFile]; !ok {
+				seenChangedFiles[inputFile] = struct{}{}
+				changedFiles = append(changedFiles, inputFile)
+			}
+		}
+
+		le.Infof("re-building after %d filesystem events with %d changed files", len(happened), len(changedFiles))
 	}
 }
 
