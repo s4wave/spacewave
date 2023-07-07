@@ -212,8 +212,16 @@ func (c *Controller) BuildManifest(
 	sort.Strings(goPackages)
 	goPackages = slices.Compact(goPackages)
 
+	// TODO: if no Go files changed, rebuild esbuild assets only (hot reload)
+	/*
+		prevResult := args.GetPrevBuilderResult()
+		if prevResult != nil {
+			prevManifest := prevResult.GetManifest()
+			changedFiles := args.GetChangedFiles()
+		}
+	*/
+
 	le.Debug("compiling plugin")
-	// outBinName := strings.Join([]string{projectID, pluginID}, "-") + buildPlatform.GetExecutableExt()
 	outBinName := pluginID + buildPlatform.GetExecutableExt()
 	pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
 	_, consumedSrcFiles, err := c.BuildPlugin(

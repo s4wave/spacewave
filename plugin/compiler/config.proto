@@ -8,7 +8,7 @@ message Config {
   // GoPackages is the list of Go packages to scan for controller factories.
   // Looks for package-level functions:
   //  - NewFactory(b bus.Bus) controller.Factory
-  //  - BuildFactories(b bus.Bus) []controller.Factory
+  //  - [TODO] BuildFactories(b bus.Bus) []controller.Factory
   repeated string go_packages = 1;
 
   // ConfigSet is a ConfigSet to apply on plugin startup.
