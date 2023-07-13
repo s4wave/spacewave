@@ -38,7 +38,7 @@ function createBaseHandleWebViewRequest(): HandleWebViewRequest {
 export const HandleWebViewRequest = {
   encode(
     message: HandleWebViewRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -57,7 +57,7 @@ export const HandleWebViewRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): HandleWebViewRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -108,7 +108,7 @@ export const HandleWebViewRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<HandleWebViewRequest | HandleWebViewRequest[]>
-      | Iterable<HandleWebViewRequest | HandleWebViewRequest[]>
+      | Iterable<HandleWebViewRequest | HandleWebViewRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -126,7 +126,7 @@ export const HandleWebViewRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -158,13 +158,13 @@ export const HandleWebViewRequest = {
   },
 
   create<I extends Exact<DeepPartial<HandleWebViewRequest>, I>>(
-    base?: I
+    base?: I,
   ): HandleWebViewRequest {
     return HandleWebViewRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HandleWebViewRequest>, I>>(
-    object: I
+    object: I,
   ): HandleWebViewRequest {
     const message = createBaseHandleWebViewRequest()
     message.id = object.id ?? ''
@@ -182,7 +182,7 @@ function createBaseHandleWebViewResponse(): HandleWebViewResponse {
 export const HandleWebViewResponse = {
   encode(
     message: HandleWebViewResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -192,7 +192,7 @@ export const HandleWebViewResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): HandleWebViewResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -222,7 +222,7 @@ export const HandleWebViewResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<HandleWebViewResponse | HandleWebViewResponse[]>
-      | Iterable<HandleWebViewResponse | HandleWebViewResponse[]>
+      | Iterable<HandleWebViewResponse | HandleWebViewResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -240,7 +240,7 @@ export const HandleWebViewResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -264,13 +264,13 @@ export const HandleWebViewResponse = {
   },
 
   create<I extends Exact<DeepPartial<HandleWebViewResponse>, I>>(
-    base?: I
+    base?: I,
   ): HandleWebViewResponse {
     return HandleWebViewResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HandleWebViewResponse>, I>>(
-    object: I
+    object: I,
   ): HandleWebViewResponse {
     const message = createBaseHandleWebViewResponse()
     message.error = object.error ?? ''
@@ -288,7 +288,7 @@ export interface HandleWebViewService {
    */
   HandleWebView(
     request: HandleWebViewRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<HandleWebViewResponse>
 }
 
@@ -304,17 +304,17 @@ export class HandleWebViewServiceClientImpl implements HandleWebViewService {
   }
   HandleWebView(
     request: HandleWebViewRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<HandleWebViewResponse> {
     const data = HandleWebViewRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'HandleWebView',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      HandleWebViewResponse.decode(_m0.Reader.create(data))
+      HandleWebViewResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -348,7 +348,7 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
 }
 

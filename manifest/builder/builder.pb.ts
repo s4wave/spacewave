@@ -97,8 +97,7 @@ export interface BuildManifestArgs {
     | undefined;
   /**
    * ChangedFiles is the list of files from PrevBuilderResult InputManifest
-   * filtered to contain only files that changed since the previous build.
-   *
+   * filtered to contain only files that changed since the previous build. //
    * Set only if PrevBuilderResult is set.
    * May be nil.
    */
@@ -782,10 +781,10 @@ export const BuildManifestArgs = {
   },
 };
 
-declare var self: any | undefined;
-declare var window: any | undefined;
-declare var global: any | undefined;
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined;
+declare const window: any | undefined;
+declare const global: any | undefined;
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== "undefined") {
     return globalThis;
   }

@@ -39,7 +39,7 @@ function mime(filename: string) {
 // handle requests for distribution files
 function appRequestHandler(
   req: electron.ProtocolRequest,
-  next: (response: Buffer | electron.ProtocolResponse) => void
+  next: (response: Buffer | electron.ProtocolResponse) => void,
 ) {
   const reqUrl = new URL(req.url)
   let reqPath = path.normalize(reqUrl.pathname)

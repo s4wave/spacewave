@@ -18,7 +18,7 @@ export interface HandleWebViewViaPluginRequest {
 
 /** HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin. */
 export interface HandleWebViewViaPluginResponse {
-  body?: { $case: 'ready'; ready: boolean }
+  body?: { $case: 'ready'; ready: boolean } | undefined
 }
 
 /** HandleRpcViaPluginRequest is a request to handle web views via a plugin RPC. */
@@ -44,7 +44,7 @@ export interface HandleRpcViaPluginRequest {
 
 /** HandleRpcViaPluginResponse is the response to HandleRpcViaPlugin. */
 export interface HandleRpcViaPluginResponse {
-  body?: { $case: 'ready'; ready: boolean }
+  body?: { $case: 'ready'; ready: boolean } | undefined
 }
 
 function createBaseHandleWebViewViaPluginRequest(): HandleWebViewViaPluginRequest {
@@ -54,7 +54,7 @@ function createBaseHandleWebViewViaPluginRequest(): HandleWebViewViaPluginReques
 export const HandleWebViewViaPluginRequest = {
   encode(
     message: HandleWebViewViaPluginRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.handlePluginId !== '') {
       writer.uint32(10).string(message.handlePluginId)
@@ -67,7 +67,7 @@ export const HandleWebViewViaPluginRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): HandleWebViewViaPluginRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -108,7 +108,7 @@ export const HandleWebViewViaPluginRequest = {
         >
       | Iterable<
           HandleWebViewViaPluginRequest | HandleWebViewViaPluginRequest[]
-        >
+        >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -126,7 +126,7 @@ export const HandleWebViewViaPluginRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewViaPluginRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -157,13 +157,13 @@ export const HandleWebViewViaPluginRequest = {
   },
 
   create<I extends Exact<DeepPartial<HandleWebViewViaPluginRequest>, I>>(
-    base?: I
+    base?: I,
   ): HandleWebViewViaPluginRequest {
     return HandleWebViewViaPluginRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HandleWebViewViaPluginRequest>, I>>(
-    object: I
+    object: I,
   ): HandleWebViewViaPluginRequest {
     const message = createBaseHandleWebViewViaPluginRequest()
     message.handlePluginId = object.handlePluginId ?? ''
@@ -179,7 +179,7 @@ function createBaseHandleWebViewViaPluginResponse(): HandleWebViewViaPluginRespo
 export const HandleWebViewViaPluginResponse = {
   encode(
     message: HandleWebViewViaPluginResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'ready':
@@ -191,7 +191,7 @@ export const HandleWebViewViaPluginResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): HandleWebViewViaPluginResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -225,7 +225,7 @@ export const HandleWebViewViaPluginResponse = {
         >
       | Iterable<
           HandleWebViewViaPluginResponse | HandleWebViewViaPluginResponse[]
-        >
+        >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -243,7 +243,7 @@ export const HandleWebViewViaPluginResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewViaPluginResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -271,13 +271,13 @@ export const HandleWebViewViaPluginResponse = {
   },
 
   create<I extends Exact<DeepPartial<HandleWebViewViaPluginResponse>, I>>(
-    base?: I
+    base?: I,
   ): HandleWebViewViaPluginResponse {
     return HandleWebViewViaPluginResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HandleWebViewViaPluginResponse>, I>>(
-    object: I
+    object: I,
   ): HandleWebViewViaPluginResponse {
     const message = createBaseHandleWebViewViaPluginResponse()
     if (
@@ -303,7 +303,7 @@ function createBaseHandleRpcViaPluginRequest(): HandleRpcViaPluginRequest {
 export const HandleRpcViaPluginRequest = {
   encode(
     message: HandleRpcViaPluginRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.handlePluginId !== '') {
       writer.uint32(10).string(message.handlePluginId)
@@ -322,7 +322,7 @@ export const HandleRpcViaPluginRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): HandleRpcViaPluginRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -373,7 +373,7 @@ export const HandleRpcViaPluginRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<HandleRpcViaPluginRequest | HandleRpcViaPluginRequest[]>
-      | Iterable<HandleRpcViaPluginRequest | HandleRpcViaPluginRequest[]>
+      | Iterable<HandleRpcViaPluginRequest | HandleRpcViaPluginRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -391,7 +391,7 @@ export const HandleRpcViaPluginRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleRpcViaPluginRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -431,13 +431,13 @@ export const HandleRpcViaPluginRequest = {
   },
 
   create<I extends Exact<DeepPartial<HandleRpcViaPluginRequest>, I>>(
-    base?: I
+    base?: I,
   ): HandleRpcViaPluginRequest {
     return HandleRpcViaPluginRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HandleRpcViaPluginRequest>, I>>(
-    object: I
+    object: I,
   ): HandleRpcViaPluginRequest {
     const message = createBaseHandleRpcViaPluginRequest()
     message.handlePluginId = object.handlePluginId ?? ''
@@ -458,7 +458,7 @@ function createBaseHandleRpcViaPluginResponse(): HandleRpcViaPluginResponse {
 export const HandleRpcViaPluginResponse = {
   encode(
     message: HandleRpcViaPluginResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'ready':
@@ -470,7 +470,7 @@ export const HandleRpcViaPluginResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): HandleRpcViaPluginResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -500,7 +500,7 @@ export const HandleRpcViaPluginResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<HandleRpcViaPluginResponse | HandleRpcViaPluginResponse[]>
-      | Iterable<HandleRpcViaPluginResponse | HandleRpcViaPluginResponse[]>
+      | Iterable<HandleRpcViaPluginResponse | HandleRpcViaPluginResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -518,7 +518,7 @@ export const HandleRpcViaPluginResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleRpcViaPluginResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -546,13 +546,13 @@ export const HandleRpcViaPluginResponse = {
   },
 
   create<I extends Exact<DeepPartial<HandleRpcViaPluginResponse>, I>>(
-    base?: I
+    base?: I,
   ): HandleRpcViaPluginResponse {
     return HandleRpcViaPluginResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<HandleRpcViaPluginResponse>, I>>(
-    object: I
+    object: I,
   ): HandleRpcViaPluginResponse {
     const message = createBaseHandleRpcViaPluginResponse()
     if (
@@ -571,12 +571,12 @@ export interface WebPlugin {
   /** HandleWebViewViaPlugin configures handling web views via a plugin. */
   HandleWebViewViaPlugin(
     request: HandleWebViewViaPluginRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<HandleWebViewViaPluginResponse>
   /** HandleRpcViaPlugin configures handling rpcs via a plugin. */
   HandleRpcViaPlugin(
     request: HandleRpcViaPluginRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<HandleRpcViaPluginResponse>
 }
 
@@ -592,28 +592,28 @@ export class WebPluginClientImpl implements WebPlugin {
   }
   HandleWebViewViaPlugin(
     request: HandleWebViewViaPluginRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<HandleWebViewViaPluginResponse> {
     const data = HandleWebViewViaPluginRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'HandleWebViewViaPlugin',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return HandleWebViewViaPluginResponse.decodeTransform(result)
   }
 
   HandleRpcViaPlugin(
     request: HandleRpcViaPluginRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<HandleRpcViaPluginResponse> {
     const data = HandleRpcViaPluginRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'HandleRpcViaPlugin',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return HandleRpcViaPluginResponse.decodeTransform(result)
   }
@@ -651,25 +651,25 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 

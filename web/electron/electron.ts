@@ -20,7 +20,7 @@ export interface BldrElectron {
     // init is a WebRuntimeClientInit encoded.
     init: Uint8Array,
     // port is the client port bridge.
-    port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>
+    port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>,
   ): Promise<void>
 }
 
@@ -34,7 +34,7 @@ export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 // called from runtime-electron.ts
 export async function openElectronPort(
   init: Uint8Array,
-  port: MessagePort
+  port: MessagePort,
 ): Promise<void> {
   if (!BLDR_ELECTRON) {
     throw new Error('not running in electron')
@@ -42,7 +42,7 @@ export async function openElectronPort(
 
   return BLDR_ELECTRON.openClientPort(
     init,
-    messagePortToMessagePortBridge(port)
+    messagePortToMessagePortBridge(port),
   )
 }
 

@@ -10,7 +10,7 @@ declare let window: Window
 // addShutdownCallback attempts to add a callback when the context closes.
 // returns a function to remove the callback.
 export function addShutdownCallback(
-  cb: ShutdownCallback
+  cb: ShutdownCallback,
 ): DisposeCallback | null {
   if (window && window.addEventListener) {
     const windowListener = (e: BeforeUnloadEvent) => {

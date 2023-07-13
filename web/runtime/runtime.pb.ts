@@ -17,7 +17,7 @@ export enum WebRuntimeClientType {
 }
 
 export function webRuntimeClientTypeFromJSON(
-  object: any
+  object: any,
 ): WebRuntimeClientType {
   switch (object) {
     case 0:
@@ -37,7 +37,7 @@ export function webRuntimeClientTypeFromJSON(
 }
 
 export function webRuntimeClientTypeToJSON(
-  object: WebRuntimeClientType
+  object: WebRuntimeClientType,
 ): string {
   switch (object) {
     case WebRuntimeClientType.WebRuntimeClientType_UNKNOWN:
@@ -145,7 +145,7 @@ function createBaseWebRuntimeHostInit(): WebRuntimeHostInit {
 export const WebRuntimeHostInit = {
   encode(
     message: WebRuntimeHostInit,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.webRuntimeId !== '') {
       writer.uint32(10).string(message.webRuntimeId)
@@ -182,7 +182,7 @@ export const WebRuntimeHostInit = {
   async *encodeTransform(
     source:
       | AsyncIterable<WebRuntimeHostInit | WebRuntimeHostInit[]>
-      | Iterable<WebRuntimeHostInit | WebRuntimeHostInit[]>
+      | Iterable<WebRuntimeHostInit | WebRuntimeHostInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -200,7 +200,7 @@ export const WebRuntimeHostInit = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebRuntimeHostInit> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -229,13 +229,13 @@ export const WebRuntimeHostInit = {
   },
 
   create<I extends Exact<DeepPartial<WebRuntimeHostInit>, I>>(
-    base?: I
+    base?: I,
   ): WebRuntimeHostInit {
     return WebRuntimeHostInit.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebRuntimeHostInit>, I>>(
-    object: I
+    object: I,
   ): WebRuntimeHostInit {
     const message = createBaseWebRuntimeHostInit()
     message.webRuntimeId = object.webRuntimeId ?? ''
@@ -250,14 +250,14 @@ function createBaseWatchWebRuntimeStatusRequest(): WatchWebRuntimeStatusRequest 
 export const WatchWebRuntimeStatusRequest = {
   encode(
     _: WatchWebRuntimeStatusRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): WatchWebRuntimeStatusRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -282,7 +282,7 @@ export const WatchWebRuntimeStatusRequest = {
       | AsyncIterable<
           WatchWebRuntimeStatusRequest | WatchWebRuntimeStatusRequest[]
         >
-      | Iterable<WatchWebRuntimeStatusRequest | WatchWebRuntimeStatusRequest[]>
+      | Iterable<WatchWebRuntimeStatusRequest | WatchWebRuntimeStatusRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -300,7 +300,7 @@ export const WatchWebRuntimeStatusRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchWebRuntimeStatusRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -323,13 +323,13 @@ export const WatchWebRuntimeStatusRequest = {
   },
 
   create<I extends Exact<DeepPartial<WatchWebRuntimeStatusRequest>, I>>(
-    base?: I
+    base?: I,
   ): WatchWebRuntimeStatusRequest {
     return WatchWebRuntimeStatusRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WatchWebRuntimeStatusRequest>, I>>(
-    _: I
+    _: I,
   ): WatchWebRuntimeStatusRequest {
     const message = createBaseWatchWebRuntimeStatusRequest()
     return message
@@ -343,7 +343,7 @@ function createBaseWebRuntimeStatus(): WebRuntimeStatus {
 export const WebRuntimeStatus = {
   encode(
     message: WebRuntimeStatus,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.snapshot === true) {
       writer.uint32(8).bool(message.snapshot)
@@ -375,7 +375,7 @@ export const WebRuntimeStatus = {
           }
 
           message.webDocuments.push(
-            WebDocumentStatus.decode(reader, reader.uint32())
+            WebDocumentStatus.decode(reader, reader.uint32()),
           )
           continue
       }
@@ -392,7 +392,7 @@ export const WebRuntimeStatus = {
   async *encodeTransform(
     source:
       | AsyncIterable<WebRuntimeStatus | WebRuntimeStatus[]>
-      | Iterable<WebRuntimeStatus | WebRuntimeStatus[]>
+      | Iterable<WebRuntimeStatus | WebRuntimeStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -410,7 +410,7 @@ export const WebRuntimeStatus = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebRuntimeStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -437,7 +437,7 @@ export const WebRuntimeStatus = {
     message.snapshot !== undefined && (obj.snapshot = message.snapshot)
     if (message.webDocuments) {
       obj.webDocuments = message.webDocuments.map((e) =>
-        e ? WebDocumentStatus.toJSON(e) : undefined
+        e ? WebDocumentStatus.toJSON(e) : undefined,
       )
     } else {
       obj.webDocuments = []
@@ -446,13 +446,13 @@ export const WebRuntimeStatus = {
   },
 
   create<I extends Exact<DeepPartial<WebRuntimeStatus>, I>>(
-    base?: I
+    base?: I,
   ): WebRuntimeStatus {
     return WebRuntimeStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebRuntimeStatus>, I>>(
-    object: I
+    object: I,
   ): WebRuntimeStatus {
     const message = createBaseWebRuntimeStatus()
     message.snapshot = object.snapshot ?? false
@@ -469,7 +469,7 @@ function createBaseWebDocumentStatus(): WebDocumentStatus {
 export const WebDocumentStatus = {
   encode(
     message: WebDocumentStatus,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -526,7 +526,7 @@ export const WebDocumentStatus = {
   async *encodeTransform(
     source:
       | AsyncIterable<WebDocumentStatus | WebDocumentStatus[]>
-      | Iterable<WebDocumentStatus | WebDocumentStatus[]>
+      | Iterable<WebDocumentStatus | WebDocumentStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -544,7 +544,7 @@ export const WebDocumentStatus = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebDocumentStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -574,13 +574,13 @@ export const WebDocumentStatus = {
   },
 
   create<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
-    base?: I
+    base?: I,
   ): WebDocumentStatus {
     return WebDocumentStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
-    object: I
+    object: I,
   ): WebDocumentStatus {
     const message = createBaseWebDocumentStatus()
     message.id = object.id ?? ''
@@ -597,7 +597,7 @@ function createBaseCreateWebDocumentRequest(): CreateWebDocumentRequest {
 export const CreateWebDocumentRequest = {
   encode(
     message: CreateWebDocumentRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -607,7 +607,7 @@ export const CreateWebDocumentRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): CreateWebDocumentRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -637,7 +637,7 @@ export const CreateWebDocumentRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<CreateWebDocumentRequest | CreateWebDocumentRequest[]>
-      | Iterable<CreateWebDocumentRequest | CreateWebDocumentRequest[]>
+      | Iterable<CreateWebDocumentRequest | CreateWebDocumentRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -655,7 +655,7 @@ export const CreateWebDocumentRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CreateWebDocumentRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -679,13 +679,13 @@ export const CreateWebDocumentRequest = {
   },
 
   create<I extends Exact<DeepPartial<CreateWebDocumentRequest>, I>>(
-    base?: I
+    base?: I,
   ): CreateWebDocumentRequest {
     return CreateWebDocumentRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CreateWebDocumentRequest>, I>>(
-    object: I
+    object: I,
   ): CreateWebDocumentRequest {
     const message = createBaseCreateWebDocumentRequest()
     message.id = object.id ?? ''
@@ -700,7 +700,7 @@ function createBaseCreateWebDocumentResponse(): CreateWebDocumentResponse {
 export const CreateWebDocumentResponse = {
   encode(
     message: CreateWebDocumentResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.created === true) {
       writer.uint32(8).bool(message.created)
@@ -710,7 +710,7 @@ export const CreateWebDocumentResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): CreateWebDocumentResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -740,7 +740,7 @@ export const CreateWebDocumentResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<CreateWebDocumentResponse | CreateWebDocumentResponse[]>
-      | Iterable<CreateWebDocumentResponse | CreateWebDocumentResponse[]>
+      | Iterable<CreateWebDocumentResponse | CreateWebDocumentResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -758,7 +758,7 @@ export const CreateWebDocumentResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CreateWebDocumentResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -782,13 +782,13 @@ export const CreateWebDocumentResponse = {
   },
 
   create<I extends Exact<DeepPartial<CreateWebDocumentResponse>, I>>(
-    base?: I
+    base?: I,
   ): CreateWebDocumentResponse {
     return CreateWebDocumentResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CreateWebDocumentResponse>, I>>(
-    object: I
+    object: I,
   ): CreateWebDocumentResponse {
     const message = createBaseCreateWebDocumentResponse()
     message.created = object.created ?? false
@@ -803,7 +803,7 @@ function createBaseRemoveWebDocumentRequest(): RemoveWebDocumentRequest {
 export const RemoveWebDocumentRequest = {
   encode(
     message: RemoveWebDocumentRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -813,7 +813,7 @@ export const RemoveWebDocumentRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): RemoveWebDocumentRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -843,7 +843,7 @@ export const RemoveWebDocumentRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<RemoveWebDocumentRequest | RemoveWebDocumentRequest[]>
-      | Iterable<RemoveWebDocumentRequest | RemoveWebDocumentRequest[]>
+      | Iterable<RemoveWebDocumentRequest | RemoveWebDocumentRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -861,7 +861,7 @@ export const RemoveWebDocumentRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveWebDocumentRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -885,13 +885,13 @@ export const RemoveWebDocumentRequest = {
   },
 
   create<I extends Exact<DeepPartial<RemoveWebDocumentRequest>, I>>(
-    base?: I
+    base?: I,
   ): RemoveWebDocumentRequest {
     return RemoveWebDocumentRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebDocumentRequest>, I>>(
-    object: I
+    object: I,
   ): RemoveWebDocumentRequest {
     const message = createBaseRemoveWebDocumentRequest()
     message.id = object.id ?? ''
@@ -906,7 +906,7 @@ function createBaseRemoveWebDocumentResponse(): RemoveWebDocumentResponse {
 export const RemoveWebDocumentResponse = {
   encode(
     message: RemoveWebDocumentResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.removed === true) {
       writer.uint32(8).bool(message.removed)
@@ -916,7 +916,7 @@ export const RemoveWebDocumentResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): RemoveWebDocumentResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -946,7 +946,7 @@ export const RemoveWebDocumentResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<RemoveWebDocumentResponse | RemoveWebDocumentResponse[]>
-      | Iterable<RemoveWebDocumentResponse | RemoveWebDocumentResponse[]>
+      | Iterable<RemoveWebDocumentResponse | RemoveWebDocumentResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -964,7 +964,7 @@ export const RemoveWebDocumentResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveWebDocumentResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -988,13 +988,13 @@ export const RemoveWebDocumentResponse = {
   },
 
   create<I extends Exact<DeepPartial<RemoveWebDocumentResponse>, I>>(
-    base?: I
+    base?: I,
   ): RemoveWebDocumentResponse {
     return RemoveWebDocumentResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebDocumentResponse>, I>>(
-    object: I
+    object: I,
   ): RemoveWebDocumentResponse {
     const message = createBaseRemoveWebDocumentResponse()
     message.removed = object.removed ?? false
@@ -1009,7 +1009,7 @@ function createBaseWebRuntimeClientInit(): WebRuntimeClientInit {
 export const WebRuntimeClientInit = {
   encode(
     message: WebRuntimeClientInit,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.webRuntimeId !== '') {
       writer.uint32(10).string(message.webRuntimeId)
@@ -1025,7 +1025,7 @@ export const WebRuntimeClientInit = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): WebRuntimeClientInit {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1069,7 +1069,7 @@ export const WebRuntimeClientInit = {
   async *encodeTransform(
     source:
       | AsyncIterable<WebRuntimeClientInit | WebRuntimeClientInit[]>
-      | Iterable<WebRuntimeClientInit | WebRuntimeClientInit[]>
+      | Iterable<WebRuntimeClientInit | WebRuntimeClientInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1087,7 +1087,7 @@ export const WebRuntimeClientInit = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebRuntimeClientInit> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1123,13 +1123,13 @@ export const WebRuntimeClientInit = {
   },
 
   create<I extends Exact<DeepPartial<WebRuntimeClientInit>, I>>(
-    base?: I
+    base?: I,
   ): WebRuntimeClientInit {
     return WebRuntimeClientInit.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebRuntimeClientInit>, I>>(
-    object: I
+    object: I,
   ): WebRuntimeClientInit {
     const message = createBaseWebRuntimeClientInit()
     message.webRuntimeId = object.webRuntimeId ?? ''
@@ -1152,7 +1152,7 @@ export interface WebRuntimeHost {
    */
   WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
   /**
    * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
@@ -1161,7 +1161,7 @@ export interface WebRuntimeHost {
    */
   ServiceWorkerRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -1177,28 +1177,28 @@ export class WebRuntimeHostClientImpl implements WebRuntimeHost {
   }
   WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebDocumentRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
 
   ServiceWorkerRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'ServiceWorkerRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -1252,7 +1252,7 @@ export interface WebRuntime {
   /** WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates. */
   WatchWebRuntimeStatus(
     request: WatchWebRuntimeStatusRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<WebRuntimeStatus>
   /**
    * CreateWebDocument requests to create a new WebDocument.
@@ -1261,7 +1261,7 @@ export interface WebRuntime {
    */
   CreateWebDocument(
     request: CreateWebDocumentRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<CreateWebDocumentResponse>
   /**
    * RemoveWebDocument requests to delete a WebDocument.
@@ -1270,7 +1270,7 @@ export interface WebRuntime {
    */
   RemoveWebDocument(
     request: RemoveWebDocumentRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RemoveWebDocumentResponse>
   /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
@@ -1279,7 +1279,7 @@ export interface WebRuntime {
    */
   WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -1297,60 +1297,60 @@ export class WebRuntimeClientImpl implements WebRuntime {
   }
   WatchWebRuntimeStatus(
     request: WatchWebRuntimeStatusRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<WebRuntimeStatus> {
     const data = WatchWebRuntimeStatusRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'WatchWebRuntimeStatus',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return WebRuntimeStatus.decodeTransform(result)
   }
 
   CreateWebDocument(
     request: CreateWebDocumentRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<CreateWebDocumentResponse> {
     const data = CreateWebDocumentRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'CreateWebDocument',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      CreateWebDocumentResponse.decode(_m0.Reader.create(data))
+      CreateWebDocumentResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   RemoveWebDocument(
     request: RemoveWebDocumentRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RemoveWebDocumentResponse> {
     const data = RemoveWebDocumentRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'RemoveWebDocument',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      RemoveWebDocumentResponse.decode(_m0.Reader.create(data))
+      RemoveWebDocumentResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebDocumentRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -1422,25 +1422,25 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 

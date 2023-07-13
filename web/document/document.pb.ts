@@ -60,14 +60,14 @@ function createBaseWatchWebDocumentStatusRequest(): WatchWebDocumentStatusReques
 export const WatchWebDocumentStatusRequest = {
   encode(
     _: WatchWebDocumentStatusRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): WatchWebDocumentStatusRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -94,7 +94,7 @@ export const WatchWebDocumentStatusRequest = {
         >
       | Iterable<
           WatchWebDocumentStatusRequest | WatchWebDocumentStatusRequest[]
-        >
+        >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -112,7 +112,7 @@ export const WatchWebDocumentStatusRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchWebDocumentStatusRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -135,13 +135,13 @@ export const WatchWebDocumentStatusRequest = {
   },
 
   create<I extends Exact<DeepPartial<WatchWebDocumentStatusRequest>, I>>(
-    base?: I
+    base?: I,
   ): WatchWebDocumentStatusRequest {
     return WatchWebDocumentStatusRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WatchWebDocumentStatusRequest>, I>>(
-    _: I
+    _: I,
   ): WatchWebDocumentStatusRequest {
     const message = createBaseWatchWebDocumentStatusRequest()
     return message
@@ -155,7 +155,7 @@ function createBaseWebDocumentStatus(): WebDocumentStatus {
 export const WebDocumentStatus = {
   encode(
     message: WebDocumentStatus,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.snapshot === true) {
       writer.uint32(8).bool(message.snapshot)
@@ -202,7 +202,7 @@ export const WebDocumentStatus = {
   async *encodeTransform(
     source:
       | AsyncIterable<WebDocumentStatus | WebDocumentStatus[]>
-      | Iterable<WebDocumentStatus | WebDocumentStatus[]>
+      | Iterable<WebDocumentStatus | WebDocumentStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -220,7 +220,7 @@ export const WebDocumentStatus = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebDocumentStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -247,7 +247,7 @@ export const WebDocumentStatus = {
     message.snapshot !== undefined && (obj.snapshot = message.snapshot)
     if (message.webViews) {
       obj.webViews = message.webViews.map((e) =>
-        e ? WebViewStatus.toJSON(e) : undefined
+        e ? WebViewStatus.toJSON(e) : undefined,
       )
     } else {
       obj.webViews = []
@@ -256,13 +256,13 @@ export const WebDocumentStatus = {
   },
 
   create<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
-    base?: I
+    base?: I,
   ): WebDocumentStatus {
     return WebDocumentStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
-    object: I
+    object: I,
   ): WebDocumentStatus {
     const message = createBaseWebDocumentStatus()
     message.snapshot = object.snapshot ?? false
@@ -279,7 +279,7 @@ function createBaseWebViewStatus(): WebViewStatus {
 export const WebViewStatus = {
   encode(
     message: WebViewStatus,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -346,7 +346,7 @@ export const WebViewStatus = {
   async *encodeTransform(
     source:
       | AsyncIterable<WebViewStatus | WebViewStatus[]>
-      | Iterable<WebViewStatus | WebViewStatus[]>
+      | Iterable<WebViewStatus | WebViewStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -364,7 +364,7 @@ export const WebViewStatus = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebViewStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -396,13 +396,13 @@ export const WebViewStatus = {
   },
 
   create<I extends Exact<DeepPartial<WebViewStatus>, I>>(
-    base?: I
+    base?: I,
   ): WebViewStatus {
     return WebViewStatus.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WebViewStatus>, I>>(
-    object: I
+    object: I,
   ): WebViewStatus {
     const message = createBaseWebViewStatus()
     message.id = object.id ?? ''
@@ -420,7 +420,7 @@ function createBaseCreateWebViewRequest(): CreateWebViewRequest {
 export const CreateWebViewRequest = {
   encode(
     message: CreateWebViewRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -430,7 +430,7 @@ export const CreateWebViewRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): CreateWebViewRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -460,7 +460,7 @@ export const CreateWebViewRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<CreateWebViewRequest | CreateWebViewRequest[]>
-      | Iterable<CreateWebViewRequest | CreateWebViewRequest[]>
+      | Iterable<CreateWebViewRequest | CreateWebViewRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -478,7 +478,7 @@ export const CreateWebViewRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CreateWebViewRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -502,13 +502,13 @@ export const CreateWebViewRequest = {
   },
 
   create<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
-    base?: I
+    base?: I,
   ): CreateWebViewRequest {
     return CreateWebViewRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
-    object: I
+    object: I,
   ): CreateWebViewRequest {
     const message = createBaseCreateWebViewRequest()
     message.id = object.id ?? ''
@@ -523,7 +523,7 @@ function createBaseCreateWebViewResponse(): CreateWebViewResponse {
 export const CreateWebViewResponse = {
   encode(
     message: CreateWebViewResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.created === true) {
       writer.uint32(8).bool(message.created)
@@ -533,7 +533,7 @@ export const CreateWebViewResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): CreateWebViewResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -563,7 +563,7 @@ export const CreateWebViewResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<CreateWebViewResponse | CreateWebViewResponse[]>
-      | Iterable<CreateWebViewResponse | CreateWebViewResponse[]>
+      | Iterable<CreateWebViewResponse | CreateWebViewResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -581,7 +581,7 @@ export const CreateWebViewResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CreateWebViewResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -605,13 +605,13 @@ export const CreateWebViewResponse = {
   },
 
   create<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
-    base?: I
+    base?: I,
   ): CreateWebViewResponse {
     return CreateWebViewResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
-    object: I
+    object: I,
   ): CreateWebViewResponse {
     const message = createBaseCreateWebViewResponse()
     message.created = object.created ?? false
@@ -632,7 +632,7 @@ export interface WebDocumentHost {
    */
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -647,14 +647,14 @@ export class WebDocumentHostClientImpl implements WebDocumentHost {
   }
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebViewRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -694,7 +694,7 @@ export interface WebDocument {
   /** WatchWebDocumentStatus returns an initial snapshot of WebViews followed by updates. */
   WatchWebDocumentStatus(
     request: WatchWebDocumentStatusRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<WebDocumentStatus>
   /**
    * CreateWebView requests to create a new WebView at the root level.
@@ -702,7 +702,7 @@ export interface WebDocument {
    */
   CreateWebView(
     request: CreateWebViewRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<CreateWebViewResponse>
   /**
    * WebViewRpc opens a stream for a RPC call to a WebView.
@@ -710,7 +710,7 @@ export interface WebDocument {
    */
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -727,44 +727,44 @@ export class WebDocumentClientImpl implements WebDocument {
   }
   WatchWebDocumentStatus(
     request: WatchWebDocumentStatusRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<WebDocumentStatus> {
     const data = WatchWebDocumentStatusRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'WatchWebDocumentStatus',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return WebDocumentStatus.decodeTransform(result)
   }
 
   CreateWebView(
     request: CreateWebViewRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<CreateWebViewResponse> {
     const data = CreateWebViewRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'CreateWebView',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      CreateWebViewResponse.decode(_m0.Reader.create(data))
+      CreateWebViewResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebViewRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -820,25 +820,25 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 

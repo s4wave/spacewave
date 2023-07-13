@@ -67,10 +67,10 @@ export class FunctionComponentContainer extends BldrComponent<
           console.error(
             'expected default exported function for script',
             this.scriptPath,
-            script.default
+            script.default,
           )
           throw new Error(
-            'expected default exported function for script: ' + this.scriptPath
+            'expected default exported function for script: ' + this.scriptPath,
           )
         }
         this.setState({ loadError: undefined })
@@ -82,11 +82,11 @@ export class FunctionComponentContainer extends BldrComponent<
           this.setState({
             loadError: castToError(
               err,
-              'error loading script: ' + this.scriptPath
+              'error loading script: ' + this.scriptPath,
             ),
           })
         },
-      }
+      },
     )
   }
 
@@ -136,7 +136,7 @@ export class FunctionComponentContainer extends BldrComponent<
         this.functionComponentRelease = this.functionComponent(
           this.context,
           this.divRef,
-          this.props.componentProps
+          this.props.componentProps,
         )
       }
     })

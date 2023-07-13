@@ -39,7 +39,7 @@ class WebRuntimeClientInstance {
   constructor(
     private readonly host: WebRuntime,
     public readonly port: MessagePort,
-    public readonly init: WebRuntimeClientInit
+    public readonly init: WebRuntimeClientInit,
   ) {
     port.onmessage = this.onClientMessage.bind(this)
     port.start()
@@ -59,7 +59,7 @@ class WebRuntimeClientInstance {
     const stream = new ChannelStream<Uint8Array>(
       this.host.webRuntimeId,
       localPort,
-      false
+      false,
     )
     this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
@@ -80,7 +80,7 @@ class WebRuntimeClientInstance {
       this.port.close()
     } finally {
       console.log(
-        `WebRuntime: client connection removed: ${this.init.clientUuid}`
+        `WebRuntime: client connection removed: ${this.init.clientUuid}`,
       )
       this.host.removeConnection(this.init.clientUuid, this.init.clientType)
     }
@@ -113,7 +113,7 @@ class WebRuntimeClientInstance {
     }
     if (msg.close) {
       console.log(
-        `WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`
+        `WebRuntimeClientInstance: remote client closed session: ${this.init.clientUuid}`,
       )
       this.close()
     }
@@ -124,19 +124,19 @@ class WebRuntimeClientInstance {
     const channelStream = new ChannelStream<Uint8Array>(
       this.host.webRuntimeId,
       port,
-      true
+      true,
     )
     try {
       let streamPromise: Promise<Stream>
       switch (this.init.clientType) {
         case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
           streamPromise = this.host.openWebDocumentHostStream(
-            this.init.clientUuid
+            this.init.clientUuid,
           )
           break
         case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
           streamPromise = this.host.openServiceWorkerHostStream(
-            this.init.clientUuid
+            this.init.clientUuid,
           )
           break
         default:
@@ -163,7 +163,7 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // CreateWebDocument requests to create a new WebDocument.
   public async CreateWebDocument(
-    request: CreateWebDocumentRequest
+    request: CreateWebDocumentRequest,
   ): Promise<CreateWebDocumentResponse> {
     const createCb = this.host.createDocCb
     if (!createCb) {
@@ -174,7 +174,7 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // RemoveWebDocument requests to remove a WebDocument.
   public async RemoveWebDocument(
-    request: RemoveWebDocumentRequest
+    request: RemoveWebDocumentRequest,
   ): Promise<RemoveWebDocumentResponse> {
     const removeCb = this.host.removeDocCb
     if (!removeCb) {
@@ -185,11 +185,11 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   public WebDocumentRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
   ): AsyncIterable<RpcStreamPacket> {
     return handleRpcStream(
       request[Symbol.asyncIterator](),
-      this.buildWebDocumentRpcGetter()
+      this.buildWebDocumentRpcGetter(),
     )
   }
 
@@ -202,7 +202,7 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // getClientRpcHandler looks up the rpc stream handler for the given client ID.
   private async getClientRpcHandler(
-    clientId: string
+    clientId: string,
   ): Promise<RpcStreamHandler | null> {
     const client = this.host.lookupClient(clientId)
     if (!client) {
@@ -218,12 +218,12 @@ class WebRuntimeImpl implements WebRuntimeService {
 
 // CreateWebDocumentFunc is a function to create a WebDocument.
 export type CreateWebDocumentFunc = (
-  req: CreateWebDocumentRequest
+  req: CreateWebDocumentRequest,
 ) => Promise<CreateWebDocumentResponse>
 
 // RemoveWebDocumentFunc is a function to remove a WebDocument.
 export type RemoveWebDocumentFunc = (
-  req: RemoveWebDocumentRequest
+  req: RemoveWebDocumentRequest,
 ) => Promise<RemoveWebDocumentResponse>
 
 // WebRuntime implements the WebDocumentHost with a SharedWorker.
@@ -254,7 +254,7 @@ export class WebRuntime {
     webRuntimeId: string,
     openStreamFn: OpenStreamFunc,
     public readonly createDocCb: CreateWebDocumentFunc | null,
-    public readonly removeDocCb: RemoveWebDocumentFunc | null
+    public readonly removeDocCb: RemoveWebDocumentFunc | null,
   ) {
     this.webRuntimeId = webRuntimeId
 
@@ -262,13 +262,13 @@ export class WebRuntime {
     this.webRuntime = new WebRuntimeImpl(this)
     const runtimeWorkerHostMux = createMux()
     runtimeWorkerHostMux.register(
-      createHandler(WebRuntimeDefinition, this.webRuntime)
+      createHandler(WebRuntimeDefinition, this.webRuntime),
     )
     this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethodFunc)
 
     // Setup the status stream.
     const webStatusStream = new ItState<WebRuntimeStatus>(
-      this.buildWebRuntimeStatusSnapshot.bind(this)
+      this.buildWebRuntimeStatusSnapshot.bind(this),
     )
     this.statusStream = webStatusStream
 
@@ -286,7 +286,7 @@ export class WebRuntime {
   public openWebDocumentHostStream(webDocumentUuid: string): Promise<Stream> {
     return openRpcStream(
       webDocumentUuid,
-      this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost)
+      this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost),
     )
   }
 
@@ -294,7 +294,7 @@ export class WebRuntime {
   public openServiceWorkerHostStream(webDocumentUuid: string): Promise<Stream> {
     return openRpcStream(
       webDocumentUuid,
-      this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost)
+      this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost),
     )
   }
 
@@ -317,7 +317,7 @@ export class WebRuntime {
     }
     const clientTypeStr = webRuntimeClientTypeToJSON(msg.clientType)
     console.log(
-      `WebRuntime: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`
+      `WebRuntime: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
     )
     this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
     if (
@@ -339,7 +339,7 @@ export class WebRuntime {
   // removeConnection removes a connection by clientUuid.
   public removeConnection(
     clientUuid: string,
-    clientType: WebRuntimeClientType
+    clientType: WebRuntimeClientType,
   ) {
     delete this.clients[clientUuid]
     if (

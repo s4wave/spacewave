@@ -8,7 +8,7 @@ import { getPath, downloadFile, changePermissions } from './utils.js'
 const downloadChromeExtension = (
   chromeStoreID: string,
   forceDownload?: boolean,
-  attempts = 5
+  attempts = 5,
 ): Promise<string> => {
   const extensionsStore = getPath()
   if (!fs.existsSync(extensionsStore)) {
@@ -39,7 +39,7 @@ const downloadChromeExtension = (
         })
         .catch((err) => {
           console.log(
-            `Failed to fetch extension, trying ${attempts - 1} more times`
+            `Failed to fetch extension, trying ${attempts - 1} more times`,
           ) // eslint-disable-line
           if (attempts <= 1) {
             return reject(err)

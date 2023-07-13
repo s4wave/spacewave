@@ -12,7 +12,7 @@ export interface ServiceWorkerHost {
   /** Fetch proxies a Fetch request with a streaming response. */
   Fetch(
     request: AsyncIterable<FetchRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<FetchResponse>
 }
 
@@ -27,14 +27,14 @@ export class ServiceWorkerHostClientImpl implements ServiceWorkerHost {
   }
   Fetch(
     request: AsyncIterable<FetchRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<FetchResponse> {
     const data = FetchRequest.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'Fetch',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return FetchResponse.decodeTransform(result)
   }
@@ -67,24 +67,24 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }

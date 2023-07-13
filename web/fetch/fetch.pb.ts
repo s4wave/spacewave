@@ -16,6 +16,7 @@ export interface FetchRequest {
         $case: 'requestData'
         requestData: FetchRequestData
       }
+    | undefined
 }
 
 /** FetchRequestInfo contains all information about the request excluding the body. */
@@ -96,6 +97,7 @@ export interface FetchResponse {
   body?:
     | { $case: 'responseInfo'; responseInfo: ResponseInfo }
     | { $case: 'responseData'; responseData: ResponseData }
+    | undefined
 }
 
 /** ResponseInfo contains information about the response. */
@@ -137,19 +139,19 @@ function createBaseFetchRequest(): FetchRequest {
 export const FetchRequest = {
   encode(
     message: FetchRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'requestInfo':
         FetchRequestInfo.encode(
           message.body.requestInfo,
-          writer.uint32(10).fork()
+          writer.uint32(10).fork(),
         ).ldelim()
         break
       case 'requestData':
         FetchRequestData.encode(
           message.body.requestData,
-          writer.uint32(18).fork()
+          writer.uint32(18).fork(),
         ).ldelim()
         break
     }
@@ -198,7 +200,7 @@ export const FetchRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<FetchRequest | FetchRequest[]>
-      | Iterable<FetchRequest | FetchRequest[]>
+      | Iterable<FetchRequest | FetchRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -216,7 +218,7 @@ export const FetchRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -259,13 +261,13 @@ export const FetchRequest = {
   },
 
   create<I extends Exact<DeepPartial<FetchRequest>, I>>(
-    base?: I
+    base?: I,
   ): FetchRequest {
     return FetchRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchRequest>, I>>(
-    object: I
+    object: I,
   ): FetchRequest {
     const message = createBaseFetchRequest()
     if (
@@ -311,7 +313,7 @@ function createBaseFetchRequestInfo(): FetchRequestInfo {
 export const FetchRequestInfo = {
   encode(
     message: FetchRequestInfo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.method !== '') {
       writer.uint32(10).string(message.method)
@@ -322,7 +324,7 @@ export const FetchRequestInfo = {
     Object.entries(message.headers).forEach(([key, value]) => {
       FetchRequestInfo_HeadersEntry.encode(
         { key: key as any, value },
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     })
     if (message.hasBody === true) {
@@ -381,7 +383,7 @@ export const FetchRequestInfo = {
 
           const entry3 = FetchRequestInfo_HeadersEntry.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           if (entry3.value !== undefined) {
             message.headers[entry3.key] = entry3.value
@@ -457,7 +459,7 @@ export const FetchRequestInfo = {
   async *encodeTransform(
     source:
       | AsyncIterable<FetchRequestInfo | FetchRequestInfo[]>
-      | Iterable<FetchRequestInfo | FetchRequestInfo[]>
+      | Iterable<FetchRequestInfo | FetchRequestInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -475,7 +477,7 @@ export const FetchRequestInfo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchRequestInfo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -498,7 +500,7 @@ export const FetchRequestInfo = {
               acc[key] = String(value)
               return acc
             },
-            {}
+            {},
           )
         : {},
       hasBody: isSet(object.hasBody) ? Boolean(object.hasBody) : false,
@@ -537,13 +539,13 @@ export const FetchRequestInfo = {
   },
 
   create<I extends Exact<DeepPartial<FetchRequestInfo>, I>>(
-    base?: I
+    base?: I,
   ): FetchRequestInfo {
     return FetchRequestInfo.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchRequestInfo>, I>>(
-    object: I
+    object: I,
   ): FetchRequestInfo {
     const message = createBaseFetchRequestInfo()
     message.method = object.method ?? ''
@@ -575,7 +577,7 @@ function createBaseFetchRequestInfo_HeadersEntry(): FetchRequestInfo_HeadersEntr
 export const FetchRequestInfo_HeadersEntry = {
   encode(
     message: FetchRequestInfo_HeadersEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -588,7 +590,7 @@ export const FetchRequestInfo_HeadersEntry = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): FetchRequestInfo_HeadersEntry {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -629,7 +631,7 @@ export const FetchRequestInfo_HeadersEntry = {
         >
       | Iterable<
           FetchRequestInfo_HeadersEntry | FetchRequestInfo_HeadersEntry[]
-        >
+        >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -647,7 +649,7 @@ export const FetchRequestInfo_HeadersEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchRequestInfo_HeadersEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -675,13 +677,13 @@ export const FetchRequestInfo_HeadersEntry = {
   },
 
   create<I extends Exact<DeepPartial<FetchRequestInfo_HeadersEntry>, I>>(
-    base?: I
+    base?: I,
   ): FetchRequestInfo_HeadersEntry {
     return FetchRequestInfo_HeadersEntry.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchRequestInfo_HeadersEntry>, I>>(
-    object: I
+    object: I,
   ): FetchRequestInfo_HeadersEntry {
     const message = createBaseFetchRequestInfo_HeadersEntry()
     message.key = object.key ?? ''
@@ -697,7 +699,7 @@ function createBaseFetchRequestData(): FetchRequestData {
 export const FetchRequestData = {
   encode(
     message: FetchRequestData,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
@@ -744,7 +746,7 @@ export const FetchRequestData = {
   async *encodeTransform(
     source:
       | AsyncIterable<FetchRequestData | FetchRequestData[]>
-      | Iterable<FetchRequestData | FetchRequestData[]>
+      | Iterable<FetchRequestData | FetchRequestData[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -762,7 +764,7 @@ export const FetchRequestData = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchRequestData> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -788,20 +790,20 @@ export const FetchRequestData = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
+        message.data !== undefined ? message.data : new Uint8Array(0),
       ))
     message.done !== undefined && (obj.done = message.done)
     return obj
   },
 
   create<I extends Exact<DeepPartial<FetchRequestData>, I>>(
-    base?: I
+    base?: I,
   ): FetchRequestData {
     return FetchRequestData.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchRequestData>, I>>(
-    object: I
+    object: I,
   ): FetchRequestData {
     const message = createBaseFetchRequestData()
     message.data = object.data ?? new Uint8Array(0)
@@ -817,19 +819,19 @@ function createBaseFetchResponse(): FetchResponse {
 export const FetchResponse = {
   encode(
     message: FetchResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'responseInfo':
         ResponseInfo.encode(
           message.body.responseInfo,
-          writer.uint32(10).fork()
+          writer.uint32(10).fork(),
         ).ldelim()
         break
       case 'responseData':
         ResponseData.encode(
           message.body.responseData,
-          writer.uint32(18).fork()
+          writer.uint32(18).fork(),
         ).ldelim()
         break
     }
@@ -878,7 +880,7 @@ export const FetchResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<FetchResponse | FetchResponse[]>
-      | Iterable<FetchResponse | FetchResponse[]>
+      | Iterable<FetchResponse | FetchResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -896,7 +898,7 @@ export const FetchResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -939,13 +941,13 @@ export const FetchResponse = {
   },
 
   create<I extends Exact<DeepPartial<FetchResponse>, I>>(
-    base?: I
+    base?: I,
   ): FetchResponse {
     return FetchResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<FetchResponse>, I>>(
-    object: I
+    object: I,
   ): FetchResponse {
     const message = createBaseFetchResponse()
     if (
@@ -986,12 +988,12 @@ function createBaseResponseInfo(): ResponseInfo {
 export const ResponseInfo = {
   encode(
     message: ResponseInfo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     Object.entries(message.headers).forEach(([key, value]) => {
       ResponseInfo_HeadersEntry.encode(
         { key: key as any, value },
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     })
     if (message.ok === true) {
@@ -1027,7 +1029,7 @@ export const ResponseInfo = {
 
           const entry1 = ResponseInfo_HeadersEntry.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           if (entry1.value !== undefined) {
             message.headers[entry1.key] = entry1.value
@@ -1082,7 +1084,7 @@ export const ResponseInfo = {
   async *encodeTransform(
     source:
       | AsyncIterable<ResponseInfo | ResponseInfo[]>
-      | Iterable<ResponseInfo | ResponseInfo[]>
+      | Iterable<ResponseInfo | ResponseInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1100,7 +1102,7 @@ export const ResponseInfo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResponseInfo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1121,7 +1123,7 @@ export const ResponseInfo = {
               acc[key] = String(value)
               return acc
             },
-            {}
+            {},
           )
         : {},
       ok: isSet(object.ok) ? Boolean(object.ok) : false,
@@ -1152,13 +1154,13 @@ export const ResponseInfo = {
   },
 
   create<I extends Exact<DeepPartial<ResponseInfo>, I>>(
-    base?: I
+    base?: I,
   ): ResponseInfo {
     return ResponseInfo.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ResponseInfo>, I>>(
-    object: I
+    object: I,
   ): ResponseInfo {
     const message = createBaseResponseInfo()
     message.headers = Object.entries(object.headers ?? {}).reduce<{
@@ -1185,7 +1187,7 @@ function createBaseResponseInfo_HeadersEntry(): ResponseInfo_HeadersEntry {
 export const ResponseInfo_HeadersEntry = {
   encode(
     message: ResponseInfo_HeadersEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -1198,7 +1200,7 @@ export const ResponseInfo_HeadersEntry = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ResponseInfo_HeadersEntry {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1235,7 +1237,7 @@ export const ResponseInfo_HeadersEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<ResponseInfo_HeadersEntry | ResponseInfo_HeadersEntry[]>
-      | Iterable<ResponseInfo_HeadersEntry | ResponseInfo_HeadersEntry[]>
+      | Iterable<ResponseInfo_HeadersEntry | ResponseInfo_HeadersEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1253,7 +1255,7 @@ export const ResponseInfo_HeadersEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResponseInfo_HeadersEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1281,13 +1283,13 @@ export const ResponseInfo_HeadersEntry = {
   },
 
   create<I extends Exact<DeepPartial<ResponseInfo_HeadersEntry>, I>>(
-    base?: I
+    base?: I,
   ): ResponseInfo_HeadersEntry {
     return ResponseInfo_HeadersEntry.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ResponseInfo_HeadersEntry>, I>>(
-    object: I
+    object: I,
   ): ResponseInfo_HeadersEntry {
     const message = createBaseResponseInfo_HeadersEntry()
     message.key = object.key ?? ''
@@ -1303,7 +1305,7 @@ function createBaseResponseData(): ResponseData {
 export const ResponseData = {
   encode(
     message: ResponseData,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
@@ -1350,7 +1352,7 @@ export const ResponseData = {
   async *encodeTransform(
     source:
       | AsyncIterable<ResponseData | ResponseData[]>
-      | Iterable<ResponseData | ResponseData[]>
+      | Iterable<ResponseData | ResponseData[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1368,7 +1370,7 @@ export const ResponseData = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResponseData> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1394,20 +1396,20 @@ export const ResponseData = {
     const obj: any = {}
     message.data !== undefined &&
       (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
+        message.data !== undefined ? message.data : new Uint8Array(0),
       ))
     message.done !== undefined && (obj.done = message.done)
     return obj
   },
 
   create<I extends Exact<DeepPartial<ResponseData>, I>>(
-    base?: I
+    base?: I,
   ): ResponseData {
     return ResponseData.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ResponseData>, I>>(
-    object: I
+    object: I,
   ): ResponseData {
     const message = createBaseResponseData()
     message.data = object.data ?? new Uint8Array(0)
@@ -1421,7 +1423,7 @@ export interface FetchService {
   /** Fetch performs a Fetch request with a streaming response. */
   Fetch(
     request: AsyncIterable<FetchRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<FetchResponse>
 }
 
@@ -1436,14 +1438,14 @@ export class FetchServiceClientImpl implements FetchService {
   }
   Fetch(
     request: AsyncIterable<FetchRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<FetchResponse> {
     const data = FetchRequest.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'Fetch',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return FetchResponse.decodeTransform(result)
   }
@@ -1472,32 +1474,32 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

@@ -288,8 +288,7 @@ type BuildManifestArgs struct {
 	// May be nil.
 	PrevBuilderResult *BuilderResult `protobuf:"bytes,2,opt,name=prev_builder_result,json=prevBuilderResult,proto3" json:"prev_builder_result,omitempty"`
 	// ChangedFiles is the list of files from PrevBuilderResult InputManifest
-	// filtered to contain only files that changed since the previous build.
-	//
+	// filtered to contain only files that changed since the previous build. //
 	// Set only if PrevBuilderResult is set.
 	// May be nil.
 	ChangedFiles []*InputManifest_File `protobuf:"bytes,3,rep,name=changed_files,json=changedFiles,proto3" json:"changed_files,omitempty"`

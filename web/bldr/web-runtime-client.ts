@@ -27,7 +27,7 @@ export class WebRuntimeClient {
     public readonly clientId: string,
     public readonly clientType: WebRuntimeClientType,
     private openClientCh: OpenChannelFn,
-    private handleIncomingStream: HandleStreamFn | null
+    private handleIncomingStream: HandleStreamFn | null,
   ) {}
 
   // waitConn opens and waits for the connection to be ready.
@@ -48,7 +48,7 @@ export class WebRuntimeClient {
       const streamConn = new ChannelStream<Uint8Array>(
         this.clientId,
         streamChannel.port1,
-        false
+        false,
       )
       const msg = <ClientToWebRuntime>{
         from: this.clientId,
@@ -113,7 +113,7 @@ export class WebRuntimeClient {
   // handleMessage handles an incoming message from the WebRuntime.
   private async handleMessage(
     msg: WebRuntimeToClient,
-    ports?: readonly MessagePort[]
+    ports?: readonly MessagePort[],
   ) {
     if (msg.openStream && ports && ports.length) {
       await this.handleWebRuntimeOpenStream(ports[0])
@@ -125,12 +125,12 @@ export class WebRuntimeClient {
     const channel = new ChannelStream<Uint8Array>(
       this.clientId,
       remoteMsgPort,
-      true
+      true,
     )
     let err: Error | undefined
     if (!this.handleIncomingStream) {
       err = new Error(
-        `${this.clientType.toString()}: handle stream: not implemented`
+        `${this.clientType.toString()}: handle stream: not implemented`,
       )
     } else {
       try {
@@ -138,7 +138,7 @@ export class WebRuntimeClient {
       } catch (e) {
         err = castToError(
           e,
-          `${this.clientType.toString()}: handle stream: unknown error`
+          `${this.clientType.toString()}: handle stream: unknown error`,
         )
       }
     }

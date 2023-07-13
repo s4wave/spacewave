@@ -53,7 +53,7 @@ export type LeaderCallback = (workerId: string, isUs: boolean) => void
 // AnnounceCallback is called when a worker announces its presence or removal.
 export type AnnounceCallback = (
   workerId: string,
-  removed: boolean
+  removed: boolean,
 ) => Promise<void>
 
 // LeaderElect manages electing a leader from a group of workers.
@@ -87,7 +87,7 @@ export class LeaderElect {
     electionUuid: string,
     workerUuid: string,
     leaderCallback: LeaderCallback,
-    announceCallback: AnnounceCallback
+    announceCallback: AnnounceCallback,
   ) {
     this.leaderCallback = leaderCallback
     this.announceCallback = announceCallback
@@ -154,7 +154,7 @@ export class LeaderElect {
   // if workerUuid is unset or empty, uses local worker uuid
   public async getWorkerKey<T>(
     workerUuid: string | null,
-    key: string
+    key: string,
   ): Promise<T | undefined> {
     if (!workerUuid) {
       workerUuid = this.workerUuid
@@ -171,7 +171,7 @@ export class LeaderElect {
   public async setWorkerKey<T>(
     workerUuid: string | null,
     key: string,
-    value: T
+    value: T,
   ): Promise<void> {
     if (!workerUuid) {
       workerUuid = this.workerUuid
@@ -187,7 +187,7 @@ export class LeaderElect {
   // if workerUuid is unset or empty, uses local worker uuid
   public async deleteWorkerKey(
     workerUuid: string | null,
-    key: string
+    key: string,
   ): Promise<void> {
     if (!workerUuid) {
       workerUuid = this.workerUuid
@@ -235,7 +235,7 @@ export class LeaderElect {
         // re-check the leader every recheckPeriod + [0, recheckJitter]
         this.recheckInterval = setInterval(
           this.onRecheckInterval.bind(this),
-          recheckPeriod + Math.random() * recheckJitter
+          recheckPeriod + Math.random() * recheckJitter,
         )
       })
   }
@@ -245,7 +245,7 @@ export class LeaderElect {
   // if no leader is set and !stepUp, returns ""
   private async checkLeader(
     announce: boolean,
-    stepUp: boolean
+    stepUp: boolean,
   ): Promise<string> {
     // update our state & timestamp
     await this.setWorkerListEntry()
@@ -300,7 +300,7 @@ export class LeaderElect {
       'leader-elect: leader changed',
       this.electionUuid,
       currLeader,
-      localLeader
+      localLeader,
     )
     this.currLeader = currLeader
     if (this.leaderCallback) {
@@ -311,7 +311,7 @@ export class LeaderElect {
   // getWorkerState returns the worker state object for a worker.
   // returns undefined if not found
   private async getWorkerState(
-    workerUuid: string
+    workerUuid: string,
   ): Promise<IWorkerState | undefined> {
     const db = await this.db
     return await db.get(workerListStore, workerUuid)

@@ -136,7 +136,7 @@ function createBaseSetRenderModeRequest(): SetRenderModeRequest {
 export const SetRenderModeRequest = {
   encode(
     message: SetRenderModeRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.renderMode !== 0) {
       writer.uint32(8).int32(message.renderMode)
@@ -155,7 +155,7 @@ export const SetRenderModeRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): SetRenderModeRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -206,7 +206,7 @@ export const SetRenderModeRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<SetRenderModeRequest | SetRenderModeRequest[]>
-      | Iterable<SetRenderModeRequest | SetRenderModeRequest[]>
+      | Iterable<SetRenderModeRequest | SetRenderModeRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -224,7 +224,7 @@ export const SetRenderModeRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetRenderModeRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -258,19 +258,19 @@ export const SetRenderModeRequest = {
     message.scriptPath !== undefined && (obj.scriptPath = message.scriptPath)
     message.props !== undefined &&
       (obj.props = base64FromBytes(
-        message.props !== undefined ? message.props : new Uint8Array(0)
+        message.props !== undefined ? message.props : new Uint8Array(0),
       ))
     return obj
   },
 
   create<I extends Exact<DeepPartial<SetRenderModeRequest>, I>>(
-    base?: I
+    base?: I,
   ): SetRenderModeRequest {
     return SetRenderModeRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<SetRenderModeRequest>, I>>(
-    object: I
+    object: I,
   ): SetRenderModeRequest {
     const message = createBaseSetRenderModeRequest()
     message.renderMode = object.renderMode ?? 0
@@ -288,14 +288,14 @@ function createBaseSetRenderModeResponse(): SetRenderModeResponse {
 export const SetRenderModeResponse = {
   encode(
     _: SetRenderModeResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): SetRenderModeResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -318,7 +318,7 @@ export const SetRenderModeResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<SetRenderModeResponse | SetRenderModeResponse[]>
-      | Iterable<SetRenderModeResponse | SetRenderModeResponse[]>
+      | Iterable<SetRenderModeResponse | SetRenderModeResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -336,7 +336,7 @@ export const SetRenderModeResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetRenderModeResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -359,13 +359,13 @@ export const SetRenderModeResponse = {
   },
 
   create<I extends Exact<DeepPartial<SetRenderModeResponse>, I>>(
-    base?: I
+    base?: I,
   ): SetRenderModeResponse {
     return SetRenderModeResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<SetRenderModeResponse>, I>>(
-    _: I
+    _: I,
   ): SetRenderModeResponse {
     const message = createBaseSetRenderModeResponse()
     return message
@@ -379,7 +379,7 @@ function createBaseSetHtmlLinksRequest(): SetHtmlLinksRequest {
 export const SetHtmlLinksRequest = {
   encode(
     message: SetHtmlLinksRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clear === true) {
       writer.uint32(8).bool(message.clear)
@@ -390,7 +390,7 @@ export const SetHtmlLinksRequest = {
     Object.entries(message.setLinks).forEach(([key, value]) => {
       SetHtmlLinksRequest_SetLinksEntry.encode(
         { key: key as any, value },
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     })
     return writer
@@ -425,7 +425,7 @@ export const SetHtmlLinksRequest = {
 
           const entry3 = SetHtmlLinksRequest_SetLinksEntry.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           if (entry3.value !== undefined) {
             message.setLinks[entry3.key] = entry3.value
@@ -445,7 +445,7 @@ export const SetHtmlLinksRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<SetHtmlLinksRequest | SetHtmlLinksRequest[]>
-      | Iterable<SetHtmlLinksRequest | SetHtmlLinksRequest[]>
+      | Iterable<SetHtmlLinksRequest | SetHtmlLinksRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -463,7 +463,7 @@ export const SetHtmlLinksRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetHtmlLinksRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -488,7 +488,7 @@ export const SetHtmlLinksRequest = {
               acc[key] = HtmlLink.fromJSON(value)
               return acc
             },
-            {}
+            {},
           )
         : {},
     }
@@ -512,13 +512,13 @@ export const SetHtmlLinksRequest = {
   },
 
   create<I extends Exact<DeepPartial<SetHtmlLinksRequest>, I>>(
-    base?: I
+    base?: I,
   ): SetHtmlLinksRequest {
     return SetHtmlLinksRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<SetHtmlLinksRequest>, I>>(
-    object: I
+    object: I,
   ): SetHtmlLinksRequest {
     const message = createBaseSetHtmlLinksRequest()
     message.clear = object.clear ?? false
@@ -542,7 +542,7 @@ function createBaseSetHtmlLinksRequest_SetLinksEntry(): SetHtmlLinksRequest_SetL
 export const SetHtmlLinksRequest_SetLinksEntry = {
   encode(
     message: SetHtmlLinksRequest_SetLinksEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -555,7 +555,7 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): SetHtmlLinksRequest_SetLinksEntry {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -598,7 +598,7 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
       | Iterable<
           | SetHtmlLinksRequest_SetLinksEntry
           | SetHtmlLinksRequest_SetLinksEntry[]
-        >
+        >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -616,7 +616,7 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetHtmlLinksRequest_SetLinksEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -645,13 +645,13 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
   },
 
   create<I extends Exact<DeepPartial<SetHtmlLinksRequest_SetLinksEntry>, I>>(
-    base?: I
+    base?: I,
   ): SetHtmlLinksRequest_SetLinksEntry {
     return SetHtmlLinksRequest_SetLinksEntry.fromPartial(base ?? {})
   },
 
   fromPartial<
-    I extends Exact<DeepPartial<SetHtmlLinksRequest_SetLinksEntry>, I>
+    I extends Exact<DeepPartial<SetHtmlLinksRequest_SetLinksEntry>, I>,
   >(object: I): SetHtmlLinksRequest_SetLinksEntry {
     const message = createBaseSetHtmlLinksRequest_SetLinksEntry()
     message.key = object.key ?? ''
@@ -670,7 +670,7 @@ function createBaseHtmlLink(): HtmlLink {
 export const HtmlLink = {
   encode(
     message: HtmlLink,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.href !== '') {
       writer.uint32(10).string(message.href)
@@ -717,7 +717,7 @@ export const HtmlLink = {
   async *encodeTransform(
     source:
       | AsyncIterable<HtmlLink | HtmlLink[]>
-      | Iterable<HtmlLink | HtmlLink[]>
+      | Iterable<HtmlLink | HtmlLink[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -735,7 +735,7 @@ export const HtmlLink = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HtmlLink> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -781,14 +781,14 @@ function createBaseSetHtmlLinksResponse(): SetHtmlLinksResponse {
 export const SetHtmlLinksResponse = {
   encode(
     _: SetHtmlLinksResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): SetHtmlLinksResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -811,7 +811,7 @@ export const SetHtmlLinksResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<SetHtmlLinksResponse | SetHtmlLinksResponse[]>
-      | Iterable<SetHtmlLinksResponse | SetHtmlLinksResponse[]>
+      | Iterable<SetHtmlLinksResponse | SetHtmlLinksResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -829,7 +829,7 @@ export const SetHtmlLinksResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetHtmlLinksResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -852,13 +852,13 @@ export const SetHtmlLinksResponse = {
   },
 
   create<I extends Exact<DeepPartial<SetHtmlLinksResponse>, I>>(
-    base?: I
+    base?: I,
   ): SetHtmlLinksResponse {
     return SetHtmlLinksResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<SetHtmlLinksResponse>, I>>(
-    _: I
+    _: I,
   ): SetHtmlLinksResponse {
     const message = createBaseSetHtmlLinksResponse()
     return message
@@ -872,14 +872,14 @@ function createBaseRemoveWebViewRequest(): RemoveWebViewRequest {
 export const RemoveWebViewRequest = {
   encode(
     _: RemoveWebViewRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): RemoveWebViewRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -902,7 +902,7 @@ export const RemoveWebViewRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<RemoveWebViewRequest | RemoveWebViewRequest[]>
-      | Iterable<RemoveWebViewRequest | RemoveWebViewRequest[]>
+      | Iterable<RemoveWebViewRequest | RemoveWebViewRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -920,7 +920,7 @@ export const RemoveWebViewRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveWebViewRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -943,13 +943,13 @@ export const RemoveWebViewRequest = {
   },
 
   create<I extends Exact<DeepPartial<RemoveWebViewRequest>, I>>(
-    base?: I
+    base?: I,
   ): RemoveWebViewRequest {
     return RemoveWebViewRequest.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebViewRequest>, I>>(
-    _: I
+    _: I,
   ): RemoveWebViewRequest {
     const message = createBaseRemoveWebViewRequest()
     return message
@@ -963,7 +963,7 @@ function createBaseRemoveWebViewResponse(): RemoveWebViewResponse {
 export const RemoveWebViewResponse = {
   encode(
     message: RemoveWebViewResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.removed === true) {
       writer.uint32(8).bool(message.removed)
@@ -973,7 +973,7 @@ export const RemoveWebViewResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): RemoveWebViewResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1003,7 +1003,7 @@ export const RemoveWebViewResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<RemoveWebViewResponse | RemoveWebViewResponse[]>
-      | Iterable<RemoveWebViewResponse | RemoveWebViewResponse[]>
+      | Iterable<RemoveWebViewResponse | RemoveWebViewResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1021,7 +1021,7 @@ export const RemoveWebViewResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveWebViewResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1045,13 +1045,13 @@ export const RemoveWebViewResponse = {
   },
 
   create<I extends Exact<DeepPartial<RemoveWebViewResponse>, I>>(
-    base?: I
+    base?: I,
   ): RemoveWebViewResponse {
     return RemoveWebViewResponse.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<RemoveWebViewResponse>, I>>(
-    object: I
+    object: I,
   ): RemoveWebViewResponse {
     const message = createBaseRemoveWebViewResponse()
     message.removed = object.removed ?? false
@@ -1093,17 +1093,17 @@ export interface WebView {
   /** SetRenderMode sets the rendering mode of the view. */
   SetRenderMode(
     request: SetRenderModeRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<SetRenderModeResponse>
   /** SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load. */
   SetHtmlLinks(
     request: SetHtmlLinksRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<SetHtmlLinksResponse>
   /** RemoveWebView requests to remove a WebView from the root level. */
   RemoveWebView(
     request: RemoveWebViewRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RemoveWebViewResponse>
 }
 
@@ -1120,49 +1120,49 @@ export class WebViewClientImpl implements WebView {
   }
   SetRenderMode(
     request: SetRenderModeRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<SetRenderModeResponse> {
     const data = SetRenderModeRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'SetRenderMode',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      SetRenderModeResponse.decode(_m0.Reader.create(data))
+      SetRenderModeResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   SetHtmlLinks(
     request: SetHtmlLinksRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<SetHtmlLinksResponse> {
     const data = SetHtmlLinksRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'SetHtmlLinks',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      SetHtmlLinksResponse.decode(_m0.Reader.create(data))
+      SetHtmlLinksResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   RemoveWebView(
     request: RemoveWebViewRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RemoveWebViewResponse> {
     const data = RemoveWebViewRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'RemoveWebView',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      RemoveWebViewResponse.decode(_m0.Reader.create(data))
+      RemoveWebViewResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -1211,7 +1211,7 @@ export interface AccessWebViews {
    */
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -1226,14 +1226,14 @@ export class AccessWebViewsClientImpl implements AccessWebViews {
   }
   WebViewRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'WebViewRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -1265,32 +1265,32 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

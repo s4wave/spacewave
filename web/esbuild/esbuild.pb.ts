@@ -73,7 +73,7 @@ function createBaseEsbuildOutput(): EsbuildOutput {
 export const EsbuildOutput = {
   encode(
     message: EsbuildOutput,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.entrypointHref !== '') {
       writer.uint32(10).string(message.entrypointHref)
@@ -120,7 +120,7 @@ export const EsbuildOutput = {
   async *encodeTransform(
     source:
       | AsyncIterable<EsbuildOutput | EsbuildOutput[]>
-      | Iterable<EsbuildOutput | EsbuildOutput[]>
+      | Iterable<EsbuildOutput | EsbuildOutput[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -138,7 +138,7 @@ export const EsbuildOutput = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EsbuildOutput> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -169,13 +169,13 @@ export const EsbuildOutput = {
   },
 
   create<I extends Exact<DeepPartial<EsbuildOutput>, I>>(
-    base?: I
+    base?: I,
   ): EsbuildOutput {
     return EsbuildOutput.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<EsbuildOutput>, I>>(
-    object: I
+    object: I,
   ): EsbuildOutput {
     const message = createBaseEsbuildOutput()
     message.entrypointHref = object.entrypointHref ?? ''

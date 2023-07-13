@@ -11,7 +11,7 @@ export interface Config {
    * GoPackages is the list of Go packages to scan for controller factories.
    * Looks for package-level functions:
    *  - NewFactory(b bus.Bus) controller.Factory
-   *  - BuildFactories(b bus.Bus) []controller.Factory
+   *  - [TODO] BuildFactories(b bus.Bus) []controller.Factory
    */
   goPackages: string[];
   /**

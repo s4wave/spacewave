@@ -23,7 +23,7 @@ export function buildFetchHeaders(headers: Headers): { [key: string]: string } {
 
 // buildHeaders builds the Headers object from a headers map.
 export function buildHeaders(
-  headersMap: { [key: string]: string } | null
+  headersMap: { [key: string]: string } | null,
 ): Headers {
   return headersMap ? new Headers(headersMap) : new Headers()
 }
@@ -32,7 +32,7 @@ export function buildHeaders(
 export function buildFetchRequestInfo(
   request: Request,
   clientId: string,
-  hasBody: boolean
+  hasBody: boolean,
 ): FetchRequestInfo {
   return {
     method: request.method,
@@ -52,7 +52,7 @@ export function buildFetchRequestInfo(
 // buildRequestData builds a RequestData packet.
 export function buildRequestData(
   data: Uint8Array | null,
-  done: boolean
+  done: boolean,
 ): FetchRequest {
   return {
     body: {
@@ -74,10 +74,10 @@ export function buildResponseInit(info: ResponseInfo): ResponseInit {
 
 // buildResponseStream builds the ReadableStream for a response body.
 export function buildResponseStream(
-  it: AsyncIterator<FetchResponse>
+  it: AsyncIterator<FetchResponse>,
 ): ReadableStream {
   async function readResponse(
-    controller: ReadableStreamController<Uint8Array>
+    controller: ReadableStreamController<Uint8Array>,
   ) {
     // note: workaround type mismatch error here (types are fine)
     const enqueue: (data: Uint8Array) => void =
@@ -124,7 +124,7 @@ export function buildResponseStream(
 // transformRequestData wraps a Uint8Array source in RequestData packets.
 // Transform<Uint8Array, FetchRequest>
 export async function* transformRequestData(
-  source: Source<Uint8Array>
+  source: Source<Uint8Array>,
 ): AsyncIterable<FetchRequest> {
   for await (const pkt of source) {
     if (Array.isArray(pkt)) {
@@ -141,7 +141,7 @@ export async function* transformRequestData(
 export async function proxyFetch(
   svc: FetchService,
   request: Request,
-  clientId: string
+  clientId: string,
 ): Promise<Response> {
   let resultIt: AsyncIterator<FetchResponse> | null = null
   try {

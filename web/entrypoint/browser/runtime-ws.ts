@@ -32,7 +32,7 @@ const workerHost = new WebRuntime(
   `shared-worker:${self.location.host}`,
   openStreamFunc,
   createDocCb,
-  removeDocCb
+  removeDocCb,
 )
 
 // const runtimePort = workerHost.goRuntimePort
@@ -54,7 +54,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   // clear any existing open stream func
   openStreamCtr.set(undefined)
   console.log(
-    `bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`
+    `bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`,
   )
   const ws = await connectWebsocket(connAddr)
   ws.onclose = (_) => {
@@ -115,7 +115,7 @@ self.addEventListener('connect', (ev) => {
     if (!msgEvent.ports.length) {
       console.error(
         'runtime-wasm: dropped invalid init message without port',
-        msg
+        msg,
       )
       return
     }

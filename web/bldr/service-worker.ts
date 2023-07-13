@@ -36,7 +36,7 @@ let lastWebDocumentId: string | undefined
 
 // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
 async function openWebRuntimeClient(
-  init: WebRuntimeClientInit
+  init: WebRuntimeClientInit,
 ): Promise<MessagePort> {
   const webDocumentIds = Object.keys(WebDocuments)
   for (let i = 0; i < webDocumentIds.length; i++) {
@@ -61,7 +61,7 @@ async function openWebRuntimeClient(
     })
     try {
       console.log(
-        `ServiceWorker: ${serviceWorkerId} connecting via ${webDocumentId}`
+        `ServiceWorker: ${serviceWorkerId} connecting via ${webDocumentId}`,
       )
       // request that we open the connection to the web runtime.
       // NOTE: this does not necessarily throw an error if the remote WebDocument is closed.
@@ -70,7 +70,7 @@ async function openWebRuntimeClient(
           from: init.clientUuid,
           connectWebRuntime: ackChannel.port2,
         },
-        [ackChannel.port2]
+        [ackChannel.port2],
       )
       // wait for the ack.
       const result = await Promise.race([ackPromise, timeoutPromise(1000)])
@@ -78,7 +78,7 @@ async function openWebRuntimeClient(
         throw new Error('timed out waiting for ack from WebDocument')
       }
       console.log(
-        `ServiceWorker: opened port with WebRuntime via WebDocument: ${webDocumentId}`
+        `ServiceWorker: opened port with WebRuntime via WebDocument: ${webDocumentId}`,
       )
       lastWebDocumentIdx = x
       lastWebDocumentId = webDocumentId
@@ -87,7 +87,7 @@ async function openWebRuntimeClient(
       // message port must be closed.
       console.error(
         `ServiceWorker: connecting via WebDocument failed: ${webDocumentId}`,
-        err
+        err,
       )
       delete WebDocuments[webDocumentId]
       continue
@@ -107,7 +107,7 @@ async function openWebRuntimeClient(
   const currClients = await self.clients.matchAll({ type: 'window' })
   console.log(
     'ServiceWorker: notifying %d clients we want a connection',
-    currClients.length
+    currClients.length,
   )
   for (const client of currClients) {
     client.postMessage({ BLDR_INIT_SW: serviceWorkerId })
@@ -124,12 +124,12 @@ const webRuntimeClient = new WebRuntimeClient(
   serviceWorkerId,
   WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
   openWebRuntimeClient,
-  null
+  null,
 )
 
 // swHostClient attempts to contact the WebRuntime over any of the WebDocument relays.
 const swHostClient = new Client(
-  webRuntimeClient.openStream.bind(webRuntimeClient)
+  webRuntimeClient.openStream.bind(webRuntimeClient),
 )
 // swHost is the RPC client for the ServiceWorkerHost.
 const swHost = new ServiceWorkerHostClientImpl(swHostClient)
@@ -202,7 +202,7 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
 
   console.log(
     'ServiceWorker: forwarding fetch request to runtime',
-    request.url.toString()
+    request.url.toString(),
   )
   return proxyFetch(swHost, request, ev.clientId)
 
@@ -254,7 +254,7 @@ function initServiceWorker() {
           if (closePort) {
             closePort.close()
             console.log(
-              `ServiceWorker: closed WebDocument client: ${webDocumentId}`
+              `ServiceWorker: closed WebDocument client: ${webDocumentId}`,
             )
             delete WebDocuments[webDocumentId]
             if (lastWebDocumentId === webDocumentId) {

@@ -8,18 +8,18 @@ import { MessageDefinition } from 'starpc'
 export type FunctionComponent = (
   ctx: IBldrContext,
   parent: HTMLDivElement,
-  props?: Uint8Array
+  props?: Uint8Array,
 ) => () => void
 
 // RenderFunc is a valid render function.
 type RenderFunc = (
-  props?: Uint8Array
+  props?: Uint8Array,
 ) => React.ReactNode | JSX.Element | undefined
 
 // renderProto wraps a render function with parsing a protobuf props object.
 export function renderProto<T>(
   def: MessageDefinition<T>,
-  render: (props: T) => React.ReactNode | JSX.Element | undefined
+  render: (props: T) => React.ReactNode | JSX.Element | undefined,
 ): RenderFunc {
   return (props?: Uint8Array) => {
     return render(def.decode(props || new Uint8Array(0)))
@@ -29,16 +29,16 @@ export function renderProto<T>(
 // createFunctionComponent builds a FunctionComponent from a React render function.
 export function createFunctionComponent(
   render: RenderFunc,
-  rootOptions?: RootOptions
+  rootOptions?: RootOptions,
 ): FunctionComponent {
   return (
     ctx: IBldrContext,
     parent: HTMLDivElement,
-    props?: Uint8Array
+    props?: Uint8Array,
   ): (() => void) => {
     const root = createRoot(parent, rootOptions)
     root.render(
-      <BldrContext.Provider value={ctx}>{render(props)}</BldrContext.Provider>
+      <BldrContext.Provider value={ctx}>{render(props)}</BldrContext.Provider>,
     )
     return root.unmount.bind(root)
   }
@@ -48,7 +48,7 @@ export function createFunctionComponent(
 export function createProtoFunctionComponent<T>(
   def: MessageDefinition<T>,
   render: (props: T) => React.ReactNode | JSX.Element | undefined,
-  rootOptions?: RootOptions
+  rootOptions?: RootOptions,
 ): FunctionComponent {
   return createFunctionComponent(renderProto(def, render), rootOptions)
 }

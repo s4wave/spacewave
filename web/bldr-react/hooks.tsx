@@ -13,9 +13,9 @@ export function useWebViewHostClient(
     client: Client,
     abortSignal: AbortSignal,
     webDocument: BldrWebDocument,
-    webView: BldrWebView
+    webView: BldrWebView,
   ) => void | Destructor,
-  deps?: DependencyList
+  deps?: DependencyList,
 ) {
   const bldrContext = useContext(BldrContext)
   const webDocument = bldrContext?.webDocument

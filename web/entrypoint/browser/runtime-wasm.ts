@@ -36,7 +36,7 @@ const workerHost = new WebRuntime(
   `shared-worker:${self.location.host}`,
   openStreamFunc,
   createDocCb,
-  removeDocCb
+  removeDocCb,
 )
 
 async function startWasmRuntime(msg: WebRuntimeHostInit) {
@@ -69,7 +69,7 @@ async function startWasmRuntime(msg: WebRuntimeHostInit) {
         workerHost.getWebRuntimeServer(),
         {
           direction: 'inbound',
-        }
+        },
       )
       const runtimePort = workerChannel.port2
       const openStream = runtimeConn.buildOpenStreamFunc()
@@ -125,7 +125,7 @@ self.addEventListener('connect', (ev) => {
     if (!msgEvent.ports.length) {
       console.error(
         'runtime-wasm: dropped invalid init message without port',
-        msg
+        msg,
       )
       return
     }

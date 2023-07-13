@@ -52,14 +52,14 @@ const createdDocs: Record<string, electron.BrowserWindow> = {}
 
 // createDocCb is called to create a new browser window.
 const createDocCb = async (
-  req: CreateWebDocumentRequest
+  req: CreateWebDocumentRequest,
 ): Promise<CreateWebDocumentResponse> => {
   createdDocs[req.id] = createWindow(`#webDocumentUuid=${req.id}`)
   return { created: true }
 }
 // removeDocCb is called to remove a browser window.
 const removeDocCb = async (
-  req: RemoveWebDocumentRequest
+  req: RemoveWebDocumentRequest,
 ): Promise<RemoveWebDocumentResponse> => {
   const doc = createdDocs[req.id]
   if (!doc) {
@@ -82,7 +82,7 @@ const workerHost = new WebRuntime(
   `electron:main`,
   openStreamFunc,
   createDocCb,
-  removeDocCb
+  removeDocCb,
 )
 
 // connect the WebRuntime to the socket ports

@@ -76,7 +76,7 @@ function createBaseElectionEvent(): ElectionEvent {
 export const ElectionEvent = {
   encode(
     message: ElectionEvent,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.eventType !== 0) {
       writer.uint32(8).int32(message.eventType)
@@ -123,7 +123,7 @@ export const ElectionEvent = {
   async *encodeTransform(
     source:
       | AsyncIterable<ElectionEvent | ElectionEvent[]>
-      | Iterable<ElectionEvent | ElectionEvent[]>
+      | Iterable<ElectionEvent | ElectionEvent[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -141,7 +141,7 @@ export const ElectionEvent = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ElectionEvent> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -172,13 +172,13 @@ export const ElectionEvent = {
   },
 
   create<I extends Exact<DeepPartial<ElectionEvent>, I>>(
-    base?: I
+    base?: I,
   ): ElectionEvent {
     return ElectionEvent.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ElectionEvent>, I>>(
-    object: I
+    object: I,
   ): ElectionEvent {
     const message = createBaseElectionEvent()
     message.eventType = object.eventType ?? 0

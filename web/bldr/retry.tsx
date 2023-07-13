@@ -47,7 +47,10 @@ export class Retry<T = void> {
   // _currRetry is the current scheduled retry timeout.
   private _currRetry?: NodeJS.Timeout
 
-  constructor(private fn: () => Promise<T>, opts?: RetryOptions) {
+  constructor(
+    private fn: () => Promise<T>,
+    opts?: RetryOptions,
+  ) {
     opts?.abortSignal?.addEventListener('abort', this.cancel.bind(this))
     this._backoffFn = opts?.backoffFn || constantBackoff()
     this._errorCb = opts?.errorCb
@@ -115,7 +118,7 @@ export class Retry<T = void> {
 export async function retryWithAbort<T = void>(
   abortSignal: AbortSignal,
   cb: (abortSignal: AbortSignal) => Promise<T>,
-  opts?: RetryOptions
+  opts?: RetryOptions,
 ) {
   const retry = new Retry(cb.bind(undefined, abortSignal), {
     ...opts,

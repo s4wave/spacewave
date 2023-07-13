@@ -35,7 +35,7 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
 
   public componentDidMount() {
     console.log(
-      `WebDocument: mounted ${this.webDocument.webDocumentUuid} to WebRuntime ${this.webDocument.webRuntimeId}`
+      `WebDocument: mounted ${this.webDocument.webDocumentUuid} to WebRuntime ${this.webDocument.webRuntimeId}`,
     )
   }
 

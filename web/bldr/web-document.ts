@@ -55,7 +55,7 @@ import { randomId } from './random-id.js'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
-  req: CreateWebViewRequest
+  req: CreateWebViewRequest,
 ) => Promise<CreateWebViewResponse>
 
 // RemoveWebViewFunc is a function to remove a WebView.
@@ -72,7 +72,7 @@ const baseURL = import.meta?.url || window.location.origin
 const runtimeJsURL = new URL(
   (typeof BLDR_RUNTIME_JS === 'string' ? BLDR_RUNTIME_JS : false) ||
     '/runtime/runtime-wasm.js',
-  baseURL
+  baseURL,
 )
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
@@ -114,7 +114,7 @@ class WebDocumentWebView implements WebViewService {
 
   // SetRenderMode sets the rendering mode of the view.
   public async SetRenderMode(
-    request: SetRenderModeRequest
+    request: SetRenderModeRequest,
   ): Promise<SetRenderModeResponse> {
     const resp = await this.webView.setRenderMode(request)
     return resp || {}
@@ -122,7 +122,7 @@ class WebDocumentWebView implements WebViewService {
 
   // SetHtmlLinks sets the list of html links for the view.
   public async SetHtmlLinks(
-    request: SetHtmlLinksRequest
+    request: SetHtmlLinksRequest,
   ): Promise<SetHtmlLinksResponse> {
     const resp = await this.webView.setHtmlLinks(request)
     return resp || {}
@@ -143,14 +143,14 @@ class WebDocumentImpl implements WebDocumentService {
   constructor(
     from: string,
     private webDocument: WebDocument,
-    public readonly createViewCb: CreateWebViewFunc | null
+    public readonly createViewCb: CreateWebViewFunc | null,
   ) {
     this.from = from
   }
 
   // CreateWebView creates a new WebView at the root level.
   public async CreateWebView(
-    request: CreateWebViewRequest
+    request: CreateWebViewRequest,
   ): Promise<CreateWebViewResponse> {
     const webViewID = request.id
     if (!webViewID) {
@@ -170,11 +170,11 @@ class WebDocumentImpl implements WebDocumentService {
 
   // WebViewRpc opens a stream for a RPC call for a WebView.
   public WebViewRpc(
-    request: AsyncIterable<RpcStreamPacket>
+    request: AsyncIterable<RpcStreamPacket>,
   ): AsyncIterable<RpcStreamPacket> {
     return handleRpcStream(
       request[Symbol.asyncIterator](),
-      this.webDocument.buildWebViewRpcGetter()
+      this.webDocument.buildWebViewRpcGetter(),
     )
   }
 }
@@ -265,7 +265,7 @@ export class WebDocument {
 
     // Setup the status stream.
     const webStatusStream = new ItState<WebDocumentStatus>(
-      this.buildWebDocumentStatusSnapshot.bind(this)
+      this.buildWebDocumentStatusSnapshot.bind(this),
     )
     this.webStatusStream = webStatusStream
 
@@ -274,7 +274,7 @@ export class WebDocument {
     const webDocument: WebDocumentService = new WebDocumentImpl(
       this.webRuntimeId,
       this,
-      opts?.createWebViewCb || null
+      opts?.createWebViewCb || null,
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
     this.server = new Server(mux.lookupMethodFunc)
@@ -288,7 +288,7 @@ export class WebDocument {
     if (!('serviceWorker' in navigator)) {
       console.error(
         'Service worker not supported, bldr cannot start.',
-        'chromium: chrome://flags/#unsafely-treat-insecure-origin-as-secure'
+        'chromium: chrome://flags/#unsafely-treat-insecure-origin-as-secure',
       )
       console.error('Requires a https and/or localhost URL.')
       throw new Error('service worker not supported')
@@ -299,7 +299,7 @@ export class WebDocument {
       // This is not currently implemented here; all major browsers support SharedWorker.
       console.error(
         'Shared worker not supported, bldr cannot start.',
-        'See: https://caniuse.com/sharedworkers'
+        'See: https://caniuse.com/sharedworkers',
       )
       throw new Error('shared worker not supported')
     }
@@ -325,11 +325,11 @@ export class WebDocument {
         navigator.storage.persist().then((persistent) => {
           if (persistent) {
             console.log(
-              'WebDocument: user approved persist, storage will not be cleared except by explicit user action.'
+              'WebDocument: user approved persist, storage will not be cleared except by explicit user action.',
             )
           } else {
             console.log(
-              'WebDocument: user declined to persist, storage may be cleared by the UA under pressure!'
+              'WebDocument: user declined to persist, storage may be cleared by the UA under pressure!',
             )
           }
         })
@@ -342,7 +342,7 @@ export class WebDocument {
       this.worker = new SharedWorker(
         // eslint-disable-next-line
         runtimeJsURL,
-        workerOptions
+        workerOptions,
       )
       this.workerPort = this.worker!.port!
     }
@@ -386,13 +386,13 @@ export class WebDocument {
     const channelStream = new ChannelStream<Uint8Array>(
       this.webDocumentUuid,
       localPort,
-      false
+      false,
     )
     this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(3000)])
     if (!channelStream.isOpen) {
       throw new Error(
-        'WebDocument: timeout opening stream with WebDocumentHost'
+        'WebDocument: timeout opening stream with WebDocumentHost',
       )
     }
     return channelStream
@@ -406,7 +406,7 @@ export class WebDocument {
     this.webViews[webViewId] = view
     console.log(
       `WebDocument: registered web view with id ${webViewId}` +
-        (parentId ? ` parent ${parentId}` : '')
+        (parentId ? ` parent ${parentId}` : ''),
     )
     this.notifyWebViewUpdated(webViewId, webView)
 
@@ -426,7 +426,7 @@ export class WebDocument {
   public buildWebViewHostOpenStream(webViewId: string): OpenStreamFunc {
     return buildRpcStreamOpenStream(
       webViewId,
-      this.webDocumentHost.WebViewRpc.bind(this.webDocumentHost)
+      this.webDocumentHost.WebViewRpc.bind(this.webDocumentHost),
     )
   }
 
@@ -444,7 +444,7 @@ export class WebDocument {
 
   // getWebViewRpcHandler looks up the handler for the given WebView ID.
   public async getWebViewRpcHandler(
-    webViewId: string
+    webViewId: string,
   ): Promise<RpcStreamHandler | null> {
     // if a local web view
     const webView = this.webViews[webViewId]
@@ -608,7 +608,7 @@ export class WebDocument {
         from: this.webDocumentUuid,
         initPort: swPort,
       },
-      [swPort]
+      [swPort],
     )
   }
 
@@ -636,14 +636,14 @@ export class WebDocument {
     const channel = new ChannelStream<Uint8Array>(
       this.webDocumentUuid,
       port,
-      true
+      true,
     )
     this.server.handlePacketStream(channel)
   }
 
   // onServiceWorkerMessage handles an incoming service worker message.
   private onServiceWorkerMessage(
-    event: MessageEvent<ServiceWorkerToWebDocument>
+    event: MessageEvent<ServiceWorkerToWebDocument>,
   ) {
     const data = event.data
     if (!data || !data.from) {
@@ -652,7 +652,7 @@ export class WebDocument {
     if (data.connectWebRuntime && event.ports?.length) {
       this.handleServiceWorkerConnectWebRuntime(
         data.from,
-        data.connectWebRuntime
+        data.connectWebRuntime,
       )
     }
   }
@@ -660,7 +660,7 @@ export class WebDocument {
   // handleServiceWorkerConnectWebRuntime handles a ServiceWorker requesting a connection with the WebRuntime.
   private async handleServiceWorkerConnectWebRuntime(
     id: string,
-    port: MessagePort
+    port: MessagePort,
   ) {
     const commChannel = new MessageChannel()
     // we don't expect any replies
@@ -677,18 +677,18 @@ export class WebDocument {
         from: this.webDocumentUuid,
         webRuntimePort: commChannel.port2,
       },
-      [commChannel.port2]
+      [commChannel.port2],
     )
     this.openHostWebDocumentClient(
       WebRuntimeClientInit.encode(initMsg).finish(),
-      commChannel.port1
+      commChannel.port1,
     )
   }
 
   // postWebRuntimeMessage posts a message to the WebRuntime client port.
   private postWebRuntimeMessage(
     msg: ClientToWebRuntime,
-    xfer?: Transferable[]
+    xfer?: Transferable[],
   ) {
     if (xfer && xfer.length) {
       this.clientPort.postMessage(msg, xfer)

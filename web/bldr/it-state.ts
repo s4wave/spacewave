@@ -2,7 +2,10 @@ import { EventIterator } from 'event-iterator'
 
 // ItStateChangedEvent is an event emitted when ItState changes.
 export class ItStateChangedEvent<T> extends Event {
-  constructor(public readonly changeEvent: T, public readonly nonce?: number) {
+  constructor(
+    public readonly changeEvent: T,
+    public readonly nonce?: number,
+  ) {
     super('changed')
   }
 }
@@ -27,7 +30,7 @@ export class ItState<T> extends EventTarget {
 
   constructor(
     getSnapshot?: () => Promise<T | undefined>,
-    private opts?: ItStateOptions
+    private opts?: ItStateOptions,
   ) {
     super()
     this.getSnapshot = getSnapshot || (async () => undefined)

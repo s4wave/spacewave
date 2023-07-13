@@ -31,7 +31,7 @@ type Config struct {
 	// GoPackages is the list of Go packages to scan for controller factories.
 	// Looks for package-level functions:
 	//   - NewFactory(b bus.Bus) controller.Factory
-	//   - BuildFactories(b bus.Bus) []controller.Factory
+	//   - [TODO] BuildFactories(b bus.Bus) []controller.Factory
 	GoPackages []string `protobuf:"bytes,1,rep,name=go_packages,json=goPackages,proto3" json:"go_packages,omitempty"`
 	// ConfigSet is a ConfigSet to apply on plugin startup.
 	// This ConfigSet is applied to the plugin bus.

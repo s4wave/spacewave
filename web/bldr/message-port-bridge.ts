@@ -1,7 +1,7 @@
 // MessagePortBridgeCallback is called with a data packet.
 export type MessagePortBridgeCallback<T> = (
   data: T,
-  ports?: readonly MessagePortBridge<unknown>[]
+  ports?: readonly MessagePortBridge<unknown>[],
 ) => void
 
 // MessagePortBridge is a message port emulated with callback functions.
@@ -17,7 +17,7 @@ export interface MessagePortBridge<I, O = I> {
 
 // messagePortBridgeToMessagePort converts a MessagePortBridge into a MessagePort.
 export function messagePortBridgeToMessagePort<T>(
-  bridge: MessagePortBridge<T>
+  bridge: MessagePortBridge<T>,
 ): MessagePort {
   const channel = new MessageChannel()
   const localPort = channel.port1
@@ -25,7 +25,7 @@ export function messagePortBridgeToMessagePort<T>(
   bridge.start((data: T, ports?: readonly MessagePortBridge<unknown>[]) => {
     if (ports && ports.length) {
       const bridgePorts = ports.map((port) =>
-        messagePortBridgeToMessagePort(port)
+        messagePortBridgeToMessagePort(port),
       )
       bridgePort.postMessage(data, bridgePorts)
     } else {
@@ -36,7 +36,7 @@ export function messagePortBridgeToMessagePort<T>(
     const { data, ports } = ev
     if (ports && ports.length) {
       const bridgePorts = ports.map((port) =>
-        messagePortToMessagePortBridge(port)
+        messagePortToMessagePortBridge(port),
       )
       bridge.write(data, bridgePorts)
     } else {
@@ -49,14 +49,14 @@ export function messagePortBridgeToMessagePort<T>(
 
 // messagePortToMessagePortBridge converts a MessagePort into a MessagePortBridge.
 export function messagePortToMessagePortBridge<T>(
-  port: MessagePort
+  port: MessagePort,
 ): MessagePortBridge<T> {
   return {
     start: (cb: MessagePortBridgeCallback<T>) => {
       port.onmessage = (ev) => {
         if (ev.ports && ev.ports.length) {
           const bridgePorts = ev.ports.map((port) =>
-            messagePortToMessagePortBridge(port)
+            messagePortToMessagePortBridge(port),
           )
           cb(ev.data, bridgePorts)
         } else {
@@ -68,7 +68,7 @@ export function messagePortToMessagePortBridge<T>(
     write: (data: T, ports?: readonly MessagePortBridge<unknown>[]) => {
       if (ports && ports.length) {
         const bridgePorts = ports.map((port) =>
-          messagePortBridgeToMessagePort(port)
+          messagePortBridgeToMessagePort(port),
         )
         port.postMessage(data, bridgePorts)
       } else {

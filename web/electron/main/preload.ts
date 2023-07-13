@@ -14,7 +14,7 @@ async function openClientPort(
   // init is a WebRuntimeClientInit encoded.
   init: Uint8Array,
   // port is the client port bridge.
-  port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>
+  port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>,
 ): Promise<void> {
   const clientPort = messagePortBridgeToMessagePort(port)
   ipcRenderer.postMessage('BLDR_PORT', init, [clientPort])

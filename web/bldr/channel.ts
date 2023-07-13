@@ -217,11 +217,11 @@ export function newBroadcastChannelStream<TSource, TSink = TSource>(
   id: string,
   readName: string,
   writeName: string,
-  remoteOpen: boolean
+  remoteOpen: boolean,
 ): ChannelStream<TSource, TSink> {
   return new ChannelStream<TSource, TSink>(
     id,
     { tx: new BroadcastChannel(writeName), rx: new BroadcastChannel(readName) },
-    remoteOpen
+    remoteOpen,
   )
 }

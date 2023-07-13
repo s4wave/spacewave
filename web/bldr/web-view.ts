@@ -23,11 +23,11 @@ export interface WebView {
   // setRenderMode sets the render mode of the view.
   // if wait=true, should wait for op to complete before returning.
   setRenderMode(
-    options: SetRenderModeRequest
+    options: SetRenderModeRequest,
   ): Promise<SetRenderModeResponse | void>
   // setHtmlLinks sets or updates the list of HTML links.
   setHtmlLinks(
-    options: SetHtmlLinksRequest
+    options: SetHtmlLinksRequest,
   ): Promise<SetHtmlLinksResponse | void>
   // remove removes the web view, if !permanent.
   // returns if the web view was removed successfully.
@@ -48,7 +48,7 @@ export interface WebViewRegistration {
 // if webView is null, indicates the view was deleted.
 export function buildWebViewStatus(
   webViewId: string,
-  webView?: WebView
+  webView?: WebView,
 ): WebViewStatus {
   return {
     id: webViewId,

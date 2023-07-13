@@ -240,7 +240,7 @@ export class WebView
       this.reg = webDocument.registerWebView(this)
       this.setState({ ready: true })
       console.log(
-        `WebView: mounted ${this.uuid} to document ${webDocument.webDocumentUuid} runtime ${webDocument.webRuntimeId}`
+        `WebView: mounted ${this.uuid} to document ${webDocument.webDocumentUuid} runtime ${webDocument.webRuntimeId}`,
       )
       // see: this.reg.webViewHost
     } else {
@@ -320,7 +320,7 @@ export class WebView
 
   // _initReactComponent initializes the promises to load a react component.
   private _initReactComponent(
-    scriptPath: string
+    scriptPath: string,
   ): [LoadedReactComponent, Promise<{ default: LoadedReactComponentType }>] {
     const loadPromise = import(scriptPath)
     return [

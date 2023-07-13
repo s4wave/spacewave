@@ -4,7 +4,7 @@ import React from 'react'
 export class AbortComponent<
   P = {},
   S = {},
-  SS = any
+  SS = any,
 > extends React.PureComponent<P, S, SS> {
   // abortController is aborted when the component is unmounted.
   protected abortController: AbortController
