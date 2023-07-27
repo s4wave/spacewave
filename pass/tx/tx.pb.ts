@@ -201,13 +201,13 @@ export const Tx = {
     if (message.txCreateExecSpecs !== undefined) {
       TxCreateExecSpecs.encode(
         message.txCreateExecSpecs,
-        writer.uint32(34).fork()
+        writer.uint32(34).fork(),
       ).ldelim()
     }
     if (message.txUpdateExecStates !== undefined) {
       TxUpdateExecStates.encode(
         message.txUpdateExecStates,
-        writer.uint32(42).fork()
+        writer.uint32(42).fork(),
       ).ldelim()
     }
     if (message.txComplete !== undefined) {
@@ -252,7 +252,7 @@ export const Tx = {
 
           message.txCreateExecSpecs = TxCreateExecSpecs.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 5:
@@ -262,7 +262,7 @@ export const Tx = {
 
           message.txUpdateExecStates = TxUpdateExecStates.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 6:
@@ -284,7 +284,7 @@ export const Tx = {
   // encodeTransform encodes a source of message objects.
   // Transform<Tx, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>
+    source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -302,7 +302,7 @@ export const Tx = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tx> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -338,25 +338,28 @@ export const Tx = {
 
   toJSON(message: Tx): unknown {
     const obj: any = {}
-    message.txType !== undefined && (obj.txType = txTypeToJSON(message.txType))
-    message.passObjectKey !== undefined &&
-      (obj.passObjectKey = message.passObjectKey)
-    message.txStart !== undefined &&
-      (obj.txStart = message.txStart
-        ? TxStart.toJSON(message.txStart)
-        : undefined)
-    message.txCreateExecSpecs !== undefined &&
-      (obj.txCreateExecSpecs = message.txCreateExecSpecs
-        ? TxCreateExecSpecs.toJSON(message.txCreateExecSpecs)
-        : undefined)
-    message.txUpdateExecStates !== undefined &&
-      (obj.txUpdateExecStates = message.txUpdateExecStates
-        ? TxUpdateExecStates.toJSON(message.txUpdateExecStates)
-        : undefined)
-    message.txComplete !== undefined &&
-      (obj.txComplete = message.txComplete
-        ? TxComplete.toJSON(message.txComplete)
-        : undefined)
+    if (message.txType !== 0) {
+      obj.txType = txTypeToJSON(message.txType)
+    }
+    if (message.passObjectKey !== '') {
+      obj.passObjectKey = message.passObjectKey
+    }
+    if (message.txStart !== undefined) {
+      obj.txStart = TxStart.toJSON(message.txStart)
+    }
+    if (message.txCreateExecSpecs !== undefined) {
+      obj.txCreateExecSpecs = TxCreateExecSpecs.toJSON(
+        message.txCreateExecSpecs,
+      )
+    }
+    if (message.txUpdateExecStates !== undefined) {
+      obj.txUpdateExecStates = TxUpdateExecStates.toJSON(
+        message.txUpdateExecStates,
+      )
+    }
+    if (message.txComplete !== undefined) {
+      obj.txComplete = TxComplete.toJSON(message.txComplete)
+    }
     return obj
   },
 
@@ -397,7 +400,7 @@ function createBaseExecSpec(): ExecSpec {
 export const ExecSpec = {
   encode(
     message: ExecSpec,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.peerId !== '') {
       writer.uint32(10).string(message.peerId)
@@ -434,7 +437,7 @@ export const ExecSpec = {
   async *encodeTransform(
     source:
       | AsyncIterable<ExecSpec | ExecSpec[]>
-      | Iterable<ExecSpec | ExecSpec[]>
+      | Iterable<ExecSpec | ExecSpec[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -452,7 +455,7 @@ export const ExecSpec = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExecSpec> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -471,7 +474,9 @@ export const ExecSpec = {
 
   toJSON(message: ExecSpec): unknown {
     const obj: any = {}
-    message.peerId !== undefined && (obj.peerId = message.peerId)
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
     return obj
   },
 
@@ -493,12 +498,12 @@ function createBaseTxStart(): TxStart {
 export const TxStart = {
   encode(
     message: TxStart,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.createExecSpecs !== undefined) {
       TxCreateExecSpecs.encode(
         message.createExecSpecs,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     return writer
@@ -519,7 +524,7 @@ export const TxStart = {
 
           message.createExecSpecs = TxCreateExecSpecs.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
       }
@@ -534,7 +539,7 @@ export const TxStart = {
   // encodeTransform encodes a source of message objects.
   // Transform<TxStart, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<TxStart | TxStart[]> | Iterable<TxStart | TxStart[]>
+    source: AsyncIterable<TxStart | TxStart[]> | Iterable<TxStart | TxStart[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -552,7 +557,7 @@ export const TxStart = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxStart> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -575,10 +580,9 @@ export const TxStart = {
 
   toJSON(message: TxStart): unknown {
     const obj: any = {}
-    message.createExecSpecs !== undefined &&
-      (obj.createExecSpecs = message.createExecSpecs
-        ? TxCreateExecSpecs.toJSON(message.createExecSpecs)
-        : undefined)
+    if (message.createExecSpecs !== undefined) {
+      obj.createExecSpecs = TxCreateExecSpecs.toJSON(message.createExecSpecs)
+    }
     return obj
   },
 
@@ -603,7 +607,7 @@ function createBaseTxCreateExecSpecs(): TxCreateExecSpecs {
 export const TxCreateExecSpecs = {
   encode(
     message: TxCreateExecSpecs,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.execSpecs) {
       ExecSpec.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -650,7 +654,7 @@ export const TxCreateExecSpecs = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxCreateExecSpecs | TxCreateExecSpecs[]>
-      | Iterable<TxCreateExecSpecs | TxCreateExecSpecs[]>
+      | Iterable<TxCreateExecSpecs | TxCreateExecSpecs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -668,7 +672,7 @@ export const TxCreateExecSpecs = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxCreateExecSpecs> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -694,26 +698,23 @@ export const TxCreateExecSpecs = {
 
   toJSON(message: TxCreateExecSpecs): unknown {
     const obj: any = {}
-    if (message.execSpecs) {
-      obj.execSpecs = message.execSpecs.map((e) =>
-        e ? ExecSpec.toJSON(e) : undefined
-      )
-    } else {
-      obj.execSpecs = []
+    if (message.execSpecs?.length) {
+      obj.execSpecs = message.execSpecs.map((e) => ExecSpec.toJSON(e))
     }
-    message.clearExisting !== undefined &&
-      (obj.clearExisting = message.clearExisting)
+    if (message.clearExisting === true) {
+      obj.clearExisting = message.clearExisting
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxCreateExecSpecs>, I>>(
-    base?: I
+    base?: I,
   ): TxCreateExecSpecs {
     return TxCreateExecSpecs.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<TxCreateExecSpecs>, I>>(
-    object: I
+    object: I,
   ): TxCreateExecSpecs {
     const message = createBaseTxCreateExecSpecs()
     message.execSpecs =
@@ -730,7 +731,7 @@ function createBaseTxUpdateExecStates(): TxUpdateExecStates {
 export const TxUpdateExecStates = {
   encode(
     _: TxUpdateExecStates,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
@@ -757,7 +758,7 @@ export const TxUpdateExecStates = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxUpdateExecStates | TxUpdateExecStates[]>
-      | Iterable<TxUpdateExecStates | TxUpdateExecStates[]>
+      | Iterable<TxUpdateExecStates | TxUpdateExecStates[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -775,7 +776,7 @@ export const TxUpdateExecStates = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxUpdateExecStates> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -798,13 +799,13 @@ export const TxUpdateExecStates = {
   },
 
   create<I extends Exact<DeepPartial<TxUpdateExecStates>, I>>(
-    base?: I
+    base?: I,
   ): TxUpdateExecStates {
     return TxUpdateExecStates.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<TxUpdateExecStates>, I>>(
-    _: I
+    _: I,
   ): TxUpdateExecStates {
     const message = createBaseTxUpdateExecStates()
     return message
@@ -818,7 +819,7 @@ function createBaseTxComplete(): TxComplete {
 export const TxComplete = {
   encode(
     message: TxComplete,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.result !== undefined) {
       Result.encode(message.result, writer.uint32(10).fork()).ldelim()
@@ -865,7 +866,7 @@ export const TxComplete = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxComplete | TxComplete[]>
-      | Iterable<TxComplete | TxComplete[]>
+      | Iterable<TxComplete | TxComplete[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -883,7 +884,7 @@ export const TxComplete = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxComplete> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -907,12 +908,12 @@ export const TxComplete = {
 
   toJSON(message: TxComplete): unknown {
     const obj: any = {}
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
+    if (message.result !== undefined) {
+      obj.result = Result.toJSON(message.result)
+    }
+    if (message.valueSet !== undefined) {
+      obj.valueSet = ValueSet.toJSON(message.valueSet)
+    }
     return obj
   },
 
@@ -921,7 +922,7 @@ export const TxComplete = {
   },
 
   fromPartial<I extends Exact<DeepPartial<TxComplete>, I>>(
-    object: I
+    object: I,
   ): TxComplete {
     const message = createBaseTxComplete()
     message.result =

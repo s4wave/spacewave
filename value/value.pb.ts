@@ -151,7 +151,7 @@ export const Value = {
     if (message.worldObjectSnapshot !== undefined) {
       WorldObjectSnapshot.encode(
         message.worldObjectSnapshot,
-        writer.uint32(42).fork()
+        writer.uint32(42).fork(),
       ).ldelim()
     }
     return writer
@@ -200,7 +200,7 @@ export const Value = {
 
           message.worldObjectSnapshot = WorldObjectSnapshot.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
       }
@@ -215,7 +215,7 @@ export const Value = {
   // encodeTransform encodes a source of message objects.
   // Transform<Value, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Value | Value[]> | Iterable<Value | Value[]>
+    source: AsyncIterable<Value | Value[]> | Iterable<Value | Value[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -233,7 +233,7 @@ export const Value = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Value> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -266,21 +266,23 @@ export const Value = {
 
   toJSON(message: Value): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.valueType !== undefined &&
-      (obj.valueType = valueTypeToJSON(message.valueType))
-    message.blockRef !== undefined &&
-      (obj.blockRef = message.blockRef
-        ? BlockRef.toJSON(message.blockRef)
-        : undefined)
-    message.bucketRef !== undefined &&
-      (obj.bucketRef = message.bucketRef
-        ? ObjectRef.toJSON(message.bucketRef)
-        : undefined)
-    message.worldObjectSnapshot !== undefined &&
-      (obj.worldObjectSnapshot = message.worldObjectSnapshot
-        ? WorldObjectSnapshot.toJSON(message.worldObjectSnapshot)
-        : undefined)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.valueType !== 0) {
+      obj.valueType = valueTypeToJSON(message.valueType)
+    }
+    if (message.blockRef !== undefined) {
+      obj.blockRef = BlockRef.toJSON(message.blockRef)
+    }
+    if (message.bucketRef !== undefined) {
+      obj.bucketRef = ObjectRef.toJSON(message.bucketRef)
+    }
+    if (message.worldObjectSnapshot !== undefined) {
+      obj.worldObjectSnapshot = WorldObjectSnapshot.toJSON(
+        message.worldObjectSnapshot,
+      )
+    }
     return obj
   },
 
@@ -316,7 +318,7 @@ function createBaseResult(): Result {
 export const Result = {
   encode(
     message: Result,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.success === true) {
       writer.uint32(8).bool(message.success)
@@ -371,7 +373,7 @@ export const Result = {
   // encodeTransform encodes a source of message objects.
   // Transform<Result, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Result | Result[]> | Iterable<Result | Result[]>
+    source: AsyncIterable<Result | Result[]> | Iterable<Result | Result[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -389,7 +391,7 @@ export const Result = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Result> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -412,9 +414,15 @@ export const Result = {
 
   toJSON(message: Result): unknown {
     const obj: any = {}
-    message.success !== undefined && (obj.success = message.success)
-    message.failError !== undefined && (obj.failError = message.failError)
-    message.canceled !== undefined && (obj.canceled = message.canceled)
+    if (message.success === true) {
+      obj.success = message.success
+    }
+    if (message.failError !== '') {
+      obj.failError = message.failError
+    }
+    if (message.canceled === true) {
+      obj.canceled = message.canceled
+    }
     return obj
   },
 
@@ -444,7 +452,7 @@ function createBaseWorldObjectSnapshot(): WorldObjectSnapshot {
 export const WorldObjectSnapshot = {
   encode(
     message: WorldObjectSnapshot,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -521,7 +529,7 @@ export const WorldObjectSnapshot = {
   async *encodeTransform(
     source:
       | AsyncIterable<WorldObjectSnapshot | WorldObjectSnapshot[]>
-      | Iterable<WorldObjectSnapshot | WorldObjectSnapshot[]>
+      | Iterable<WorldObjectSnapshot | WorldObjectSnapshot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -539,7 +547,7 @@ export const WorldObjectSnapshot = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorldObjectSnapshot> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -568,27 +576,32 @@ export const WorldObjectSnapshot = {
 
   toJSON(message: WorldObjectSnapshot): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.rootRef !== undefined &&
-      (obj.rootRef = message.rootRef
-        ? ObjectRef.toJSON(message.rootRef)
-        : undefined)
-    message.rev !== undefined &&
-      (obj.rev = (message.rev || Long.UZERO).toString())
-    message.objectType !== undefined && (obj.objectType = message.objectType)
-    message.objectParent !== undefined &&
-      (obj.objectParent = message.objectParent)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.rootRef !== undefined) {
+      obj.rootRef = ObjectRef.toJSON(message.rootRef)
+    }
+    if (!message.rev.isZero()) {
+      obj.rev = (message.rev || Long.UZERO).toString()
+    }
+    if (message.objectType !== '') {
+      obj.objectType = message.objectType
+    }
+    if (message.objectParent !== '') {
+      obj.objectParent = message.objectParent
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WorldObjectSnapshot>, I>>(
-    base?: I
+    base?: I,
   ): WorldObjectSnapshot {
     return WorldObjectSnapshot.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WorldObjectSnapshot>, I>>(
-    object: I
+    object: I,
   ): WorldObjectSnapshot {
     const message = createBaseWorldObjectSnapshot()
     message.key = object.key ?? ''

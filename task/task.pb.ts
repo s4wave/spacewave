@@ -284,7 +284,7 @@ export const Task = {
   // encodeTransform encodes a source of message objects.
   // Transform<Task, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Task | Task[]> | Iterable<Task | Task[]>
+    source: AsyncIterable<Task | Task[]> | Iterable<Task | Task[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -302,7 +302,7 @@ export const Task = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Task> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -339,28 +339,33 @@ export const Task = {
 
   toJSON(message: Task): unknown {
     const obj: any = {}
-    message.taskState !== undefined &&
-      (obj.taskState = stateToJSON(message.taskState))
-    message.name !== undefined && (obj.name = message.name)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.replicas !== undefined &&
-      (obj.replicas = Math.round(message.replicas))
-    message.passNonce !== undefined &&
-      (obj.passNonce = (message.passNonce || Long.UZERO).toString())
-    message.targetRef !== undefined &&
-      (obj.targetRef = message.targetRef
-        ? BlockRef.toJSON(message.targetRef)
-        : undefined)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.taskState !== 0) {
+      obj.taskState = stateToJSON(message.taskState)
+    }
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.replicas !== 0) {
+      obj.replicas = Math.round(message.replicas)
+    }
+    if (!message.passNonce.isZero()) {
+      obj.passNonce = (message.passNonce || Long.UZERO).toString()
+    }
+    if (message.targetRef !== undefined) {
+      obj.targetRef = BlockRef.toJSON(message.targetRef)
+    }
+    if (message.valueSet !== undefined) {
+      obj.valueSet = ValueSet.toJSON(message.valueSet)
+    }
+    if (message.result !== undefined) {
+      obj.result = Result.toJSON(message.result)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 

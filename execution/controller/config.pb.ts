@@ -57,7 +57,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.engineId !== '') {
       writer.uint32(10).string(message.engineId)
@@ -142,7 +142,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -160,7 +160,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -179,7 +179,7 @@ export const Config = {
       objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
       peerId: isSet(object.peerId) ? String(object.peerId) : '',
       resolveControllerConfigTimeout: isSet(
-        object.resolveControllerConfigTimeout
+        object.resolveControllerConfigTimeout,
       )
         ? String(object.resolveControllerConfigTimeout)
         : '',
@@ -194,18 +194,25 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.engineId !== undefined && (obj.engineId = message.engineId)
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.resolveControllerConfigTimeout !== undefined &&
-      (obj.resolveControllerConfigTimeout =
-        message.resolveControllerConfigTimeout)
-    message.allowNonExecController !== undefined &&
-      (obj.allowNonExecController = message.allowNonExecController)
-    message.inputWorld !== undefined &&
-      (obj.inputWorld = message.inputWorld
-        ? InputWorld.toJSON(message.inputWorld)
-        : undefined)
+    if (message.engineId !== '') {
+      obj.engineId = message.engineId
+    }
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.resolveControllerConfigTimeout !== '') {
+      obj.resolveControllerConfigTimeout =
+        message.resolveControllerConfigTimeout
+    }
+    if (message.allowNonExecController === true) {
+      obj.allowNonExecController = message.allowNonExecController
+    }
+    if (message.inputWorld !== undefined) {
+      obj.inputWorld = InputWorld.toJSON(message.inputWorld)
+    }
     return obj
   },
 
@@ -236,7 +243,7 @@ function createBaseExecConfig(): ExecConfig {
 export const ExecConfig = {
   encode(
     message: ExecConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.execution !== undefined) {
       Execution.encode(message.execution, writer.uint32(10).fork()).ldelim()
@@ -283,7 +290,7 @@ export const ExecConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<ExecConfig | ExecConfig[]>
-      | Iterable<ExecConfig | ExecConfig[]>
+      | Iterable<ExecConfig | ExecConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -301,7 +308,7 @@ export const ExecConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExecConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -325,12 +332,12 @@ export const ExecConfig = {
 
   toJSON(message: ExecConfig): unknown {
     const obj: any = {}
-    message.execution !== undefined &&
-      (obj.execution = message.execution
-        ? Execution.toJSON(message.execution)
-        : undefined)
-    message.target !== undefined &&
-      (obj.target = message.target ? Target.toJSON(message.target) : undefined)
+    if (message.execution !== undefined) {
+      obj.execution = Execution.toJSON(message.execution)
+    }
+    if (message.target !== undefined) {
+      obj.target = Target.toJSON(message.target)
+    }
     return obj
   },
 
@@ -339,7 +346,7 @@ export const ExecConfig = {
   },
 
   fromPartial<I extends Exact<DeepPartial<ExecConfig>, I>>(
-    object: I
+    object: I,
   ): ExecConfig {
     const message = createBaseExecConfig()
     message.execution =

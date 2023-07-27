@@ -119,7 +119,7 @@ function createBaseCluster(): Cluster {
 export const Cluster = {
   encode(
     message: Cluster,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -164,7 +164,7 @@ export const Cluster = {
   // encodeTransform encodes a source of message objects.
   // Transform<Cluster, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Cluster | Cluster[]> | Iterable<Cluster | Cluster[]>
+    source: AsyncIterable<Cluster | Cluster[]> | Iterable<Cluster | Cluster[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -182,7 +182,7 @@ export const Cluster = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Cluster> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -204,8 +204,12 @@ export const Cluster = {
 
   toJSON(message: Cluster): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
     return obj
   },
 
@@ -228,7 +232,7 @@ function createBaseClusterCreateOp(): ClusterCreateOp {
 export const ClusterCreateOp = {
   encode(
     message: ClusterCreateOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -285,7 +289,7 @@ export const ClusterCreateOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterCreateOp | ClusterCreateOp[]>
-      | Iterable<ClusterCreateOp | ClusterCreateOp[]>
+      | Iterable<ClusterCreateOp | ClusterCreateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -303,7 +307,7 @@ export const ClusterCreateOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterCreateOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -326,20 +330,26 @@ export const ClusterCreateOp = {
 
   toJSON(message: ClusterCreateOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.name !== undefined && (obj.name = message.name)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterCreateOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterCreateOp {
     return ClusterCreateOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterCreateOp>, I>>(
-    object: I
+    object: I,
   ): ClusterCreateOp {
     const message = createBaseClusterCreateOp()
     message.clusterKey = object.clusterKey ?? ''
@@ -356,7 +366,7 @@ function createBaseClusterAssignPeerOp(): ClusterAssignPeerOp {
 export const ClusterAssignPeerOp = {
   encode(
     message: ClusterAssignPeerOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -403,7 +413,7 @@ export const ClusterAssignPeerOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterAssignPeerOp | ClusterAssignPeerOp[]>
-      | Iterable<ClusterAssignPeerOp | ClusterAssignPeerOp[]>
+      | Iterable<ClusterAssignPeerOp | ClusterAssignPeerOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -421,7 +431,7 @@ export const ClusterAssignPeerOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignPeerOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -443,19 +453,23 @@ export const ClusterAssignPeerOp = {
 
   toJSON(message: ClusterAssignPeerOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterAssignPeerOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterAssignPeerOp {
     return ClusterAssignPeerOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterAssignPeerOp>, I>>(
-    object: I
+    object: I,
   ): ClusterAssignPeerOp {
     const message = createBaseClusterAssignPeerOp()
     message.clusterKey = object.clusterKey ?? ''
@@ -471,7 +485,7 @@ function createBaseClusterAssignJobOp(): ClusterAssignJobOp {
 export const ClusterAssignJobOp = {
   encode(
     message: ClusterAssignJobOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -518,7 +532,7 @@ export const ClusterAssignJobOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterAssignJobOp | ClusterAssignJobOp[]>
-      | Iterable<ClusterAssignJobOp | ClusterAssignJobOp[]>
+      | Iterable<ClusterAssignJobOp | ClusterAssignJobOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -536,7 +550,7 @@ export const ClusterAssignJobOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignJobOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -558,19 +572,23 @@ export const ClusterAssignJobOp = {
 
   toJSON(message: ClusterAssignJobOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.jobKey !== undefined && (obj.jobKey = message.jobKey)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.jobKey !== '') {
+      obj.jobKey = message.jobKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterAssignJobOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterAssignJobOp {
     return ClusterAssignJobOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterAssignJobOp>, I>>(
-    object: I
+    object: I,
   ): ClusterAssignJobOp {
     const message = createBaseClusterAssignJobOp()
     message.clusterKey = object.clusterKey ?? ''
@@ -586,7 +604,7 @@ function createBaseClusterAssignWorkerOp(): ClusterAssignWorkerOp {
 export const ClusterAssignWorkerOp = {
   encode(
     message: ClusterAssignWorkerOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -599,7 +617,7 @@ export const ClusterAssignWorkerOp = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ClusterAssignWorkerOp {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -636,7 +654,7 @@ export const ClusterAssignWorkerOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterAssignWorkerOp | ClusterAssignWorkerOp[]>
-      | Iterable<ClusterAssignWorkerOp | ClusterAssignWorkerOp[]>
+      | Iterable<ClusterAssignWorkerOp | ClusterAssignWorkerOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -654,7 +672,7 @@ export const ClusterAssignWorkerOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignWorkerOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -676,19 +694,23 @@ export const ClusterAssignWorkerOp = {
 
   toJSON(message: ClusterAssignWorkerOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.workerKey !== undefined && (obj.workerKey = message.workerKey)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.workerKey !== '') {
+      obj.workerKey = message.workerKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterAssignWorkerOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterAssignWorkerOp {
     return ClusterAssignWorkerOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterAssignWorkerOp>, I>>(
-    object: I
+    object: I,
   ): ClusterAssignWorkerOp {
     const message = createBaseClusterAssignWorkerOp()
     message.clusterKey = object.clusterKey ?? ''
@@ -704,7 +726,7 @@ function createBaseClusterStartJobOp(): ClusterStartJobOp {
 export const ClusterStartJobOp = {
   encode(
     message: ClusterStartJobOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -751,7 +773,7 @@ export const ClusterStartJobOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterStartJobOp | ClusterStartJobOp[]>
-      | Iterable<ClusterStartJobOp | ClusterStartJobOp[]>
+      | Iterable<ClusterStartJobOp | ClusterStartJobOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -769,7 +791,7 @@ export const ClusterStartJobOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterStartJobOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -791,19 +813,23 @@ export const ClusterStartJobOp = {
 
   toJSON(message: ClusterStartJobOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.jobKey !== undefined && (obj.jobKey = message.jobKey)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.jobKey !== '') {
+      obj.jobKey = message.jobKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterStartJobOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterStartJobOp {
     return ClusterStartJobOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterStartJobOp>, I>>(
-    object: I
+    object: I,
   ): ClusterStartJobOp {
     const message = createBaseClusterStartJobOp()
     message.clusterKey = object.clusterKey ?? ''
@@ -819,7 +845,7 @@ function createBaseClusterAssignTaskOp(): ClusterAssignTaskOp {
 export const ClusterAssignTaskOp = {
   encode(
     message: ClusterAssignTaskOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -876,7 +902,7 @@ export const ClusterAssignTaskOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterAssignTaskOp | ClusterAssignTaskOp[]>
-      | Iterable<ClusterAssignTaskOp | ClusterAssignTaskOp[]>
+      | Iterable<ClusterAssignTaskOp | ClusterAssignTaskOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -894,7 +920,7 @@ export const ClusterAssignTaskOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignTaskOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -917,20 +943,26 @@ export const ClusterAssignTaskOp = {
 
   toJSON(message: ClusterAssignTaskOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.jobKey !== undefined && (obj.jobKey = message.jobKey)
-    message.taskKey !== undefined && (obj.taskKey = message.taskKey)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.jobKey !== '') {
+      obj.jobKey = message.jobKey
+    }
+    if (message.taskKey !== '') {
+      obj.taskKey = message.taskKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterAssignTaskOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterAssignTaskOp {
     return ClusterAssignTaskOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterAssignTaskOp>, I>>(
-    object: I
+    object: I,
   ): ClusterAssignTaskOp {
     const message = createBaseClusterAssignTaskOp()
     message.clusterKey = object.clusterKey ?? ''
@@ -947,7 +979,7 @@ function createBaseClusterCompleteJobOp(): ClusterCompleteJobOp {
 export const ClusterCompleteJobOp = {
   encode(
     message: ClusterCompleteJobOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.clusterKey !== '') {
       writer.uint32(10).string(message.clusterKey)
@@ -960,7 +992,7 @@ export const ClusterCompleteJobOp = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ClusterCompleteJobOp {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -997,7 +1029,7 @@ export const ClusterCompleteJobOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClusterCompleteJobOp | ClusterCompleteJobOp[]>
-      | Iterable<ClusterCompleteJobOp | ClusterCompleteJobOp[]>
+      | Iterable<ClusterCompleteJobOp | ClusterCompleteJobOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1015,7 +1047,7 @@ export const ClusterCompleteJobOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterCompleteJobOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1037,19 +1069,23 @@ export const ClusterCompleteJobOp = {
 
   toJSON(message: ClusterCompleteJobOp): unknown {
     const obj: any = {}
-    message.clusterKey !== undefined && (obj.clusterKey = message.clusterKey)
-    message.jobKey !== undefined && (obj.jobKey = message.jobKey)
+    if (message.clusterKey !== '') {
+      obj.clusterKey = message.clusterKey
+    }
+    if (message.jobKey !== '') {
+      obj.jobKey = message.jobKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClusterCompleteJobOp>, I>>(
-    base?: I
+    base?: I,
   ): ClusterCompleteJobOp {
     return ClusterCompleteJobOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<ClusterCompleteJobOp>, I>>(
-    object: I
+    object: I,
   ): ClusterCompleteJobOp {
     const message = createBaseClusterCompleteJobOp()
     message.clusterKey = object.clusterKey ?? ''

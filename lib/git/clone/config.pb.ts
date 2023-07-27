@@ -44,7 +44,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -58,7 +58,7 @@ export const Config = {
     if (message.worktreeOpts !== undefined) {
       GitCreateWorktreeOp.encode(
         message.worktreeOpts,
-        writer.uint32(34).fork()
+        writer.uint32(34).fork(),
       ).ldelim()
     }
     return writer
@@ -100,7 +100,7 @@ export const Config = {
 
           message.worktreeOpts = GitCreateWorktreeOp.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
       }
@@ -115,7 +115,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -133,7 +133,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -163,19 +163,18 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.cloneOpts !== undefined &&
-      (obj.cloneOpts = message.cloneOpts
-        ? CloneOpts.toJSON(message.cloneOpts)
-        : undefined)
-    message.authOpts !== undefined &&
-      (obj.authOpts = message.authOpts
-        ? AuthOpts.toJSON(message.authOpts)
-        : undefined)
-    message.worktreeOpts !== undefined &&
-      (obj.worktreeOpts = message.worktreeOpts
-        ? GitCreateWorktreeOp.toJSON(message.worktreeOpts)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.cloneOpts !== undefined) {
+      obj.cloneOpts = CloneOpts.toJSON(message.cloneOpts)
+    }
+    if (message.authOpts !== undefined) {
+      obj.authOpts = AuthOpts.toJSON(message.authOpts)
+    }
+    if (message.worktreeOpts !== undefined) {
+      obj.worktreeOpts = GitCreateWorktreeOp.toJSON(message.worktreeOpts)
+    }
     return obj
   },
 

@@ -46,7 +46,7 @@ function createBaseWorker(): Worker {
 export const Worker = {
   encode(
     message: Worker,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -81,7 +81,7 @@ export const Worker = {
   // encodeTransform encodes a source of message objects.
   // Transform<Worker, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Worker | Worker[]> | Iterable<Worker | Worker[]>
+    source: AsyncIterable<Worker | Worker[]> | Iterable<Worker | Worker[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -99,7 +99,7 @@ export const Worker = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Worker> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -118,7 +118,9 @@ export const Worker = {
 
   toJSON(message: Worker): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
     return obj
   },
 
@@ -140,7 +142,7 @@ function createBaseWorkerCreateOp(): WorkerCreateOp {
 export const WorkerCreateOp = {
   encode(
     message: WorkerCreateOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -197,7 +199,7 @@ export const WorkerCreateOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<WorkerCreateOp | WorkerCreateOp[]>
-      | Iterable<WorkerCreateOp | WorkerCreateOp[]>
+      | Iterable<WorkerCreateOp | WorkerCreateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -215,7 +217,7 @@ export const WorkerCreateOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorkerCreateOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -240,26 +242,26 @@ export const WorkerCreateOp = {
 
   toJSON(message: WorkerCreateOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.name !== undefined && (obj.name = message.name)
-    if (message.keypairs) {
-      obj.keypairs = message.keypairs.map((e) =>
-        e ? Keypair.toJSON(e) : undefined
-      )
-    } else {
-      obj.keypairs = []
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.keypairs?.length) {
+      obj.keypairs = message.keypairs.map((e) => Keypair.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WorkerCreateOp>, I>>(
-    base?: I
+    base?: I,
   ): WorkerCreateOp {
     return WorkerCreateOp.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<WorkerCreateOp>, I>>(
-    object: I
+    object: I,
   ): WorkerCreateOp {
     const message = createBaseWorkerCreateOp()
     message.objectKey = object.objectKey ?? ''

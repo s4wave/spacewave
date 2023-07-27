@@ -244,7 +244,7 @@ function createBaseTarget(): Target {
 export const Target = {
   encode(
     message: Target,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.inputs) {
       Input.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -299,7 +299,7 @@ export const Target = {
   // encodeTransform encodes a source of message objects.
   // Transform<Target, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Target | Target[]> | Iterable<Target | Target[]>
+    source: AsyncIterable<Target | Target[]> | Iterable<Target | Target[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -317,7 +317,7 @@ export const Target = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Target> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -344,20 +344,15 @@ export const Target = {
 
   toJSON(message: Target): unknown {
     const obj: any = {}
-    if (message.inputs) {
-      obj.inputs = message.inputs.map((e) => (e ? Input.toJSON(e) : undefined))
-    } else {
-      obj.inputs = []
+    if (message.inputs?.length) {
+      obj.inputs = message.inputs.map((e) => Input.toJSON(e))
     }
-    if (message.outputs) {
-      obj.outputs = message.outputs.map((e) =>
-        e ? Output.toJSON(e) : undefined
-      )
-    } else {
-      obj.outputs = []
+    if (message.outputs?.length) {
+      obj.outputs = message.outputs.map((e) => Output.toJSON(e))
     }
-    message.exec !== undefined &&
-      (obj.exec = message.exec ? Exec.toJSON(message.exec) : undefined)
+    if (message.exec !== undefined) {
+      obj.exec = Exec.toJSON(message.exec)
+    }
     return obj
   },
 
@@ -412,7 +407,7 @@ export const Input = {
     if (message.worldObject !== undefined) {
       InputWorldObject.encode(
         message.worldObject,
-        writer.uint32(50).fork()
+        writer.uint32(50).fork(),
       ).ldelim()
     }
     return writer
@@ -487,7 +482,7 @@ export const Input = {
   // encodeTransform encodes a source of message objects.
   // Transform<Input, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Input | Input[]> | Iterable<Input | Input[]>
+    source: AsyncIterable<Input | Input[]> | Iterable<Input | Input[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -505,7 +500,7 @@ export const Input = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Input> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -540,20 +535,27 @@ export const Input = {
 
   toJSON(message: Input): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.inputType !== undefined &&
-      (obj.inputType = inputTypeToJSON(message.inputType))
-    message.alias !== undefined && (obj.alias = message.alias)
-    message.watchChanges !== undefined &&
-      (obj.watchChanges = message.watchChanges)
-    message.value !== undefined &&
-      (obj.value = message.value ? Value.toJSON(message.value) : undefined)
-    message.world !== undefined &&
-      (obj.world = message.world ? InputWorld.toJSON(message.world) : undefined)
-    message.worldObject !== undefined &&
-      (obj.worldObject = message.worldObject
-        ? InputWorldObject.toJSON(message.worldObject)
-        : undefined)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.inputType !== 0) {
+      obj.inputType = inputTypeToJSON(message.inputType)
+    }
+    if (message.alias !== '') {
+      obj.alias = message.alias
+    }
+    if (message.watchChanges === true) {
+      obj.watchChanges = message.watchChanges
+    }
+    if (message.value !== undefined) {
+      obj.value = Value.toJSON(message.value)
+    }
+    if (message.world !== undefined) {
+      obj.world = InputWorld.toJSON(message.world)
+    }
+    if (message.worldObject !== undefined) {
+      obj.worldObject = InputWorldObject.toJSON(message.worldObject)
+    }
     return obj
   },
 
@@ -590,7 +592,7 @@ function createBaseInputWorld(): InputWorld {
 export const InputWorld = {
   encode(
     message: InputWorld,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.engineId !== '') {
       writer.uint32(10).string(message.engineId)
@@ -637,7 +639,7 @@ export const InputWorld = {
   async *encodeTransform(
     source:
       | AsyncIterable<InputWorld | InputWorld[]>
-      | Iterable<InputWorld | InputWorld[]>
+      | Iterable<InputWorld | InputWorld[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -655,7 +657,7 @@ export const InputWorld = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<InputWorld> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -679,9 +681,12 @@ export const InputWorld = {
 
   toJSON(message: InputWorld): unknown {
     const obj: any = {}
-    message.engineId !== undefined && (obj.engineId = message.engineId)
-    message.lookupImmediate !== undefined &&
-      (obj.lookupImmediate = message.lookupImmediate)
+    if (message.engineId !== '') {
+      obj.engineId = message.engineId
+    }
+    if (message.lookupImmediate === true) {
+      obj.lookupImmediate = message.lookupImmediate
+    }
     return obj
   },
 
@@ -690,7 +695,7 @@ export const InputWorld = {
   },
 
   fromPartial<I extends Exact<DeepPartial<InputWorld>, I>>(
-    object: I
+    object: I,
   ): InputWorld {
     const message = createBaseInputWorld()
     message.engineId = object.engineId ?? ''
@@ -706,7 +711,7 @@ function createBaseInputWorldObject(): InputWorldObject {
 export const InputWorldObject = {
   encode(
     message: InputWorldObject,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.world !== '') {
       writer.uint32(10).string(message.world)
@@ -763,7 +768,7 @@ export const InputWorldObject = {
   async *encodeTransform(
     source:
       | AsyncIterable<InputWorldObject | InputWorldObject[]>
-      | Iterable<InputWorldObject | InputWorldObject[]>
+      | Iterable<InputWorldObject | InputWorldObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -781,7 +786,7 @@ export const InputWorldObject = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<InputWorldObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -806,21 +811,26 @@ export const InputWorldObject = {
 
   toJSON(message: InputWorldObject): unknown {
     const obj: any = {}
-    message.world !== undefined && (obj.world = message.world)
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.objectRev !== undefined &&
-      (obj.objectRev = (message.objectRev || Long.UZERO).toString())
+    if (message.world !== '') {
+      obj.world = message.world
+    }
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (!message.objectRev.isZero()) {
+      obj.objectRev = (message.objectRev || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<InputWorldObject>, I>>(
-    base?: I
+    base?: I,
   ): InputWorldObject {
     return InputWorldObject.fromPartial(base ?? {})
   },
 
   fromPartial<I extends Exact<DeepPartial<InputWorldObject>, I>>(
-    object: I
+    object: I,
   ): InputWorldObject {
     const message = createBaseInputWorldObject()
     message.world = object.world ?? ''
@@ -840,7 +850,7 @@ function createBaseOutput(): Output {
 export const Output = {
   encode(
     message: Output,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -905,7 +915,7 @@ export const Output = {
   // encodeTransform encodes a source of message objects.
   // Transform<Output, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Output | Output[]> | Iterable<Output | Output[]>
+    source: AsyncIterable<Output | Output[]> | Iterable<Output | Output[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -923,7 +933,7 @@ export const Output = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Output> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -949,12 +959,18 @@ export const Output = {
 
   toJSON(message: Output): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.outputType !== undefined &&
-      (obj.outputType = outputTypeToJSON(message.outputType))
-    message.execOutput !== undefined && (obj.execOutput = message.execOutput)
-    message.value !== undefined &&
-      (obj.value = message.value ? Value.toJSON(message.value) : undefined)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.outputType !== 0) {
+      obj.outputType = outputTypeToJSON(message.outputType)
+    }
+    if (message.execOutput !== '') {
+      obj.execOutput = message.execOutput
+    }
+    if (message.value !== undefined) {
+      obj.value = Value.toJSON(message.value)
+    }
     return obj
   },
 
@@ -987,7 +1003,7 @@ export const Exec = {
     if (message.controller !== undefined) {
       ControllerConfig.encode(
         message.controller,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     return writer
@@ -1027,7 +1043,7 @@ export const Exec = {
   // encodeTransform encodes a source of message objects.
   // Transform<Exec, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Exec | Exec[]> | Iterable<Exec | Exec[]>
+    source: AsyncIterable<Exec | Exec[]> | Iterable<Exec | Exec[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1045,7 +1061,7 @@ export const Exec = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Exec> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1069,11 +1085,12 @@ export const Exec = {
 
   toJSON(message: Exec): unknown {
     const obj: any = {}
-    message.disable !== undefined && (obj.disable = message.disable)
-    message.controller !== undefined &&
-      (obj.controller = message.controller
-        ? ControllerConfig.toJSON(message.controller)
-        : undefined)
+    if (message.disable === true) {
+      obj.disable = message.disable
+    }
+    if (message.controller !== undefined) {
+      obj.controller = ControllerConfig.toJSON(message.controller)
+    }
     return obj
   },
 
@@ -1099,7 +1116,7 @@ function createBaseValueSet(): ValueSet {
 export const ValueSet = {
   encode(
     message: ValueSet,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.inputs) {
       Value.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -1146,7 +1163,7 @@ export const ValueSet = {
   async *encodeTransform(
     source:
       | AsyncIterable<ValueSet | ValueSet[]>
-      | Iterable<ValueSet | ValueSet[]>
+      | Iterable<ValueSet | ValueSet[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1164,7 +1181,7 @@ export const ValueSet = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ValueSet> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1190,17 +1207,11 @@ export const ValueSet = {
 
   toJSON(message: ValueSet): unknown {
     const obj: any = {}
-    if (message.inputs) {
-      obj.inputs = message.inputs.map((e) => (e ? Value.toJSON(e) : undefined))
-    } else {
-      obj.inputs = []
+    if (message.inputs?.length) {
+      obj.inputs = message.inputs.map((e) => Value.toJSON(e))
     }
-    if (message.outputs) {
-      obj.outputs = message.outputs.map((e) =>
-        e ? Value.toJSON(e) : undefined
-      )
-    } else {
-      obj.outputs = []
+    if (message.outputs?.length) {
+      obj.outputs = message.outputs.map((e) => Value.toJSON(e))
     }
     return obj
   },

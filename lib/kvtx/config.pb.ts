@@ -210,7 +210,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.ops) {
       Op.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -265,7 +265,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -283,7 +283,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -310,14 +310,15 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.ops) {
-      obj.ops = message.ops.map((e) => (e ? Op.toJSON(e) : undefined))
-    } else {
-      obj.ops = []
+    if (message.ops?.length) {
+      obj.ops = message.ops.map((e) => Op.toJSON(e))
     }
-    message.configInput !== undefined && (obj.configInput = message.configInput)
-    message.ignoreErrors !== undefined &&
-      (obj.ignoreErrors = message.ignoreErrors)
+    if (message.configInput !== '') {
+      obj.configInput = message.configInput
+    }
+    if (message.ignoreErrors === true) {
+      obj.ignoreErrors = message.ignoreErrors
+    }
     return obj
   },
 
@@ -341,7 +342,7 @@ function createBaseConfigInput(): ConfigInput {
 export const ConfigInput = {
   encode(
     message: ConfigInput,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.ops) {
       Op.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -378,7 +379,7 @@ export const ConfigInput = {
   async *encodeTransform(
     source:
       | AsyncIterable<ConfigInput | ConfigInput[]>
-      | Iterable<ConfigInput | ConfigInput[]>
+      | Iterable<ConfigInput | ConfigInput[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -396,7 +397,7 @@ export const ConfigInput = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ConfigInput> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -419,10 +420,8 @@ export const ConfigInput = {
 
   toJSON(message: ConfigInput): unknown {
     const obj: any = {}
-    if (message.ops) {
-      obj.ops = message.ops.map((e) => (e ? Op.toJSON(e) : undefined))
-    } else {
-      obj.ops = []
+    if (message.ops?.length) {
+      obj.ops = message.ops.map((e) => Op.toJSON(e))
     }
     return obj
   },
@@ -432,7 +431,7 @@ export const ConfigInput = {
   },
 
   fromPartial<I extends Exact<DeepPartial<ConfigInput>, I>>(
-    object: I
+    object: I,
   ): ConfigInput {
     const message = createBaseConfigInput()
     message.ops = object.ops?.map((e) => Op.fromPartial(e)) || []
@@ -558,7 +557,7 @@ export const Op = {
   // encodeTransform encodes a source of message objects.
   // Transform<Op, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Op | Op[]> | Iterable<Op | Op[]>
+    source: AsyncIterable<Op | Op[]> | Iterable<Op | Op[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -576,7 +575,7 @@ export const Op = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Op> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -606,18 +605,29 @@ export const Op = {
 
   toJSON(message: Op): unknown {
     const obj: any = {}
-    message.opType !== undefined && (obj.opType = opTypeToJSON(message.opType))
-    message.keyInput !== undefined && (obj.keyInput = message.keyInput)
-    message.key !== undefined && (obj.key = message.key)
-    message.valueInput !== undefined && (obj.valueInput = message.valueInput)
-    message.value !== undefined &&
-      (obj.value = message.value ? Value.toJSON(message.value) : undefined)
-    message.valueString !== undefined && (obj.valueString = message.valueString)
-    message.output !== undefined && (obj.output = message.output)
-    if (message.ops) {
-      obj.ops = message.ops.map((e) => (e ? Op.toJSON(e) : undefined))
-    } else {
-      obj.ops = []
+    if (message.opType !== 0) {
+      obj.opType = opTypeToJSON(message.opType)
+    }
+    if (message.keyInput !== '') {
+      obj.keyInput = message.keyInput
+    }
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.valueInput !== '') {
+      obj.valueInput = message.valueInput
+    }
+    if (message.value !== undefined) {
+      obj.value = Value.toJSON(message.value)
+    }
+    if (message.valueString !== '') {
+      obj.valueString = message.valueString
+    }
+    if (message.output !== '') {
+      obj.output = message.output
+    }
+    if (message.ops?.length) {
+      obj.ops = message.ops.map((e) => Op.toJSON(e))
     }
     return obj
   },

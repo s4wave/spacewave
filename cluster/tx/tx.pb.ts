@@ -92,7 +92,7 @@ export const Tx = {
   // encodeTransform encodes a source of message objects.
   // Transform<Tx, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>
+    source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -110,7 +110,7 @@ export const Tx = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tx> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -134,9 +134,12 @@ export const Tx = {
 
   toJSON(message: Tx): unknown {
     const obj: any = {}
-    message.txType !== undefined && (obj.txType = txTypeToJSON(message.txType))
-    message.clusterObjectKey !== undefined &&
-      (obj.clusterObjectKey = message.clusterObjectKey)
+    if (message.txType !== 0) {
+      obj.txType = txTypeToJSON(message.txType)
+    }
+    if (message.clusterObjectKey !== '') {
+      obj.clusterObjectKey = message.clusterObjectKey
+    }
     return obj
   },
 

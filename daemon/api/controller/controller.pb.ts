@@ -47,7 +47,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.listenAddr !== '') {
       writer.uint32(10).string(message.listenAddr)
@@ -58,7 +58,7 @@ export const Config = {
     if (message.bifrostApiConfig !== undefined) {
       Config1.encode(
         message.bifrostApiConfig,
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     }
     if (message.disableBusApi === true) {
@@ -165,7 +165,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -183,7 +183,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -228,31 +228,33 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.listenAddr !== undefined && (obj.listenAddr = message.listenAddr)
-    message.disableBifrostApi !== undefined &&
-      (obj.disableBifrostApi = message.disableBifrostApi)
-    message.bifrostApiConfig !== undefined &&
-      (obj.bifrostApiConfig = message.bifrostApiConfig
-        ? Config1.toJSON(message.bifrostApiConfig)
-        : undefined)
-    message.disableBusApi !== undefined &&
-      (obj.disableBusApi = message.disableBusApi)
-    message.busApiConfig !== undefined &&
-      (obj.busApiConfig = message.busApiConfig
-        ? Config2.toJSON(message.busApiConfig)
-        : undefined)
-    message.disableHydraApi !== undefined &&
-      (obj.disableHydraApi = message.disableHydraApi)
-    message.hydraApiConfig !== undefined &&
-      (obj.hydraApiConfig = message.hydraApiConfig
-        ? Config3.toJSON(message.hydraApiConfig)
-        : undefined)
-    message.disableForgeApi !== undefined &&
-      (obj.disableForgeApi = message.disableForgeApi)
-    message.forgeApiConfig !== undefined &&
-      (obj.forgeApiConfig = message.forgeApiConfig
-        ? Config4.toJSON(message.forgeApiConfig)
-        : undefined)
+    if (message.listenAddr !== '') {
+      obj.listenAddr = message.listenAddr
+    }
+    if (message.disableBifrostApi === true) {
+      obj.disableBifrostApi = message.disableBifrostApi
+    }
+    if (message.bifrostApiConfig !== undefined) {
+      obj.bifrostApiConfig = Config1.toJSON(message.bifrostApiConfig)
+    }
+    if (message.disableBusApi === true) {
+      obj.disableBusApi = message.disableBusApi
+    }
+    if (message.busApiConfig !== undefined) {
+      obj.busApiConfig = Config2.toJSON(message.busApiConfig)
+    }
+    if (message.disableHydraApi === true) {
+      obj.disableHydraApi = message.disableHydraApi
+    }
+    if (message.hydraApiConfig !== undefined) {
+      obj.hydraApiConfig = Config3.toJSON(message.hydraApiConfig)
+    }
+    if (message.disableForgeApi === true) {
+      obj.disableForgeApi = message.disableForgeApi
+    }
+    if (message.forgeApiConfig !== undefined) {
+      obj.forgeApiConfig = Config4.toJSON(message.forgeApiConfig)
+    }
     return obj
   },
 

@@ -152,7 +152,7 @@ export const Job = {
   // encodeTransform encodes a source of message objects.
   // Transform<Job, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Job | Job[]> | Iterable<Job | Job[]>
+    source: AsyncIterable<Job | Job[]> | Iterable<Job | Job[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -170,7 +170,7 @@ export const Job = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Job> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -195,14 +195,15 @@ export const Job = {
 
   toJSON(message: Job): unknown {
     const obj: any = {}
-    message.jobState !== undefined &&
-      (obj.jobState = stateToJSON(message.jobState))
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.jobState !== 0) {
+      obj.jobState = stateToJSON(message.jobState)
+    }
+    if (message.result !== undefined) {
+      obj.result = Result.toJSON(message.result)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 

@@ -302,7 +302,7 @@ export const Pass = {
   // encodeTransform encodes a source of message objects.
   // Transform<Pass, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Pass | Pass[]> | Iterable<Pass | Pass[]>
+    source: AsyncIterable<Pass | Pass[]> | Iterable<Pass | Pass[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -320,7 +320,7 @@ export const Pass = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Pass> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -359,34 +359,33 @@ export const Pass = {
 
   toJSON(message: Pass): unknown {
     const obj: any = {}
-    message.passState !== undefined &&
-      (obj.passState = stateToJSON(message.passState))
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.targetRef !== undefined &&
-      (obj.targetRef = message.targetRef
-        ? BlockRef.toJSON(message.targetRef)
-        : undefined)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
-    message.replicas !== undefined &&
-      (obj.replicas = Math.round(message.replicas))
-    message.passNonce !== undefined &&
-      (obj.passNonce = (message.passNonce || Long.UZERO).toString())
-    if (message.execStates) {
-      obj.execStates = message.execStates.map((e) =>
-        e ? ExecState.toJSON(e) : undefined
-      )
-    } else {
-      obj.execStates = []
+    if (message.passState !== 0) {
+      obj.passState = stateToJSON(message.passState)
     }
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.targetRef !== undefined) {
+      obj.targetRef = BlockRef.toJSON(message.targetRef)
+    }
+    if (message.valueSet !== undefined) {
+      obj.valueSet = ValueSet.toJSON(message.valueSet)
+    }
+    if (message.result !== undefined) {
+      obj.result = Result.toJSON(message.result)
+    }
+    if (message.replicas !== 0) {
+      obj.replicas = Math.round(message.replicas)
+    }
+    if (!message.passNonce.isZero()) {
+      obj.passNonce = (message.passNonce || Long.UZERO).toString()
+    }
+    if (message.execStates?.length) {
+      obj.execStates = message.execStates.map((e) => ExecState.toJSON(e))
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
@@ -439,7 +438,7 @@ function createBaseExecState(): ExecState {
 export const ExecState = {
   encode(
     message: ExecState,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -526,7 +525,7 @@ export const ExecState = {
   async *encodeTransform(
     source:
       | AsyncIterable<ExecState | ExecState[]>
-      | Iterable<ExecState | ExecState[]>
+      | Iterable<ExecState | ExecState[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -544,7 +543,7 @@ export const ExecState = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExecState> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -576,20 +575,24 @@ export const ExecState = {
 
   toJSON(message: ExecState): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.executionState !== undefined &&
-      (obj.executionState = stateToJSON3(message.executionState))
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.executionState !== 0) {
+      obj.executionState = stateToJSON3(message.executionState)
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
+    if (message.valueSet !== undefined) {
+      obj.valueSet = ValueSet.toJSON(message.valueSet)
+    }
+    if (message.result !== undefined) {
+      obj.result = Result.toJSON(message.result)
+    }
     return obj
   },
 
@@ -598,7 +601,7 @@ export const ExecState = {
   },
 
   fromPartial<I extends Exact<DeepPartial<ExecState>, I>>(
-    object: I
+    object: I,
   ): ExecState {
     const message = createBaseExecState()
     message.objectKey = object.objectKey ?? ''

@@ -126,7 +126,7 @@ function createBaseExecution(): Execution {
 export const Execution = {
   encode(
     message: Execution,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.executionState !== 0) {
       writer.uint32(8).int32(message.executionState)
@@ -213,7 +213,7 @@ export const Execution = {
   async *encodeTransform(
     source:
       | AsyncIterable<Execution | Execution[]>
-      | Iterable<Execution | Execution[]>
+      | Iterable<Execution | Execution[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -231,7 +231,7 @@ export const Execution = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Execution> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -265,23 +265,24 @@ export const Execution = {
 
   toJSON(message: Execution): unknown {
     const obj: any = {}
-    message.executionState !== undefined &&
-      (obj.executionState = stateToJSON(message.executionState))
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
-    message.targetRef !== undefined &&
-      (obj.targetRef = message.targetRef
-        ? BlockRef.toJSON(message.targetRef)
-        : undefined)
-    message.result !== undefined &&
-      (obj.result = message.result ? Result.toJSON(message.result) : undefined)
+    if (message.executionState !== 0) {
+      obj.executionState = stateToJSON(message.executionState)
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
+    if (message.valueSet !== undefined) {
+      obj.valueSet = ValueSet.toJSON(message.valueSet)
+    }
+    if (message.targetRef !== undefined) {
+      obj.targetRef = BlockRef.toJSON(message.targetRef)
+    }
+    if (message.result !== undefined) {
+      obj.result = Result.toJSON(message.result)
+    }
     return obj
   },
 
@@ -290,7 +291,7 @@ export const Execution = {
   },
 
   fromPartial<I extends Exact<DeepPartial<Execution>, I>>(
-    object: I
+    object: I,
   ): Execution {
     const message = createBaseExecution()
     message.executionState = object.executionState ?? 0
@@ -374,7 +375,7 @@ export const Spec = {
   // encodeTransform encodes a source of message objects.
   // Transform<Spec, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Spec | Spec[]> | Iterable<Spec | Spec[]>
+    source: AsyncIterable<Spec | Spec[]> | Iterable<Spec | Spec[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -392,7 +393,7 @@ export const Spec = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Spec> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -419,15 +420,15 @@ export const Spec = {
 
   toJSON(message: Spec): unknown {
     const obj: any = {}
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.valueSet !== undefined &&
-      (obj.valueSet = message.valueSet
-        ? ValueSet.toJSON(message.valueSet)
-        : undefined)
-    message.targetRef !== undefined &&
-      (obj.targetRef = message.targetRef
-        ? BlockRef.toJSON(message.targetRef)
-        : undefined)
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.valueSet !== undefined) {
+      obj.valueSet = ValueSet.toJSON(message.valueSet)
+    }
+    if (message.targetRef !== undefined) {
+      obj.targetRef = BlockRef.toJSON(message.targetRef)
+    }
     return obj
   },
 
