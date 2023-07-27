@@ -17,7 +17,7 @@ require (
 	github.com/aperturerobotics/bldr v0.0.0-20230325070148-d7c98d4ae658
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/starpc v0.19.2
-	github.com/evanw/esbuild v0.18.12
+	github.com/evanw/esbuild v0.18.17
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230713025240-76cff22ccd79 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230727012150-e83d6a7c544b // indirect
 	github.com/aperturerobotics/timestamp v0.7.2 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
@@ -154,7 +154,7 @@ require (
 	github.com/sonatard/noctx v0.0.2 // indirect
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
-	github.com/spf13/cast v1.5.0 // indirect
+	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -162,7 +162,7 @@ require (
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stbenjam/no-sprintf-host-port v0.1.1 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/stretchr/testify v1.8.3 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/t-yuki/gocover-cobertura v0.0.0-20180217150009-aaee18c8195c // indirect
 	github.com/tdakkota/asciicheck v0.2.0 // indirect
@@ -181,7 +181,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb // indirect
+	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
