@@ -165,9 +165,12 @@ export const ElectionEvent = {
 
   toJSON(message: ElectionEvent): unknown {
     const obj: any = {}
-    message.eventType !== undefined &&
-      (obj.eventType = electionEventTypeToJSON(message.eventType))
-    message.workerId !== undefined && (obj.workerId = message.workerId)
+    if (message.eventType !== 0) {
+      obj.eventType = electionEventTypeToJSON(message.eventType)
+    }
+    if (message.workerId !== '') {
+      obj.workerId = message.workerId
+    }
     return obj
   },
 

@@ -158,8 +158,12 @@ export const PluginStatus = {
 
   toJSON(message: PluginStatus): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.running !== undefined && (obj.running = message.running);
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
+    if (message.running === true) {
+      obj.running = message.running;
+    }
     return obj;
   },
 
@@ -352,11 +356,15 @@ export const GetPluginInfoResponse = {
 
   toJSON(message: GetPluginInfoResponse): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.manifestRef !== undefined &&
-      (obj.manifestRef = message.manifestRef ? ManifestRef.toJSON(message.manifestRef) : undefined);
-    message.hostVolumeInfo !== undefined &&
-      (obj.hostVolumeInfo = message.hostVolumeInfo ? VolumeInfo.toJSON(message.hostVolumeInfo) : undefined);
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ManifestRef.toJSON(message.manifestRef);
+    }
+    if (message.hostVolumeInfo !== undefined) {
+      obj.hostVolumeInfo = VolumeInfo.toJSON(message.hostVolumeInfo);
+    }
     return obj;
   },
 
@@ -450,7 +458,9 @@ export const LoadPluginRequest = {
 
   toJSON(message: LoadPluginRequest): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
     return obj;
   },
 
@@ -540,8 +550,9 @@ export const LoadPluginResponse = {
 
   toJSON(message: LoadPluginResponse): unknown {
     const obj: any = {};
-    message.pluginStatus !== undefined &&
-      (obj.pluginStatus = message.pluginStatus ? PluginStatus.toJSON(message.pluginStatus) : undefined);
+    if (message.pluginStatus !== undefined) {
+      obj.pluginStatus = PluginStatus.toJSON(message.pluginStatus);
+    }
     return obj;
   },
 
@@ -655,9 +666,15 @@ export const PluginMeta = {
 
   toJSON(message: PluginMeta): unknown {
     const obj: any = {};
-    message.projectId !== undefined && (obj.projectId = message.projectId);
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
+    if (message.platformId !== "") {
+      obj.platformId = message.platformId;
+    }
     return obj;
   },
 
@@ -747,7 +764,9 @@ export const PluginStartInfo = {
 
   toJSON(message: PluginStartInfo): unknown {
     const obj: any = {};
-    message.instanceId !== undefined && (obj.instanceId = message.instanceId);
+    if (message.instanceId !== "") {
+      obj.instanceId = message.instanceId;
+    }
     return obj;
   },
 

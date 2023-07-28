@@ -106,8 +106,12 @@ export const StorageInfo = {
 
   toJSON(message: StorageInfo): unknown {
     const obj: any = {};
-    message.isolated !== undefined && (obj.isolated = message.isolated);
-    message.cache !== undefined && (obj.cache = message.cache);
+    if (message.isolated === true) {
+      obj.isolated = message.isolated;
+    }
+    if (message.cache === true) {
+      obj.cache = message.cache;
+    }
     return obj;
   },
 

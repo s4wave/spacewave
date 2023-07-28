@@ -139,10 +139,18 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.serviceIdRe !== undefined && (obj.serviceIdRe = message.serviceIdRe);
-    message.serverIdRe !== undefined && (obj.serverIdRe = message.serverIdRe);
-    message.backoff !== undefined && (obj.backoff = message.backoff ? Backoff.toJSON(message.backoff) : undefined);
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
+    if (message.serviceIdRe !== "") {
+      obj.serviceIdRe = message.serviceIdRe;
+    }
+    if (message.serverIdRe !== "") {
+      obj.serverIdRe = message.serverIdRe;
+    }
+    if (message.backoff !== undefined) {
+      obj.backoff = Backoff.toJSON(message.backoff);
+    }
     return obj;
   },
 

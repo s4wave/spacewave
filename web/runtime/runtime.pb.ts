@@ -223,8 +223,9 @@ export const WebRuntimeHostInit = {
 
   toJSON(message: WebRuntimeHostInit): unknown {
     const obj: any = {}
-    message.webRuntimeId !== undefined &&
-      (obj.webRuntimeId = message.webRuntimeId)
+    if (message.webRuntimeId !== '') {
+      obj.webRuntimeId = message.webRuntimeId
+    }
     return obj
   },
 
@@ -434,13 +435,13 @@ export const WebRuntimeStatus = {
 
   toJSON(message: WebRuntimeStatus): unknown {
     const obj: any = {}
-    message.snapshot !== undefined && (obj.snapshot = message.snapshot)
-    if (message.webDocuments) {
+    if (message.snapshot === true) {
+      obj.snapshot = message.snapshot
+    }
+    if (message.webDocuments?.length) {
       obj.webDocuments = message.webDocuments.map((e) =>
-        e ? WebDocumentStatus.toJSON(e) : undefined,
+        WebDocumentStatus.toJSON(e),
       )
-    } else {
-      obj.webDocuments = []
     }
     return obj
   },
@@ -567,9 +568,15 @@ export const WebDocumentStatus = {
 
   toJSON(message: WebDocumentStatus): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    message.deleted !== undefined && (obj.deleted = message.deleted)
-    message.permanent !== undefined && (obj.permanent = message.permanent)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.deleted === true) {
+      obj.deleted = message.deleted
+    }
+    if (message.permanent === true) {
+      obj.permanent = message.permanent
+    }
     return obj
   },
 
@@ -674,7 +681,9 @@ export const CreateWebDocumentRequest = {
 
   toJSON(message: CreateWebDocumentRequest): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
     return obj
   },
 
@@ -777,7 +786,9 @@ export const CreateWebDocumentResponse = {
 
   toJSON(message: CreateWebDocumentResponse): unknown {
     const obj: any = {}
-    message.created !== undefined && (obj.created = message.created)
+    if (message.created === true) {
+      obj.created = message.created
+    }
     return obj
   },
 
@@ -880,7 +891,9 @@ export const RemoveWebDocumentRequest = {
 
   toJSON(message: RemoveWebDocumentRequest): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
     return obj
   },
 
@@ -983,7 +996,9 @@ export const RemoveWebDocumentResponse = {
 
   toJSON(message: RemoveWebDocumentResponse): unknown {
     const obj: any = {}
-    message.removed !== undefined && (obj.removed = message.removed)
+    if (message.removed === true) {
+      obj.removed = message.removed
+    }
     return obj
   },
 
@@ -1114,11 +1129,15 @@ export const WebRuntimeClientInit = {
 
   toJSON(message: WebRuntimeClientInit): unknown {
     const obj: any = {}
-    message.webRuntimeId !== undefined &&
-      (obj.webRuntimeId = message.webRuntimeId)
-    message.clientUuid !== undefined && (obj.clientUuid = message.clientUuid)
-    message.clientType !== undefined &&
-      (obj.clientType = webRuntimeClientTypeToJSON(message.clientType))
+    if (message.webRuntimeId !== '') {
+      obj.webRuntimeId = message.webRuntimeId
+    }
+    if (message.clientUuid !== '') {
+      obj.clientUuid = message.clientUuid
+    }
+    if (message.clientType !== 0) {
+      obj.clientType = webRuntimeClientTypeToJSON(message.clientType)
+    }
     return obj
   },
 

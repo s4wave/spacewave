@@ -162,9 +162,12 @@ export const EsbuildOutput = {
 
   toJSON(message: EsbuildOutput): unknown {
     const obj: any = {}
-    message.entrypointHref !== undefined &&
-      (obj.entrypointHref = message.entrypointHref)
-    message.cssHref !== undefined && (obj.cssHref = message.cssHref)
+    if (message.entrypointHref !== '') {
+      obj.entrypointHref = message.entrypointHref
+    }
+    if (message.cssHref !== '') {
+      obj.cssHref = message.cssHref
+    }
     return obj
   },
 

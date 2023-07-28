@@ -211,15 +211,27 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
-    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
-    message.projectConfig !== undefined &&
-      (obj.projectConfig = message.projectConfig ? ProjectConfig.toJSON(message.projectConfig) : undefined);
-    message.buildBackoff !== undefined &&
-      (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
-    message.watch !== undefined && (obj.watch = message.watch);
-    message.start !== undefined && (obj.start = message.start);
-    message.fetchManifestRemote !== undefined && (obj.fetchManifestRemote = message.fetchManifestRemote);
+    if (message.sourcePath !== "") {
+      obj.sourcePath = message.sourcePath;
+    }
+    if (message.workingPath !== "") {
+      obj.workingPath = message.workingPath;
+    }
+    if (message.projectConfig !== undefined) {
+      obj.projectConfig = ProjectConfig.toJSON(message.projectConfig);
+    }
+    if (message.buildBackoff !== undefined) {
+      obj.buildBackoff = Backoff.toJSON(message.buildBackoff);
+    }
+    if (message.watch === true) {
+      obj.watch = message.watch;
+    }
+    if (message.start === true) {
+      obj.start = message.start;
+    }
+    if (message.fetchManifestRemote !== "") {
+      obj.fetchManifestRemote = message.fetchManifestRemote;
+    }
     return obj;
   },
 
@@ -354,10 +366,18 @@ export const ManifestBuilderConfig = {
 
   toJSON(message: ManifestBuilderConfig): unknown {
     const obj: any = {};
-    message.manifestId !== undefined && (obj.manifestId = message.manifestId);
-    message.buildType !== undefined && (obj.buildType = message.buildType);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
-    message.remoteId !== undefined && (obj.remoteId = message.remoteId);
+    if (message.manifestId !== "") {
+      obj.manifestId = message.manifestId;
+    }
+    if (message.buildType !== "") {
+      obj.buildType = message.buildType;
+    }
+    if (message.platformId !== "") {
+      obj.platformId = message.platformId;
+    }
+    if (message.remoteId !== "") {
+      obj.remoteId = message.remoteId;
+    }
     return obj;
   },
 
@@ -463,10 +483,12 @@ export const ManifestBuilderResult = {
 
   toJSON(message: ManifestBuilderResult): unknown {
     const obj: any = {};
-    message.builderConfig !== undefined &&
-      (obj.builderConfig = message.builderConfig ? BuilderConfig.toJSON(message.builderConfig) : undefined);
-    message.builderResult !== undefined &&
-      (obj.builderResult = message.builderResult ? BuilderResult.toJSON(message.builderResult) : undefined);
+    if (message.builderConfig !== undefined) {
+      obj.builderConfig = BuilderConfig.toJSON(message.builderConfig);
+    }
+    if (message.builderResult !== undefined) {
+      obj.builderResult = BuilderResult.toJSON(message.builderResult);
+    }
     return obj;
   },
 

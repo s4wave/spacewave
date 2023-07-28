@@ -293,28 +293,42 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    if (message.goPackages) {
-      obj.goPackages = message.goPackages.map((e) => e);
-    } else {
-      obj.goPackages = [];
+    if (message.goPackages?.length) {
+      obj.goPackages = message.goPackages;
     }
-    obj.configSet = {};
     if (message.configSet) {
-      Object.entries(message.configSet).forEach(([k, v]) => {
-        obj.configSet[k] = ControllerConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.configSet);
+      if (entries.length > 0) {
+        obj.configSet = {};
+        entries.forEach(([k, v]) => {
+          obj.configSet[k] = ControllerConfig.toJSON(v);
+        });
+      }
     }
-    obj.hostConfigSet = {};
     if (message.hostConfigSet) {
-      Object.entries(message.hostConfigSet).forEach(([k, v]) => {
-        obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.hostConfigSet);
+      if (entries.length > 0) {
+        obj.hostConfigSet = {};
+        entries.forEach(([k, v]) => {
+          obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
+        });
+      }
     }
-    message.disableRpcFetch !== undefined && (obj.disableRpcFetch = message.disableRpcFetch);
-    message.disableFetchAssets !== undefined && (obj.disableFetchAssets = message.disableFetchAssets);
-    message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr);
-    message.projectId !== undefined && (obj.projectId = message.projectId);
-    message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
+    if (message.disableRpcFetch === true) {
+      obj.disableRpcFetch = message.disableRpcFetch;
+    }
+    if (message.disableFetchAssets === true) {
+      obj.disableFetchAssets = message.disableFetchAssets;
+    }
+    if (message.delveAddr !== "") {
+      obj.delveAddr = message.delveAddr;
+    }
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
+    if (message.enableCgo === true) {
+      obj.enableCgo = message.enableCgo;
+    }
     return obj;
   },
 
@@ -440,8 +454,12 @@ export const Config_ConfigSetEntry = {
 
   toJSON(message: Config_ConfigSetEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -547,8 +565,12 @@ export const Config_HostConfigSetEntry = {
 
   toJSON(message: Config_HostConfigSetEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -703,25 +725,33 @@ export const PreBuildHookResult = {
 
   toJSON(message: PreBuildHookResult): unknown {
     const obj: any = {};
-    obj.configSet = {};
     if (message.configSet) {
-      Object.entries(message.configSet).forEach(([k, v]) => {
-        obj.configSet[k] = ControllerConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.configSet);
+      if (entries.length > 0) {
+        obj.configSet = {};
+        entries.forEach(([k, v]) => {
+          obj.configSet[k] = ControllerConfig.toJSON(v);
+        });
+      }
     }
-    obj.hostConfigSet = {};
     if (message.hostConfigSet) {
-      Object.entries(message.hostConfigSet).forEach(([k, v]) => {
-        obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.hostConfigSet);
+      if (entries.length > 0) {
+        obj.hostConfigSet = {};
+        entries.forEach(([k, v]) => {
+          obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
+        });
+      }
     }
-    if (message.goPackages) {
-      obj.goPackages = message.goPackages.map((e) => e);
-    } else {
-      obj.goPackages = [];
+    if (message.goPackages?.length) {
+      obj.goPackages = message.goPackages;
     }
-    message.projectId !== undefined && (obj.projectId = message.projectId);
-    message.enableCgo !== undefined && (obj.enableCgo = message.enableCgo);
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
+    if (message.enableCgo === true) {
+      obj.enableCgo = message.enableCgo;
+    }
     return obj;
   },
 
@@ -844,8 +874,12 @@ export const PreBuildHookResult_ConfigSetEntry = {
 
   toJSON(message: PreBuildHookResult_ConfigSetEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -955,8 +989,12 @@ export const PreBuildHookResult_HostConfigSetEntry = {
 
   toJSON(message: PreBuildHookResult_HostConfigSetEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value);
+    }
     return obj;
   },
 

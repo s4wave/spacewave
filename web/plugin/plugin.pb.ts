@@ -150,9 +150,12 @@ export const HandleWebViewViaPluginRequest = {
 
   toJSON(message: HandleWebViewViaPluginRequest): unknown {
     const obj: any = {}
-    message.handlePluginId !== undefined &&
-      (obj.handlePluginId = message.handlePluginId)
-    message.webViewIdRe !== undefined && (obj.webViewIdRe = message.webViewIdRe)
+    if (message.handlePluginId !== '') {
+      obj.handlePluginId = message.handlePluginId
+    }
+    if (message.webViewIdRe !== '') {
+      obj.webViewIdRe = message.webViewIdRe
+    }
     return obj
   },
 
@@ -266,7 +269,9 @@ export const HandleWebViewViaPluginResponse = {
 
   toJSON(message: HandleWebViewViaPluginResponse): unknown {
     const obj: any = {}
-    message.body?.$case === 'ready' && (obj.ready = message.body?.ready)
+    if (message.body?.$case === 'ready') {
+      obj.ready = message.body.ready
+    }
     return obj
   },
 
@@ -419,14 +424,18 @@ export const HandleRpcViaPluginRequest = {
 
   toJSON(message: HandleRpcViaPluginRequest): unknown {
     const obj: any = {}
-    message.handlePluginId !== undefined &&
-      (obj.handlePluginId = message.handlePluginId)
-    message.serviceIdRe !== undefined && (obj.serviceIdRe = message.serviceIdRe)
-    message.serverIdRe !== undefined && (obj.serverIdRe = message.serverIdRe)
-    message.backoff !== undefined &&
-      (obj.backoff = message.backoff
-        ? Backoff.toJSON(message.backoff)
-        : undefined)
+    if (message.handlePluginId !== '') {
+      obj.handlePluginId = message.handlePluginId
+    }
+    if (message.serviceIdRe !== '') {
+      obj.serviceIdRe = message.serviceIdRe
+    }
+    if (message.serverIdRe !== '') {
+      obj.serverIdRe = message.serverIdRe
+    }
+    if (message.backoff !== undefined) {
+      obj.backoff = Backoff.toJSON(message.backoff)
+    }
     return obj
   },
 
@@ -541,7 +550,9 @@ export const HandleRpcViaPluginResponse = {
 
   toJSON(message: HandleRpcViaPluginResponse): unknown {
     const obj: any = {}
-    message.body?.$case === 'ready' && (obj.ready = message.body?.ready)
+    if (message.body?.$case === 'ready') {
+      obj.ready = message.body.ready
+    }
     return obj
   },
 

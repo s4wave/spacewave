@@ -98,8 +98,12 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.disableResolver !== undefined && (obj.disableResolver = message.disableResolver);
-    message.disablePartialSuccess !== undefined && (obj.disablePartialSuccess = message.disablePartialSuccess);
+    if (message.disableResolver === true) {
+      obj.disableResolver = message.disableResolver;
+    }
+    if (message.disablePartialSuccess === true) {
+      obj.disablePartialSuccess = message.disablePartialSuccess;
+    }
     return obj;
   },
 

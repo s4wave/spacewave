@@ -169,17 +169,20 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.electronPath !== undefined &&
-      (obj.electronPath = message.electronPath)
-    message.workdirPath !== undefined && (obj.workdirPath = message.workdirPath)
-    message.rendererPath !== undefined &&
-      (obj.rendererPath = message.rendererPath)
-    message.webRuntimeId !== undefined &&
-      (obj.webRuntimeId = message.webRuntimeId)
-    if (message.electronFlags) {
-      obj.electronFlags = message.electronFlags.map((e) => e)
-    } else {
-      obj.electronFlags = []
+    if (message.electronPath !== '') {
+      obj.electronPath = message.electronPath
+    }
+    if (message.workdirPath !== '') {
+      obj.workdirPath = message.workdirPath
+    }
+    if (message.rendererPath !== '') {
+      obj.rendererPath = message.rendererPath
+    }
+    if (message.webRuntimeId !== '') {
+      obj.webRuntimeId = message.webRuntimeId
+    }
+    if (message.electronFlags?.length) {
+      obj.electronFlags = message.electronFlags
     }
     return obj
   },

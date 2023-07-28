@@ -371,31 +371,47 @@ export const ProjectConfig = {
 
   toJSON(message: ProjectConfig): unknown {
     const obj: any = {};
-    message.id !== undefined && (obj.id = message.id);
-    message.start !== undefined && (obj.start = message.start ? StartConfig.toJSON(message.start) : undefined);
-    obj.manifests = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.start !== undefined) {
+      obj.start = StartConfig.toJSON(message.start);
+    }
     if (message.manifests) {
-      Object.entries(message.manifests).forEach(([k, v]) => {
-        obj.manifests[k] = ManifestConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.manifests);
+      if (entries.length > 0) {
+        obj.manifests = {};
+        entries.forEach(([k, v]) => {
+          obj.manifests[k] = ManifestConfig.toJSON(v);
+        });
+      }
     }
-    obj.build = {};
     if (message.build) {
-      Object.entries(message.build).forEach(([k, v]) => {
-        obj.build[k] = BuildConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.build);
+      if (entries.length > 0) {
+        obj.build = {};
+        entries.forEach(([k, v]) => {
+          obj.build[k] = BuildConfig.toJSON(v);
+        });
+      }
     }
-    obj.remotes = {};
     if (message.remotes) {
-      Object.entries(message.remotes).forEach(([k, v]) => {
-        obj.remotes[k] = RemoteConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.remotes);
+      if (entries.length > 0) {
+        obj.remotes = {};
+        entries.forEach(([k, v]) => {
+          obj.remotes[k] = RemoteConfig.toJSON(v);
+        });
+      }
     }
-    obj.publish = {};
     if (message.publish) {
-      Object.entries(message.publish).forEach(([k, v]) => {
-        obj.publish[k] = PublishConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.publish);
+      if (entries.length > 0) {
+        obj.publish = {};
+        entries.forEach(([k, v]) => {
+          obj.publish[k] = PublishConfig.toJSON(v);
+        });
+      }
     }
     return obj;
   },
@@ -535,8 +551,12 @@ export const ProjectConfig_ManifestsEntry = {
 
   toJSON(message: ProjectConfig_ManifestsEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ManifestConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ManifestConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -642,8 +662,12 @@ export const ProjectConfig_BuildEntry = {
 
   toJSON(message: ProjectConfig_BuildEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? BuildConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = BuildConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -749,8 +773,12 @@ export const ProjectConfig_RemotesEntry = {
 
   toJSON(message: ProjectConfig_RemotesEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? RemoteConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = RemoteConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -856,8 +884,12 @@ export const ProjectConfig_PublishEntry = {
 
   toJSON(message: ProjectConfig_PublishEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? PublishConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = PublishConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -961,9 +993,12 @@ export const ManifestConfig = {
 
   toJSON(message: ManifestConfig): unknown {
     const obj: any = {};
-    message.builder !== undefined &&
-      (obj.builder = message.builder ? ControllerConfig.toJSON(message.builder) : undefined);
-    message.rev !== undefined && (obj.rev = (message.rev || Long.UZERO).toString());
+    if (message.builder !== undefined) {
+      obj.builder = ControllerConfig.toJSON(message.builder);
+    }
+    if (!message.rev.isZero()) {
+      obj.rev = (message.rev || Long.UZERO).toString();
+    }
     return obj;
   },
 
@@ -1067,12 +1102,12 @@ export const StartConfig = {
 
   toJSON(message: StartConfig): unknown {
     const obj: any = {};
-    if (message.plugins) {
-      obj.plugins = message.plugins.map((e) => e);
-    } else {
-      obj.plugins = [];
+    if (message.plugins?.length) {
+      obj.plugins = message.plugins;
     }
-    message.disableBuild !== undefined && (obj.disableBuild = message.disableBuild);
+    if (message.disableBuild === true) {
+      obj.disableBuild = message.disableBuild;
+    }
     return obj;
   },
 
@@ -1174,15 +1209,11 @@ export const BuildConfig = {
 
   toJSON(message: BuildConfig): unknown {
     const obj: any = {};
-    if (message.manifests) {
-      obj.manifests = message.manifests.map((e) => e);
-    } else {
-      obj.manifests = [];
+    if (message.manifests?.length) {
+      obj.manifests = message.manifests;
     }
-    if (message.platformIds) {
-      obj.platformIds = message.platformIds.map((e) => e);
-    } else {
-      obj.platformIds = [];
+    if (message.platformIds?.length) {
+      obj.platformIds = message.platformIds;
     }
     return obj;
   },
@@ -1326,19 +1357,26 @@ export const RemoteConfig = {
 
   toJSON(message: RemoteConfig): unknown {
     const obj: any = {};
-    obj.hostConfigSet = {};
     if (message.hostConfigSet) {
-      Object.entries(message.hostConfigSet).forEach(([k, v]) => {
-        obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.hostConfigSet);
+      if (entries.length > 0) {
+        obj.hostConfigSet = {};
+        entries.forEach(([k, v]) => {
+          obj.hostConfigSet[k] = ControllerConfig.toJSON(v);
+        });
+      }
     }
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
-    if (message.linkObjectKeys) {
-      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
-    } else {
-      obj.linkObjectKeys = [];
+    if (message.engineId !== "") {
+      obj.engineId = message.engineId;
+    }
+    if (message.peerId !== "") {
+      obj.peerId = message.peerId;
+    }
+    if (message.objectKey !== "") {
+      obj.objectKey = message.objectKey;
+    }
+    if (message.linkObjectKeys?.length) {
+      obj.linkObjectKeys = message.linkObjectKeys;
     }
     return obj;
   },
@@ -1454,8 +1492,12 @@ export const RemoteConfig_HostConfigSetEntry = {
 
   toJSON(message: RemoteConfig_HostConfigSetEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -1649,35 +1691,35 @@ export const PublishConfig = {
 
   toJSON(message: PublishConfig): unknown {
     const obj: any = {};
-    if (message.sourceObjectKeys) {
-      obj.sourceObjectKeys = message.sourceObjectKeys.map((e) => e);
-    } else {
-      obj.sourceObjectKeys = [];
+    if (message.sourceObjectKeys?.length) {
+      obj.sourceObjectKeys = message.sourceObjectKeys;
     }
-    if (message.manifests) {
-      obj.manifests = message.manifests.map((e) => e);
-    } else {
-      obj.manifests = [];
+    if (message.manifests?.length) {
+      obj.manifests = message.manifests;
     }
-    message.allManifestRevs !== undefined && (obj.allManifestRevs = message.allManifestRevs);
-    if (message.platformIds) {
-      obj.platformIds = message.platformIds.map((e) => e);
-    } else {
-      obj.platformIds = [];
+    if (message.allManifestRevs === true) {
+      obj.allManifestRevs = message.allManifestRevs;
     }
-    if (message.remotes) {
-      obj.remotes = message.remotes.map((e) => e);
-    } else {
-      obj.remotes = [];
+    if (message.platformIds?.length) {
+      obj.platformIds = message.platformIds;
     }
-    message.destObjectKey !== undefined && (obj.destObjectKey = message.destObjectKey);
-    message.storage !== undefined &&
-      (obj.storage = message.storage ? PublishStorageConfig.toJSON(message.storage) : undefined);
-    obj.manifestStorage = {};
+    if (message.remotes?.length) {
+      obj.remotes = message.remotes;
+    }
+    if (message.destObjectKey !== "") {
+      obj.destObjectKey = message.destObjectKey;
+    }
+    if (message.storage !== undefined) {
+      obj.storage = PublishStorageConfig.toJSON(message.storage);
+    }
     if (message.manifestStorage) {
-      Object.entries(message.manifestStorage).forEach(([k, v]) => {
-        obj.manifestStorage[k] = PublishStorageConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.manifestStorage);
+      if (entries.length > 0) {
+        obj.manifestStorage = {};
+        entries.forEach(([k, v]) => {
+          obj.manifestStorage[k] = PublishStorageConfig.toJSON(v);
+        });
+      }
     }
     return obj;
   },
@@ -1797,8 +1839,12 @@ export const PublishConfig_ManifestStorageEntry = {
 
   toJSON(message: PublishConfig_ManifestStorageEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? PublishStorageConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = PublishStorageConfig.toJSON(message.value);
+    }
     return obj;
   },
 
@@ -1921,14 +1967,15 @@ export const PublishStorageConfig = {
 
   toJSON(message: PublishStorageConfig): unknown {
     const obj: any = {};
-    message.transformConfFromRef !== undefined &&
-      (obj.transformConfFromRef = message.transformConfFromRef
-        ? ObjectRef.toJSON(message.transformConfFromRef)
-        : undefined);
-    message.transformConf !== undefined &&
-      (obj.transformConf = message.transformConf ? Config.toJSON(message.transformConf) : undefined);
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp ? Timestamp.toJSON(message.timestamp) : undefined);
+    if (message.transformConfFromRef !== undefined) {
+      obj.transformConfFromRef = ObjectRef.toJSON(message.transformConfFromRef);
+    }
+    if (message.transformConf !== undefined) {
+      obj.transformConf = Config.toJSON(message.transformConf);
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp);
+    }
     return obj;
   },
 

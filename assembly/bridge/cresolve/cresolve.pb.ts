@@ -86,7 +86,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.configIdRe !== undefined && (obj.configIdRe = message.configIdRe);
+    if (message.configIdRe !== "") {
+      obj.configIdRe = message.configIdRe;
+    }
     return obj;
   },
 

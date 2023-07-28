@@ -277,20 +277,33 @@ export const BuilderConfig = {
 
   toJSON(message: BuilderConfig): unknown {
     const obj: any = {};
-    message.manifestMeta !== undefined &&
-      (obj.manifestMeta = message.manifestMeta ? ManifestMeta.toJSON(message.manifestMeta) : undefined);
-    message.sourcePath !== undefined && (obj.sourcePath = message.sourcePath);
-    message.distSourcePath !== undefined && (obj.distSourcePath = message.distSourcePath);
-    message.workingPath !== undefined && (obj.workingPath = message.workingPath);
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
-    if (message.linkObjectKeys) {
-      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
-    } else {
-      obj.linkObjectKeys = [];
+    if (message.manifestMeta !== undefined) {
+      obj.manifestMeta = ManifestMeta.toJSON(message.manifestMeta);
     }
-    message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.projectId !== undefined && (obj.projectId = message.projectId);
+    if (message.sourcePath !== "") {
+      obj.sourcePath = message.sourcePath;
+    }
+    if (message.distSourcePath !== "") {
+      obj.distSourcePath = message.distSourcePath;
+    }
+    if (message.workingPath !== "") {
+      obj.workingPath = message.workingPath;
+    }
+    if (message.engineId !== "") {
+      obj.engineId = message.engineId;
+    }
+    if (message.objectKey !== "") {
+      obj.objectKey = message.objectKey;
+    }
+    if (message.linkObjectKeys?.length) {
+      obj.linkObjectKeys = message.linkObjectKeys;
+    }
+    if (message.peerId !== "") {
+      obj.peerId = message.peerId;
+    }
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
     return obj;
   },
 
@@ -412,11 +425,15 @@ export const BuilderResult = {
 
   toJSON(message: BuilderResult): unknown {
     const obj: any = {};
-    message.manifest !== undefined && (obj.manifest = message.manifest ? Manifest.toJSON(message.manifest) : undefined);
-    message.manifestRef !== undefined &&
-      (obj.manifestRef = message.manifestRef ? ManifestRef.toJSON(message.manifestRef) : undefined);
-    message.inputManifest !== undefined &&
-      (obj.inputManifest = message.inputManifest ? InputManifest.toJSON(message.inputManifest) : undefined);
+    if (message.manifest !== undefined) {
+      obj.manifest = Manifest.toJSON(message.manifest);
+    }
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ManifestRef.toJSON(message.manifestRef);
+    }
+    if (message.inputManifest !== undefined) {
+      obj.inputManifest = InputManifest.toJSON(message.inputManifest);
+    }
     return obj;
   },
 
@@ -525,13 +542,12 @@ export const InputManifest = {
 
   toJSON(message: InputManifest): unknown {
     const obj: any = {};
-    if (message.files) {
-      obj.files = message.files.map((e) => e ? InputManifest_File.toJSON(e) : undefined);
-    } else {
-      obj.files = [];
+    if (message.files?.length) {
+      obj.files = message.files.map((e) => InputManifest_File.toJSON(e));
     }
-    message.metadata !== undefined &&
-      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array(0)));
+    if (message.metadata.length !== 0) {
+      obj.metadata = base64FromBytes(message.metadata);
+    }
     return obj;
   },
 
@@ -635,9 +651,12 @@ export const InputManifest_File = {
 
   toJSON(message: InputManifest_File): unknown {
     const obj: any = {};
-    message.path !== undefined && (obj.path = message.path);
-    message.metadata !== undefined &&
-      (obj.metadata = base64FromBytes(message.metadata !== undefined ? message.metadata : new Uint8Array(0)));
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.metadata.length !== 0) {
+      obj.metadata = base64FromBytes(message.metadata);
+    }
     return obj;
   },
 
@@ -752,14 +771,14 @@ export const BuildManifestArgs = {
 
   toJSON(message: BuildManifestArgs): unknown {
     const obj: any = {};
-    message.builderConfig !== undefined &&
-      (obj.builderConfig = message.builderConfig ? BuilderConfig.toJSON(message.builderConfig) : undefined);
-    message.prevBuilderResult !== undefined &&
-      (obj.prevBuilderResult = message.prevBuilderResult ? BuilderResult.toJSON(message.prevBuilderResult) : undefined);
-    if (message.changedFiles) {
-      obj.changedFiles = message.changedFiles.map((e) => e ? InputManifest_File.toJSON(e) : undefined);
-    } else {
-      obj.changedFiles = [];
+    if (message.builderConfig !== undefined) {
+      obj.builderConfig = BuilderConfig.toJSON(message.builderConfig);
+    }
+    if (message.prevBuilderResult !== undefined) {
+      obj.prevBuilderResult = BuilderResult.toJSON(message.prevBuilderResult);
+    }
+    if (message.changedFiles?.length) {
+      obj.changedFiles = message.changedFiles.map((e) => InputManifest_File.toJSON(e));
     }
     return obj;
   },

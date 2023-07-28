@@ -109,8 +109,12 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.servePath !== undefined && (obj.servePath = message.servePath);
-    message.fsPath !== undefined && (obj.fsPath = message.fsPath);
+    if (message.servePath !== "") {
+      obj.servePath = message.servePath;
+    }
+    if (message.fsPath !== "") {
+      obj.fsPath = message.fsPath;
+    }
     return obj;
   },
 

@@ -89,7 +89,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.runDemo !== undefined && (obj.runDemo = message.runDemo)
+    if (message.runDemo === true) {
+      obj.runDemo = message.runDemo
+    }
     return obj
   },
 

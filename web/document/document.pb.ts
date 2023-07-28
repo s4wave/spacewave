@@ -244,13 +244,11 @@ export const WebDocumentStatus = {
 
   toJSON(message: WebDocumentStatus): unknown {
     const obj: any = {}
-    message.snapshot !== undefined && (obj.snapshot = message.snapshot)
-    if (message.webViews) {
-      obj.webViews = message.webViews.map((e) =>
-        e ? WebViewStatus.toJSON(e) : undefined,
-      )
-    } else {
-      obj.webViews = []
+    if (message.snapshot === true) {
+      obj.snapshot = message.snapshot
+    }
+    if (message.webViews?.length) {
+      obj.webViews = message.webViews.map((e) => WebViewStatus.toJSON(e))
     }
     return obj
   },
@@ -388,10 +386,18 @@ export const WebViewStatus = {
 
   toJSON(message: WebViewStatus): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    message.deleted !== undefined && (obj.deleted = message.deleted)
-    message.parentId !== undefined && (obj.parentId = message.parentId)
-    message.permanent !== undefined && (obj.permanent = message.permanent)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.deleted === true) {
+      obj.deleted = message.deleted
+    }
+    if (message.parentId !== '') {
+      obj.parentId = message.parentId
+    }
+    if (message.permanent === true) {
+      obj.permanent = message.permanent
+    }
     return obj
   },
 
@@ -497,7 +503,9 @@ export const CreateWebViewRequest = {
 
   toJSON(message: CreateWebViewRequest): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
     return obj
   },
 
@@ -600,7 +608,9 @@ export const CreateWebViewResponse = {
 
   toJSON(message: CreateWebViewResponse): unknown {
     const obj: any = {}
-    message.created !== undefined && (obj.created = message.created)
+    if (message.created === true) {
+      obj.created = message.created
+    }
     return obj
   },
 

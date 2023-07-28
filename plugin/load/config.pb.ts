@@ -101,11 +101,11 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    if (message.pluginIds) {
-      obj.pluginIds = message.pluginIds.map((e) => e);
-    } else {
-      obj.pluginIds = [];
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
+    if (message.pluginIds?.length) {
+      obj.pluginIds = message.pluginIds;
     }
     return obj;
   },

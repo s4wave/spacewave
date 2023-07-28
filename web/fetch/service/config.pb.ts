@@ -114,9 +114,12 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.serviceId !== undefined && (obj.serviceId = message.serviceId)
-    message.notFoundIfIdle !== undefined &&
-      (obj.notFoundIfIdle = message.notFoundIfIdle)
+    if (message.serviceId !== '') {
+      obj.serviceId = message.serviceId
+    }
+    if (message.notFoundIfIdle === true) {
+      obj.notFoundIfIdle = message.notFoundIfIdle
+    }
     return obj
   },
 

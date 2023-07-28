@@ -168,15 +168,21 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.webPluginId !== undefined && (obj.webPluginId = message.webPluginId)
-    message.handlePluginId !== undefined &&
-      (obj.handlePluginId = message.handlePluginId)
-    message.serviceIdRe !== undefined && (obj.serviceIdRe = message.serviceIdRe)
-    message.serverIdRe !== undefined && (obj.serverIdRe = message.serverIdRe)
-    message.backoff !== undefined &&
-      (obj.backoff = message.backoff
-        ? Backoff.toJSON(message.backoff)
-        : undefined)
+    if (message.webPluginId !== '') {
+      obj.webPluginId = message.webPluginId
+    }
+    if (message.handlePluginId !== '') {
+      obj.handlePluginId = message.handlePluginId
+    }
+    if (message.serviceIdRe !== '') {
+      obj.serviceIdRe = message.serviceIdRe
+    }
+    if (message.serverIdRe !== '') {
+      obj.serverIdRe = message.serverIdRe
+    }
+    if (message.backoff !== undefined) {
+      obj.backoff = Backoff.toJSON(message.backoff)
+    }
     return obj
   },
 

@@ -150,10 +150,18 @@ export const HandleWebViewRequest = {
 
   toJSON(message: HandleWebViewRequest): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    message.parentId !== undefined && (obj.parentId = message.parentId)
-    message.documentId !== undefined && (obj.documentId = message.documentId)
-    message.permanent !== undefined && (obj.permanent = message.permanent)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.parentId !== '') {
+      obj.parentId = message.parentId
+    }
+    if (message.documentId !== '') {
+      obj.documentId = message.documentId
+    }
+    if (message.permanent === true) {
+      obj.permanent = message.permanent
+    }
     return obj
   },
 
@@ -259,7 +267,9 @@ export const HandleWebViewResponse = {
 
   toJSON(message: HandleWebViewResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 

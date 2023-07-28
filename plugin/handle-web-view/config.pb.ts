@@ -105,8 +105,12 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.pluginId !== undefined && (obj.pluginId = message.pluginId);
-    message.webViewIdRe !== undefined && (obj.webViewIdRe = message.webViewIdRe);
+    if (message.pluginId !== "") {
+      obj.pluginId = message.pluginId;
+    }
+    if (message.webViewIdRe !== "") {
+      obj.webViewIdRe = message.webViewIdRe;
+    }
     return obj;
   },
 

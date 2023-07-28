@@ -151,12 +151,11 @@ export const Assembly = {
 
   toJSON(message: Assembly): unknown {
     const obj: any = {};
-    message.controllerExec !== undefined &&
-      (obj.controllerExec = message.controllerExec ? ExecControllerRequest.toJSON(message.controllerExec) : undefined);
-    if (message.subAssemblies) {
-      obj.subAssemblies = message.subAssemblies.map((e) => e ? SubAssembly.toJSON(e) : undefined);
-    } else {
-      obj.subAssemblies = [];
+    if (message.controllerExec !== undefined) {
+      obj.controllerExec = ExecControllerRequest.toJSON(message.controllerExec);
+    }
+    if (message.subAssemblies?.length) {
+      obj.subAssemblies = message.subAssemblies.map((e) => SubAssembly.toJSON(e));
     }
     return obj;
   },
@@ -287,21 +286,17 @@ export const SubAssembly = {
 
   toJSON(message: SubAssembly): unknown {
     const obj: any = {};
-    message.id !== undefined && (obj.id = message.id);
-    if (message.assemblies) {
-      obj.assemblies = message.assemblies.map((e) => e ? Assembly.toJSON(e) : undefined);
-    } else {
-      obj.assemblies = [];
+    if (message.id !== "") {
+      obj.id = message.id;
     }
-    if (message.assemblyRefs) {
-      obj.assemblyRefs = message.assemblyRefs.map((e) => e ? BlockRef.toJSON(e) : undefined);
-    } else {
-      obj.assemblyRefs = [];
+    if (message.assemblies?.length) {
+      obj.assemblies = message.assemblies.map((e) => Assembly.toJSON(e));
     }
-    if (message.directiveBridges) {
-      obj.directiveBridges = message.directiveBridges.map((e) => e ? DirectiveBridge.toJSON(e) : undefined);
-    } else {
-      obj.directiveBridges = [];
+    if (message.assemblyRefs?.length) {
+      obj.assemblyRefs = message.assemblyRefs.map((e) => BlockRef.toJSON(e));
+    }
+    if (message.directiveBridges?.length) {
+      obj.directiveBridges = message.directiveBridges.map((e) => DirectiveBridge.toJSON(e));
     }
     return obj;
   },
@@ -406,9 +401,12 @@ export const DirectiveBridge = {
 
   toJSON(message: DirectiveBridge): unknown {
     const obj: any = {};
-    message.controllerConfig !== undefined &&
-      (obj.controllerConfig = message.controllerConfig ? ControllerConfig.toJSON(message.controllerConfig) : undefined);
-    message.bridgeToParent !== undefined && (obj.bridgeToParent = message.bridgeToParent);
+    if (message.controllerConfig !== undefined) {
+      obj.controllerConfig = ControllerConfig.toJSON(message.controllerConfig);
+    }
+    if (message.bridgeToParent === true) {
+      obj.bridgeToParent = message.bridgeToParent;
+    }
     return obj;
   },
 

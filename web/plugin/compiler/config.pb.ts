@@ -171,19 +171,27 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    obj.configSet = {}
     if (message.configSet) {
-      Object.entries(message.configSet).forEach(([k, v]) => {
-        obj.configSet[k] = ControllerConfig.toJSON(v)
-      })
+      const entries = Object.entries(message.configSet)
+      if (entries.length > 0) {
+        obj.configSet = {}
+        entries.forEach(([k, v]) => {
+          obj.configSet[k] = ControllerConfig.toJSON(v)
+        })
+      }
     }
-    obj.hostConfigSet = {}
     if (message.hostConfigSet) {
-      Object.entries(message.hostConfigSet).forEach(([k, v]) => {
-        obj.hostConfigSet[k] = ControllerConfig.toJSON(v)
-      })
+      const entries = Object.entries(message.hostConfigSet)
+      if (entries.length > 0) {
+        obj.hostConfigSet = {}
+        entries.forEach(([k, v]) => {
+          obj.hostConfigSet[k] = ControllerConfig.toJSON(v)
+        })
+      }
     }
-    message.delveAddr !== undefined && (obj.delveAddr = message.delveAddr)
+    if (message.delveAddr !== '') {
+      obj.delveAddr = message.delveAddr
+    }
     return obj
   },
 
@@ -313,11 +321,12 @@ export const Config_ConfigSetEntry = {
 
   toJSON(message: Config_ConfigSetEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined &&
-      (obj.value = message.value
-        ? ControllerConfig.toJSON(message.value)
-        : undefined)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value)
+    }
     return obj
   },
 
@@ -439,11 +448,12 @@ export const Config_HostConfigSetEntry = {
 
   toJSON(message: Config_HostConfigSetEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined &&
-      (obj.value = message.value
-        ? ControllerConfig.toJSON(message.value)
-        : undefined)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value)
+    }
     return obj
   },
 

@@ -115,12 +115,14 @@ export const DistMeta = {
 
   toJSON(message: DistMeta): unknown {
     const obj: any = {};
-    message.projectId !== undefined && (obj.projectId = message.projectId);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
-    if (message.startupPlugins) {
-      obj.startupPlugins = message.startupPlugins.map((e) => e);
-    } else {
-      obj.startupPlugins = [];
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
+    if (message.platformId !== "") {
+      obj.platformId = message.platformId;
+    }
+    if (message.startupPlugins?.length) {
+      obj.startupPlugins = message.startupPlugins;
     }
     return obj;
   },

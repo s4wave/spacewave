@@ -240,17 +240,36 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
-    message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
-    message.alwaysFetchManifest !== undefined && (obj.alwaysFetchManifest = message.alwaysFetchManifest);
-    message.disableStoreManifest !== undefined && (obj.disableStoreManifest = message.disableStoreManifest);
-    message.fetchConcurrency !== undefined && (obj.fetchConcurrency = Math.round(message.fetchConcurrency));
-    message.fetchBackoff !== undefined &&
-      (obj.fetchBackoff = message.fetchBackoff ? Backoff.toJSON(message.fetchBackoff) : undefined);
-    message.stateDir !== undefined && (obj.stateDir = message.stateDir);
-    message.distDir !== undefined && (obj.distDir = message.distDir);
+    if (message.engineId !== "") {
+      obj.engineId = message.engineId;
+    }
+    if (message.objectKey !== "") {
+      obj.objectKey = message.objectKey;
+    }
+    if (message.peerId !== "") {
+      obj.peerId = message.peerId;
+    }
+    if (message.volumeId !== "") {
+      obj.volumeId = message.volumeId;
+    }
+    if (message.alwaysFetchManifest === true) {
+      obj.alwaysFetchManifest = message.alwaysFetchManifest;
+    }
+    if (message.disableStoreManifest === true) {
+      obj.disableStoreManifest = message.disableStoreManifest;
+    }
+    if (message.fetchConcurrency !== 0) {
+      obj.fetchConcurrency = Math.round(message.fetchConcurrency);
+    }
+    if (message.fetchBackoff !== undefined) {
+      obj.fetchBackoff = Backoff.toJSON(message.fetchBackoff);
+    }
+    if (message.stateDir !== "") {
+      obj.stateDir = message.stateDir;
+    }
+    if (message.distDir !== "") {
+      obj.distDir = message.distDir;
+    }
     return obj;
   },
 

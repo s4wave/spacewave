@@ -83,7 +83,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId);
+    if (message.volumeId !== "") {
+      obj.volumeId = message.volumeId;
+    }
     return obj;
   },
 

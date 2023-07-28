@@ -97,7 +97,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.serviceId !== undefined && (obj.serviceId = message.serviceId)
+    if (message.serviceId !== '') {
+      obj.serviceId = message.serviceId
+    }
     return obj
   },
 

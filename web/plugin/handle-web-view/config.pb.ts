@@ -127,10 +127,15 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.webPluginId !== undefined && (obj.webPluginId = message.webPluginId)
-    message.handlePluginId !== undefined &&
-      (obj.handlePluginId = message.handlePluginId)
-    message.webViewIdRe !== undefined && (obj.webViewIdRe = message.webViewIdRe)
+    if (message.webPluginId !== '') {
+      obj.webPluginId = message.webPluginId
+    }
+    if (message.handlePluginId !== '') {
+      obj.handlePluginId = message.handlePluginId
+    }
+    if (message.webViewIdRe !== '') {
+      obj.webViewIdRe = message.webViewIdRe
+    }
     return obj
   },
 

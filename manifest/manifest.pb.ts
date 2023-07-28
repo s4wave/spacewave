@@ -195,10 +195,18 @@ export const ManifestMeta = {
 
   toJSON(message: ManifestMeta): unknown {
     const obj: any = {};
-    message.manifestId !== undefined && (obj.manifestId = message.manifestId);
-    message.buildType !== undefined && (obj.buildType = message.buildType);
-    message.platformId !== undefined && (obj.platformId = message.platformId);
-    message.rev !== undefined && (obj.rev = (message.rev || Long.UZERO).toString());
+    if (message.manifestId !== "") {
+      obj.manifestId = message.manifestId;
+    }
+    if (message.buildType !== "") {
+      obj.buildType = message.buildType;
+    }
+    if (message.platformId !== "") {
+      obj.platformId = message.platformId;
+    }
+    if (!message.rev.isZero()) {
+      obj.rev = (message.rev || Long.UZERO).toString();
+    }
     return obj;
   },
 
@@ -324,12 +332,18 @@ export const Manifest = {
 
   toJSON(message: Manifest): unknown {
     const obj: any = {};
-    message.meta !== undefined && (obj.meta = message.meta ? ManifestMeta.toJSON(message.meta) : undefined);
-    message.entrypoint !== undefined && (obj.entrypoint = message.entrypoint);
-    message.distFsRef !== undefined &&
-      (obj.distFsRef = message.distFsRef ? BlockRef.toJSON(message.distFsRef) : undefined);
-    message.assetsFsRef !== undefined &&
-      (obj.assetsFsRef = message.assetsFsRef ? BlockRef.toJSON(message.assetsFsRef) : undefined);
+    if (message.meta !== undefined) {
+      obj.meta = ManifestMeta.toJSON(message.meta);
+    }
+    if (message.entrypoint !== "") {
+      obj.entrypoint = message.entrypoint;
+    }
+    if (message.distFsRef !== undefined) {
+      obj.distFsRef = BlockRef.toJSON(message.distFsRef);
+    }
+    if (message.assetsFsRef !== undefined) {
+      obj.assetsFsRef = BlockRef.toJSON(message.assetsFsRef);
+    }
     return obj;
   },
 
@@ -439,9 +453,12 @@ export const ManifestRef = {
 
   toJSON(message: ManifestRef): unknown {
     const obj: any = {};
-    message.meta !== undefined && (obj.meta = message.meta ? ManifestMeta.toJSON(message.meta) : undefined);
-    message.manifestRef !== undefined &&
-      (obj.manifestRef = message.manifestRef ? ObjectRef.toJSON(message.manifestRef) : undefined);
+    if (message.meta !== undefined) {
+      obj.meta = ManifestMeta.toJSON(message.meta);
+    }
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ObjectRef.toJSON(message.manifestRef);
+    }
     return obj;
   },
 
@@ -549,13 +566,12 @@ export const ManifestBundle = {
 
   toJSON(message: ManifestBundle): unknown {
     const obj: any = {};
-    if (message.manifestRefs) {
-      obj.manifestRefs = message.manifestRefs.map((e) => e ? ManifestRef.toJSON(e) : undefined);
-    } else {
-      obj.manifestRefs = [];
+    if (message.manifestRefs?.length) {
+      obj.manifestRefs = message.manifestRefs.map((e) => ManifestRef.toJSON(e));
     }
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp ? Timestamp.toJSON(message.timestamp) : undefined);
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp);
+    }
     return obj;
   },
 
@@ -648,8 +664,9 @@ export const FetchManifestRequest = {
 
   toJSON(message: FetchManifestRequest): unknown {
     const obj: any = {};
-    message.manifestMeta !== undefined &&
-      (obj.manifestMeta = message.manifestMeta ? ManifestMeta.toJSON(message.manifestMeta) : undefined);
+    if (message.manifestMeta !== undefined) {
+      obj.manifestMeta = ManifestMeta.toJSON(message.manifestMeta);
+    }
     return obj;
   },
 
@@ -741,8 +758,9 @@ export const FetchManifestResponse = {
 
   toJSON(message: FetchManifestResponse): unknown {
     const obj: any = {};
-    message.manifestRef !== undefined &&
-      (obj.manifestRef = message.manifestRef ? ManifestRef.toJSON(message.manifestRef) : undefined);
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ManifestRef.toJSON(message.manifestRef);
+    }
     return obj;
   },
 

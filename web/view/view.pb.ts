@@ -252,14 +252,18 @@ export const SetRenderModeRequest = {
 
   toJSON(message: SetRenderModeRequest): unknown {
     const obj: any = {}
-    message.renderMode !== undefined &&
-      (obj.renderMode = renderModeToJSON(message.renderMode))
-    message.wait !== undefined && (obj.wait = message.wait)
-    message.scriptPath !== undefined && (obj.scriptPath = message.scriptPath)
-    message.props !== undefined &&
-      (obj.props = base64FromBytes(
-        message.props !== undefined ? message.props : new Uint8Array(0),
-      ))
+    if (message.renderMode !== 0) {
+      obj.renderMode = renderModeToJSON(message.renderMode)
+    }
+    if (message.wait === true) {
+      obj.wait = message.wait
+    }
+    if (message.scriptPath !== '') {
+      obj.scriptPath = message.scriptPath
+    }
+    if (message.props.length !== 0) {
+      obj.props = base64FromBytes(message.props)
+    }
     return obj
   },
 
@@ -496,17 +500,20 @@ export const SetHtmlLinksRequest = {
 
   toJSON(message: SetHtmlLinksRequest): unknown {
     const obj: any = {}
-    message.clear !== undefined && (obj.clear = message.clear)
-    if (message.remove) {
-      obj.remove = message.remove.map((e) => e)
-    } else {
-      obj.remove = []
+    if (message.clear === true) {
+      obj.clear = message.clear
     }
-    obj.setLinks = {}
+    if (message.remove?.length) {
+      obj.remove = message.remove
+    }
     if (message.setLinks) {
-      Object.entries(message.setLinks).forEach(([k, v]) => {
-        obj.setLinks[k] = HtmlLink.toJSON(v)
-      })
+      const entries = Object.entries(message.setLinks)
+      if (entries.length > 0) {
+        obj.setLinks = {}
+        entries.forEach(([k, v]) => {
+          obj.setLinks[k] = HtmlLink.toJSON(v)
+        })
+      }
     }
     return obj
   },
@@ -638,9 +645,12 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
 
   toJSON(message: SetHtmlLinksRequest_SetLinksEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined &&
-      (obj.value = message.value ? HtmlLink.toJSON(message.value) : undefined)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== undefined) {
+      obj.value = HtmlLink.toJSON(message.value)
+    }
     return obj
   },
 
@@ -757,8 +767,12 @@ export const HtmlLink = {
 
   toJSON(message: HtmlLink): unknown {
     const obj: any = {}
-    message.href !== undefined && (obj.href = message.href)
-    message.rel !== undefined && (obj.rel = message.rel)
+    if (message.href !== '') {
+      obj.href = message.href
+    }
+    if (message.rel !== '') {
+      obj.rel = message.rel
+    }
     return obj
   },
 
@@ -1040,7 +1054,9 @@ export const RemoveWebViewResponse = {
 
   toJSON(message: RemoveWebViewResponse): unknown {
     const obj: any = {}
-    message.removed !== undefined && (obj.removed = message.removed)
+    if (message.removed === true) {
+      obj.removed = message.removed
+    }
     return obj
   },
 

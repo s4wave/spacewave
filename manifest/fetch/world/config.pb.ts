@@ -121,13 +121,15 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.engineId !== undefined && (obj.engineId = message.engineId);
-    if (message.objectKeys) {
-      obj.objectKeys = message.objectKeys.map((e) => e);
-    } else {
-      obj.objectKeys = [];
+    if (message.engineId !== "") {
+      obj.engineId = message.engineId;
     }
-    message.fetchManifestIdRe !== undefined && (obj.fetchManifestIdRe = message.fetchManifestIdRe);
+    if (message.objectKeys?.length) {
+      obj.objectKeys = message.objectKeys;
+    }
+    if (message.fetchManifestIdRe !== "") {
+      obj.fetchManifestIdRe = message.fetchManifestIdRe;
+    }
     return obj;
   },
 

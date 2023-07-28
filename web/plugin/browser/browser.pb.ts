@@ -118,9 +118,12 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.webRuntimeId !== undefined &&
-      (obj.webRuntimeId = message.webRuntimeId)
-    message.messagePort !== undefined && (obj.messagePort = message.messagePort)
+    if (message.webRuntimeId !== '') {
+      obj.webRuntimeId = message.webRuntimeId
+    }
+    if (message.messagePort !== '') {
+      obj.messagePort = message.messagePort
+    }
     return obj
   },
 

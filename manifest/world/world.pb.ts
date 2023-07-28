@@ -126,14 +126,15 @@ export const StoreManifestOp = {
 
   toJSON(message: StoreManifestOp): unknown {
     const obj: any = {};
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
-    if (message.linkObjectKeys) {
-      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
-    } else {
-      obj.linkObjectKeys = [];
+    if (message.objectKey !== "") {
+      obj.objectKey = message.objectKey;
     }
-    message.manifestRef !== undefined &&
-      (obj.manifestRef = message.manifestRef ? ManifestRef.toJSON(message.manifestRef) : undefined);
+    if (message.linkObjectKeys?.length) {
+      obj.linkObjectKeys = message.linkObjectKeys;
+    }
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ManifestRef.toJSON(message.manifestRef);
+    }
     return obj;
   },
 
@@ -251,14 +252,15 @@ export const ExtractManifestBundleOp = {
 
   toJSON(message: ExtractManifestBundleOp): unknown {
     const obj: any = {};
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey);
-    if (message.linkObjectKeys) {
-      obj.linkObjectKeys = message.linkObjectKeys.map((e) => e);
-    } else {
-      obj.linkObjectKeys = [];
+    if (message.objectKey !== "") {
+      obj.objectKey = message.objectKey;
     }
-    message.manifestBundle !== undefined &&
-      (obj.manifestBundle = message.manifestBundle ? ObjectRef.toJSON(message.manifestBundle) : undefined);
+    if (message.linkObjectKeys?.length) {
+      obj.linkObjectKeys = message.linkObjectKeys;
+    }
+    if (message.manifestBundle !== undefined) {
+      obj.manifestBundle = ObjectRef.toJSON(message.manifestBundle);
+    }
     return obj;
   },
 

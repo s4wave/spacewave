@@ -142,13 +142,18 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.builderConfig !== undefined &&
-      (obj.builderConfig = message.builderConfig ? BuilderConfig.toJSON(message.builderConfig) : undefined);
-    message.controllerConfig !== undefined &&
-      (obj.controllerConfig = message.controllerConfig ? ControllerConfig.toJSON(message.controllerConfig) : undefined);
-    message.buildBackoff !== undefined &&
-      (obj.buildBackoff = message.buildBackoff ? Backoff.toJSON(message.buildBackoff) : undefined);
-    message.watch !== undefined && (obj.watch = message.watch);
+    if (message.builderConfig !== undefined) {
+      obj.builderConfig = BuilderConfig.toJSON(message.builderConfig);
+    }
+    if (message.controllerConfig !== undefined) {
+      obj.controllerConfig = ControllerConfig.toJSON(message.controllerConfig);
+    }
+    if (message.buildBackoff !== undefined) {
+      obj.buildBackoff = Backoff.toJSON(message.buildBackoff);
+    }
+    if (message.watch === true) {
+      obj.watch = message.watch;
+    }
     return obj;
   },
 

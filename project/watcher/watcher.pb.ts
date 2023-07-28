@@ -122,12 +122,15 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    message.configPath !== undefined && (obj.configPath = message.configPath);
-    message.projectControllerConfig !== undefined &&
-      (obj.projectControllerConfig = message.projectControllerConfig
-        ? Config1.toJSON(message.projectControllerConfig)
-        : undefined);
-    message.disableWatch !== undefined && (obj.disableWatch = message.disableWatch);
+    if (message.configPath !== "") {
+      obj.configPath = message.configPath;
+    }
+    if (message.projectControllerConfig !== undefined) {
+      obj.projectControllerConfig = Config1.toJSON(message.projectControllerConfig);
+    }
+    if (message.disableWatch === true) {
+      obj.disableWatch = message.disableWatch;
+    }
     return obj;
   },
 

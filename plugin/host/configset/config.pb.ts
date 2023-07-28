@@ -99,11 +99,14 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    obj.configSet = {};
     if (message.configSet) {
-      Object.entries(message.configSet).forEach(([k, v]) => {
-        obj.configSet[k] = ControllerConfig.toJSON(v);
-      });
+      const entries = Object.entries(message.configSet);
+      if (entries.length > 0) {
+        obj.configSet = {};
+        entries.forEach(([k, v]) => {
+          obj.configSet[k] = ControllerConfig.toJSON(v);
+        });
+      }
     }
     return obj;
   },
@@ -215,8 +218,12 @@ export const Config_ConfigSetEntry = {
 
   toJSON(message: Config_ConfigSetEntry): unknown {
     const obj: any = {};
-    message.key !== undefined && (obj.key = message.key);
-    message.value !== undefined && (obj.value = message.value ? ControllerConfig.toJSON(message.value) : undefined);
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = ControllerConfig.toJSON(message.value);
+    }
     return obj;
   },
 

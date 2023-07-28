@@ -249,14 +249,12 @@ export const FetchRequest = {
 
   toJSON(message: FetchRequest): unknown {
     const obj: any = {}
-    message.body?.$case === 'requestInfo' &&
-      (obj.requestInfo = message.body?.requestInfo
-        ? FetchRequestInfo.toJSON(message.body?.requestInfo)
-        : undefined)
-    message.body?.$case === 'requestData' &&
-      (obj.requestData = message.body?.requestData
-        ? FetchRequestData.toJSON(message.body?.requestData)
-        : undefined)
+    if (message.body?.$case === 'requestInfo') {
+      obj.requestInfo = FetchRequestInfo.toJSON(message.body.requestInfo)
+    }
+    if (message.body?.$case === 'requestData') {
+      obj.requestData = FetchRequestData.toJSON(message.body.requestData)
+    }
     return obj
   },
 
@@ -518,23 +516,45 @@ export const FetchRequestInfo = {
 
   toJSON(message: FetchRequestInfo): unknown {
     const obj: any = {}
-    message.method !== undefined && (obj.method = message.method)
-    message.url !== undefined && (obj.url = message.url)
-    obj.headers = {}
-    if (message.headers) {
-      Object.entries(message.headers).forEach(([k, v]) => {
-        obj.headers[k] = v
-      })
+    if (message.method !== '') {
+      obj.method = message.method
     }
-    message.hasBody !== undefined && (obj.hasBody = message.hasBody)
-    message.clientId !== undefined && (obj.clientId = message.clientId)
-    message.destination !== undefined && (obj.destination = message.destination)
-    message.integrity !== undefined && (obj.integrity = message.integrity)
-    message.mode !== undefined && (obj.mode = message.mode)
-    message.redirect !== undefined && (obj.redirect = message.redirect)
-    message.referrer !== undefined && (obj.referrer = message.referrer)
-    message.referrerPolicy !== undefined &&
-      (obj.referrerPolicy = message.referrerPolicy)
+    if (message.url !== '') {
+      obj.url = message.url
+    }
+    if (message.headers) {
+      const entries = Object.entries(message.headers)
+      if (entries.length > 0) {
+        obj.headers = {}
+        entries.forEach(([k, v]) => {
+          obj.headers[k] = v
+        })
+      }
+    }
+    if (message.hasBody === true) {
+      obj.hasBody = message.hasBody
+    }
+    if (message.clientId !== '') {
+      obj.clientId = message.clientId
+    }
+    if (message.destination !== '') {
+      obj.destination = message.destination
+    }
+    if (message.integrity !== '') {
+      obj.integrity = message.integrity
+    }
+    if (message.mode !== '') {
+      obj.mode = message.mode
+    }
+    if (message.redirect !== '') {
+      obj.redirect = message.redirect
+    }
+    if (message.referrer !== '') {
+      obj.referrer = message.referrer
+    }
+    if (message.referrerPolicy !== '') {
+      obj.referrerPolicy = message.referrerPolicy
+    }
     return obj
   },
 
@@ -671,8 +691,12 @@ export const FetchRequestInfo_HeadersEntry = {
 
   toJSON(message: FetchRequestInfo_HeadersEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined && (obj.value = message.value)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== '') {
+      obj.value = message.value
+    }
     return obj
   },
 
@@ -788,11 +812,12 @@ export const FetchRequestData = {
 
   toJSON(message: FetchRequestData): unknown {
     const obj: any = {}
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0),
-      ))
-    message.done !== undefined && (obj.done = message.done)
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
+    if (message.done === true) {
+      obj.done = message.done
+    }
     return obj
   },
 
@@ -929,14 +954,12 @@ export const FetchResponse = {
 
   toJSON(message: FetchResponse): unknown {
     const obj: any = {}
-    message.body?.$case === 'responseInfo' &&
-      (obj.responseInfo = message.body?.responseInfo
-        ? ResponseInfo.toJSON(message.body?.responseInfo)
-        : undefined)
-    message.body?.$case === 'responseData' &&
-      (obj.responseData = message.body?.responseData
-        ? ResponseData.toJSON(message.body?.responseData)
-        : undefined)
+    if (message.body?.$case === 'responseInfo') {
+      obj.responseInfo = ResponseInfo.toJSON(message.body.responseInfo)
+    }
+    if (message.body?.$case === 'responseData') {
+      obj.responseData = ResponseData.toJSON(message.body.responseData)
+    }
     return obj
   },
 
@@ -1138,18 +1161,30 @@ export const ResponseInfo = {
 
   toJSON(message: ResponseInfo): unknown {
     const obj: any = {}
-    obj.headers = {}
     if (message.headers) {
-      Object.entries(message.headers).forEach(([k, v]) => {
-        obj.headers[k] = v
-      })
+      const entries = Object.entries(message.headers)
+      if (entries.length > 0) {
+        obj.headers = {}
+        entries.forEach(([k, v]) => {
+          obj.headers[k] = v
+        })
+      }
     }
-    message.ok !== undefined && (obj.ok = message.ok)
-    message.redirected !== undefined && (obj.redirected = message.redirected)
-    message.status !== undefined && (obj.status = Math.round(message.status))
-    message.statusText !== undefined && (obj.statusText = message.statusText)
-    message.responseType !== undefined &&
-      (obj.responseType = message.responseType)
+    if (message.ok === true) {
+      obj.ok = message.ok
+    }
+    if (message.redirected === true) {
+      obj.redirected = message.redirected
+    }
+    if (message.status !== 0) {
+      obj.status = Math.round(message.status)
+    }
+    if (message.statusText !== '') {
+      obj.statusText = message.statusText
+    }
+    if (message.responseType !== '') {
+      obj.responseType = message.responseType
+    }
     return obj
   },
 
@@ -1277,8 +1312,12 @@ export const ResponseInfo_HeadersEntry = {
 
   toJSON(message: ResponseInfo_HeadersEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined && (obj.value = message.value)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== '') {
+      obj.value = message.value
+    }
     return obj
   },
 
@@ -1394,11 +1433,12 @@ export const ResponseData = {
 
   toJSON(message: ResponseData): unknown {
     const obj: any = {}
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0),
-      ))
-    message.done !== undefined && (obj.done = message.done)
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
+    if (message.done === true) {
+      obj.done = message.done
+    }
     return obj
   },
 
