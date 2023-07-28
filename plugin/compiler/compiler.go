@@ -16,6 +16,9 @@ import (
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
+	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
+	web_pkg_rpc_server "github.com/aperturerobotics/bldr/web/pkg/rpc/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -196,9 +199,14 @@ func (c *Controller) BuildManifest(
 	}
 
 	// Cleanup list of go packages
-	goPackages := slices.Clone(pluginBuildConf.GetGoPackages())
-	sort.Strings(goPackages)
-	goPackages = slices.Compact(goPackages)
+	goPkgs := slices.Clone(pluginBuildConf.GetGoPkgs())
+	sort.Strings(goPkgs)
+	goPkgs = slices.Compact(goPkgs)
+
+	// Cleanup list of web packages
+	webPkgs := slices.Clone(pluginBuildConf.GetWebPkgs())
+	sort.Strings(webPkgs)
+	webPkgs = slices.Compact(webPkgs)
 
 	// Enable cgo only if flag is set (for reproducible builds)
 	enableCgo := pluginBuildConf.GetEnableCgo()
@@ -226,7 +234,8 @@ func (c *Controller) BuildManifest(
 		sourcePath,
 		outDistPath,
 		outAssetsPath,
-		goPackages,
+		goPkgs,
+		webPkgs,
 		pluginBuildConf.GetDisableRpcFetch(),
 		pluginBuildConf.GetDisableFetchAssets(),
 		pluginBuildConf.GetDelveAddr(),
@@ -267,7 +276,7 @@ func (c *Controller) BuildManifest(
 
 	le.Debugf(
 		"plugin build complete: %d go packages with %d files",
-		len(goPackages),
+		len(goPkgs),
 		len(consumedSrcFiles),
 	)
 	result := manifest_builder.NewBuilderResult(
@@ -296,7 +305,7 @@ func (c *Controller) BuildPlugin(
 	sourcePath,
 	outDistPath,
 	outAssetsPath string,
-	goPkgs []string,
+	goPkgs, webPkgs []string,
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
@@ -329,18 +338,6 @@ func (c *Controller) BuildPlugin(
 
 	// merge configured config set entries
 	configset_proto.MergeConfigSetMaps(embedConfigSet, configSet)
-
-	// encode config set for embedded config set binary
-	var configSetBin []byte
-	if len(embedConfigSet) != 0 {
-		configSetObj := &configset_proto.ConfigSet{
-			Configurations: embedConfigSet,
-		}
-		configSetBin, err = configSetObj.MarshalVT()
-		if err != nil {
-			return nil, nil, err
-		}
-	}
 
 	le.Info("analyzing go packages")
 	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs)
@@ -394,6 +391,9 @@ func (c *Controller) BuildPlugin(
 		goVariableDefs = append(goVariableDefs, assetHrefDefs...)
 	}
 
+	// track web pkg refs
+	var webPkgRefs []*web_pkg_esbuild.WebPkgRef
+
 	// parse bldr:esbuild comments and build import path definition list
 	esbuildPkgs, err := an.FindEsbuildVariables(codeFiles)
 	if err != nil {
@@ -401,12 +401,13 @@ func (c *Controller) BuildPlugin(
 	}
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
-		esbuildVarDefs, esbuildSrcFiles, err := BuildDefEsbuild(
+		esbuildVarDefs, esbuildWebPkgRefs, esbuildSrcFiles, err := BuildDefEsbuild(
 			le,
 			sourcePath,
 			codeFiles,
 			fset,
 			esbuildPkgs,
+			webPkgs,
 			outAssetsPath,
 			pluginID,
 			isRelease,
@@ -416,12 +417,86 @@ func (c *Controller) BuildPlugin(
 		}
 		goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
 		sourceFilesList = append(sourceFilesList, esbuildSrcFiles...)
+		for _, webPkgRef := range esbuildWebPkgRefs {
+			for _, impPath := range webPkgRef.Imports {
+				webPkgRefs = web_pkg_esbuild.AddWebPkgRef(webPkgRefs, webPkgRef.WebPkgID, webPkgRef.WebPkgRoot, impPath)
+			}
+		}
 	}
 
 	// sort for determinism
 	sort.Slice(goVariableDefs, func(i, j int) bool {
 		return goVariableDefs[i].VariableName < goVariableDefs[j].VariableName
 	})
+
+	// run esbuild on the web pkgs (if any)
+	outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
+	webPkgIDs, webPkgSrcFiles, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
+		ctx,
+		le,
+		sourcePath,
+		webPkgRefs,
+		outWebPkgsPath,
+		plugin.PluginWebPkgHttpPrefix,
+		isRelease,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	sourceFilesList = append(sourceFilesList, webPkgSrcFiles...)
+
+	if len(webPkgIDs) != 0 {
+		// add the web packages rpc server to the config set.
+		// resolves AccessRpcService directive
+		embedConfigSet["web-pkgs-rpc"], err = configset_proto.NewControllerConfig(
+			configset.NewControllerConfig(1, web_pkg_rpc_server.NewConfig("", webPkgIDs)),
+			false,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// add the web packages UnixFS-backed resolver to the config set.
+		// we know the list of included web pkg ids, so provide it explicitly.
+		// resolves LookupWebPkg directive
+		embedConfigSet["web-pkgs-fs"], err = configset_proto.NewControllerConfig(
+			configset.NewControllerConfig(1, web_pkg_fs_controller.NewConfig(
+				plugin.PluginAssetsFsId,
+				plugin.PluginAssetsWebPkgsDir,
+				true,
+				webPkgIDs,
+			)),
+			false,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// tell the web plugin to forward rpc requests to lookup web pkgs to our plugin.
+		/*
+				embedConfigSet["web-pkgs-fwd"], err = configset_proto.NewControllerConfig(
+					configset.NewControllerConfig(1, &bldr_web_plugin_handle_rpc.Config{
+			        	...,
+					}),
+					false,
+				)
+				if err != nil {
+					return nil, nil, err
+				}
+		*/
+	}
+
+	// encode config set for embedded config set binary
+	var configSetBin []byte
+	if len(embedConfigSet) != 0 {
+		configSetObj := &configset_proto.ConfigSet{
+			Configurations: embedConfigSet,
+		}
+		configSetBin, err = configSetObj.MarshalVT()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 
 	// compile Go modules
 	le.Info("generating go packages")

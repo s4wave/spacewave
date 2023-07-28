@@ -13,7 +13,6 @@ import (
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
-	web_view_handler_via_bus "github.com/aperturerobotics/bldr/web/view/handler/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -63,7 +62,6 @@ func ExecutePlugin(
 	// add built-in factories
 	sr.AddFactory(plugin_assets_http.NewFactory(b))
 	sr.AddFactory(plugin_host_configset.NewFactory(b))
-	sr.AddFactory(web_view_handler_via_bus.NewFactory(b))
 
 	// add provided factories
 	for _, fn := range addFactoryFuncs {

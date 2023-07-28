@@ -14,6 +14,7 @@ type SRPCWebPluginClient interface {
 	SRPCClient() srpc.Client
 
 	HandleWebViewViaPlugin(ctx context.Context, in *HandleWebViewViaPluginRequest) (SRPCWebPlugin_HandleWebViewViaPluginClient, error)
+	HandleWebPkgViaPlugin(ctx context.Context, in *HandleWebPkgViaPluginRequest) (SRPCWebPlugin_HandleWebPkgViaPluginClient, error)
 	HandleRpcViaPlugin(ctx context.Context, in *HandleRpcViaPluginRequest) (SRPCWebPlugin_HandleRpcViaPluginClient, error)
 }
 
@@ -69,6 +70,40 @@ func (x *srpcWebPlugin_HandleWebViewViaPluginClient) RecvTo(m *HandleWebViewViaP
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWebPluginClient) HandleWebPkgViaPlugin(ctx context.Context, in *HandleWebPkgViaPluginRequest) (SRPCWebPlugin_HandleWebPkgViaPluginClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "HandleWebPkgViaPlugin", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWebPlugin_HandleWebPkgViaPluginClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCWebPlugin_HandleWebPkgViaPluginClient interface {
+	srpc.Stream
+	Recv() (*HandleWebPkgViaPluginResponse, error)
+	RecvTo(*HandleWebPkgViaPluginResponse) error
+}
+
+type srpcWebPlugin_HandleWebPkgViaPluginClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWebPlugin_HandleWebPkgViaPluginClient) Recv() (*HandleWebPkgViaPluginResponse, error) {
+	m := new(HandleWebPkgViaPluginResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebPlugin_HandleWebPkgViaPluginClient) RecvTo(m *HandleWebPkgViaPluginResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcWebPluginClient) HandleRpcViaPlugin(ctx context.Context, in *HandleRpcViaPluginRequest) (SRPCWebPlugin_HandleRpcViaPluginClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "HandleRpcViaPlugin", in)
 	if err != nil {
@@ -105,12 +140,17 @@ func (x *srpcWebPlugin_HandleRpcViaPluginClient) RecvTo(m *HandleRpcViaPluginRes
 
 type SRPCWebPluginServer interface {
 	HandleWebViewViaPlugin(*HandleWebViewViaPluginRequest, SRPCWebPlugin_HandleWebViewViaPluginStream) error
+	HandleWebPkgViaPlugin(*HandleWebPkgViaPluginRequest, SRPCWebPlugin_HandleWebPkgViaPluginStream) error
 	HandleRpcViaPlugin(*HandleRpcViaPluginRequest, SRPCWebPlugin_HandleRpcViaPluginStream) error
 }
 
 type SRPCWebPluginUnimplementedServer struct{}
 
 func (s *SRPCWebPluginUnimplementedServer) HandleWebViewViaPlugin(*HandleWebViewViaPluginRequest, SRPCWebPlugin_HandleWebViewViaPluginStream) error {
+	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebPluginUnimplementedServer) HandleWebPkgViaPlugin(*HandleWebPkgViaPluginRequest, SRPCWebPlugin_HandleWebPkgViaPluginStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -145,6 +185,7 @@ func (d *SRPCWebPluginHandler) GetServiceID() string { return d.serviceID }
 func (SRPCWebPluginHandler) GetMethodIDs() []string {
 	return []string{
 		"HandleWebViewViaPlugin",
+		"HandleWebPkgViaPlugin",
 		"HandleRpcViaPlugin",
 	}
 }
@@ -160,6 +201,8 @@ func (d *SRPCWebPluginHandler) InvokeMethod(
 	switch methodID {
 	case "HandleWebViewViaPlugin":
 		return true, d.InvokeMethod_HandleWebViewViaPlugin(d.impl, strm)
+	case "HandleWebPkgViaPlugin":
+		return true, d.InvokeMethod_HandleWebPkgViaPlugin(d.impl, strm)
 	case "HandleRpcViaPlugin":
 		return true, d.InvokeMethod_HandleRpcViaPlugin(d.impl, strm)
 	default:
@@ -174,6 +217,15 @@ func (SRPCWebPluginHandler) InvokeMethod_HandleWebViewViaPlugin(impl SRPCWebPlug
 	}
 	serverStrm := &srpcWebPlugin_HandleWebViewViaPluginStream{strm}
 	return impl.HandleWebViewViaPlugin(req, serverStrm)
+}
+
+func (SRPCWebPluginHandler) InvokeMethod_HandleWebPkgViaPlugin(impl SRPCWebPluginServer, strm srpc.Stream) error {
+	req := new(HandleWebPkgViaPluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcWebPlugin_HandleWebPkgViaPluginStream{strm}
+	return impl.HandleWebPkgViaPlugin(req, serverStrm)
 }
 
 func (SRPCWebPluginHandler) InvokeMethod_HandleRpcViaPlugin(impl SRPCWebPluginServer, strm srpc.Stream) error {
@@ -200,6 +252,27 @@ func (x *srpcWebPlugin_HandleWebViewViaPluginStream) Send(m *HandleWebViewViaPlu
 }
 
 func (x *srpcWebPlugin_HandleWebViewViaPluginStream) SendAndClose(m *HandleWebViewViaPluginResponse) error {
+	if err := x.MsgSend(m); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type SRPCWebPlugin_HandleWebPkgViaPluginStream interface {
+	srpc.Stream
+	Send(*HandleWebPkgViaPluginResponse) error
+	SendAndClose(*HandleWebPkgViaPluginResponse) error
+}
+
+type srpcWebPlugin_HandleWebPkgViaPluginStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebPlugin_HandleWebPkgViaPluginStream) Send(m *HandleWebPkgViaPluginResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebPlugin_HandleWebPkgViaPluginStream) SendAndClose(m *HandleWebPkgViaPluginResponse) error {
 	if err := x.MsgSend(m); err != nil {
 		return err
 	}

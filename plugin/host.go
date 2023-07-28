@@ -58,5 +58,11 @@ const PluginHttpPrefix = "/p/"
 // /p/{plugin-id}/a/{assets-fs-path}
 const PluginAssetsHttpPrefix = "/a/"
 
+// PluginAssetsWebPkgsDir is the directory within assets fs for web pkgs.
+const PluginAssetsWebPkgsDir = "bldr-web-pkgs"
+
+// PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
+const PluginWebPkgHttpPrefix = "/b/pkg/"
+
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"

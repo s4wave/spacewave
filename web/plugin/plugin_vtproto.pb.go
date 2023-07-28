@@ -71,6 +71,66 @@ func (m *HandleWebViewViaPluginResponse_Ready) CloneVT() isHandleWebViewViaPlugi
 	return r
 }
 
+func (m *HandleWebPkgViaPluginRequest) CloneVT() *HandleWebPkgViaPluginRequest {
+	if m == nil {
+		return (*HandleWebPkgViaPluginRequest)(nil)
+	}
+	r := &HandleWebPkgViaPluginRequest{
+		HandlePluginId: m.HandlePluginId,
+		WebPkgIdRe:     m.WebPkgIdRe,
+	}
+	if rhs := m.WebPkgIdPrefixes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.WebPkgIdPrefixes = tmpContainer
+	}
+	if rhs := m.WebPkgIdList; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.WebPkgIdList = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *HandleWebPkgViaPluginRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *HandleWebPkgViaPluginResponse) CloneVT() *HandleWebPkgViaPluginResponse {
+	if m == nil {
+		return (*HandleWebPkgViaPluginResponse)(nil)
+	}
+	r := &HandleWebPkgViaPluginResponse{}
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneVT() isHandleWebPkgViaPluginResponse_Body
+		}).CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *HandleWebPkgViaPluginResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *HandleWebPkgViaPluginResponse_Ready) CloneVT() isHandleWebPkgViaPluginResponse_Body {
+	if m == nil {
+		return (*HandleWebPkgViaPluginResponse_Ready)(nil)
+	}
+	r := &HandleWebPkgViaPluginResponse_Ready{
+		Ready: m.Ready,
+	}
+	return r
+}
+
 func (m *HandleRpcViaPluginRequest) CloneVT() *HandleRpcViaPluginRequest {
 	if m == nil {
 		return (*HandleRpcViaPluginRequest)(nil)
@@ -181,6 +241,91 @@ func (this *HandleWebViewViaPluginResponse) EqualMessageVT(thatMsg proto.Message
 }
 func (this *HandleWebViewViaPluginResponse_Ready) EqualVT(thatIface isHandleWebViewViaPluginResponse_Body) bool {
 	that, ok := thatIface.(*HandleWebViewViaPluginResponse_Ready)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Ready != that.Ready {
+		return false
+	}
+	return true
+}
+
+func (this *HandleWebPkgViaPluginRequest) EqualVT(that *HandleWebPkgViaPluginRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.HandlePluginId != that.HandlePluginId {
+		return false
+	}
+	if this.WebPkgIdRe != that.WebPkgIdRe {
+		return false
+	}
+	if len(this.WebPkgIdPrefixes) != len(that.WebPkgIdPrefixes) {
+		return false
+	}
+	for i, vx := range this.WebPkgIdPrefixes {
+		vy := that.WebPkgIdPrefixes[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.WebPkgIdList) != len(that.WebPkgIdList) {
+		return false
+	}
+	for i, vx := range this.WebPkgIdList {
+		vy := that.WebPkgIdList[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HandleWebPkgViaPluginRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*HandleWebPkgViaPluginRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *HandleWebPkgViaPluginResponse) EqualVT(that *HandleWebPkgViaPluginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isHandleWebPkgViaPluginResponse_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HandleWebPkgViaPluginResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*HandleWebPkgViaPluginResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *HandleWebPkgViaPluginResponse_Ready) EqualVT(thatIface isHandleWebPkgViaPluginResponse_Body) bool {
+	that, ok := thatIface.(*HandleWebPkgViaPluginResponse_Ready)
 	if !ok {
 		return false
 	}
@@ -379,6 +524,130 @@ func (m *HandleWebViewViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byt
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+func (m *HandleWebPkgViaPluginRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HandleWebPkgViaPluginRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleWebPkgViaPluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WebPkgIdList) > 0 {
+		for iNdEx := len(m.WebPkgIdList) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.WebPkgIdList[iNdEx])
+			copy(dAtA[i:], m.WebPkgIdList[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.WebPkgIdList[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.WebPkgIdPrefixes) > 0 {
+		for iNdEx := len(m.WebPkgIdPrefixes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.WebPkgIdPrefixes[iNdEx])
+			copy(dAtA[i:], m.WebPkgIdPrefixes[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.WebPkgIdPrefixes[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.WebPkgIdRe) > 0 {
+		i -= len(m.WebPkgIdRe)
+		copy(dAtA[i:], m.WebPkgIdRe)
+		i = encodeVarint(dAtA, i, uint64(len(m.WebPkgIdRe)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.HandlePluginId) > 0 {
+		i -= len(m.HandlePluginId)
+		copy(dAtA[i:], m.HandlePluginId)
+		i = encodeVarint(dAtA, i, uint64(len(m.HandlePluginId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HandleWebPkgViaPluginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HandleWebPkgViaPluginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleWebPkgViaPluginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HandleWebPkgViaPluginResponse_Ready) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleWebPkgViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Ready {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x8
+	return len(dAtA) - i, nil
+}
 func (m *HandleRpcViaPluginRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -557,6 +826,58 @@ func (m *HandleWebViewViaPluginResponse) SizeVT() (n int) {
 }
 
 func (m *HandleWebViewViaPluginResponse_Ready) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *HandleWebPkgViaPluginRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.HandlePluginId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.WebPkgIdRe)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.WebPkgIdPrefixes) > 0 {
+		for _, s := range m.WebPkgIdPrefixes {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.WebPkgIdList) > 0 {
+		for _, s := range m.WebPkgIdList {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HandleWebPkgViaPluginResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HandleWebPkgViaPluginResponse_Ready) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -791,6 +1112,257 @@ func (m *HandleWebViewViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Body = &HandleWebViewViaPluginResponse_Ready{Ready: b}
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HandleWebPkgViaPluginRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HandleWebPkgViaPluginRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HandleWebPkgViaPluginRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HandlePluginId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HandlePluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgIdRe", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgIdRe = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgIdPrefixes", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgIdPrefixes = append(m.WebPkgIdPrefixes, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgIdList", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgIdList = append(m.WebPkgIdList, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HandleWebPkgViaPluginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HandleWebPkgViaPluginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HandleWebPkgViaPluginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ready", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Body = &HandleWebPkgViaPluginResponse_Ready{Ready: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

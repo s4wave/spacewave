@@ -72,14 +72,14 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
 	pluginCompilerConf := plugin_compiler.NewConfig()
-	pluginCompilerConf.GoPackages = []string{
+	pluginCompilerConf.GoPkgs = []string{
 		basePkg + "/web/plugin/controller",
 	}
 	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
 	pluginCompilerConf.DelveAddr = c.GetConfig().GetDelveAddr()
 
-	// build config set for the plugin
+	// configure running the web plugin controller
 	webPluginCtrlConf, err := configset_proto.NewControllerConfig(
 		configset.NewControllerConfig(1, &web_plugin_controller.Config{}),
 		false,
@@ -87,6 +87,8 @@ func (c *Controller) BuildManifest(
 	if err != nil {
 		return nil, err
 	}
+
+	// build config set for the plugin
 	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{
 		"web-plugin": webPluginCtrlConf,
 	}
@@ -200,7 +202,7 @@ func (c *Controller) BundleElectronHook(
 			ConfigSet: map[string]*configset_proto.ControllerConfig{
 				"electron": electronCtrlConf,
 			},
-			GoPackages: []string{
+			GoPkgs: []string{
 				basePkg + "/web/plugin/electron",
 			},
 		},

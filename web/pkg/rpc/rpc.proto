@@ -1,0 +1,24 @@
+syntax = "proto3";
+package web.pkg.rpc;
+
+import "github.com/aperturerobotics/bldr/web/pkg/pkg.proto";
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// GetInfoRequest is a request to get the web pkg info.
+message GetInfoRequest {}
+
+// GetInfoResponse is a response to getting the web pkg info.
+message GetInfoResponse {
+  // Info contains the web package information.
+  .web.pkg.WebPkgInfo info = 1;
+}
+
+// AccessWebPkg exposes a WebPkg via an RPC service.
+service AccessWebPkg {
+  // GetWebPkgInfo executes the GetInfo request.
+  rpc GetWebPkgInfo(GetInfoRequest) returns (GetInfoResponse);
+  // WebPkgFsRpc exposes the web pkg fs service via RPC.
+  // Exposes the FSCursorService.
+  // The rpc stream id is ignored.
+  rpc WebPkgFsRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}

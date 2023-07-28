@@ -10,7 +10,7 @@ export interface HandleWebViewViaPluginRequest {
   /** HandlePluginId is the plugin the web plugin should send WebViews to. */
   handlePluginId: string
   /**
-   * WebViewidRe is the regex of web view IDs to handle with handlePluginId.
+   * WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
    * If empty, will forward any.
    */
   webViewIdRe: string
@@ -18,6 +18,34 @@ export interface HandleWebViewViaPluginRequest {
 
 /** HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin. */
 export interface HandleWebViewViaPluginResponse {
+  body?: { $case: 'ready'; ready: boolean } | undefined
+}
+
+/** HandleWebPkgViaPluginRequest is a request to handle web pkgs via a plugin RPC. */
+export interface HandleWebPkgViaPluginRequest {
+  /** HandlePluginId is the plugin the web plugin should send WebViews to. */
+  handlePluginId: string
+  /**
+   * WebPkgIdRe is a regex string to match web pkgs IDs.
+   * Set to '.*' or empty to match all web pkgs ids.
+   */
+  webPkgIdRe: string
+  /**
+   * WebPkgIdPrefixes is a list of web pkg id prefixes to match.
+   * If the value is in this list, overrides web_pkg_id_re.
+   * Set to '.*' or empty to match all web pkgs ids.
+   */
+  webPkgIdPrefixes: string[]
+  /**
+   * WebPkgIdList is a list of web pkg IDs to resolve.
+   * If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
+   * Ignored if empty.
+   */
+  webPkgIdList: string[]
+}
+
+/** HandleWebPkgViaPluginResponse is the response to HandleWebPkgViaPlugin. */
+export interface HandleWebPkgViaPluginResponse {
   body?: { $case: 'ready'; ready: boolean } | undefined
 }
 
@@ -283,6 +311,290 @@ export const HandleWebViewViaPluginResponse = {
     object: I,
   ): HandleWebViewViaPluginResponse {
     const message = createBaseHandleWebViewViaPluginResponse()
+    if (
+      object.body?.$case === 'ready' &&
+      object.body?.ready !== undefined &&
+      object.body?.ready !== null
+    ) {
+      message.body = { $case: 'ready', ready: object.body.ready }
+    }
+    return message
+  },
+}
+
+function createBaseHandleWebPkgViaPluginRequest(): HandleWebPkgViaPluginRequest {
+  return {
+    handlePluginId: '',
+    webPkgIdRe: '',
+    webPkgIdPrefixes: [],
+    webPkgIdList: [],
+  }
+}
+
+export const HandleWebPkgViaPluginRequest = {
+  encode(
+    message: HandleWebPkgViaPluginRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.handlePluginId !== '') {
+      writer.uint32(10).string(message.handlePluginId)
+    }
+    if (message.webPkgIdRe !== '') {
+      writer.uint32(18).string(message.webPkgIdRe)
+    }
+    for (const v of message.webPkgIdPrefixes) {
+      writer.uint32(26).string(v!)
+    }
+    for (const v of message.webPkgIdList) {
+      writer.uint32(34).string(v!)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): HandleWebPkgViaPluginRequest {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHandleWebPkgViaPluginRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break
+          }
+
+          message.handlePluginId = reader.string()
+          continue
+        case 2:
+          if (tag !== 18) {
+            break
+          }
+
+          message.webPkgIdRe = reader.string()
+          continue
+        case 3:
+          if (tag !== 26) {
+            break
+          }
+
+          message.webPkgIdPrefixes.push(reader.string())
+          continue
+        case 4:
+          if (tag !== 34) {
+            break
+          }
+
+          message.webPkgIdList.push(reader.string())
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<HandleWebPkgViaPluginRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<
+          HandleWebPkgViaPluginRequest | HandleWebPkgViaPluginRequest[]
+        >
+      | Iterable<HandleWebPkgViaPluginRequest | HandleWebPkgViaPluginRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleWebPkgViaPluginRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [HandleWebPkgViaPluginRequest.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, HandleWebPkgViaPluginRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<HandleWebPkgViaPluginRequest> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleWebPkgViaPluginRequest.decode(p)]
+        }
+      } else {
+        yield* [HandleWebPkgViaPluginRequest.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): HandleWebPkgViaPluginRequest {
+    return {
+      handlePluginId: isSet(object.handlePluginId)
+        ? String(object.handlePluginId)
+        : '',
+      webPkgIdRe: isSet(object.webPkgIdRe) ? String(object.webPkgIdRe) : '',
+      webPkgIdPrefixes: Array.isArray(object?.webPkgIdPrefixes)
+        ? object.webPkgIdPrefixes.map((e: any) => String(e))
+        : [],
+      webPkgIdList: Array.isArray(object?.webPkgIdList)
+        ? object.webPkgIdList.map((e: any) => String(e))
+        : [],
+    }
+  },
+
+  toJSON(message: HandleWebPkgViaPluginRequest): unknown {
+    const obj: any = {}
+    if (message.handlePluginId !== '') {
+      obj.handlePluginId = message.handlePluginId
+    }
+    if (message.webPkgIdRe !== '') {
+      obj.webPkgIdRe = message.webPkgIdRe
+    }
+    if (message.webPkgIdPrefixes?.length) {
+      obj.webPkgIdPrefixes = message.webPkgIdPrefixes
+    }
+    if (message.webPkgIdList?.length) {
+      obj.webPkgIdList = message.webPkgIdList
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<HandleWebPkgViaPluginRequest>, I>>(
+    base?: I,
+  ): HandleWebPkgViaPluginRequest {
+    return HandleWebPkgViaPluginRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<HandleWebPkgViaPluginRequest>, I>>(
+    object: I,
+  ): HandleWebPkgViaPluginRequest {
+    const message = createBaseHandleWebPkgViaPluginRequest()
+    message.handlePluginId = object.handlePluginId ?? ''
+    message.webPkgIdRe = object.webPkgIdRe ?? ''
+    message.webPkgIdPrefixes = object.webPkgIdPrefixes?.map((e) => e) || []
+    message.webPkgIdList = object.webPkgIdList?.map((e) => e) || []
+    return message
+  },
+}
+
+function createBaseHandleWebPkgViaPluginResponse(): HandleWebPkgViaPluginResponse {
+  return { body: undefined }
+}
+
+export const HandleWebPkgViaPluginResponse = {
+  encode(
+    message: HandleWebPkgViaPluginResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    switch (message.body?.$case) {
+      case 'ready':
+        writer.uint32(8).bool(message.body.ready)
+        break
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): HandleWebPkgViaPluginResponse {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseHandleWebPkgViaPluginResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 8) {
+            break
+          }
+
+          message.body = { $case: 'ready', ready: reader.bool() }
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<HandleWebPkgViaPluginResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<
+          HandleWebPkgViaPluginResponse | HandleWebPkgViaPluginResponse[]
+        >
+      | Iterable<
+          HandleWebPkgViaPluginResponse | HandleWebPkgViaPluginResponse[]
+        >,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleWebPkgViaPluginResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [HandleWebPkgViaPluginResponse.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, HandleWebPkgViaPluginResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<HandleWebPkgViaPluginResponse> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [HandleWebPkgViaPluginResponse.decode(p)]
+        }
+      } else {
+        yield* [HandleWebPkgViaPluginResponse.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): HandleWebPkgViaPluginResponse {
+    return {
+      body: isSet(object.ready)
+        ? { $case: 'ready', ready: Boolean(object.ready) }
+        : undefined,
+    }
+  },
+
+  toJSON(message: HandleWebPkgViaPluginResponse): unknown {
+    const obj: any = {}
+    if (message.body?.$case === 'ready') {
+      obj.ready = message.body.ready
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<HandleWebPkgViaPluginResponse>, I>>(
+    base?: I,
+  ): HandleWebPkgViaPluginResponse {
+    return HandleWebPkgViaPluginResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<HandleWebPkgViaPluginResponse>, I>>(
+    object: I,
+  ): HandleWebPkgViaPluginResponse {
+    const message = createBaseHandleWebPkgViaPluginResponse()
     if (
       object.body?.$case === 'ready' &&
       object.body?.ready !== undefined &&
@@ -583,6 +895,11 @@ export interface WebPlugin {
     request: HandleWebViewViaPluginRequest,
     abortSignal?: AbortSignal,
   ): AsyncIterable<HandleWebViewViaPluginResponse>
+  /** HandleWebPkgViaPlugin configures handling web packages via a plugin. */
+  HandleWebPkgViaPlugin(
+    request: HandleWebPkgViaPluginRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<HandleWebPkgViaPluginResponse>
   /** HandleRpcViaPlugin configures handling rpcs via a plugin. */
   HandleRpcViaPlugin(
     request: HandleRpcViaPluginRequest,
@@ -598,6 +915,7 @@ export class WebPluginClientImpl implements WebPlugin {
     this.service = opts?.service || WebPluginServiceName
     this.rpc = rpc
     this.HandleWebViewViaPlugin = this.HandleWebViewViaPlugin.bind(this)
+    this.HandleWebPkgViaPlugin = this.HandleWebPkgViaPlugin.bind(this)
     this.HandleRpcViaPlugin = this.HandleRpcViaPlugin.bind(this)
   }
   HandleWebViewViaPlugin(
@@ -612,6 +930,20 @@ export class WebPluginClientImpl implements WebPlugin {
       abortSignal || undefined,
     )
     return HandleWebViewViaPluginResponse.decodeTransform(result)
+  }
+
+  HandleWebPkgViaPlugin(
+    request: HandleWebPkgViaPluginRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<HandleWebPkgViaPluginResponse> {
+    const data = HandleWebPkgViaPluginRequest.encode(request).finish()
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      'HandleWebPkgViaPlugin',
+      data,
+      abortSignal || undefined,
+    )
+    return HandleWebPkgViaPluginResponse.decodeTransform(result)
   }
 
   HandleRpcViaPlugin(
@@ -644,6 +976,15 @@ export const WebPluginDefinition = {
       requestType: HandleWebViewViaPluginRequest,
       requestStream: false,
       responseType: HandleWebViewViaPluginResponse,
+      responseStream: true,
+      options: {},
+    },
+    /** HandleWebPkgViaPlugin configures handling web packages via a plugin. */
+    handleWebPkgViaPlugin: {
+      name: 'HandleWebPkgViaPlugin',
+      requestType: HandleWebPkgViaPluginRequest,
+      requestStream: false,
+      responseType: HandleWebPkgViaPluginResponse,
       responseStream: true,
       options: {},
     },

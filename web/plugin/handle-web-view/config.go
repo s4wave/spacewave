@@ -41,11 +41,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// SetWebViewIdRe sets the web view id regex.
-func (c *Config) SetWebViewIdRe(re string) {
-	c.WebViewIdRe = re
-}
-
 // ParseWebViewIdRe parses the handle web view id regex.
 // Returns nil if the field was empty.
 func (c *Config) ParseWebViewIdRe() (*regexp.Regexp, error) {

@@ -11,16 +11,10 @@ export interface WebPkgInfo {
    * Usually matches the npm package name.
    */
   id: string
-  /**
-   * Version is the web package version.
-   * Usually matches the npm package version.
-   * Note: this is sometimes (not always) semver format.
-   */
-  version: string
 }
 
 function createBaseWebPkgInfo(): WebPkgInfo {
-  return { id: '', version: '' }
+  return { id: '' }
 }
 
 export const WebPkgInfo = {
@@ -30,9 +24,6 @@ export const WebPkgInfo = {
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
-    }
-    if (message.version !== '') {
-      writer.uint32(18).string(message.version)
     }
     return writer
   },
@@ -51,13 +42,6 @@ export const WebPkgInfo = {
           }
 
           message.id = reader.string()
-          continue
-        case 2:
-          if (tag !== 18) {
-            break
-          }
-
-          message.version = reader.string()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -105,19 +89,13 @@ export const WebPkgInfo = {
   },
 
   fromJSON(object: any): WebPkgInfo {
-    return {
-      id: isSet(object.id) ? String(object.id) : '',
-      version: isSet(object.version) ? String(object.version) : '',
-    }
+    return { id: isSet(object.id) ? String(object.id) : '' }
   },
 
   toJSON(message: WebPkgInfo): unknown {
     const obj: any = {}
     if (message.id !== '') {
       obj.id = message.id
-    }
-    if (message.version !== '') {
-      obj.version = message.version
     }
     return obj
   },
@@ -130,7 +108,6 @@ export const WebPkgInfo = {
   ): WebPkgInfo {
     const message = createBaseWebPkgInfo()
     message.id = object.id ?? ''
-    message.version = object.version ?? ''
     return message
   },
 }

@@ -3,8 +3,6 @@
 /.log
 /.husky
 /.bldr
-__debug_bin
-__debug_bin.exe
 
 # misc
 .DS_Store
@@ -25,3 +23,6 @@ yarn-error.log*
 
 vendor/
 output/
+
+__debug_bin*
+debug.test*

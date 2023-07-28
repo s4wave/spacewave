@@ -53,7 +53,7 @@ func (c *Config) Validate() error {
 	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "config_set")
 	}
-	for i, impPath := range c.GetGoPackages() {
+	for i, impPath := range c.GetGoPkgs() {
 		// relative paths will be resolved later
 		impPath = strings.TrimPrefix(impPath, "./")
 		if err := module.CheckImportPath(impPath); err != nil {
@@ -94,17 +94,26 @@ func (c *Config) Merge(o *Config) {
 	configset_proto.MergeConfigSetMaps(c.ConfigSet, o.GetConfigSet())
 	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
 
-	// append and sort go packages list
-	var goPkgsDirty bool
-	for _, pkg := range o.GetGoPackages() {
-		if pkg != "" && !slices.Contains(c.GoPackages, pkg) {
-			goPkgsDirty = true
-			c.GoPackages = append(c.GoPackages, pkg)
+	mergeList := func(mergeTo *[]string, mergeFrom []string) {
+		var dirty bool
+		dest := *mergeTo
+		for _, value := range mergeFrom {
+			if value != "" && !slices.Contains(dest, value) {
+				dirty = true
+				dest = append(dest, value)
+			}
+		}
+		if dirty {
+			sort.Strings(dest)
+			*mergeTo = dest
 		}
 	}
-	if goPkgsDirty {
-		sort.Strings(c.GoPackages)
-	}
+
+	// append and sort go packages list
+	mergeList(&c.GoPkgs, o.GetGoPkgs())
+
+	// append and sort web packages list
+	mergeList(&c.WebPkgs, o.GetWebPkgs())
 
 	// override project id
 	if cproj := o.GetProjectId(); cproj != "" {

@@ -32,7 +32,7 @@ plugins:
     id: bldr/plugin/compiler
     config:
       # delveAddr: wait
-      goPackages: [...]
+      goPkgs: [...]
 ```
 
 You can optionally include it in the embed plugins list to embed Electron into

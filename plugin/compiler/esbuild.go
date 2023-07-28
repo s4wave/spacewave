@@ -12,10 +12,12 @@ import (
 	"strings"
 
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // BuildDefEsbuild builds the list of go variable defs for the given code files.
@@ -27,10 +29,11 @@ func BuildDefEsbuild(
 	codeFiles map[string][]*ast.File,
 	fset *token.FileSet,
 	pkgs map[string](map[string]*EsbuildArgs),
+	webPkgs []string,
 	outAssetsPath string,
 	pluginID string,
 	isRelease bool,
-) ([]*GoVarDef, []string, error) {
+) ([]*GoVarDef, []*web_pkg_esbuild.WebPkgRef, []string, error) {
 	type esbuildBundleVar struct {
 		pkgImportPath string
 		pkgVar        string
@@ -52,12 +55,13 @@ func BuildDefEsbuild(
 			return bundleDef
 		}
 
-		buildOpts := buildEsbuildBuildOpts(
+		buildOpts := web_pkg_esbuild.BuildEsbuildBuildOpts(
 			le,
 			codeRootPath,
 			outAssetsPath,
 			BuildAssetHref(pluginID, ""),
 			isRelease,
+			true,
 		)
 		bundleDef = &esbuildBundleDef{buildOpts: buildOpts}
 		bundles[bundleID] = bundleDef
@@ -67,24 +71,24 @@ func BuildDefEsbuild(
 	for pkgImportPath, pkgVars := range pkgs {
 		pkgCodeFiles := codeFiles[pkgImportPath]
 		if len(pkgCodeFiles) == 0 {
-			return nil, nil, errors.Errorf("failed to find ast.File for package: %s", pkgImportPath)
+			return nil, nil, nil, errors.Errorf("failed to find ast.File for package: %s", pkgImportPath)
 		}
 		pkgCodePath := filepath.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
 		relPkgCodePath, err := filepath.Rel(codeRootPath, pkgCodePath)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "unable to determine relative path")
+			return nil, nil, nil, errors.Wrap(err, "unable to determine relative path")
 		}
 		for pkgVar, pkgEsbuildArgs := range pkgVars {
 			buildOpts := pkgEsbuildArgs.BuildOpts
 			if len(buildOpts.EntryPointsAdvanced) != 0 || len(buildOpts.EntryPoints) != 1 {
-				return nil, nil, errors.Errorf("%s: expected single entrypoint", pkgImportPath+"."+pkgVar)
+				return nil, nil, nil, errors.Errorf("%s: expected single entrypoint", pkgImportPath+"."+pkgVar)
 			}
 
 			bundleID := pkgEsbuildArgs.BundleID
 			bundleDef := getBundleDef(bundleID)
 
 			// note: ignores the Entrypoint fields
-			mergeEsbuildBuildOpts(bundleDef.buildOpts, buildOpts)
+			web_pkg_esbuild.MergeEsbuildBuildOpts(bundleDef.buildOpts, buildOpts)
 
 			adjustPath := func(entryPointPath string) string {
 				// ignore absolute paths (strip / prefix)
@@ -134,21 +138,45 @@ func BuildDefEsbuild(
 	// outputs
 	var goVariableDefs []*GoVarDef
 	var sourceFilesList []string
+	var webPkgRefs []*web_pkg_esbuild.WebPkgRef
+	addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
+		webPkgRefs = web_pkg_esbuild.AddWebPkgRef(webPkgRefs, webPkgID, webPkgRoot, webPkgSubPath)
+	}
+
+	// build list of packages to externalize
+	externalizePkgs := append([]string{
+		// always externalize React as bldr uses it (bldr-react)
+		"react",
+		"react-dom",
+	}, webPkgs...)
+	slices.Sort(externalizePkgs)
+	externalizePkgs = slices.Compact(externalizePkgs)
 
 	// build all bundles
 	bundleIDs := maps.Keys(bundles)
 	sort.Strings(bundleIDs)
 	for _, bundleID := range bundleIDs {
 		bundleDef := bundles[bundleID]
-		buildOpts := bundleDef.buildOpts
+		buildOpts := *bundleDef.buildOpts
+		buildOpts.Plugins = slices.Clone(buildOpts.Plugins)
+
+		// add the bldr plugin
+		buildOpts.Plugins = append(
+			buildOpts.Plugins,
+			web_pkg_esbuild.BuildEsbuildPlugin(
+				le,
+				externalizePkgs,
+				addWebPkgRef,
+			),
+		)
 
 		le.Debugf("compiling bundle with esbuild: %s", bundleID)
-		result := esbuild_api.Build(*buildOpts)
+		result := esbuild_api.Build(buildOpts)
 		if err := bldr_esbuild.BuildResultToErr(result); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if len(result.OutputFiles) == 0 {
-			return nil, nil, errors.New("esbuild: expected at least one output file but got none")
+			return nil, nil, nil, errors.New("esbuild: expected at least one output file but got none")
 		}
 
 		// metaAnalysis contains a graphical view of input files & their sizes
@@ -157,9 +185,9 @@ func BuildDefEsbuild(
 		})
 		os.Stderr.WriteString(metaAnalysis + "\n")
 
-		metaFile := &EsbuildMetafile{}
+		metaFile := &bldr_esbuild.EsbuildMetafile{}
 		if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
-			return nil, nil, errors.Wrap(err, "parse esbuild metafile")
+			return nil, nil, nil, errors.Wrap(err, "parse esbuild metafile")
 		}
 
 		// Use it to get the list of source files to watch.
@@ -172,7 +200,7 @@ func BuildDefEsbuild(
 		for _, varDef := range bundleDef.vars {
 			// NOTE; we restrict to a single entrypoint for now.
 			if len(varDef.entrypointIdxs) != 1 {
-				return nil, nil, errors.Errorf("expected 1 entrypoint idx but got %v", len(varDef.entrypointIdxs))
+				return nil, nil, nil, errors.Errorf("expected 1 entrypoint idx but got %v", len(varDef.entrypointIdxs))
 			}
 
 			// entrypointIdx := varDef.entrypointIdxs[0]
@@ -181,7 +209,7 @@ func BuildDefEsbuild(
 
 			// Outputs: the key is the output path relative to the source dir.
 			var entrypointOutpPath string
-			var entrypointOutp EsbuildMetaFileOutput
+			var entrypointOutp bldr_esbuild.EsbuildMetaFileOutput
 			for outpPath, outp := range metaFile.Outputs {
 				if outp.EntryPoint == entrypointInpPath {
 					entrypointOutpPath = outpPath
@@ -190,7 +218,7 @@ func BuildDefEsbuild(
 				}
 			}
 			if entrypointOutpPath == "" {
-				return nil, nil, errors.Errorf("output for entrypoint not found in metafile: %s", entrypointInpPath)
+				return nil, nil, nil, errors.Errorf("output for entrypoint not found in metafile: %s", entrypointInpPath)
 			}
 
 			var outpEntrypointPath string
@@ -199,7 +227,7 @@ func BuildDefEsbuild(
 				outpEntrypointPath = filepath.Join(codeRootPath, entrypointOutpPath)
 				outpEntrypointPath, err = filepath.Rel(outAssetsPath, outpEntrypointPath)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				outpEntrypointPath = filepath.ToSlash(outpEntrypointPath)
 			}
@@ -209,7 +237,7 @@ func BuildDefEsbuild(
 				outpCssPath = filepath.Join(codeRootPath, entrypointOutp.CssBundle)
 				outpCssPath, err = filepath.Rel(outAssetsPath, outpCssPath)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				outpCssPath = filepath.ToSlash(outpCssPath)
 			}
@@ -253,7 +281,7 @@ func BuildDefEsbuild(
 					},
 				}
 			default:
-				return nil, nil, errors.Errorf("unknown target variable type: %s", varType.String())
+				return nil, nil, nil, errors.Errorf("unknown target variable type: %s", varType.String())
 			}
 
 			goVariableDefs = append(goVariableDefs, NewGoVarDef(
@@ -263,5 +291,6 @@ func BuildDefEsbuild(
 			))
 		}
 	}
-	return goVariableDefs, sourceFilesList, nil
+
+	return goVariableDefs, webPkgRefs, sourceFilesList, nil
 }

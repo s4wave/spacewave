@@ -14,16 +14,8 @@ type LookupWebPkg interface {
 
 	// LookupWebPkgID is the web package ID to lookup.
 	// E.x.: "react" or "react-dom" or "@myorg/mypkg".
-	// Note that the package ID can have slashes.
-	// When used in URLs we use url encoding: /b/pkg/%40myorg%2Fmypkg/...
 	// Cannot be empty.
 	LookupWebPkgID() string
-
-	// LookupWebPkgWait indicates we should wait for the WebPkg to be found.
-	//
-	// Set this if you want the web package lookup request to wait (hang) until
-	// a plugin is added resolving the lookup or the request is canceled.
-	LookupWebPkgWait() bool
 }
 
 // LookupWebPkgValue is the result of LookupWebPkg.
@@ -32,28 +24,24 @@ type LookupWebPkgValue = WebPkg
 // lookupWebPkg implements LookupWebPkg
 type lookupWebPkg struct {
 	webPkgID string
-	wait     bool
 }
 
 // NewLookupWebPkg constructs a new LookupWebPkg directive.
-func NewLookupWebPkg(webPkgID string, wait bool) LookupWebPkg {
-	return &lookupWebPkg{webPkgID: webPkgID, wait: wait}
+func NewLookupWebPkg(webPkgID string) LookupWebPkg {
+	return &lookupWebPkg{webPkgID: webPkgID}
 }
 
-// ExLookupWebPkg looks up a web view by id.
-//
-// wait waits for the web view to exist.
+// ExLookupWebPkg looks up a web pkg by id.
 func ExLookupWebPkg(
 	ctx context.Context,
 	b bus.Bus,
 	returnIfIdle bool,
 	webPkgID string,
-	wait bool,
 ) (LookupWebPkgValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecWaitValue[LookupWebPkgValue](
 		ctx,
 		b,
-		NewLookupWebPkg(webPkgID, wait),
+		NewLookupWebPkg(webPkgID),
 		bus.ReturnIfIdle(returnIfIdle),
 		nil,
 		nil,
@@ -73,16 +61,9 @@ func (d *lookupWebPkg) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
 
-// LookupWebPkg is the web view ID to lookup.
+// LookupWebPkg is the web pkg ID to lookup.
 func (d *lookupWebPkg) LookupWebPkgID() string {
 	return d.webPkgID
-}
-
-// LookupWebPkgWait indicates we should wait for the web pkg to exist.
-//
-// Otherwise returns 404 if not found.
-func (d *lookupWebPkg) LookupWebPkgWait() bool {
-	return d.wait
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -95,10 +76,6 @@ func (d *lookupWebPkg) IsEquivalent(other directive.Directive) bool {
 	}
 
 	if d.LookupWebPkgID() != od.LookupWebPkgID() {
-		return false
-	}
-
-	if d.LookupWebPkgWait() != od.LookupWebPkgWait() {
 		return false
 	}
 

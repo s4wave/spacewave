@@ -7,6 +7,8 @@ export const protobufPackage = "bldr.plugin.compiler";
 
 /** Config configures the plugin compiler controller. */
 export interface Config {
+  /** ProjectId overrides the project id set in the project config. */
+  projectId: string;
   /**
    * ConfigSet is a ConfigSet to apply on plugin startup.
    * This ConfigSet is applied to the plugin bus.
@@ -23,15 +25,27 @@ export interface Config {
    */
   hostConfigSet: { [key: string]: ControllerConfig };
   /**
-   * GoPackages is a list of Go packages to scan for controller factories.
+   * GoPkgs is a list of Go packages to scan for controller factories.
    * Looks for package-level functions:
    *  - NewFactory(b bus.Bus) controller.Factory
    *  - BuildFactories(b bus.Bus) []controller.Factory
    * Appended to the list set in the plugin compiler settings.
    */
-  goPackages: string[];
-  /** ProjectId overrides the project id set in the project config. */
-  projectId: string;
+  goPkgs: string[];
+  /**
+   * WebPkgs is the list of web packages to externalize and include in the bundle.
+   *
+   * Externalized web packages (npm modules) are imported separately from the web bundle.
+   * They will be deduplicated such that a single version is imported at a time by the app.
+   * This is useful for packages like "react" that require a single instance per WebDocument.
+   *
+   * These packages will be available with the LookupWebPkg directive.
+   * They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
+   *
+   * Note: only files & entrypoints imported by at least one js file will be included.
+   * Note: "react" and "react-dom" are automatically added to this list.
+   */
+  webPkgs: string[];
   /**
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by creating a directive.
@@ -85,10 +99,11 @@ export interface PreBuildHookResult {
 
 function createBaseConfig(): Config {
   return {
+    projectId: "",
     configSet: {},
     hostConfigSet: {},
-    goPackages: [],
-    projectId: "",
+    goPkgs: [],
+    webPkgs: [],
     disableRpcFetch: false,
     disableFetchAssets: false,
     delveAddr: "",
@@ -98,29 +113,32 @@ function createBaseConfig(): Config {
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.projectId !== "") {
+      writer.uint32(10).string(message.projectId);
+    }
     Object.entries(message.configSet).forEach(([key, value]) => {
-      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+      Config_ConfigSetEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
     });
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
-      Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).ldelim();
+      Config_HostConfigSetEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
     });
-    for (const v of message.goPackages) {
-      writer.uint32(26).string(v!);
+    for (const v of message.goPkgs) {
+      writer.uint32(34).string(v!);
     }
-    if (message.projectId !== "") {
-      writer.uint32(34).string(message.projectId);
+    for (const v of message.webPkgs) {
+      writer.uint32(42).string(v!);
     }
     if (message.disableRpcFetch === true) {
-      writer.uint32(40).bool(message.disableRpcFetch);
+      writer.uint32(48).bool(message.disableRpcFetch);
     }
     if (message.disableFetchAssets === true) {
-      writer.uint32(48).bool(message.disableFetchAssets);
+      writer.uint32(56).bool(message.disableFetchAssets);
     }
     if (message.delveAddr !== "") {
-      writer.uint32(58).string(message.delveAddr);
+      writer.uint32(66).string(message.delveAddr);
     }
     if (message.enableCgo === true) {
-      writer.uint32(64).bool(message.enableCgo);
+      writer.uint32(72).bool(message.enableCgo);
     }
     return writer;
   },
@@ -137,19 +155,16 @@ export const Config = {
             break;
           }
 
-          const entry1 = Config_ConfigSetEntry.decode(reader, reader.uint32());
-          if (entry1.value !== undefined) {
-            message.configSet[entry1.key] = entry1.value;
-          }
+          message.projectId = reader.string();
           continue;
         case 2:
           if (tag !== 18) {
             break;
           }
 
-          const entry2 = Config_HostConfigSetEntry.decode(reader, reader.uint32());
+          const entry2 = Config_ConfigSetEntry.decode(reader, reader.uint32());
           if (entry2.value !== undefined) {
-            message.hostConfigSet[entry2.key] = entry2.value;
+            message.configSet[entry2.key] = entry2.value;
           }
           continue;
         case 3:
@@ -157,38 +172,48 @@ export const Config = {
             break;
           }
 
-          message.goPackages.push(reader.string());
+          const entry3 = Config_HostConfigSetEntry.decode(reader, reader.uint32());
+          if (entry3.value !== undefined) {
+            message.hostConfigSet[entry3.key] = entry3.value;
+          }
           continue;
         case 4:
           if (tag !== 34) {
             break;
           }
 
-          message.projectId = reader.string();
+          message.goPkgs.push(reader.string());
           continue;
         case 5:
-          if (tag !== 40) {
+          if (tag !== 42) {
             break;
           }
 
-          message.disableRpcFetch = reader.bool();
+          message.webPkgs.push(reader.string());
           continue;
         case 6:
           if (tag !== 48) {
             break;
           }
 
-          message.disableFetchAssets = reader.bool();
+          message.disableRpcFetch = reader.bool();
           continue;
         case 7:
-          if (tag !== 58) {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.disableFetchAssets = reader.bool();
+          continue;
+        case 8:
+          if (tag !== 66) {
             break;
           }
 
           message.delveAddr = reader.string();
           continue;
-        case 8:
-          if (tag !== 64) {
+        case 9:
+          if (tag !== 72) {
             break;
           }
 
@@ -237,6 +262,7 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
+      projectId: isSet(object.projectId) ? String(object.projectId) : "",
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
           acc[key] = ControllerConfig.fromJSON(value);
@@ -249,8 +275,8 @@ export const Config = {
           return acc;
         }, {})
         : {},
-      goPackages: Array.isArray(object?.goPackages) ? object.goPackages.map((e: any) => String(e)) : [],
-      projectId: isSet(object.projectId) ? String(object.projectId) : "",
+      goPkgs: Array.isArray(object?.goPkgs) ? object.goPkgs.map((e: any) => String(e)) : [],
+      webPkgs: Array.isArray(object?.webPkgs) ? object.webPkgs.map((e: any) => String(e)) : [],
       disableRpcFetch: isSet(object.disableRpcFetch) ? Boolean(object.disableRpcFetch) : false,
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
       delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
@@ -260,6 +286,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
     if (message.configSet) {
       const entries = Object.entries(message.configSet);
       if (entries.length > 0) {
@@ -278,11 +307,11 @@ export const Config = {
         });
       }
     }
-    if (message.goPackages?.length) {
-      obj.goPackages = message.goPackages;
+    if (message.goPkgs?.length) {
+      obj.goPkgs = message.goPkgs;
     }
-    if (message.projectId !== "") {
-      obj.projectId = message.projectId;
+    if (message.webPkgs?.length) {
+      obj.webPkgs = message.webPkgs;
     }
     if (message.disableRpcFetch === true) {
       obj.disableRpcFetch = message.disableRpcFetch;
@@ -304,6 +333,7 @@ export const Config = {
   },
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
+    message.projectId = object.projectId ?? "";
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
@@ -322,8 +352,8 @@ export const Config = {
       },
       {},
     );
-    message.goPackages = object.goPackages?.map((e) => e) || [];
-    message.projectId = object.projectId ?? "";
+    message.goPkgs = object.goPkgs?.map((e) => e) || [];
+    message.webPkgs = object.webPkgs?.map((e) => e) || [];
     message.disableRpcFetch = object.disableRpcFetch ?? false;
     message.disableFetchAssets = object.disableFetchAssets ?? false;
     message.delveAddr = object.delveAddr ?? "";

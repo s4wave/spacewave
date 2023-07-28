@@ -1,0 +1,23 @@
+syntax = "proto3";
+package bldr.web.plugin.handle_web_pkg;
+
+// Config configures a controller to forward LookupWebPkg to a plugin.
+// webPluginId should correspond to a bldr/web/plugin plugin.
+// Resolves the LookupWebPkg directive on the web plugin bus.
+message Config {
+  // WebPluginId is the id of the web plugin.
+  string web_plugin_id = 1;
+  // HandlePluginId is the plugin the web plugin should send LookupWebPkg to.
+  string handle_plugin_id = 2;
+  // WebPkgIdRe is a regex string to match web pkgs IDs.
+  // Set to '.*' or empty to match all web pkgs ids.
+  string web_pkg_id_re = 3;
+  // WebPkgIdPrefixes is a list of web pkg id prefixes to match.
+  // If the value is in this list, overrides web_pkg_id_re.
+  // Set to '.*' or empty to match all web pkgs ids.
+  repeated string web_pkg_id_prefixes = 4;
+  // WebPkgIdList is a list of web pkg IDs to resolve.
+  // If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
+  // Ignored if empty.
+  repeated string web_pkg_id_list = 5;
+}

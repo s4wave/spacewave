@@ -25,7 +25,7 @@ const (
 // Config configures the web plugin to forward RPC services to another plugin.
 // Loads webPluginId with LoadPlugin and uses the RPC client.
 // webPluginId should correspond to a bldr/web/plugin plugin.
-// Resolves the HandleWebView directive on the web plugin bus.
+// Resolves the LookupRpcService directive on the web plugin bus.
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -2,20 +2,18 @@ package web_runtime_controller
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
-	"sync"
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
-	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
+	web_pkg_http "github.com/aperturerobotics/bldr/web/pkg/http"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/unixfs"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -46,10 +44,11 @@ type Controller struct {
 	// runtimeVersion is the version
 	runtimeVersion semver.Version
 
-	// trigger is pushed to when anything changes
-	trigger chan struct{}
-	// mtx guards the below fields
-	mtx sync.Mutex
+	// pkgServer is the web pkg server
+	pkgServer *web_pkg_http.Server
+
+	// bcast guards below fields
+	bcast broadcast.Broadcast
 	// rt is the runtime
 	rt web_runtime.WebRuntime
 }
@@ -70,7 +69,7 @@ func NewController(
 		runtimeID:      runtimeID,
 		runtimeVersion: runtimeVersion,
 
-		trigger: make(chan struct{}, 1),
+		pkgServer: web_pkg_http.NewServer(le, bus, true),
 	}
 }
 
@@ -109,20 +108,17 @@ func (c *Controller) Execute(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		c.mtx.Lock()
+	defer c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if c.rt == rt {
 			c.rt = nil
-			c.doTrigger()
+			broadcast()
 		}
-		c.mtx.Unlock()
-		// _ = rt.Close(ctx)
-	}()
+	})
 
-	c.mtx.Lock()
-	c.rt = rt
-	c.mtx.Unlock()
-	c.doTrigger()
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.rt = rt
+		broadcast()
+	})
 
 	c.le.Debug("executing bldr web runtime")
 	errCh := make(chan error, 1)
@@ -146,9 +142,14 @@ func (c *Controller) Execute(rctx context.Context) error {
 // GetWebRuntime returns the controlled runtime, waiting for it to be non-nil.
 func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime, error) {
 	for {
-		c.mtx.Lock()
-		rt, trig := c.rt, c.trigger
-		c.mtx.Unlock()
+		var trig <-chan struct{}
+		var rt web_runtime.WebRuntime
+		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			rt = c.rt
+			if rt == nil {
+				trig = getWaitCh()
+			}
+		})
 		if rt != nil {
 			return rt, nil
 		}
@@ -181,7 +182,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 	// /b/ is for bldr internals
 	// /b/pkg/ is for Web module distribution files (like react)
-	bPkgPrefix := "/b/pkg/"
+	bPkgPrefix := plugin.PluginWebPkgHttpPrefix
 	if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
 		pkgPath := rpath[len(bPkgPrefix):]
 		c.ServeWebModuleHTTP(pkgPath, rw, req)
@@ -258,47 +259,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 // The first element(s) of the path (split by /) are used as the package name.
 // If the path begins with @, it is treated as a scope: @scope/package/...
 func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {
-	// call LoadPlugin to get a handle to the desired plugin.
-	// ctx := req.Context()
-	c.le.
-		WithField("pkg-path", pkgPath).
-		Debug("forwarding pkg request")
-	err := func() error {
-		pathPts, _ := unixfs.SplitPath(pkgPath)
-		if len(pathPts) == 0 || pathPts[0] == "" {
-		}
-
-		/*
-			pkgName, err := url.QueryUnescape(pathPts[0])
-			if len(pathPts) == 0 || pathPts[0] == "" {
-				rw.WriteHeader(400)
-				return errors.New("bldr: invalid pkg path: " + err.Error())
-			}
-
-			pkgName = strings.TrimSpace(pkgName)
-			if len(pkgName) == 0 {
-				rw.WriteHeader(400)
-				return errors.New("bldr: empty pkg name")
-			}
-		*/
-
-		webPkgID, webPkgPath, err := web_pkg.CheckStripWebPkgIdPrefix(pkgPath)
-		if err != nil {
-			rw.WriteHeader(400)
-			return err
-		}
-
-		return errors.New("TODO implement pkg request: " + webPkgID + " at " + webPkgPath)
-	}()
-	if err != nil && err != context.Canceled {
-		c.le.
-			WithError(err).
-			WithField("pkg-path", pkgPath).
-			Warn("pkg request failed")
-		rw.WriteHeader(500) // only applies if we didn't call WriteHeader above.
-		_, _ = rw.Write([]byte("bldr: request failed: pkg " + pkgPath + ": " + err.Error()))
-		return
-	}
+	c.pkgServer.ServeWebModuleHTTP(pkgPath, rw, req)
 }
 
 // HandleWebDocument handles an incoming WebDocument on a new Goroutine.
@@ -306,24 +267,13 @@ func (c *Controller) HandleWebDocument(wv web_document.WebDocument) {
 	// no-op
 }
 
-// doTrigger triggers all waiting goroutines
-func (c *Controller) doTrigger() {
-	for {
-		select {
-		case c.trigger <- struct{}{}:
-		default:
-			return
-		}
-	}
-}
-
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	c.mtx.Lock()
-	c.ctor = nil
-	c.rt = nil
-	c.mtx.Unlock()
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		c.rt = nil
+		broadcast()
+	})
 	return nil
 }
 

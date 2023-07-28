@@ -1,12 +1,13 @@
 package fsutil
 
 import (
-	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // CleanDir deletes the given dir.
@@ -66,7 +67,7 @@ func ConvertPathsToRelative(baseDir string, paths []string) error {
 		}
 		paths[i] = filepath.Clean(paths[i])
 		if strings.HasPrefix(paths[i], "..") {
-			return errors.New("path cannot be above the base dir")
+			return errors.Errorf("path cannot be above the base dir: %s", paths[i])
 		}
 	}
 	return nil

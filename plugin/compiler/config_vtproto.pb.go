@@ -58,10 +58,15 @@ func (m *Config) CloneVT() *Config {
 		}
 		r.HostConfigSet = tmpContainer
 	}
-	if rhs := m.GoPackages; rhs != nil {
+	if rhs := m.GoPkgs; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
-		r.GoPackages = tmpContainer
+		r.GoPkgs = tmpContainer
+	}
+	if rhs := m.WebPkgs; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.WebPkgs = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -96,6 +101,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ProjectId != that.ProjectId {
 		return false
 	}
 	if len(this.ConfigSet) != len(that.ConfigSet) {
@@ -150,17 +158,23 @@ func (this *Config) EqualVT(that *Config) bool {
 			}
 		}
 	}
-	if len(this.GoPackages) != len(that.GoPackages) {
+	if len(this.GoPkgs) != len(that.GoPkgs) {
 		return false
 	}
-	for i, vx := range this.GoPackages {
-		vy := that.GoPackages[i]
+	for i, vx := range this.GoPkgs {
+		vy := that.GoPkgs[i]
 		if vx != vy {
 			return false
 		}
 	}
-	if this.ProjectId != that.ProjectId {
+	if len(this.WebPkgs) != len(that.WebPkgs) {
 		return false
+	}
+	for i, vx := range this.WebPkgs {
+		vy := that.WebPkgs[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.DisableRpcFetch != that.DisableRpcFetch {
 		return false
@@ -241,14 +255,14 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x48
 	}
 	if len(m.DelveAddr) > 0 {
 		i -= len(m.DelveAddr)
 		copy(dAtA[i:], m.DelveAddr)
 		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
 		i--
-		dAtA[i] = 0x3a
+		dAtA[i] = 0x42
 	}
 	if m.DisableFetchAssets {
 		i--
@@ -258,7 +272,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x38
 	}
 	if m.DisableRpcFetch {
 		i--
@@ -268,22 +282,24 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x30
 	}
-	if len(m.ProjectId) > 0 {
-		i -= len(m.ProjectId)
-		copy(dAtA[i:], m.ProjectId)
-		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.GoPackages) > 0 {
-		for iNdEx := len(m.GoPackages) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.GoPackages[iNdEx])
-			copy(dAtA[i:], m.GoPackages[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.GoPackages[iNdEx])))
+	if len(m.WebPkgs) > 0 {
+		for iNdEx := len(m.WebPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.WebPkgs[iNdEx])
+			copy(dAtA[i:], m.WebPkgs[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.WebPkgs[iNdEx])))
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.GoPkgs) > 0 {
+		for iNdEx := len(m.GoPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.GoPkgs[iNdEx])
+			copy(dAtA[i:], m.GoPkgs[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.GoPkgs[iNdEx])))
+			i--
+			dAtA[i] = 0x22
 		}
 	}
 	if len(m.HostConfigSet) > 0 {
@@ -317,7 +333,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x12
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.ConfigSet) > 0 {
@@ -351,8 +367,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -417,6 +440,10 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	if len(m.ConfigSet) > 0 {
 		for k, v := range m.ConfigSet {
 			_ = k
@@ -455,15 +482,17 @@ func (m *Config) SizeVT() (n int) {
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
 	}
-	if len(m.GoPackages) > 0 {
-		for _, s := range m.GoPackages {
+	if len(m.GoPkgs) > 0 {
+		for _, s := range m.GoPkgs {
 			l = len(s)
 			n += 1 + l + sov(uint64(l))
 		}
 	}
-	l = len(m.ProjectId)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
+	if len(m.WebPkgs) > 0 {
+		for _, s := range m.WebPkgs {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	if m.DisableRpcFetch {
 		n += 2
@@ -532,6 +561,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}
@@ -668,7 +729,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)
 			}
@@ -805,41 +866,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.HostConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GoPackages", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GoPkgs", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -867,9 +896,41 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			m.GoPkgs = append(m.GoPkgs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgs = append(m.WebPkgs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DisableRpcFetch", wireType)
 			}
@@ -889,7 +950,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableRpcFetch = bool(v != 0)
-		case 6:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DisableFetchAssets", wireType)
 			}
@@ -909,7 +970,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableFetchAssets = bool(v != 0)
-		case 7:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
 			}
@@ -941,7 +1002,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
 			}

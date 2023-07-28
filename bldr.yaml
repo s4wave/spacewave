@@ -62,13 +62,14 @@ manifests:
       id: bldr/plugin/compiler
       config:
         # delveAddr: wait
-        goPackages:
+        goPkgs:
           - ./example
         # configure the configset to apply on startup
         configSet:
           demo-1:
             id: bldr/example/demo
             config: {}
+          # TODO: add an option to plugin compiler to automatically configure the below.
           load-web:
             id: bldr/plugin/load
             config:
@@ -77,6 +78,7 @@ manifests:
           web-view-observer:
             id: bldr/web/view/observer
             config: {}
+          # handle incoming rpc requests to handle web views with HandleWebView
           web-view-handler-server:
             id: bldr/web/view/handler/server
             config: {}
@@ -86,13 +88,20 @@ manifests:
             config:
               webPluginId: web
               handlePluginId: bldr-demo
-          # configure the web plugin to handle rpc calls via bldr-demo
-          web-handle-rpc:
+          # configure the web plugin to handle web view rpc calls via bldr-demo
+          web-handle-view-rpc:
             id: bldr/web/plugin/handle-rpc
             config:
               webPluginId: web
               handlePluginId: bldr-demo
               serverIdRe: web-view/.*
+          # configure the web plugin to handle web pkg lookups via bldr-demo
+          web-handle-pkgs:
+            id: bldr/web/plugin/handle-web-pkg
+            config:
+              webPluginId: web
+              handlePluginId: bldr-demo
+              webPkgIdList: ["react", "react-dom"]
         hostConfigSet:
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:

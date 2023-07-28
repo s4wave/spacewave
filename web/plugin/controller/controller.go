@@ -2,10 +2,14 @@ package bldr_web_plugin_controller
 
 import (
 	"context"
+	"path"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_forward_rpc_service "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_handle_web_view "github.com/aperturerobotics/bldr/plugin/handle-web-view"
+	web_pkg_rpc "github.com/aperturerobotics/bldr/web/pkg/rpc"
+	web_pkg_rpc_client "github.com/aperturerobotics/bldr/web/pkg/rpc/client"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
@@ -125,6 +129,57 @@ func (c *Controller) HandleWebViewViaPlugin(
 
 	if err := strm.Send(&bldr_web_plugin.HandleWebViewViaPluginResponse{
 		Body: &bldr_web_plugin.HandleWebViewViaPluginResponse_Ready{Ready: true},
+	}); err != nil {
+		return err
+	}
+
+	select {
+	case <-strm.Context().Done():
+		return context.Canceled
+	case err := <-exitErrCh:
+		return err
+	}
+}
+
+// HandleWebPkgViaPlugin starts a controller to forward web pkgs to a plugin RPC.
+func (c *Controller) HandleWebPkgViaPlugin(
+	req *bldr_web_plugin.HandleWebPkgViaPluginRequest,
+	strm bldr_web_plugin.SRPCWebPlugin_HandleWebPkgViaPluginStream,
+) error {
+	if err := bldr_plugin.ValidatePluginID(req.GetHandlePluginId(), false); err != nil {
+		return err
+	}
+	conf := &web_pkg_rpc_client.Config{
+		ServiceIdPrefix: path.Join(
+			bldr_plugin.PluginServiceIDPrefix,
+			req.GetHandlePluginId(),
+			web_pkg_rpc.SRPCAccessWebPkgServiceID,
+		),
+		ClientId:         "bldr/web/plugin",
+		WebPkgIdRe:       req.GetWebPkgIdRe(),
+		WebPkgIdPrefixes: req.GetWebPkgIdPrefixes(),
+		WebPkgIdList:     req.GetWebPkgIdList(),
+	}
+	if err := conf.Validate(); err != nil {
+		return err
+	}
+
+	ctrl, err := web_pkg_rpc_client.NewController(c.le, c.bus, conf)
+	if err != nil {
+		return err
+	}
+
+	exitErrCh := make(chan error, 1)
+	relCtrl, err := c.bus.AddController(strm.Context(), ctrl, func(exitErr error) {
+		exitErrCh <- exitErr
+	})
+	if err != nil {
+		return err
+	}
+	defer relCtrl()
+
+	if err := strm.Send(&bldr_web_plugin.HandleWebPkgViaPluginResponse{
+		Body: &bldr_web_plugin.HandleWebPkgViaPluginResponse_Ready{Ready: true},
 	}); err != nil {
 		return err
 	}

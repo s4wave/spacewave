@@ -16,10 +16,9 @@ type WebPkg interface {
 	GetId() string
 	// GetInfo returns the WebPkgInfo for the WebPkg.
 	GetInfo(ctx context.Context) (*WebPkgInfo, error)
-	// GetWebPkgFsCursor returns a fs cursor which can be used to access the WebPkg fs.
-	// The cursor should not be released when returned from this function.
-	// Use unixfs.NewFSCursorGetter if async lookup logic is required.
-	GetWebPkgFsCursor() unixfs.FSCursor
+	// GetWebPkgFsHandle returns an fs handle which can be used to access the WebPkg fs.
+	// Remember to release the handle when done.
+	GetWebPkgFsHandle(ctx context.Context) (*unixfs.FSHandle, error)
 }
 
 // PkgNameRe is a regex that can be used to check for valid package names.
@@ -46,6 +45,7 @@ func ValidateWebPkgId(id string) error {
 //
 // Returns the web pkg id and the pkg path split.
 func CheckStripWebPkgIdPrefix(pkgPath string) (pkgID, pkgSubPath string, err error) {
+	pkgPath = strings.TrimSpace(pkgPath)
 	pkgPath = strings.TrimPrefix(pkgPath, "/")
 	if len(pkgPath) == 0 {
 		return "", pkgPath, ErrEmptyPkgID

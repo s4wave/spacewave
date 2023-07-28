@@ -1,4 +1,4 @@
-package bldr_plugin_compiler
+package bldr_esbuild
 
 // EsbuildMetafile contains a JSON object with information about inputs and outputs.
 //

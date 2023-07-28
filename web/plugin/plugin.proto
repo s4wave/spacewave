@@ -8,6 +8,8 @@ import "github.com/aperturerobotics/util/backoff/backoff.proto";
 service WebPlugin {
   // HandleWebViewViaPlugin configures handling web views via a plugin.
   rpc HandleWebViewViaPlugin(HandleWebViewViaPluginRequest) returns (stream HandleWebViewViaPluginResponse) {}
+  // HandleWebPkgViaPlugin configures handling web packages via a plugin.
+  rpc HandleWebPkgViaPlugin(HandleWebPkgViaPluginRequest) returns (stream HandleWebPkgViaPluginResponse) {}
   // HandleRpcViaPlugin configures handling rpcs via a plugin.
   rpc HandleRpcViaPlugin(HandleRpcViaPluginRequest) returns (stream HandleRpcViaPluginResponse) {}
 }
@@ -16,13 +18,38 @@ service WebPlugin {
 message HandleWebViewViaPluginRequest {
   // HandlePluginId is the plugin the web plugin should send WebViews to.
   string handle_plugin_id = 1;
-  // WebViewidRe is the regex of web view IDs to handle with handlePluginId.
+  // WebViewIdRe is the regex of web view IDs to handle with handlePluginId.
   // If empty, will forward any.
   string web_view_id_re = 2;
 }
 
 // HandleWebViewViaPluginResponse is the response to HandleWebViewViaPlugin.
 message HandleWebViewViaPluginResponse {
+  oneof body {
+    // Ready indicates the service to forward rpcs has been started.
+    bool ready = 1;
+  }
+}
+
+// HandleWebPkgViaPluginRequest is a request to handle web pkgs via a plugin RPC.
+message HandleWebPkgViaPluginRequest {
+  // HandlePluginId is the plugin the web plugin should send WebViews to.
+  string handle_plugin_id = 1;
+  // WebPkgIdRe is a regex string to match web pkgs IDs.
+  // Set to '.*' or empty to match all web pkgs ids.
+  string web_pkg_id_re = 2;
+  // WebPkgIdPrefixes is a list of web pkg id prefixes to match.
+  // If the value is in this list, overrides web_pkg_id_re.
+  // Set to '.*' or empty to match all web pkgs ids.
+  repeated string web_pkg_id_prefixes = 3;
+  // WebPkgIdList is a list of web pkg IDs to resolve.
+  // If the value is in this list, overrides web_pkg_id_re and web_pkg_id_prefixes.
+  // Ignored if empty.
+  repeated string web_pkg_id_list = 4;
+}
+
+// HandleWebPkgViaPluginResponse is the response to HandleWebPkgViaPlugin.
+message HandleWebPkgViaPluginResponse {
   oneof body {
     // Ready indicates the service to forward rpcs has been started.
     bool ready = 1;
