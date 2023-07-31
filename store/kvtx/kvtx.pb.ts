@@ -47,7 +47,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.mqueueConfig !== undefined) {
       Config1.encode(message.mqueueConfig, writer.uint32(10).fork()).ldelim()
@@ -92,7 +92,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -110,7 +110,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -134,19 +134,18 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.mqueueConfig !== undefined &&
-      (obj.mqueueConfig = message.mqueueConfig
-        ? Config1.toJSON(message.mqueueConfig)
-        : undefined)
-    message.hashType !== undefined &&
-      (obj.hashType = hashTypeToJSON(message.hashType))
+    if (message.mqueueConfig !== undefined) {
+      obj.mqueueConfig = Config1.toJSON(message.mqueueConfig)
+    }
+    if (message.hashType !== 0) {
+      obj.hashType = hashTypeToJSON(message.hashType)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.mqueueConfig =
@@ -165,7 +164,7 @@ function createBaseMqueueMeta(): MqueueMeta {
 export const MqueueMeta = {
   encode(
     message: MqueueMeta,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id.length !== 0) {
       writer.uint32(10).bytes(message.id)
@@ -202,7 +201,7 @@ export const MqueueMeta = {
   async *encodeTransform(
     source:
       | AsyncIterable<MqueueMeta | MqueueMeta[]>
-      | Iterable<MqueueMeta | MqueueMeta[]>
+      | Iterable<MqueueMeta | MqueueMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -220,7 +219,7 @@ export const MqueueMeta = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MqueueMeta> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -241,19 +240,17 @@ export const MqueueMeta = {
 
   toJSON(message: MqueueMeta): unknown {
     const obj: any = {}
-    message.id !== undefined &&
-      (obj.id = base64FromBytes(
-        message.id !== undefined ? message.id : new Uint8Array(0)
-      ))
+    if (message.id.length !== 0) {
+      obj.id = base64FromBytes(message.id)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MqueueMeta>, I>>(base?: I): MqueueMeta {
-    return MqueueMeta.fromPartial(base ?? {})
+    return MqueueMeta.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MqueueMeta>, I>>(
-    object: I
+    object: I,
   ): MqueueMeta {
     const message = createBaseMqueueMeta()
     message.id = object.id ?? new Uint8Array(0)
@@ -268,7 +265,7 @@ function createBaseBucketReconcilerMqueueId(): BucketReconcilerMqueueId {
 export const BucketReconcilerMqueueId = {
   encode(
     message: BucketReconcilerMqueueId,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -281,7 +278,7 @@ export const BucketReconcilerMqueueId = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): BucketReconcilerMqueueId {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -318,7 +315,7 @@ export const BucketReconcilerMqueueId = {
   async *encodeTransform(
     source:
       | AsyncIterable<BucketReconcilerMqueueId | BucketReconcilerMqueueId[]>
-      | Iterable<BucketReconcilerMqueueId | BucketReconcilerMqueueId[]>
+      | Iterable<BucketReconcilerMqueueId | BucketReconcilerMqueueId[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -336,7 +333,7 @@ export const BucketReconcilerMqueueId = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BucketReconcilerMqueueId> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -360,20 +357,22 @@ export const BucketReconcilerMqueueId = {
 
   toJSON(message: BucketReconcilerMqueueId): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.reconcilerId !== undefined &&
-      (obj.reconcilerId = message.reconcilerId)
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.reconcilerId !== '') {
+      obj.reconcilerId = message.reconcilerId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BucketReconcilerMqueueId>, I>>(
-    base?: I
+    base?: I,
   ): BucketReconcilerMqueueId {
-    return BucketReconcilerMqueueId.fromPartial(base ?? {})
+    return BucketReconcilerMqueueId.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BucketReconcilerMqueueId>, I>>(
-    object: I
+    object: I,
   ): BucketReconcilerMqueueId {
     const message = createBaseBucketReconcilerMqueueId()
     message.bucketId = object.bucketId ?? ''
@@ -382,10 +381,10 @@ export const BucketReconcilerMqueueId = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

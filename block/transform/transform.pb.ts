@@ -31,7 +31,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.steps) {
       StepConfig.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -66,7 +66,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -84,7 +84,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -107,20 +107,15 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.steps) {
-      obj.steps = message.steps.map((e) =>
-        e ? StepConfig.toJSON(e) : undefined
-      )
-    } else {
-      obj.steps = []
+    if (message.steps?.length) {
+      obj.steps = message.steps.map((e) => StepConfig.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.steps = object.steps?.map((e) => StepConfig.fromPartial(e)) || []
@@ -135,7 +130,7 @@ function createBaseStepConfig(): StepConfig {
 export const StepConfig = {
   encode(
     message: StepConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -182,7 +177,7 @@ export const StepConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<StepConfig | StepConfig[]>
-      | Iterable<StepConfig | StepConfig[]>
+      | Iterable<StepConfig | StepConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -200,7 +195,7 @@ export const StepConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<StepConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -224,20 +219,20 @@ export const StepConfig = {
 
   toJSON(message: StepConfig): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    message.config !== undefined &&
-      (obj.config = base64FromBytes(
-        message.config !== undefined ? message.config : new Uint8Array(0)
-      ))
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.config.length !== 0) {
+      obj.config = base64FromBytes(message.config)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<StepConfig>, I>>(base?: I): StepConfig {
-    return StepConfig.fromPartial(base ?? {})
+    return StepConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<StepConfig>, I>>(
-    object: I
+    object: I,
   ): StepConfig {
     const message = createBaseStepConfig()
     message.id = object.id ?? ''
@@ -246,10 +241,10 @@ export const StepConfig = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

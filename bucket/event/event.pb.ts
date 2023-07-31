@@ -156,7 +156,7 @@ export const Event = {
   // encodeTransform encodes a source of message objects.
   // Transform<Event, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Event | Event[]> | Iterable<Event | Event[]>
+    source: AsyncIterable<Event | Event[]> | Iterable<Event | Event[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -174,7 +174,7 @@ export const Event = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Event> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -203,23 +203,21 @@ export const Event = {
 
   toJSON(message: Event): unknown {
     const obj: any = {}
-    message.eventType !== undefined &&
-      (obj.eventType = eventTypeToJSON(message.eventType))
-    message.putBlock !== undefined &&
-      (obj.putBlock = message.putBlock
-        ? PutBlock.toJSON(message.putBlock)
-        : undefined)
-    message.rmBlock !== undefined &&
-      (obj.rmBlock = message.rmBlock
-        ? RmBlock.toJSON(message.rmBlock)
-        : undefined)
+    if (message.eventType !== 0) {
+      obj.eventType = eventTypeToJSON(message.eventType)
+    }
+    if (message.putBlock !== undefined) {
+      obj.putBlock = PutBlock.toJSON(message.putBlock)
+    }
+    if (message.rmBlock !== undefined) {
+      obj.rmBlock = RmBlock.toJSON(message.rmBlock)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Event>, I>>(base?: I): Event {
-    return Event.fromPartial(base ?? {})
+    return Event.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Event>, I>>(object: I): Event {
     const message = createBaseEvent()
     message.eventType = object.eventType ?? 0
@@ -242,7 +240,7 @@ function createBaseBlockCommon(): BlockCommon {
 export const BlockCommon = {
   encode(
     message: BlockCommon,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -309,7 +307,7 @@ export const BlockCommon = {
   async *encodeTransform(
     source:
       | AsyncIterable<BlockCommon | BlockCommon[]>
-      | Iterable<BlockCommon | BlockCommon[]>
+      | Iterable<BlockCommon | BlockCommon[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -327,7 +325,7 @@ export const BlockCommon = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BlockCommon> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -355,23 +353,26 @@ export const BlockCommon = {
 
   toJSON(message: BlockCommon): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
-    message.bucketConfRev !== undefined &&
-      (obj.bucketConfRev = Math.round(message.bucketConfRev))
-    message.blockRef !== undefined &&
-      (obj.blockRef = message.blockRef
-        ? BlockRef.toJSON(message.blockRef)
-        : undefined)
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
+    if (message.bucketConfRev !== 0) {
+      obj.bucketConfRev = Math.round(message.bucketConfRev)
+    }
+    if (message.blockRef !== undefined) {
+      obj.blockRef = BlockRef.toJSON(message.blockRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BlockCommon>, I>>(base?: I): BlockCommon {
-    return BlockCommon.fromPartial(base ?? {})
+    return BlockCommon.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BlockCommon>, I>>(
-    object: I
+    object: I,
   ): BlockCommon {
     const message = createBaseBlockCommon()
     message.bucketId = object.bucketId ?? ''
@@ -392,7 +393,7 @@ function createBasePutBlock(): PutBlock {
 export const PutBlock = {
   encode(
     message: PutBlock,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blockCommon !== undefined) {
       BlockCommon.encode(message.blockCommon, writer.uint32(10).fork()).ldelim()
@@ -429,7 +430,7 @@ export const PutBlock = {
   async *encodeTransform(
     source:
       | AsyncIterable<PutBlock | PutBlock[]>
-      | Iterable<PutBlock | PutBlock[]>
+      | Iterable<PutBlock | PutBlock[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -447,7 +448,7 @@ export const PutBlock = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutBlock> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -470,17 +471,15 @@ export const PutBlock = {
 
   toJSON(message: PutBlock): unknown {
     const obj: any = {}
-    message.blockCommon !== undefined &&
-      (obj.blockCommon = message.blockCommon
-        ? BlockCommon.toJSON(message.blockCommon)
-        : undefined)
+    if (message.blockCommon !== undefined) {
+      obj.blockCommon = BlockCommon.toJSON(message.blockCommon)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PutBlock>, I>>(base?: I): PutBlock {
-    return PutBlock.fromPartial(base ?? {})
+    return PutBlock.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PutBlock>, I>>(object: I): PutBlock {
     const message = createBasePutBlock()
     message.blockCommon =
@@ -498,7 +497,7 @@ function createBaseRmBlock(): RmBlock {
 export const RmBlock = {
   encode(
     message: RmBlock,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blockCommon !== undefined) {
       BlockCommon.encode(message.blockCommon, writer.uint32(10).fork()).ldelim()
@@ -533,7 +532,7 @@ export const RmBlock = {
   // encodeTransform encodes a source of message objects.
   // Transform<RmBlock, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<RmBlock | RmBlock[]> | Iterable<RmBlock | RmBlock[]>
+    source: AsyncIterable<RmBlock | RmBlock[]> | Iterable<RmBlock | RmBlock[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -551,7 +550,7 @@ export const RmBlock = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmBlock> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -574,17 +573,15 @@ export const RmBlock = {
 
   toJSON(message: RmBlock): unknown {
     const obj: any = {}
-    message.blockCommon !== undefined &&
-      (obj.blockCommon = message.blockCommon
-        ? BlockCommon.toJSON(message.blockCommon)
-        : undefined)
+    if (message.blockCommon !== undefined) {
+      obj.blockCommon = BlockCommon.toJSON(message.blockCommon)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmBlock>, I>>(base?: I): RmBlock {
-    return RmBlock.fromPartial(base ?? {})
+    return RmBlock.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmBlock>, I>>(object: I): RmBlock {
     const message = createBaseRmBlock()
     message.blockCommon =

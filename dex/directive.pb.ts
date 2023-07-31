@@ -20,7 +20,7 @@ function createBaseLookupBlockFromNetworkRequest(): LookupBlockFromNetworkReques
 export const LookupBlockFromNetworkRequest = {
   encode(
     message: LookupBlockFromNetworkRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -33,7 +33,7 @@ export const LookupBlockFromNetworkRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): LookupBlockFromNetworkRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -74,7 +74,7 @@ export const LookupBlockFromNetworkRequest = {
         >
       | Iterable<
           LookupBlockFromNetworkRequest | LookupBlockFromNetworkRequest[]
-        >
+        >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -92,7 +92,7 @@ export const LookupBlockFromNetworkRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupBlockFromNetworkRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -114,20 +114,22 @@ export const LookupBlockFromNetworkRequest = {
 
   toJSON(message: LookupBlockFromNetworkRequest): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<LookupBlockFromNetworkRequest>, I>>(
-    base?: I
+    base?: I,
   ): LookupBlockFromNetworkRequest {
-    return LookupBlockFromNetworkRequest.fromPartial(base ?? {})
+    return LookupBlockFromNetworkRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<LookupBlockFromNetworkRequest>, I>>(
-    object: I
+    object: I,
   ): LookupBlockFromNetworkRequest {
     const message = createBaseLookupBlockFromNetworkRequest()
     message.bucketId = object.bucketId ?? ''

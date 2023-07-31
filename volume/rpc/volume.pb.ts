@@ -45,7 +45,7 @@ function createBaseWatchVolumeInfoRequest(): WatchVolumeInfoRequest {
 export const WatchVolumeInfoRequest = {
   encode(
     message: WatchVolumeInfoRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.volumeId !== '') {
       writer.uint32(10).string(message.volumeId)
@@ -55,7 +55,7 @@ export const WatchVolumeInfoRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): WatchVolumeInfoRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -85,7 +85,7 @@ export const WatchVolumeInfoRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<WatchVolumeInfoRequest | WatchVolumeInfoRequest[]>
-      | Iterable<WatchVolumeInfoRequest | WatchVolumeInfoRequest[]>
+      | Iterable<WatchVolumeInfoRequest | WatchVolumeInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -103,7 +103,7 @@ export const WatchVolumeInfoRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchVolumeInfoRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -122,18 +122,19 @@ export const WatchVolumeInfoRequest = {
 
   toJSON(message: WatchVolumeInfoRequest): unknown {
     const obj: any = {}
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WatchVolumeInfoRequest>, I>>(
-    base?: I
+    base?: I,
   ): WatchVolumeInfoRequest {
-    return WatchVolumeInfoRequest.fromPartial(base ?? {})
+    return WatchVolumeInfoRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WatchVolumeInfoRequest>, I>>(
-    object: I
+    object: I,
   ): WatchVolumeInfoRequest {
     const message = createBaseWatchVolumeInfoRequest()
     message.volumeId = object.volumeId ?? ''
@@ -148,7 +149,7 @@ function createBaseWatchVolumeInfoResponse(): WatchVolumeInfoResponse {
 export const WatchVolumeInfoResponse = {
   encode(
     message: WatchVolumeInfoResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.notFound === true) {
       writer.uint32(8).bool(message.notFound)
@@ -161,7 +162,7 @@ export const WatchVolumeInfoResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): WatchVolumeInfoResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -198,7 +199,7 @@ export const WatchVolumeInfoResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<WatchVolumeInfoResponse | WatchVolumeInfoResponse[]>
-      | Iterable<WatchVolumeInfoResponse | WatchVolumeInfoResponse[]>
+      | Iterable<WatchVolumeInfoResponse | WatchVolumeInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -216,7 +217,7 @@ export const WatchVolumeInfoResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchVolumeInfoResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -240,22 +241,22 @@ export const WatchVolumeInfoResponse = {
 
   toJSON(message: WatchVolumeInfoResponse): unknown {
     const obj: any = {}
-    message.notFound !== undefined && (obj.notFound = message.notFound)
-    message.volumeInfo !== undefined &&
-      (obj.volumeInfo = message.volumeInfo
-        ? VolumeInfo.toJSON(message.volumeInfo)
-        : undefined)
+    if (message.notFound === true) {
+      obj.notFound = message.notFound
+    }
+    if (message.volumeInfo !== undefined) {
+      obj.volumeInfo = VolumeInfo.toJSON(message.volumeInfo)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WatchVolumeInfoResponse>, I>>(
-    base?: I
+    base?: I,
   ): WatchVolumeInfoResponse {
-    return WatchVolumeInfoResponse.fromPartial(base ?? {})
+    return WatchVolumeInfoResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WatchVolumeInfoResponse>, I>>(
-    object: I
+    object: I,
   ): WatchVolumeInfoResponse {
     const message = createBaseWatchVolumeInfoResponse()
     message.notFound = object.notFound ?? false
@@ -274,14 +275,14 @@ function createBaseGetVolumeInfoRequest(): GetVolumeInfoRequest {
 export const GetVolumeInfoRequest = {
   encode(
     _: GetVolumeInfoRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetVolumeInfoRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -304,7 +305,7 @@ export const GetVolumeInfoRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetVolumeInfoRequest | GetVolumeInfoRequest[]>
-      | Iterable<GetVolumeInfoRequest | GetVolumeInfoRequest[]>
+      | Iterable<GetVolumeInfoRequest | GetVolumeInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -322,7 +323,7 @@ export const GetVolumeInfoRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetVolumeInfoRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -345,13 +346,12 @@ export const GetVolumeInfoRequest = {
   },
 
   create<I extends Exact<DeepPartial<GetVolumeInfoRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetVolumeInfoRequest {
-    return GetVolumeInfoRequest.fromPartial(base ?? {})
+    return GetVolumeInfoRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetVolumeInfoRequest>, I>>(
-    _: I
+    _: I,
   ): GetVolumeInfoRequest {
     const message = createBaseGetVolumeInfoRequest()
     return message
@@ -365,7 +365,7 @@ function createBaseGetVolumeInfoResponse(): GetVolumeInfoResponse {
 export const GetVolumeInfoResponse = {
   encode(
     message: GetVolumeInfoResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.volumeInfo !== undefined) {
       VolumeInfo.encode(message.volumeInfo, writer.uint32(10).fork()).ldelim()
@@ -375,7 +375,7 @@ export const GetVolumeInfoResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetVolumeInfoResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -405,7 +405,7 @@ export const GetVolumeInfoResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetVolumeInfoResponse | GetVolumeInfoResponse[]>
-      | Iterable<GetVolumeInfoResponse | GetVolumeInfoResponse[]>
+      | Iterable<GetVolumeInfoResponse | GetVolumeInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -423,7 +423,7 @@ export const GetVolumeInfoResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetVolumeInfoResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -446,21 +446,19 @@ export const GetVolumeInfoResponse = {
 
   toJSON(message: GetVolumeInfoResponse): unknown {
     const obj: any = {}
-    message.volumeInfo !== undefined &&
-      (obj.volumeInfo = message.volumeInfo
-        ? VolumeInfo.toJSON(message.volumeInfo)
-        : undefined)
+    if (message.volumeInfo !== undefined) {
+      obj.volumeInfo = VolumeInfo.toJSON(message.volumeInfo)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetVolumeInfoResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetVolumeInfoResponse {
-    return GetVolumeInfoResponse.fromPartial(base ?? {})
+    return GetVolumeInfoResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetVolumeInfoResponse>, I>>(
-    object: I
+    object: I,
   ): GetVolumeInfoResponse {
     const message = createBaseGetVolumeInfoResponse()
     message.volumeInfo =
@@ -478,7 +476,7 @@ function createBaseGetPeerPrivRequest(): GetPeerPrivRequest {
 export const GetPeerPrivRequest = {
   encode(
     _: GetPeerPrivRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
@@ -505,7 +503,7 @@ export const GetPeerPrivRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetPeerPrivRequest | GetPeerPrivRequest[]>
-      | Iterable<GetPeerPrivRequest | GetPeerPrivRequest[]>
+      | Iterable<GetPeerPrivRequest | GetPeerPrivRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -523,7 +521,7 @@ export const GetPeerPrivRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetPeerPrivRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -546,13 +544,12 @@ export const GetPeerPrivRequest = {
   },
 
   create<I extends Exact<DeepPartial<GetPeerPrivRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetPeerPrivRequest {
-    return GetPeerPrivRequest.fromPartial(base ?? {})
+    return GetPeerPrivRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetPeerPrivRequest>, I>>(
-    _: I
+    _: I,
   ): GetPeerPrivRequest {
     const message = createBaseGetPeerPrivRequest()
     return message
@@ -566,7 +563,7 @@ function createBaseGetPeerPrivResponse(): GetPeerPrivResponse {
 export const GetPeerPrivResponse = {
   encode(
     message: GetPeerPrivResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.privKey !== '') {
       writer.uint32(10).string(message.privKey)
@@ -603,7 +600,7 @@ export const GetPeerPrivResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetPeerPrivResponse | GetPeerPrivResponse[]>
-      | Iterable<GetPeerPrivResponse | GetPeerPrivResponse[]>
+      | Iterable<GetPeerPrivResponse | GetPeerPrivResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -621,7 +618,7 @@ export const GetPeerPrivResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetPeerPrivResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -640,18 +637,19 @@ export const GetPeerPrivResponse = {
 
   toJSON(message: GetPeerPrivResponse): unknown {
     const obj: any = {}
-    message.privKey !== undefined && (obj.privKey = message.privKey)
+    if (message.privKey !== '') {
+      obj.privKey = message.privKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetPeerPrivResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetPeerPrivResponse {
-    return GetPeerPrivResponse.fromPartial(base ?? {})
+    return GetPeerPrivResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetPeerPrivResponse>, I>>(
-    object: I
+    object: I,
   ): GetPeerPrivResponse {
     const message = createBaseGetPeerPrivResponse()
     message.privKey = object.privKey ?? ''
@@ -668,7 +666,7 @@ export interface AccessVolumes {
    */
   WatchVolumeInfo(
     request: WatchVolumeInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<WatchVolumeInfoResponse>
   /**
    * VolumeRpc uses the LookupVolume directive access a Volume handle.
@@ -677,7 +675,7 @@ export interface AccessVolumes {
    */
   VolumeRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -693,28 +691,28 @@ export class AccessVolumesClientImpl implements AccessVolumes {
   }
   WatchVolumeInfo(
     request: WatchVolumeInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<WatchVolumeInfoResponse> {
     const data = WatchVolumeInfoRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'WatchVolumeInfo',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return WatchVolumeInfoResponse.decodeTransform(result)
   }
 
   VolumeRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'VolumeRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -768,7 +766,7 @@ export interface ProxyVolume {
   /** GetVolumeInfo returns the basic volume information. */
   GetVolumeInfo(
     request: GetVolumeInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetVolumeInfoResponse>
   /**
    * GetPeerPriv returns the volume peer private key.
@@ -776,7 +774,7 @@ export interface ProxyVolume {
    */
   GetPeerPriv(
     request: GetPeerPrivRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetPeerPrivResponse>
 }
 
@@ -792,33 +790,33 @@ export class ProxyVolumeClientImpl implements ProxyVolume {
   }
   GetVolumeInfo(
     request: GetVolumeInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetVolumeInfoResponse> {
     const data = GetVolumeInfoRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'GetVolumeInfo',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      GetVolumeInfoResponse.decode(_m0.Reader.create(data))
+      GetVolumeInfoResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   GetPeerPriv(
     request: GetPeerPrivRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetPeerPrivResponse> {
     const data = GetPeerPrivRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'GetPeerPriv',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      GetPeerPrivResponse.decode(_m0.Reader.create(data))
+      GetPeerPrivResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -866,25 +864,25 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 

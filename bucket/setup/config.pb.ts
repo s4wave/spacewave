@@ -41,7 +41,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.applyBucketConfigs) {
       ApplyBucketConfig.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -63,7 +63,7 @@ export const Config = {
           }
 
           message.applyBucketConfigs.push(
-            ApplyBucketConfig.decode(reader, reader.uint32())
+            ApplyBucketConfig.decode(reader, reader.uint32()),
           )
           continue
       }
@@ -78,7 +78,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -96,7 +96,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -113,7 +113,7 @@ export const Config = {
     return {
       applyBucketConfigs: Array.isArray(object?.applyBucketConfigs)
         ? object.applyBucketConfigs.map((e: any) =>
-            ApplyBucketConfig.fromJSON(e)
+            ApplyBucketConfig.fromJSON(e),
           )
         : [],
     }
@@ -121,20 +121,17 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.applyBucketConfigs) {
+    if (message.applyBucketConfigs?.length) {
       obj.applyBucketConfigs = message.applyBucketConfigs.map((e) =>
-        e ? ApplyBucketConfig.toJSON(e) : undefined
+        ApplyBucketConfig.toJSON(e),
       )
-    } else {
-      obj.applyBucketConfigs = []
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.applyBucketConfigs =
@@ -151,7 +148,7 @@ function createBaseApplyBucketConfig(): ApplyBucketConfig {
 export const ApplyBucketConfig = {
   encode(
     message: ApplyBucketConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.config !== undefined) {
       Config1.encode(message.config, writer.uint32(10).fork()).ldelim()
@@ -208,7 +205,7 @@ export const ApplyBucketConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<ApplyBucketConfig | ApplyBucketConfig[]>
-      | Iterable<ApplyBucketConfig | ApplyBucketConfig[]>
+      | Iterable<ApplyBucketConfig | ApplyBucketConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -226,7 +223,7 @@ export const ApplyBucketConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -253,25 +250,25 @@ export const ApplyBucketConfig = {
 
   toJSON(message: ApplyBucketConfig): unknown {
     const obj: any = {}
-    message.config !== undefined &&
-      (obj.config = message.config ? Config1.toJSON(message.config) : undefined)
-    message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe)
-    if (message.volumeIdList) {
-      obj.volumeIdList = message.volumeIdList.map((e) => e)
-    } else {
-      obj.volumeIdList = []
+    if (message.config !== undefined) {
+      obj.config = Config1.toJSON(message.config)
+    }
+    if (message.volumeIdRe !== '') {
+      obj.volumeIdRe = message.volumeIdRe
+    }
+    if (message.volumeIdList?.length) {
+      obj.volumeIdList = message.volumeIdList
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ApplyBucketConfig>, I>>(
-    base?: I
+    base?: I,
   ): ApplyBucketConfig {
-    return ApplyBucketConfig.fromPartial(base ?? {})
+    return ApplyBucketConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfig>, I>>(
-    object: I
+    object: I,
   ): ApplyBucketConfig {
     const message = createBaseApplyBucketConfig()
     message.config =

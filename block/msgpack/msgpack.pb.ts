@@ -27,7 +27,7 @@ function createBaseMsgpackBlob(): MsgpackBlob {
 export const MsgpackBlob = {
   encode(
     message: MsgpackBlob,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blob !== undefined) {
       Blob.encode(message.blob, writer.uint32(10).fork()).ldelim()
@@ -64,7 +64,7 @@ export const MsgpackBlob = {
   async *encodeTransform(
     source:
       | AsyncIterable<MsgpackBlob | MsgpackBlob[]>
-      | Iterable<MsgpackBlob | MsgpackBlob[]>
+      | Iterable<MsgpackBlob | MsgpackBlob[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -82,7 +82,7 @@ export const MsgpackBlob = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MsgpackBlob> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -101,17 +101,17 @@ export const MsgpackBlob = {
 
   toJSON(message: MsgpackBlob): unknown {
     const obj: any = {}
-    message.blob !== undefined &&
-      (obj.blob = message.blob ? Blob.toJSON(message.blob) : undefined)
+    if (message.blob !== undefined) {
+      obj.blob = Blob.toJSON(message.blob)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MsgpackBlob>, I>>(base?: I): MsgpackBlob {
-    return MsgpackBlob.fromPartial(base ?? {})
+    return MsgpackBlob.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MsgpackBlob>, I>>(
-    object: I
+    object: I,
   ): MsgpackBlob {
     const message = createBaseMsgpackBlob()
     message.blob =

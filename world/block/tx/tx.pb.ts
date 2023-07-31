@@ -252,19 +252,19 @@ export const Tx = {
     if (message.txApplyWorldOp !== undefined) {
       TxApplyWorldOp.encode(
         message.txApplyWorldOp,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     if (message.txApplyObjectOp !== undefined) {
       TxApplyObjectOp.encode(
         message.txApplyObjectOp,
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     }
     if (message.txCreateObject !== undefined) {
       TxCreateObject.encode(
         message.txCreateObject,
-        writer.uint32(34).fork()
+        writer.uint32(34).fork(),
       ).ldelim()
     }
     if (message.txObjectSet !== undefined) {
@@ -273,25 +273,25 @@ export const Tx = {
     if (message.txObjectIncRev !== undefined) {
       TxObjectIncRev.encode(
         message.txObjectIncRev,
-        writer.uint32(50).fork()
+        writer.uint32(50).fork(),
       ).ldelim()
     }
     if (message.txDeleteObject !== undefined) {
       TxDeleteObject.encode(
         message.txDeleteObject,
-        writer.uint32(58).fork()
+        writer.uint32(58).fork(),
       ).ldelim()
     }
     if (message.txSetGraphQuad !== undefined) {
       TxSetGraphQuad.encode(
         message.txSetGraphQuad,
-        writer.uint32(66).fork()
+        writer.uint32(66).fork(),
       ).ldelim()
     }
     if (message.txDeleteGraphQuad !== undefined) {
       TxDeleteGraphQuad.encode(
         message.txDeleteGraphQuad,
-        writer.uint32(74).fork()
+        writer.uint32(74).fork(),
       ).ldelim()
     }
     if (message.txBatch !== undefined) {
@@ -322,7 +322,7 @@ export const Tx = {
 
           message.txApplyWorldOp = TxApplyWorldOp.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 3:
@@ -332,7 +332,7 @@ export const Tx = {
 
           message.txApplyObjectOp = TxApplyObjectOp.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 4:
@@ -342,7 +342,7 @@ export const Tx = {
 
           message.txCreateObject = TxCreateObject.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 5:
@@ -359,7 +359,7 @@ export const Tx = {
 
           message.txObjectIncRev = TxObjectIncRev.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 7:
@@ -369,7 +369,7 @@ export const Tx = {
 
           message.txDeleteObject = TxDeleteObject.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 8:
@@ -379,7 +379,7 @@ export const Tx = {
 
           message.txSetGraphQuad = TxSetGraphQuad.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 9:
@@ -389,7 +389,7 @@ export const Tx = {
 
           message.txDeleteGraphQuad = TxDeleteGraphQuad.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 10:
@@ -411,7 +411,7 @@ export const Tx = {
   // encodeTransform encodes a source of message objects.
   // Transform<Tx, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>
+    source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -429,7 +429,7 @@ export const Tx = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tx> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -477,50 +477,44 @@ export const Tx = {
 
   toJSON(message: Tx): unknown {
     const obj: any = {}
-    message.txType !== undefined && (obj.txType = txTypeToJSON(message.txType))
-    message.txApplyWorldOp !== undefined &&
-      (obj.txApplyWorldOp = message.txApplyWorldOp
-        ? TxApplyWorldOp.toJSON(message.txApplyWorldOp)
-        : undefined)
-    message.txApplyObjectOp !== undefined &&
-      (obj.txApplyObjectOp = message.txApplyObjectOp
-        ? TxApplyObjectOp.toJSON(message.txApplyObjectOp)
-        : undefined)
-    message.txCreateObject !== undefined &&
-      (obj.txCreateObject = message.txCreateObject
-        ? TxCreateObject.toJSON(message.txCreateObject)
-        : undefined)
-    message.txObjectSet !== undefined &&
-      (obj.txObjectSet = message.txObjectSet
-        ? TxObjectSet.toJSON(message.txObjectSet)
-        : undefined)
-    message.txObjectIncRev !== undefined &&
-      (obj.txObjectIncRev = message.txObjectIncRev
-        ? TxObjectIncRev.toJSON(message.txObjectIncRev)
-        : undefined)
-    message.txDeleteObject !== undefined &&
-      (obj.txDeleteObject = message.txDeleteObject
-        ? TxDeleteObject.toJSON(message.txDeleteObject)
-        : undefined)
-    message.txSetGraphQuad !== undefined &&
-      (obj.txSetGraphQuad = message.txSetGraphQuad
-        ? TxSetGraphQuad.toJSON(message.txSetGraphQuad)
-        : undefined)
-    message.txDeleteGraphQuad !== undefined &&
-      (obj.txDeleteGraphQuad = message.txDeleteGraphQuad
-        ? TxDeleteGraphQuad.toJSON(message.txDeleteGraphQuad)
-        : undefined)
-    message.txBatch !== undefined &&
-      (obj.txBatch = message.txBatch
-        ? TxBatch.toJSON(message.txBatch)
-        : undefined)
+    if (message.txType !== 0) {
+      obj.txType = txTypeToJSON(message.txType)
+    }
+    if (message.txApplyWorldOp !== undefined) {
+      obj.txApplyWorldOp = TxApplyWorldOp.toJSON(message.txApplyWorldOp)
+    }
+    if (message.txApplyObjectOp !== undefined) {
+      obj.txApplyObjectOp = TxApplyObjectOp.toJSON(message.txApplyObjectOp)
+    }
+    if (message.txCreateObject !== undefined) {
+      obj.txCreateObject = TxCreateObject.toJSON(message.txCreateObject)
+    }
+    if (message.txObjectSet !== undefined) {
+      obj.txObjectSet = TxObjectSet.toJSON(message.txObjectSet)
+    }
+    if (message.txObjectIncRev !== undefined) {
+      obj.txObjectIncRev = TxObjectIncRev.toJSON(message.txObjectIncRev)
+    }
+    if (message.txDeleteObject !== undefined) {
+      obj.txDeleteObject = TxDeleteObject.toJSON(message.txDeleteObject)
+    }
+    if (message.txSetGraphQuad !== undefined) {
+      obj.txSetGraphQuad = TxSetGraphQuad.toJSON(message.txSetGraphQuad)
+    }
+    if (message.txDeleteGraphQuad !== undefined) {
+      obj.txDeleteGraphQuad = TxDeleteGraphQuad.toJSON(
+        message.txDeleteGraphQuad,
+      )
+    }
+    if (message.txBatch !== undefined) {
+      obj.txBatch = TxBatch.toJSON(message.txBatch)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
-    return Tx.fromPartial(base ?? {})
+    return Tx.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx()
     message.txType = object.txType ?? 0
@@ -572,7 +566,7 @@ function createBaseTxBatch(): TxBatch {
 export const TxBatch = {
   encode(
     message: TxBatch,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.txs) {
       Tx.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -607,7 +601,7 @@ export const TxBatch = {
   // encodeTransform encodes a source of message objects.
   // Transform<TxBatch, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<TxBatch | TxBatch[]> | Iterable<TxBatch | TxBatch[]>
+    source: AsyncIterable<TxBatch | TxBatch[]> | Iterable<TxBatch | TxBatch[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -625,7 +619,7 @@ export const TxBatch = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxBatch> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -648,18 +642,15 @@ export const TxBatch = {
 
   toJSON(message: TxBatch): unknown {
     const obj: any = {}
-    if (message.txs) {
-      obj.txs = message.txs.map((e) => (e ? Tx.toJSON(e) : undefined))
-    } else {
-      obj.txs = []
+    if (message.txs?.length) {
+      obj.txs = message.txs.map((e) => Tx.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxBatch>, I>>(base?: I): TxBatch {
-    return TxBatch.fromPartial(base ?? {})
+    return TxBatch.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxBatch>, I>>(object: I): TxBatch {
     const message = createBaseTxBatch()
     message.txs = object.txs?.map((e) => Tx.fromPartial(e)) || []
@@ -674,7 +665,7 @@ function createBaseTxApplyWorldOp(): TxApplyWorldOp {
 export const TxApplyWorldOp = {
   encode(
     message: TxApplyWorldOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.operationTypeId !== '') {
       writer.uint32(10).string(message.operationTypeId)
@@ -721,7 +712,7 @@ export const TxApplyWorldOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxApplyWorldOp | TxApplyWorldOp[]>
-      | Iterable<TxApplyWorldOp | TxApplyWorldOp[]>
+      | Iterable<TxApplyWorldOp | TxApplyWorldOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -739,7 +730,7 @@ export const TxApplyWorldOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxApplyWorldOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -765,25 +756,22 @@ export const TxApplyWorldOp = {
 
   toJSON(message: TxApplyWorldOp): unknown {
     const obj: any = {}
-    message.operationTypeId !== undefined &&
-      (obj.operationTypeId = message.operationTypeId)
-    message.operationBody !== undefined &&
-      (obj.operationBody = base64FromBytes(
-        message.operationBody !== undefined
-          ? message.operationBody
-          : new Uint8Array(0)
-      ))
+    if (message.operationTypeId !== '') {
+      obj.operationTypeId = message.operationTypeId
+    }
+    if (message.operationBody.length !== 0) {
+      obj.operationBody = base64FromBytes(message.operationBody)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxApplyWorldOp>, I>>(
-    base?: I
+    base?: I,
   ): TxApplyWorldOp {
-    return TxApplyWorldOp.fromPartial(base ?? {})
+    return TxApplyWorldOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxApplyWorldOp>, I>>(
-    object: I
+    object: I,
   ): TxApplyWorldOp {
     const message = createBaseTxApplyWorldOp()
     message.operationTypeId = object.operationTypeId ?? ''
@@ -803,7 +791,7 @@ function createBaseTxApplyObjectOp(): TxApplyObjectOp {
 export const TxApplyObjectOp = {
   encode(
     message: TxApplyObjectOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.operationTypeId !== '') {
       writer.uint32(10).string(message.operationTypeId)
@@ -860,7 +848,7 @@ export const TxApplyObjectOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxApplyObjectOp | TxApplyObjectOp[]>
-      | Iterable<TxApplyObjectOp | TxApplyObjectOp[]>
+      | Iterable<TxApplyObjectOp | TxApplyObjectOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -878,7 +866,7 @@ export const TxApplyObjectOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxApplyObjectOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -905,26 +893,25 @@ export const TxApplyObjectOp = {
 
   toJSON(message: TxApplyObjectOp): unknown {
     const obj: any = {}
-    message.operationTypeId !== undefined &&
-      (obj.operationTypeId = message.operationTypeId)
-    message.operationBody !== undefined &&
-      (obj.operationBody = base64FromBytes(
-        message.operationBody !== undefined
-          ? message.operationBody
-          : new Uint8Array(0)
-      ))
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
+    if (message.operationTypeId !== '') {
+      obj.operationTypeId = message.operationTypeId
+    }
+    if (message.operationBody.length !== 0) {
+      obj.operationBody = base64FromBytes(message.operationBody)
+    }
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxApplyObjectOp>, I>>(
-    base?: I
+    base?: I,
   ): TxApplyObjectOp {
-    return TxApplyObjectOp.fromPartial(base ?? {})
+    return TxApplyObjectOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxApplyObjectOp>, I>>(
-    object: I
+    object: I,
   ): TxApplyObjectOp {
     const message = createBaseTxApplyObjectOp()
     message.operationTypeId = object.operationTypeId ?? ''
@@ -941,7 +928,7 @@ function createBaseTxCreateObject(): TxCreateObject {
 export const TxCreateObject = {
   encode(
     message: TxCreateObject,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -988,7 +975,7 @@ export const TxCreateObject = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxCreateObject | TxCreateObject[]>
-      | Iterable<TxCreateObject | TxCreateObject[]>
+      | Iterable<TxCreateObject | TxCreateObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1006,7 +993,7 @@ export const TxCreateObject = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxCreateObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1030,22 +1017,22 @@ export const TxCreateObject = {
 
   toJSON(message: TxCreateObject): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.rootRef !== undefined &&
-      (obj.rootRef = message.rootRef
-        ? ObjectRef.toJSON(message.rootRef)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.rootRef !== undefined) {
+      obj.rootRef = ObjectRef.toJSON(message.rootRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxCreateObject>, I>>(
-    base?: I
+    base?: I,
   ): TxCreateObject {
-    return TxCreateObject.fromPartial(base ?? {})
+    return TxCreateObject.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxCreateObject>, I>>(
-    object: I
+    object: I,
   ): TxCreateObject {
     const message = createBaseTxCreateObject()
     message.objectKey = object.objectKey ?? ''
@@ -1064,7 +1051,7 @@ function createBaseTxObjectSet(): TxObjectSet {
 export const TxObjectSet = {
   encode(
     message: TxObjectSet,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1111,7 +1098,7 @@ export const TxObjectSet = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxObjectSet | TxObjectSet[]>
-      | Iterable<TxObjectSet | TxObjectSet[]>
+      | Iterable<TxObjectSet | TxObjectSet[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1129,7 +1116,7 @@ export const TxObjectSet = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxObjectSet> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1153,20 +1140,20 @@ export const TxObjectSet = {
 
   toJSON(message: TxObjectSet): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.rootRef !== undefined &&
-      (obj.rootRef = message.rootRef
-        ? ObjectRef.toJSON(message.rootRef)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.rootRef !== undefined) {
+      obj.rootRef = ObjectRef.toJSON(message.rootRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxObjectSet>, I>>(base?: I): TxObjectSet {
-    return TxObjectSet.fromPartial(base ?? {})
+    return TxObjectSet.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxObjectSet>, I>>(
-    object: I
+    object: I,
   ): TxObjectSet {
     const message = createBaseTxObjectSet()
     message.objectKey = object.objectKey ?? ''
@@ -1185,7 +1172,7 @@ function createBaseTxObjectIncRev(): TxObjectIncRev {
 export const TxObjectIncRev = {
   encode(
     message: TxObjectIncRev,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1222,7 +1209,7 @@ export const TxObjectIncRev = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxObjectIncRev | TxObjectIncRev[]>
-      | Iterable<TxObjectIncRev | TxObjectIncRev[]>
+      | Iterable<TxObjectIncRev | TxObjectIncRev[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1240,7 +1227,7 @@ export const TxObjectIncRev = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxObjectIncRev> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1261,18 +1248,19 @@ export const TxObjectIncRev = {
 
   toJSON(message: TxObjectIncRev): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxObjectIncRev>, I>>(
-    base?: I
+    base?: I,
   ): TxObjectIncRev {
-    return TxObjectIncRev.fromPartial(base ?? {})
+    return TxObjectIncRev.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxObjectIncRev>, I>>(
-    object: I
+    object: I,
   ): TxObjectIncRev {
     const message = createBaseTxObjectIncRev()
     message.objectKey = object.objectKey ?? ''
@@ -1287,7 +1275,7 @@ function createBaseTxDeleteObject(): TxDeleteObject {
 export const TxDeleteObject = {
   encode(
     message: TxDeleteObject,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1334,7 +1322,7 @@ export const TxDeleteObject = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxDeleteObject | TxDeleteObject[]>
-      | Iterable<TxDeleteObject | TxDeleteObject[]>
+      | Iterable<TxDeleteObject | TxDeleteObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1352,7 +1340,7 @@ export const TxDeleteObject = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxDeleteObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1376,20 +1364,22 @@ export const TxDeleteObject = {
 
   toJSON(message: TxDeleteObject): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.failIfNotFound !== undefined &&
-      (obj.failIfNotFound = message.failIfNotFound)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.failIfNotFound === true) {
+      obj.failIfNotFound = message.failIfNotFound
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxDeleteObject>, I>>(
-    base?: I
+    base?: I,
   ): TxDeleteObject {
-    return TxDeleteObject.fromPartial(base ?? {})
+    return TxDeleteObject.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxDeleteObject>, I>>(
-    object: I
+    object: I,
   ): TxDeleteObject {
     const message = createBaseTxDeleteObject()
     message.objectKey = object.objectKey ?? ''
@@ -1405,7 +1395,7 @@ function createBaseTxSetGraphQuad(): TxSetGraphQuad {
 export const TxSetGraphQuad = {
   encode(
     message: TxSetGraphQuad,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.quad !== undefined) {
       Quad.encode(message.quad, writer.uint32(10).fork()).ldelim()
@@ -1442,7 +1432,7 @@ export const TxSetGraphQuad = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxSetGraphQuad | TxSetGraphQuad[]>
-      | Iterable<TxSetGraphQuad | TxSetGraphQuad[]>
+      | Iterable<TxSetGraphQuad | TxSetGraphQuad[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1460,7 +1450,7 @@ export const TxSetGraphQuad = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxSetGraphQuad> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1479,19 +1469,19 @@ export const TxSetGraphQuad = {
 
   toJSON(message: TxSetGraphQuad): unknown {
     const obj: any = {}
-    message.quad !== undefined &&
-      (obj.quad = message.quad ? Quad.toJSON(message.quad) : undefined)
+    if (message.quad !== undefined) {
+      obj.quad = Quad.toJSON(message.quad)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxSetGraphQuad>, I>>(
-    base?: I
+    base?: I,
   ): TxSetGraphQuad {
-    return TxSetGraphQuad.fromPartial(base ?? {})
+    return TxSetGraphQuad.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxSetGraphQuad>, I>>(
-    object: I
+    object: I,
   ): TxSetGraphQuad {
     const message = createBaseTxSetGraphQuad()
     message.quad =
@@ -1509,7 +1499,7 @@ function createBaseTxDeleteGraphQuad(): TxDeleteGraphQuad {
 export const TxDeleteGraphQuad = {
   encode(
     message: TxDeleteGraphQuad,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.quad !== undefined) {
       Quad.encode(message.quad, writer.uint32(10).fork()).ldelim()
@@ -1546,7 +1536,7 @@ export const TxDeleteGraphQuad = {
   async *encodeTransform(
     source:
       | AsyncIterable<TxDeleteGraphQuad | TxDeleteGraphQuad[]>
-      | Iterable<TxDeleteGraphQuad | TxDeleteGraphQuad[]>
+      | Iterable<TxDeleteGraphQuad | TxDeleteGraphQuad[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1564,7 +1554,7 @@ export const TxDeleteGraphQuad = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxDeleteGraphQuad> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1583,19 +1573,19 @@ export const TxDeleteGraphQuad = {
 
   toJSON(message: TxDeleteGraphQuad): unknown {
     const obj: any = {}
-    message.quad !== undefined &&
-      (obj.quad = message.quad ? Quad.toJSON(message.quad) : undefined)
+    if (message.quad !== undefined) {
+      obj.quad = Quad.toJSON(message.quad)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TxDeleteGraphQuad>, I>>(
-    base?: I
+    base?: I,
   ): TxDeleteGraphQuad {
-    return TxDeleteGraphQuad.fromPartial(base ?? {})
+    return TxDeleteGraphQuad.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxDeleteGraphQuad>, I>>(
-    object: I
+    object: I,
   ): TxDeleteGraphQuad {
     const message = createBaseTxDeleteGraphQuad()
     message.quad =
@@ -1606,10 +1596,10 @@ export const TxDeleteGraphQuad = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

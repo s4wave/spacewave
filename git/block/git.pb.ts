@@ -464,25 +464,25 @@ export const Repo = {
     if (message.referencesStore !== undefined) {
       ReferencesStore.encode(
         message.referencesStore,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     if (message.moduleReferencesStore !== undefined) {
       ModuleReferencesStore.encode(
         message.moduleReferencesStore,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     if (message.encodedObjectStore !== undefined) {
       EncodedObjectStore.encode(
         message.encodedObjectStore,
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     }
     if (message.shallowRefsStoreRef !== undefined) {
       BlockRef.encode(
         message.shallowRefsStoreRef,
-        writer.uint32(34).fork()
+        writer.uint32(34).fork(),
       ).ldelim()
     }
     if (message.gitConfig !== '') {
@@ -506,7 +506,7 @@ export const Repo = {
 
           message.referencesStore = ReferencesStore.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 2:
@@ -516,7 +516,7 @@ export const Repo = {
 
           message.moduleReferencesStore = ModuleReferencesStore.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 3:
@@ -526,7 +526,7 @@ export const Repo = {
 
           message.encodedObjectStore = EncodedObjectStore.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 4:
@@ -555,7 +555,7 @@ export const Repo = {
   // encodeTransform encodes a source of message objects.
   // Transform<Repo, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Repo | Repo[]> | Iterable<Repo | Repo[]>
+    source: AsyncIterable<Repo | Repo[]> | Iterable<Repo | Repo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -573,7 +573,7 @@ export const Repo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Repo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -606,30 +606,31 @@ export const Repo = {
 
   toJSON(message: Repo): unknown {
     const obj: any = {}
-    message.referencesStore !== undefined &&
-      (obj.referencesStore = message.referencesStore
-        ? ReferencesStore.toJSON(message.referencesStore)
-        : undefined)
-    message.moduleReferencesStore !== undefined &&
-      (obj.moduleReferencesStore = message.moduleReferencesStore
-        ? ModuleReferencesStore.toJSON(message.moduleReferencesStore)
-        : undefined)
-    message.encodedObjectStore !== undefined &&
-      (obj.encodedObjectStore = message.encodedObjectStore
-        ? EncodedObjectStore.toJSON(message.encodedObjectStore)
-        : undefined)
-    message.shallowRefsStoreRef !== undefined &&
-      (obj.shallowRefsStoreRef = message.shallowRefsStoreRef
-        ? BlockRef.toJSON(message.shallowRefsStoreRef)
-        : undefined)
-    message.gitConfig !== undefined && (obj.gitConfig = message.gitConfig)
+    if (message.referencesStore !== undefined) {
+      obj.referencesStore = ReferencesStore.toJSON(message.referencesStore)
+    }
+    if (message.moduleReferencesStore !== undefined) {
+      obj.moduleReferencesStore = ModuleReferencesStore.toJSON(
+        message.moduleReferencesStore,
+      )
+    }
+    if (message.encodedObjectStore !== undefined) {
+      obj.encodedObjectStore = EncodedObjectStore.toJSON(
+        message.encodedObjectStore,
+      )
+    }
+    if (message.shallowRefsStoreRef !== undefined) {
+      obj.shallowRefsStoreRef = BlockRef.toJSON(message.shallowRefsStoreRef)
+    }
+    if (message.gitConfig !== '') {
+      obj.gitConfig = message.gitConfig
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Repo>, I>>(base?: I): Repo {
-    return Repo.fromPartial(base ?? {})
+    return Repo.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Repo>, I>>(object: I): Repo {
     const message = createBaseRepo()
     message.referencesStore =
@@ -663,7 +664,7 @@ function createBaseEncodedObjectStore(): EncodedObjectStore {
 export const EncodedObjectStore = {
   encode(
     message: EncodedObjectStore,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.kvtxRoot !== undefined) {
       KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim()
@@ -710,7 +711,7 @@ export const EncodedObjectStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<EncodedObjectStore | EncodedObjectStore[]>
-      | Iterable<EncodedObjectStore | EncodedObjectStore[]>
+      | Iterable<EncodedObjectStore | EncodedObjectStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -728,7 +729,7 @@ export const EncodedObjectStore = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EncodedObjectStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -754,25 +755,22 @@ export const EncodedObjectStore = {
 
   toJSON(message: EncodedObjectStore): unknown {
     const obj: any = {}
-    message.kvtxRoot !== undefined &&
-      (obj.kvtxRoot = message.kvtxRoot
-        ? KeyValueStore.toJSON(message.kvtxRoot)
-        : undefined)
-    message.chunkerArgs !== undefined &&
-      (obj.chunkerArgs = message.chunkerArgs
-        ? ChunkerArgs.toJSON(message.chunkerArgs)
-        : undefined)
+    if (message.kvtxRoot !== undefined) {
+      obj.kvtxRoot = KeyValueStore.toJSON(message.kvtxRoot)
+    }
+    if (message.chunkerArgs !== undefined) {
+      obj.chunkerArgs = ChunkerArgs.toJSON(message.chunkerArgs)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<EncodedObjectStore>, I>>(
-    base?: I
+    base?: I,
   ): EncodedObjectStore {
-    return EncodedObjectStore.fromPartial(base ?? {})
+    return EncodedObjectStore.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<EncodedObjectStore>, I>>(
-    object: I
+    object: I,
   ): EncodedObjectStore {
     const message = createBaseEncodedObjectStore()
     message.kvtxRoot =
@@ -794,7 +792,7 @@ function createBaseReferencesStore(): ReferencesStore {
 export const ReferencesStore = {
   encode(
     message: ReferencesStore,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.kvtxRoot !== undefined) {
       KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim()
@@ -831,7 +829,7 @@ export const ReferencesStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<ReferencesStore | ReferencesStore[]>
-      | Iterable<ReferencesStore | ReferencesStore[]>
+      | Iterable<ReferencesStore | ReferencesStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -849,7 +847,7 @@ export const ReferencesStore = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ReferencesStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -872,21 +870,19 @@ export const ReferencesStore = {
 
   toJSON(message: ReferencesStore): unknown {
     const obj: any = {}
-    message.kvtxRoot !== undefined &&
-      (obj.kvtxRoot = message.kvtxRoot
-        ? KeyValueStore.toJSON(message.kvtxRoot)
-        : undefined)
+    if (message.kvtxRoot !== undefined) {
+      obj.kvtxRoot = KeyValueStore.toJSON(message.kvtxRoot)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ReferencesStore>, I>>(
-    base?: I
+    base?: I,
   ): ReferencesStore {
-    return ReferencesStore.fromPartial(base ?? {})
+    return ReferencesStore.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ReferencesStore>, I>>(
-    object: I
+    object: I,
   ): ReferencesStore {
     const message = createBaseReferencesStore()
     message.kvtxRoot =
@@ -904,7 +900,7 @@ function createBaseModuleReferencesStore(): ModuleReferencesStore {
 export const ModuleReferencesStore = {
   encode(
     message: ModuleReferencesStore,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.kvtxRoot !== undefined) {
       KeyValueStore.encode(message.kvtxRoot, writer.uint32(10).fork()).ldelim()
@@ -914,7 +910,7 @@ export const ModuleReferencesStore = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ModuleReferencesStore {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -944,7 +940,7 @@ export const ModuleReferencesStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<ModuleReferencesStore | ModuleReferencesStore[]>
-      | Iterable<ModuleReferencesStore | ModuleReferencesStore[]>
+      | Iterable<ModuleReferencesStore | ModuleReferencesStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -962,7 +958,7 @@ export const ModuleReferencesStore = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ModuleReferencesStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -985,21 +981,19 @@ export const ModuleReferencesStore = {
 
   toJSON(message: ModuleReferencesStore): unknown {
     const obj: any = {}
-    message.kvtxRoot !== undefined &&
-      (obj.kvtxRoot = message.kvtxRoot
-        ? KeyValueStore.toJSON(message.kvtxRoot)
-        : undefined)
+    if (message.kvtxRoot !== undefined) {
+      obj.kvtxRoot = KeyValueStore.toJSON(message.kvtxRoot)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ModuleReferencesStore>, I>>(
-    base?: I
+    base?: I,
   ): ModuleReferencesStore {
-    return ModuleReferencesStore.fromPartial(base ?? {})
+    return ModuleReferencesStore.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ModuleReferencesStore>, I>>(
-    object: I
+    object: I,
   ): ModuleReferencesStore {
     const message = createBaseModuleReferencesStore()
     message.kvtxRoot =
@@ -1017,7 +1011,7 @@ function createBaseShallowRefsStore(): ShallowRefsStore {
 export const ShallowRefsStore = {
   encode(
     message: ShallowRefsStore,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.shallowRefs) {
       Hash.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -1054,7 +1048,7 @@ export const ShallowRefsStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<ShallowRefsStore | ShallowRefsStore[]>
-      | Iterable<ShallowRefsStore | ShallowRefsStore[]>
+      | Iterable<ShallowRefsStore | ShallowRefsStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1072,7 +1066,7 @@ export const ShallowRefsStore = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ShallowRefsStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1095,24 +1089,19 @@ export const ShallowRefsStore = {
 
   toJSON(message: ShallowRefsStore): unknown {
     const obj: any = {}
-    if (message.shallowRefs) {
-      obj.shallowRefs = message.shallowRefs.map((e) =>
-        e ? Hash.toJSON(e) : undefined
-      )
-    } else {
-      obj.shallowRefs = []
+    if (message.shallowRefs?.length) {
+      obj.shallowRefs = message.shallowRefs.map((e) => Hash.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ShallowRefsStore>, I>>(
-    base?: I
+    base?: I,
   ): ShallowRefsStore {
-    return ShallowRefsStore.fromPartial(base ?? {})
+    return ShallowRefsStore.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ShallowRefsStore>, I>>(
-    object: I
+    object: I,
   ): ShallowRefsStore {
     const message = createBaseShallowRefsStore()
     message.shallowRefs =
@@ -1128,7 +1117,7 @@ function createBaseSubmodule(): Submodule {
 export const Submodule = {
   encode(
     message: Submodule,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -1175,7 +1164,7 @@ export const Submodule = {
   async *encodeTransform(
     source:
       | AsyncIterable<Submodule | Submodule[]>
-      | Iterable<Submodule | Submodule[]>
+      | Iterable<Submodule | Submodule[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1193,7 +1182,7 @@ export const Submodule = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Submodule> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1217,20 +1206,20 @@ export const Submodule = {
 
   toJSON(message: Submodule): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.repoRef !== undefined &&
-      (obj.repoRef = message.repoRef
-        ? BlockRef.toJSON(message.repoRef)
-        : undefined)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.repoRef !== undefined) {
+      obj.repoRef = BlockRef.toJSON(message.repoRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Submodule>, I>>(base?: I): Submodule {
-    return Submodule.fromPartial(base ?? {})
+    return Submodule.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Submodule>, I>>(
-    object: I
+    object: I,
   ): Submodule {
     const message = createBaseSubmodule()
     message.name = object.name ?? ''
@@ -1254,7 +1243,7 @@ function createBaseReference(): Reference {
 export const Reference = {
   encode(
     message: Reference,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -1321,7 +1310,7 @@ export const Reference = {
   async *encodeTransform(
     source:
       | AsyncIterable<Reference | Reference[]>
-      | Iterable<Reference | Reference[]>
+      | Iterable<Reference | Reference[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1339,7 +1328,7 @@ export const Reference = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Reference> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1367,22 +1356,26 @@ export const Reference = {
 
   toJSON(message: Reference): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.referenceType !== undefined &&
-      (obj.referenceType = referenceTypeToJSON(message.referenceType))
-    message.hash !== undefined &&
-      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
-    message.targetReferenceName !== undefined &&
-      (obj.targetReferenceName = message.targetReferenceName)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.referenceType !== 0) {
+      obj.referenceType = referenceTypeToJSON(message.referenceType)
+    }
+    if (message.hash !== undefined) {
+      obj.hash = Hash.toJSON(message.hash)
+    }
+    if (message.targetReferenceName !== '') {
+      obj.targetReferenceName = message.targetReferenceName
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Reference>, I>>(base?: I): Reference {
-    return Reference.fromPartial(base ?? {})
+    return Reference.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Reference>, I>>(
-    object: I
+    object: I,
   ): Reference {
     const message = createBaseReference()
     message.name = object.name ?? ''
@@ -1403,7 +1396,7 @@ function createBaseEncodedObject(): EncodedObject {
 export const EncodedObject = {
   encode(
     message: EncodedObject,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.dataBlob !== undefined) {
       Blob.encode(message.dataBlob, writer.uint32(10).fork()).ldelim()
@@ -1460,7 +1453,7 @@ export const EncodedObject = {
   async *encodeTransform(
     source:
       | AsyncIterable<EncodedObject | EncodedObject[]>
-      | Iterable<EncodedObject | EncodedObject[]>
+      | Iterable<EncodedObject | EncodedObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1478,7 +1471,7 @@ export const EncodedObject = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EncodedObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1507,29 +1500,25 @@ export const EncodedObject = {
 
   toJSON(message: EncodedObject): unknown {
     const obj: any = {}
-    message.dataBlob !== undefined &&
-      (obj.dataBlob = message.dataBlob
-        ? Blob.toJSON(message.dataBlob)
-        : undefined)
-    message.dataHash !== undefined &&
-      (obj.dataHash = message.dataHash
-        ? Hash.toJSON(message.dataHash)
-        : undefined)
-    message.encodedObjectType !== undefined &&
-      (obj.encodedObjectType = encodedObjectTypeToJSON(
-        message.encodedObjectType
-      ))
+    if (message.dataBlob !== undefined) {
+      obj.dataBlob = Blob.toJSON(message.dataBlob)
+    }
+    if (message.dataHash !== undefined) {
+      obj.dataHash = Hash.toJSON(message.dataHash)
+    }
+    if (message.encodedObjectType !== 0) {
+      obj.encodedObjectType = encodedObjectTypeToJSON(message.encodedObjectType)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<EncodedObject>, I>>(
-    base?: I
+    base?: I,
   ): EncodedObject {
-    return EncodedObject.fromPartial(base ?? {})
+    return EncodedObject.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<EncodedObject>, I>>(
-    object: I
+    object: I,
   ): EncodedObject {
     const message = createBaseEncodedObject()
     message.dataBlob =
@@ -1572,7 +1561,7 @@ export const Index = {
     if (message.endOfIndexEntry !== undefined) {
       EndOfIndexEntry.encode(
         message.endOfIndexEntry,
-        writer.uint32(42).fork()
+        writer.uint32(42).fork(),
       ).ldelim()
     }
     return writer
@@ -1621,7 +1610,7 @@ export const Index = {
 
           message.endOfIndexEntry = EndOfIndexEntry.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
       }
@@ -1636,7 +1625,7 @@ export const Index = {
   // encodeTransform encodes a source of message objects.
   // Transform<Index, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Index | Index[]> | Iterable<Index | Index[]>
+    source: AsyncIterable<Index | Index[]> | Iterable<Index | Index[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1654,7 +1643,7 @@ export const Index = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Index> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1685,31 +1674,27 @@ export const Index = {
 
   toJSON(message: Index): unknown {
     const obj: any = {}
-    message.version !== undefined && (obj.version = Math.round(message.version))
-    if (message.entries) {
-      obj.entries = message.entries.map((e) =>
-        e ? IndexEntry.toJSON(e) : undefined
-      )
-    } else {
-      obj.entries = []
+    if (message.version !== 0) {
+      obj.version = Math.round(message.version)
     }
-    message.cache !== undefined &&
-      (obj.cache = message.cache ? Tree.toJSON(message.cache) : undefined)
-    message.resolveUndo !== undefined &&
-      (obj.resolveUndo = message.resolveUndo
-        ? ResolveUndo.toJSON(message.resolveUndo)
-        : undefined)
-    message.endOfIndexEntry !== undefined &&
-      (obj.endOfIndexEntry = message.endOfIndexEntry
-        ? EndOfIndexEntry.toJSON(message.endOfIndexEntry)
-        : undefined)
+    if (message.entries?.length) {
+      obj.entries = message.entries.map((e) => IndexEntry.toJSON(e))
+    }
+    if (message.cache !== undefined) {
+      obj.cache = Tree.toJSON(message.cache)
+    }
+    if (message.resolveUndo !== undefined) {
+      obj.resolveUndo = ResolveUndo.toJSON(message.resolveUndo)
+    }
+    if (message.endOfIndexEntry !== undefined) {
+      obj.endOfIndexEntry = EndOfIndexEntry.toJSON(message.endOfIndexEntry)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Index>, I>>(base?: I): Index {
-    return Index.fromPartial(base ?? {})
+    return Index.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Index>, I>>(object: I): Index {
     const message = createBaseIndex()
     message.version = object.version ?? 0
@@ -1770,7 +1755,7 @@ export const Tree = {
   // encodeTransform encodes a source of message objects.
   // Transform<Tree, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Tree | Tree[]> | Iterable<Tree | Tree[]>
+    source: AsyncIterable<Tree | Tree[]> | Iterable<Tree | Tree[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1788,7 +1773,7 @@ export const Tree = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tree> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1811,20 +1796,15 @@ export const Tree = {
 
   toJSON(message: Tree): unknown {
     const obj: any = {}
-    if (message.entries) {
-      obj.entries = message.entries.map((e) =>
-        e ? TreeEntry.toJSON(e) : undefined
-      )
-    } else {
-      obj.entries = []
+    if (message.entries?.length) {
+      obj.entries = message.entries.map((e) => TreeEntry.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Tree>, I>>(base?: I): Tree {
-    return Tree.fromPartial(base ?? {})
+    return Tree.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Tree>, I>>(object: I): Tree {
     const message = createBaseTree()
     message.entries = object.entries?.map((e) => TreeEntry.fromPartial(e)) || []
@@ -1839,7 +1819,7 @@ function createBaseTreeEntry(): TreeEntry {
 export const TreeEntry = {
   encode(
     message: TreeEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.path !== '') {
       writer.uint32(10).string(message.path)
@@ -1906,7 +1886,7 @@ export const TreeEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<TreeEntry | TreeEntry[]>
-      | Iterable<TreeEntry | TreeEntry[]>
+      | Iterable<TreeEntry | TreeEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1924,7 +1904,7 @@ export const TreeEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TreeEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1948,20 +1928,26 @@ export const TreeEntry = {
 
   toJSON(message: TreeEntry): unknown {
     const obj: any = {}
-    message.path !== undefined && (obj.path = message.path)
-    message.entries !== undefined && (obj.entries = Math.round(message.entries))
-    message.trees !== undefined && (obj.trees = Math.round(message.trees))
-    message.hash !== undefined &&
-      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
+    if (message.path !== '') {
+      obj.path = message.path
+    }
+    if (message.entries !== 0) {
+      obj.entries = Math.round(message.entries)
+    }
+    if (message.trees !== 0) {
+      obj.trees = Math.round(message.trees)
+    }
+    if (message.hash !== undefined) {
+      obj.hash = Hash.toJSON(message.hash)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TreeEntry>, I>>(base?: I): TreeEntry {
-    return TreeEntry.fromPartial(base ?? {})
+    return TreeEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TreeEntry>, I>>(
-    object: I
+    object: I,
   ): TreeEntry {
     const message = createBaseTreeEntry()
     message.path = object.path ?? ''
@@ -1982,7 +1968,7 @@ function createBaseResolveUndo(): ResolveUndo {
 export const ResolveUndo = {
   encode(
     message: ResolveUndo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.entries) {
       ResolveUndoEntry.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -2019,7 +2005,7 @@ export const ResolveUndo = {
   async *encodeTransform(
     source:
       | AsyncIterable<ResolveUndo | ResolveUndo[]>
-      | Iterable<ResolveUndo | ResolveUndo[]>
+      | Iterable<ResolveUndo | ResolveUndo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2037,7 +2023,7 @@ export const ResolveUndo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResolveUndo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2060,22 +2046,17 @@ export const ResolveUndo = {
 
   toJSON(message: ResolveUndo): unknown {
     const obj: any = {}
-    if (message.entries) {
-      obj.entries = message.entries.map((e) =>
-        e ? ResolveUndoEntry.toJSON(e) : undefined
-      )
-    } else {
-      obj.entries = []
+    if (message.entries?.length) {
+      obj.entries = message.entries.map((e) => ResolveUndoEntry.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ResolveUndo>, I>>(base?: I): ResolveUndo {
-    return ResolveUndo.fromPartial(base ?? {})
+    return ResolveUndo.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ResolveUndo>, I>>(
-    object: I
+    object: I,
   ): ResolveUndo {
     const message = createBaseResolveUndo()
     message.entries =
@@ -2091,7 +2072,7 @@ function createBaseResolveUndoEntry(): ResolveUndoEntry {
 export const ResolveUndoEntry = {
   encode(
     message: ResolveUndoEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.path !== '') {
       writer.uint32(10).string(message.path)
@@ -2099,7 +2080,7 @@ export const ResolveUndoEntry = {
     Object.entries(message.stages).forEach(([key, value]) => {
       ResolveUndoEntry_StagesEntry.encode(
         { key: key as any, value },
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     })
     return writer
@@ -2127,7 +2108,7 @@ export const ResolveUndoEntry = {
 
           const entry2 = ResolveUndoEntry_StagesEntry.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           if (entry2.value !== undefined) {
             message.stages[entry2.key] = entry2.value
@@ -2147,7 +2128,7 @@ export const ResolveUndoEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<ResolveUndoEntry | ResolveUndoEntry[]>
-      | Iterable<ResolveUndoEntry | ResolveUndoEntry[]>
+      | Iterable<ResolveUndoEntry | ResolveUndoEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2165,7 +2146,7 @@ export const ResolveUndoEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResolveUndoEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2187,7 +2168,7 @@ export const ResolveUndoEntry = {
               acc[Number(key)] = Hash.fromJSON(value)
               return acc
             },
-            {}
+            {},
           )
         : {},
     }
@@ -2195,24 +2176,28 @@ export const ResolveUndoEntry = {
 
   toJSON(message: ResolveUndoEntry): unknown {
     const obj: any = {}
-    message.path !== undefined && (obj.path = message.path)
-    obj.stages = {}
+    if (message.path !== '') {
+      obj.path = message.path
+    }
     if (message.stages) {
-      Object.entries(message.stages).forEach(([k, v]) => {
-        obj.stages[k] = Hash.toJSON(v)
-      })
+      const entries = Object.entries(message.stages)
+      if (entries.length > 0) {
+        obj.stages = {}
+        entries.forEach(([k, v]) => {
+          obj.stages[k] = Hash.toJSON(v)
+        })
+      }
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ResolveUndoEntry>, I>>(
-    base?: I
+    base?: I,
   ): ResolveUndoEntry {
-    return ResolveUndoEntry.fromPartial(base ?? {})
+    return ResolveUndoEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry>, I>>(
-    object: I
+    object: I,
   ): ResolveUndoEntry {
     const message = createBaseResolveUndoEntry()
     message.path = object.path ?? ''
@@ -2235,7 +2220,7 @@ function createBaseResolveUndoEntry_StagesEntry(): ResolveUndoEntry_StagesEntry 
 export const ResolveUndoEntry_StagesEntry = {
   encode(
     message: ResolveUndoEntry_StagesEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== 0) {
       writer.uint32(8).uint32(message.key)
@@ -2248,7 +2233,7 @@ export const ResolveUndoEntry_StagesEntry = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ResolveUndoEntry_StagesEntry {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -2287,7 +2272,7 @@ export const ResolveUndoEntry_StagesEntry = {
       | AsyncIterable<
           ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]
         >
-      | Iterable<ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]>
+      | Iterable<ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2305,7 +2290,7 @@ export const ResolveUndoEntry_StagesEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResolveUndoEntry_StagesEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2327,20 +2312,22 @@ export const ResolveUndoEntry_StagesEntry = {
 
   toJSON(message: ResolveUndoEntry_StagesEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = Math.round(message.key))
-    message.value !== undefined &&
-      (obj.value = message.value ? Hash.toJSON(message.value) : undefined)
+    if (message.key !== 0) {
+      obj.key = Math.round(message.key)
+    }
+    if (message.value !== undefined) {
+      obj.value = Hash.toJSON(message.value)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ResolveUndoEntry_StagesEntry>, I>>(
-    base?: I
+    base?: I,
   ): ResolveUndoEntry_StagesEntry {
-    return ResolveUndoEntry_StagesEntry.fromPartial(base ?? {})
+    return ResolveUndoEntry_StagesEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ResolveUndoEntry_StagesEntry>, I>>(
-    object: I
+    object: I,
   ): ResolveUndoEntry_StagesEntry {
     const message = createBaseResolveUndoEntry_StagesEntry()
     message.key = object.key ?? 0
@@ -2359,7 +2346,7 @@ function createBaseEndOfIndexEntry(): EndOfIndexEntry {
 export const EndOfIndexEntry = {
   encode(
     message: EndOfIndexEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.offset !== 0) {
       writer.uint32(8).uint32(message.offset)
@@ -2406,7 +2393,7 @@ export const EndOfIndexEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<EndOfIndexEntry | EndOfIndexEntry[]>
-      | Iterable<EndOfIndexEntry | EndOfIndexEntry[]>
+      | Iterable<EndOfIndexEntry | EndOfIndexEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2424,7 +2411,7 @@ export const EndOfIndexEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EndOfIndexEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2446,20 +2433,22 @@ export const EndOfIndexEntry = {
 
   toJSON(message: EndOfIndexEntry): unknown {
     const obj: any = {}
-    message.offset !== undefined && (obj.offset = Math.round(message.offset))
-    message.hash !== undefined &&
-      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
+    if (message.offset !== 0) {
+      obj.offset = Math.round(message.offset)
+    }
+    if (message.hash !== undefined) {
+      obj.hash = Hash.toJSON(message.hash)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<EndOfIndexEntry>, I>>(
-    base?: I
+    base?: I,
   ): EndOfIndexEntry {
-    return EndOfIndexEntry.fromPartial(base ?? {})
+    return EndOfIndexEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<EndOfIndexEntry>, I>>(
-    object: I
+    object: I,
   ): EndOfIndexEntry {
     const message = createBaseEndOfIndexEntry()
     message.offset = object.offset ?? 0
@@ -2492,7 +2481,7 @@ function createBaseIndexEntry(): IndexEntry {
 export const IndexEntry = {
   encode(
     message: IndexEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.dataHash !== undefined) {
       Hash.encode(message.dataHash, writer.uint32(10).fork()).ldelim()
@@ -2649,7 +2638,7 @@ export const IndexEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<IndexEntry | IndexEntry[]>
-      | Iterable<IndexEntry | IndexEntry[]>
+      | Iterable<IndexEntry | IndexEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2667,7 +2656,7 @@ export const IndexEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<IndexEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2710,39 +2699,53 @@ export const IndexEntry = {
 
   toJSON(message: IndexEntry): unknown {
     const obj: any = {}
-    message.dataHash !== undefined &&
-      (obj.dataHash = message.dataHash
-        ? Hash.toJSON(message.dataHash)
-        : undefined)
-    message.name !== undefined && (obj.name = message.name)
-    message.createdAt !== undefined &&
-      (obj.createdAt = message.createdAt
-        ? Timestamp.toJSON(message.createdAt)
-        : undefined)
-    message.modifiedAt !== undefined &&
-      (obj.modifiedAt = message.modifiedAt
-        ? Timestamp.toJSON(message.modifiedAt)
-        : undefined)
-    message.dev !== undefined && (obj.dev = Math.round(message.dev))
-    message.inode !== undefined && (obj.inode = Math.round(message.inode))
-    message.fileMode !== undefined &&
-      (obj.fileMode = Math.round(message.fileMode))
-    message.uid !== undefined && (obj.uid = Math.round(message.uid))
-    message.gid !== undefined && (obj.gid = Math.round(message.gid))
-    message.size !== undefined && (obj.size = Math.round(message.size))
-    message.stage !== undefined && (obj.stage = Math.round(message.stage))
-    message.skipWorktree !== undefined &&
-      (obj.skipWorktree = message.skipWorktree)
-    message.intentToAdd !== undefined && (obj.intentToAdd = message.intentToAdd)
+    if (message.dataHash !== undefined) {
+      obj.dataHash = Hash.toJSON(message.dataHash)
+    }
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.createdAt !== undefined) {
+      obj.createdAt = Timestamp.toJSON(message.createdAt)
+    }
+    if (message.modifiedAt !== undefined) {
+      obj.modifiedAt = Timestamp.toJSON(message.modifiedAt)
+    }
+    if (message.dev !== 0) {
+      obj.dev = Math.round(message.dev)
+    }
+    if (message.inode !== 0) {
+      obj.inode = Math.round(message.inode)
+    }
+    if (message.fileMode !== 0) {
+      obj.fileMode = Math.round(message.fileMode)
+    }
+    if (message.uid !== 0) {
+      obj.uid = Math.round(message.uid)
+    }
+    if (message.gid !== 0) {
+      obj.gid = Math.round(message.gid)
+    }
+    if (message.size !== 0) {
+      obj.size = Math.round(message.size)
+    }
+    if (message.stage !== 0) {
+      obj.stage = Math.round(message.stage)
+    }
+    if (message.skipWorktree === true) {
+      obj.skipWorktree = message.skipWorktree
+    }
+    if (message.intentToAdd === true) {
+      obj.intentToAdd = message.intentToAdd
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<IndexEntry>, I>>(base?: I): IndexEntry {
-    return IndexEntry.fromPartial(base ?? {})
+    return IndexEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<IndexEntry>, I>>(
-    object: I
+    object: I,
   ): IndexEntry {
     const message = createBaseIndexEntry()
     message.dataHash =
@@ -2778,7 +2781,7 @@ function createBaseAuthOpts(): AuthOpts {
 export const AuthOpts = {
   encode(
     message: AuthOpts,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.username !== '') {
       writer.uint32(10).string(message.username)
@@ -2825,7 +2828,7 @@ export const AuthOpts = {
   async *encodeTransform(
     source:
       | AsyncIterable<AuthOpts | AuthOpts[]>
-      | Iterable<AuthOpts | AuthOpts[]>
+      | Iterable<AuthOpts | AuthOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2843,7 +2846,7 @@ export const AuthOpts = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<AuthOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2865,15 +2868,18 @@ export const AuthOpts = {
 
   toJSON(message: AuthOpts): unknown {
     const obj: any = {}
-    message.username !== undefined && (obj.username = message.username)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
+    if (message.username !== '') {
+      obj.username = message.username
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<AuthOpts>, I>>(base?: I): AuthOpts {
-    return AuthOpts.fromPartial(base ?? {})
+    return AuthOpts.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<AuthOpts>, I>>(object: I): AuthOpts {
     const message = createBaseAuthOpts()
     message.username = object.username ?? ''
@@ -2900,7 +2906,7 @@ function createBaseCloneOpts(): CloneOpts {
 export const CloneOpts = {
   encode(
     message: CloneOpts,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.url !== '') {
       writer.uint32(10).string(message.url)
@@ -3027,7 +3033,7 @@ export const CloneOpts = {
   async *encodeTransform(
     source:
       | AsyncIterable<CloneOpts | CloneOpts[]>
-      | Iterable<CloneOpts | CloneOpts[]>
+      | Iterable<CloneOpts | CloneOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -3045,7 +3051,7 @@ export const CloneOpts = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CloneOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -3079,28 +3085,44 @@ export const CloneOpts = {
 
   toJSON(message: CloneOpts): unknown {
     const obj: any = {}
-    message.url !== undefined && (obj.url = message.url)
-    message.remoteName !== undefined && (obj.remoteName = message.remoteName)
-    message.ref !== undefined && (obj.ref = message.ref)
-    message.singleBranch !== undefined &&
-      (obj.singleBranch = message.singleBranch)
-    message.disableCheckout !== undefined &&
-      (obj.disableCheckout = message.disableCheckout)
-    message.depth !== undefined && (obj.depth = Math.round(message.depth))
-    message.recursive !== undefined && (obj.recursive = message.recursive)
-    message.tagMode !== undefined &&
-      (obj.tagMode = tagModeToJSON(message.tagMode))
-    message.insecure !== undefined && (obj.insecure = message.insecure)
-    message.caBundle !== undefined && (obj.caBundle = message.caBundle)
+    if (message.url !== '') {
+      obj.url = message.url
+    }
+    if (message.remoteName !== '') {
+      obj.remoteName = message.remoteName
+    }
+    if (message.ref !== '') {
+      obj.ref = message.ref
+    }
+    if (message.singleBranch === true) {
+      obj.singleBranch = message.singleBranch
+    }
+    if (message.disableCheckout === true) {
+      obj.disableCheckout = message.disableCheckout
+    }
+    if (message.depth !== 0) {
+      obj.depth = Math.round(message.depth)
+    }
+    if (message.recursive === true) {
+      obj.recursive = message.recursive
+    }
+    if (message.tagMode !== 0) {
+      obj.tagMode = tagModeToJSON(message.tagMode)
+    }
+    if (message.insecure === true) {
+      obj.insecure = message.insecure
+    }
+    if (message.caBundle !== '') {
+      obj.caBundle = message.caBundle
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<CloneOpts>, I>>(base?: I): CloneOpts {
-    return CloneOpts.fromPartial(base ?? {})
+    return CloneOpts.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<CloneOpts>, I>>(
-    object: I
+    object: I,
   ): CloneOpts {
     const message = createBaseCloneOpts()
     message.url = object.url ?? ''
@@ -3130,7 +3152,7 @@ function createBaseCheckoutOpts(): CheckoutOpts {
 export const CheckoutOpts = {
   encode(
     message: CheckoutOpts,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.commit !== undefined) {
       Hash.encode(message.commit, writer.uint32(10).fork()).ldelim()
@@ -3207,7 +3229,7 @@ export const CheckoutOpts = {
   async *encodeTransform(
     source:
       | AsyncIterable<CheckoutOpts | CheckoutOpts[]>
-      | Iterable<CheckoutOpts | CheckoutOpts[]>
+      | Iterable<CheckoutOpts | CheckoutOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -3225,7 +3247,7 @@ export const CheckoutOpts = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CheckoutOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -3250,23 +3272,31 @@ export const CheckoutOpts = {
 
   toJSON(message: CheckoutOpts): unknown {
     const obj: any = {}
-    message.commit !== undefined &&
-      (obj.commit = message.commit ? Hash.toJSON(message.commit) : undefined)
-    message.branch !== undefined && (obj.branch = message.branch)
-    message.create !== undefined && (obj.create = message.create)
-    message.force !== undefined && (obj.force = message.force)
-    message.keep !== undefined && (obj.keep = message.keep)
+    if (message.commit !== undefined) {
+      obj.commit = Hash.toJSON(message.commit)
+    }
+    if (message.branch !== '') {
+      obj.branch = message.branch
+    }
+    if (message.create === true) {
+      obj.create = message.create
+    }
+    if (message.force === true) {
+      obj.force = message.force
+    }
+    if (message.keep === true) {
+      obj.keep = message.keep
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<CheckoutOpts>, I>>(
-    base?: I
+    base?: I,
   ): CheckoutOpts {
-    return CheckoutOpts.fromPartial(base ?? {})
+    return CheckoutOpts.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<CheckoutOpts>, I>>(
-    object: I
+    object: I,
   ): CheckoutOpts {
     const message = createBaseCheckoutOpts()
     message.commit =

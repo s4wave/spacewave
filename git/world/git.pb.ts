@@ -106,7 +106,7 @@ function createBaseGitInitOp(): GitInitOp {
 export const GitInitOp = {
   encode(
     message: GitInitOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -120,7 +120,7 @@ export const GitInitOp = {
     if (message.createWorktree !== undefined) {
       GitCreateWorktreeOp.encode(
         message.createWorktree,
-        writer.uint32(34).fork()
+        writer.uint32(34).fork(),
       ).ldelim()
     }
     return writer
@@ -162,7 +162,7 @@ export const GitInitOp = {
 
           message.createWorktree = GitCreateWorktreeOp.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
       }
@@ -179,7 +179,7 @@ export const GitInitOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<GitInitOp | GitInitOp[]>
-      | Iterable<GitInitOp | GitInitOp[]>
+      | Iterable<GitInitOp | GitInitOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -197,7 +197,7 @@ export const GitInitOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GitInitOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -227,26 +227,26 @@ export const GitInitOp = {
 
   toJSON(message: GitInitOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.repoRef !== undefined &&
-      (obj.repoRef = message.repoRef
-        ? ObjectRef.toJSON(message.repoRef)
-        : undefined)
-    message.disableCheckout !== undefined &&
-      (obj.disableCheckout = message.disableCheckout)
-    message.createWorktree !== undefined &&
-      (obj.createWorktree = message.createWorktree
-        ? GitCreateWorktreeOp.toJSON(message.createWorktree)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.repoRef !== undefined) {
+      obj.repoRef = ObjectRef.toJSON(message.repoRef)
+    }
+    if (message.disableCheckout === true) {
+      obj.disableCheckout = message.disableCheckout
+    }
+    if (message.createWorktree !== undefined) {
+      obj.createWorktree = GitCreateWorktreeOp.toJSON(message.createWorktree)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GitInitOp>, I>>(base?: I): GitInitOp {
-    return GitInitOp.fromPartial(base ?? {})
+    return GitInitOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GitInitOp>, I>>(
-    object: I
+    object: I,
   ): GitInitOp {
     const message = createBaseGitInitOp()
     message.objectKey = object.objectKey ?? ''
@@ -270,7 +270,7 @@ function createBaseWorktree(): Worktree {
 export const Worktree = {
   encode(
     message: Worktree,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.gitIndex !== undefined) {
       Index.encode(message.gitIndex, writer.uint32(10).fork()).ldelim()
@@ -278,7 +278,7 @@ export const Worktree = {
     if (message.headRefStore !== undefined) {
       HeadRefStore.encode(
         message.headRefStore,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     return writer
@@ -320,7 +320,7 @@ export const Worktree = {
   async *encodeTransform(
     source:
       | AsyncIterable<Worktree | Worktree[]>
-      | Iterable<Worktree | Worktree[]>
+      | Iterable<Worktree | Worktree[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -338,7 +338,7 @@ export const Worktree = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Worktree> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -364,21 +364,18 @@ export const Worktree = {
 
   toJSON(message: Worktree): unknown {
     const obj: any = {}
-    message.gitIndex !== undefined &&
-      (obj.gitIndex = message.gitIndex
-        ? Index.toJSON(message.gitIndex)
-        : undefined)
-    message.headRefStore !== undefined &&
-      (obj.headRefStore = message.headRefStore
-        ? HeadRefStore.toJSON(message.headRefStore)
-        : undefined)
+    if (message.gitIndex !== undefined) {
+      obj.gitIndex = Index.toJSON(message.gitIndex)
+    }
+    if (message.headRefStore !== undefined) {
+      obj.headRefStore = HeadRefStore.toJSON(message.headRefStore)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Worktree>, I>>(base?: I): Worktree {
-    return Worktree.fromPartial(base ?? {})
+    return Worktree.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Worktree>, I>>(object: I): Worktree {
     const message = createBaseWorktree()
     message.gitIndex =
@@ -400,7 +397,7 @@ function createBaseHeadRefStore(): HeadRefStore {
 export const HeadRefStore = {
   encode(
     message: HeadRefStore,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.submoduleName !== '') {
       writer.uint32(10).string(message.submoduleName)
@@ -457,7 +454,7 @@ export const HeadRefStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<HeadRefStore | HeadRefStore[]>
-      | Iterable<HeadRefStore | HeadRefStore[]>
+      | Iterable<HeadRefStore | HeadRefStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -475,7 +472,7 @@ export const HeadRefStore = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HeadRefStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -504,30 +501,25 @@ export const HeadRefStore = {
 
   toJSON(message: HeadRefStore): unknown {
     const obj: any = {}
-    message.submoduleName !== undefined &&
-      (obj.submoduleName = message.submoduleName)
-    message.headRef !== undefined &&
-      (obj.headRef = message.headRef
-        ? Reference.toJSON(message.headRef)
-        : undefined)
-    if (message.submodules) {
-      obj.submodules = message.submodules.map((e) =>
-        e ? HeadRefStore.toJSON(e) : undefined
-      )
-    } else {
-      obj.submodules = []
+    if (message.submoduleName !== '') {
+      obj.submoduleName = message.submoduleName
+    }
+    if (message.headRef !== undefined) {
+      obj.headRef = Reference.toJSON(message.headRef)
+    }
+    if (message.submodules?.length) {
+      obj.submodules = message.submodules.map((e) => HeadRefStore.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<HeadRefStore>, I>>(
-    base?: I
+    base?: I,
   ): HeadRefStore {
-    return HeadRefStore.fromPartial(base ?? {})
+    return HeadRefStore.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HeadRefStore>, I>>(
-    object: I
+    object: I,
   ): HeadRefStore {
     const message = createBaseHeadRefStore()
     message.submoduleName = object.submoduleName ?? ''
@@ -556,7 +548,7 @@ function createBaseGitCreateWorktreeOp(): GitCreateWorktreeOp {
 export const GitCreateWorktreeOp = {
   encode(
     message: GitCreateWorktreeOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -573,7 +565,7 @@ export const GitCreateWorktreeOp = {
     if (message.checkoutOpts !== undefined) {
       CheckoutOpts.encode(
         message.checkoutOpts,
-        writer.uint32(42).fork()
+        writer.uint32(42).fork(),
       ).ldelim()
     }
     if (message.disableCheckout === true) {
@@ -656,7 +648,7 @@ export const GitCreateWorktreeOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<GitCreateWorktreeOp | GitCreateWorktreeOp[]>
-      | Iterable<GitCreateWorktreeOp | GitCreateWorktreeOp[]>
+      | Iterable<GitCreateWorktreeOp | GitCreateWorktreeOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -674,7 +666,7 @@ export const GitCreateWorktreeOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GitCreateWorktreeOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -713,36 +705,37 @@ export const GitCreateWorktreeOp = {
 
   toJSON(message: GitCreateWorktreeOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.repoObjectKey !== undefined &&
-      (obj.repoObjectKey = message.repoObjectKey)
-    message.workdirRef !== undefined &&
-      (obj.workdirRef = message.workdirRef
-        ? UnixfsRef.toJSON(message.workdirRef)
-        : undefined)
-    message.createWorkdir !== undefined &&
-      (obj.createWorkdir = message.createWorkdir)
-    message.checkoutOpts !== undefined &&
-      (obj.checkoutOpts = message.checkoutOpts
-        ? CheckoutOpts.toJSON(message.checkoutOpts)
-        : undefined)
-    message.disableCheckout !== undefined &&
-      (obj.disableCheckout = message.disableCheckout)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.repoObjectKey !== '') {
+      obj.repoObjectKey = message.repoObjectKey
+    }
+    if (message.workdirRef !== undefined) {
+      obj.workdirRef = UnixfsRef.toJSON(message.workdirRef)
+    }
+    if (message.createWorkdir === true) {
+      obj.createWorkdir = message.createWorkdir
+    }
+    if (message.checkoutOpts !== undefined) {
+      obj.checkoutOpts = CheckoutOpts.toJSON(message.checkoutOpts)
+    }
+    if (message.disableCheckout === true) {
+      obj.disableCheckout = message.disableCheckout
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GitCreateWorktreeOp>, I>>(
-    base?: I
+    base?: I,
   ): GitCreateWorktreeOp {
-    return GitCreateWorktreeOp.fromPartial(base ?? {})
+    return GitCreateWorktreeOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GitCreateWorktreeOp>, I>>(
-    object: I
+    object: I,
   ): GitCreateWorktreeOp {
     const message = createBaseGitCreateWorktreeOp()
     message.objectKey = object.objectKey ?? ''
@@ -777,7 +770,7 @@ function createBaseGitWorktreeCheckoutOp(): GitWorktreeCheckoutOp {
 export const GitWorktreeCheckoutOp = {
   encode(
     message: GitWorktreeCheckoutOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -788,7 +781,7 @@ export const GitWorktreeCheckoutOp = {
     if (message.checkoutOpts !== undefined) {
       CheckoutOpts.encode(
         message.checkoutOpts,
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     }
     if (message.timestamp !== undefined) {
@@ -799,7 +792,7 @@ export const GitWorktreeCheckoutOp = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GitWorktreeCheckoutOp {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -850,7 +843,7 @@ export const GitWorktreeCheckoutOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<GitWorktreeCheckoutOp | GitWorktreeCheckoutOp[]>
-      | Iterable<GitWorktreeCheckoutOp | GitWorktreeCheckoutOp[]>
+      | Iterable<GitWorktreeCheckoutOp | GitWorktreeCheckoutOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -868,7 +861,7 @@ export const GitWorktreeCheckoutOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GitWorktreeCheckoutOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -898,28 +891,28 @@ export const GitWorktreeCheckoutOp = {
 
   toJSON(message: GitWorktreeCheckoutOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.repoObjectKey !== undefined &&
-      (obj.repoObjectKey = message.repoObjectKey)
-    message.checkoutOpts !== undefined &&
-      (obj.checkoutOpts = message.checkoutOpts
-        ? CheckoutOpts.toJSON(message.checkoutOpts)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.repoObjectKey !== '') {
+      obj.repoObjectKey = message.repoObjectKey
+    }
+    if (message.checkoutOpts !== undefined) {
+      obj.checkoutOpts = CheckoutOpts.toJSON(message.checkoutOpts)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GitWorktreeCheckoutOp>, I>>(
-    base?: I
+    base?: I,
   ): GitWorktreeCheckoutOp {
-    return GitWorktreeCheckoutOp.fromPartial(base ?? {})
+    return GitWorktreeCheckoutOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GitWorktreeCheckoutOp>, I>>(
-    object: I
+    object: I,
   ): GitWorktreeCheckoutOp {
     const message = createBaseGitWorktreeCheckoutOp()
     message.objectKey = object.objectKey ?? ''

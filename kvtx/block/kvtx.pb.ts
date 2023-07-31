@@ -62,7 +62,7 @@ function createBaseKeyValueStore(): KeyValueStore {
 export const KeyValueStore = {
   encode(
     message: KeyValueStore,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.implType !== 0) {
       writer.uint32(8).int32(message.implType)
@@ -109,7 +109,7 @@ export const KeyValueStore = {
   async *encodeTransform(
     source:
       | AsyncIterable<KeyValueStore | KeyValueStore[]>
-      | Iterable<KeyValueStore | KeyValueStore[]>
+      | Iterable<KeyValueStore | KeyValueStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -127,7 +127,7 @@ export const KeyValueStore = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyValueStore> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -153,23 +153,22 @@ export const KeyValueStore = {
 
   toJSON(message: KeyValueStore): unknown {
     const obj: any = {}
-    message.implType !== undefined &&
-      (obj.implType = kVImplTypeToJSON(message.implType))
-    message.iavlRoot !== undefined &&
-      (obj.iavlRoot = message.iavlRoot
-        ? Node.toJSON(message.iavlRoot)
-        : undefined)
+    if (message.implType !== 0) {
+      obj.implType = kVImplTypeToJSON(message.implType)
+    }
+    if (message.iavlRoot !== undefined) {
+      obj.iavlRoot = Node.toJSON(message.iavlRoot)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KeyValueStore>, I>>(
-    base?: I
+    base?: I,
   ): KeyValueStore {
-    return KeyValueStore.fromPartial(base ?? {})
+    return KeyValueStore.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KeyValueStore>, I>>(
-    object: I
+    object: I,
   ): KeyValueStore {
     const message = createBaseKeyValueStore()
     message.implType = object.implType ?? 0

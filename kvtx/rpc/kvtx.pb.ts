@@ -14,6 +14,7 @@ export interface KvtxTransactionRequest {
         $case: 'discard'
         discard: boolean
       }
+    | undefined
 }
 
 /** KvtxTransactionInit is the message sent to init a kvtx transaction. */
@@ -30,6 +31,7 @@ export interface KvtxTransactionResponse {
   body?:
     | { $case: 'ack'; ack: KvtxTransactionAck }
     | { $case: 'complete'; complete: KvtxTransactionComplete }
+    | undefined
 }
 
 /** KvtxTransactionAck contains information about opening the transaction. */
@@ -166,6 +168,7 @@ export interface KvtxIterateRequest {
     | { $case: 'seek'; seek: Uint8Array }
     | { $case: 'seekBeginning'; seekBeginning: boolean }
     | { $case: 'close'; close: boolean }
+    | undefined
 }
 
 /** KvtxIterateInit are the arguments for initializing a iterator. */
@@ -186,6 +189,7 @@ export interface KvtxIterateResponse {
     | { $case: 'status'; status: KvtxIterateStatus }
     | { $case: 'value'; value: Uint8Array }
     | { $case: 'closed'; closed: boolean }
+    | undefined
 }
 
 /** KvtxIterateStatus contains an update to the iterator status. */
@@ -208,13 +212,13 @@ function createBaseKvtxTransactionRequest(): KvtxTransactionRequest {
 export const KvtxTransactionRequest = {
   encode(
     message: KvtxTransactionRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'init':
         KvtxTransactionInit.encode(
           message.body.init,
-          writer.uint32(10).fork()
+          writer.uint32(10).fork(),
         ).ldelim()
         break
       case 'commit':
@@ -229,7 +233,7 @@ export const KvtxTransactionRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxTransactionRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -276,7 +280,7 @@ export const KvtxTransactionRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxTransactionRequest | KvtxTransactionRequest[]>
-      | Iterable<KvtxTransactionRequest | KvtxTransactionRequest[]>
+      | Iterable<KvtxTransactionRequest | KvtxTransactionRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -294,7 +298,7 @@ export const KvtxTransactionRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -321,23 +325,25 @@ export const KvtxTransactionRequest = {
 
   toJSON(message: KvtxTransactionRequest): unknown {
     const obj: any = {}
-    message.body?.$case === 'init' &&
-      (obj.init = message.body?.init
-        ? KvtxTransactionInit.toJSON(message.body?.init)
-        : undefined)
-    message.body?.$case === 'commit' && (obj.commit = message.body?.commit)
-    message.body?.$case === 'discard' && (obj.discard = message.body?.discard)
+    if (message.body?.$case === 'init') {
+      obj.init = KvtxTransactionInit.toJSON(message.body.init)
+    }
+    if (message.body?.$case === 'commit') {
+      obj.commit = message.body.commit
+    }
+    if (message.body?.$case === 'discard') {
+      obj.discard = message.body.discard
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxTransactionRequest>, I>>(
-    base?: I
+    base?: I,
   ): KvtxTransactionRequest {
-    return KvtxTransactionRequest.fromPartial(base ?? {})
+    return KvtxTransactionRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionRequest>, I>>(
-    object: I
+    object: I,
   ): KvtxTransactionRequest {
     const message = createBaseKvtxTransactionRequest()
     if (
@@ -375,7 +381,7 @@ function createBaseKvtxTransactionInit(): KvtxTransactionInit {
 export const KvtxTransactionInit = {
   encode(
     message: KvtxTransactionInit,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.write === true) {
       writer.uint32(8).bool(message.write)
@@ -412,7 +418,7 @@ export const KvtxTransactionInit = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxTransactionInit | KvtxTransactionInit[]>
-      | Iterable<KvtxTransactionInit | KvtxTransactionInit[]>
+      | Iterable<KvtxTransactionInit | KvtxTransactionInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -430,7 +436,7 @@ export const KvtxTransactionInit = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionInit> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -449,18 +455,19 @@ export const KvtxTransactionInit = {
 
   toJSON(message: KvtxTransactionInit): unknown {
     const obj: any = {}
-    message.write !== undefined && (obj.write = message.write)
+    if (message.write === true) {
+      obj.write = message.write
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxTransactionInit>, I>>(
-    base?: I
+    base?: I,
   ): KvtxTransactionInit {
-    return KvtxTransactionInit.fromPartial(base ?? {})
+    return KvtxTransactionInit.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionInit>, I>>(
-    object: I
+    object: I,
   ): KvtxTransactionInit {
     const message = createBaseKvtxTransactionInit()
     message.write = object.write ?? false
@@ -475,19 +482,19 @@ function createBaseKvtxTransactionResponse(): KvtxTransactionResponse {
 export const KvtxTransactionResponse = {
   encode(
     message: KvtxTransactionResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'ack':
         KvtxTransactionAck.encode(
           message.body.ack,
-          writer.uint32(10).fork()
+          writer.uint32(10).fork(),
         ).ldelim()
         break
       case 'complete':
         KvtxTransactionComplete.encode(
           message.body.complete,
-          writer.uint32(18).fork()
+          writer.uint32(18).fork(),
         ).ldelim()
         break
     }
@@ -496,7 +503,7 @@ export const KvtxTransactionResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxTransactionResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -539,7 +546,7 @@ export const KvtxTransactionResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxTransactionResponse | KvtxTransactionResponse[]>
-      | Iterable<KvtxTransactionResponse | KvtxTransactionResponse[]>
+      | Iterable<KvtxTransactionResponse | KvtxTransactionResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -557,7 +564,7 @@ export const KvtxTransactionResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -585,25 +592,22 @@ export const KvtxTransactionResponse = {
 
   toJSON(message: KvtxTransactionResponse): unknown {
     const obj: any = {}
-    message.body?.$case === 'ack' &&
-      (obj.ack = message.body?.ack
-        ? KvtxTransactionAck.toJSON(message.body?.ack)
-        : undefined)
-    message.body?.$case === 'complete' &&
-      (obj.complete = message.body?.complete
-        ? KvtxTransactionComplete.toJSON(message.body?.complete)
-        : undefined)
+    if (message.body?.$case === 'ack') {
+      obj.ack = KvtxTransactionAck.toJSON(message.body.ack)
+    }
+    if (message.body?.$case === 'complete') {
+      obj.complete = KvtxTransactionComplete.toJSON(message.body.complete)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxTransactionResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxTransactionResponse {
-    return KvtxTransactionResponse.fromPartial(base ?? {})
+    return KvtxTransactionResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxTransactionResponse {
     const message = createBaseKvtxTransactionResponse()
     if (
@@ -637,7 +641,7 @@ function createBaseKvtxTransactionAck(): KvtxTransactionAck {
 export const KvtxTransactionAck = {
   encode(
     message: KvtxTransactionAck,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -684,7 +688,7 @@ export const KvtxTransactionAck = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxTransactionAck | KvtxTransactionAck[]>
-      | Iterable<KvtxTransactionAck | KvtxTransactionAck[]>
+      | Iterable<KvtxTransactionAck | KvtxTransactionAck[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -702,7 +706,7 @@ export const KvtxTransactionAck = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionAck> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -726,20 +730,22 @@ export const KvtxTransactionAck = {
 
   toJSON(message: KvtxTransactionAck): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.transactionId !== undefined &&
-      (obj.transactionId = message.transactionId)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.transactionId !== '') {
+      obj.transactionId = message.transactionId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxTransactionAck>, I>>(
-    base?: I
+    base?: I,
   ): KvtxTransactionAck {
-    return KvtxTransactionAck.fromPartial(base ?? {})
+    return KvtxTransactionAck.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionAck>, I>>(
-    object: I
+    object: I,
   ): KvtxTransactionAck {
     const message = createBaseKvtxTransactionAck()
     message.error = object.error ?? ''
@@ -755,7 +761,7 @@ function createBaseKvtxTransactionComplete(): KvtxTransactionComplete {
 export const KvtxTransactionComplete = {
   encode(
     message: KvtxTransactionComplete,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -771,7 +777,7 @@ export const KvtxTransactionComplete = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxTransactionComplete {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -815,7 +821,7 @@ export const KvtxTransactionComplete = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxTransactionComplete | KvtxTransactionComplete[]>
-      | Iterable<KvtxTransactionComplete | KvtxTransactionComplete[]>
+      | Iterable<KvtxTransactionComplete | KvtxTransactionComplete[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -833,7 +839,7 @@ export const KvtxTransactionComplete = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionComplete> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -856,20 +862,25 @@ export const KvtxTransactionComplete = {
 
   toJSON(message: KvtxTransactionComplete): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.committed !== undefined && (obj.committed = message.committed)
-    message.discarded !== undefined && (obj.discarded = message.discarded)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.committed === true) {
+      obj.committed = message.committed
+    }
+    if (message.discarded === true) {
+      obj.discarded = message.discarded
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxTransactionComplete>, I>>(
-    base?: I
+    base?: I,
   ): KvtxTransactionComplete {
-    return KvtxTransactionComplete.fromPartial(base ?? {})
+    return KvtxTransactionComplete.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxTransactionComplete>, I>>(
-    object: I
+    object: I,
   ): KvtxTransactionComplete {
     const message = createBaseKvtxTransactionComplete()
     message.error = object.error ?? ''
@@ -886,7 +897,7 @@ function createBaseKeyCountRequest(): KeyCountRequest {
 export const KeyCountRequest = {
   encode(
     _: KeyCountRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
@@ -913,7 +924,7 @@ export const KeyCountRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KeyCountRequest | KeyCountRequest[]>
-      | Iterable<KeyCountRequest | KeyCountRequest[]>
+      | Iterable<KeyCountRequest | KeyCountRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -931,7 +942,7 @@ export const KeyCountRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyCountRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -954,13 +965,12 @@ export const KeyCountRequest = {
   },
 
   create<I extends Exact<DeepPartial<KeyCountRequest>, I>>(
-    base?: I
+    base?: I,
   ): KeyCountRequest {
-    return KeyCountRequest.fromPartial(base ?? {})
+    return KeyCountRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KeyCountRequest>, I>>(
-    _: I
+    _: I,
   ): KeyCountRequest {
     const message = createBaseKeyCountRequest()
     return message
@@ -974,7 +984,7 @@ function createBaseKeyCountResponse(): KeyCountResponse {
 export const KeyCountResponse = {
   encode(
     message: KeyCountResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.keyCount.isZero()) {
       writer.uint32(8).uint64(message.keyCount)
@@ -1011,7 +1021,7 @@ export const KeyCountResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KeyCountResponse | KeyCountResponse[]>
-      | Iterable<KeyCountResponse | KeyCountResponse[]>
+      | Iterable<KeyCountResponse | KeyCountResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1029,7 +1039,7 @@ export const KeyCountResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyCountResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1052,19 +1062,19 @@ export const KeyCountResponse = {
 
   toJSON(message: KeyCountResponse): unknown {
     const obj: any = {}
-    message.keyCount !== undefined &&
-      (obj.keyCount = (message.keyCount || Long.UZERO).toString())
+    if (!message.keyCount.isZero()) {
+      obj.keyCount = (message.keyCount || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KeyCountResponse>, I>>(
-    base?: I
+    base?: I,
   ): KeyCountResponse {
-    return KeyCountResponse.fromPartial(base ?? {})
+    return KeyCountResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KeyCountResponse>, I>>(
-    object: I
+    object: I,
   ): KeyCountResponse {
     const message = createBaseKeyCountResponse()
     message.keyCount =
@@ -1082,7 +1092,7 @@ function createBaseKvtxKeyRequest(): KvtxKeyRequest {
 export const KvtxKeyRequest = {
   encode(
     message: KvtxKeyRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key.length !== 0) {
       writer.uint32(10).bytes(message.key)
@@ -1119,7 +1129,7 @@ export const KvtxKeyRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxKeyRequest | KvtxKeyRequest[]>
-      | Iterable<KvtxKeyRequest | KvtxKeyRequest[]>
+      | Iterable<KvtxKeyRequest | KvtxKeyRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1137,7 +1147,7 @@ export const KvtxKeyRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxKeyRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1158,21 +1168,19 @@ export const KvtxKeyRequest = {
 
   toJSON(message: KvtxKeyRequest): unknown {
     const obj: any = {}
-    message.key !== undefined &&
-      (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array(0)
-      ))
+    if (message.key.length !== 0) {
+      obj.key = base64FromBytes(message.key)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxKeyRequest>, I>>(
-    base?: I
+    base?: I,
   ): KvtxKeyRequest {
-    return KvtxKeyRequest.fromPartial(base ?? {})
+    return KvtxKeyRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxKeyRequest>, I>>(
-    object: I
+    object: I,
   ): KvtxKeyRequest {
     const message = createBaseKvtxKeyRequest()
     message.key = object.key ?? new Uint8Array(0)
@@ -1187,7 +1195,7 @@ function createBaseKvtxKeyDataResponse(): KvtxKeyDataResponse {
 export const KvtxKeyDataResponse = {
   encode(
     message: KvtxKeyDataResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -1244,7 +1252,7 @@ export const KvtxKeyDataResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxKeyDataResponse | KvtxKeyDataResponse[]>
-      | Iterable<KvtxKeyDataResponse | KvtxKeyDataResponse[]>
+      | Iterable<KvtxKeyDataResponse | KvtxKeyDataResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1262,7 +1270,7 @@ export const KvtxKeyDataResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxKeyDataResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1287,23 +1295,25 @@ export const KvtxKeyDataResponse = {
 
   toJSON(message: KvtxKeyDataResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.found !== undefined && (obj.found = message.found)
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
-      ))
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.found === true) {
+      obj.found = message.found
+    }
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxKeyDataResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxKeyDataResponse {
-    return KvtxKeyDataResponse.fromPartial(base ?? {})
+    return KvtxKeyDataResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxKeyDataResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxKeyDataResponse {
     const message = createBaseKvtxKeyDataResponse()
     message.error = object.error ?? ''
@@ -1320,7 +1330,7 @@ function createBaseKvtxKeyExistsResponse(): KvtxKeyExistsResponse {
 export const KvtxKeyExistsResponse = {
   encode(
     message: KvtxKeyExistsResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -1333,7 +1343,7 @@ export const KvtxKeyExistsResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxKeyExistsResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1370,7 +1380,7 @@ export const KvtxKeyExistsResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxKeyExistsResponse | KvtxKeyExistsResponse[]>
-      | Iterable<KvtxKeyExistsResponse | KvtxKeyExistsResponse[]>
+      | Iterable<KvtxKeyExistsResponse | KvtxKeyExistsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1388,7 +1398,7 @@ export const KvtxKeyExistsResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxKeyExistsResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1410,19 +1420,22 @@ export const KvtxKeyExistsResponse = {
 
   toJSON(message: KvtxKeyExistsResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.found !== undefined && (obj.found = message.found)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.found === true) {
+      obj.found = message.found
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxKeyExistsResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxKeyExistsResponse {
-    return KvtxKeyExistsResponse.fromPartial(base ?? {})
+    return KvtxKeyExistsResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxKeyExistsResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxKeyExistsResponse {
     const message = createBaseKvtxKeyExistsResponse()
     message.error = object.error ?? ''
@@ -1438,7 +1451,7 @@ function createBaseKvtxSetKeyRequest(): KvtxSetKeyRequest {
 export const KvtxSetKeyRequest = {
   encode(
     message: KvtxSetKeyRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key.length !== 0) {
       writer.uint32(10).bytes(message.key)
@@ -1485,7 +1498,7 @@ export const KvtxSetKeyRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxSetKeyRequest | KvtxSetKeyRequest[]>
-      | Iterable<KvtxSetKeyRequest | KvtxSetKeyRequest[]>
+      | Iterable<KvtxSetKeyRequest | KvtxSetKeyRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1503,7 +1516,7 @@ export const KvtxSetKeyRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxSetKeyRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1527,25 +1540,22 @@ export const KvtxSetKeyRequest = {
 
   toJSON(message: KvtxSetKeyRequest): unknown {
     const obj: any = {}
-    message.key !== undefined &&
-      (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array(0)
-      ))
-    message.value !== undefined &&
-      (obj.value = base64FromBytes(
-        message.value !== undefined ? message.value : new Uint8Array(0)
-      ))
+    if (message.key.length !== 0) {
+      obj.key = base64FromBytes(message.key)
+    }
+    if (message.value.length !== 0) {
+      obj.value = base64FromBytes(message.value)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxSetKeyRequest>, I>>(
-    base?: I
+    base?: I,
   ): KvtxSetKeyRequest {
-    return KvtxSetKeyRequest.fromPartial(base ?? {})
+    return KvtxSetKeyRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxSetKeyRequest>, I>>(
-    object: I
+    object: I,
   ): KvtxSetKeyRequest {
     const message = createBaseKvtxSetKeyRequest()
     message.key = object.key ?? new Uint8Array(0)
@@ -1561,7 +1571,7 @@ function createBaseKvtxSetKeyResponse(): KvtxSetKeyResponse {
 export const KvtxSetKeyResponse = {
   encode(
     message: KvtxSetKeyResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -1598,7 +1608,7 @@ export const KvtxSetKeyResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxSetKeyResponse | KvtxSetKeyResponse[]>
-      | Iterable<KvtxSetKeyResponse | KvtxSetKeyResponse[]>
+      | Iterable<KvtxSetKeyResponse | KvtxSetKeyResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1616,7 +1626,7 @@ export const KvtxSetKeyResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxSetKeyResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1635,18 +1645,19 @@ export const KvtxSetKeyResponse = {
 
   toJSON(message: KvtxSetKeyResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxSetKeyResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxSetKeyResponse {
-    return KvtxSetKeyResponse.fromPartial(base ?? {})
+    return KvtxSetKeyResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxSetKeyResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxSetKeyResponse {
     const message = createBaseKvtxSetKeyResponse()
     message.error = object.error ?? ''
@@ -1661,7 +1672,7 @@ function createBaseKvtxDeleteKeyRequest(): KvtxDeleteKeyRequest {
 export const KvtxDeleteKeyRequest = {
   encode(
     message: KvtxDeleteKeyRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key.length !== 0) {
       writer.uint32(10).bytes(message.key)
@@ -1671,7 +1682,7 @@ export const KvtxDeleteKeyRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxDeleteKeyRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1701,7 +1712,7 @@ export const KvtxDeleteKeyRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxDeleteKeyRequest | KvtxDeleteKeyRequest[]>
-      | Iterable<KvtxDeleteKeyRequest | KvtxDeleteKeyRequest[]>
+      | Iterable<KvtxDeleteKeyRequest | KvtxDeleteKeyRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1719,7 +1730,7 @@ export const KvtxDeleteKeyRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxDeleteKeyRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1740,21 +1751,19 @@ export const KvtxDeleteKeyRequest = {
 
   toJSON(message: KvtxDeleteKeyRequest): unknown {
     const obj: any = {}
-    message.key !== undefined &&
-      (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array(0)
-      ))
+    if (message.key.length !== 0) {
+      obj.key = base64FromBytes(message.key)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxDeleteKeyRequest>, I>>(
-    base?: I
+    base?: I,
   ): KvtxDeleteKeyRequest {
-    return KvtxDeleteKeyRequest.fromPartial(base ?? {})
+    return KvtxDeleteKeyRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxDeleteKeyRequest>, I>>(
-    object: I
+    object: I,
   ): KvtxDeleteKeyRequest {
     const message = createBaseKvtxDeleteKeyRequest()
     message.key = object.key ?? new Uint8Array(0)
@@ -1769,7 +1778,7 @@ function createBaseKvtxDeleteKeyResponse(): KvtxDeleteKeyResponse {
 export const KvtxDeleteKeyResponse = {
   encode(
     message: KvtxDeleteKeyResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -1779,7 +1788,7 @@ export const KvtxDeleteKeyResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxDeleteKeyResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1809,7 +1818,7 @@ export const KvtxDeleteKeyResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxDeleteKeyResponse | KvtxDeleteKeyResponse[]>
-      | Iterable<KvtxDeleteKeyResponse | KvtxDeleteKeyResponse[]>
+      | Iterable<KvtxDeleteKeyResponse | KvtxDeleteKeyResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1827,7 +1836,7 @@ export const KvtxDeleteKeyResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxDeleteKeyResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1846,18 +1855,19 @@ export const KvtxDeleteKeyResponse = {
 
   toJSON(message: KvtxDeleteKeyResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxDeleteKeyResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxDeleteKeyResponse {
-    return KvtxDeleteKeyResponse.fromPartial(base ?? {})
+    return KvtxDeleteKeyResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxDeleteKeyResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxDeleteKeyResponse {
     const message = createBaseKvtxDeleteKeyResponse()
     message.error = object.error ?? ''
@@ -1872,7 +1882,7 @@ function createBaseKvtxScanPrefixRequest(): KvtxScanPrefixRequest {
 export const KvtxScanPrefixRequest = {
   encode(
     message: KvtxScanPrefixRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
@@ -1885,7 +1895,7 @@ export const KvtxScanPrefixRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxScanPrefixRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -1922,7 +1932,7 @@ export const KvtxScanPrefixRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxScanPrefixRequest | KvtxScanPrefixRequest[]>
-      | Iterable<KvtxScanPrefixRequest | KvtxScanPrefixRequest[]>
+      | Iterable<KvtxScanPrefixRequest | KvtxScanPrefixRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1940,7 +1950,7 @@ export const KvtxScanPrefixRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxScanPrefixRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1964,22 +1974,22 @@ export const KvtxScanPrefixRequest = {
 
   toJSON(message: KvtxScanPrefixRequest): unknown {
     const obj: any = {}
-    message.prefix !== undefined &&
-      (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
-      ))
-    message.onlyKeys !== undefined && (obj.onlyKeys = message.onlyKeys)
+    if (message.prefix.length !== 0) {
+      obj.prefix = base64FromBytes(message.prefix)
+    }
+    if (message.onlyKeys === true) {
+      obj.onlyKeys = message.onlyKeys
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxScanPrefixRequest>, I>>(
-    base?: I
+    base?: I,
   ): KvtxScanPrefixRequest {
-    return KvtxScanPrefixRequest.fromPartial(base ?? {})
+    return KvtxScanPrefixRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixRequest>, I>>(
-    object: I
+    object: I,
   ): KvtxScanPrefixRequest {
     const message = createBaseKvtxScanPrefixRequest()
     message.prefix = object.prefix ?? new Uint8Array(0)
@@ -1995,7 +2005,7 @@ function createBaseKvtxScanPrefixResponse(): KvtxScanPrefixResponse {
 export const KvtxScanPrefixResponse = {
   encode(
     message: KvtxScanPrefixResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -2011,7 +2021,7 @@ export const KvtxScanPrefixResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): KvtxScanPrefixResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -2055,7 +2065,7 @@ export const KvtxScanPrefixResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxScanPrefixResponse | KvtxScanPrefixResponse[]>
-      | Iterable<KvtxScanPrefixResponse | KvtxScanPrefixResponse[]>
+      | Iterable<KvtxScanPrefixResponse | KvtxScanPrefixResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2073,7 +2083,7 @@ export const KvtxScanPrefixResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxScanPrefixResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2098,26 +2108,25 @@ export const KvtxScanPrefixResponse = {
 
   toJSON(message: KvtxScanPrefixResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.key !== undefined &&
-      (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array(0)
-      ))
-    message.value !== undefined &&
-      (obj.value = base64FromBytes(
-        message.value !== undefined ? message.value : new Uint8Array(0)
-      ))
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.key.length !== 0) {
+      obj.key = base64FromBytes(message.key)
+    }
+    if (message.value.length !== 0) {
+      obj.value = base64FromBytes(message.value)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxScanPrefixResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxScanPrefixResponse {
-    return KvtxScanPrefixResponse.fromPartial(base ?? {})
+    return KvtxScanPrefixResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxScanPrefixResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxScanPrefixResponse {
     const message = createBaseKvtxScanPrefixResponse()
     message.error = object.error ?? ''
@@ -2134,13 +2143,13 @@ function createBaseKvtxIterateRequest(): KvtxIterateRequest {
 export const KvtxIterateRequest = {
   encode(
     message: KvtxIterateRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'init':
         KvtxIterateInit.encode(
           message.body.init,
-          writer.uint32(10).fork()
+          writer.uint32(10).fork(),
         ).ldelim()
         break
       case 'lookupValue':
@@ -2232,7 +2241,7 @@ export const KvtxIterateRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxIterateRequest | KvtxIterateRequest[]>
-      | Iterable<KvtxIterateRequest | KvtxIterateRequest[]>
+      | Iterable<KvtxIterateRequest | KvtxIterateRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2250,7 +2259,7 @@ export const KvtxIterateRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2286,32 +2295,34 @@ export const KvtxIterateRequest = {
 
   toJSON(message: KvtxIterateRequest): unknown {
     const obj: any = {}
-    message.body?.$case === 'init' &&
-      (obj.init = message.body?.init
-        ? KvtxIterateInit.toJSON(message.body?.init)
-        : undefined)
-    message.body?.$case === 'lookupValue' &&
-      (obj.lookupValue = message.body?.lookupValue)
-    message.body?.$case === 'next' && (obj.next = message.body?.next)
-    message.body?.$case === 'seek' &&
-      (obj.seek =
-        message.body?.seek !== undefined
-          ? base64FromBytes(message.body?.seek)
-          : undefined)
-    message.body?.$case === 'seekBeginning' &&
-      (obj.seekBeginning = message.body?.seekBeginning)
-    message.body?.$case === 'close' && (obj.close = message.body?.close)
+    if (message.body?.$case === 'init') {
+      obj.init = KvtxIterateInit.toJSON(message.body.init)
+    }
+    if (message.body?.$case === 'lookupValue') {
+      obj.lookupValue = message.body.lookupValue
+    }
+    if (message.body?.$case === 'next') {
+      obj.next = message.body.next
+    }
+    if (message.body?.$case === 'seek') {
+      obj.seek = base64FromBytes(message.body.seek)
+    }
+    if (message.body?.$case === 'seekBeginning') {
+      obj.seekBeginning = message.body.seekBeginning
+    }
+    if (message.body?.$case === 'close') {
+      obj.close = message.body.close
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxIterateRequest>, I>>(
-    base?: I
+    base?: I,
   ): KvtxIterateRequest {
-    return KvtxIterateRequest.fromPartial(base ?? {})
+    return KvtxIterateRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxIterateRequest>, I>>(
-    object: I
+    object: I,
   ): KvtxIterateRequest {
     const message = createBaseKvtxIterateRequest()
     if (
@@ -2376,7 +2387,7 @@ function createBaseKvtxIterateInit(): KvtxIterateInit {
 export const KvtxIterateInit = {
   encode(
     message: KvtxIterateInit,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
@@ -2433,7 +2444,7 @@ export const KvtxIterateInit = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxIterateInit | KvtxIterateInit[]>
-      | Iterable<KvtxIterateInit | KvtxIterateInit[]>
+      | Iterable<KvtxIterateInit | KvtxIterateInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2451,7 +2462,7 @@ export const KvtxIterateInit = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateInit> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2476,23 +2487,25 @@ export const KvtxIterateInit = {
 
   toJSON(message: KvtxIterateInit): unknown {
     const obj: any = {}
-    message.prefix !== undefined &&
-      (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
-      ))
-    message.sort !== undefined && (obj.sort = message.sort)
-    message.reverse !== undefined && (obj.reverse = message.reverse)
+    if (message.prefix.length !== 0) {
+      obj.prefix = base64FromBytes(message.prefix)
+    }
+    if (message.sort === true) {
+      obj.sort = message.sort
+    }
+    if (message.reverse === true) {
+      obj.reverse = message.reverse
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxIterateInit>, I>>(
-    base?: I
+    base?: I,
   ): KvtxIterateInit {
-    return KvtxIterateInit.fromPartial(base ?? {})
+    return KvtxIterateInit.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxIterateInit>, I>>(
-    object: I
+    object: I,
   ): KvtxIterateInit {
     const message = createBaseKvtxIterateInit()
     message.prefix = object.prefix ?? new Uint8Array(0)
@@ -2509,7 +2522,7 @@ function createBaseKvtxIterateResponse(): KvtxIterateResponse {
 export const KvtxIterateResponse = {
   encode(
     message: KvtxIterateResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     switch (message.body?.$case) {
       case 'ack':
@@ -2521,7 +2534,7 @@ export const KvtxIterateResponse = {
       case 'status':
         KvtxIterateStatus.encode(
           message.body.status,
-          writer.uint32(26).fork()
+          writer.uint32(26).fork(),
         ).ldelim()
         break
       case 'value':
@@ -2594,7 +2607,7 @@ export const KvtxIterateResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxIterateResponse | KvtxIterateResponse[]>
-      | Iterable<KvtxIterateResponse | KvtxIterateResponse[]>
+      | Iterable<KvtxIterateResponse | KvtxIterateResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2612,7 +2625,7 @@ export const KvtxIterateResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2643,30 +2656,31 @@ export const KvtxIterateResponse = {
 
   toJSON(message: KvtxIterateResponse): unknown {
     const obj: any = {}
-    message.body?.$case === 'ack' && (obj.ack = message.body?.ack)
-    message.body?.$case === 'reqError' &&
-      (obj.reqError = message.body?.reqError)
-    message.body?.$case === 'status' &&
-      (obj.status = message.body?.status
-        ? KvtxIterateStatus.toJSON(message.body?.status)
-        : undefined)
-    message.body?.$case === 'value' &&
-      (obj.value =
-        message.body?.value !== undefined
-          ? base64FromBytes(message.body?.value)
-          : undefined)
-    message.body?.$case === 'closed' && (obj.closed = message.body?.closed)
+    if (message.body?.$case === 'ack') {
+      obj.ack = message.body.ack
+    }
+    if (message.body?.$case === 'reqError') {
+      obj.reqError = message.body.reqError
+    }
+    if (message.body?.$case === 'status') {
+      obj.status = KvtxIterateStatus.toJSON(message.body.status)
+    }
+    if (message.body?.$case === 'value') {
+      obj.value = base64FromBytes(message.body.value)
+    }
+    if (message.body?.$case === 'closed') {
+      obj.closed = message.body.closed
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxIterateResponse>, I>>(
-    base?: I
+    base?: I,
   ): KvtxIterateResponse {
-    return KvtxIterateResponse.fromPartial(base ?? {})
+    return KvtxIterateResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxIterateResponse>, I>>(
-    object: I
+    object: I,
   ): KvtxIterateResponse {
     const message = createBaseKvtxIterateResponse()
     if (
@@ -2718,7 +2732,7 @@ function createBaseKvtxIterateStatus(): KvtxIterateStatus {
 export const KvtxIterateStatus = {
   encode(
     message: KvtxIterateStatus,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -2775,7 +2789,7 @@ export const KvtxIterateStatus = {
   async *encodeTransform(
     source:
       | AsyncIterable<KvtxIterateStatus | KvtxIterateStatus[]>
-      | Iterable<KvtxIterateStatus | KvtxIterateStatus[]>
+      | Iterable<KvtxIterateStatus | KvtxIterateStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2793,7 +2807,7 @@ export const KvtxIterateStatus = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateStatus> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2816,23 +2830,25 @@ export const KvtxIterateStatus = {
 
   toJSON(message: KvtxIterateStatus): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.valid !== undefined && (obj.valid = message.valid)
-    message.key !== undefined &&
-      (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array(0)
-      ))
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.valid === true) {
+      obj.valid = message.valid
+    }
+    if (message.key.length !== 0) {
+      obj.key = base64FromBytes(message.key)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KvtxIterateStatus>, I>>(
-    base?: I
+    base?: I,
   ): KvtxIterateStatus {
-    return KvtxIterateStatus.fromPartial(base ?? {})
+    return KvtxIterateStatus.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KvtxIterateStatus>, I>>(
-    object: I
+    object: I,
   ): KvtxIterateStatus {
     const message = createBaseKvtxIterateStatus()
     message.error = object.error ?? ''
@@ -2851,7 +2867,7 @@ export interface Kvtx {
    */
   KvtxTransaction(
     request: AsyncIterable<KvtxTransactionRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<KvtxTransactionResponse>
   /**
    * KvtxTransactionRpc is a rpc request for an ongoing KvtxTransaction.
@@ -2860,7 +2876,7 @@ export interface Kvtx {
    */
   KvtxTransactionRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
 }
 
@@ -2876,28 +2892,28 @@ export class KvtxClientImpl implements Kvtx {
   }
   KvtxTransaction(
     request: AsyncIterable<KvtxTransactionRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<KvtxTransactionResponse> {
     const data = KvtxTransactionRequest.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'KvtxTransaction',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return KvtxTransactionResponse.decodeTransform(result)
   }
 
   KvtxTransactionRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'KvtxTransactionRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
@@ -2946,32 +2962,32 @@ export interface KvtxOps {
   /** KeyCount returns the number of keys in the store. */
   KeyCount(
     request: KeyCountRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KeyCountResponse>
   /** KeyData returns data for a key. */
   KeyData(
     request: KvtxKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxKeyDataResponse>
   /** KeyExists checks if a key exists. */
   KeyExists(
     request: KvtxKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxKeyExistsResponse>
   /** SetKey sets the value of a key. */
   SetKey(
     request: KvtxSetKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxSetKeyResponse>
   /** DeleteKey removes a key from the store. */
   DeleteKey(
     request: KvtxDeleteKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxDeleteKeyResponse>
   /** ScanPrefix scans for key/value pairs with a key prefix. */
   ScanPrefix(
     request: KvtxScanPrefixRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<KvtxScanPrefixResponse>
   /**
    * Iterate iterates over the Kvtx store.
@@ -2982,7 +2998,7 @@ export interface KvtxOps {
    */
   Iterate(
     request: AsyncIterable<KvtxIterateRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<KvtxIterateResponse>
 }
 
@@ -3003,108 +3019,108 @@ export class KvtxOpsClientImpl implements KvtxOps {
   }
   KeyCount(
     request: KeyCountRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KeyCountResponse> {
     const data = KeyCountRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'KeyCount',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      KeyCountResponse.decode(_m0.Reader.create(data))
+      KeyCountResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   KeyData(
     request: KvtxKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxKeyDataResponse> {
     const data = KvtxKeyRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'KeyData',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      KvtxKeyDataResponse.decode(_m0.Reader.create(data))
+      KvtxKeyDataResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   KeyExists(
     request: KvtxKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxKeyExistsResponse> {
     const data = KvtxKeyRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'KeyExists',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      KvtxKeyExistsResponse.decode(_m0.Reader.create(data))
+      KvtxKeyExistsResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   SetKey(
     request: KvtxSetKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxSetKeyResponse> {
     const data = KvtxSetKeyRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'SetKey',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      KvtxSetKeyResponse.decode(_m0.Reader.create(data))
+      KvtxSetKeyResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   DeleteKey(
     request: KvtxDeleteKeyRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<KvtxDeleteKeyResponse> {
     const data = KvtxDeleteKeyRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'DeleteKey',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      KvtxDeleteKeyResponse.decode(_m0.Reader.create(data))
+      KvtxDeleteKeyResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   ScanPrefix(
     request: KvtxScanPrefixRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<KvtxScanPrefixResponse> {
     const data = KvtxScanPrefixRequest.encode(request).finish()
     const result = this.rpc.serverStreamingRequest(
       this.service,
       'ScanPrefix',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return KvtxScanPrefixResponse.decodeTransform(result)
   }
 
   Iterate(
     request: AsyncIterable<KvtxIterateRequest>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<KvtxIterateResponse> {
     const data = KvtxIterateRequest.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'Iterate',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return KvtxIterateResponse.decodeTransform(result)
   }
@@ -3196,32 +3212,32 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

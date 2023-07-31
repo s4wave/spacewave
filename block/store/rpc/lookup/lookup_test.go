@@ -24,8 +24,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBlockStoreHTTPLookup tests the block store rpc lookup controller.
-func TestBlockStoreHTTPLookup(t *testing.T) {
+// TestBlockStoreRPCLookup tests the block store rpc lookup controller.
+func TestBlockStoreRPCLookup(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

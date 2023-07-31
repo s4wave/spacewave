@@ -87,7 +87,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blockSize !== 0) {
       writer.uint32(8).int32(message.blockSize)
@@ -152,7 +152,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -170,7 +170,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -202,21 +202,24 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.blockSize !== undefined &&
-      (obj.blockSize = blockSizeToJSON(message.blockSize))
-    message.blockChecksum !== undefined &&
-      (obj.blockChecksum = message.blockChecksum)
-    message.disableChecksum !== undefined &&
-      (obj.disableChecksum = message.disableChecksum)
-    message.compressionLevel !== undefined &&
-      (obj.compressionLevel = Math.round(message.compressionLevel))
+    if (message.blockSize !== 0) {
+      obj.blockSize = blockSizeToJSON(message.blockSize)
+    }
+    if (message.blockChecksum === true) {
+      obj.blockChecksum = message.blockChecksum
+    }
+    if (message.disableChecksum === true) {
+      obj.disableChecksum = message.disableChecksum
+    }
+    if (message.compressionLevel !== 0) {
+      obj.compressionLevel = Math.round(message.compressionLevel)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.blockSize = object.blockSize ?? 0

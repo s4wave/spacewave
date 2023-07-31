@@ -67,7 +67,7 @@ function createBaseApplyBucketConfigRequest(): ApplyBucketConfigRequest {
 export const ApplyBucketConfigRequest = {
   encode(
     message: ApplyBucketConfigRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.config !== undefined) {
       Config.encode(message.config, writer.uint32(10).fork()).ldelim()
@@ -77,7 +77,7 @@ export const ApplyBucketConfigRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ApplyBucketConfigRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -107,7 +107,7 @@ export const ApplyBucketConfigRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<ApplyBucketConfigRequest | ApplyBucketConfigRequest[]>
-      | Iterable<ApplyBucketConfigRequest | ApplyBucketConfigRequest[]>
+      | Iterable<ApplyBucketConfigRequest | ApplyBucketConfigRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -125,7 +125,7 @@ export const ApplyBucketConfigRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfigRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -146,19 +146,19 @@ export const ApplyBucketConfigRequest = {
 
   toJSON(message: ApplyBucketConfigRequest): unknown {
     const obj: any = {}
-    message.config !== undefined &&
-      (obj.config = message.config ? Config.toJSON(message.config) : undefined)
+    if (message.config !== undefined) {
+      obj.config = Config.toJSON(message.config)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(
-    base?: I
+    base?: I,
   ): ApplyBucketConfigRequest {
-    return ApplyBucketConfigRequest.fromPartial(base ?? {})
+    return ApplyBucketConfigRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigRequest>, I>>(
-    object: I
+    object: I,
   ): ApplyBucketConfigRequest {
     const message = createBaseApplyBucketConfigRequest()
     message.config =
@@ -176,7 +176,7 @@ function createBaseApplyBucketConfigResponse(): ApplyBucketConfigResponse {
 export const ApplyBucketConfigResponse = {
   encode(
     message: ApplyBucketConfigResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.updated === true) {
       writer.uint32(8).bool(message.updated)
@@ -192,7 +192,7 @@ export const ApplyBucketConfigResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ApplyBucketConfigResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -236,7 +236,7 @@ export const ApplyBucketConfigResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<ApplyBucketConfigResponse | ApplyBucketConfigResponse[]>
-      | Iterable<ApplyBucketConfigResponse | ApplyBucketConfigResponse[]>
+      | Iterable<ApplyBucketConfigResponse | ApplyBucketConfigResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -254,7 +254,7 @@ export const ApplyBucketConfigResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfigResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -277,22 +277,25 @@ export const ApplyBucketConfigResponse = {
 
   toJSON(message: ApplyBucketConfigResponse): unknown {
     const obj: any = {}
-    message.updated !== undefined && (obj.updated = message.updated)
-    message.prev !== undefined &&
-      (obj.prev = message.prev ? Config.toJSON(message.prev) : undefined)
-    message.curr !== undefined &&
-      (obj.curr = message.curr ? Config.toJSON(message.curr) : undefined)
+    if (message.updated === true) {
+      obj.updated = message.updated
+    }
+    if (message.prev !== undefined) {
+      obj.prev = Config.toJSON(message.prev)
+    }
+    if (message.curr !== undefined) {
+      obj.curr = Config.toJSON(message.curr)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(
-    base?: I
+    base?: I,
   ): ApplyBucketConfigResponse {
-    return ApplyBucketConfigResponse.fromPartial(base ?? {})
+    return ApplyBucketConfigResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigResponse>, I>>(
-    object: I
+    object: I,
   ): ApplyBucketConfigResponse {
     const message = createBaseApplyBucketConfigResponse()
     message.updated = object.updated ?? false
@@ -315,7 +318,7 @@ function createBaseGetBucketConfigRequest(): GetBucketConfigRequest {
 export const GetBucketConfigRequest = {
   encode(
     message: GetBucketConfigRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -325,7 +328,7 @@ export const GetBucketConfigRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetBucketConfigRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -355,7 +358,7 @@ export const GetBucketConfigRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBucketConfigRequest | GetBucketConfigRequest[]>
-      | Iterable<GetBucketConfigRequest | GetBucketConfigRequest[]>
+      | Iterable<GetBucketConfigRequest | GetBucketConfigRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -373,7 +376,7 @@ export const GetBucketConfigRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketConfigRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -392,18 +395,19 @@ export const GetBucketConfigRequest = {
 
   toJSON(message: GetBucketConfigRequest): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBucketConfigRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetBucketConfigRequest {
-    return GetBucketConfigRequest.fromPartial(base ?? {})
+    return GetBucketConfigRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBucketConfigRequest>, I>>(
-    object: I
+    object: I,
   ): GetBucketConfigRequest {
     const message = createBaseGetBucketConfigRequest()
     message.bucketId = object.bucketId ?? ''
@@ -418,7 +422,7 @@ function createBaseGetBucketConfigResponse(): GetBucketConfigResponse {
 export const GetBucketConfigResponse = {
   encode(
     message: GetBucketConfigResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.config !== undefined) {
       Config.encode(message.config, writer.uint32(10).fork()).ldelim()
@@ -428,7 +432,7 @@ export const GetBucketConfigResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetBucketConfigResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -458,7 +462,7 @@ export const GetBucketConfigResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBucketConfigResponse | GetBucketConfigResponse[]>
-      | Iterable<GetBucketConfigResponse | GetBucketConfigResponse[]>
+      | Iterable<GetBucketConfigResponse | GetBucketConfigResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -476,7 +480,7 @@ export const GetBucketConfigResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketConfigResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -497,19 +501,19 @@ export const GetBucketConfigResponse = {
 
   toJSON(message: GetBucketConfigResponse): unknown {
     const obj: any = {}
-    message.config !== undefined &&
-      (obj.config = message.config ? Config.toJSON(message.config) : undefined)
+    if (message.config !== undefined) {
+      obj.config = Config.toJSON(message.config)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBucketConfigResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetBucketConfigResponse {
-    return GetBucketConfigResponse.fromPartial(base ?? {})
+    return GetBucketConfigResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBucketConfigResponse>, I>>(
-    object: I
+    object: I,
   ): GetBucketConfigResponse {
     const message = createBaseGetBucketConfigResponse()
     message.config =
@@ -527,7 +531,7 @@ function createBaseGetBucketInfoRequest(): GetBucketInfoRequest {
 export const GetBucketInfoRequest = {
   encode(
     message: GetBucketInfoRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -537,7 +541,7 @@ export const GetBucketInfoRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetBucketInfoRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -567,7 +571,7 @@ export const GetBucketInfoRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBucketInfoRequest | GetBucketInfoRequest[]>
-      | Iterable<GetBucketInfoRequest | GetBucketInfoRequest[]>
+      | Iterable<GetBucketInfoRequest | GetBucketInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -585,7 +589,7 @@ export const GetBucketInfoRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketInfoRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -604,18 +608,19 @@ export const GetBucketInfoRequest = {
 
   toJSON(message: GetBucketInfoRequest): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBucketInfoRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetBucketInfoRequest {
-    return GetBucketInfoRequest.fromPartial(base ?? {})
+    return GetBucketInfoRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBucketInfoRequest>, I>>(
-    object: I
+    object: I,
   ): GetBucketInfoRequest {
     const message = createBaseGetBucketInfoRequest()
     message.bucketId = object.bucketId ?? ''
@@ -630,7 +635,7 @@ function createBaseGetBucketInfoResponse(): GetBucketInfoResponse {
 export const GetBucketInfoResponse = {
   encode(
     message: GetBucketInfoResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketInfo !== undefined) {
       BucketInfo.encode(message.bucketInfo, writer.uint32(10).fork()).ldelim()
@@ -640,7 +645,7 @@ export const GetBucketInfoResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetBucketInfoResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -670,7 +675,7 @@ export const GetBucketInfoResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBucketInfoResponse | GetBucketInfoResponse[]>
-      | Iterable<GetBucketInfoResponse | GetBucketInfoResponse[]>
+      | Iterable<GetBucketInfoResponse | GetBucketInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -688,7 +693,7 @@ export const GetBucketInfoResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketInfoResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -711,21 +716,19 @@ export const GetBucketInfoResponse = {
 
   toJSON(message: GetBucketInfoResponse): unknown {
     const obj: any = {}
-    message.bucketInfo !== undefined &&
-      (obj.bucketInfo = message.bucketInfo
-        ? BucketInfo.toJSON(message.bucketInfo)
-        : undefined)
+    if (message.bucketInfo !== undefined) {
+      obj.bucketInfo = BucketInfo.toJSON(message.bucketInfo)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBucketInfoResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetBucketInfoResponse {
-    return GetBucketInfoResponse.fromPartial(base ?? {})
+    return GetBucketInfoResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBucketInfoResponse>, I>>(
-    object: I
+    object: I,
   ): GetBucketInfoResponse {
     const message = createBaseGetBucketInfoResponse()
     message.bucketInfo =
@@ -743,7 +746,7 @@ function createBaseListBucketInfoRequest(): ListBucketInfoRequest {
 export const ListBucketInfoRequest = {
   encode(
     message: ListBucketInfoRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketIdRe !== '') {
       writer.uint32(10).string(message.bucketIdRe)
@@ -753,7 +756,7 @@ export const ListBucketInfoRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ListBucketInfoRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -783,7 +786,7 @@ export const ListBucketInfoRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<ListBucketInfoRequest | ListBucketInfoRequest[]>
-      | Iterable<ListBucketInfoRequest | ListBucketInfoRequest[]>
+      | Iterable<ListBucketInfoRequest | ListBucketInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -801,7 +804,7 @@ export const ListBucketInfoRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListBucketInfoRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -822,18 +825,19 @@ export const ListBucketInfoRequest = {
 
   toJSON(message: ListBucketInfoRequest): unknown {
     const obj: any = {}
-    message.bucketIdRe !== undefined && (obj.bucketIdRe = message.bucketIdRe)
+    if (message.bucketIdRe !== '') {
+      obj.bucketIdRe = message.bucketIdRe
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ListBucketInfoRequest>, I>>(
-    base?: I
+    base?: I,
   ): ListBucketInfoRequest {
-    return ListBucketInfoRequest.fromPartial(base ?? {})
+    return ListBucketInfoRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ListBucketInfoRequest>, I>>(
-    object: I
+    object: I,
   ): ListBucketInfoRequest {
     const message = createBaseListBucketInfoRequest()
     message.bucketIdRe = object.bucketIdRe ?? ''
@@ -848,7 +852,7 @@ function createBaseListBucketInfoResponse(): ListBucketInfoResponse {
 export const ListBucketInfoResponse = {
   encode(
     message: ListBucketInfoResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.bucketInfo) {
       BucketInfo.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -858,7 +862,7 @@ export const ListBucketInfoResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ListBucketInfoResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -888,7 +892,7 @@ export const ListBucketInfoResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<ListBucketInfoResponse | ListBucketInfoResponse[]>
-      | Iterable<ListBucketInfoResponse | ListBucketInfoResponse[]>
+      | Iterable<ListBucketInfoResponse | ListBucketInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -906,7 +910,7 @@ export const ListBucketInfoResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListBucketInfoResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -929,24 +933,19 @@ export const ListBucketInfoResponse = {
 
   toJSON(message: ListBucketInfoResponse): unknown {
     const obj: any = {}
-    if (message.bucketInfo) {
-      obj.bucketInfo = message.bucketInfo.map((e) =>
-        e ? BucketInfo.toJSON(e) : undefined
-      )
-    } else {
-      obj.bucketInfo = []
+    if (message.bucketInfo?.length) {
+      obj.bucketInfo = message.bucketInfo.map((e) => BucketInfo.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ListBucketInfoResponse>, I>>(
-    base?: I
+    base?: I,
   ): ListBucketInfoResponse {
-    return ListBucketInfoResponse.fromPartial(base ?? {})
+    return ListBucketInfoResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ListBucketInfoResponse>, I>>(
-    object: I
+    object: I,
   ): ListBucketInfoResponse {
     const message = createBaseListBucketInfoResponse()
     message.bucketInfo =
@@ -960,22 +959,22 @@ export interface BucketStore {
   /** GetBucketConfig gets the bucket config with the highest rev for the ID. */
   GetBucketConfig(
     request: GetBucketConfigRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBucketConfigResponse>
   /** ApplyBucketConfig requests to apply a bucket config to this volume only. */
   ApplyBucketConfig(
     request: ApplyBucketConfigRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<ApplyBucketConfigResponse>
   /** GetBucketInfo returns bucket information. */
   GetBucketInfo(
     request: GetBucketInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBucketInfoResponse>
   /** ListBucketInfo returns a list of bucket infos with an optional regex. */
   ListBucketInfo(
     request: ListBucketInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<ListBucketInfoResponse>
 }
 
@@ -993,65 +992,65 @@ export class BucketStoreClientImpl implements BucketStore {
   }
   GetBucketConfig(
     request: GetBucketConfigRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBucketConfigResponse> {
     const data = GetBucketConfigRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'GetBucketConfig',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      GetBucketConfigResponse.decode(_m0.Reader.create(data))
+      GetBucketConfigResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   ApplyBucketConfig(
     request: ApplyBucketConfigRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<ApplyBucketConfigResponse> {
     const data = ApplyBucketConfigRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'ApplyBucketConfig',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      ApplyBucketConfigResponse.decode(_m0.Reader.create(data))
+      ApplyBucketConfigResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   GetBucketInfo(
     request: GetBucketInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBucketInfoResponse> {
     const data = GetBucketInfoRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'GetBucketInfo',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      GetBucketInfoResponse.decode(_m0.Reader.create(data))
+      GetBucketInfoResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   ListBucketInfo(
     request: ListBucketInfoRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<ListBucketInfoResponse> {
     const data = ListBucketInfoRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'ListBucketInfo',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      ListBucketInfoResponse.decode(_m0.Reader.create(data))
+      ListBucketInfoResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -1106,7 +1105,7 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
 }
 

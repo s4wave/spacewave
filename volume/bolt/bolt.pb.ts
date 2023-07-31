@@ -61,7 +61,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.path !== '') {
       writer.uint32(10).string(message.path)
@@ -176,7 +176,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -194,7 +194,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -233,33 +233,39 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.path !== undefined && (obj.path = message.path)
-    message.kvKeyOpts !== undefined &&
-      (obj.kvKeyOpts = message.kvKeyOpts
-        ? Config1.toJSON(message.kvKeyOpts)
-        : undefined)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
-    message.volumeConfig !== undefined &&
-      (obj.volumeConfig = message.volumeConfig
-        ? Config2.toJSON(message.volumeConfig)
-        : undefined)
-    message.storeConfig !== undefined &&
-      (obj.storeConfig = message.storeConfig
-        ? Config3.toJSON(message.storeConfig)
-        : undefined)
-    message.noGenerateKey !== undefined &&
-      (obj.noGenerateKey = message.noGenerateKey)
-    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
-    message.sync !== undefined && (obj.sync = message.sync)
-    message.freelistSync !== undefined &&
-      (obj.freelistSync = message.freelistSync)
+    if (message.path !== '') {
+      obj.path = message.path
+    }
+    if (message.kvKeyOpts !== undefined) {
+      obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
+    if (message.volumeConfig !== undefined) {
+      obj.volumeConfig = Config2.toJSON(message.volumeConfig)
+    }
+    if (message.storeConfig !== undefined) {
+      obj.storeConfig = Config3.toJSON(message.storeConfig)
+    }
+    if (message.noGenerateKey === true) {
+      obj.noGenerateKey = message.noGenerateKey
+    }
+    if (message.noWriteKey === true) {
+      obj.noWriteKey = message.noWriteKey
+    }
+    if (message.sync === true) {
+      obj.sync = message.sync
+    }
+    if (message.freelistSync === true) {
+      obj.freelistSync = message.freelistSync
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.path = object.path ?? ''

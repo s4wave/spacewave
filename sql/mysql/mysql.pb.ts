@@ -154,7 +154,7 @@ export const Root = {
   // encodeTransform encodes a source of message objects.
   // Transform<Root, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>
+    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -172,7 +172,7 @@ export const Root = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -195,20 +195,15 @@ export const Root = {
 
   toJSON(message: Root): unknown {
     const obj: any = {}
-    if (message.databases) {
-      obj.databases = message.databases.map((e) =>
-        e ? RootDb.toJSON(e) : undefined
-      )
-    } else {
-      obj.databases = []
+    if (message.databases?.length) {
+      obj.databases = message.databases.map((e) => RootDb.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
-    return Root.fromPartial(base ?? {})
+    return Root.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.databases =
@@ -224,7 +219,7 @@ function createBaseRootDb(): RootDb {
 export const RootDb = {
   encode(
     message: RootDb,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -269,7 +264,7 @@ export const RootDb = {
   // encodeTransform encodes a source of message objects.
   // Transform<RootDb, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<RootDb | RootDb[]> | Iterable<RootDb | RootDb[]>
+    source: AsyncIterable<RootDb | RootDb[]> | Iterable<RootDb | RootDb[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -287,7 +282,7 @@ export const RootDb = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RootDb> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -309,16 +304,18 @@ export const RootDb = {
 
   toJSON(message: RootDb): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RootDb>, I>>(base?: I): RootDb {
-    return RootDb.fromPartial(base ?? {})
+    return RootDb.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RootDb>, I>>(object: I): RootDb {
     const message = createBaseRootDb()
     message.name = object.name ?? ''
@@ -337,7 +334,7 @@ function createBaseDatabaseRoot(): DatabaseRoot {
 export const DatabaseRoot = {
   encode(
     message: DatabaseRoot,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.tables) {
       DatabaseRootTable.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -374,7 +371,7 @@ export const DatabaseRoot = {
   async *encodeTransform(
     source:
       | AsyncIterable<DatabaseRoot | DatabaseRoot[]>
-      | Iterable<DatabaseRoot | DatabaseRoot[]>
+      | Iterable<DatabaseRoot | DatabaseRoot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -392,7 +389,7 @@ export const DatabaseRoot = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DatabaseRoot> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -415,24 +412,19 @@ export const DatabaseRoot = {
 
   toJSON(message: DatabaseRoot): unknown {
     const obj: any = {}
-    if (message.tables) {
-      obj.tables = message.tables.map((e) =>
-        e ? DatabaseRootTable.toJSON(e) : undefined
-      )
-    } else {
-      obj.tables = []
+    if (message.tables?.length) {
+      obj.tables = message.tables.map((e) => DatabaseRootTable.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<DatabaseRoot>, I>>(
-    base?: I
+    base?: I,
   ): DatabaseRoot {
-    return DatabaseRoot.fromPartial(base ?? {})
+    return DatabaseRoot.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<DatabaseRoot>, I>>(
-    object: I
+    object: I,
   ): DatabaseRoot {
     const message = createBaseDatabaseRoot()
     message.tables =
@@ -448,7 +440,7 @@ function createBaseDatabaseRootTable(): DatabaseRootTable {
 export const DatabaseRootTable = {
   encode(
     message: DatabaseRootTable,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -495,7 +487,7 @@ export const DatabaseRootTable = {
   async *encodeTransform(
     source:
       | AsyncIterable<DatabaseRootTable | DatabaseRootTable[]>
-      | Iterable<DatabaseRootTable | DatabaseRootTable[]>
+      | Iterable<DatabaseRootTable | DatabaseRootTable[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -513,7 +505,7 @@ export const DatabaseRootTable = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DatabaseRootTable> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -535,20 +527,22 @@ export const DatabaseRootTable = {
 
   toJSON(message: DatabaseRootTable): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<DatabaseRootTable>, I>>(
-    base?: I
+    base?: I,
   ): DatabaseRootTable {
-    return DatabaseRootTable.fromPartial(base ?? {})
+    return DatabaseRootTable.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<DatabaseRootTable>, I>>(
-    object: I
+    object: I,
   ): DatabaseRootTable {
     const message = createBaseDatabaseRootTable()
     message.name = object.name ?? ''
@@ -574,7 +568,7 @@ function createBaseTableRoot(): TableRoot {
 export const TableRoot = {
   encode(
     message: TableRoot,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.tableSchema !== undefined) {
       TableSchema.encode(message.tableSchema, writer.uint32(10).fork()).ldelim()
@@ -637,7 +631,7 @@ export const TableRoot = {
           }
 
           message.tablePartitions.push(
-            TablePartitionRoot.decode(reader, reader.uint32())
+            TablePartitionRoot.decode(reader, reader.uint32()),
           )
           continue
         case 3:
@@ -675,7 +669,7 @@ export const TableRoot = {
   async *encodeTransform(
     source:
       | AsyncIterable<TableRoot | TableRoot[]>
-      | Iterable<TableRoot | TableRoot[]>
+      | Iterable<TableRoot | TableRoot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -693,7 +687,7 @@ export const TableRoot = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableRoot> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -729,41 +723,36 @@ export const TableRoot = {
 
   toJSON(message: TableRoot): unknown {
     const obj: any = {}
-    message.tableSchema !== undefined &&
-      (obj.tableSchema = message.tableSchema
-        ? TableSchema.toJSON(message.tableSchema)
-        : undefined)
-    if (message.primaryKeyOrdinals) {
+    if (message.tableSchema !== undefined) {
+      obj.tableSchema = TableSchema.toJSON(message.tableSchema)
+    }
+    if (message.primaryKeyOrdinals?.length) {
       obj.primaryKeyOrdinals = message.primaryKeyOrdinals.map((e) =>
-        Math.round(e)
+        Math.round(e),
       )
-    } else {
-      obj.primaryKeyOrdinals = []
     }
-    if (message.tablePartitions) {
+    if (message.tablePartitions?.length) {
       obj.tablePartitions = message.tablePartitions.map((e) =>
-        e ? TablePartitionRoot.toJSON(e) : undefined
+        TablePartitionRoot.toJSON(e),
       )
-    } else {
-      obj.tablePartitions = []
     }
-    message.rowNonce !== undefined &&
-      (obj.rowNonce = (message.rowNonce || Long.UZERO).toString())
-    message.autoIncrVal !== undefined &&
-      (obj.autoIncrVal = message.autoIncrVal
-        ? TableColumn.toJSON(message.autoIncrVal)
-        : undefined)
-    message.collationId !== undefined &&
-      (obj.collationId = Math.round(message.collationId))
+    if (!message.rowNonce.isZero()) {
+      obj.rowNonce = (message.rowNonce || Long.UZERO).toString()
+    }
+    if (message.autoIncrVal !== undefined) {
+      obj.autoIncrVal = TableColumn.toJSON(message.autoIncrVal)
+    }
+    if (message.collationId !== 0) {
+      obj.collationId = Math.round(message.collationId)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TableRoot>, I>>(base?: I): TableRoot {
-    return TableRoot.fromPartial(base ?? {})
+    return TableRoot.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TableRoot>, I>>(
-    object: I
+    object: I,
   ): TableRoot {
     const message = createBaseTableRoot()
     message.tableSchema =
@@ -794,12 +783,12 @@ function createBaseTablePartitionRoot(): TablePartitionRoot {
 export const TablePartitionRoot = {
   encode(
     message: TablePartitionRoot,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.rowKeyValue !== undefined) {
       KeyValueStore.encode(
         message.rowKeyValue,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     return writer
@@ -834,7 +823,7 @@ export const TablePartitionRoot = {
   async *encodeTransform(
     source:
       | AsyncIterable<TablePartitionRoot | TablePartitionRoot[]>
-      | Iterable<TablePartitionRoot | TablePartitionRoot[]>
+      | Iterable<TablePartitionRoot | TablePartitionRoot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -852,7 +841,7 @@ export const TablePartitionRoot = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TablePartitionRoot> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -875,21 +864,19 @@ export const TablePartitionRoot = {
 
   toJSON(message: TablePartitionRoot): unknown {
     const obj: any = {}
-    message.rowKeyValue !== undefined &&
-      (obj.rowKeyValue = message.rowKeyValue
-        ? KeyValueStore.toJSON(message.rowKeyValue)
-        : undefined)
+    if (message.rowKeyValue !== undefined) {
+      obj.rowKeyValue = KeyValueStore.toJSON(message.rowKeyValue)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TablePartitionRoot>, I>>(
-    base?: I
+    base?: I,
   ): TablePartitionRoot {
-    return TablePartitionRoot.fromPartial(base ?? {})
+    return TablePartitionRoot.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TablePartitionRoot>, I>>(
-    object: I
+    object: I,
   ): TablePartitionRoot {
     const message = createBaseTablePartitionRoot()
     message.rowKeyValue =
@@ -907,7 +894,7 @@ function createBaseTableRow(): TableRow {
 export const TableRow = {
   encode(
     message: TableRow,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.columns) {
       TableColumn.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -944,7 +931,7 @@ export const TableRow = {
   async *encodeTransform(
     source:
       | AsyncIterable<TableRow | TableRow[]>
-      | Iterable<TableRow | TableRow[]>
+      | Iterable<TableRow | TableRow[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -962,7 +949,7 @@ export const TableRow = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableRow> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -985,20 +972,15 @@ export const TableRow = {
 
   toJSON(message: TableRow): unknown {
     const obj: any = {}
-    if (message.columns) {
-      obj.columns = message.columns.map((e) =>
-        e ? TableColumn.toJSON(e) : undefined
-      )
-    } else {
-      obj.columns = []
+    if (message.columns?.length) {
+      obj.columns = message.columns.map((e) => TableColumn.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TableRow>, I>>(base?: I): TableRow {
-    return TableRow.fromPartial(base ?? {})
+    return TableRow.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TableRow>, I>>(object: I): TableRow {
     const message = createBaseTableRow()
     message.columns =
@@ -1014,7 +996,7 @@ function createBaseTableColumn(): TableColumn {
 export const TableColumn = {
   encode(
     message: TableColumn,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.msgpackBlob !== undefined) {
       MsgpackBlob.encode(message.msgpackBlob, writer.uint32(10).fork()).ldelim()
@@ -1051,7 +1033,7 @@ export const TableColumn = {
   async *encodeTransform(
     source:
       | AsyncIterable<TableColumn | TableColumn[]>
-      | Iterable<TableColumn | TableColumn[]>
+      | Iterable<TableColumn | TableColumn[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1069,7 +1051,7 @@ export const TableColumn = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableColumn> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1092,19 +1074,17 @@ export const TableColumn = {
 
   toJSON(message: TableColumn): unknown {
     const obj: any = {}
-    message.msgpackBlob !== undefined &&
-      (obj.msgpackBlob = message.msgpackBlob
-        ? MsgpackBlob.toJSON(message.msgpackBlob)
-        : undefined)
+    if (message.msgpackBlob !== undefined) {
+      obj.msgpackBlob = MsgpackBlob.toJSON(message.msgpackBlob)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TableColumn>, I>>(base?: I): TableColumn {
-    return TableColumn.fromPartial(base ?? {})
+    return TableColumn.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TableColumn>, I>>(
-    object: I
+    object: I,
   ): TableColumn {
     const message = createBaseTableColumn()
     message.msgpackBlob =
@@ -1122,7 +1102,7 @@ function createBaseTableSchema(): TableSchema {
 export const TableSchema = {
   encode(
     message: TableSchema,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.columns) {
       TableSchemaColumn.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -1144,7 +1124,7 @@ export const TableSchema = {
           }
 
           message.columns.push(
-            TableSchemaColumn.decode(reader, reader.uint32())
+            TableSchemaColumn.decode(reader, reader.uint32()),
           )
           continue
       }
@@ -1161,7 +1141,7 @@ export const TableSchema = {
   async *encodeTransform(
     source:
       | AsyncIterable<TableSchema | TableSchema[]>
-      | Iterable<TableSchema | TableSchema[]>
+      | Iterable<TableSchema | TableSchema[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1179,7 +1159,7 @@ export const TableSchema = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableSchema> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1202,22 +1182,17 @@ export const TableSchema = {
 
   toJSON(message: TableSchema): unknown {
     const obj: any = {}
-    if (message.columns) {
-      obj.columns = message.columns.map((e) =>
-        e ? TableSchemaColumn.toJSON(e) : undefined
-      )
-    } else {
-      obj.columns = []
+    if (message.columns?.length) {
+      obj.columns = message.columns.map((e) => TableSchemaColumn.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TableSchema>, I>>(base?: I): TableSchema {
-    return TableSchema.fromPartial(base ?? {})
+    return TableSchema.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TableSchema>, I>>(
-    object: I
+    object: I,
   ): TableSchema {
     const message = createBaseTableSchema()
     message.columns =
@@ -1243,7 +1218,7 @@ function createBaseTableSchemaColumn(): TableSchemaColumn {
 export const TableSchemaColumn = {
   encode(
     message: TableSchemaColumn,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -1360,7 +1335,7 @@ export const TableSchemaColumn = {
   async *encodeTransform(
     source:
       | AsyncIterable<TableSchemaColumn | TableSchemaColumn[]>
-      | Iterable<TableSchemaColumn | TableSchemaColumn[]>
+      | Iterable<TableSchemaColumn | TableSchemaColumn[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1378,7 +1353,7 @@ export const TableSchemaColumn = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableSchemaColumn> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1411,28 +1386,43 @@ export const TableSchemaColumn = {
 
   toJSON(message: TableSchemaColumn): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.columnType !== undefined && (obj.columnType = message.columnType)
-    message.defaultValueExpr !== undefined &&
-      (obj.defaultValueExpr = message.defaultValueExpr)
-    message.autoIncrement !== undefined &&
-      (obj.autoIncrement = message.autoIncrement)
-    message.nullable !== undefined && (obj.nullable = message.nullable)
-    message.source !== undefined && (obj.source = message.source)
-    message.primaryKey !== undefined && (obj.primaryKey = message.primaryKey)
-    message.comment !== undefined && (obj.comment = message.comment)
-    message.extra !== undefined && (obj.extra = message.extra)
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.columnType !== '') {
+      obj.columnType = message.columnType
+    }
+    if (message.defaultValueExpr !== '') {
+      obj.defaultValueExpr = message.defaultValueExpr
+    }
+    if (message.autoIncrement === true) {
+      obj.autoIncrement = message.autoIncrement
+    }
+    if (message.nullable === true) {
+      obj.nullable = message.nullable
+    }
+    if (message.source !== '') {
+      obj.source = message.source
+    }
+    if (message.primaryKey === true) {
+      obj.primaryKey = message.primaryKey
+    }
+    if (message.comment !== '') {
+      obj.comment = message.comment
+    }
+    if (message.extra !== '') {
+      obj.extra = message.extra
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<TableSchemaColumn>, I>>(
-    base?: I
+    base?: I,
   ): TableSchemaColumn {
-    return TableSchemaColumn.fromPartial(base ?? {})
+    return TableSchemaColumn.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TableSchemaColumn>, I>>(
-    object: I
+    object: I,
   ): TableSchemaColumn {
     const message = createBaseTableSchemaColumn()
     message.name = object.name ?? ''

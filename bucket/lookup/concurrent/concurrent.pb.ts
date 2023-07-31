@@ -162,7 +162,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketConf !== undefined) {
       Config1.encode(message.bucketConf, writer.uint32(10).fork()).ldelim()
@@ -247,7 +247,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -265,7 +265,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -301,28 +301,30 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.bucketConf !== undefined &&
-      (obj.bucketConf = message.bucketConf
-        ? Config1.toJSON(message.bucketConf)
-        : undefined)
-    message.notFoundBehavior !== undefined &&
-      (obj.notFoundBehavior = notFoundBehaviorToJSON(message.notFoundBehavior))
-    message.putBlockBehavior !== undefined &&
-      (obj.putBlockBehavior = putBlockBehaviorToJSON(message.putBlockBehavior))
-    message.writebackBehavior !== undefined &&
-      (obj.writebackBehavior = writebackBehaviorToJSON(
-        message.writebackBehavior
-      ))
-    message.lookupTimeoutDur !== undefined &&
-      (obj.lookupTimeoutDur = message.lookupTimeoutDur)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
+    if (message.bucketConf !== undefined) {
+      obj.bucketConf = Config1.toJSON(message.bucketConf)
+    }
+    if (message.notFoundBehavior !== 0) {
+      obj.notFoundBehavior = notFoundBehaviorToJSON(message.notFoundBehavior)
+    }
+    if (message.putBlockBehavior !== 0) {
+      obj.putBlockBehavior = putBlockBehaviorToJSON(message.putBlockBehavior)
+    }
+    if (message.writebackBehavior !== 0) {
+      obj.writebackBehavior = writebackBehaviorToJSON(message.writebackBehavior)
+    }
+    if (message.lookupTimeoutDur !== '') {
+      obj.lookupTimeoutDur = message.lookupTimeoutDur
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.bucketConf =

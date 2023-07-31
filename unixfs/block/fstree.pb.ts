@@ -245,7 +245,7 @@ function createBaseFSNode(): FSNode {
 export const FSNode = {
   encode(
     message: FSNode,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.nodeType !== 0) {
       writer.uint32(8).int32(message.nodeType)
@@ -330,7 +330,7 @@ export const FSNode = {
   // encodeTransform encodes a source of message objects.
   // Transform<FSNode, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<FSNode | FSNode[]> | Iterable<FSNode | FSNode[]>
+    source: AsyncIterable<FSNode | FSNode[]> | Iterable<FSNode | FSNode[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -348,7 +348,7 @@ export const FSNode = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSNode> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -380,34 +380,30 @@ export const FSNode = {
 
   toJSON(message: FSNode): unknown {
     const obj: any = {}
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
-    message.modTime !== undefined &&
-      (obj.modTime = message.modTime
-        ? Timestamp.toJSON(message.modTime)
-        : undefined)
-    message.permissions !== undefined &&
-      (obj.permissions = Math.round(message.permissions))
-    message.file !== undefined &&
-      (obj.file = message.file ? File.toJSON(message.file) : undefined)
-    if (message.directoryEntry) {
-      obj.directoryEntry = message.directoryEntry.map((e) =>
-        e ? Dirent.toJSON(e) : undefined
-      )
-    } else {
-      obj.directoryEntry = []
+    if (message.nodeType !== 0) {
+      obj.nodeType = nodeTypeToJSON(message.nodeType)
     }
-    message.symlink !== undefined &&
-      (obj.symlink = message.symlink
-        ? FSSymlink.toJSON(message.symlink)
-        : undefined)
+    if (message.modTime !== undefined) {
+      obj.modTime = Timestamp.toJSON(message.modTime)
+    }
+    if (message.permissions !== 0) {
+      obj.permissions = Math.round(message.permissions)
+    }
+    if (message.file !== undefined) {
+      obj.file = File.toJSON(message.file)
+    }
+    if (message.directoryEntry?.length) {
+      obj.directoryEntry = message.directoryEntry.map((e) => Dirent.toJSON(e))
+    }
+    if (message.symlink !== undefined) {
+      obj.symlink = FSSymlink.toJSON(message.symlink)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSNode>, I>>(base?: I): FSNode {
-    return FSNode.fromPartial(base ?? {})
+    return FSNode.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSNode>, I>>(object: I): FSNode {
     const message = createBaseFSNode()
     message.nodeType = object.nodeType ?? 0
@@ -437,7 +433,7 @@ function createBaseDirent(): Dirent {
 export const Dirent = {
   encode(
     message: Dirent,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.name !== '') {
       writer.uint32(10).string(message.name)
@@ -492,7 +488,7 @@ export const Dirent = {
   // encodeTransform encodes a source of message objects.
   // Transform<Dirent, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Dirent | Dirent[]> | Iterable<Dirent | Dirent[]>
+    source: AsyncIterable<Dirent | Dirent[]> | Iterable<Dirent | Dirent[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -510,7 +506,7 @@ export const Dirent = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Dirent> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -535,20 +531,21 @@ export const Dirent = {
 
   toJSON(message: Dirent): unknown {
     const obj: any = {}
-    message.name !== undefined && (obj.name = message.name)
-    message.nodeRef !== undefined &&
-      (obj.nodeRef = message.nodeRef
-        ? BlockRef.toJSON(message.nodeRef)
-        : undefined)
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.nodeRef !== undefined) {
+      obj.nodeRef = BlockRef.toJSON(message.nodeRef)
+    }
+    if (message.nodeType !== 0) {
+      obj.nodeType = nodeTypeToJSON(message.nodeType)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Dirent>, I>>(base?: I): Dirent {
-    return Dirent.fromPartial(base ?? {})
+    return Dirent.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Dirent>, I>>(object: I): Dirent {
     const message = createBaseDirent()
     message.name = object.name ?? ''
@@ -568,7 +565,7 @@ function createBaseFSSymlink(): FSSymlink {
 export const FSSymlink = {
   encode(
     message: FSSymlink,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.targetPath !== undefined) {
       FSPath.encode(message.targetPath, writer.uint32(10).fork()).ldelim()
@@ -605,7 +602,7 @@ export const FSSymlink = {
   async *encodeTransform(
     source:
       | AsyncIterable<FSSymlink | FSSymlink[]>
-      | Iterable<FSSymlink | FSSymlink[]>
+      | Iterable<FSSymlink | FSSymlink[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -623,7 +620,7 @@ export const FSSymlink = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSSymlink> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -646,19 +643,17 @@ export const FSSymlink = {
 
   toJSON(message: FSSymlink): unknown {
     const obj: any = {}
-    message.targetPath !== undefined &&
-      (obj.targetPath = message.targetPath
-        ? FSPath.toJSON(message.targetPath)
-        : undefined)
+    if (message.targetPath !== undefined) {
+      obj.targetPath = FSPath.toJSON(message.targetPath)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSSymlink>, I>>(base?: I): FSSymlink {
-    return FSSymlink.fromPartial(base ?? {})
+    return FSSymlink.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSSymlink>, I>>(
-    object: I
+    object: I,
   ): FSSymlink {
     const message = createBaseFSSymlink()
     message.targetPath =
@@ -676,7 +671,7 @@ function createBaseFSObject(): FSObject {
 export const FSObject = {
   encode(
     message: FSObject,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.config !== undefined) {
       FSConfig.encode(message.config, writer.uint32(10).fork()).ldelim()
@@ -733,7 +728,7 @@ export const FSObject = {
   async *encodeTransform(
     source:
       | AsyncIterable<FSObject | FSObject[]>
-      | Iterable<FSObject | FSObject[]>
+      | Iterable<FSObject | FSObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -751,7 +746,7 @@ export const FSObject = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSObject> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -778,23 +773,21 @@ export const FSObject = {
 
   toJSON(message: FSObject): unknown {
     const obj: any = {}
-    message.config !== undefined &&
-      (obj.config = message.config
-        ? FSConfig.toJSON(message.config)
-        : undefined)
-    message.fsNode !== undefined &&
-      (obj.fsNode = message.fsNode ? FSNode.toJSON(message.fsNode) : undefined)
-    message.lastChange !== undefined &&
-      (obj.lastChange = message.lastChange
-        ? FSChange.toJSON(message.lastChange)
-        : undefined)
+    if (message.config !== undefined) {
+      obj.config = FSConfig.toJSON(message.config)
+    }
+    if (message.fsNode !== undefined) {
+      obj.fsNode = FSNode.toJSON(message.fsNode)
+    }
+    if (message.lastChange !== undefined) {
+      obj.lastChange = FSChange.toJSON(message.lastChange)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSObject>, I>>(base?: I): FSObject {
-    return FSObject.fromPartial(base ?? {})
+    return FSObject.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSObject>, I>>(object: I): FSObject {
     const message = createBaseFSObject()
     message.config =
@@ -820,7 +813,7 @@ function createBaseFSHostVolume(): FSHostVolume {
 export const FSHostVolume = {
   encode(
     message: FSHostVolume,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.volumeId !== '') {
       writer.uint32(10).string(message.volumeId)
@@ -857,7 +850,7 @@ export const FSHostVolume = {
   async *encodeTransform(
     source:
       | AsyncIterable<FSHostVolume | FSHostVolume[]>
-      | Iterable<FSHostVolume | FSHostVolume[]>
+      | Iterable<FSHostVolume | FSHostVolume[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -875,7 +868,7 @@ export const FSHostVolume = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSHostVolume> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -894,18 +887,19 @@ export const FSHostVolume = {
 
   toJSON(message: FSHostVolume): unknown {
     const obj: any = {}
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSHostVolume>, I>>(
-    base?: I
+    base?: I,
   ): FSHostVolume {
-    return FSHostVolume.fromPartial(base ?? {})
+    return FSHostVolume.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSHostVolume>, I>>(
-    object: I
+    object: I,
   ): FSHostVolume {
     const message = createBaseFSHostVolume()
     message.volumeId = object.volumeId ?? ''
@@ -920,7 +914,7 @@ function createBaseFSConfig(): FSConfig {
 export const FSConfig = {
   encode(
     message: FSConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.disableChangelog === true) {
       writer.uint32(8).bool(message.disableChangelog)
@@ -957,7 +951,7 @@ export const FSConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<FSConfig | FSConfig[]>
-      | Iterable<FSConfig | FSConfig[]>
+      | Iterable<FSConfig | FSConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -975,7 +969,7 @@ export const FSConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -998,15 +992,15 @@ export const FSConfig = {
 
   toJSON(message: FSConfig): unknown {
     const obj: any = {}
-    message.disableChangelog !== undefined &&
-      (obj.disableChangelog = message.disableChangelog)
+    if (message.disableChangelog === true) {
+      obj.disableChangelog = message.disableChangelog
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSConfig>, I>>(base?: I): FSConfig {
-    return FSConfig.fromPartial(base ?? {})
+    return FSConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSConfig>, I>>(object: I): FSConfig {
     const message = createBaseFSConfig()
     message.disableChangelog = object.disableChangelog ?? false
@@ -1021,7 +1015,7 @@ function createBaseFSPath(): FSPath {
 export const FSPath = {
   encode(
     message: FSPath,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.nodes) {
       writer.uint32(10).string(v!)
@@ -1056,7 +1050,7 @@ export const FSPath = {
   // encodeTransform encodes a source of message objects.
   // Transform<FSPath, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<FSPath | FSPath[]> | Iterable<FSPath | FSPath[]>
+    source: AsyncIterable<FSPath | FSPath[]> | Iterable<FSPath | FSPath[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1074,7 +1068,7 @@ export const FSPath = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSPath> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1097,18 +1091,15 @@ export const FSPath = {
 
   toJSON(message: FSPath): unknown {
     const obj: any = {}
-    if (message.nodes) {
-      obj.nodes = message.nodes.map((e) => e)
-    } else {
-      obj.nodes = []
+    if (message.nodes?.length) {
+      obj.nodes = message.nodes
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSPath>, I>>(base?: I): FSPath {
-    return FSPath.fromPartial(base ?? {})
+    return FSPath.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSPath>, I>>(object: I): FSPath {
     const message = createBaseFSPath()
     message.nodes = object.nodes?.map((e) => e) || []
@@ -1131,7 +1122,7 @@ function createBaseFSChange(): FSChange {
 export const FSChange = {
   encode(
     message: FSChange,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.seqno.isZero()) {
       writer.uint32(8).uint64(message.seqno)
@@ -1228,7 +1219,7 @@ export const FSChange = {
   async *encodeTransform(
     source:
       | AsyncIterable<FSChange | FSChange[]>
-      | Iterable<FSChange | FSChange[]>
+      | Iterable<FSChange | FSChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1246,7 +1237,7 @@ export const FSChange = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSChange> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1283,39 +1274,33 @@ export const FSChange = {
 
   toJSON(message: FSChange): unknown {
     const obj: any = {}
-    message.seqno !== undefined &&
-      (obj.seqno = (message.seqno || Long.UZERO).toString())
-    message.prevRef !== undefined &&
-      (obj.prevRef = message.prevRef
-        ? BlockRef.toJSON(message.prevRef)
-        : undefined)
-    message.changeType !== undefined &&
-      (obj.changeType = fSChangeTypeToJSON(message.changeType))
-    message.transactionRef !== undefined &&
-      (obj.transactionRef = message.transactionRef
-        ? BlockRef.toJSON(message.transactionRef)
-        : undefined)
-    if (message.paths) {
-      obj.paths = message.paths.map((e) => (e ? FSPath.toJSON(e) : undefined))
-    } else {
-      obj.paths = []
+    if (!message.seqno.isZero()) {
+      obj.seqno = (message.seqno || Long.UZERO).toString()
     }
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
-    if (message.valueRef) {
-      obj.valueRef = message.valueRef.map((e) =>
-        e ? BlockRef.toJSON(e) : undefined
-      )
-    } else {
-      obj.valueRef = []
+    if (message.prevRef !== undefined) {
+      obj.prevRef = BlockRef.toJSON(message.prevRef)
+    }
+    if (message.changeType !== 0) {
+      obj.changeType = fSChangeTypeToJSON(message.changeType)
+    }
+    if (message.transactionRef !== undefined) {
+      obj.transactionRef = BlockRef.toJSON(message.transactionRef)
+    }
+    if (message.paths?.length) {
+      obj.paths = message.paths.map((e) => FSPath.toJSON(e))
+    }
+    if (message.nodeType !== 0) {
+      obj.nodeType = nodeTypeToJSON(message.nodeType)
+    }
+    if (message.valueRef?.length) {
+      obj.valueRef = message.valueRef.map((e) => BlockRef.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FSChange>, I>>(base?: I): FSChange {
-    return FSChange.fromPartial(base ?? {})
+    return FSChange.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FSChange>, I>>(object: I): FSChange {
     const message = createBaseFSChange()
     message.seqno =

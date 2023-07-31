@@ -139,7 +139,7 @@ export const Entry = {
   // encodeTransform encodes a source of message objects.
   // Transform<Entry, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Entry | Entry[]> | Iterable<Entry | Entry[]>
+    source: AsyncIterable<Entry | Entry[]> | Iterable<Entry | Entry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -157,7 +157,7 @@ export const Entry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Entry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -192,32 +192,33 @@ export const Entry = {
 
   toJSON(message: Entry): unknown {
     const obj: any = {}
-    message.degree !== undefined && (obj.degree = Math.round(message.degree))
-    message.marked !== undefined && (obj.marked = message.marked)
-    message.next !== undefined &&
-      (obj.next = base64FromBytes(
-        message.next !== undefined ? message.next : new Uint8Array(0)
-      ))
-    message.prev !== undefined &&
-      (obj.prev = base64FromBytes(
-        message.prev !== undefined ? message.prev : new Uint8Array(0)
-      ))
-    message.child !== undefined &&
-      (obj.child = base64FromBytes(
-        message.child !== undefined ? message.child : new Uint8Array(0)
-      ))
-    message.parent !== undefined &&
-      (obj.parent = base64FromBytes(
-        message.parent !== undefined ? message.parent : new Uint8Array(0)
-      ))
-    message.priority !== undefined && (obj.priority = message.priority)
+    if (message.degree !== 0) {
+      obj.degree = Math.round(message.degree)
+    }
+    if (message.marked === true) {
+      obj.marked = message.marked
+    }
+    if (message.next.length !== 0) {
+      obj.next = base64FromBytes(message.next)
+    }
+    if (message.prev.length !== 0) {
+      obj.prev = base64FromBytes(message.prev)
+    }
+    if (message.child.length !== 0) {
+      obj.child = base64FromBytes(message.child)
+    }
+    if (message.parent.length !== 0) {
+      obj.parent = base64FromBytes(message.parent)
+    }
+    if (message.priority !== 0) {
+      obj.priority = message.priority
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Entry>, I>>(base?: I): Entry {
-    return Entry.fromPartial(base ?? {})
+    return Entry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Entry>, I>>(object: I): Entry {
     const message = createBaseEntry()
     message.degree = object.degree ?? 0
@@ -290,7 +291,7 @@ export const Root = {
   // encodeTransform encodes a source of message objects.
   // Transform<Root, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>
+    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -308,7 +309,7 @@ export const Root = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -331,19 +332,21 @@ export const Root = {
 
   toJSON(message: Root): unknown {
     const obj: any = {}
-    message.min !== undefined &&
-      (obj.min = base64FromBytes(
-        message.min !== undefined ? message.min : new Uint8Array(0)
-      ))
-    message.minPriority !== undefined && (obj.minPriority = message.minPriority)
-    message.size !== undefined && (obj.size = Math.round(message.size))
+    if (message.min.length !== 0) {
+      obj.min = base64FromBytes(message.min)
+    }
+    if (message.minPriority !== 0) {
+      obj.minPriority = message.minPriority
+    }
+    if (message.size !== 0) {
+      obj.size = Math.round(message.size)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
-    return Root.fromPartial(base ?? {})
+    return Root.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.min = object.min ?? new Uint8Array(0)
@@ -353,10 +356,10 @@ export const Root = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

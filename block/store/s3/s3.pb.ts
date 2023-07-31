@@ -88,7 +88,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blockStoreId !== '') {
       writer.uint32(10).string(message.blockStoreId)
@@ -203,7 +203,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -221,7 +221,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -262,33 +262,39 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.blockStoreId !== undefined &&
-      (obj.blockStoreId = message.blockStoreId)
-    message.client !== undefined &&
-      (obj.client = message.client
-        ? ClientConfig.toJSON(message.client)
-        : undefined)
-    message.bucketName !== undefined && (obj.bucketName = message.bucketName)
-    message.objectPrefix !== undefined &&
-      (obj.objectPrefix = message.objectPrefix)
-    message.readOnly !== undefined && (obj.readOnly = message.readOnly)
-    message.forceHashType !== undefined &&
-      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
-    if (message.bucketIds) {
-      obj.bucketIds = message.bucketIds.map((e) => e)
-    } else {
-      obj.bucketIds = []
+    if (message.blockStoreId !== '') {
+      obj.blockStoreId = message.blockStoreId
     }
-    message.skipNotFound !== undefined &&
-      (obj.skipNotFound = message.skipNotFound)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
+    if (message.client !== undefined) {
+      obj.client = ClientConfig.toJSON(message.client)
+    }
+    if (message.bucketName !== '') {
+      obj.bucketName = message.bucketName
+    }
+    if (message.objectPrefix !== '') {
+      obj.objectPrefix = message.objectPrefix
+    }
+    if (message.readOnly === true) {
+      obj.readOnly = message.readOnly
+    }
+    if (message.forceHashType !== 0) {
+      obj.forceHashType = hashTypeToJSON(message.forceHashType)
+    }
+    if (message.bucketIds?.length) {
+      obj.bucketIds = message.bucketIds
+    }
+    if (message.skipNotFound === true) {
+      obj.skipNotFound = message.skipNotFound
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.blockStoreId = object.blockStoreId ?? ''
@@ -314,7 +320,7 @@ function createBaseClientConfig(): ClientConfig {
 export const ClientConfig = {
   encode(
     message: ClientConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.endpoint !== '') {
       writer.uint32(10).string(message.endpoint)
@@ -381,7 +387,7 @@ export const ClientConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClientConfig | ClientConfig[]>
-      | Iterable<ClientConfig | ClientConfig[]>
+      | Iterable<ClientConfig | ClientConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -399,7 +405,7 @@ export const ClientConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClientConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -425,24 +431,28 @@ export const ClientConfig = {
 
   toJSON(message: ClientConfig): unknown {
     const obj: any = {}
-    message.endpoint !== undefined && (obj.endpoint = message.endpoint)
-    message.credentials !== undefined &&
-      (obj.credentials = message.credentials
-        ? Credentials.toJSON(message.credentials)
-        : undefined)
-    message.disableSsl !== undefined && (obj.disableSsl = message.disableSsl)
-    message.region !== undefined && (obj.region = message.region)
+    if (message.endpoint !== '') {
+      obj.endpoint = message.endpoint
+    }
+    if (message.credentials !== undefined) {
+      obj.credentials = Credentials.toJSON(message.credentials)
+    }
+    if (message.disableSsl === true) {
+      obj.disableSsl = message.disableSsl
+    }
+    if (message.region !== '') {
+      obj.region = message.region
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClientConfig>, I>>(
-    base?: I
+    base?: I,
   ): ClientConfig {
-    return ClientConfig.fromPartial(base ?? {})
+    return ClientConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClientConfig>, I>>(
-    object: I
+    object: I,
   ): ClientConfig {
     const message = createBaseClientConfig()
     message.endpoint = object.endpoint ?? ''
@@ -463,7 +473,7 @@ function createBaseCredentials(): Credentials {
 export const Credentials = {
   encode(
     message: Credentials,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.accessKeyId !== '') {
       writer.uint32(10).string(message.accessKeyId)
@@ -520,7 +530,7 @@ export const Credentials = {
   async *encodeTransform(
     source:
       | AsyncIterable<Credentials | Credentials[]>
-      | Iterable<Credentials | Credentials[]>
+      | Iterable<Credentials | Credentials[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -538,7 +548,7 @@ export const Credentials = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Credentials> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -563,19 +573,23 @@ export const Credentials = {
 
   toJSON(message: Credentials): unknown {
     const obj: any = {}
-    message.accessKeyId !== undefined && (obj.accessKeyId = message.accessKeyId)
-    message.secretAccessKey !== undefined &&
-      (obj.secretAccessKey = message.secretAccessKey)
-    message.token !== undefined && (obj.token = message.token)
+    if (message.accessKeyId !== '') {
+      obj.accessKeyId = message.accessKeyId
+    }
+    if (message.secretAccessKey !== '') {
+      obj.secretAccessKey = message.secretAccessKey
+    }
+    if (message.token !== '') {
+      obj.token = message.token
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Credentials>, I>>(base?: I): Credentials {
-    return Credentials.fromPartial(base ?? {})
+    return Credentials.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Credentials>, I>>(
-    object: I
+    object: I,
   ): Credentials {
     const message = createBaseCredentials()
     message.accessKeyId = object.accessKeyId ?? ''

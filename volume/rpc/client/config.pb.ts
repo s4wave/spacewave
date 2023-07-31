@@ -80,7 +80,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.serviceId !== '') {
       writer.uint32(10).string(message.serviceId)
@@ -103,7 +103,7 @@ export const Config = {
     Object.entries(message.volumeAliases).forEach(([key, value]) => {
       Config_VolumeAliasesEntry.encode(
         { key: key as any, value },
-        writer.uint32(50).fork()
+        writer.uint32(50).fork(),
       ).ldelim()
     })
     if (message.backoff !== undefined) {
@@ -169,7 +169,7 @@ export const Config = {
 
           const entry6 = Config_VolumeAliasesEntry.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           if (entry6.value !== undefined) {
             message.volumeAliases[entry6.key] = entry6.value
@@ -194,7 +194,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -212,7 +212,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -255,35 +255,42 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.serviceId !== undefined && (obj.serviceId = message.serviceId)
-    message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe)
-    if (message.volumeIdList) {
-      obj.volumeIdList = message.volumeIdList.map((e) => e)
-    } else {
-      obj.volumeIdList = []
+    if (message.serviceId !== '') {
+      obj.serviceId = message.serviceId
     }
-    message.loadOnStartup !== undefined &&
-      (obj.loadOnStartup = message.loadOnStartup)
-    message.clientId !== undefined && (obj.clientId = message.clientId)
-    message.releaseDelay !== undefined &&
-      (obj.releaseDelay = message.releaseDelay)
-    obj.volumeAliases = {}
+    if (message.volumeIdRe !== '') {
+      obj.volumeIdRe = message.volumeIdRe
+    }
+    if (message.volumeIdList?.length) {
+      obj.volumeIdList = message.volumeIdList
+    }
+    if (message.loadOnStartup === true) {
+      obj.loadOnStartup = message.loadOnStartup
+    }
+    if (message.clientId !== '') {
+      obj.clientId = message.clientId
+    }
+    if (message.releaseDelay !== '') {
+      obj.releaseDelay = message.releaseDelay
+    }
     if (message.volumeAliases) {
-      Object.entries(message.volumeAliases).forEach(([k, v]) => {
-        obj.volumeAliases[k] = VolumeAliases.toJSON(v)
-      })
+      const entries = Object.entries(message.volumeAliases)
+      if (entries.length > 0) {
+        obj.volumeAliases = {}
+        entries.forEach(([k, v]) => {
+          obj.volumeAliases[k] = VolumeAliases.toJSON(v)
+        })
+      }
     }
-    message.backoff !== undefined &&
-      (obj.backoff = message.backoff
-        ? Backoff.toJSON(message.backoff)
-        : undefined)
+    if (message.backoff !== undefined) {
+      obj.backoff = Backoff.toJSON(message.backoff)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.serviceId = object.serviceId ?? ''
@@ -315,7 +322,7 @@ function createBaseConfig_VolumeAliasesEntry(): Config_VolumeAliasesEntry {
 export const Config_VolumeAliasesEntry = {
   encode(
     message: Config_VolumeAliasesEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -328,7 +335,7 @@ export const Config_VolumeAliasesEntry = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): Config_VolumeAliasesEntry {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -365,7 +372,7 @@ export const Config_VolumeAliasesEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<Config_VolumeAliasesEntry | Config_VolumeAliasesEntry[]>
-      | Iterable<Config_VolumeAliasesEntry | Config_VolumeAliasesEntry[]>
+      | Iterable<Config_VolumeAliasesEntry | Config_VolumeAliasesEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -383,7 +390,7 @@ export const Config_VolumeAliasesEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config_VolumeAliasesEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -407,22 +414,22 @@ export const Config_VolumeAliasesEntry = {
 
   toJSON(message: Config_VolumeAliasesEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined &&
-      (obj.value = message.value
-        ? VolumeAliases.toJSON(message.value)
-        : undefined)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== undefined) {
+      obj.value = VolumeAliases.toJSON(message.value)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config_VolumeAliasesEntry>, I>>(
-    base?: I
+    base?: I,
   ): Config_VolumeAliasesEntry {
-    return Config_VolumeAliasesEntry.fromPartial(base ?? {})
+    return Config_VolumeAliasesEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config_VolumeAliasesEntry>, I>>(
-    object: I
+    object: I,
   ): Config_VolumeAliasesEntry {
     const message = createBaseConfig_VolumeAliasesEntry()
     message.key = object.key ?? ''
@@ -441,7 +448,7 @@ function createBaseVolumeAliases(): VolumeAliases {
 export const VolumeAliases = {
   encode(
     message: VolumeAliases,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.from) {
       writer.uint32(10).string(v!)
@@ -478,7 +485,7 @@ export const VolumeAliases = {
   async *encodeTransform(
     source:
       | AsyncIterable<VolumeAliases | VolumeAliases[]>
-      | Iterable<VolumeAliases | VolumeAliases[]>
+      | Iterable<VolumeAliases | VolumeAliases[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -496,7 +503,7 @@ export const VolumeAliases = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<VolumeAliases> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -519,22 +526,19 @@ export const VolumeAliases = {
 
   toJSON(message: VolumeAliases): unknown {
     const obj: any = {}
-    if (message.from) {
-      obj.from = message.from.map((e) => e)
-    } else {
-      obj.from = []
+    if (message.from?.length) {
+      obj.from = message.from
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<VolumeAliases>, I>>(
-    base?: I
+    base?: I,
   ): VolumeAliases {
-    return VolumeAliases.fromPartial(base ?? {})
+    return VolumeAliases.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<VolumeAliases>, I>>(
-    object: I
+    object: I,
   ): VolumeAliases {
     const message = createBaseVolumeAliases()
     message.from = object.from?.map((e) => e) || []

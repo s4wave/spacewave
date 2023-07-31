@@ -64,7 +64,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
@@ -169,7 +169,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -187,7 +187,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -231,59 +231,36 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.prefix !== undefined &&
-      (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
-      ))
-    message.bucketConfigPrefix !== undefined &&
-      (obj.bucketConfigPrefix = base64FromBytes(
-        message.bucketConfigPrefix !== undefined
-          ? message.bucketConfigPrefix
-          : new Uint8Array(0)
-      ))
-    message.peerPrivKey !== undefined &&
-      (obj.peerPrivKey = base64FromBytes(
-        message.peerPrivKey !== undefined
-          ? message.peerPrivKey
-          : new Uint8Array(0)
-      ))
-    message.blockPrefix !== undefined &&
-      (obj.blockPrefix = base64FromBytes(
-        message.blockPrefix !== undefined
-          ? message.blockPrefix
-          : new Uint8Array(0)
-      ))
-    message.objectStorePrefix !== undefined &&
-      (obj.objectStorePrefix = base64FromBytes(
-        message.objectStorePrefix !== undefined
-          ? message.objectStorePrefix
-          : new Uint8Array(0)
-      ))
-    message.mqueuePrefix !== undefined &&
-      (obj.mqueuePrefix = base64FromBytes(
-        message.mqueuePrefix !== undefined
-          ? message.mqueuePrefix
-          : new Uint8Array(0)
-      ))
-    message.mqueueMetaPrefix !== undefined &&
-      (obj.mqueueMetaPrefix = base64FromBytes(
-        message.mqueueMetaPrefix !== undefined
-          ? message.mqueueMetaPrefix
-          : new Uint8Array(0)
-      ))
-    message.bucketMqueuePrefix !== undefined &&
-      (obj.bucketMqueuePrefix = base64FromBytes(
-        message.bucketMqueuePrefix !== undefined
-          ? message.bucketMqueuePrefix
-          : new Uint8Array(0)
-      ))
+    if (message.prefix.length !== 0) {
+      obj.prefix = base64FromBytes(message.prefix)
+    }
+    if (message.bucketConfigPrefix.length !== 0) {
+      obj.bucketConfigPrefix = base64FromBytes(message.bucketConfigPrefix)
+    }
+    if (message.peerPrivKey.length !== 0) {
+      obj.peerPrivKey = base64FromBytes(message.peerPrivKey)
+    }
+    if (message.blockPrefix.length !== 0) {
+      obj.blockPrefix = base64FromBytes(message.blockPrefix)
+    }
+    if (message.objectStorePrefix.length !== 0) {
+      obj.objectStorePrefix = base64FromBytes(message.objectStorePrefix)
+    }
+    if (message.mqueuePrefix.length !== 0) {
+      obj.mqueuePrefix = base64FromBytes(message.mqueuePrefix)
+    }
+    if (message.mqueueMetaPrefix.length !== 0) {
+      obj.mqueueMetaPrefix = base64FromBytes(message.mqueueMetaPrefix)
+    }
+    if (message.bucketMqueuePrefix.length !== 0) {
+      obj.bucketMqueuePrefix = base64FromBytes(message.bucketMqueuePrefix)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.prefix = object.prefix ?? new Uint8Array(0)
@@ -298,10 +275,10 @@ export const Config = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

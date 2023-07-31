@@ -145,7 +145,7 @@ export const Node = {
   // encodeTransform encodes a source of message objects.
   // Transform<Node, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Node | Node[]> | Iterable<Node | Node[]>
+    source: AsyncIterable<Node | Node[]> | Iterable<Node | Node[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -163,7 +163,7 @@ export const Node = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Node> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -198,34 +198,33 @@ export const Node = {
 
   toJSON(message: Node): unknown {
     const obj: any = {}
-    message.height !== undefined && (obj.height = Math.round(message.height))
-    message.size !== undefined &&
-      (obj.size = (message.size || Long.UZERO).toString())
-    message.key !== undefined &&
-      (obj.key = base64FromBytes(
-        message.key !== undefined ? message.key : new Uint8Array(0)
-      ))
-    message.valueRef !== undefined &&
-      (obj.valueRef = message.valueRef
-        ? BlockRef.toJSON(message.valueRef)
-        : undefined)
-    message.valueRefBlob !== undefined &&
-      (obj.valueRefBlob = message.valueRefBlob)
-    message.leftChildRef !== undefined &&
-      (obj.leftChildRef = message.leftChildRef
-        ? BlockRef.toJSON(message.leftChildRef)
-        : undefined)
-    message.rightChildRef !== undefined &&
-      (obj.rightChildRef = message.rightChildRef
-        ? BlockRef.toJSON(message.rightChildRef)
-        : undefined)
+    if (message.height !== 0) {
+      obj.height = Math.round(message.height)
+    }
+    if (!message.size.isZero()) {
+      obj.size = (message.size || Long.UZERO).toString()
+    }
+    if (message.key.length !== 0) {
+      obj.key = base64FromBytes(message.key)
+    }
+    if (message.valueRef !== undefined) {
+      obj.valueRef = BlockRef.toJSON(message.valueRef)
+    }
+    if (message.valueRefBlob === true) {
+      obj.valueRefBlob = message.valueRefBlob
+    }
+    if (message.leftChildRef !== undefined) {
+      obj.leftChildRef = BlockRef.toJSON(message.leftChildRef)
+    }
+    if (message.rightChildRef !== undefined) {
+      obj.rightChildRef = BlockRef.toJSON(message.rightChildRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Node>, I>>(base?: I): Node {
-    return Node.fromPartial(base ?? {})
+    return Node.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Node>, I>>(object: I): Node {
     const message = createBaseNode()
     message.height = object.height ?? 0
@@ -251,10 +250,10 @@ export const Node = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

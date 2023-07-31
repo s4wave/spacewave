@@ -40,7 +40,7 @@ function createBaseBlockRef(): BlockRef {
 export const BlockRef = {
   encode(
     message: BlockRef,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.hash !== undefined) {
       Hash.encode(message.hash, writer.uint32(10).fork()).ldelim()
@@ -77,7 +77,7 @@ export const BlockRef = {
   async *encodeTransform(
     source:
       | AsyncIterable<BlockRef | BlockRef[]>
-      | Iterable<BlockRef | BlockRef[]>
+      | Iterable<BlockRef | BlockRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -95,7 +95,7 @@ export const BlockRef = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BlockRef> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -114,15 +114,15 @@ export const BlockRef = {
 
   toJSON(message: BlockRef): unknown {
     const obj: any = {}
-    message.hash !== undefined &&
-      (obj.hash = message.hash ? Hash.toJSON(message.hash) : undefined)
+    if (message.hash !== undefined) {
+      obj.hash = Hash.toJSON(message.hash)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BlockRef>, I>>(base?: I): BlockRef {
-    return BlockRef.fromPartial(base ?? {})
+    return BlockRef.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BlockRef>, I>>(object: I): BlockRef {
     const message = createBaseBlockRef()
     message.hash =
@@ -140,7 +140,7 @@ function createBasePutOpts(): PutOpts {
 export const PutOpts = {
   encode(
     message: PutOpts,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.hashType !== 0) {
       writer.uint32(8).int32(message.hashType)
@@ -185,7 +185,7 @@ export const PutOpts = {
   // encodeTransform encodes a source of message objects.
   // Transform<PutOpts, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<PutOpts | PutOpts[]> | Iterable<PutOpts | PutOpts[]>
+    source: AsyncIterable<PutOpts | PutOpts[]> | Iterable<PutOpts | PutOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -203,7 +203,7 @@ export const PutOpts = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -227,19 +227,18 @@ export const PutOpts = {
 
   toJSON(message: PutOpts): unknown {
     const obj: any = {}
-    message.hashType !== undefined &&
-      (obj.hashType = hashTypeToJSON(message.hashType))
-    message.forceBlockRef !== undefined &&
-      (obj.forceBlockRef = message.forceBlockRef
-        ? BlockRef.toJSON(message.forceBlockRef)
-        : undefined)
+    if (message.hashType !== 0) {
+      obj.hashType = hashTypeToJSON(message.hashType)
+    }
+    if (message.forceBlockRef !== undefined) {
+      obj.forceBlockRef = BlockRef.toJSON(message.forceBlockRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PutOpts>, I>>(base?: I): PutOpts {
-    return PutOpts.fromPartial(base ?? {})
+    return PutOpts.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PutOpts>, I>>(object: I): PutOpts {
     const message = createBasePutOpts()
     message.hashType = object.hashType ?? 0

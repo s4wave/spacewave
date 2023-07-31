@@ -73,7 +73,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blockStoreId !== '') {
       writer.uint32(10).string(message.blockStoreId)
@@ -198,7 +198,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -216,7 +216,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -258,35 +258,42 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.blockStoreId !== undefined &&
-      (obj.blockStoreId = message.blockStoreId)
-    if (message.blockStoreIds) {
-      obj.blockStoreIds = message.blockStoreIds.map((e) => e)
-    } else {
-      obj.blockStoreIds = []
+    if (message.blockStoreId !== '') {
+      obj.blockStoreId = message.blockStoreId
     }
-    message.serviceId !== undefined && (obj.serviceId = message.serviceId)
-    message.clientId !== undefined && (obj.clientId = message.clientId)
-    message.readOnly !== undefined && (obj.readOnly = message.readOnly)
-    message.forceHashType !== undefined &&
-      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
-    if (message.bucketIds) {
-      obj.bucketIds = message.bucketIds.map((e) => e)
-    } else {
-      obj.bucketIds = []
+    if (message.blockStoreIds?.length) {
+      obj.blockStoreIds = message.blockStoreIds
     }
-    message.lookupOnStart !== undefined &&
-      (obj.lookupOnStart = message.lookupOnStart)
-    message.skipNotFound !== undefined &&
-      (obj.skipNotFound = message.skipNotFound)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
+    if (message.serviceId !== '') {
+      obj.serviceId = message.serviceId
+    }
+    if (message.clientId !== '') {
+      obj.clientId = message.clientId
+    }
+    if (message.readOnly === true) {
+      obj.readOnly = message.readOnly
+    }
+    if (message.forceHashType !== 0) {
+      obj.forceHashType = hashTypeToJSON(message.forceHashType)
+    }
+    if (message.bucketIds?.length) {
+      obj.bucketIds = message.bucketIds
+    }
+    if (message.lookupOnStart === true) {
+      obj.lookupOnStart = message.lookupOnStart
+    }
+    if (message.skipNotFound === true) {
+      obj.skipNotFound = message.skipNotFound
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.blockStoreId = object.blockStoreId ?? ''

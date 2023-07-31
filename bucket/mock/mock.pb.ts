@@ -50,7 +50,7 @@ export const Root = {
   // encodeTransform encodes a source of message objects.
   // Transform<Root, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>
+    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -68,7 +68,7 @@ export const Root = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -91,17 +91,15 @@ export const Root = {
 
   toJSON(message: Root): unknown {
     const obj: any = {}
-    message.examplePtr !== undefined &&
-      (obj.examplePtr = message.examplePtr
-        ? ObjectRef.toJSON(message.examplePtr)
-        : undefined)
+    if (message.examplePtr !== undefined) {
+      obj.examplePtr = ObjectRef.toJSON(message.examplePtr)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
-    return Root.fromPartial(base ?? {})
+    return Root.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.examplePtr =

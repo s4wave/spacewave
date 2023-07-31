@@ -231,13 +231,13 @@ export const World = {
     if (message.objectKeyValue !== undefined) {
       KeyValueStore.encode(
         message.objectKeyValue,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     if (message.graphKeyValue !== undefined) {
       KeyValueStore.encode(
         message.graphKeyValue,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     if (message.lastChange !== undefined) {
@@ -297,7 +297,7 @@ export const World = {
   // encodeTransform encodes a source of message objects.
   // Transform<World, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<World | World[]> | Iterable<World | World[]>
+    source: AsyncIterable<World | World[]> | Iterable<World | World[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -315,7 +315,7 @@ export const World = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<World> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -347,27 +347,24 @@ export const World = {
 
   toJSON(message: World): unknown {
     const obj: any = {}
-    message.objectKeyValue !== undefined &&
-      (obj.objectKeyValue = message.objectKeyValue
-        ? KeyValueStore.toJSON(message.objectKeyValue)
-        : undefined)
-    message.graphKeyValue !== undefined &&
-      (obj.graphKeyValue = message.graphKeyValue
-        ? KeyValueStore.toJSON(message.graphKeyValue)
-        : undefined)
-    message.lastChange !== undefined &&
-      (obj.lastChange = message.lastChange
-        ? ChangeLogLL.toJSON(message.lastChange)
-        : undefined)
-    message.lastChangeDisable !== undefined &&
-      (obj.lastChangeDisable = message.lastChangeDisable)
+    if (message.objectKeyValue !== undefined) {
+      obj.objectKeyValue = KeyValueStore.toJSON(message.objectKeyValue)
+    }
+    if (message.graphKeyValue !== undefined) {
+      obj.graphKeyValue = KeyValueStore.toJSON(message.graphKeyValue)
+    }
+    if (message.lastChange !== undefined) {
+      obj.lastChange = ChangeLogLL.toJSON(message.lastChange)
+    }
+    if (message.lastChangeDisable === true) {
+      obj.lastChangeDisable = message.lastChangeDisable
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<World>, I>>(base?: I): World {
-    return World.fromPartial(base ?? {})
+    return World.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<World>, I>>(object: I): World {
     const message = createBaseWorld()
     message.objectKeyValue =
@@ -394,7 +391,7 @@ function createBaseObject(): Object {
 export const Object = {
   encode(
     message: Object,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -449,7 +446,7 @@ export const Object = {
   // encodeTransform encodes a source of message objects.
   // Transform<Object, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Object | Object[]> | Iterable<Object | Object[]>
+    source: AsyncIterable<Object | Object[]> | Iterable<Object | Object[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -467,7 +464,7 @@ export const Object = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Object> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -492,20 +489,21 @@ export const Object = {
 
   toJSON(message: Object): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.rootRef !== undefined &&
-      (obj.rootRef = message.rootRef
-        ? ObjectRef.toJSON(message.rootRef)
-        : undefined)
-    message.rev !== undefined &&
-      (obj.rev = (message.rev || Long.UZERO).toString())
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.rootRef !== undefined) {
+      obj.rootRef = ObjectRef.toJSON(message.rootRef)
+    }
+    if (!message.rev.isZero()) {
+      obj.rev = (message.rev || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Object>, I>>(base?: I): Object {
-    return Object.fromPartial(base ?? {})
+    return Object.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Object>, I>>(object: I): Object {
     const message = createBaseObject()
     message.key = object.key ?? ''
@@ -536,7 +534,7 @@ function createBaseWorldChange(): WorldChange {
 export const WorldChange = {
   encode(
     message: WorldChange,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.changeType !== 0) {
       writer.uint32(8).int32(message.changeType)
@@ -633,7 +631,7 @@ export const WorldChange = {
   async *encodeTransform(
     source:
       | AsyncIterable<WorldChange | WorldChange[]>
-      | Iterable<WorldChange | WorldChange[]>
+      | Iterable<WorldChange | WorldChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -651,7 +649,7 @@ export const WorldChange = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorldChange> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -688,34 +686,35 @@ export const WorldChange = {
 
   toJSON(message: WorldChange): unknown {
     const obj: any = {}
-    message.changeType !== undefined &&
-      (obj.changeType = worldChangeTypeToJSON(message.changeType))
-    message.key !== undefined && (obj.key = message.key)
-    message.quad !== undefined &&
-      (obj.quad = message.quad ? Quad.toJSON(message.quad) : undefined)
-    message.transactionRef !== undefined &&
-      (obj.transactionRef = message.transactionRef
-        ? BlockRef.toJSON(message.transactionRef)
-        : undefined)
-    message.objectRef !== undefined &&
-      (obj.objectRef = message.objectRef
-        ? BlockRef.toJSON(message.objectRef)
-        : undefined)
-    message.prevObjectRef !== undefined &&
-      (obj.prevObjectRef = message.prevObjectRef
-        ? BlockRef.toJSON(message.prevObjectRef)
-        : undefined)
-    message.objectRev !== undefined &&
-      (obj.objectRev = (message.objectRev || Long.UZERO).toString())
+    if (message.changeType !== 0) {
+      obj.changeType = worldChangeTypeToJSON(message.changeType)
+    }
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.quad !== undefined) {
+      obj.quad = Quad.toJSON(message.quad)
+    }
+    if (message.transactionRef !== undefined) {
+      obj.transactionRef = BlockRef.toJSON(message.transactionRef)
+    }
+    if (message.objectRef !== undefined) {
+      obj.objectRef = BlockRef.toJSON(message.objectRef)
+    }
+    if (message.prevObjectRef !== undefined) {
+      obj.prevObjectRef = BlockRef.toJSON(message.prevObjectRef)
+    }
+    if (!message.objectRev.isZero()) {
+      obj.objectRev = (message.objectRev || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WorldChange>, I>>(base?: I): WorldChange {
-    return WorldChange.fromPartial(base ?? {})
+    return WorldChange.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WorldChange>, I>>(
-    object: I
+    object: I,
   ): WorldChange {
     const message = createBaseWorldChange()
     message.changeType = object.changeType ?? 0
@@ -751,7 +750,7 @@ function createBaseWorldChangeLL(): WorldChangeLL {
 export const WorldChangeLL = {
   encode(
     message: WorldChangeLL,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.height !== 0) {
       writer.uint32(8).uint32(message.height)
@@ -818,7 +817,7 @@ export const WorldChangeLL = {
   async *encodeTransform(
     source:
       | AsyncIterable<WorldChangeLL | WorldChangeLL[]>
-      | Iterable<WorldChangeLL | WorldChangeLL[]>
+      | Iterable<WorldChangeLL | WorldChangeLL[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -836,7 +835,7 @@ export const WorldChangeLL = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorldChangeLL> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -864,31 +863,28 @@ export const WorldChangeLL = {
 
   toJSON(message: WorldChangeLL): unknown {
     const obj: any = {}
-    message.height !== undefined && (obj.height = Math.round(message.height))
-    message.prevRef !== undefined &&
-      (obj.prevRef = message.prevRef
-        ? BlockRef.toJSON(message.prevRef)
-        : undefined)
-    message.totalSize !== undefined &&
-      (obj.totalSize = Math.round(message.totalSize))
-    if (message.changes) {
-      obj.changes = message.changes.map((e) =>
-        e ? WorldChange.toJSON(e) : undefined
-      )
-    } else {
-      obj.changes = []
+    if (message.height !== 0) {
+      obj.height = Math.round(message.height)
+    }
+    if (message.prevRef !== undefined) {
+      obj.prevRef = BlockRef.toJSON(message.prevRef)
+    }
+    if (message.totalSize !== 0) {
+      obj.totalSize = Math.round(message.totalSize)
+    }
+    if (message.changes?.length) {
+      obj.changes = message.changes.map((e) => WorldChange.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WorldChangeLL>, I>>(
-    base?: I
+    base?: I,
   ): WorldChangeLL {
-    return WorldChangeLL.fromPartial(base ?? {})
+    return WorldChangeLL.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WorldChangeLL>, I>>(
-    object: I
+    object: I,
   ): WorldChangeLL {
     const message = createBaseWorldChangeLL()
     message.height = object.height ?? 0
@@ -916,7 +912,7 @@ function createBaseChangeLogLL(): ChangeLogLL {
 export const ChangeLogLL = {
   encode(
     message: ChangeLogLL,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.seqno.isZero()) {
       writer.uint32(8).uint64(message.seqno)
@@ -927,7 +923,7 @@ export const ChangeLogLL = {
     if (message.changeBatch !== undefined) {
       WorldChangeLL.encode(
         message.changeBatch,
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     }
     if (message.changeType !== 0) {
@@ -996,7 +992,7 @@ export const ChangeLogLL = {
   async *encodeTransform(
     source:
       | AsyncIterable<ChangeLogLL | ChangeLogLL[]>
-      | Iterable<ChangeLogLL | ChangeLogLL[]>
+      | Iterable<ChangeLogLL | ChangeLogLL[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1014,7 +1010,7 @@ export const ChangeLogLL = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChangeLogLL> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1047,31 +1043,29 @@ export const ChangeLogLL = {
 
   toJSON(message: ChangeLogLL): unknown {
     const obj: any = {}
-    message.seqno !== undefined &&
-      (obj.seqno = (message.seqno || Long.UZERO).toString())
-    message.prevRef !== undefined &&
-      (obj.prevRef = message.prevRef
-        ? BlockRef.toJSON(message.prevRef)
-        : undefined)
-    message.changeBatch !== undefined &&
-      (obj.changeBatch = message.changeBatch
-        ? WorldChangeLL.toJSON(message.changeBatch)
-        : undefined)
-    message.changeType !== undefined &&
-      (obj.changeType = worldChangeTypeToJSON(message.changeType))
-    message.keyFilters !== undefined &&
-      (obj.keyFilters = message.keyFilters
-        ? KeyFilters.toJSON(message.keyFilters)
-        : undefined)
+    if (!message.seqno.isZero()) {
+      obj.seqno = (message.seqno || Long.UZERO).toString()
+    }
+    if (message.prevRef !== undefined) {
+      obj.prevRef = BlockRef.toJSON(message.prevRef)
+    }
+    if (message.changeBatch !== undefined) {
+      obj.changeBatch = WorldChangeLL.toJSON(message.changeBatch)
+    }
+    if (message.changeType !== 0) {
+      obj.changeType = worldChangeTypeToJSON(message.changeType)
+    }
+    if (message.keyFilters !== undefined) {
+      obj.keyFilters = KeyFilters.toJSON(message.keyFilters)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ChangeLogLL>, I>>(base?: I): ChangeLogLL {
-    return ChangeLogLL.fromPartial(base ?? {})
+    return ChangeLogLL.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ChangeLogLL>, I>>(
-    object: I
+    object: I,
   ): ChangeLogLL {
     const message = createBaseChangeLogLL()
     message.seqno =

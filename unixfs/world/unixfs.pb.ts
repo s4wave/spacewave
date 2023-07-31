@@ -366,7 +366,7 @@ function createBaseUnixfsRef(): UnixfsRef {
 export const UnixfsRef = {
   encode(
     message: UnixfsRef,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -423,7 +423,7 @@ export const UnixfsRef = {
   async *encodeTransform(
     source:
       | AsyncIterable<UnixfsRef | UnixfsRef[]>
-      | Iterable<UnixfsRef | UnixfsRef[]>
+      | Iterable<UnixfsRef | UnixfsRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -441,7 +441,7 @@ export const UnixfsRef = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<UnixfsRef> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -464,19 +464,23 @@ export const UnixfsRef = {
 
   toJSON(message: UnixfsRef): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.path !== undefined &&
-      (obj.path = message.path ? FSPath.toJSON(message.path) : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.path !== undefined) {
+      obj.path = FSPath.toJSON(message.path)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<UnixfsRef>, I>>(base?: I): UnixfsRef {
-    return UnixfsRef.fromPartial(base ?? {})
+    return UnixfsRef.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<UnixfsRef>, I>>(
-    object: I
+    object: I,
   ): UnixfsRef {
     const message = createBaseUnixfsRef()
     message.objectKey = object.objectKey ?? ''
@@ -503,7 +507,7 @@ function createBaseFsInitOp(): FsInitOp {
 export const FsInitOp = {
   encode(
     message: FsInitOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -590,7 +594,7 @@ export const FsInitOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsInitOp | FsInitOp[]>
-      | Iterable<FsInitOp | FsInitOp[]>
+      | Iterable<FsInitOp | FsInitOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -608,7 +612,7 @@ export const FsInitOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsInitOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -638,24 +642,30 @@ export const FsInitOp = {
 
   toJSON(message: FsInitOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.fsRef !== undefined &&
-      (obj.fsRef = message.fsRef ? ObjectRef.toJSON(message.fsRef) : undefined)
-    message.fsRefType !== undefined &&
-      (obj.fsRefType = fSTypeToJSON(message.fsRefType))
-    message.fsOverwrite !== undefined && (obj.fsOverwrite = message.fsOverwrite)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.fsRef !== undefined) {
+      obj.fsRef = ObjectRef.toJSON(message.fsRef)
+    }
+    if (message.fsRefType !== 0) {
+      obj.fsRefType = fSTypeToJSON(message.fsRefType)
+    }
+    if (message.fsOverwrite === true) {
+      obj.fsOverwrite = message.fsOverwrite
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsInitOp>, I>>(base?: I): FsInitOp {
-    return FsInitOp.fromPartial(base ?? {})
+    return FsInitOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsInitOp>, I>>(object: I): FsInitOp {
     const message = createBaseFsInitOp()
     message.objectKey = object.objectKey ?? ''
@@ -688,7 +698,7 @@ function createBaseFsMknodOp(): FsMknodOp {
 export const FsMknodOp = {
   encode(
     message: FsMknodOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -775,7 +785,7 @@ export const FsMknodOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsMknodOp | FsMknodOp[]>
-      | Iterable<FsMknodOp | FsMknodOp[]>
+      | Iterable<FsMknodOp | FsMknodOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -793,7 +803,7 @@ export const FsMknodOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsMknodOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -823,30 +833,32 @@ export const FsMknodOp = {
 
   toJSON(message: FsMknodOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    if (message.paths) {
-      obj.paths = message.paths.map((e) => (e ? FSPath.toJSON(e) : undefined))
-    } else {
-      obj.paths = []
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
     }
-    message.permissions !== undefined &&
-      (obj.permissions = Math.round(message.permissions))
-    message.nodeType !== undefined &&
-      (obj.nodeType = nodeTypeToJSON(message.nodeType))
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.paths?.length) {
+      obj.paths = message.paths.map((e) => FSPath.toJSON(e))
+    }
+    if (message.permissions !== 0) {
+      obj.permissions = Math.round(message.permissions)
+    }
+    if (message.nodeType !== 0) {
+      obj.nodeType = nodeTypeToJSON(message.nodeType)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsMknodOp>, I>>(base?: I): FsMknodOp {
-    return FsMknodOp.fromPartial(base ?? {})
+    return FsMknodOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsMknodOp>, I>>(
-    object: I
+    object: I,
   ): FsMknodOp {
     const message = createBaseFsMknodOp()
     message.objectKey = object.objectKey ?? ''
@@ -875,7 +887,7 @@ function createBaseFsSymlinkOp(): FsSymlinkOp {
 export const FsSymlinkOp = {
   encode(
     message: FsSymlinkOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -952,7 +964,7 @@ export const FsSymlinkOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsSymlinkOp | FsSymlinkOp[]>
-      | Iterable<FsSymlinkOp | FsSymlinkOp[]>
+      | Iterable<FsSymlinkOp | FsSymlinkOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -970,7 +982,7 @@ export const FsSymlinkOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsSymlinkOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -999,27 +1011,29 @@ export const FsSymlinkOp = {
 
   toJSON(message: FsSymlinkOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.path !== undefined &&
-      (obj.path = message.path ? FSPath.toJSON(message.path) : undefined)
-    message.symlink !== undefined &&
-      (obj.symlink = message.symlink
-        ? FSSymlink.toJSON(message.symlink)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.path !== undefined) {
+      obj.path = FSPath.toJSON(message.path)
+    }
+    if (message.symlink !== undefined) {
+      obj.symlink = FSSymlink.toJSON(message.symlink)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsSymlinkOp>, I>>(base?: I): FsSymlinkOp {
-    return FsSymlinkOp.fromPartial(base ?? {})
+    return FsSymlinkOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsSymlinkOp>, I>>(
-    object: I
+    object: I,
   ): FsSymlinkOp {
     const message = createBaseFsSymlinkOp()
     message.objectKey = object.objectKey ?? ''
@@ -1053,7 +1067,7 @@ function createBaseFsSetPermissionsOp(): FsSetPermissionsOp {
 export const FsSetPermissionsOp = {
   encode(
     message: FsSetPermissionsOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1130,7 +1144,7 @@ export const FsSetPermissionsOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsSetPermissionsOp | FsSetPermissionsOp[]>
-      | Iterable<FsSetPermissionsOp | FsSetPermissionsOp[]>
+      | Iterable<FsSetPermissionsOp | FsSetPermissionsOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1148,7 +1162,7 @@ export const FsSetPermissionsOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsSetPermissionsOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1177,30 +1191,31 @@ export const FsSetPermissionsOp = {
 
   toJSON(message: FsSetPermissionsOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    if (message.paths) {
-      obj.paths = message.paths.map((e) => (e ? FSPath.toJSON(e) : undefined))
-    } else {
-      obj.paths = []
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
     }
-    message.permissions !== undefined &&
-      (obj.permissions = Math.round(message.permissions))
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.paths?.length) {
+      obj.paths = message.paths.map((e) => FSPath.toJSON(e))
+    }
+    if (message.permissions !== 0) {
+      obj.permissions = Math.round(message.permissions)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsSetPermissionsOp>, I>>(
-    base?: I
+    base?: I,
   ): FsSetPermissionsOp {
-    return FsSetPermissionsOp.fromPartial(base ?? {})
+    return FsSetPermissionsOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsSetPermissionsOp>, I>>(
-    object: I
+    object: I,
   ): FsSetPermissionsOp {
     const message = createBaseFsSetPermissionsOp()
     message.objectKey = object.objectKey ?? ''
@@ -1222,7 +1237,7 @@ function createBaseFsSetModTimestampOp(): FsSetModTimestampOp {
 export const FsSetModTimestampOp = {
   encode(
     message: FsSetModTimestampOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1289,7 +1304,7 @@ export const FsSetModTimestampOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsSetModTimestampOp | FsSetModTimestampOp[]>
-      | Iterable<FsSetModTimestampOp | FsSetModTimestampOp[]>
+      | Iterable<FsSetModTimestampOp | FsSetModTimestampOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1307,7 +1322,7 @@ export const FsSetModTimestampOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsSetModTimestampOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1335,28 +1350,28 @@ export const FsSetModTimestampOp = {
 
   toJSON(message: FsSetModTimestampOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    if (message.paths) {
-      obj.paths = message.paths.map((e) => (e ? FSPath.toJSON(e) : undefined))
-    } else {
-      obj.paths = []
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
     }
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.paths?.length) {
+      obj.paths = message.paths.map((e) => FSPath.toJSON(e))
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsSetModTimestampOp>, I>>(
-    base?: I
+    base?: I,
   ): FsSetModTimestampOp {
-    return FsSetModTimestampOp.fromPartial(base ?? {})
+    return FsSetModTimestampOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsSetModTimestampOp>, I>>(
-    object: I
+    object: I,
   ): FsSetModTimestampOp {
     const message = createBaseFsSetModTimestampOp()
     message.objectKey = object.objectKey ?? ''
@@ -1384,7 +1399,7 @@ function createBaseFsWriteAtOp(): FsWriteAtOp {
 export const FsWriteAtOp = {
   encode(
     message: FsWriteAtOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1471,7 +1486,7 @@ export const FsWriteAtOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsWriteAtOp | FsWriteAtOp[]>
-      | Iterable<FsWriteAtOp | FsWriteAtOp[]>
+      | Iterable<FsWriteAtOp | FsWriteAtOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1489,7 +1504,7 @@ export const FsWriteAtOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsWriteAtOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1519,29 +1534,32 @@ export const FsWriteAtOp = {
 
   toJSON(message: FsWriteAtOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.path !== undefined &&
-      (obj.path = message.path ? FSPath.toJSON(message.path) : undefined)
-    message.offset !== undefined &&
-      (obj.offset = (message.offset || Long.ZERO).toString())
-    message.blobRef !== undefined &&
-      (obj.blobRef = message.blobRef
-        ? BlockRef.toJSON(message.blobRef)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.path !== undefined) {
+      obj.path = FSPath.toJSON(message.path)
+    }
+    if (!message.offset.isZero()) {
+      obj.offset = (message.offset || Long.ZERO).toString()
+    }
+    if (message.blobRef !== undefined) {
+      obj.blobRef = BlockRef.toJSON(message.blobRef)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsWriteAtOp>, I>>(base?: I): FsWriteAtOp {
-    return FsWriteAtOp.fromPartial(base ?? {})
+    return FsWriteAtOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsWriteAtOp>, I>>(
-    object: I
+    object: I,
   ): FsWriteAtOp {
     const message = createBaseFsWriteAtOp()
     message.objectKey = object.objectKey ?? ''
@@ -1579,7 +1597,7 @@ function createBaseFsTruncateOp(): FsTruncateOp {
 export const FsTruncateOp = {
   encode(
     message: FsTruncateOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1656,7 +1674,7 @@ export const FsTruncateOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsTruncateOp | FsTruncateOp[]>
-      | Iterable<FsTruncateOp | FsTruncateOp[]>
+      | Iterable<FsTruncateOp | FsTruncateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1674,7 +1692,7 @@ export const FsTruncateOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsTruncateOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1703,27 +1721,31 @@ export const FsTruncateOp = {
 
   toJSON(message: FsTruncateOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.path !== undefined &&
-      (obj.path = message.path ? FSPath.toJSON(message.path) : undefined)
-    message.fileSize !== undefined &&
-      (obj.fileSize = (message.fileSize || Long.ZERO).toString())
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.path !== undefined) {
+      obj.path = FSPath.toJSON(message.path)
+    }
+    if (!message.fileSize.isZero()) {
+      obj.fileSize = (message.fileSize || Long.ZERO).toString()
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsTruncateOp>, I>>(
-    base?: I
+    base?: I,
   ): FsTruncateOp {
-    return FsTruncateOp.fromPartial(base ?? {})
+    return FsTruncateOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsTruncateOp>, I>>(
-    object: I
+    object: I,
   ): FsTruncateOp {
     const message = createBaseFsTruncateOp()
     message.objectKey = object.objectKey ?? ''
@@ -1757,7 +1779,7 @@ function createBaseFsCopyOp(): FsCopyOp {
 export const FsCopyOp = {
   encode(
     message: FsCopyOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -1834,7 +1856,7 @@ export const FsCopyOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsCopyOp | FsCopyOp[]>
-      | Iterable<FsCopyOp | FsCopyOp[]>
+      | Iterable<FsCopyOp | FsCopyOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1852,7 +1874,7 @@ export const FsCopyOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsCopyOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1883,27 +1905,27 @@ export const FsCopyOp = {
 
   toJSON(message: FsCopyOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.srcPath !== undefined &&
-      (obj.srcPath = message.srcPath
-        ? FSPath.toJSON(message.srcPath)
-        : undefined)
-    message.destPath !== undefined &&
-      (obj.destPath = message.destPath
-        ? FSPath.toJSON(message.destPath)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.srcPath !== undefined) {
+      obj.srcPath = FSPath.toJSON(message.srcPath)
+    }
+    if (message.destPath !== undefined) {
+      obj.destPath = FSPath.toJSON(message.destPath)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsCopyOp>, I>>(base?: I): FsCopyOp {
-    return FsCopyOp.fromPartial(base ?? {})
+    return FsCopyOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsCopyOp>, I>>(object: I): FsCopyOp {
     const message = createBaseFsCopyOp()
     message.objectKey = object.objectKey ?? ''
@@ -1937,7 +1959,7 @@ function createBaseFsRenameOp(): FsRenameOp {
 export const FsRenameOp = {
   encode(
     message: FsRenameOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -2014,7 +2036,7 @@ export const FsRenameOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsRenameOp | FsRenameOp[]>
-      | Iterable<FsRenameOp | FsRenameOp[]>
+      | Iterable<FsRenameOp | FsRenameOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2032,7 +2054,7 @@ export const FsRenameOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsRenameOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2063,29 +2085,29 @@ export const FsRenameOp = {
 
   toJSON(message: FsRenameOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.srcPath !== undefined &&
-      (obj.srcPath = message.srcPath
-        ? FSPath.toJSON(message.srcPath)
-        : undefined)
-    message.destPath !== undefined &&
-      (obj.destPath = message.destPath
-        ? FSPath.toJSON(message.destPath)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.srcPath !== undefined) {
+      obj.srcPath = FSPath.toJSON(message.srcPath)
+    }
+    if (message.destPath !== undefined) {
+      obj.destPath = FSPath.toJSON(message.destPath)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsRenameOp>, I>>(base?: I): FsRenameOp {
-    return FsRenameOp.fromPartial(base ?? {})
+    return FsRenameOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsRenameOp>, I>>(
-    object: I
+    object: I,
   ): FsRenameOp {
     const message = createBaseFsRenameOp()
     message.objectKey = object.objectKey ?? ''
@@ -2113,7 +2135,7 @@ function createBaseFsRemoveOp(): FsRemoveOp {
 export const FsRemoveOp = {
   encode(
     message: FsRemoveOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -2180,7 +2202,7 @@ export const FsRemoveOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<FsRemoveOp | FsRemoveOp[]>
-      | Iterable<FsRemoveOp | FsRemoveOp[]>
+      | Iterable<FsRemoveOp | FsRemoveOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2198,7 +2220,7 @@ export const FsRemoveOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsRemoveOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2226,26 +2248,26 @@ export const FsRemoveOp = {
 
   toJSON(message: FsRemoveOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    if (message.paths) {
-      obj.paths = message.paths.map((e) => (e ? FSPath.toJSON(e) : undefined))
-    } else {
-      obj.paths = []
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
     }
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.paths?.length) {
+      obj.paths = message.paths.map((e) => FSPath.toJSON(e))
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<FsRemoveOp>, I>>(base?: I): FsRemoveOp {
-    return FsRemoveOp.fromPartial(base ?? {})
+    return FsRemoveOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<FsRemoveOp>, I>>(
-    object: I
+    object: I,
   ): FsRemoveOp {
     const message = createBaseFsRemoveOp()
     message.objectKey = object.objectKey ?? ''
@@ -2266,7 +2288,7 @@ function createBaseMountValue(): MountValue {
 export const MountValue = {
   encode(
     message: MountValue,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.mountpoint !== '') {
       writer.uint32(10).string(message.mountpoint)
@@ -2313,7 +2335,7 @@ export const MountValue = {
   async *encodeTransform(
     source:
       | AsyncIterable<MountValue | MountValue[]>
-      | Iterable<MountValue | MountValue[]>
+      | Iterable<MountValue | MountValue[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2331,7 +2353,7 @@ export const MountValue = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MountValue> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2353,17 +2375,20 @@ export const MountValue = {
 
   toJSON(message: MountValue): unknown {
     const obj: any = {}
-    message.mountpoint !== undefined && (obj.mountpoint = message.mountpoint)
-    message.prefix !== undefined && (obj.prefix = message.prefix)
+    if (message.mountpoint !== '') {
+      obj.mountpoint = message.mountpoint
+    }
+    if (message.prefix !== '') {
+      obj.prefix = message.prefix
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MountValue>, I>>(base?: I): MountValue {
-    return MountValue.fromPartial(base ?? {})
+    return MountValue.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MountValue>, I>>(
-    object: I
+    object: I,
   ): MountValue {
     const message = createBaseMountValue()
     message.mountpoint = object.mountpoint ?? ''
@@ -2379,7 +2404,7 @@ function createBaseRefValue(): RefValue {
 export const RefValue = {
   encode(
     message: RefValue,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.fsType !== 0) {
       writer.uint32(8).int32(message.fsType)
@@ -2426,7 +2451,7 @@ export const RefValue = {
   async *encodeTransform(
     source:
       | AsyncIterable<RefValue | RefValue[]>
-      | Iterable<RefValue | RefValue[]>
+      | Iterable<RefValue | RefValue[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2444,7 +2469,7 @@ export const RefValue = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RefValue> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -2466,16 +2491,18 @@ export const RefValue = {
 
   toJSON(message: RefValue): unknown {
     const obj: any = {}
-    message.fsType !== undefined && (obj.fsType = fSTypeToJSON(message.fsType))
-    message.path !== undefined &&
-      (obj.path = message.path ? FSPath.toJSON(message.path) : undefined)
+    if (message.fsType !== 0) {
+      obj.fsType = fSTypeToJSON(message.fsType)
+    }
+    if (message.path !== undefined) {
+      obj.path = FSPath.toJSON(message.path)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RefValue>, I>>(base?: I): RefValue {
-    return RefValue.fromPartial(base ?? {})
+    return RefValue.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RefValue>, I>>(object: I): RefValue {
     const message = createBaseRefValue()
     message.fsType = object.fsType ?? 0

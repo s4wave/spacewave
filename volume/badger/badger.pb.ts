@@ -226,7 +226,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.dir !== '') {
       writer.uint32(10).string(message.dir)
@@ -501,7 +501,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -519,7 +519,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -602,69 +602,89 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.dir !== undefined && (obj.dir = message.dir)
-    message.valueDir !== undefined && (obj.valueDir = message.valueDir)
-    message.kvKeyOpts !== undefined &&
-      (obj.kvKeyOpts = message.kvKeyOpts
-        ? Config1.toJSON(message.kvKeyOpts)
-        : undefined)
-    message.noGenerateKey !== undefined &&
-      (obj.noGenerateKey = message.noGenerateKey)
-    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
-    message.badgerDebug !== undefined && (obj.badgerDebug = message.badgerDebug)
-    message.volumeConfig !== undefined &&
-      (obj.volumeConfig = message.volumeConfig
-        ? Config2.toJSON(message.volumeConfig)
-        : undefined)
-    message.storeConfig !== undefined &&
-      (obj.storeConfig = message.storeConfig
-        ? Config3.toJSON(message.storeConfig)
-        : undefined)
-    message.tableLoadingMode !== undefined &&
-      (obj.tableLoadingMode = fileLoadingModeToJSON(message.tableLoadingMode))
-    message.valueLogLoadingMode !== undefined &&
-      (obj.valueLogLoadingMode = fileLoadingModeToJSON(
-        message.valueLogLoadingMode
-      ))
-    message.numVersionsToKeep !== undefined &&
-      (obj.numVersionsToKeep = Math.round(message.numVersionsToKeep))
-    message.maxTableSize !== undefined &&
-      (obj.maxTableSize = (message.maxTableSize || Long.UZERO).toString())
-    message.levelSizeMultiplier !== undefined &&
-      (obj.levelSizeMultiplier = Math.round(message.levelSizeMultiplier))
-    message.maxLevels !== undefined &&
-      (obj.maxLevels = Math.round(message.maxLevels))
-    message.valueThreshold !== undefined &&
-      (obj.valueThreshold = Math.round(message.valueThreshold))
-    message.numMemtables !== undefined &&
-      (obj.numMemtables = Math.round(message.numMemtables))
-    message.numLevelZeroTables !== undefined &&
-      (obj.numLevelZeroTables = Math.round(message.numLevelZeroTables))
-    message.numLevelZeroTablesStall !== undefined &&
-      (obj.numLevelZeroTablesStall = Math.round(
-        message.numLevelZeroTablesStall
-      ))
-    message.levelOneSize !== undefined &&
-      (obj.levelOneSize = (message.levelOneSize || Long.UZERO).toString())
-    message.valueLogFileSize !== undefined &&
-      (obj.valueLogFileSize = (
-        message.valueLogFileSize || Long.UZERO
-      ).toString())
-    message.valueLogMaxEntries !== undefined &&
-      (obj.valueLogMaxEntries = Math.round(message.valueLogMaxEntries))
-    message.numCompactors !== undefined &&
-      (obj.numCompactors = Math.round(message.numCompactors))
-    message.truncate !== undefined && (obj.truncate = message.truncate)
-    message.noSyncWrites !== undefined &&
-      (obj.noSyncWrites = message.noSyncWrites)
+    if (message.dir !== '') {
+      obj.dir = message.dir
+    }
+    if (message.valueDir !== '') {
+      obj.valueDir = message.valueDir
+    }
+    if (message.kvKeyOpts !== undefined) {
+      obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
+    }
+    if (message.noGenerateKey === true) {
+      obj.noGenerateKey = message.noGenerateKey
+    }
+    if (message.noWriteKey === true) {
+      obj.noWriteKey = message.noWriteKey
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
+    if (message.badgerDebug === true) {
+      obj.badgerDebug = message.badgerDebug
+    }
+    if (message.volumeConfig !== undefined) {
+      obj.volumeConfig = Config2.toJSON(message.volumeConfig)
+    }
+    if (message.storeConfig !== undefined) {
+      obj.storeConfig = Config3.toJSON(message.storeConfig)
+    }
+    if (message.tableLoadingMode !== 0) {
+      obj.tableLoadingMode = fileLoadingModeToJSON(message.tableLoadingMode)
+    }
+    if (message.valueLogLoadingMode !== 0) {
+      obj.valueLogLoadingMode = fileLoadingModeToJSON(
+        message.valueLogLoadingMode,
+      )
+    }
+    if (message.numVersionsToKeep !== 0) {
+      obj.numVersionsToKeep = Math.round(message.numVersionsToKeep)
+    }
+    if (!message.maxTableSize.isZero()) {
+      obj.maxTableSize = (message.maxTableSize || Long.UZERO).toString()
+    }
+    if (message.levelSizeMultiplier !== 0) {
+      obj.levelSizeMultiplier = Math.round(message.levelSizeMultiplier)
+    }
+    if (message.maxLevels !== 0) {
+      obj.maxLevels = Math.round(message.maxLevels)
+    }
+    if (message.valueThreshold !== 0) {
+      obj.valueThreshold = Math.round(message.valueThreshold)
+    }
+    if (message.numMemtables !== 0) {
+      obj.numMemtables = Math.round(message.numMemtables)
+    }
+    if (message.numLevelZeroTables !== 0) {
+      obj.numLevelZeroTables = Math.round(message.numLevelZeroTables)
+    }
+    if (message.numLevelZeroTablesStall !== 0) {
+      obj.numLevelZeroTablesStall = Math.round(message.numLevelZeroTablesStall)
+    }
+    if (!message.levelOneSize.isZero()) {
+      obj.levelOneSize = (message.levelOneSize || Long.UZERO).toString()
+    }
+    if (!message.valueLogFileSize.isZero()) {
+      obj.valueLogFileSize = (message.valueLogFileSize || Long.UZERO).toString()
+    }
+    if (message.valueLogMaxEntries !== 0) {
+      obj.valueLogMaxEntries = Math.round(message.valueLogMaxEntries)
+    }
+    if (message.numCompactors !== 0) {
+      obj.numCompactors = Math.round(message.numCompactors)
+    }
+    if (message.truncate === true) {
+      obj.truncate = message.truncate
+    }
+    if (message.noSyncWrites === true) {
+      obj.noSyncWrites = message.noSyncWrites
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.dir = object.dir ?? ''

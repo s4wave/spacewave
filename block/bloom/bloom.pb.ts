@@ -30,7 +30,7 @@ function createBaseBloomFilter(): BloomFilter {
 export const BloomFilter = {
   encode(
     message: BloomFilter,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.k !== 0) {
       writer.uint32(8).uint32(message.k)
@@ -87,7 +87,7 @@ export const BloomFilter = {
   async *encodeTransform(
     source:
       | AsyncIterable<BloomFilter | BloomFilter[]>
-      | Iterable<BloomFilter | BloomFilter[]>
+      | Iterable<BloomFilter | BloomFilter[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -105,7 +105,7 @@ export const BloomFilter = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BloomFilter> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -128,19 +128,23 @@ export const BloomFilter = {
 
   toJSON(message: BloomFilter): unknown {
     const obj: any = {}
-    message.k !== undefined && (obj.k = Math.round(message.k))
-    message.m !== undefined && (obj.m = Math.round(message.m))
-    message.bitSet !== undefined &&
-      (obj.bitSet = message.bitSet ? BitSet.toJSON(message.bitSet) : undefined)
+    if (message.k !== 0) {
+      obj.k = Math.round(message.k)
+    }
+    if (message.m !== 0) {
+      obj.m = Math.round(message.m)
+    }
+    if (message.bitSet !== undefined) {
+      obj.bitSet = BitSet.toJSON(message.bitSet)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BloomFilter>, I>>(base?: I): BloomFilter {
-    return BloomFilter.fromPartial(base ?? {})
+    return BloomFilter.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BloomFilter>, I>>(
-    object: I
+    object: I,
   ): BloomFilter {
     const message = createBaseBloomFilter()
     message.k = object.k ?? 0

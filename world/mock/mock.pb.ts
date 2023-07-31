@@ -25,7 +25,7 @@ function createBaseMockObjectOp(): MockObjectOp {
 export const MockObjectOp = {
   encode(
     message: MockObjectOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.nextMsg !== '') {
       writer.uint32(10).string(message.nextMsg)
@@ -62,7 +62,7 @@ export const MockObjectOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<MockObjectOp | MockObjectOp[]>
-      | Iterable<MockObjectOp | MockObjectOp[]>
+      | Iterable<MockObjectOp | MockObjectOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -80,7 +80,7 @@ export const MockObjectOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MockObjectOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -99,18 +99,19 @@ export const MockObjectOp = {
 
   toJSON(message: MockObjectOp): unknown {
     const obj: any = {}
-    message.nextMsg !== undefined && (obj.nextMsg = message.nextMsg)
+    if (message.nextMsg !== '') {
+      obj.nextMsg = message.nextMsg
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MockObjectOp>, I>>(
-    base?: I
+    base?: I,
   ): MockObjectOp {
-    return MockObjectOp.fromPartial(base ?? {})
+    return MockObjectOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MockObjectOp>, I>>(
-    object: I
+    object: I,
   ): MockObjectOp {
     const message = createBaseMockObjectOp()
     message.nextMsg = object.nextMsg ?? ''
@@ -125,7 +126,7 @@ function createBaseMockWorldOp(): MockWorldOp {
 export const MockWorldOp = {
   encode(
     message: MockWorldOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
@@ -172,7 +173,7 @@ export const MockWorldOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<MockWorldOp | MockWorldOp[]>
-      | Iterable<MockWorldOp | MockWorldOp[]>
+      | Iterable<MockWorldOp | MockWorldOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -190,7 +191,7 @@ export const MockWorldOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MockWorldOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -212,17 +213,20 @@ export const MockWorldOp = {
 
   toJSON(message: MockWorldOp): unknown {
     const obj: any = {}
-    message.objectKey !== undefined && (obj.objectKey = message.objectKey)
-    message.nextMsg !== undefined && (obj.nextMsg = message.nextMsg)
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey
+    }
+    if (message.nextMsg !== '') {
+      obj.nextMsg = message.nextMsg
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MockWorldOp>, I>>(base?: I): MockWorldOp {
-    return MockWorldOp.fromPartial(base ?? {})
+    return MockWorldOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MockWorldOp>, I>>(
-    object: I
+    object: I,
   ): MockWorldOp {
     const message = createBaseMockWorldOp()
     message.objectKey = object.objectKey ?? ''

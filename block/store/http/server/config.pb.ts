@@ -51,7 +51,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -126,7 +126,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -144,7 +144,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -171,19 +171,27 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
-    message.write !== undefined && (obj.write = message.write)
-    message.pathPrefix !== undefined && (obj.pathPrefix = message.pathPrefix)
-    message.forceHashType !== undefined &&
-      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
+    if (message.write === true) {
+      obj.write = message.write
+    }
+    if (message.pathPrefix !== '') {
+      obj.pathPrefix = message.pathPrefix
+    }
+    if (message.forceHashType !== 0) {
+      obj.forceHashType = hashTypeToJSON(message.forceHashType)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.bucketId = object.bucketId ?? ''

@@ -75,7 +75,7 @@ function createBasePutBlockRequest(): PutBlockRequest {
 export const PutBlockRequest = {
   encode(
     message: PutBlockRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
@@ -122,7 +122,7 @@ export const PutBlockRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<PutBlockRequest | PutBlockRequest[]>
-      | Iterable<PutBlockRequest | PutBlockRequest[]>
+      | Iterable<PutBlockRequest | PutBlockRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -140,7 +140,7 @@ export const PutBlockRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutBlockRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -166,25 +166,22 @@ export const PutBlockRequest = {
 
   toJSON(message: PutBlockRequest): unknown {
     const obj: any = {}
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
-      ))
-    message.putOpts !== undefined &&
-      (obj.putOpts = message.putOpts
-        ? PutOpts.toJSON(message.putOpts)
-        : undefined)
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
+    if (message.putOpts !== undefined) {
+      obj.putOpts = PutOpts.toJSON(message.putOpts)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PutBlockRequest>, I>>(
-    base?: I
+    base?: I,
   ): PutBlockRequest {
-    return PutBlockRequest.fromPartial(base ?? {})
+    return PutBlockRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PutBlockRequest>, I>>(
-    object: I
+    object: I,
   ): PutBlockRequest {
     const message = createBasePutBlockRequest()
     message.data = object.data ?? new Uint8Array(0)
@@ -203,7 +200,7 @@ function createBasePutBlockResponse(): PutBlockResponse {
 export const PutBlockResponse = {
   encode(
     message: PutBlockResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.ref !== undefined) {
       BlockRef.encode(message.ref, writer.uint32(10).fork()).ldelim()
@@ -260,7 +257,7 @@ export const PutBlockResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<PutBlockResponse | PutBlockResponse[]>
-      | Iterable<PutBlockResponse | PutBlockResponse[]>
+      | Iterable<PutBlockResponse | PutBlockResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -278,7 +275,7 @@ export const PutBlockResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutBlockResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -301,21 +298,25 @@ export const PutBlockResponse = {
 
   toJSON(message: PutBlockResponse): unknown {
     const obj: any = {}
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
-    message.existed !== undefined && (obj.existed = message.existed)
-    message.error !== undefined && (obj.error = message.error)
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
+    if (message.existed === true) {
+      obj.existed = message.existed
+    }
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PutBlockResponse>, I>>(
-    base?: I
+    base?: I,
   ): PutBlockResponse {
-    return PutBlockResponse.fromPartial(base ?? {})
+    return PutBlockResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PutBlockResponse>, I>>(
-    object: I
+    object: I,
   ): PutBlockResponse {
     const message = createBasePutBlockResponse()
     message.ref =
@@ -335,7 +336,7 @@ function createBaseGetBlockRequest(): GetBlockRequest {
 export const GetBlockRequest = {
   encode(
     message: GetBlockRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.ref !== undefined) {
       BlockRef.encode(message.ref, writer.uint32(10).fork()).ldelim()
@@ -372,7 +373,7 @@ export const GetBlockRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBlockRequest | GetBlockRequest[]>
-      | Iterable<GetBlockRequest | GetBlockRequest[]>
+      | Iterable<GetBlockRequest | GetBlockRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -390,7 +391,7 @@ export const GetBlockRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBlockRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -411,19 +412,19 @@ export const GetBlockRequest = {
 
   toJSON(message: GetBlockRequest): unknown {
     const obj: any = {}
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBlockRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetBlockRequest {
-    return GetBlockRequest.fromPartial(base ?? {})
+    return GetBlockRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBlockRequest>, I>>(
-    object: I
+    object: I,
   ): GetBlockRequest {
     const message = createBaseGetBlockRequest()
     message.ref =
@@ -441,7 +442,7 @@ function createBaseGetBlockResponse(): GetBlockResponse {
 export const GetBlockResponse = {
   encode(
     message: GetBlockResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.exists === true) {
       writer.uint32(8).bool(message.exists)
@@ -498,7 +499,7 @@ export const GetBlockResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBlockResponse | GetBlockResponse[]>
-      | Iterable<GetBlockResponse | GetBlockResponse[]>
+      | Iterable<GetBlockResponse | GetBlockResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -516,7 +517,7 @@ export const GetBlockResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBlockResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -541,23 +542,25 @@ export const GetBlockResponse = {
 
   toJSON(message: GetBlockResponse): unknown {
     const obj: any = {}
-    message.exists !== undefined && (obj.exists = message.exists)
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
-      ))
-    message.error !== undefined && (obj.error = message.error)
+    if (message.exists === true) {
+      obj.exists = message.exists
+    }
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBlockResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetBlockResponse {
-    return GetBlockResponse.fromPartial(base ?? {})
+    return GetBlockResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBlockResponse>, I>>(
-    object: I
+    object: I,
   ): GetBlockResponse {
     const message = createBaseGetBlockResponse()
     message.exists = object.exists ?? false
@@ -574,7 +577,7 @@ function createBaseGetBlockExistsRequest(): GetBlockExistsRequest {
 export const GetBlockExistsRequest = {
   encode(
     message: GetBlockExistsRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.ref !== undefined) {
       BlockRef.encode(message.ref, writer.uint32(10).fork()).ldelim()
@@ -584,7 +587,7 @@ export const GetBlockExistsRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetBlockExistsRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -614,7 +617,7 @@ export const GetBlockExistsRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBlockExistsRequest | GetBlockExistsRequest[]>
-      | Iterable<GetBlockExistsRequest | GetBlockExistsRequest[]>
+      | Iterable<GetBlockExistsRequest | GetBlockExistsRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -632,7 +635,7 @@ export const GetBlockExistsRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBlockExistsRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -653,19 +656,19 @@ export const GetBlockExistsRequest = {
 
   toJSON(message: GetBlockExistsRequest): unknown {
     const obj: any = {}
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBlockExistsRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetBlockExistsRequest {
-    return GetBlockExistsRequest.fromPartial(base ?? {})
+    return GetBlockExistsRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBlockExistsRequest>, I>>(
-    object: I
+    object: I,
   ): GetBlockExistsRequest {
     const message = createBaseGetBlockExistsRequest()
     message.ref =
@@ -683,7 +686,7 @@ function createBaseGetBlockExistsResponse(): GetBlockExistsResponse {
 export const GetBlockExistsResponse = {
   encode(
     message: GetBlockExistsResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.exists === true) {
       writer.uint32(8).bool(message.exists)
@@ -696,7 +699,7 @@ export const GetBlockExistsResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): GetBlockExistsResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -733,7 +736,7 @@ export const GetBlockExistsResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<GetBlockExistsResponse | GetBlockExistsResponse[]>
-      | Iterable<GetBlockExistsResponse | GetBlockExistsResponse[]>
+      | Iterable<GetBlockExistsResponse | GetBlockExistsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -751,7 +754,7 @@ export const GetBlockExistsResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBlockExistsResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -773,19 +776,22 @@ export const GetBlockExistsResponse = {
 
   toJSON(message: GetBlockExistsResponse): unknown {
     const obj: any = {}
-    message.exists !== undefined && (obj.exists = message.exists)
-    message.error !== undefined && (obj.error = message.error)
+    if (message.exists === true) {
+      obj.exists = message.exists
+    }
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<GetBlockExistsResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetBlockExistsResponse {
-    return GetBlockExistsResponse.fromPartial(base ?? {})
+    return GetBlockExistsResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<GetBlockExistsResponse>, I>>(
-    object: I
+    object: I,
   ): GetBlockExistsResponse {
     const message = createBaseGetBlockExistsResponse()
     message.exists = object.exists ?? false
@@ -801,7 +807,7 @@ function createBaseRmBlockRequest(): RmBlockRequest {
 export const RmBlockRequest = {
   encode(
     message: RmBlockRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.ref !== undefined) {
       BlockRef.encode(message.ref, writer.uint32(10).fork()).ldelim()
@@ -838,7 +844,7 @@ export const RmBlockRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<RmBlockRequest | RmBlockRequest[]>
-      | Iterable<RmBlockRequest | RmBlockRequest[]>
+      | Iterable<RmBlockRequest | RmBlockRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -856,7 +862,7 @@ export const RmBlockRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmBlockRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -877,19 +883,19 @@ export const RmBlockRequest = {
 
   toJSON(message: RmBlockRequest): unknown {
     const obj: any = {}
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmBlockRequest>, I>>(
-    base?: I
+    base?: I,
   ): RmBlockRequest {
-    return RmBlockRequest.fromPartial(base ?? {})
+    return RmBlockRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmBlockRequest>, I>>(
-    object: I
+    object: I,
   ): RmBlockRequest {
     const message = createBaseRmBlockRequest()
     message.ref =
@@ -907,7 +913,7 @@ function createBaseRmBlockResponse(): RmBlockResponse {
 export const RmBlockResponse = {
   encode(
     message: RmBlockResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -944,7 +950,7 @@ export const RmBlockResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<RmBlockResponse | RmBlockResponse[]>
-      | Iterable<RmBlockResponse | RmBlockResponse[]>
+      | Iterable<RmBlockResponse | RmBlockResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -962,7 +968,7 @@ export const RmBlockResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmBlockResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -981,18 +987,19 @@ export const RmBlockResponse = {
 
   toJSON(message: RmBlockResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmBlockResponse>, I>>(
-    base?: I
+    base?: I,
   ): RmBlockResponse {
-    return RmBlockResponse.fromPartial(base ?? {})
+    return RmBlockResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmBlockResponse>, I>>(
-    object: I
+    object: I,
   ): RmBlockResponse {
     const message = createBaseRmBlockResponse()
     message.error = object.error ?? ''
@@ -1005,17 +1012,17 @@ export interface BlockStore {
   /** PutBlock requests to put a block into the store. */
   PutBlock(
     request: PutBlockRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<PutBlockResponse>
   /** GetBlock requests to lookup a block from the store. */
   GetBlock(
     request: GetBlockRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBlockResponse>
   /** GetBlockExists requests to check if a block exists in the store. */
   GetBlockExists(
     request: GetBlockExistsRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBlockExistsResponse>
   /**
    * RmBlock requests to remove a block from the store.
@@ -1024,7 +1031,7 @@ export interface BlockStore {
    */
   RmBlock(
     request: RmBlockRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RmBlockResponse>
 }
 
@@ -1042,65 +1049,65 @@ export class BlockStoreClientImpl implements BlockStore {
   }
   PutBlock(
     request: PutBlockRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<PutBlockResponse> {
     const data = PutBlockRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'PutBlock',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      PutBlockResponse.decode(_m0.Reader.create(data))
+      PutBlockResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   GetBlock(
     request: GetBlockRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBlockResponse> {
     const data = GetBlockRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'GetBlock',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      GetBlockResponse.decode(_m0.Reader.create(data))
+      GetBlockResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   GetBlockExists(
     request: GetBlockExistsRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<GetBlockExistsResponse> {
     const data = GetBlockExistsRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'GetBlockExists',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      GetBlockExistsResponse.decode(_m0.Reader.create(data))
+      GetBlockExistsResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   RmBlock(
     request: RmBlockRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RmBlockResponse> {
     const data = RmBlockRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'RmBlock',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      RmBlockResponse.decode(_m0.Reader.create(data))
+      RmBlockResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -1159,14 +1166,14 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

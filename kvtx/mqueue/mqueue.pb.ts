@@ -47,7 +47,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.pollDur !== '') {
       writer.uint32(10).string(message.pollDur)
@@ -82,7 +82,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -100,7 +100,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -119,14 +119,15 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.pollDur !== undefined && (obj.pollDur = message.pollDur)
+    if (message.pollDur !== '') {
+      obj.pollDur = message.pollDur
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.pollDur = object.pollDur ?? ''
@@ -141,7 +142,7 @@ function createBaseMQQueueMeta(): MQQueueMeta {
 export const MQQueueMeta = {
   encode(
     message: MQQueueMeta,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.head.isZero()) {
       writer.uint32(8).uint64(message.head)
@@ -152,7 +153,7 @@ export const MQQueueMeta = {
     Object.entries(message.meta).forEach(([key, value]) => {
       MQQueueMeta_MetaEntry.encode(
         { key: key as any, value },
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     })
     return writer
@@ -204,7 +205,7 @@ export const MQQueueMeta = {
   async *encodeTransform(
     source:
       | AsyncIterable<MQQueueMeta | MQQueueMeta[]>
-      | Iterable<MQQueueMeta | MQQueueMeta[]>
+      | Iterable<MQQueueMeta | MQQueueMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -222,7 +223,7 @@ export const MQQueueMeta = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MQQueueMeta> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -245,7 +246,7 @@ export const MQQueueMeta = {
               acc[key] = String(value)
               return acc
             },
-            {}
+            {},
           )
         : {},
     }
@@ -253,25 +254,29 @@ export const MQQueueMeta = {
 
   toJSON(message: MQQueueMeta): unknown {
     const obj: any = {}
-    message.head !== undefined &&
-      (obj.head = (message.head || Long.UZERO).toString())
-    message.tail !== undefined &&
-      (obj.tail = (message.tail || Long.UZERO).toString())
-    obj.meta = {}
+    if (!message.head.isZero()) {
+      obj.head = (message.head || Long.UZERO).toString()
+    }
+    if (!message.tail.isZero()) {
+      obj.tail = (message.tail || Long.UZERO).toString()
+    }
     if (message.meta) {
-      Object.entries(message.meta).forEach(([k, v]) => {
-        obj.meta[k] = v
-      })
+      const entries = Object.entries(message.meta)
+      if (entries.length > 0) {
+        obj.meta = {}
+        entries.forEach(([k, v]) => {
+          obj.meta[k] = v
+        })
+      }
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MQQueueMeta>, I>>(base?: I): MQQueueMeta {
-    return MQQueueMeta.fromPartial(base ?? {})
+    return MQQueueMeta.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MQQueueMeta>, I>>(
-    object: I
+    object: I,
   ): MQQueueMeta {
     const message = createBaseMQQueueMeta()
     message.head =
@@ -301,7 +306,7 @@ function createBaseMQQueueMeta_MetaEntry(): MQQueueMeta_MetaEntry {
 export const MQQueueMeta_MetaEntry = {
   encode(
     message: MQQueueMeta_MetaEntry,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.key !== '') {
       writer.uint32(10).string(message.key)
@@ -314,7 +319,7 @@ export const MQQueueMeta_MetaEntry = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): MQQueueMeta_MetaEntry {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -351,7 +356,7 @@ export const MQQueueMeta_MetaEntry = {
   async *encodeTransform(
     source:
       | AsyncIterable<MQQueueMeta_MetaEntry | MQQueueMeta_MetaEntry[]>
-      | Iterable<MQQueueMeta_MetaEntry | MQQueueMeta_MetaEntry[]>
+      | Iterable<MQQueueMeta_MetaEntry | MQQueueMeta_MetaEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -369,7 +374,7 @@ export const MQQueueMeta_MetaEntry = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MQQueueMeta_MetaEntry> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -391,19 +396,22 @@ export const MQQueueMeta_MetaEntry = {
 
   toJSON(message: MQQueueMeta_MetaEntry): unknown {
     const obj: any = {}
-    message.key !== undefined && (obj.key = message.key)
-    message.value !== undefined && (obj.value = message.value)
+    if (message.key !== '') {
+      obj.key = message.key
+    }
+    if (message.value !== '') {
+      obj.value = message.value
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MQQueueMeta_MetaEntry>, I>>(
-    base?: I
+    base?: I,
   ): MQQueueMeta_MetaEntry {
-    return MQQueueMeta_MetaEntry.fromPartial(base ?? {})
+    return MQQueueMeta_MetaEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MQQueueMeta_MetaEntry>, I>>(
-    object: I
+    object: I,
   ): MQQueueMeta_MetaEntry {
     const message = createBaseMQQueueMeta_MetaEntry()
     message.key = object.key ?? ''
@@ -419,7 +427,7 @@ function createBaseMQMessageWrapper(): MQMessageWrapper {
 export const MQMessageWrapper = {
   encode(
     message: MQMessageWrapper,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.timestamp !== undefined) {
       Timestamp.encode(message.timestamp, writer.uint32(10).fork()).ldelim()
@@ -466,7 +474,7 @@ export const MQMessageWrapper = {
   async *encodeTransform(
     source:
       | AsyncIterable<MQMessageWrapper | MQMessageWrapper[]>
-      | Iterable<MQMessageWrapper | MQMessageWrapper[]>
+      | Iterable<MQMessageWrapper | MQMessageWrapper[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -484,7 +492,7 @@ export const MQMessageWrapper = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MQMessageWrapper> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -510,25 +518,22 @@ export const MQMessageWrapper = {
 
   toJSON(message: MQMessageWrapper): unknown {
     const obj: any = {}
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
-      ))
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MQMessageWrapper>, I>>(
-    base?: I
+    base?: I,
   ): MQMessageWrapper {
-    return MQMessageWrapper.fromPartial(base ?? {})
+    return MQMessageWrapper.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MQMessageWrapper>, I>>(
-    object: I
+    object: I,
   ): MQMessageWrapper {
     const message = createBaseMQMessageWrapper()
     message.timestamp =
@@ -540,10 +545,10 @@ export const MQMessageWrapper = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

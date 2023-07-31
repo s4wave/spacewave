@@ -38,7 +38,7 @@ function createBaseKeyFilters(): KeyFilters {
 export const KeyFilters = {
   encode(
     message: KeyFilters,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.keyPrefix !== '') {
       writer.uint32(10).string(message.keyPrefix)
@@ -95,7 +95,7 @@ export const KeyFilters = {
   async *encodeTransform(
     source:
       | AsyncIterable<KeyFilters | KeyFilters[]>
-      | Iterable<KeyFilters | KeyFilters[]>
+      | Iterable<KeyFilters | KeyFilters[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -113,7 +113,7 @@ export const KeyFilters = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyFilters> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -140,24 +140,23 @@ export const KeyFilters = {
 
   toJSON(message: KeyFilters): unknown {
     const obj: any = {}
-    message.keyPrefix !== undefined && (obj.keyPrefix = message.keyPrefix)
-    message.quadPrefix !== undefined &&
-      (obj.quadPrefix = message.quadPrefix
-        ? Quad.toJSON(message.quadPrefix)
-        : undefined)
-    message.keyBloom !== undefined &&
-      (obj.keyBloom = message.keyBloom
-        ? BloomFilter.toJSON(message.keyBloom)
-        : undefined)
+    if (message.keyPrefix !== '') {
+      obj.keyPrefix = message.keyPrefix
+    }
+    if (message.quadPrefix !== undefined) {
+      obj.quadPrefix = Quad.toJSON(message.quadPrefix)
+    }
+    if (message.keyBloom !== undefined) {
+      obj.keyBloom = BloomFilter.toJSON(message.keyBloom)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KeyFilters>, I>>(base?: I): KeyFilters {
-    return KeyFilters.fromPartial(base ?? {})
+    return KeyFilters.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KeyFilters>, I>>(
-    object: I
+    object: I,
   ): KeyFilters {
     const message = createBaseKeyFilters()
     message.keyPrefix = object.keyPrefix ?? ''

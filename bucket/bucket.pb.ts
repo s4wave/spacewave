@@ -123,7 +123,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -171,7 +171,7 @@ export const Config = {
           }
 
           message.reconcilers.push(
-            ReconcilerConfig.decode(reader, reader.uint32())
+            ReconcilerConfig.decode(reader, reader.uint32()),
           )
           continue
         case 4:
@@ -200,7 +200,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -218,7 +218,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -249,30 +249,29 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    message.rev !== undefined && (obj.rev = Math.round(message.rev))
-    if (message.reconcilers) {
-      obj.reconcilers = message.reconcilers.map((e) =>
-        e ? ReconcilerConfig.toJSON(e) : undefined
-      )
-    } else {
-      obj.reconcilers = []
+    if (message.id !== '') {
+      obj.id = message.id
     }
-    message.putOpts !== undefined &&
-      (obj.putOpts = message.putOpts
-        ? PutOpts.toJSON(message.putOpts)
-        : undefined)
-    message.lookup !== undefined &&
-      (obj.lookup = message.lookup
-        ? LookupConfig.toJSON(message.lookup)
-        : undefined)
+    if (message.rev !== 0) {
+      obj.rev = Math.round(message.rev)
+    }
+    if (message.reconcilers?.length) {
+      obj.reconcilers = message.reconcilers.map((e) =>
+        ReconcilerConfig.toJSON(e),
+      )
+    }
+    if (message.putOpts !== undefined) {
+      obj.putOpts = PutOpts.toJSON(message.putOpts)
+    }
+    if (message.lookup !== undefined) {
+      obj.lookup = LookupConfig.toJSON(message.lookup)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.id = object.id ?? ''
@@ -298,7 +297,7 @@ function createBaseBucketInfo(): BucketInfo {
 export const BucketInfo = {
   encode(
     message: BucketInfo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.config !== undefined) {
       Config.encode(message.config, writer.uint32(10).fork()).ldelim()
@@ -335,7 +334,7 @@ export const BucketInfo = {
   async *encodeTransform(
     source:
       | AsyncIterable<BucketInfo | BucketInfo[]>
-      | Iterable<BucketInfo | BucketInfo[]>
+      | Iterable<BucketInfo | BucketInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -353,7 +352,7 @@ export const BucketInfo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BucketInfo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -374,17 +373,17 @@ export const BucketInfo = {
 
   toJSON(message: BucketInfo): unknown {
     const obj: any = {}
-    message.config !== undefined &&
-      (obj.config = message.config ? Config.toJSON(message.config) : undefined)
+    if (message.config !== undefined) {
+      obj.config = Config.toJSON(message.config)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BucketInfo>, I>>(base?: I): BucketInfo {
-    return BucketInfo.fromPartial(base ?? {})
+    return BucketInfo.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BucketInfo>, I>>(
-    object: I
+    object: I,
   ): BucketInfo {
     const message = createBaseBucketInfo()
     message.config =
@@ -402,7 +401,7 @@ function createBaseReconcilerConfig(): ReconcilerConfig {
 export const ReconcilerConfig = {
   encode(
     message: ReconcilerConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
@@ -410,7 +409,7 @@ export const ReconcilerConfig = {
     if (message.controller !== undefined) {
       ControllerConfig.encode(
         message.controller,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     if (message.filterPut === true) {
@@ -462,7 +461,7 @@ export const ReconcilerConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<ReconcilerConfig | ReconcilerConfig[]>
-      | Iterable<ReconcilerConfig | ReconcilerConfig[]>
+      | Iterable<ReconcilerConfig | ReconcilerConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -480,7 +479,7 @@ export const ReconcilerConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ReconcilerConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -505,23 +504,25 @@ export const ReconcilerConfig = {
 
   toJSON(message: ReconcilerConfig): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = message.id)
-    message.controller !== undefined &&
-      (obj.controller = message.controller
-        ? ControllerConfig.toJSON(message.controller)
-        : undefined)
-    message.filterPut !== undefined && (obj.filterPut = message.filterPut)
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.controller !== undefined) {
+      obj.controller = ControllerConfig.toJSON(message.controller)
+    }
+    if (message.filterPut === true) {
+      obj.filterPut = message.filterPut
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ReconcilerConfig>, I>>(
-    base?: I
+    base?: I,
   ): ReconcilerConfig {
-    return ReconcilerConfig.fromPartial(base ?? {})
+    return ReconcilerConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ReconcilerConfig>, I>>(
-    object: I
+    object: I,
   ): ReconcilerConfig {
     const message = createBaseReconcilerConfig()
     message.id = object.id ?? ''
@@ -541,7 +542,7 @@ function createBaseLookupConfig(): LookupConfig {
 export const LookupConfig = {
   encode(
     message: LookupConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.disable === true) {
       writer.uint32(8).bool(message.disable)
@@ -549,7 +550,7 @@ export const LookupConfig = {
     if (message.controller !== undefined) {
       ControllerConfig.encode(
         message.controller,
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     return writer
@@ -591,7 +592,7 @@ export const LookupConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<LookupConfig | LookupConfig[]>
-      | Iterable<LookupConfig | LookupConfig[]>
+      | Iterable<LookupConfig | LookupConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -609,7 +610,7 @@ export const LookupConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -633,22 +634,22 @@ export const LookupConfig = {
 
   toJSON(message: LookupConfig): unknown {
     const obj: any = {}
-    message.disable !== undefined && (obj.disable = message.disable)
-    message.controller !== undefined &&
-      (obj.controller = message.controller
-        ? ControllerConfig.toJSON(message.controller)
-        : undefined)
+    if (message.disable === true) {
+      obj.disable = message.disable
+    }
+    if (message.controller !== undefined) {
+      obj.controller = ControllerConfig.toJSON(message.controller)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<LookupConfig>, I>>(
-    base?: I
+    base?: I,
   ): LookupConfig {
-    return LookupConfig.fromPartial(base ?? {})
+    return LookupConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<LookupConfig>, I>>(
-    object: I
+    object: I,
   ): LookupConfig {
     const message = createBaseLookupConfig()
     message.disable = object.disable ?? false
@@ -675,7 +676,7 @@ function createBaseApplyBucketConfigResult(): ApplyBucketConfigResult {
 export const ApplyBucketConfigResult = {
   encode(
     message: ApplyBucketConfigResult,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.volumeId !== '') {
       writer.uint32(10).string(message.volumeId)
@@ -703,7 +704,7 @@ export const ApplyBucketConfigResult = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): ApplyBucketConfigResult {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -775,7 +776,7 @@ export const ApplyBucketConfigResult = {
   async *encodeTransform(
     source:
       | AsyncIterable<ApplyBucketConfigResult | ApplyBucketConfigResult[]>
-      | Iterable<ApplyBucketConfigResult | ApplyBucketConfigResult[]>
+      | Iterable<ApplyBucketConfigResult | ApplyBucketConfigResult[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -793,7 +794,7 @@ export const ApplyBucketConfigResult = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfigResult> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -826,33 +827,37 @@ export const ApplyBucketConfigResult = {
 
   toJSON(message: ApplyBucketConfigResult): unknown {
     const obj: any = {}
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.bucketConf !== undefined &&
-      (obj.bucketConf = message.bucketConf
-        ? Config.toJSON(message.bucketConf)
-        : undefined)
-    message.oldBucketConf !== undefined &&
-      (obj.oldBucketConf = message.oldBucketConf
-        ? Config.toJSON(message.oldBucketConf)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
-    message.updated !== undefined && (obj.updated = message.updated)
-    message.error !== undefined && (obj.error = message.error)
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.bucketConf !== undefined) {
+      obj.bucketConf = Config.toJSON(message.bucketConf)
+    }
+    if (message.oldBucketConf !== undefined) {
+      obj.oldBucketConf = Config.toJSON(message.oldBucketConf)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
+    if (message.updated === true) {
+      obj.updated = message.updated
+    }
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ApplyBucketConfigResult>, I>>(
-    base?: I
+    base?: I,
   ): ApplyBucketConfigResult {
-    return ApplyBucketConfigResult.fromPartial(base ?? {})
+    return ApplyBucketConfigResult.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ApplyBucketConfigResult>, I>>(
-    object: I
+    object: I,
   ): ApplyBucketConfigResult {
     const message = createBaseApplyBucketConfigResult()
     message.volumeId = object.volumeId ?? ''
@@ -887,7 +892,7 @@ function createBaseObjectRef(): ObjectRef {
 export const ObjectRef = {
   encode(
     message: ObjectRef,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.rootRef !== undefined) {
       BlockRef.encode(message.rootRef, writer.uint32(10).fork()).ldelim()
@@ -898,7 +903,7 @@ export const ObjectRef = {
     if (message.transformConfRef !== undefined) {
       BlockRef.encode(
         message.transformConfRef,
-        writer.uint32(26).fork()
+        writer.uint32(26).fork(),
       ).ldelim()
     }
     if (message.transformConf !== undefined) {
@@ -957,7 +962,7 @@ export const ObjectRef = {
   async *encodeTransform(
     source:
       | AsyncIterable<ObjectRef | ObjectRef[]>
-      | Iterable<ObjectRef | ObjectRef[]>
+      | Iterable<ObjectRef | ObjectRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -975,7 +980,7 @@ export const ObjectRef = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ObjectRef> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1005,28 +1010,26 @@ export const ObjectRef = {
 
   toJSON(message: ObjectRef): unknown {
     const obj: any = {}
-    message.rootRef !== undefined &&
-      (obj.rootRef = message.rootRef
-        ? BlockRef.toJSON(message.rootRef)
-        : undefined)
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.transformConfRef !== undefined &&
-      (obj.transformConfRef = message.transformConfRef
-        ? BlockRef.toJSON(message.transformConfRef)
-        : undefined)
-    message.transformConf !== undefined &&
-      (obj.transformConf = message.transformConf
-        ? Config1.toJSON(message.transformConf)
-        : undefined)
+    if (message.rootRef !== undefined) {
+      obj.rootRef = BlockRef.toJSON(message.rootRef)
+    }
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.transformConfRef !== undefined) {
+      obj.transformConfRef = BlockRef.toJSON(message.transformConfRef)
+    }
+    if (message.transformConf !== undefined) {
+      obj.transformConf = Config1.toJSON(message.transformConf)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ObjectRef>, I>>(base?: I): ObjectRef {
-    return ObjectRef.fromPartial(base ?? {})
+    return ObjectRef.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ObjectRef>, I>>(
-    object: I
+    object: I,
   ): ObjectRef {
     const message = createBaseObjectRef()
     message.rootRef =
@@ -1053,7 +1056,7 @@ function createBaseBucketOpArgs(): BucketOpArgs {
 export const BucketOpArgs = {
   encode(
     message: BucketOpArgs,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -1100,7 +1103,7 @@ export const BucketOpArgs = {
   async *encodeTransform(
     source:
       | AsyncIterable<BucketOpArgs | BucketOpArgs[]>
-      | Iterable<BucketOpArgs | BucketOpArgs[]>
+      | Iterable<BucketOpArgs | BucketOpArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1118,7 +1121,7 @@ export const BucketOpArgs = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BucketOpArgs> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1140,19 +1143,22 @@ export const BucketOpArgs = {
 
   toJSON(message: BucketOpArgs): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BucketOpArgs>, I>>(
-    base?: I
+    base?: I,
   ): BucketOpArgs {
-    return BucketOpArgs.fromPartial(base ?? {})
+    return BucketOpArgs.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BucketOpArgs>, I>>(
-    object: I
+    object: I,
   ): BucketOpArgs {
     const message = createBaseBucketOpArgs()
     message.bucketId = object.bucketId ?? ''

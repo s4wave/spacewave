@@ -138,7 +138,7 @@ function createBaseRmMqueueRequest(): RmMqueueRequest {
 export const RmMqueueRequest = {
   encode(
     message: RmMqueueRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.mqueueId.length !== 0) {
       writer.uint32(10).bytes(message.mqueueId)
@@ -175,7 +175,7 @@ export const RmMqueueRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<RmMqueueRequest | RmMqueueRequest[]>
-      | Iterable<RmMqueueRequest | RmMqueueRequest[]>
+      | Iterable<RmMqueueRequest | RmMqueueRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -193,7 +193,7 @@ export const RmMqueueRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmMqueueRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -216,21 +216,19 @@ export const RmMqueueRequest = {
 
   toJSON(message: RmMqueueRequest): unknown {
     const obj: any = {}
-    message.mqueueId !== undefined &&
-      (obj.mqueueId = base64FromBytes(
-        message.mqueueId !== undefined ? message.mqueueId : new Uint8Array(0)
-      ))
+    if (message.mqueueId.length !== 0) {
+      obj.mqueueId = base64FromBytes(message.mqueueId)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmMqueueRequest>, I>>(
-    base?: I
+    base?: I,
   ): RmMqueueRequest {
-    return RmMqueueRequest.fromPartial(base ?? {})
+    return RmMqueueRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmMqueueRequest>, I>>(
-    object: I
+    object: I,
   ): RmMqueueRequest {
     const message = createBaseRmMqueueRequest()
     message.mqueueId = object.mqueueId ?? new Uint8Array(0)
@@ -245,7 +243,7 @@ function createBaseRmMqueueResponse(): RmMqueueResponse {
 export const RmMqueueResponse = {
   encode(
     message: RmMqueueResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -282,7 +280,7 @@ export const RmMqueueResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<RmMqueueResponse | RmMqueueResponse[]>
-      | Iterable<RmMqueueResponse | RmMqueueResponse[]>
+      | Iterable<RmMqueueResponse | RmMqueueResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -300,7 +298,7 @@ export const RmMqueueResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmMqueueResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -319,18 +317,19 @@ export const RmMqueueResponse = {
 
   toJSON(message: RmMqueueResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmMqueueResponse>, I>>(
-    base?: I
+    base?: I,
   ): RmMqueueResponse {
-    return RmMqueueResponse.fromPartial(base ?? {})
+    return RmMqueueResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmMqueueResponse>, I>>(
-    object: I
+    object: I,
   ): RmMqueueResponse {
     const message = createBaseRmMqueueResponse()
     message.error = object.error ?? ''
@@ -345,7 +344,7 @@ function createBaseListMqueuesRequest(): ListMqueuesRequest {
 export const ListMqueuesRequest = {
   encode(
     message: ListMqueuesRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
@@ -392,7 +391,7 @@ export const ListMqueuesRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<ListMqueuesRequest | ListMqueuesRequest[]>
-      | Iterable<ListMqueuesRequest | ListMqueuesRequest[]>
+      | Iterable<ListMqueuesRequest | ListMqueuesRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -410,7 +409,7 @@ export const ListMqueuesRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListMqueuesRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -434,22 +433,22 @@ export const ListMqueuesRequest = {
 
   toJSON(message: ListMqueuesRequest): unknown {
     const obj: any = {}
-    message.prefix !== undefined &&
-      (obj.prefix = base64FromBytes(
-        message.prefix !== undefined ? message.prefix : new Uint8Array(0)
-      ))
-    message.filled !== undefined && (obj.filled = message.filled)
+    if (message.prefix.length !== 0) {
+      obj.prefix = base64FromBytes(message.prefix)
+    }
+    if (message.filled === true) {
+      obj.filled = message.filled
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ListMqueuesRequest>, I>>(
-    base?: I
+    base?: I,
   ): ListMqueuesRequest {
-    return ListMqueuesRequest.fromPartial(base ?? {})
+    return ListMqueuesRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ListMqueuesRequest>, I>>(
-    object: I
+    object: I,
   ): ListMqueuesRequest {
     const message = createBaseListMqueuesRequest()
     message.prefix = object.prefix ?? new Uint8Array(0)
@@ -465,7 +464,7 @@ function createBaseListMqueuesResponse(): ListMqueuesResponse {
 export const ListMqueuesResponse = {
   encode(
     message: ListMqueuesResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -512,7 +511,7 @@ export const ListMqueuesResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<ListMqueuesResponse | ListMqueuesResponse[]>
-      | Iterable<ListMqueuesResponse | ListMqueuesResponse[]>
+      | Iterable<ListMqueuesResponse | ListMqueuesResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -530,7 +529,7 @@ export const ListMqueuesResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListMqueuesResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -554,25 +553,22 @@ export const ListMqueuesResponse = {
 
   toJSON(message: ListMqueuesResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    if (message.mqueueIds) {
-      obj.mqueueIds = message.mqueueIds.map((e) =>
-        base64FromBytes(e !== undefined ? e : new Uint8Array(0))
-      )
-    } else {
-      obj.mqueueIds = []
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.mqueueIds?.length) {
+      obj.mqueueIds = message.mqueueIds.map((e) => base64FromBytes(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ListMqueuesResponse>, I>>(
-    base?: I
+    base?: I,
   ): ListMqueuesResponse {
-    return ListMqueuesResponse.fromPartial(base ?? {})
+    return ListMqueuesResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ListMqueuesResponse>, I>>(
-    object: I
+    object: I,
   ): ListMqueuesResponse {
     const message = createBaseListMqueuesResponse()
     message.error = object.error ?? ''
@@ -612,7 +608,7 @@ export const PeekRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<PeekRequest | PeekRequest[]>
-      | Iterable<PeekRequest | PeekRequest[]>
+      | Iterable<PeekRequest | PeekRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -630,7 +626,7 @@ export const PeekRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PeekRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -653,9 +649,8 @@ export const PeekRequest = {
   },
 
   create<I extends Exact<DeepPartial<PeekRequest>, I>>(base?: I): PeekRequest {
-    return PeekRequest.fromPartial(base ?? {})
+    return PeekRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PeekRequest>, I>>(_: I): PeekRequest {
     const message = createBasePeekRequest()
     return message
@@ -669,7 +664,7 @@ function createBasePeekResponse(): PeekResponse {
 export const PeekResponse = {
   encode(
     message: PeekResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -726,7 +721,7 @@ export const PeekResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<PeekResponse | PeekResponse[]>
-      | Iterable<PeekResponse | PeekResponse[]>
+      | Iterable<PeekResponse | PeekResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -744,7 +739,7 @@ export const PeekResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PeekResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -767,21 +762,25 @@ export const PeekResponse = {
 
   toJSON(message: PeekResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.found !== undefined && (obj.found = message.found)
-    message.msg !== undefined &&
-      (obj.msg = message.msg ? MqueueMsg.toJSON(message.msg) : undefined)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.found === true) {
+      obj.found = message.found
+    }
+    if (message.msg !== undefined) {
+      obj.msg = MqueueMsg.toJSON(message.msg)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PeekResponse>, I>>(
-    base?: I
+    base?: I,
   ): PeekResponse {
-    return PeekResponse.fromPartial(base ?? {})
+    return PeekResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PeekResponse>, I>>(
-    object: I
+    object: I,
   ): PeekResponse {
     const message = createBasePeekResponse()
     message.error = object.error ?? ''
@@ -801,7 +800,7 @@ function createBaseAckRequest(): AckRequest {
 export const AckRequest = {
   encode(
     message: AckRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.id.isZero()) {
       writer.uint32(8).uint64(message.id)
@@ -838,7 +837,7 @@ export const AckRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<AckRequest | AckRequest[]>
-      | Iterable<AckRequest | AckRequest[]>
+      | Iterable<AckRequest | AckRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -856,7 +855,7 @@ export const AckRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<AckRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -875,16 +874,17 @@ export const AckRequest = {
 
   toJSON(message: AckRequest): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = (message.id || Long.UZERO).toString())
+    if (!message.id.isZero()) {
+      obj.id = (message.id || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<AckRequest>, I>>(base?: I): AckRequest {
-    return AckRequest.fromPartial(base ?? {})
+    return AckRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<AckRequest>, I>>(
-    object: I
+    object: I,
   ): AckRequest {
     const message = createBaseAckRequest()
     message.id =
@@ -902,7 +902,7 @@ function createBaseAckResponse(): AckResponse {
 export const AckResponse = {
   encode(
     message: AckResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -939,7 +939,7 @@ export const AckResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<AckResponse | AckResponse[]>
-      | Iterable<AckResponse | AckResponse[]>
+      | Iterable<AckResponse | AckResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -957,7 +957,7 @@ export const AckResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<AckResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -976,16 +976,17 @@ export const AckResponse = {
 
   toJSON(message: AckResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<AckResponse>, I>>(base?: I): AckResponse {
-    return AckResponse.fromPartial(base ?? {})
+    return AckResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<AckResponse>, I>>(
-    object: I
+    object: I,
   ): AckResponse {
     const message = createBaseAckResponse()
     message.error = object.error ?? ''
@@ -1000,7 +1001,7 @@ function createBasePushRequest(): PushRequest {
 export const PushRequest = {
   encode(
     message: PushRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
@@ -1037,7 +1038,7 @@ export const PushRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<PushRequest | PushRequest[]>
-      | Iterable<PushRequest | PushRequest[]>
+      | Iterable<PushRequest | PushRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1055,7 +1056,7 @@ export const PushRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PushRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1078,19 +1079,17 @@ export const PushRequest = {
 
   toJSON(message: PushRequest): unknown {
     const obj: any = {}
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
-      ))
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PushRequest>, I>>(base?: I): PushRequest {
-    return PushRequest.fromPartial(base ?? {})
+    return PushRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PushRequest>, I>>(
-    object: I
+    object: I,
   ): PushRequest {
     const message = createBasePushRequest()
     message.data = object.data ?? new Uint8Array(0)
@@ -1105,7 +1104,7 @@ function createBasePushResponse(): PushResponse {
 export const PushResponse = {
   encode(
     message: PushResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -1152,7 +1151,7 @@ export const PushResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<PushResponse | PushResponse[]>
-      | Iterable<PushResponse | PushResponse[]>
+      | Iterable<PushResponse | PushResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1170,7 +1169,7 @@ export const PushResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PushResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1192,20 +1191,22 @@ export const PushResponse = {
 
   toJSON(message: PushResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
-    message.msg !== undefined &&
-      (obj.msg = message.msg ? MqueueMsg.toJSON(message.msg) : undefined)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
+    if (message.msg !== undefined) {
+      obj.msg = MqueueMsg.toJSON(message.msg)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<PushResponse>, I>>(
-    base?: I
+    base?: I,
   ): PushResponse {
-    return PushResponse.fromPartial(base ?? {})
+    return PushResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<PushResponse>, I>>(
-    object: I
+    object: I,
   ): PushResponse {
     const message = createBasePushResponse()
     message.error = object.error ?? ''
@@ -1224,7 +1225,7 @@ function createBaseMqueueMsg(): MqueueMsg {
 export const MqueueMsg = {
   encode(
     message: MqueueMsg,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.id.isZero()) {
       writer.uint32(8).uint64(message.id)
@@ -1232,7 +1233,7 @@ export const MqueueMsg = {
     if (message.timestamp !== undefined) {
       Timestamp.encode(
         toTimestamp(message.timestamp),
-        writer.uint32(18).fork()
+        writer.uint32(18).fork(),
       ).ldelim()
     }
     if (message.data.length !== 0) {
@@ -1262,7 +1263,7 @@ export const MqueueMsg = {
           }
 
           message.timestamp = fromTimestamp(
-            Timestamp.decode(reader, reader.uint32())
+            Timestamp.decode(reader, reader.uint32()),
           )
           continue
         case 3:
@@ -1286,7 +1287,7 @@ export const MqueueMsg = {
   async *encodeTransform(
     source:
       | AsyncIterable<MqueueMsg | MqueueMsg[]>
-      | Iterable<MqueueMsg | MqueueMsg[]>
+      | Iterable<MqueueMsg | MqueueMsg[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1304,7 +1305,7 @@ export const MqueueMsg = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MqueueMsg> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1331,22 +1332,23 @@ export const MqueueMsg = {
 
   toJSON(message: MqueueMsg): unknown {
     const obj: any = {}
-    message.id !== undefined && (obj.id = (message.id || Long.UZERO).toString())
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp.toISOString())
-    message.data !== undefined &&
-      (obj.data = base64FromBytes(
-        message.data !== undefined ? message.data : new Uint8Array(0)
-      ))
+    if (!message.id.isZero()) {
+      obj.id = (message.id || Long.UZERO).toString()
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = message.timestamp.toISOString()
+    }
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<MqueueMsg>, I>>(base?: I): MqueueMsg {
-    return MqueueMsg.fromPartial(base ?? {})
+    return MqueueMsg.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<MqueueMsg>, I>>(
-    object: I
+    object: I,
   ): MqueueMsg {
     const message = createBaseMqueueMsg()
     message.id =
@@ -1366,7 +1368,7 @@ function createBaseWaitRequest(): WaitRequest {
 export const WaitRequest = {
   encode(
     message: WaitRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.ack === true) {
       writer.uint32(8).bool(message.ack)
@@ -1403,7 +1405,7 @@ export const WaitRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<WaitRequest | WaitRequest[]>
-      | Iterable<WaitRequest | WaitRequest[]>
+      | Iterable<WaitRequest | WaitRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1421,7 +1423,7 @@ export const WaitRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WaitRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1440,16 +1442,17 @@ export const WaitRequest = {
 
   toJSON(message: WaitRequest): unknown {
     const obj: any = {}
-    message.ack !== undefined && (obj.ack = message.ack)
+    if (message.ack === true) {
+      obj.ack = message.ack
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WaitRequest>, I>>(base?: I): WaitRequest {
-    return WaitRequest.fromPartial(base ?? {})
+    return WaitRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WaitRequest>, I>>(
-    object: I
+    object: I,
   ): WaitRequest {
     const message = createBaseWaitRequest()
     message.ack = object.ack ?? false
@@ -1464,7 +1467,7 @@ function createBaseWaitResponse(): WaitResponse {
 export const WaitResponse = {
   encode(
     message: WaitResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.msg !== undefined) {
       MqueueMsg.encode(message.msg, writer.uint32(10).fork()).ldelim()
@@ -1501,7 +1504,7 @@ export const WaitResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<WaitResponse | WaitResponse[]>
-      | Iterable<WaitResponse | WaitResponse[]>
+      | Iterable<WaitResponse | WaitResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1519,7 +1522,7 @@ export const WaitResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WaitResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1540,19 +1543,19 @@ export const WaitResponse = {
 
   toJSON(message: WaitResponse): unknown {
     const obj: any = {}
-    message.msg !== undefined &&
-      (obj.msg = message.msg ? MqueueMsg.toJSON(message.msg) : undefined)
+    if (message.msg !== undefined) {
+      obj.msg = MqueueMsg.toJSON(message.msg)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<WaitResponse>, I>>(
-    base?: I
+    base?: I,
   ): WaitResponse {
-    return WaitResponse.fromPartial(base ?? {})
+    return WaitResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WaitResponse>, I>>(
-    object: I
+    object: I,
   ): WaitResponse {
     const message = createBaseWaitResponse()
     message.msg =
@@ -1570,7 +1573,7 @@ function createBaseDeleteQueueRequest(): DeleteQueueRequest {
 export const DeleteQueueRequest = {
   encode(
     _: DeleteQueueRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     return writer
   },
@@ -1597,7 +1600,7 @@ export const DeleteQueueRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<DeleteQueueRequest | DeleteQueueRequest[]>
-      | Iterable<DeleteQueueRequest | DeleteQueueRequest[]>
+      | Iterable<DeleteQueueRequest | DeleteQueueRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1615,7 +1618,7 @@ export const DeleteQueueRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DeleteQueueRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1638,13 +1641,12 @@ export const DeleteQueueRequest = {
   },
 
   create<I extends Exact<DeepPartial<DeleteQueueRequest>, I>>(
-    base?: I
+    base?: I,
   ): DeleteQueueRequest {
-    return DeleteQueueRequest.fromPartial(base ?? {})
+    return DeleteQueueRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<DeleteQueueRequest>, I>>(
-    _: I
+    _: I,
   ): DeleteQueueRequest {
     const message = createBaseDeleteQueueRequest()
     return message
@@ -1658,7 +1660,7 @@ function createBaseDeleteQueueResponse(): DeleteQueueResponse {
 export const DeleteQueueResponse = {
   encode(
     message: DeleteQueueResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -1695,7 +1697,7 @@ export const DeleteQueueResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<DeleteQueueResponse | DeleteQueueResponse[]>
-      | Iterable<DeleteQueueResponse | DeleteQueueResponse[]>
+      | Iterable<DeleteQueueResponse | DeleteQueueResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1713,7 +1715,7 @@ export const DeleteQueueResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DeleteQueueResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -1732,18 +1734,19 @@ export const DeleteQueueResponse = {
 
   toJSON(message: DeleteQueueResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<DeleteQueueResponse>, I>>(
-    base?: I
+    base?: I,
   ): DeleteQueueResponse {
-    return DeleteQueueResponse.fromPartial(base ?? {})
+    return DeleteQueueResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<DeleteQueueResponse>, I>>(
-    object: I
+    object: I,
   ): DeleteQueueResponse {
     const message = createBaseDeleteQueueResponse()
     message.error = object.error ?? ''
@@ -1760,7 +1763,7 @@ export interface MqueueStore {
    */
   MqueueRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
   /**
    * ListMqueues lists message queues with the given ID prefix.
@@ -1770,12 +1773,12 @@ export interface MqueueStore {
    */
   ListMqueues(
     request: ListMqueuesRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<ListMqueuesResponse>
   /** RmMqueue deletes the message queue and all contents by ID. */
   RmMqueue(
     request: RmMqueueRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RmMqueueResponse>
 }
 
@@ -1792,47 +1795,47 @@ export class MqueueStoreClientImpl implements MqueueStore {
   }
   MqueueRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'MqueueRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
 
   ListMqueues(
     request: ListMqueuesRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<ListMqueuesResponse> {
     const data = ListMqueuesRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'ListMqueues',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      ListMqueuesResponse.decode(_m0.Reader.create(data))
+      ListMqueuesResponse.decode(_m0.Reader.create(data)),
     )
   }
 
   RmMqueue(
     request: RmMqueueRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RmMqueueResponse> {
     const data = RmMqueueRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'RmMqueue',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      RmMqueueResponse.decode(_m0.Reader.create(data))
+      RmMqueueResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -1901,7 +1904,7 @@ export interface QueueOps {
   /** DeleteQueue deletes the messages and metadata for the queue. */
   DeleteQueue(
     request: DeleteQueueRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<DeleteQueueResponse>
 }
 
@@ -1924,7 +1927,7 @@ export class QueueOpsClientImpl implements QueueOps {
       this.service,
       'Peek',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) => PeekResponse.decode(_m0.Reader.create(data)))
   }
@@ -1935,7 +1938,7 @@ export class QueueOpsClientImpl implements QueueOps {
       this.service,
       'Ack',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) => AckResponse.decode(_m0.Reader.create(data)))
   }
@@ -1946,7 +1949,7 @@ export class QueueOpsClientImpl implements QueueOps {
       this.service,
       'Push',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) => PushResponse.decode(_m0.Reader.create(data)))
   }
@@ -1957,24 +1960,24 @@ export class QueueOpsClientImpl implements QueueOps {
       this.service,
       'Wait',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) => WaitResponse.decode(_m0.Reader.create(data)))
   }
 
   DeleteQueue(
     request: DeleteQueueRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<DeleteQueueResponse> {
     const data = DeleteQueueRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'DeleteQueue',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      DeleteQueueResponse.decode(_m0.Reader.create(data))
+      DeleteQueueResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -2044,32 +2047,32 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

@@ -17,7 +17,7 @@ function createBaseClientConfig(): ClientConfig {
 export const ClientConfig = {
   encode(
     message: ClientConfig,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.url !== '') {
       writer.uint32(10).string(message.url)
@@ -54,7 +54,7 @@ export const ClientConfig = {
   async *encodeTransform(
     source:
       | AsyncIterable<ClientConfig | ClientConfig[]>
-      | Iterable<ClientConfig | ClientConfig[]>
+      | Iterable<ClientConfig | ClientConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -72,7 +72,7 @@ export const ClientConfig = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClientConfig> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -91,18 +91,19 @@ export const ClientConfig = {
 
   toJSON(message: ClientConfig): unknown {
     const obj: any = {}
-    message.url !== undefined && (obj.url = message.url)
+    if (message.url !== '') {
+      obj.url = message.url
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ClientConfig>, I>>(
-    base?: I
+    base?: I,
   ): ClientConfig {
-    return ClientConfig.fromPartial(base ?? {})
+    return ClientConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClientConfig>, I>>(
-    object: I
+    object: I,
   ): ClientConfig {
     const message = createBaseClientConfig()
     message.url = object.url ?? ''

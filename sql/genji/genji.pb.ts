@@ -18,7 +18,7 @@ function createBaseStoreMeta(): StoreMeta {
 export const StoreMeta = {
   encode(
     message: StoreMeta,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.createdTs !== undefined) {
       Timestamp.encode(message.createdTs, writer.uint32(10).fork()).ldelim()
@@ -55,7 +55,7 @@ export const StoreMeta = {
   async *encodeTransform(
     source:
       | AsyncIterable<StoreMeta | StoreMeta[]>
-      | Iterable<StoreMeta | StoreMeta[]>
+      | Iterable<StoreMeta | StoreMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -73,7 +73,7 @@ export const StoreMeta = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<StoreMeta> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -96,19 +96,17 @@ export const StoreMeta = {
 
   toJSON(message: StoreMeta): unknown {
     const obj: any = {}
-    message.createdTs !== undefined &&
-      (obj.createdTs = message.createdTs
-        ? Timestamp.toJSON(message.createdTs)
-        : undefined)
+    if (message.createdTs !== undefined) {
+      obj.createdTs = Timestamp.toJSON(message.createdTs)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<StoreMeta>, I>>(base?: I): StoreMeta {
-    return StoreMeta.fromPartial(base ?? {})
+    return StoreMeta.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<StoreMeta>, I>>(
-    object: I
+    object: I,
   ): StoreMeta {
     const message = createBaseStoreMeta()
     message.createdTs =

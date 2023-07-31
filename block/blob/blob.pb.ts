@@ -258,7 +258,7 @@ export const Blob = {
   // encodeTransform encodes a source of message objects.
   // Transform<Blob, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Blob | Blob[]> | Iterable<Blob | Blob[]>
+    source: AsyncIterable<Blob | Blob[]> | Iterable<Blob | Blob[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -276,7 +276,7 @@ export const Blob = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Blob> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -306,25 +306,24 @@ export const Blob = {
 
   toJSON(message: Blob): unknown {
     const obj: any = {}
-    message.blobType !== undefined &&
-      (obj.blobType = blobTypeToJSON(message.blobType))
-    message.totalSize !== undefined &&
-      (obj.totalSize = (message.totalSize || Long.UZERO).toString())
-    message.rawData !== undefined &&
-      (obj.rawData = base64FromBytes(
-        message.rawData !== undefined ? message.rawData : new Uint8Array(0)
-      ))
-    message.chunkIndex !== undefined &&
-      (obj.chunkIndex = message.chunkIndex
-        ? ChunkIndex.toJSON(message.chunkIndex)
-        : undefined)
+    if (message.blobType !== 0) {
+      obj.blobType = blobTypeToJSON(message.blobType)
+    }
+    if (!message.totalSize.isZero()) {
+      obj.totalSize = (message.totalSize || Long.UZERO).toString()
+    }
+    if (message.rawData.length !== 0) {
+      obj.rawData = base64FromBytes(message.rawData)
+    }
+    if (message.chunkIndex !== undefined) {
+      obj.chunkIndex = ChunkIndex.toJSON(message.chunkIndex)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Blob>, I>>(base?: I): Blob {
-    return Blob.fromPartial(base ?? {})
+    return Blob.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Blob>, I>>(object: I): Blob {
     const message = createBaseBlob()
     message.blobType = object.blobType ?? 0
@@ -348,7 +347,7 @@ function createBaseBuildBlobOpts(): BuildBlobOpts {
 export const BuildBlobOpts = {
   encode(
     message: BuildBlobOpts,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.rawHighWaterMark.isZero()) {
       writer.uint32(8).uint64(message.rawHighWaterMark)
@@ -395,7 +394,7 @@ export const BuildBlobOpts = {
   async *encodeTransform(
     source:
       | AsyncIterable<BuildBlobOpts | BuildBlobOpts[]>
-      | Iterable<BuildBlobOpts | BuildBlobOpts[]>
+      | Iterable<BuildBlobOpts | BuildBlobOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -413,7 +412,7 @@ export const BuildBlobOpts = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuildBlobOpts> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -439,25 +438,22 @@ export const BuildBlobOpts = {
 
   toJSON(message: BuildBlobOpts): unknown {
     const obj: any = {}
-    message.rawHighWaterMark !== undefined &&
-      (obj.rawHighWaterMark = (
-        message.rawHighWaterMark || Long.UZERO
-      ).toString())
-    message.chunkerArgs !== undefined &&
-      (obj.chunkerArgs = message.chunkerArgs
-        ? ChunkerArgs.toJSON(message.chunkerArgs)
-        : undefined)
+    if (!message.rawHighWaterMark.isZero()) {
+      obj.rawHighWaterMark = (message.rawHighWaterMark || Long.UZERO).toString()
+    }
+    if (message.chunkerArgs !== undefined) {
+      obj.chunkerArgs = ChunkerArgs.toJSON(message.chunkerArgs)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BuildBlobOpts>, I>>(
-    base?: I
+    base?: I,
   ): BuildBlobOpts {
-    return BuildBlobOpts.fromPartial(base ?? {})
+    return BuildBlobOpts.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BuildBlobOpts>, I>>(
-    object: I
+    object: I,
   ): BuildBlobOpts {
     const message = createBaseBuildBlobOpts()
     message.rawHighWaterMark =
@@ -479,7 +475,7 @@ function createBaseChunkIndex(): ChunkIndex {
 export const ChunkIndex = {
   encode(
     message: ChunkIndex,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.chunks) {
       Chunk.encode(v!, writer.uint32(10).fork()).ldelim()
@@ -526,7 +522,7 @@ export const ChunkIndex = {
   async *encodeTransform(
     source:
       | AsyncIterable<ChunkIndex | ChunkIndex[]>
-      | Iterable<ChunkIndex | ChunkIndex[]>
+      | Iterable<ChunkIndex | ChunkIndex[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -544,7 +540,7 @@ export const ChunkIndex = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChunkIndex> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -570,24 +566,20 @@ export const ChunkIndex = {
 
   toJSON(message: ChunkIndex): unknown {
     const obj: any = {}
-    if (message.chunks) {
-      obj.chunks = message.chunks.map((e) => (e ? Chunk.toJSON(e) : undefined))
-    } else {
-      obj.chunks = []
+    if (message.chunks?.length) {
+      obj.chunks = message.chunks.map((e) => Chunk.toJSON(e))
     }
-    message.chunkerArgs !== undefined &&
-      (obj.chunkerArgs = message.chunkerArgs
-        ? ChunkerArgs.toJSON(message.chunkerArgs)
-        : undefined)
+    if (message.chunkerArgs !== undefined) {
+      obj.chunkerArgs = ChunkerArgs.toJSON(message.chunkerArgs)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ChunkIndex>, I>>(base?: I): ChunkIndex {
-    return ChunkIndex.fromPartial(base ?? {})
+    return ChunkIndex.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ChunkIndex>, I>>(
-    object: I
+    object: I,
   ): ChunkIndex {
     const message = createBaseChunkIndex()
     message.chunks = object.chunks?.map((e) => Chunk.fromPartial(e)) || []
@@ -606,7 +598,7 @@ function createBaseChunkerArgs(): ChunkerArgs {
 export const ChunkerArgs = {
   encode(
     message: ChunkerArgs,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.chunkerType !== 0) {
       writer.uint32(8).int32(message.chunkerType)
@@ -653,7 +645,7 @@ export const ChunkerArgs = {
   async *encodeTransform(
     source:
       | AsyncIterable<ChunkerArgs | ChunkerArgs[]>
-      | Iterable<ChunkerArgs | ChunkerArgs[]>
+      | Iterable<ChunkerArgs | ChunkerArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -671,7 +663,7 @@ export const ChunkerArgs = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChunkerArgs> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -697,21 +689,20 @@ export const ChunkerArgs = {
 
   toJSON(message: ChunkerArgs): unknown {
     const obj: any = {}
-    message.chunkerType !== undefined &&
-      (obj.chunkerType = chunkerTypeToJSON(message.chunkerType))
-    message.rabinArgs !== undefined &&
-      (obj.rabinArgs = message.rabinArgs
-        ? RabinArgs.toJSON(message.rabinArgs)
-        : undefined)
+    if (message.chunkerType !== 0) {
+      obj.chunkerType = chunkerTypeToJSON(message.chunkerType)
+    }
+    if (message.rabinArgs !== undefined) {
+      obj.rabinArgs = RabinArgs.toJSON(message.rabinArgs)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ChunkerArgs>, I>>(base?: I): ChunkerArgs {
-    return ChunkerArgs.fromPartial(base ?? {})
+    return ChunkerArgs.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ChunkerArgs>, I>>(
-    object: I
+    object: I,
   ): ChunkerArgs {
     const message = createBaseChunkerArgs()
     message.chunkerType = object.chunkerType ?? 0
@@ -735,7 +726,7 @@ function createBaseRabinArgs(): RabinArgs {
 export const RabinArgs = {
   encode(
     message: RabinArgs,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (!message.pol.isZero()) {
       writer.uint32(8).uint64(message.pol)
@@ -802,7 +793,7 @@ export const RabinArgs = {
   async *encodeTransform(
     source:
       | AsyncIterable<RabinArgs | RabinArgs[]>
-      | Iterable<RabinArgs | RabinArgs[]>
+      | Iterable<RabinArgs | RabinArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -820,7 +811,7 @@ export const RabinArgs = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RabinArgs> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -848,22 +839,26 @@ export const RabinArgs = {
 
   toJSON(message: RabinArgs): unknown {
     const obj: any = {}
-    message.pol !== undefined &&
-      (obj.pol = (message.pol || Long.UZERO).toString())
-    message.randomPol !== undefined && (obj.randomPol = message.randomPol)
-    message.chunkingMinSize !== undefined &&
-      (obj.chunkingMinSize = (message.chunkingMinSize || Long.UZERO).toString())
-    message.chunkingMaxSize !== undefined &&
-      (obj.chunkingMaxSize = (message.chunkingMaxSize || Long.UZERO).toString())
+    if (!message.pol.isZero()) {
+      obj.pol = (message.pol || Long.UZERO).toString()
+    }
+    if (message.randomPol === true) {
+      obj.randomPol = message.randomPol
+    }
+    if (!message.chunkingMinSize.isZero()) {
+      obj.chunkingMinSize = (message.chunkingMinSize || Long.UZERO).toString()
+    }
+    if (!message.chunkingMaxSize.isZero()) {
+      obj.chunkingMaxSize = (message.chunkingMaxSize || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RabinArgs>, I>>(base?: I): RabinArgs {
-    return RabinArgs.fromPartial(base ?? {})
+    return RabinArgs.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RabinArgs>, I>>(
-    object: I
+    object: I,
   ): RabinArgs {
     const message = createBaseRabinArgs()
     message.pol =
@@ -942,7 +937,7 @@ export const Chunk = {
   // encodeTransform encodes a source of message objects.
   // Transform<Chunk, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Chunk | Chunk[]> | Iterable<Chunk | Chunk[]>
+    source: AsyncIterable<Chunk | Chunk[]> | Iterable<Chunk | Chunk[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -960,7 +955,7 @@ export const Chunk = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Chunk> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -985,21 +980,21 @@ export const Chunk = {
 
   toJSON(message: Chunk): unknown {
     const obj: any = {}
-    message.dataRef !== undefined &&
-      (obj.dataRef = message.dataRef
-        ? BlockRef.toJSON(message.dataRef)
-        : undefined)
-    message.size !== undefined &&
-      (obj.size = (message.size || Long.UZERO).toString())
-    message.start !== undefined &&
-      (obj.start = (message.start || Long.UZERO).toString())
+    if (message.dataRef !== undefined) {
+      obj.dataRef = BlockRef.toJSON(message.dataRef)
+    }
+    if (!message.size.isZero()) {
+      obj.size = (message.size || Long.UZERO).toString()
+    }
+    if (!message.start.isZero()) {
+      obj.start = (message.start || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Chunk>, I>>(base?: I): Chunk {
-    return Chunk.fromPartial(base ?? {})
+    return Chunk.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Chunk>, I>>(object: I): Chunk {
     const message = createBaseChunk()
     message.dataRef =
@@ -1018,10 +1013,10 @@ export const Chunk = {
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }

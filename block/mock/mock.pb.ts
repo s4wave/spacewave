@@ -32,7 +32,7 @@ export const Root = {
     if (message.exampleSubBlock !== undefined) {
       SubBlock.encode(
         message.exampleSubBlock,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     return writer
@@ -65,7 +65,7 @@ export const Root = {
   // encodeTransform encodes a source of message objects.
   // Transform<Root, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>
+    source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -83,7 +83,7 @@ export const Root = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -106,17 +106,15 @@ export const Root = {
 
   toJSON(message: Root): unknown {
     const obj: any = {}
-    message.exampleSubBlock !== undefined &&
-      (obj.exampleSubBlock = message.exampleSubBlock
-        ? SubBlock.toJSON(message.exampleSubBlock)
-        : undefined)
+    if (message.exampleSubBlock !== undefined) {
+      obj.exampleSubBlock = SubBlock.toJSON(message.exampleSubBlock)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Root>, I>>(base?: I): Root {
-    return Root.fromPartial(base ?? {})
+    return Root.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Root>, I>>(object: I): Root {
     const message = createBaseRoot()
     message.exampleSubBlock =
@@ -134,7 +132,7 @@ function createBaseSubBlock(): SubBlock {
 export const SubBlock = {
   encode(
     message: SubBlock,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.examplePtr !== undefined) {
       BlockRef.encode(message.examplePtr, writer.uint32(10).fork()).ldelim()
@@ -171,7 +169,7 @@ export const SubBlock = {
   async *encodeTransform(
     source:
       | AsyncIterable<SubBlock | SubBlock[]>
-      | Iterable<SubBlock | SubBlock[]>
+      | Iterable<SubBlock | SubBlock[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -189,7 +187,7 @@ export const SubBlock = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SubBlock> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -212,17 +210,15 @@ export const SubBlock = {
 
   toJSON(message: SubBlock): unknown {
     const obj: any = {}
-    message.examplePtr !== undefined &&
-      (obj.examplePtr = message.examplePtr
-        ? BlockRef.toJSON(message.examplePtr)
-        : undefined)
+    if (message.examplePtr !== undefined) {
+      obj.examplePtr = BlockRef.toJSON(message.examplePtr)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<SubBlock>, I>>(base?: I): SubBlock {
-    return SubBlock.fromPartial(base ?? {})
+    return SubBlock.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<SubBlock>, I>>(object: I): SubBlock {
     const message = createBaseSubBlock()
     message.examplePtr =
@@ -240,7 +236,7 @@ function createBaseExample(): Example {
 export const Example = {
   encode(
     message: Example,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.msg !== '') {
       writer.uint32(10).string(message.msg)
@@ -275,7 +271,7 @@ export const Example = {
   // encodeTransform encodes a source of message objects.
   // Transform<Example, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Example | Example[]> | Iterable<Example | Example[]>
+    source: AsyncIterable<Example | Example[]> | Iterable<Example | Example[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -293,7 +289,7 @@ export const Example = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Example> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -312,14 +308,15 @@ export const Example = {
 
   toJSON(message: Example): unknown {
     const obj: any = {}
-    message.msg !== undefined && (obj.msg = message.msg)
+    if (message.msg !== '') {
+      obj.msg = message.msg
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Example>, I>>(base?: I): Example {
-    return Example.fromPartial(base ?? {})
+    return Example.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Example>, I>>(object: I): Example {
     const message = createBaseExample()
     message.msg = object.msg ?? ''

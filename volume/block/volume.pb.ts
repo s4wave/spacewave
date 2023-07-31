@@ -99,7 +99,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.kvKeyOpts !== undefined) {
       Config1.encode(message.kvKeyOpts, writer.uint32(10).fork()).ldelim()
@@ -140,7 +140,7 @@ export const Config = {
     if (message.stateTransformConf !== undefined) {
       Config4.encode(
         message.stateTransformConf,
-        writer.uint32(98).fork()
+        writer.uint32(98).fork(),
       ).ldelim()
     }
     return writer
@@ -257,7 +257,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -275,7 +275,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -326,45 +326,51 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.kvKeyOpts !== undefined &&
-      (obj.kvKeyOpts = message.kvKeyOpts
-        ? Config1.toJSON(message.kvKeyOpts)
-        : undefined)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
-    message.volumeConfig !== undefined &&
-      (obj.volumeConfig = message.volumeConfig
-        ? Config2.toJSON(message.volumeConfig)
-        : undefined)
-    message.storeConfig !== undefined &&
-      (obj.storeConfig = message.storeConfig
-        ? Config3.toJSON(message.storeConfig)
-        : undefined)
-    message.noGenerateKey !== undefined &&
-      (obj.noGenerateKey = message.noGenerateKey)
-    message.noWriteKey !== undefined && (obj.noWriteKey = message.noWriteKey)
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
-    message.objectStoreId !== undefined &&
-      (obj.objectStoreId = message.objectStoreId)
-    message.objectStorePrefix !== undefined &&
-      (obj.objectStorePrefix = message.objectStorePrefix)
-    message.objectStoreHeadKey !== undefined &&
-      (obj.objectStoreHeadKey = message.objectStoreHeadKey)
-    message.initHeadRef !== undefined &&
-      (obj.initHeadRef = message.initHeadRef
-        ? ObjectRef.toJSON(message.initHeadRef)
-        : undefined)
-    message.stateTransformConf !== undefined &&
-      (obj.stateTransformConf = message.stateTransformConf
-        ? Config4.toJSON(message.stateTransformConf)
-        : undefined)
+    if (message.kvKeyOpts !== undefined) {
+      obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
+    if (message.volumeConfig !== undefined) {
+      obj.volumeConfig = Config2.toJSON(message.volumeConfig)
+    }
+    if (message.storeConfig !== undefined) {
+      obj.storeConfig = Config3.toJSON(message.storeConfig)
+    }
+    if (message.noGenerateKey === true) {
+      obj.noGenerateKey = message.noGenerateKey
+    }
+    if (message.noWriteKey === true) {
+      obj.noWriteKey = message.noWriteKey
+    }
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
+    if (message.objectStoreId !== '') {
+      obj.objectStoreId = message.objectStoreId
+    }
+    if (message.objectStorePrefix !== '') {
+      obj.objectStorePrefix = message.objectStorePrefix
+    }
+    if (message.objectStoreHeadKey !== '') {
+      obj.objectStoreHeadKey = message.objectStoreHeadKey
+    }
+    if (message.initHeadRef !== undefined) {
+      obj.initHeadRef = ObjectRef.toJSON(message.initHeadRef)
+    }
+    if (message.stateTransformConf !== undefined) {
+      obj.stateTransformConf = Config4.toJSON(message.stateTransformConf)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.kvKeyOpts =
@@ -407,7 +413,7 @@ function createBaseHeadState(): HeadState {
 export const HeadState = {
   encode(
     message: HeadState,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.headRef !== undefined) {
       ObjectRef.encode(message.headRef, writer.uint32(10).fork()).ldelim()
@@ -444,7 +450,7 @@ export const HeadState = {
   async *encodeTransform(
     source:
       | AsyncIterable<HeadState | HeadState[]>
-      | Iterable<HeadState | HeadState[]>
+      | Iterable<HeadState | HeadState[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -462,7 +468,7 @@ export const HeadState = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HeadState> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -485,19 +491,17 @@ export const HeadState = {
 
   toJSON(message: HeadState): unknown {
     const obj: any = {}
-    message.headRef !== undefined &&
-      (obj.headRef = message.headRef
-        ? ObjectRef.toJSON(message.headRef)
-        : undefined)
+    if (message.headRef !== undefined) {
+      obj.headRef = ObjectRef.toJSON(message.headRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<HeadState>, I>>(base?: I): HeadState {
-    return HeadState.fromPartial(base ?? {})
+    return HeadState.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HeadState>, I>>(
-    object: I
+    object: I,
   ): HeadState {
     const message = createBaseHeadState()
     message.headRef =

@@ -73,7 +73,7 @@ function createBaseVolumeInfo(): VolumeInfo {
 export const VolumeInfo = {
   encode(
     message: VolumeInfo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.volumeId !== '') {
       writer.uint32(10).string(message.volumeId)
@@ -150,7 +150,7 @@ export const VolumeInfo = {
   async *encodeTransform(
     source:
       | AsyncIterable<VolumeInfo | VolumeInfo[]>
-      | Iterable<VolumeInfo | VolumeInfo[]>
+      | Iterable<VolumeInfo | VolumeInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -168,7 +168,7 @@ export const VolumeInfo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<VolumeInfo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -195,24 +195,29 @@ export const VolumeInfo = {
 
   toJSON(message: VolumeInfo): unknown {
     const obj: any = {}
-    message.volumeId !== undefined && (obj.volumeId = message.volumeId)
-    message.peerId !== undefined && (obj.peerId = message.peerId)
-    message.peerPub !== undefined && (obj.peerPub = message.peerPub)
-    message.controllerInfo !== undefined &&
-      (obj.controllerInfo = message.controllerInfo
-        ? Info.toJSON(message.controllerInfo)
-        : undefined)
-    message.hashType !== undefined &&
-      (obj.hashType = hashTypeToJSON(message.hashType))
+    if (message.volumeId !== '') {
+      obj.volumeId = message.volumeId
+    }
+    if (message.peerId !== '') {
+      obj.peerId = message.peerId
+    }
+    if (message.peerPub !== '') {
+      obj.peerPub = message.peerPub
+    }
+    if (message.controllerInfo !== undefined) {
+      obj.controllerInfo = Info.toJSON(message.controllerInfo)
+    }
+    if (message.hashType !== 0) {
+      obj.hashType = hashTypeToJSON(message.hashType)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<VolumeInfo>, I>>(base?: I): VolumeInfo {
-    return VolumeInfo.fromPartial(base ?? {})
+    return VolumeInfo.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<VolumeInfo>, I>>(
-    object: I
+    object: I,
   ): VolumeInfo {
     const message = createBaseVolumeInfo()
     message.volumeId = object.volumeId ?? ''
@@ -234,7 +239,7 @@ function createBaseVolumeBucketInfo(): VolumeBucketInfo {
 export const VolumeBucketInfo = {
   encode(
     message: VolumeBucketInfo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketInfo !== undefined) {
       BucketInfo.encode(message.bucketInfo, writer.uint32(10).fork()).ldelim()
@@ -281,7 +286,7 @@ export const VolumeBucketInfo = {
   async *encodeTransform(
     source:
       | AsyncIterable<VolumeBucketInfo | VolumeBucketInfo[]>
-      | Iterable<VolumeBucketInfo | VolumeBucketInfo[]>
+      | Iterable<VolumeBucketInfo | VolumeBucketInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -299,7 +304,7 @@ export const VolumeBucketInfo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<VolumeBucketInfo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -325,25 +330,22 @@ export const VolumeBucketInfo = {
 
   toJSON(message: VolumeBucketInfo): unknown {
     const obj: any = {}
-    message.bucketInfo !== undefined &&
-      (obj.bucketInfo = message.bucketInfo
-        ? BucketInfo.toJSON(message.bucketInfo)
-        : undefined)
-    message.volumeInfo !== undefined &&
-      (obj.volumeInfo = message.volumeInfo
-        ? VolumeInfo.toJSON(message.volumeInfo)
-        : undefined)
+    if (message.bucketInfo !== undefined) {
+      obj.bucketInfo = BucketInfo.toJSON(message.bucketInfo)
+    }
+    if (message.volumeInfo !== undefined) {
+      obj.volumeInfo = VolumeInfo.toJSON(message.volumeInfo)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<VolumeBucketInfo>, I>>(
-    base?: I
+    base?: I,
   ): VolumeBucketInfo {
-    return VolumeBucketInfo.fromPartial(base ?? {})
+    return VolumeBucketInfo.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<VolumeBucketInfo>, I>>(
-    object: I
+    object: I,
   ): VolumeBucketInfo {
     const message = createBaseVolumeBucketInfo()
     message.bucketInfo =
@@ -365,7 +367,7 @@ function createBaseListBucketsRequest(): ListBucketsRequest {
 export const ListBucketsRequest = {
   encode(
     message: ListBucketsRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
@@ -422,7 +424,7 @@ export const ListBucketsRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<ListBucketsRequest | ListBucketsRequest[]>
-      | Iterable<ListBucketsRequest | ListBucketsRequest[]>
+      | Iterable<ListBucketsRequest | ListBucketsRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -440,7 +442,7 @@ export const ListBucketsRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListBucketsRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -465,24 +467,25 @@ export const ListBucketsRequest = {
 
   toJSON(message: ListBucketsRequest): unknown {
     const obj: any = {}
-    message.bucketId !== undefined && (obj.bucketId = message.bucketId)
-    message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe)
-    if (message.volumeIdList) {
-      obj.volumeIdList = message.volumeIdList.map((e) => e)
-    } else {
-      obj.volumeIdList = []
+    if (message.bucketId !== '') {
+      obj.bucketId = message.bucketId
+    }
+    if (message.volumeIdRe !== '') {
+      obj.volumeIdRe = message.volumeIdRe
+    }
+    if (message.volumeIdList?.length) {
+      obj.volumeIdList = message.volumeIdList
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<ListBucketsRequest>, I>>(
-    base?: I
+    base?: I,
   ): ListBucketsRequest {
-    return ListBucketsRequest.fromPartial(base ?? {})
+    return ListBucketsRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ListBucketsRequest>, I>>(
-    object: I
+    object: I,
   ): ListBucketsRequest {
     const message = createBaseListBucketsRequest()
     message.bucketId = object.bucketId ?? ''

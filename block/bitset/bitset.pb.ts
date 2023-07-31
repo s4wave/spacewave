@@ -19,7 +19,7 @@ function createBaseBitSet(): BitSet {
 export const BitSet = {
   encode(
     message: BitSet,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     writer.uint32(10).fork()
     for (const v of message.set) {
@@ -76,7 +76,7 @@ export const BitSet = {
   // encodeTransform encodes a source of message objects.
   // Transform<BitSet, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<BitSet | BitSet[]> | Iterable<BitSet | BitSet[]>
+    source: AsyncIterable<BitSet | BitSet[]> | Iterable<BitSet | BitSet[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -94,7 +94,7 @@ export const BitSet = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BitSet> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -118,19 +118,18 @@ export const BitSet = {
 
   toJSON(message: BitSet): unknown {
     const obj: any = {}
-    if (message.set) {
+    if (message.set?.length) {
       obj.set = message.set.map((e) => (e || Long.UZERO).toString())
-    } else {
-      obj.set = []
     }
-    message.len !== undefined && (obj.len = Math.round(message.len))
+    if (message.len !== 0) {
+      obj.len = Math.round(message.len)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<BitSet>, I>>(base?: I): BitSet {
-    return BitSet.fromPartial(base ?? {})
+    return BitSet.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<BitSet>, I>>(object: I): BitSet {
     const message = createBaseBitSet()
     message.set = object.set?.map((e) => Long.fromValue(e)) || []

@@ -27,7 +27,7 @@ function createBaseRmObjectStoreRequest(): RmObjectStoreRequest {
 export const RmObjectStoreRequest = {
   encode(
     message: RmObjectStoreRequest,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.objectStoreId !== '') {
       writer.uint32(10).string(message.objectStoreId)
@@ -37,7 +37,7 @@ export const RmObjectStoreRequest = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): RmObjectStoreRequest {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -67,7 +67,7 @@ export const RmObjectStoreRequest = {
   async *encodeTransform(
     source:
       | AsyncIterable<RmObjectStoreRequest | RmObjectStoreRequest[]>
-      | Iterable<RmObjectStoreRequest | RmObjectStoreRequest[]>
+      | Iterable<RmObjectStoreRequest | RmObjectStoreRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -85,7 +85,7 @@ export const RmObjectStoreRequest = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmObjectStoreRequest> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -108,19 +108,19 @@ export const RmObjectStoreRequest = {
 
   toJSON(message: RmObjectStoreRequest): unknown {
     const obj: any = {}
-    message.objectStoreId !== undefined &&
-      (obj.objectStoreId = message.objectStoreId)
+    if (message.objectStoreId !== '') {
+      obj.objectStoreId = message.objectStoreId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmObjectStoreRequest>, I>>(
-    base?: I
+    base?: I,
   ): RmObjectStoreRequest {
-    return RmObjectStoreRequest.fromPartial(base ?? {})
+    return RmObjectStoreRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmObjectStoreRequest>, I>>(
-    object: I
+    object: I,
   ): RmObjectStoreRequest {
     const message = createBaseRmObjectStoreRequest()
     message.objectStoreId = object.objectStoreId ?? ''
@@ -135,7 +135,7 @@ function createBaseRmObjectStoreResponse(): RmObjectStoreResponse {
 export const RmObjectStoreResponse = {
   encode(
     message: RmObjectStoreResponse,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
@@ -145,7 +145,7 @@ export const RmObjectStoreResponse = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): RmObjectStoreResponse {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -175,7 +175,7 @@ export const RmObjectStoreResponse = {
   async *encodeTransform(
     source:
       | AsyncIterable<RmObjectStoreResponse | RmObjectStoreResponse[]>
-      | Iterable<RmObjectStoreResponse | RmObjectStoreResponse[]>
+      | Iterable<RmObjectStoreResponse | RmObjectStoreResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -193,7 +193,7 @@ export const RmObjectStoreResponse = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmObjectStoreResponse> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -212,18 +212,19 @@ export const RmObjectStoreResponse = {
 
   toJSON(message: RmObjectStoreResponse): unknown {
     const obj: any = {}
-    message.error !== undefined && (obj.error = message.error)
+    if (message.error !== '') {
+      obj.error = message.error
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<RmObjectStoreResponse>, I>>(
-    base?: I
+    base?: I,
   ): RmObjectStoreResponse {
-    return RmObjectStoreResponse.fromPartial(base ?? {})
+    return RmObjectStoreResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<RmObjectStoreResponse>, I>>(
-    object: I
+    object: I,
   ): RmObjectStoreResponse {
     const message = createBaseRmObjectStoreResponse()
     message.error = object.error ?? ''
@@ -242,12 +243,12 @@ export interface ObjectStore {
    */
   ObjectStoreRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
   /** RmObjectStore deletes the object store and all contents by ID. */
   RmObjectStore(
     request: RmObjectStoreRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RmObjectStoreResponse>
 }
 
@@ -263,31 +264,31 @@ export class ObjectStoreClientImpl implements ObjectStore {
   }
   ObjectStoreRpc(
     request: AsyncIterable<RpcStreamPacket>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket> {
     const data = RpcStreamPacket.encodeTransform(request)
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       'ObjectStoreRpc',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return RpcStreamPacket.decodeTransform(result)
   }
 
   RmObjectStore(
     request: RmObjectStoreRequest,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<RmObjectStoreResponse> {
     const data = RmObjectStoreRequest.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'RmObjectStore',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      RmObjectStoreResponse.decode(_m0.Reader.create(data))
+      RmObjectStoreResponse.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -330,25 +331,25 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   clientStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
   serverStreamingRequest(
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
   bidirectionalStreamingRequest(
     service: string,
     method: string,
     data: AsyncIterable<Uint8Array>,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
 }
 

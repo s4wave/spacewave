@@ -50,7 +50,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.blockStoreId !== '') {
       writer.uint32(10).string(message.blockStoreId)
@@ -145,7 +145,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -163,7 +163,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -202,33 +202,33 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.blockStoreId !== undefined &&
-      (obj.blockStoreId = message.blockStoreId)
-    message.ristretto !== undefined &&
-      (obj.ristretto = message.ristretto
-        ? Config1.toJSON(message.ristretto)
-        : undefined)
-    message.kvKeyOpts !== undefined &&
-      (obj.kvKeyOpts = message.kvKeyOpts
-        ? Config2.toJSON(message.kvKeyOpts)
-        : undefined)
-    message.forceHashType !== undefined &&
-      (obj.forceHashType = hashTypeToJSON(message.forceHashType))
-    if (message.bucketIds) {
-      obj.bucketIds = message.bucketIds.map((e) => e)
-    } else {
-      obj.bucketIds = []
+    if (message.blockStoreId !== '') {
+      obj.blockStoreId = message.blockStoreId
     }
-    message.skipNotFound !== undefined &&
-      (obj.skipNotFound = message.skipNotFound)
-    message.verbose !== undefined && (obj.verbose = message.verbose)
+    if (message.ristretto !== undefined) {
+      obj.ristretto = Config1.toJSON(message.ristretto)
+    }
+    if (message.kvKeyOpts !== undefined) {
+      obj.kvKeyOpts = Config2.toJSON(message.kvKeyOpts)
+    }
+    if (message.forceHashType !== 0) {
+      obj.forceHashType = hashTypeToJSON(message.forceHashType)
+    }
+    if (message.bucketIds?.length) {
+      obj.bucketIds = message.bucketIds
+    }
+    if (message.skipNotFound === true) {
+      obj.skipNotFound = message.skipNotFound
+    }
+    if (message.verbose === true) {
+      obj.verbose = message.verbose
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.blockStoreId = object.blockStoreId ?? ''

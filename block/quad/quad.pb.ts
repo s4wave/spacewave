@@ -85,7 +85,7 @@ export const Quad = {
   // encodeTransform encodes a source of message objects.
   // Transform<Quad, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Quad | Quad[]> | Iterable<Quad | Quad[]>
+    source: AsyncIterable<Quad | Quad[]> | Iterable<Quad | Quad[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -103,7 +103,7 @@ export const Quad = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Quad> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -127,17 +127,24 @@ export const Quad = {
 
   toJSON(message: Quad): unknown {
     const obj: any = {}
-    message.subject !== undefined && (obj.subject = message.subject)
-    message.predicate !== undefined && (obj.predicate = message.predicate)
-    message.obj !== undefined && (obj.obj = message.obj)
-    message.label !== undefined && (obj.label = message.label)
+    if (message.subject !== '') {
+      obj.subject = message.subject
+    }
+    if (message.predicate !== '') {
+      obj.predicate = message.predicate
+    }
+    if (message.obj !== '') {
+      obj.obj = message.obj
+    }
+    if (message.label !== '') {
+      obj.label = message.label
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Quad>, I>>(base?: I): Quad {
-    return Quad.fromPartial(base ?? {})
+    return Quad.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Quad>, I>>(object: I): Quad {
     const message = createBaseQuad()
     message.subject = object.subject ?? ''

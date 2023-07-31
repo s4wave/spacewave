@@ -133,7 +133,7 @@ export const File = {
   // encodeTransform encodes a source of message objects.
   // Transform<File, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<File | File[]> | Iterable<File | File[]>
+    source: AsyncIterable<File | File[]> | Iterable<File | File[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -151,7 +151,7 @@ export const File = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<File> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -183,26 +183,24 @@ export const File = {
 
   toJSON(message: File): unknown {
     const obj: any = {}
-    message.totalSize !== undefined &&
-      (obj.totalSize = (message.totalSize || Long.UZERO).toString())
-    message.rootBlob !== undefined &&
-      (obj.rootBlob = message.rootBlob
-        ? Blob.toJSON(message.rootBlob)
-        : undefined)
-    message.rangeNonce !== undefined &&
-      (obj.rangeNonce = (message.rangeNonce || Long.UZERO).toString())
-    if (message.ranges) {
-      obj.ranges = message.ranges.map((e) => (e ? Range.toJSON(e) : undefined))
-    } else {
-      obj.ranges = []
+    if (!message.totalSize.isZero()) {
+      obj.totalSize = (message.totalSize || Long.UZERO).toString()
+    }
+    if (message.rootBlob !== undefined) {
+      obj.rootBlob = Blob.toJSON(message.rootBlob)
+    }
+    if (!message.rangeNonce.isZero()) {
+      obj.rangeNonce = (message.rangeNonce || Long.UZERO).toString()
+    }
+    if (message.ranges?.length) {
+      obj.ranges = message.ranges.map((e) => Range.toJSON(e))
     }
     return obj
   },
 
   create<I extends Exact<DeepPartial<File>, I>>(base?: I): File {
-    return File.fromPartial(base ?? {})
+    return File.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<File>, I>>(object: I): File {
     const message = createBaseFile()
     message.totalSize =
@@ -296,7 +294,7 @@ export const Range = {
   // encodeTransform encodes a source of message objects.
   // Transform<Range, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Range | Range[]> | Iterable<Range | Range[]>
+    source: AsyncIterable<Range | Range[]> | Iterable<Range | Range[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -314,7 +312,7 @@ export const Range = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Range> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -338,21 +336,24 @@ export const Range = {
 
   toJSON(message: Range): unknown {
     const obj: any = {}
-    message.nonce !== undefined &&
-      (obj.nonce = (message.nonce || Long.UZERO).toString())
-    message.start !== undefined &&
-      (obj.start = (message.start || Long.UZERO).toString())
-    message.length !== undefined &&
-      (obj.length = (message.length || Long.UZERO).toString())
-    message.ref !== undefined &&
-      (obj.ref = message.ref ? BlockRef.toJSON(message.ref) : undefined)
+    if (!message.nonce.isZero()) {
+      obj.nonce = (message.nonce || Long.UZERO).toString()
+    }
+    if (!message.start.isZero()) {
+      obj.start = (message.start || Long.UZERO).toString()
+    }
+    if (!message.length.isZero()) {
+      obj.length = (message.length || Long.UZERO).toString()
+    }
+    if (message.ref !== undefined) {
+      obj.ref = BlockRef.toJSON(message.ref)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Range>, I>>(base?: I): Range {
-    return Range.fromPartial(base ?? {})
+    return Range.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Range>, I>>(object: I): Range {
     const message = createBaseRange()
     message.nonce =

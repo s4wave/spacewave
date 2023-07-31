@@ -53,7 +53,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.serviceId !== '') {
       writer.uint32(10).string(message.serviceId)
@@ -128,7 +128,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -146,7 +146,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -177,24 +177,27 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    message.serviceId !== undefined && (obj.serviceId = message.serviceId)
-    message.volumeIdRe !== undefined && (obj.volumeIdRe = message.volumeIdRe)
-    if (message.volumeIdList) {
-      obj.volumeIdList = message.volumeIdList.map((e) => e)
-    } else {
-      obj.volumeIdList = []
+    if (message.serviceId !== '') {
+      obj.serviceId = message.serviceId
     }
-    message.exposePrivateKey !== undefined &&
-      (obj.exposePrivateKey = message.exposePrivateKey)
-    message.releaseDelay !== undefined &&
-      (obj.releaseDelay = message.releaseDelay)
+    if (message.volumeIdRe !== '') {
+      obj.volumeIdRe = message.volumeIdRe
+    }
+    if (message.volumeIdList?.length) {
+      obj.volumeIdList = message.volumeIdList
+    }
+    if (message.exposePrivateKey === true) {
+      obj.exposePrivateKey = message.exposePrivateKey
+    }
+    if (message.releaseDelay !== '') {
+      obj.releaseDelay = message.releaseDelay
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.serviceId = object.serviceId ?? ''
