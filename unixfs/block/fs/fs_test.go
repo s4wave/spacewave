@@ -43,9 +43,9 @@ func TestFS(t *testing.T) {
 	oc.SetRootRef(rootRef)
 
 	// construct the fscursor
-	// TODO: set writer
 	wr := NewFSWriter()
 	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, wr)
+	defer fs.Release()
 	wr.SetFS(fs)
 	ufs := unixfs.NewFS(ctx, le, fs, nil)
 
@@ -58,21 +58,41 @@ func TestFS(t *testing.T) {
 		t.Fail()
 	}
 
-	_, err = fsHandle.Lookup(ctx, "does-not-exist")
-	if err != unixfs_errors.ErrNotExist {
-		t.Fatalf("expected not exist but got %v", err)
-	}
-	err = fsHandle.Mknod(
-		ctx,
-		true,
-		[]string{"test-dir-1"},
-		unixfs.NewFSCursorNodeType_Dir(),
-		0,
-		time.Time{},
-	)
-	if err != nil {
-		t.Fatal(err.Error())
+	testFsHandle := func(t *testing.T, h *unixfs.FSHandle) {
+		_, err = h.Lookup(ctx, "does-not-exist")
+		if err != unixfs_errors.ErrNotExist {
+			t.Fatalf("expected not exist but got %v", err)
+		}
+		err = h.Mknod(
+			ctx,
+			true,
+			[]string{"test-dir-1"},
+			unixfs.NewFSCursorNodeType_Dir(),
+			0,
+			time.Time{},
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
-	_ = btx
+	// First try accessing fsHandle directly.
+	t.Run("fsHandle", func(t *testing.T) {
+		testFsHandle(t, fsHandle)
+	})
+
+	// Test accessing via the FSHandle FSCursor.
+	t.Run("fsHandle_FSCursor", func(t *testing.T) {
+		fsHandleCursor := unixfs.NewFSHandleCursor(fsHandle)
+		fsHandleCursorFS := unixfs.NewFS(ctx, le, fsHandleCursor, nil)
+		defer fsHandleCursorFS.Release()
+
+		fsHandleCursorHandle, err := fsHandleCursorFS.AddRootReference(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer fsHandleCursorHandle.Release()
+
+		testFsHandle(t, fsHandleCursorHandle)
+	})
 }
