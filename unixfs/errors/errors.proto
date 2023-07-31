@@ -1,0 +1,55 @@
+syntax = "proto3";
+package unixfs.errors;
+
+// UnixFSErrorType contains all potential UnixFS errors.
+enum UnixFSErrorType {
+  // NONE indicates no error.
+  NONE = 0;
+  // OTHER corresponds to a string error not defined in the unixfs errors list.
+  OTHER = 1;
+  // FS_NOT_FOUND corresponds to unixfs_errors.ErrFsNotFound.
+  FS_NOT_FOUND = 2;
+  // EXIST corresponds to unixfs_errors.ErrExist.
+  EXIST = 3;
+  // NOT_EXIST corresponds to unixfs_errors.ErrNotExist.
+  NOT_EXIST = 4;
+  // CLOSED corresponds to unixfs_errors.ErrClosed.
+  CLOSED = 5;
+  // READ_ONLY corresponds to unixfs_errors.ErrReadOnly.
+  READ_ONLY = 6;
+  // RELEASED corresponds to unixfs_errors.ErrReleased.
+  RELEASED = 7;
+  // NOT_DIRECTORY corresponds to unixfs_errors.ErrNotDirectory.
+  NOT_DIRECTORY = 8;
+  // NOT_FILE corresponds to unixfs_errors.ErrNotFile.
+  NOT_FILE = 9;
+  // OUT_OF_BOUNDS corresponds to unixfs_errors.ErrOutOfBounds.
+  OUT_OF_BOUNDS = 10;
+  // EMPTY_PATH corresponds to unixfs_errors.ErrEmptyPath.
+  EMPTY_PATH = 11;
+  // INODE_UNRESOLVABLE corresponds to unixfs_errors.ErrInodeUnresolvable.
+  INODE_UNRESOLVABLE = 12;
+  // NOT_SYMLINK corresponds to unixfs_errors.ErrNotSymlink.
+  NOT_SYMLINK = 13;
+  // EMPTY_TIMESTAMP corresponds to unixfs_errors.ErrEmptyTimestamp.
+  EMPTY_TIMESTAMP = 14;
+  // MOVE_TO_SELF corresponds to unixfs_errors.ErrMoveToSelf.
+  MOVE_TO_SELF = 15;
+  // INVALID_WRITE corresponds to unixfs_errors.ErrInvalidWrite.
+  INVALID_WRITE = 16;
+  // EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId.
+  EMPTY_UNIXFS_ID = 17;
+  // UNKNOWN corresponds to a string error not defined in the unixfs errors list.
+  UNKNOWN = 18;
+}
+
+// UnixFSError contains an RPC error returned by a cursor, if any.
+message UnixFSError {
+  // ErrorType is the type of error, zero if none.
+  UnixFSErrorType error_type = 1;
+  // ErrorBody is the body of the error.
+  // If this is set and the error is type OTHER, return errors.New(ErrorBody).
+  // If this is set and the error is another type, return errors.Wrap(the_error, ErrorBody).
+  // If this is unset and error_type is OTHER, return errors.New("unknown unixfs error").
+  string error_body = 2;
+}

@@ -65,6 +65,7 @@ type FSCursorOps interface {
 	// CheckReleased checks if the fs cursor ops object is currently released.
 	// Note: this indicates if the FSCursorOps is released, not the parent FSCursor.
 	CheckReleased() bool
+
 	// GetName returns the name of the inode (if applicable).
 	// i.e. directory name, filename.
 	GetName() string
