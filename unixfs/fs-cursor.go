@@ -74,11 +74,11 @@ type FSCursorOps interface {
 	FSCursorNodeType
 
 	// GetPermissions returns the permissions bits of the file mode.
-	// The file mode portion of the value is ignored.
+	// Only the permissions bits are set in the FileMode.
 	GetPermissions(ctx context.Context) (fs.FileMode, error)
 
 	// SetPermissions updates the permissions bits of the file mode.
-	// The file mode portion of the value is ignored.
+	// Only the permissions bits are used from the FileMode.
 	SetPermissions(ctx context.Context, permissions fs.FileMode, ts time.Time) error
 
 	// GetSize returns the size of the inode (in bytes).

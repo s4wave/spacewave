@@ -95,4 +95,24 @@ func TestFS(t *testing.T) {
 
 		testFsHandle(t, fsHandleCursorHandle)
 	})
+
+	// Test accessing via the FSHandle FSCursor.
+	t.Run("fsHandle_FSCursor_WithGetter", func(t *testing.T) {
+		fsHandleCursorGetter := unixfs.NewFSCursorGetter(func(ctx context.Context) (unixfs.FSCursor, error) {
+			if fsHandle.CheckReleased() {
+				return nil, unixfs_errors.ErrReleased
+			}
+			return unixfs.NewFSHandleCursor(fsHandle), nil
+		})
+		fsHandleCursorFS := unixfs.NewFS(ctx, le, fsHandleCursorGetter, nil)
+		defer fsHandleCursorFS.Release()
+
+		fsHandleCursorHandle, err := fsHandleCursorFS.AddRootReference(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer fsHandleCursorHandle.Release()
+
+		testFsHandle(t, fsHandleCursorHandle)
+	})
 }
