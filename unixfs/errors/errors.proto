@@ -39,8 +39,12 @@ enum UnixFSErrorType {
   INVALID_WRITE = 16;
   // EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId.
   EMPTY_UNIXFS_ID = 17;
+  // CONTEXT_CANCELED corresponds to context.Canceled.
+  CONTEXT_CANCELED = 18;
+  // EOF corresponds to io.EOF.
+  EOF = 19;
   // UNKNOWN corresponds to a string error not defined in the unixfs errors list.
-  UNKNOWN = 18;
+  UNKNOWN = 20;
 }
 
 // UnixFSError contains an RPC error returned by a cursor, if any.

@@ -8,40 +8,46 @@ export const protobufPackage = 'unixfs.errors'
 export enum UnixFSErrorType {
   /** NONE - NONE indicates no error. */
   NONE = 0,
-  /** FS_NOT_FOUND - FS_NOT_FOUND corresponds to unixfs_errors.ErrFsNotFound. */
-  FS_NOT_FOUND = 1,
-  /** EXIST - EXIST corresponds to unixfs_errors.ErrExist. */
-  EXIST = 2,
-  /** NOT_EXIST - NOT_EXIST corresponds to unixfs_errors.ErrNotExist. */
-  NOT_EXIST = 3,
-  /** CLOSED - CLOSED corresponds to unixfs_errors.ErrClosed. */
-  CLOSED = 4,
-  /** READ_ONLY - READ_ONLY corresponds to unixfs_errors.ErrReadOnly. */
-  READ_ONLY = 5,
-  /** RELEASED - RELEASED corresponds to unixfs_errors.ErrReleased. */
-  RELEASED = 6,
-  /** NOT_DIRECTORY - NOT_DIRECTORY corresponds to unixfs_errors.ErrNotDirectory. */
-  NOT_DIRECTORY = 7,
-  /** NOT_FILE - NOT_FILE corresponds to unixfs_errors.ErrNotFile. */
-  NOT_FILE = 8,
-  /** OUT_OF_BOUNDS - OUT_OF_BOUNDS corresponds to unixfs_errors.ErrOutOfBounds. */
-  OUT_OF_BOUNDS = 9,
-  /** EMPTY_PATH - EMPTY_PATH corresponds to unixfs_errors.ErrEmptyPath. */
-  EMPTY_PATH = 10,
-  /** INODE_UNRESOLVABLE - INODE_UNRESOLVABLE corresponds to unixfs_errors.ErrInodeUnresolvable. */
-  INODE_UNRESOLVABLE = 11,
-  /** NOT_SYMLINK - NOT_SYMLINK corresponds to unixfs_errors.ErrNotSymlink. */
-  NOT_SYMLINK = 12,
-  /** EMPTY_TIMESTAMP - EMPTY_TIMESTAMP corresponds to unixfs_errors.ErrEmptyTimestamp. */
-  EMPTY_TIMESTAMP = 13,
-  /** MOVE_TO_SELF - MOVE_TO_SELF corresponds to unixfs_errors.ErrMoveToSelf. */
-  MOVE_TO_SELF = 14,
-  /** INVALID_WRITE - INVALID_WRITE corresponds to unixfs_errors.ErrInvalidWrite. */
-  INVALID_WRITE = 15,
-  /** EMPTY_UNIXFS_ID - EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId. */
-  EMPTY_UNIXFS_ID = 16,
   /** OTHER - OTHER corresponds to a string error not defined in the unixfs errors list. */
-  OTHER = 17,
+  OTHER = 1,
+  /** FS_NOT_FOUND - FS_NOT_FOUND corresponds to unixfs_errors.ErrFsNotFound. */
+  FS_NOT_FOUND = 2,
+  /** EXIST - EXIST corresponds to unixfs_errors.ErrExist. */
+  EXIST = 3,
+  /** NOT_EXIST - NOT_EXIST corresponds to unixfs_errors.ErrNotExist. */
+  NOT_EXIST = 4,
+  /** CLOSED - CLOSED corresponds to unixfs_errors.ErrClosed. */
+  CLOSED = 5,
+  /** READ_ONLY - READ_ONLY corresponds to unixfs_errors.ErrReadOnly. */
+  READ_ONLY = 6,
+  /** RELEASED - RELEASED corresponds to unixfs_errors.ErrReleased. */
+  RELEASED = 7,
+  /** NOT_DIRECTORY - NOT_DIRECTORY corresponds to unixfs_errors.ErrNotDirectory. */
+  NOT_DIRECTORY = 8,
+  /** NOT_FILE - NOT_FILE corresponds to unixfs_errors.ErrNotFile. */
+  NOT_FILE = 9,
+  /** OUT_OF_BOUNDS - OUT_OF_BOUNDS corresponds to unixfs_errors.ErrOutOfBounds. */
+  OUT_OF_BOUNDS = 10,
+  /** EMPTY_PATH - EMPTY_PATH corresponds to unixfs_errors.ErrEmptyPath. */
+  EMPTY_PATH = 11,
+  /** INODE_UNRESOLVABLE - INODE_UNRESOLVABLE corresponds to unixfs_errors.ErrInodeUnresolvable. */
+  INODE_UNRESOLVABLE = 12,
+  /** NOT_SYMLINK - NOT_SYMLINK corresponds to unixfs_errors.ErrNotSymlink. */
+  NOT_SYMLINK = 13,
+  /** EMPTY_TIMESTAMP - EMPTY_TIMESTAMP corresponds to unixfs_errors.ErrEmptyTimestamp. */
+  EMPTY_TIMESTAMP = 14,
+  /** MOVE_TO_SELF - MOVE_TO_SELF corresponds to unixfs_errors.ErrMoveToSelf. */
+  MOVE_TO_SELF = 15,
+  /** INVALID_WRITE - INVALID_WRITE corresponds to unixfs_errors.ErrInvalidWrite. */
+  INVALID_WRITE = 16,
+  /** EMPTY_UNIXFS_ID - EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId. */
+  EMPTY_UNIXFS_ID = 17,
+  /** CONTEXT_CANCELED - CONTEXT_CANCELED corresponds to context.Canceled. */
+  CONTEXT_CANCELED = 18,
+  /** EOF - EOF corresponds to io.EOF. */
+  EOF = 19,
+  /** UNKNOWN - UNKNOWN corresponds to a string error not defined in the unixfs errors list. */
+  UNKNOWN = 20,
   UNRECOGNIZED = -1,
 }
 
@@ -51,56 +57,65 @@ export function unixFSErrorTypeFromJSON(object: any): UnixFSErrorType {
     case 'NONE':
       return UnixFSErrorType.NONE
     case 1:
-    case 'FS_NOT_FOUND':
-      return UnixFSErrorType.FS_NOT_FOUND
-    case 2:
-    case 'EXIST':
-      return UnixFSErrorType.EXIST
-    case 3:
-    case 'NOT_EXIST':
-      return UnixFSErrorType.NOT_EXIST
-    case 4:
-    case 'CLOSED':
-      return UnixFSErrorType.CLOSED
-    case 5:
-    case 'READ_ONLY':
-      return UnixFSErrorType.READ_ONLY
-    case 6:
-    case 'RELEASED':
-      return UnixFSErrorType.RELEASED
-    case 7:
-    case 'NOT_DIRECTORY':
-      return UnixFSErrorType.NOT_DIRECTORY
-    case 8:
-    case 'NOT_FILE':
-      return UnixFSErrorType.NOT_FILE
-    case 9:
-    case 'OUT_OF_BOUNDS':
-      return UnixFSErrorType.OUT_OF_BOUNDS
-    case 10:
-    case 'EMPTY_PATH':
-      return UnixFSErrorType.EMPTY_PATH
-    case 11:
-    case 'INODE_UNRESOLVABLE':
-      return UnixFSErrorType.INODE_UNRESOLVABLE
-    case 12:
-    case 'NOT_SYMLINK':
-      return UnixFSErrorType.NOT_SYMLINK
-    case 13:
-    case 'EMPTY_TIMESTAMP':
-      return UnixFSErrorType.EMPTY_TIMESTAMP
-    case 14:
-    case 'MOVE_TO_SELF':
-      return UnixFSErrorType.MOVE_TO_SELF
-    case 15:
-    case 'INVALID_WRITE':
-      return UnixFSErrorType.INVALID_WRITE
-    case 16:
-    case 'EMPTY_UNIXFS_ID':
-      return UnixFSErrorType.EMPTY_UNIXFS_ID
-    case 17:
     case 'OTHER':
       return UnixFSErrorType.OTHER
+    case 2:
+    case 'FS_NOT_FOUND':
+      return UnixFSErrorType.FS_NOT_FOUND
+    case 3:
+    case 'EXIST':
+      return UnixFSErrorType.EXIST
+    case 4:
+    case 'NOT_EXIST':
+      return UnixFSErrorType.NOT_EXIST
+    case 5:
+    case 'CLOSED':
+      return UnixFSErrorType.CLOSED
+    case 6:
+    case 'READ_ONLY':
+      return UnixFSErrorType.READ_ONLY
+    case 7:
+    case 'RELEASED':
+      return UnixFSErrorType.RELEASED
+    case 8:
+    case 'NOT_DIRECTORY':
+      return UnixFSErrorType.NOT_DIRECTORY
+    case 9:
+    case 'NOT_FILE':
+      return UnixFSErrorType.NOT_FILE
+    case 10:
+    case 'OUT_OF_BOUNDS':
+      return UnixFSErrorType.OUT_OF_BOUNDS
+    case 11:
+    case 'EMPTY_PATH':
+      return UnixFSErrorType.EMPTY_PATH
+    case 12:
+    case 'INODE_UNRESOLVABLE':
+      return UnixFSErrorType.INODE_UNRESOLVABLE
+    case 13:
+    case 'NOT_SYMLINK':
+      return UnixFSErrorType.NOT_SYMLINK
+    case 14:
+    case 'EMPTY_TIMESTAMP':
+      return UnixFSErrorType.EMPTY_TIMESTAMP
+    case 15:
+    case 'MOVE_TO_SELF':
+      return UnixFSErrorType.MOVE_TO_SELF
+    case 16:
+    case 'INVALID_WRITE':
+      return UnixFSErrorType.INVALID_WRITE
+    case 17:
+    case 'EMPTY_UNIXFS_ID':
+      return UnixFSErrorType.EMPTY_UNIXFS_ID
+    case 18:
+    case 'CONTEXT_CANCELED':
+      return UnixFSErrorType.CONTEXT_CANCELED
+    case 19:
+    case 'EOF':
+      return UnixFSErrorType.EOF
+    case 20:
+    case 'UNKNOWN':
+      return UnixFSErrorType.UNKNOWN
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -112,6 +127,8 @@ export function unixFSErrorTypeToJSON(object: UnixFSErrorType): string {
   switch (object) {
     case UnixFSErrorType.NONE:
       return 'NONE'
+    case UnixFSErrorType.OTHER:
+      return 'OTHER'
     case UnixFSErrorType.FS_NOT_FOUND:
       return 'FS_NOT_FOUND'
     case UnixFSErrorType.EXIST:
@@ -144,8 +161,12 @@ export function unixFSErrorTypeToJSON(object: UnixFSErrorType): string {
       return 'INVALID_WRITE'
     case UnixFSErrorType.EMPTY_UNIXFS_ID:
       return 'EMPTY_UNIXFS_ID'
-    case UnixFSErrorType.OTHER:
-      return 'OTHER'
+    case UnixFSErrorType.CONTEXT_CANCELED:
+      return 'CONTEXT_CANCELED'
+    case UnixFSErrorType.EOF:
+      return 'EOF'
+    case UnixFSErrorType.UNKNOWN:
+      return 'UNKNOWN'
     case UnixFSErrorType.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'
@@ -271,9 +292,8 @@ export const UnixFSError = {
   },
 
   create<I extends Exact<DeepPartial<UnixFSError>, I>>(base?: I): UnixFSError {
-    return UnixFSError.fromPartial(base ?? {})
+    return UnixFSError.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<UnixFSError>, I>>(
     object: I,
   ): UnixFSError {

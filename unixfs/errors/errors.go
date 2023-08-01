@@ -2,6 +2,8 @@
 package unixfs_errors
 
 import (
+	"context"
+	io "io"
 	"io/fs"
 	"strings"
 
@@ -112,6 +114,10 @@ func NewUnixFSError(err error) *UnixFSError {
 		uErr.ErrorType = UnixFSErrorType_INVALID_WRITE
 	case ErrEmptyUnixFsId:
 		uErr.ErrorType = UnixFSErrorType_EMPTY_UNIXFS_ID
+	case context.Canceled:
+		uErr.ErrorType = UnixFSErrorType_CONTEXT_CANCELED
+	case io.EOF:
+		uErr.ErrorType = UnixFSErrorType_EOF
 	default:
 		uErr.ErrorType = UnixFSErrorType_OTHER
 		if uErr.ErrorBody == "" {
@@ -160,6 +166,10 @@ func (e *UnixFSError) ToGoError() error {
 		err = ErrInvalidWrite
 	case UnixFSErrorType_EMPTY_UNIXFS_ID:
 		err = ErrEmptyUnixFsId
+	case UnixFSErrorType_CONTEXT_CANCELED:
+		err = context.Canceled
+	case UnixFSErrorType_EOF:
+		err = io.EOF
 	case UnixFSErrorType_OTHER:
 		if e.ErrorBody != "" {
 			return errors.New(e.ErrorBody)
