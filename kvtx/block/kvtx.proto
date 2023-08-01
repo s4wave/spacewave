@@ -1,7 +1,6 @@
 syntax = "proto3";
 package kvtx.block;
 
-import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.proto";
 
 // KeyValueStore is the root of a Key-Value Transaction store.
