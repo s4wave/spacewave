@@ -32,7 +32,7 @@ func TestExecutionController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	ts := timestamp.Now()
-	outState, err := tb.RunExecutionWithTarget(tgt, nil, &ts)
+	outState, err := tb.RunExecutionWithTarget(tgt, nil, ts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

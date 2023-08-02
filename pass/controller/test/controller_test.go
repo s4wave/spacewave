@@ -32,7 +32,7 @@ func TestPassController(t *testing.T) {
 	}
 
 	ts := timestamp.Now()
-	outState, err := tb.RunPassWithTarget(tgt, nil, 1, &ts)
+	outState, err := tb.RunPassWithTarget(tgt, nil, 1, ts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

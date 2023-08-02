@@ -31,8 +31,7 @@ func ExecControllerHandleWithAccess(
 	ts *timestamp.Timestamp,
 ) ExecControllerHandle {
 	if ts == nil {
-		nts := timestamp.Now()
-		ts = &nts
+		ts = timestamp.Now()
 	}
 	return &accessHandle{
 		uniqueID:    uniqueID,

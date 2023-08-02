@@ -55,6 +55,6 @@ func runExecutionDemo(ctx context.Context, le *logrus.Entry) error {
 	}
 
 	ts := timestamp.Now()
-	_, err = tb.RunExecutionWithTarget(tgt, nil, &ts)
+	_, err = tb.RunExecutionWithTarget(tgt, nil, ts)
 	return err
 }

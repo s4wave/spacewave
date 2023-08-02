@@ -57,7 +57,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	worldState := world.NewEngineWorldState(wh, true)
 	ts := timestamp.Now()
 	uniqueID := "test-handle"
-	handle := ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), wh, worldState.AccessWorldState, &ts)
+	handle := ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), wh, worldState.AccessWorldState, ts)
 	return tb, worldState, handle
 }
 

@@ -71,7 +71,7 @@ func TestUtilWait(t *testing.T) {
 	ts := timestamp.Now()
 	jobKey := "job/1"
 	clusterKey := "cluster/1"
-	outState, err := tb.RunWorkerWithTasks(taskMap, nil, 1, &ts, jobKey, clusterKey, nil)
+	outState, err := tb.RunWorkerWithTasks(taskMap, nil, 1, ts, jobKey, clusterKey, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

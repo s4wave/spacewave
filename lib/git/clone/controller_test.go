@@ -47,7 +47,7 @@ func TestGitClone(t *testing.T) {
 	valueSet := &forge_target.ValueSet{}
 	// handle := forge_target.ExecControllerHandleWithAccess(ws.AccessWorldState)
 	ts := timestamp.Now()
-	finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, &ts)
+	finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, ts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
