@@ -24,7 +24,7 @@ function createBaseDomainInfo(): DomainInfo {
 export const DomainInfo = {
   encode(
     message: DomainInfo,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.domainId !== '') {
       writer.uint32(10).string(message.domainId)
@@ -81,7 +81,7 @@ export const DomainInfo = {
   async *encodeTransform(
     source:
       | AsyncIterable<DomainInfo | DomainInfo[]>
-      | Iterable<DomainInfo | DomainInfo[]>
+      | Iterable<DomainInfo | DomainInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -99,7 +99,7 @@ export const DomainInfo = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DomainInfo> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -122,18 +122,23 @@ export const DomainInfo = {
 
   toJSON(message: DomainInfo): unknown {
     const obj: any = {}
-    message.domainId !== undefined && (obj.domainId = message.domainId)
-    message.name !== undefined && (obj.name = message.name)
-    message.description !== undefined && (obj.description = message.description)
+    if (message.domainId !== '') {
+      obj.domainId = message.domainId
+    }
+    if (message.name !== '') {
+      obj.name = message.name
+    }
+    if (message.description !== '') {
+      obj.description = message.description
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<DomainInfo>, I>>(base?: I): DomainInfo {
-    return DomainInfo.fromPartial(base ?? {})
+    return DomainInfo.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<DomainInfo>, I>>(
-    object: I
+    object: I,
   ): DomainInfo {
     const message = createBaseDomainInfo()
     message.domainId = object.domainId ?? ''

@@ -30,7 +30,7 @@ function createBaseConfig(): Config {
 export const Config = {
   encode(
     message: Config,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     for (const v of message.peerIds) {
       writer.uint32(10).string(v!)
@@ -85,7 +85,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -103,7 +103,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -132,25 +132,21 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.peerIds) {
-      obj.peerIds = message.peerIds.map((e) => e)
-    } else {
-      obj.peerIds = []
+    if (message.peerIds?.length) {
+      obj.peerIds = message.peerIds
     }
-    if (message.domainIds) {
-      obj.domainIds = message.domainIds.map((e) => e)
-    } else {
-      obj.domainIds = []
+    if (message.domainIds?.length) {
+      obj.domainIds = message.domainIds
     }
-    message.requestTimeout !== undefined &&
-      (obj.requestTimeout = message.requestTimeout)
+    if (message.requestTimeout !== '') {
+      obj.requestTimeout = message.requestTimeout
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.peerIds = object.peerIds?.map((e) => e) || []

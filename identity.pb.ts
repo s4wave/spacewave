@@ -326,19 +326,27 @@ export const Entity = {
 
   toJSON(message: Entity): unknown {
     const obj: any = {};
-    message.entityId !== undefined && (obj.entityId = message.entityId);
-    message.entityUuid !== undefined && (obj.entityUuid = message.entityUuid);
-    message.domainId !== undefined && (obj.domainId = message.domainId);
-    message.epoch !== undefined && (obj.epoch = (message.epoch || Long.UZERO).toString());
-    message.entityKeypairSet !== undefined &&
-      (obj.entityKeypairSet = message.entityKeypairSet ? EntityKeypairSet.toJSON(message.entityKeypairSet) : undefined);
+    if (message.entityId !== "") {
+      obj.entityId = message.entityId;
+    }
+    if (message.entityUuid !== "") {
+      obj.entityUuid = message.entityUuid;
+    }
+    if (message.domainId !== "") {
+      obj.domainId = message.domainId;
+    }
+    if (!message.epoch.isZero()) {
+      obj.epoch = (message.epoch || Long.UZERO).toString();
+    }
+    if (message.entityKeypairSet !== undefined) {
+      obj.entityKeypairSet = EntityKeypairSet.toJSON(message.entityKeypairSet);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<Entity>, I>>(base?: I): Entity {
-    return Entity.fromPartial(base ?? {});
+    return Entity.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Entity>, I>>(object: I): Entity {
     const message = createBaseEntity();
     message.entityId = object.entityId ?? "";
@@ -442,23 +450,18 @@ export const EntityKeypairSet = {
 
   toJSON(message: EntityKeypairSet): unknown {
     const obj: any = {};
-    if (message.entityKeypairs) {
-      obj.entityKeypairs = message.entityKeypairs.map((e) => base64FromBytes(e !== undefined ? e : new Uint8Array(0)));
-    } else {
-      obj.entityKeypairs = [];
+    if (message.entityKeypairs?.length) {
+      obj.entityKeypairs = message.entityKeypairs.map((e) => base64FromBytes(e));
     }
-    if (message.entityKeypairSignatures) {
-      obj.entityKeypairSignatures = message.entityKeypairSignatures.map((e) => e ? Signature.toJSON(e) : undefined);
-    } else {
-      obj.entityKeypairSignatures = [];
+    if (message.entityKeypairSignatures?.length) {
+      obj.entityKeypairSignatures = message.entityKeypairSignatures.map((e) => Signature.toJSON(e));
     }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<EntityKeypairSet>, I>>(base?: I): EntityKeypairSet {
-    return EntityKeypairSet.fromPartial(base ?? {});
+    return EntityKeypairSet.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<EntityKeypairSet>, I>>(object: I): EntityKeypairSet {
     const message = createBaseEntityKeypairSet();
     message.entityKeypairs = object.entityKeypairs?.map((e) => e) || [];
@@ -564,16 +567,21 @@ export const EntityKeypair = {
 
   toJSON(message: EntityKeypair): unknown {
     const obj: any = {};
-    message.entityId !== undefined && (obj.entityId = message.entityId);
-    message.domainId !== undefined && (obj.domainId = message.domainId);
-    message.keypair !== undefined && (obj.keypair = message.keypair ? Keypair.toJSON(message.keypair) : undefined);
+    if (message.entityId !== "") {
+      obj.entityId = message.entityId;
+    }
+    if (message.domainId !== "") {
+      obj.domainId = message.domainId;
+    }
+    if (message.keypair !== undefined) {
+      obj.keypair = Keypair.toJSON(message.keypair);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<EntityKeypair>, I>>(base?: I): EntityKeypair {
-    return EntityKeypair.fromPartial(base ?? {});
+    return EntityKeypair.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<EntityKeypair>, I>>(object: I): EntityKeypair {
     const message = createBaseEntityKeypair();
     message.entityId = object.entityId ?? "";
@@ -671,15 +679,18 @@ export const EntityRef = {
 
   toJSON(message: EntityRef): unknown {
     const obj: any = {};
-    message.entityId !== undefined && (obj.entityId = message.entityId);
-    message.domainId !== undefined && (obj.domainId = message.domainId);
+    if (message.entityId !== "") {
+      obj.entityId = message.entityId;
+    }
+    if (message.domainId !== "") {
+      obj.domainId = message.domainId;
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<EntityRef>, I>>(base?: I): EntityRef {
-    return EntityRef.fromPartial(base ?? {});
+    return EntityRef.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<EntityRef>, I>>(object: I): EntityRef {
     const message = createBaseEntityRef();
     message.entityId = object.entityId ?? "";
@@ -796,20 +807,24 @@ export const Keypair = {
 
   toJSON(message: Keypair): unknown {
     const obj: any = {};
-    message.peerId !== undefined && (obj.peerId = message.peerId);
-    message.pubKey !== undefined && (obj.pubKey = message.pubKey);
-    message.authMethodId !== undefined && (obj.authMethodId = message.authMethodId);
-    message.authMethodParams !== undefined &&
-      (obj.authMethodParams = base64FromBytes(
-        message.authMethodParams !== undefined ? message.authMethodParams : new Uint8Array(0),
-      ));
+    if (message.peerId !== "") {
+      obj.peerId = message.peerId;
+    }
+    if (message.pubKey !== "") {
+      obj.pubKey = message.pubKey;
+    }
+    if (message.authMethodId !== "") {
+      obj.authMethodId = message.authMethodId;
+    }
+    if (message.authMethodParams.length !== 0) {
+      obj.authMethodParams = base64FromBytes(message.authMethodParams);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<Keypair>, I>>(base?: I): Keypair {
-    return Keypair.fromPartial(base ?? {});
+    return Keypair.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Keypair>, I>>(object: I): Keypair {
     const message = createBaseKeypair();
     message.peerId = object.peerId ?? "";
@@ -941,18 +956,27 @@ export const PendingEntityChange = {
 
   toJSON(message: PendingEntityChange): unknown {
     const obj: any = {};
-    message.changePeerId !== undefined && (obj.changePeerId = message.changePeerId);
-    message.epoch !== undefined && (obj.epoch = (message.epoch || Long.UZERO).toString());
-    message.domainIdentifier !== undefined && (obj.domainIdentifier = message.domainIdentifier);
-    message.entityChangeType !== undefined && (obj.entityChangeType = entityChangeTypeToJSON(message.entityChangeType));
-    message.entityChangeData !== undefined && (obj.entityChangeData = message.entityChangeData);
+    if (message.changePeerId !== "") {
+      obj.changePeerId = message.changePeerId;
+    }
+    if (!message.epoch.isZero()) {
+      obj.epoch = (message.epoch || Long.UZERO).toString();
+    }
+    if (message.domainIdentifier !== "") {
+      obj.domainIdentifier = message.domainIdentifier;
+    }
+    if (message.entityChangeType !== 0) {
+      obj.entityChangeType = entityChangeTypeToJSON(message.entityChangeType);
+    }
+    if (message.entityChangeData !== "") {
+      obj.entityChangeData = message.entityChangeData;
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<PendingEntityChange>, I>>(base?: I): PendingEntityChange {
-    return PendingEntityChange.fromPartial(base ?? {});
+    return PendingEntityChange.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<PendingEntityChange>, I>>(object: I): PendingEntityChange {
     const message = createBasePendingEntityChange();
     message.changePeerId = object.changePeerId ?? "";
@@ -1061,19 +1085,21 @@ export const RegisterKeypair = {
 
   toJSON(message: RegisterKeypair): unknown {
     const obj: any = {};
-    message.registerPeerId !== undefined && (obj.registerPeerId = message.registerPeerId);
-    message.authMethodId !== undefined && (obj.authMethodId = message.authMethodId);
-    message.authMethodState !== undefined &&
-      (obj.authMethodState = base64FromBytes(
-        message.authMethodState !== undefined ? message.authMethodState : new Uint8Array(0),
-      ));
+    if (message.registerPeerId !== "") {
+      obj.registerPeerId = message.registerPeerId;
+    }
+    if (message.authMethodId !== "") {
+      obj.authMethodId = message.authMethodId;
+    }
+    if (message.authMethodState.length !== 0) {
+      obj.authMethodState = base64FromBytes(message.authMethodState);
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<RegisterKeypair>, I>>(base?: I): RegisterKeypair {
-    return RegisterKeypair.fromPartial(base ?? {});
+    return RegisterKeypair.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<RegisterKeypair>, I>>(object: I): RegisterKeypair {
     const message = createBaseRegisterKeypair();
     message.registerPeerId = object.registerPeerId ?? "";
@@ -1156,14 +1182,15 @@ export const RemoveKeypair = {
 
   toJSON(message: RemoveKeypair): unknown {
     const obj: any = {};
-    message.peerId !== undefined && (obj.peerId = message.peerId);
+    if (message.peerId !== "") {
+      obj.peerId = message.peerId;
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<RemoveKeypair>, I>>(base?: I): RemoveKeypair {
-    return RemoveKeypair.fromPartial(base ?? {});
+    return RemoveKeypair.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<RemoveKeypair>, I>>(object: I): RemoveKeypair {
     const message = createBaseRemoveKeypair();
     message.peerId = object.peerId ?? "";
@@ -1171,10 +1198,10 @@ export const RemoveKeypair = {
   },
 };
 
-declare var self: any | undefined;
-declare var window: any | undefined;
-declare var global: any | undefined;
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined;
+declare const window: any | undefined;
+declare const global: any | undefined;
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== "undefined") {
     return globalThis;
   }

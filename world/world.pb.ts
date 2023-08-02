@@ -36,7 +36,7 @@ function createBaseEntityUpdateOp(): EntityUpdateOp {
 export const EntityUpdateOp = {
   encode(
     message: EntityUpdateOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.entityRef !== undefined) {
       ObjectRef.encode(message.entityRef, writer.uint32(10).fork()).ldelim()
@@ -73,7 +73,7 @@ export const EntityUpdateOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<EntityUpdateOp | EntityUpdateOp[]>
-      | Iterable<EntityUpdateOp | EntityUpdateOp[]>
+      | Iterable<EntityUpdateOp | EntityUpdateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -91,7 +91,7 @@ export const EntityUpdateOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityUpdateOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -114,21 +114,19 @@ export const EntityUpdateOp = {
 
   toJSON(message: EntityUpdateOp): unknown {
     const obj: any = {}
-    message.entityRef !== undefined &&
-      (obj.entityRef = message.entityRef
-        ? ObjectRef.toJSON(message.entityRef)
-        : undefined)
+    if (message.entityRef !== undefined) {
+      obj.entityRef = ObjectRef.toJSON(message.entityRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<EntityUpdateOp>, I>>(
-    base?: I
+    base?: I,
   ): EntityUpdateOp {
-    return EntityUpdateOp.fromPartial(base ?? {})
+    return EntityUpdateOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<EntityUpdateOp>, I>>(
-    object: I
+    object: I,
   ): EntityUpdateOp {
     const message = createBaseEntityUpdateOp()
     message.entityRef =
@@ -146,7 +144,7 @@ function createBaseKeypairUpdateOp(): KeypairUpdateOp {
 export const KeypairUpdateOp = {
   encode(
     message: KeypairUpdateOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.keypairRef !== undefined) {
       ObjectRef.encode(message.keypairRef, writer.uint32(10).fork()).ldelim()
@@ -183,7 +181,7 @@ export const KeypairUpdateOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<KeypairUpdateOp | KeypairUpdateOp[]>
-      | Iterable<KeypairUpdateOp | KeypairUpdateOp[]>
+      | Iterable<KeypairUpdateOp | KeypairUpdateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -201,7 +199,7 @@ export const KeypairUpdateOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeypairUpdateOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -224,21 +222,19 @@ export const KeypairUpdateOp = {
 
   toJSON(message: KeypairUpdateOp): unknown {
     const obj: any = {}
-    message.keypairRef !== undefined &&
-      (obj.keypairRef = message.keypairRef
-        ? ObjectRef.toJSON(message.keypairRef)
-        : undefined)
+    if (message.keypairRef !== undefined) {
+      obj.keypairRef = ObjectRef.toJSON(message.keypairRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<KeypairUpdateOp>, I>>(
-    base?: I
+    base?: I,
   ): KeypairUpdateOp {
-    return KeypairUpdateOp.fromPartial(base ?? {})
+    return KeypairUpdateOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<KeypairUpdateOp>, I>>(
-    object: I
+    object: I,
   ): KeypairUpdateOp {
     const message = createBaseKeypairUpdateOp()
     message.keypairRef =
@@ -256,7 +252,7 @@ function createBaseDomainInfoUpdateOp(): DomainInfoUpdateOp {
 export const DomainInfoUpdateOp = {
   encode(
     message: DomainInfoUpdateOp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.domainInfoRef !== undefined) {
       ObjectRef.encode(message.domainInfoRef, writer.uint32(10).fork()).ldelim()
@@ -293,7 +289,7 @@ export const DomainInfoUpdateOp = {
   async *encodeTransform(
     source:
       | AsyncIterable<DomainInfoUpdateOp | DomainInfoUpdateOp[]>
-      | Iterable<DomainInfoUpdateOp | DomainInfoUpdateOp[]>
+      | Iterable<DomainInfoUpdateOp | DomainInfoUpdateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -311,7 +307,7 @@ export const DomainInfoUpdateOp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DomainInfoUpdateOp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -334,21 +330,19 @@ export const DomainInfoUpdateOp = {
 
   toJSON(message: DomainInfoUpdateOp): unknown {
     const obj: any = {}
-    message.domainInfoRef !== undefined &&
-      (obj.domainInfoRef = message.domainInfoRef
-        ? ObjectRef.toJSON(message.domainInfoRef)
-        : undefined)
+    if (message.domainInfoRef !== undefined) {
+      obj.domainInfoRef = ObjectRef.toJSON(message.domainInfoRef)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<DomainInfoUpdateOp>, I>>(
-    base?: I
+    base?: I,
   ): DomainInfoUpdateOp {
-    return DomainInfoUpdateOp.fromPartial(base ?? {})
+    return DomainInfoUpdateOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<DomainInfoUpdateOp>, I>>(
-    object: I
+    object: I,
   ): DomainInfoUpdateOp {
     const message = createBaseDomainInfoUpdateOp()
     message.domainInfoRef =

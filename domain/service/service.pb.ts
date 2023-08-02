@@ -44,7 +44,7 @@ function createBaseEntityLookupIdentifier(): EntityLookupIdentifier {
 export const EntityLookupIdentifier = {
   encode(
     message: EntityLookupIdentifier,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.domainId !== '') {
       writer.uint32(10).string(message.domainId)
@@ -57,7 +57,7 @@ export const EntityLookupIdentifier = {
 
   decode(
     input: _m0.Reader | Uint8Array,
-    length?: number
+    length?: number,
   ): EntityLookupIdentifier {
     const reader =
       input instanceof _m0.Reader ? input : _m0.Reader.create(input)
@@ -94,7 +94,7 @@ export const EntityLookupIdentifier = {
   async *encodeTransform(
     source:
       | AsyncIterable<EntityLookupIdentifier | EntityLookupIdentifier[]>
-      | Iterable<EntityLookupIdentifier | EntityLookupIdentifier[]>
+      | Iterable<EntityLookupIdentifier | EntityLookupIdentifier[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -112,7 +112,7 @@ export const EntityLookupIdentifier = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityLookupIdentifier> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -134,19 +134,22 @@ export const EntityLookupIdentifier = {
 
   toJSON(message: EntityLookupIdentifier): unknown {
     const obj: any = {}
-    message.domainId !== undefined && (obj.domainId = message.domainId)
-    message.entityId !== undefined && (obj.entityId = message.entityId)
+    if (message.domainId !== '') {
+      obj.domainId = message.domainId
+    }
+    if (message.entityId !== '') {
+      obj.entityId = message.entityId
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<EntityLookupIdentifier>, I>>(
-    base?: I
+    base?: I,
   ): EntityLookupIdentifier {
-    return EntityLookupIdentifier.fromPartial(base ?? {})
+    return EntityLookupIdentifier.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<EntityLookupIdentifier>, I>>(
-    object: I
+    object: I,
   ): EntityLookupIdentifier {
     const message = createBaseEntityLookupIdentifier()
     message.domainId = object.domainId ?? ''
@@ -162,12 +165,12 @@ function createBaseLookupEntityReq(): LookupEntityReq {
 export const LookupEntityReq = {
   encode(
     message: LookupEntityReq,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.identifier !== undefined) {
       EntityLookupIdentifier.encode(
         message.identifier,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     if (message.timestamp !== undefined) {
@@ -194,7 +197,7 @@ export const LookupEntityReq = {
 
           message.identifier = EntityLookupIdentifier.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 2:
@@ -225,7 +228,7 @@ export const LookupEntityReq = {
   async *encodeTransform(
     source:
       | AsyncIterable<LookupEntityReq | LookupEntityReq[]>
-      | Iterable<LookupEntityReq | LookupEntityReq[]>
+      | Iterable<LookupEntityReq | LookupEntityReq[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -243,7 +246,7 @@ export const LookupEntityReq = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupEntityReq> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -270,27 +273,25 @@ export const LookupEntityReq = {
 
   toJSON(message: LookupEntityReq): unknown {
     const obj: any = {}
-    message.identifier !== undefined &&
-      (obj.identifier = message.identifier
-        ? EntityLookupIdentifier.toJSON(message.identifier)
-        : undefined)
-    message.timestamp !== undefined &&
-      (obj.timestamp = message.timestamp
-        ? Timestamp.toJSON(message.timestamp)
-        : undefined)
-    message.nonce !== undefined &&
-      (obj.nonce = (message.nonce || Long.UZERO).toString())
+    if (message.identifier !== undefined) {
+      obj.identifier = EntityLookupIdentifier.toJSON(message.identifier)
+    }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = Timestamp.toJSON(message.timestamp)
+    }
+    if (!message.nonce.isZero()) {
+      obj.nonce = (message.nonce || Long.UZERO).toString()
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<LookupEntityReq>, I>>(
-    base?: I
+    base?: I,
   ): LookupEntityReq {
-    return LookupEntityReq.fromPartial(base ?? {})
+    return LookupEntityReq.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<LookupEntityReq>, I>>(
-    object: I
+    object: I,
   ): LookupEntityReq {
     const message = createBaseLookupEntityReq()
     message.identifier =
@@ -321,12 +322,12 @@ function createBaseLookupEntityResp(): LookupEntityResp {
 export const LookupEntityResp = {
   encode(
     message: LookupEntityResp,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.identifier !== undefined) {
       EntityLookupIdentifier.encode(
         message.identifier,
-        writer.uint32(10).fork()
+        writer.uint32(10).fork(),
       ).ldelim()
     }
     if (message.lookupError !== '') {
@@ -356,7 +357,7 @@ export const LookupEntityResp = {
 
           message.identifier = EntityLookupIdentifier.decode(
             reader,
-            reader.uint32()
+            reader.uint32(),
           )
           continue
         case 2:
@@ -394,7 +395,7 @@ export const LookupEntityResp = {
   async *encodeTransform(
     source:
       | AsyncIterable<LookupEntityResp | LookupEntityResp[]>
-      | Iterable<LookupEntityResp | LookupEntityResp[]>
+      | Iterable<LookupEntityResp | LookupEntityResp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -412,7 +413,7 @@ export const LookupEntityResp = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupEntityResp> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -440,27 +441,28 @@ export const LookupEntityResp = {
 
   toJSON(message: LookupEntityResp): unknown {
     const obj: any = {}
-    message.identifier !== undefined &&
-      (obj.identifier = message.identifier
-        ? EntityLookupIdentifier.toJSON(message.identifier)
-        : undefined)
-    message.lookupError !== undefined && (obj.lookupError = message.lookupError)
-    message.notFound !== undefined && (obj.notFound = message.notFound)
-    message.lookupEntity !== undefined &&
-      (obj.lookupEntity = message.lookupEntity
-        ? Entity.toJSON(message.lookupEntity)
-        : undefined)
+    if (message.identifier !== undefined) {
+      obj.identifier = EntityLookupIdentifier.toJSON(message.identifier)
+    }
+    if (message.lookupError !== '') {
+      obj.lookupError = message.lookupError
+    }
+    if (message.notFound === true) {
+      obj.notFound = message.notFound
+    }
+    if (message.lookupEntity !== undefined) {
+      obj.lookupEntity = Entity.toJSON(message.lookupEntity)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<LookupEntityResp>, I>>(
-    base?: I
+    base?: I,
   ): LookupEntityResp {
-    return LookupEntityResp.fromPartial(base ?? {})
+    return LookupEntityResp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<LookupEntityResp>, I>>(
-    object: I
+    object: I,
   ): LookupEntityResp {
     const message = createBaseLookupEntityResp()
     message.identifier =
@@ -482,7 +484,7 @@ export interface IdentityDomain {
   /** LookupEntity requests the Entity corresponding to an entity_id. */
   LookupEntity(
     request: SignedMsg,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<LookupEntityResp>
 }
 
@@ -498,17 +500,17 @@ export class IdentityDomainClientImpl implements IdentityDomain {
   }
   LookupEntity(
     request: SignedMsg,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<LookupEntityResp> {
     const data = SignedMsg.encode(request).finish()
     const promise = this.rpc.request(
       this.service,
       'LookupEntity',
       data,
-      abortSignal || undefined
+      abortSignal || undefined,
     )
     return promise.then((data) =>
-      LookupEntityResp.decode(_m0.Reader.create(data))
+      LookupEntityResp.decode(_m0.Reader.create(data)),
     )
   }
 }
@@ -536,7 +538,7 @@ interface Rpc {
     service: string,
     method: string,
     data: Uint8Array,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<Uint8Array>
 }
 
