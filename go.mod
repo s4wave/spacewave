@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.20
 
-require github.com/aperturerobotics/bifrost v0.17.8 // master
+require github.com/aperturerobotics/bifrost v0.17.9 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -24,10 +24,17 @@ replace (
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 )
 
+require (
+	github.com/cayleygraph/cayley v0.7.7-0.20230726113732-1310f3b07fa0
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
+	github.com/go-git/go-git/v5 v5.8.1
+)
+
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.28.4 // latest
+	github.com/aperturerobotics/controllerbus v0.28.5 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.19.2 // latest
 )
@@ -49,25 +56,25 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.5.5 // master
+	github.com/aperturerobotics/util v1.5.6 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7
-	github.com/libp2p/go-libp2p v0.29.1-0.20230719184903-260b9695cafd
+	github.com/libp2p/go-libp2p v0.29.1-0.20230801004700-f6fb4f555ba2
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.10.1 // indirect
-	github.com/nats-io/nats-server/v2 v2.9.19 // indirect
-	github.com/nats-io/nats.go v1.27.1 // indirect
+	github.com/nats-io/nats-server/v2 v2.9.20 // indirect
+	github.com/nats-io/nats.go v1.28.0 // indirect
 	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.18
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.4.0 // indirect
-	github.com/quic-go/quic-go v0.36.2 // indirect
+	github.com/quic-go/quic-go v0.37.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -85,22 +92,18 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.1.0
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a
-	github.com/aperturerobotics/timestamp v0.7.2
+	github.com/aperturerobotics/timestamp v0.8.0
 	github.com/bits-and-blooms/bitset v1.8.0
 	github.com/bits-and-blooms/bloom/v3 v3.5.0
-	github.com/cayleygraph/cayley v0.7.7-0.20230726113732-1310f3b07fa0
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.1.0
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
 	github.com/dolthub/vitess v0.0.0-20230403222318-aa590a202153
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.4.1
-	github.com/go-git/go-git/v5 v5.8.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/hidal-go/hidalgo v0.2.1-0.20220428091800-b74c839b2fb0
@@ -112,7 +115,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090
+	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b
 	golang.org/x/sync v0.3.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.25.2
