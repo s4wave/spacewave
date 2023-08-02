@@ -26,12 +26,12 @@ func TestCreate(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		btx, bcs := bls.BuildTransaction(nil)
-		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, &writeTs), true)
+		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, writeTs.Clone()), true)
 		fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		err = CopyFSToFSTree(ctx, testFS, fsTree, nil, &writeTs)
+		err = CopyFSToFSTree(ctx, testFS, fsTree, nil, writeTs.Clone())
 		if err != nil {
 			t.Fatal(err.Error())
 		}

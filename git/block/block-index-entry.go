@@ -19,14 +19,11 @@ func NewIndexEntry(e *index.Entry) (*IndexEntry, error) {
 		return nil, err
 	}
 
-	ca := timestamp.ToTimestamp(e.CreatedAt)
-	ma := timestamp.ToTimestamp(e.ModifiedAt)
-
 	return &IndexEntry{
 		DataHash:     dh,
 		Name:         e.Name,
-		CreatedAt:    &ca,
-		ModifiedAt:   &ma,
+		CreatedAt:    timestamp.ToTimestamp(e.CreatedAt),
+		ModifiedAt:   timestamp.ToTimestamp(e.ModifiedAt),
 		Dev:          e.Dev,
 		Inode:        e.Inode,
 		FileMode:     uint32(e.Mode),

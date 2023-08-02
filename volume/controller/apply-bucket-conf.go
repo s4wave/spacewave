@@ -85,7 +85,7 @@ func (o *applyBucketConfigResolver) Resolve(ctx context.Context, handler directi
 		BucketId:      curr.GetId(),
 		BucketConf:    curr,
 		OldBucketConf: prev,
-		Timestamp:     &ts,
+		Timestamp:     ts,
 		Updated:       updated,
 		Error:         errStr,
 	})

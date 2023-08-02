@@ -145,7 +145,7 @@ func (m *MQueue) Push(ctx context.Context, data []byte) (mqueue.Message, error) 
 	}
 	mts := timestamp.ToTimestamp(ts)
 	key := m.getMessageKey(mid)
-	wrapper := &MQMessageWrapper{Timestamp: &mts, Data: data}
+	wrapper := &MQMessageWrapper{Timestamp: mts, Data: data}
 	wrapperData, err := wrapper.MarshalVT()
 	if err != nil {
 		return nil, err

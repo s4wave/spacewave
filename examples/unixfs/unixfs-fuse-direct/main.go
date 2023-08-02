@@ -149,7 +149,7 @@ func execute(rctx context.Context) error {
 		}
 		if fnode == nil {
 			now := timestamp.Now()
-			fnode, err = ftree.Mknod(testFilename, unixfs_block.NodeType_NodeType_FILE, nil, 0, &now)
+			fnode, err = ftree.Mknod(testFilename, unixfs_block.NodeType_NodeType_FILE, nil, 0, now)
 			if err != nil {
 				return err
 			}

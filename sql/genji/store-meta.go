@@ -8,8 +8,7 @@ import (
 
 // NewStoreMeta constructs a new store metadata object.
 func NewStoreMeta(created time.Time) *StoreMeta {
-	t := timestamp.ToTimestamp(created)
 	return &StoreMeta{
-		CreatedTs: &t,
+		CreatedTs: timestamp.ToTimestamp(created),
 	}
 }

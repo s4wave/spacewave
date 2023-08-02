@@ -11,8 +11,7 @@ import (
 func ToTimestamp(ts time.Time, fillPlaceholder bool) *timestamp.Timestamp {
 	var now *timestamp.Timestamp
 	if !ts.IsZero() {
-		nt := timestamp.ToTimestamp(ts)
-		now = &nt
+		now = timestamp.ToTimestamp(ts)
 	}
 	if fillPlaceholder {
 		now = FillPlaceholderTimestamp(now)
@@ -23,8 +22,7 @@ func ToTimestamp(ts time.Time, fillPlaceholder bool) *timestamp.Timestamp {
 // FillPlaceholderTimestamp fills a timestamp with a placeholder if nil.
 func FillPlaceholderTimestamp(ts *timestamp.Timestamp) *timestamp.Timestamp {
 	if ts == nil {
-		todoTs := timestamp.ToTimestamp(TodoMtime)
-		ts = &todoTs
+		ts = timestamp.ToTimestamp(TodoMtime)
 	}
 	return ts
 }
