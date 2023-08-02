@@ -125,9 +125,8 @@ export const Worker = {
   },
 
   create<I extends Exact<DeepPartial<Worker>, I>>(base?: I): Worker {
-    return Worker.fromPartial(base ?? {})
+    return Worker.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Worker>, I>>(object: I): Worker {
     const message = createBaseWorker()
     message.name = object.name ?? ''
@@ -257,9 +256,8 @@ export const WorkerCreateOp = {
   create<I extends Exact<DeepPartial<WorkerCreateOp>, I>>(
     base?: I,
   ): WorkerCreateOp {
-    return WorkerCreateOp.fromPartial(base ?? {})
+    return WorkerCreateOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WorkerCreateOp>, I>>(
     object: I,
   ): WorkerCreateOp {

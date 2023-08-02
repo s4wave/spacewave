@@ -355,9 +355,8 @@ export const Tx = {
   },
 
   create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
-    return Tx.fromPartial(base ?? {})
+    return Tx.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx()
     message.txType = object.txType ?? 0
@@ -509,9 +508,8 @@ export const TxUpdateInputs = {
   create<I extends Exact<DeepPartial<TxUpdateInputs>, I>>(
     base?: I,
   ): TxUpdateInputs {
-    return TxUpdateInputs.fromPartial(base ?? {})
+    return TxUpdateInputs.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxUpdateInputs>, I>>(
     object: I,
   ): TxUpdateInputs {
@@ -614,9 +612,8 @@ export const TxStart = {
   },
 
   create<I extends Exact<DeepPartial<TxStart>, I>>(base?: I): TxStart {
-    return TxStart.fromPartial(base ?? {})
+    return TxStart.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxStart>, I>>(object: I): TxStart {
     const message = createBaseTxStart()
     message.assignSelf = object.assignSelf ?? false
@@ -704,9 +701,8 @@ export const TxUpdateWithPassState = {
   create<I extends Exact<DeepPartial<TxUpdateWithPassState>, I>>(
     base?: I,
   ): TxUpdateWithPassState {
-    return TxUpdateWithPassState.fromPartial(base ?? {})
+    return TxUpdateWithPassState.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxUpdateWithPassState>, I>>(
     _: I,
   ): TxUpdateWithPassState {
@@ -821,9 +817,8 @@ export const TxComplete = {
   },
 
   create<I extends Exact<DeepPartial<TxComplete>, I>>(base?: I): TxComplete {
-    return TxComplete.fromPartial(base ?? {})
+    return TxComplete.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxComplete>, I>>(
     object: I,
   ): TxComplete {

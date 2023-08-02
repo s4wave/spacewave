@@ -208,9 +208,8 @@ export const Job = {
   },
 
   create<I extends Exact<DeepPartial<Job>, I>>(base?: I): Job {
-    return Job.fromPartial(base ?? {})
+    return Job.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Job>, I>>(object: I): Job {
     const message = createBaseJob()
     message.jobState = object.jobState ?? 0

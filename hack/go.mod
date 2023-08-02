@@ -34,12 +34,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.17.8 // indirect
-	github.com/aperturerobotics/controllerbus v0.28.4 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230727012150-e83d6a7c544b // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230621013122-e14bee664915 // indirect
-	github.com/aperturerobotics/timestamp v0.7.2 // indirect
-	github.com/aperturerobotics/util v1.5.5 // indirect
+	github.com/aperturerobotics/bifrost v0.17.9 // indirect
+	github.com/aperturerobotics/controllerbus v0.28.5 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230802004400-3ff6ea8694fb // indirect
+	github.com/aperturerobotics/identity v0.0.0-20230802004604-18e9fef9c037 // indirect
+	github.com/aperturerobotics/timestamp v0.8.0 // indirect
+	github.com/aperturerobotics/util v1.5.6 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -131,7 +131,7 @@ require (
 	github.com/ldez/tagliatelle v0.3.1 // indirect
 	github.com/leonklingele/grouper v1.1.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
-	github.com/libp2p/go-libp2p v0.29.1-0.20230719184903-260b9695cafd // indirect
+	github.com/libp2p/go-libp2p v0.29.1-0.20230801004700-f6fb4f555ba2 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
@@ -226,7 +226,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090 // indirect
+	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect

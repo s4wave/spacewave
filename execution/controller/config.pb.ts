@@ -217,9 +217,8 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.engineId = object.engineId ?? ''
@@ -342,9 +341,8 @@ export const ExecConfig = {
   },
 
   create<I extends Exact<DeepPartial<ExecConfig>, I>>(base?: I): ExecConfig {
-    return ExecConfig.fromPartial(base ?? {})
+    return ExecConfig.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ExecConfig>, I>>(
     object: I,
   ): ExecConfig {

@@ -214,9 +214,8 @@ export const Cluster = {
   },
 
   create<I extends Exact<DeepPartial<Cluster>, I>>(base?: I): Cluster {
-    return Cluster.fromPartial(base ?? {})
+    return Cluster.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Cluster>, I>>(object: I): Cluster {
     const message = createBaseCluster()
     message.name = object.name ?? ''
@@ -345,9 +344,8 @@ export const ClusterCreateOp = {
   create<I extends Exact<DeepPartial<ClusterCreateOp>, I>>(
     base?: I,
   ): ClusterCreateOp {
-    return ClusterCreateOp.fromPartial(base ?? {})
+    return ClusterCreateOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterCreateOp>, I>>(
     object: I,
   ): ClusterCreateOp {
@@ -465,9 +463,8 @@ export const ClusterAssignPeerOp = {
   create<I extends Exact<DeepPartial<ClusterAssignPeerOp>, I>>(
     base?: I,
   ): ClusterAssignPeerOp {
-    return ClusterAssignPeerOp.fromPartial(base ?? {})
+    return ClusterAssignPeerOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterAssignPeerOp>, I>>(
     object: I,
   ): ClusterAssignPeerOp {
@@ -584,9 +581,8 @@ export const ClusterAssignJobOp = {
   create<I extends Exact<DeepPartial<ClusterAssignJobOp>, I>>(
     base?: I,
   ): ClusterAssignJobOp {
-    return ClusterAssignJobOp.fromPartial(base ?? {})
+    return ClusterAssignJobOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterAssignJobOp>, I>>(
     object: I,
   ): ClusterAssignJobOp {
@@ -706,9 +702,8 @@ export const ClusterAssignWorkerOp = {
   create<I extends Exact<DeepPartial<ClusterAssignWorkerOp>, I>>(
     base?: I,
   ): ClusterAssignWorkerOp {
-    return ClusterAssignWorkerOp.fromPartial(base ?? {})
+    return ClusterAssignWorkerOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterAssignWorkerOp>, I>>(
     object: I,
   ): ClusterAssignWorkerOp {
@@ -825,9 +820,8 @@ export const ClusterStartJobOp = {
   create<I extends Exact<DeepPartial<ClusterStartJobOp>, I>>(
     base?: I,
   ): ClusterStartJobOp {
-    return ClusterStartJobOp.fromPartial(base ?? {})
+    return ClusterStartJobOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterStartJobOp>, I>>(
     object: I,
   ): ClusterStartJobOp {
@@ -958,9 +952,8 @@ export const ClusterAssignTaskOp = {
   create<I extends Exact<DeepPartial<ClusterAssignTaskOp>, I>>(
     base?: I,
   ): ClusterAssignTaskOp {
-    return ClusterAssignTaskOp.fromPartial(base ?? {})
+    return ClusterAssignTaskOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterAssignTaskOp>, I>>(
     object: I,
   ): ClusterAssignTaskOp {
@@ -1081,9 +1074,8 @@ export const ClusterCompleteJobOp = {
   create<I extends Exact<DeepPartial<ClusterCompleteJobOp>, I>>(
     base?: I,
   ): ClusterCompleteJobOp {
-    return ClusterCompleteJobOp.fromPartial(base ?? {})
+    return ClusterCompleteJobOp.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ClusterCompleteJobOp>, I>>(
     object: I,
   ): ClusterCompleteJobOp {

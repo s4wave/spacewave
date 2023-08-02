@@ -287,9 +287,8 @@ export const Execution = {
   },
 
   create<I extends Exact<DeepPartial<Execution>, I>>(base?: I): Execution {
-    return Execution.fromPartial(base ?? {})
+    return Execution.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Execution>, I>>(
     object: I,
   ): Execution {
@@ -433,9 +432,8 @@ export const Spec = {
   },
 
   create<I extends Exact<DeepPartial<Spec>, I>>(base?: I): Spec {
-    return Spec.fromPartial(base ?? {})
+    return Spec.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Spec>, I>>(object: I): Spec {
     const message = createBaseSpec()
     message.peerId = object.peerId ?? ''

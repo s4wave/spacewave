@@ -390,9 +390,8 @@ export const Pass = {
   },
 
   create<I extends Exact<DeepPartial<Pass>, I>>(base?: I): Pass {
-    return Pass.fromPartial(base ?? {})
+    return Pass.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Pass>, I>>(object: I): Pass {
     const message = createBasePass()
     message.passState = object.passState ?? 0
@@ -597,9 +596,8 @@ export const ExecState = {
   },
 
   create<I extends Exact<DeepPartial<ExecState>, I>>(base?: I): ExecState {
-    return ExecState.fromPartial(base ?? {})
+    return ExecState.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ExecState>, I>>(
     object: I,
   ): ExecState {

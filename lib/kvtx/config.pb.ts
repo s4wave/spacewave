@@ -323,9 +323,8 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.ops = object.ops?.map((e) => Op.fromPartial(e)) || []
@@ -427,9 +426,8 @@ export const ConfigInput = {
   },
 
   create<I extends Exact<DeepPartial<ConfigInput>, I>>(base?: I): ConfigInput {
-    return ConfigInput.fromPartial(base ?? {})
+    return ConfigInput.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ConfigInput>, I>>(
     object: I,
   ): ConfigInput {
@@ -633,9 +631,8 @@ export const Op = {
   },
 
   create<I extends Exact<DeepPartial<Op>, I>>(base?: I): Op {
-    return Op.fromPartial(base ?? {})
+    return Op.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Op>, I>>(object: I): Op {
     const message = createBaseOp()
     message.opType = object.opType ?? 0

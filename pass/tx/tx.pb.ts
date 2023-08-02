@@ -364,9 +364,8 @@ export const Tx = {
   },
 
   create<I extends Exact<DeepPartial<Tx>, I>>(base?: I): Tx {
-    return Tx.fromPartial(base ?? {})
+    return Tx.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Tx>, I>>(object: I): Tx {
     const message = createBaseTx()
     message.txType = object.txType ?? 0
@@ -481,9 +480,8 @@ export const ExecSpec = {
   },
 
   create<I extends Exact<DeepPartial<ExecSpec>, I>>(base?: I): ExecSpec {
-    return ExecSpec.fromPartial(base ?? {})
+    return ExecSpec.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ExecSpec>, I>>(object: I): ExecSpec {
     const message = createBaseExecSpec()
     message.peerId = object.peerId ?? ''
@@ -587,9 +585,8 @@ export const TxStart = {
   },
 
   create<I extends Exact<DeepPartial<TxStart>, I>>(base?: I): TxStart {
-    return TxStart.fromPartial(base ?? {})
+    return TxStart.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxStart>, I>>(object: I): TxStart {
     const message = createBaseTxStart()
     message.createExecSpecs =
@@ -710,9 +707,8 @@ export const TxCreateExecSpecs = {
   create<I extends Exact<DeepPartial<TxCreateExecSpecs>, I>>(
     base?: I,
   ): TxCreateExecSpecs {
-    return TxCreateExecSpecs.fromPartial(base ?? {})
+    return TxCreateExecSpecs.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxCreateExecSpecs>, I>>(
     object: I,
   ): TxCreateExecSpecs {
@@ -801,9 +797,8 @@ export const TxUpdateExecStates = {
   create<I extends Exact<DeepPartial<TxUpdateExecStates>, I>>(
     base?: I,
   ): TxUpdateExecStates {
-    return TxUpdateExecStates.fromPartial(base ?? {})
+    return TxUpdateExecStates.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxUpdateExecStates>, I>>(
     _: I,
   ): TxUpdateExecStates {
@@ -918,9 +913,8 @@ export const TxComplete = {
   },
 
   create<I extends Exact<DeepPartial<TxComplete>, I>>(base?: I): TxComplete {
-    return TxComplete.fromPartial(base ?? {})
+    return TxComplete.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<TxComplete>, I>>(
     object: I,
   ): TxComplete {

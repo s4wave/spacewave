@@ -357,9 +357,8 @@ export const Target = {
   },
 
   create<I extends Exact<DeepPartial<Target>, I>>(base?: I): Target {
-    return Target.fromPartial(base ?? {})
+    return Target.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Target>, I>>(object: I): Target {
     const message = createBaseTarget()
     message.inputs = object.inputs?.map((e) => Input.fromPartial(e)) || []
@@ -560,9 +559,8 @@ export const Input = {
   },
 
   create<I extends Exact<DeepPartial<Input>, I>>(base?: I): Input {
-    return Input.fromPartial(base ?? {})
+    return Input.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Input>, I>>(object: I): Input {
     const message = createBaseInput()
     message.name = object.name ?? ''
@@ -691,9 +689,8 @@ export const InputWorld = {
   },
 
   create<I extends Exact<DeepPartial<InputWorld>, I>>(base?: I): InputWorld {
-    return InputWorld.fromPartial(base ?? {})
+    return InputWorld.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<InputWorld>, I>>(
     object: I,
   ): InputWorld {
@@ -826,9 +823,8 @@ export const InputWorldObject = {
   create<I extends Exact<DeepPartial<InputWorldObject>, I>>(
     base?: I,
   ): InputWorldObject {
-    return InputWorldObject.fromPartial(base ?? {})
+    return InputWorldObject.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<InputWorldObject>, I>>(
     object: I,
   ): InputWorldObject {
@@ -975,9 +971,8 @@ export const Output = {
   },
 
   create<I extends Exact<DeepPartial<Output>, I>>(base?: I): Output {
-    return Output.fromPartial(base ?? {})
+    return Output.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Output>, I>>(object: I): Output {
     const message = createBaseOutput()
     message.name = object.name ?? ''
@@ -1095,9 +1090,8 @@ export const Exec = {
   },
 
   create<I extends Exact<DeepPartial<Exec>, I>>(base?: I): Exec {
-    return Exec.fromPartial(base ?? {})
+    return Exec.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Exec>, I>>(object: I): Exec {
     const message = createBaseExec()
     message.disable = object.disable ?? false
@@ -1217,9 +1211,8 @@ export const ValueSet = {
   },
 
   create<I extends Exact<DeepPartial<ValueSet>, I>>(base?: I): ValueSet {
-    return ValueSet.fromPartial(base ?? {})
+    return ValueSet.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<ValueSet>, I>>(object: I): ValueSet {
     const message = createBaseValueSet()
     message.inputs = object.inputs?.map((e) => Value.fromPartial(e)) || []
