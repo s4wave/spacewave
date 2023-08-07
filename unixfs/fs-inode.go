@@ -266,7 +266,8 @@ func (i *fsInode) removeRefLocked(h *FSHandle) {
 	}
 }
 
-// checkCursorsLocked checks all cursors to see if they are released.
+// checkCursorsLocked checks cursors to see if they are released.
+// removes released cursors from the fsCursors set.
 // caller must hold fs waitSema
 func (i *fsInode) checkCursorsLocked() {
 	for len(i.fsCursors) != 0 {
@@ -329,7 +330,13 @@ func (i *fsInode) releaseLocked(err error) {
 	i.children = nil
 	i.fsOps = nil
 	i.fsOpsWait = nil
-	i.releaseFsCursors(false)
+
+	// release all fs cursors
+	i.fsOps = nil
+	for ix := len(i.fsCursors) - 1; ix >= 0; ix-- {
+		i.fsCursors[ix].Release()
+	}
+	i.fsCursors = nil
 }
 
 // releaseWithChildrenLocked releases this inode and all child inodes
@@ -362,27 +369,6 @@ func (i *fsInode) releaseWithChildrenLocked(err error) {
 
 	// finally release this node
 	i.releaseLocked(err)
-}
-
-// releaseFsCursors releases all fs cursors and fs ops
-func (i *fsInode) releaseFsCursors(recursive bool) {
-	stk := []*fsInode{i}
-
-	for len(stk) != 0 {
-		next := stk[len(stk)-1]
-		stk = stk[:len(stk)-1]
-
-		next.fsOps = nil
-		for ix := len(next.fsCursors) - 1; ix >= 0; ix-- {
-			// use separate routine to ensure no mutex contention
-			go next.fsCursors[ix].Release()
-		}
-		next.fsCursors = nil
-
-		if recursive {
-			stk = append(stk, next.children...)
-		}
-	}
 }
 
 // mergeWithNodeLocked merges the given inode into i, releasing the given inode

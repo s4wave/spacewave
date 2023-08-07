@@ -63,7 +63,7 @@ func TestHTTPHandlerController(t *testing.T) {
 
 	// wait a moment for the write to be confirmed
 	// TODO: This is a bug that currently is being fixed
-	<-time.After(time.Millisecond * 100)
+	<-time.After(time.Millisecond * 150)
 
 	// construct the AccessUnixFS handler
 	unixFsID := "test-fs"
@@ -100,6 +100,7 @@ func TestHTTPHandlerController(t *testing.T) {
 
 	// perform a test request via LookupHTTPHandler
 	busHandler := bifrost_http.NewBusHandler(tb.Bus, "test-client", false)
+
 	// /bar/ is stripped by the http handler
 	// /foo/ in the URL path is stripped by the http handler controller
 	// /bat/ is added by the FS prefixer.
