@@ -36,7 +36,7 @@ require (
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/aperturerobotics/bifrost v0.17.9 // indirect
-	github.com/aperturerobotics/util v1.5.6 // indirect
+	github.com/aperturerobotics/util v1.5.7 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

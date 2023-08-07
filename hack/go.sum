@@ -77,8 +77,8 @@ github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlz
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
 github.com/aperturerobotics/starpc v0.19.2 h1:sTPkPtL3k3t1K9OrnIHiY+zVuokoP17lTwHqrFQmZNE=
 github.com/aperturerobotics/starpc v0.19.2/go.mod h1:3VR2ZLfMvcDYDaEbS08r75G5MSlhRk9TsCdYhyAz7lc=
-github.com/aperturerobotics/util v1.5.6 h1:mQAeweQFZMUDNfGtnRLULfM3J51HRzn0fwDWqkJUsDQ=
-github.com/aperturerobotics/util v1.5.6/go.mod h1:tFWlAeONAr7zdbDKvk/bievjLXshsPFoGsRyC3nDHU4=
+github.com/aperturerobotics/util v1.5.7 h1:RzNJboTb1G5MB8z3R5HULE91QHbuTsL6Isn+dhpTz9U=
+github.com/aperturerobotics/util v1.5.7/go.mod h1:tFWlAeONAr7zdbDKvk/bievjLXshsPFoGsRyC3nDHU4=
 github.com/ashanbrown/forbidigo v1.5.3 h1:jfg+fkm/snMx+V9FBwsl1d340BV/99kZGv5jN9hBoXk=
 github.com/ashanbrown/forbidigo v1.5.3/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=

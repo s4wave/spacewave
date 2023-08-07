@@ -47,9 +47,9 @@
     "@typescript-eslint/parser": "^6.2.1",
     "depcheck": "^1.4.3",
     "eslint": "^8.46.0",
-    "eslint-config-prettier": "^8.9.0",
+    "eslint-config-prettier": "^9.0.0",
     "patch-package": "^8.0.0",
-    "prettier": "^3.0.0",
+    "prettier": "^3.0.1",
     "ts-proto": "^1.156.2",
     "typescript": "^5.1.6"
   },
