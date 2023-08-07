@@ -124,9 +124,10 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 	// unlock waitSema for now
 	i.f.waitSema.Release(1)
 
-	// trigger the goroutine to fetch, then wait
+	// we are the routine that will perform the fetch.
 	if !waiting {
-		go i.resolveOpsRoutine(fsOpsWait)
+		// go i.resolveOpsRoutine(fsOpsWait)
+		i.resolveOpsRoutine(fsOpsWait)
 	}
 
 	// if waiting, wait for other resolve process to complete

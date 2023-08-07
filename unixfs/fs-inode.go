@@ -332,11 +332,11 @@ func (i *fsInode) releaseLocked(err error) {
 	i.fsOpsWait = nil
 
 	// release all fs cursors
-	i.fsOps = nil
-	for ix := len(i.fsCursors) - 1; ix >= 0; ix-- {
-		i.fsCursors[ix].Release()
-	}
+	cursors := i.fsCursors
 	i.fsCursors = nil
+	for ix := len(cursors) - 1; ix >= 0; ix-- {
+		cursors[ix].Release()
+	}
 }
 
 // releaseWithChildrenLocked releases this inode and all child inodes
