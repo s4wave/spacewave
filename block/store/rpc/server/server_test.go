@@ -96,7 +96,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	defer lookupCtrlRel.Release()
 
 	// Lookup the block store
-	st, _, stRef, err := block_store.ExLookupFirstBlockStore(ctx, clientTb.Bus, clientBlockStoreID, true, nil)
+	st, _, stRef, err := block_store.ExLookupFirstBlockStore(ctx, clientTb.Bus, clientBlockStoreID, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
