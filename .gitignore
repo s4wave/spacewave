@@ -23,5 +23,5 @@ yarn-error.log*
 !.vscode/launch.json
 
 vendor/
-debug.test
+debug.test*
 __debug_bin

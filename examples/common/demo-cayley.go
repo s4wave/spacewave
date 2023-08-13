@@ -167,11 +167,9 @@ func RunDemoCayley(
 	le.Info("writing second round of quads")
 	t := graph.NewTransaction()
 	t.AddQuad(quad.Make("food", "is", "good", nil))
+	t.AddQuad(quad.Make("food", "has", "calories", nil))
 	t.AddQuad(quad.Make("cats", "are", "awesome", nil))
-	t.AddQuad(quad.Make("cats", "are", "scary", nil))
-	t.AddQuad(quad.Make("food", "want to", "kill you", "actually"))
-	t.AddQuad(quad.Make("cats", "want to", "kill you", nil))
-	t.AddQuad(quad.Make("cats", "want to", "love you", "really"))
+	t.AddQuad(quad.Make("cats", "type", "animal", "feline"))
 	if err := store.ApplyTransaction(ctx, t); err != nil {
 		return err
 	}
