@@ -33,9 +33,9 @@ type SqlTransaction interface {
 
 // SqlOps are operations on the SQL DB transaction.
 type SqlOps interface {
-	driver.Execer
+	driver.Execer //nolint:staticcheck
 	driver.ExecerContext
 
-	driver.Queryer
+	driver.Queryer //nolint:staticcheck
 	driver.QueryerContext
 }

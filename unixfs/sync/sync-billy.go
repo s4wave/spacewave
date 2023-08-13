@@ -82,13 +82,12 @@ func syncToBillyOnce(
 	}
 
 	stack := make([]stackElem, 0, 10)
-	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) error {
+	pushStack := func(fsHandle *unixfs.FSHandle, srcPath, outPath string) {
 		stack = append(stack, stackElem{
 			fsHandle: fsHandle,
 			srcPath:  srcPath,
 			outPath:  outPath,
 		})
-		return nil
 	}
 	releaseElem := func(elem stackElem) {
 		if elem.srcPath != "" {

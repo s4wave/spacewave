@@ -15,9 +15,9 @@ require (
 
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/hydra v0.0.0-20230613220155-27f1a4aade34
-	github.com/aperturerobotics/starpc v0.19.2
-	github.com/evanw/esbuild v0.18.5
+	github.com/aperturerobotics/hydra v0.0.0-20230813010420-ebaf779ff24d
+	github.com/aperturerobotics/starpc v0.19.3
+	github.com/evanw/esbuild v0.19.1
 )
 
 require (
@@ -36,7 +36,7 @@ require (
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/aperturerobotics/bifrost v0.17.11-0.20230811212255-cf08a03ce5a2 // indirect
-	github.com/aperturerobotics/util v1.5.10-0.20230811212154-d8e6b35d5721 // indirect
+	github.com/aperturerobotics/util v1.7.0 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

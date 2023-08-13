@@ -31,7 +31,6 @@ type loadedBucket struct {
 	lastState             *loadedBucketState
 	bucketConf            *bucket.Config
 	lookupCtrlRef         bucket_lookup.Controller
-	nrefID                uint32
 	volumes               *keyed.Keyed[string, *loadedBucketVolume]
 	bucketHandleSetPushed bool
 	bucketHandleSetDirty  bool

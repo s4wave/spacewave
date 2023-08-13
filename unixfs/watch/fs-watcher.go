@@ -125,7 +125,7 @@ func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 			case <-waitCh:
 			case <-waitCursorChanged:
 			}
-			waitCh, waitCursorChanged = nil, nil
+			waitCh, waitCursorChanged = nil, nil //nolint:ineffassign
 		} else {
 			select {
 			case <-ctx.Done():

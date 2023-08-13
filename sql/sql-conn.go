@@ -17,9 +17,7 @@ type SqlConn interface {
 
 	driver.SessionResetter
 	driver.Validator
-	driver.Execer
 	driver.ExecerContext
-	driver.Queryer
 	driver.QueryerContext
 }
 

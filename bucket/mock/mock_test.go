@@ -191,7 +191,7 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	btx, bcs = nc.BuildTransaction(nil)
+	_, bcs = nc.BuildTransaction(nil)
 	ex, err := block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
 	if err != nil {
 		t.Fatal(err.Error())

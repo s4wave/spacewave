@@ -44,7 +44,7 @@ func TestMsgpackBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	btx, bcs = oc.BuildTransactionAtRef(nil, blockRef)
+	_, bcs = oc.BuildTransactionAtRef(nil, blockRef)
 	ublk, err := UnmarshalMsgpackBlock(ctx, bcs, func() *testObject {
 		return &testObject{}
 	})

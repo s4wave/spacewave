@@ -74,12 +74,12 @@ func (t *BlockTx) DeleteCursorAtKey(ctx context.Context, key []byte) (rbcs *bloc
 			rerr,
 		)
 	}()
-	return t.DeleteCursorAtKey(ctx, key)
+	return t.btx.DeleteCursorAtKey(ctx, key)
 }
 
 // BlockIterate returns the block iterator.
 func (t *BlockTx) BlockIterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.BlockIterator {
-	ii := t.iter.Add(1) - 1
+	ii := t.blockIter.Add(1) - 1
 	it := t.btx.BlockIterate(ctx, prefix, sort, reverse)
 	t.le.Debugf(
 		"BlockIterate(%s, %v, %v) => it(%d)",

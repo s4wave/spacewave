@@ -36,7 +36,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.28.7-0.20230811212143-b5ce5a64708e // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
-	github.com/aperturerobotics/starpc v0.19.2 // latest
+	github.com/aperturerobotics/starpc v0.19.3 // latest
 )
 
 // aperture: use compatibility forks
@@ -56,7 +56,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.6.0 // master
+	github.com/aperturerobotics/util v1.7.0 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect

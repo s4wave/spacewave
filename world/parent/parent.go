@@ -108,8 +108,7 @@ func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
 	lookupQuad := p.BuildParentQuad(key, "")
 	var delta []graph.Delta
 	if err := p.world.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
-		var err error
-		err = world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {
+		err := world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {
 			delta = append(delta, graph.Delta{
 				Quad:   q,
 				Action: graph.Delete,

@@ -3,8 +3,8 @@ package file
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"io"
-	"math/rand"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/block"
@@ -110,9 +110,9 @@ func TestMultiRangeReader(t *testing.T) {
 	r1Data := make([]byte, 100)
 	r2Data := make([]byte, 40)
 	r3Data := make([]byte, 10)
-	rand.Read(r1Data)
-	rand.Read(r2Data)
-	rand.Read(r3Data)
+	_, _ = rand.Read(r1Data)
+	_, _ = rand.Read(r2Data)
+	_, _ = rand.Read(r3Data)
 
 	r2Start := 40
 	r3Start := 50
@@ -201,7 +201,7 @@ func TestRandomReads(t *testing.T) {
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 
 	expectedData := make([]byte, 1e6)
-	rand.Read(expectedData)
+	_, _ = rand.Read(expectedData)
 
 	_, err := BuildFileWithBytes(ctx, bcs, expectedData, nil)
 	if err != nil {

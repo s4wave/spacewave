@@ -55,7 +55,9 @@ func (h *FibbonaciHeap) Enqueue(ctx context.Context, key []byte, priority float6
 		Prev:     key,
 		Priority: priority,
 	}
-	tx.entryCache.Set(ctx, key, entry)
+	if err := tx.entryCache.Set(ctx, key, entry); err != nil {
+		return err
+	}
 
 	minID := tx.root.Min
 	var min *Entry

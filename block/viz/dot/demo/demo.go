@@ -119,6 +119,10 @@ func runDemo() error {
 
 	btx, bcs := oc.BuildTransactionAtRef(nil, tr.GetRootNodeRef().GetRootRef())
 	rn, err := block.UnmarshalBlock[*iavl.Node](ctx, bcs, iavl.NewNodeBlock)
+	if err != nil {
+		return err
+	}
+
 	err = dot.PlotToFile(ctx, "demo.dot", rn, btx, bcs, nil)
 	if err != nil {
 		return err

@@ -75,10 +75,10 @@ github.com/aperturerobotics/bifrost v0.17.11-0.20230811212255-cf08a03ce5a2 h1:bE
 github.com/aperturerobotics/bifrost v0.17.11-0.20230811212255-cf08a03ce5a2/go.mod h1:XeZxw2S9+Lt8Ig04frrI4uZlyKxvYRnWXrYVxld/g00=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/starpc v0.19.2 h1:sTPkPtL3k3t1K9OrnIHiY+zVuokoP17lTwHqrFQmZNE=
-github.com/aperturerobotics/starpc v0.19.2/go.mod h1:3VR2ZLfMvcDYDaEbS08r75G5MSlhRk9TsCdYhyAz7lc=
-github.com/aperturerobotics/util v1.5.10-0.20230811212154-d8e6b35d5721 h1:z9vKLwGDncXTF/tF77afq99+uwlyG03P3sS9NERcSqw=
-github.com/aperturerobotics/util v1.5.10-0.20230811212154-d8e6b35d5721/go.mod h1:tFWlAeONAr7zdbDKvk/bievjLXshsPFoGsRyC3nDHU4=
+github.com/aperturerobotics/starpc v0.19.3 h1:yBpEigRNkH7sIL454gS3aoz/bYj75A3tjfrmuua77SU=
+github.com/aperturerobotics/starpc v0.19.3/go.mod h1:GYQvV9yVOxLvT0odGUsLRD6kN309tXwnPBjOgykX/iI=
+github.com/aperturerobotics/util v1.7.0 h1:3lJIPozX66yMF5zanEB6XO+PUcpnA+7cXmbO8Tdwl3g=
+github.com/aperturerobotics/util v1.7.0/go.mod h1:tFWlAeONAr7zdbDKvk/bievjLXshsPFoGsRyC3nDHU4=
 github.com/ashanbrown/forbidigo v1.5.3 h1:jfg+fkm/snMx+V9FBwsl1d340BV/99kZGv5jN9hBoXk=
 github.com/ashanbrown/forbidigo v1.5.3/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=
@@ -138,8 +138,8 @@ github.com/esimonov/ifshort v1.0.4 h1:6SID4yGWfRae/M7hkVDVVyppy8q/v9OuxNdmjLQStB
 github.com/esimonov/ifshort v1.0.4/go.mod h1:Pe8zjlRrJ80+q2CxHLfEOfTwxCZ4O+MuhcHcfgNWTk0=
 github.com/ettle/strcase v0.1.1 h1:htFueZyVeE1XNnMEfbqp5r67qAN/4r6ya1ysq8Q+Zcw=
 github.com/ettle/strcase v0.1.1/go.mod h1:hzDLsPC7/lwKyBOywSHEP89nt2pDgdy+No1NBA9o9VY=
-github.com/evanw/esbuild v0.18.5 h1:B474TK1dD7ZQJOEE7BKqCmTerOYEIzxVH35UY4MOM0s=
-github.com/evanw/esbuild v0.18.5/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
+github.com/evanw/esbuild v0.19.1 h1:ZW1bp7IMjL1VB7PfDZUEJyM2NJKj8VpDDdJWAC8yjsM=
+github.com/evanw/esbuild v0.19.1/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/fatih/color v1.15.0 h1:kOqh6YHBtK8aywxGerMG2Eq3H6Qgoqeo13Bk2Mv/nBs=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
 github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=

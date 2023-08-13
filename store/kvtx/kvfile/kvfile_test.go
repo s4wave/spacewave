@@ -36,7 +36,9 @@ func TestKvfile(t *testing.T) {
 		nil,
 	).(*store_kvtx.KVTx)
 	writeKtxCtx, writeKtxCancel := context.WithCancel(ctx)
-	go writeKtx.Execute(writeKtxCtx)
+	go func() {
+		_ = writeKtx.Execute(writeKtxCtx)
+	}()
 
 	testPeer, err := peer.NewPeer(nil)
 	if err != nil {

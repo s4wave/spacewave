@@ -2,14 +2,10 @@ package volume_controller
 
 import (
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/volume"
 )
-
-// debounceBuildBucketAPI is the max rate to retry second time.
-const debounceBuildBucketAPI = time.Millisecond * 500
 
 // buildBucketAPIResolver resolves BuildBucketAPI directives
 type buildBucketAPIResolver struct {

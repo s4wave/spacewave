@@ -21,7 +21,9 @@ func TestBlockStoreRistretto(t *testing.T) {
 	storeProm, storeRef := ctrl.AddBlockStoreRef()
 	defer storeRef.Release()
 
-	go ctrl.Execute(ctx)
+	go func() {
+		_ = ctrl.Execute(ctx)
+	}()
 
 	clientPtr, err := storeProm.Await(ctx)
 	if err != nil {

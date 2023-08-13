@@ -81,7 +81,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	checkMethod := func(expected string) bool {
 		if req.Method != expected {
 			rw.WriteHeader(405)
-			rw.Write([]byte("method not allowed: " + req.Method))
+			_, _ = rw.Write([]byte("method not allowed: " + req.Method))
 			return false
 		}
 		return true
@@ -94,7 +94,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		if len(pathPts) != 2 {
 			rw.WriteHeader(404)
-			rw.Write([]byte("not found"))
+			_, _ = rw.Write([]byte("not found"))
 			return
 		}
 		ref := parseRef(pathPts[1])
@@ -252,7 +252,7 @@ func (h *HTTPBlockServer) writeResponse(rw http.ResponseWriter, msg block.Block,
 	respData, err := msg.MarshalBlock()
 	if err != nil {
 		rw.WriteHeader(500)
-		rw.Write([]byte(err.Error()))
+		_, _ = rw.Write([]byte(err.Error()))
 		return
 	}
 

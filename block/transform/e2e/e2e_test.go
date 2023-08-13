@@ -2,7 +2,7 @@ package e2e_test
 
 import (
 	"bytes"
-	"math/rand"
+	"crypto/rand"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
@@ -17,7 +17,7 @@ import (
 // randData returns a random data sample.
 func randData(l int) []byte {
 	m := make([]byte, l)
-	rand.Read(m)
+	_, _ = rand.Read(m)
 	return m
 }
 

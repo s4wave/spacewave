@@ -35,7 +35,8 @@ type WatchLoopHandler = func(
 	le *logrus.Entry,
 	world world.WorldState,
 	obj world.ObjectState, // may be nil if not found or objkey is empty
-	rootRef *bucket.ObjectRef, rev uint64,
+	rootRef *bucket.ObjectRef, // may be nil if not found or objkey is empty
+	objRev uint64, // may be nil if not found or objkey is empty
 ) (waitForChanges bool, err error)
 
 // NewWatchLoop constructs a new Control Loop which looks up an Engine on the
