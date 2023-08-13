@@ -16,7 +16,7 @@ func BuildTestbed(
 	objKey string,
 	watchWorldChanges bool,
 	opts ...world_testbed.Option,
-) (*unixfs.FS, *world_testbed.Testbed, error) {
+) (*unixfs.FSHandle, *world_testbed.Testbed, error) {
 	wtb, err := world_testbed.NewTestbed(tb, opts...)
 	if err != nil {
 		return nil, nil, err
@@ -31,11 +31,13 @@ func BuildTestbed(
 }
 
 // InitTestbed inits the testbed with a new fs.
+//
+// if watchWorldChanges is nil the fs will be read-only
 func InitTestbed(
 	tb *world_testbed.Testbed,
 	objKey string,
 	watchWorldChanges bool,
-) (*unixfs.FS, error) {
+) (*unixfs.FSHandle, error) {
 	ctx := tb.Context
 
 	// provide op handlers to bus
@@ -56,7 +58,7 @@ func InitTestbed(
 	sender := tb.Volume.GetPeerID()
 	fsType := FSType_FSType_FS_NODE
 	typeID, _ := FSTypeToTypeID(fsType)
-	err := FsInit(
+	_, _, err := FsInit(
 		ctx,
 		ws,
 		sender,
@@ -78,8 +80,9 @@ func InitTestbed(
 
 	// construct full fs
 	tb.Logger.Debug("filesystem initialized")
-	writer := NewFSWriter(ws, objKey, fsType, sender)
-	rootFSCursor := NewFSCursor(tb.Logger, ws, objKey, fsType, writer, watchWorldChanges)
-	ufs := unixfs.NewFS(ctx, tb.Logger, rootFSCursor, nil)
-	return ufs, nil
+	rootFSCursor, err := FollowUnixfsRef(ctx, tb.Logger, ws, &UnixfsRef{ObjectKey: objKey}, sender, watchWorldChanges)
+	if err != nil {
+		return nil, err
+	}
+	return unixfs.NewFSHandle(rootFSCursor)
 }

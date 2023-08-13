@@ -33,14 +33,8 @@ func TestCheckout(t *testing.T) {
 	}
 	defer wtb.Release()
 
-	rref, err := wfs.AddRootReference(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer rref.Release()
-
 	ts := time.Now()
-	bfs := unixfs.NewBillyFS(ctx, rref, "", ts)
+	bfs := unixfs.NewBillyFS(ctx, wfs, "", ts)
 
 	testFile := "test.txt"
 	testData := []byte("Hello world!")
@@ -49,12 +43,8 @@ func TestCheckout(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// TODO: requires a slight delay for the fscursors to update
-	// TODO: This is a bug that currently is being fixed
-	time.Sleep(time.Millisecond * 5)
-
 	outFs := memfs.New()
-	err = CheckoutToBilly(ctx, outFs, rref, nil)
+	err = CheckoutToBilly(ctx, outFs, wfs, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

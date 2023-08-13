@@ -22,13 +22,12 @@ func FsCopy(
 	objKey string, fsType FSType,
 	srcPath, destPath []string,
 	ts time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	bpaths := unixfs_block.StringSlicesToPaths([][]string{srcPath, destPath})
 
 	// perform the fs copy operation
 	wOp := NewFsCopyOp(objKey, fsType, bpaths[0], bpaths[1], ts)
-	_, _, err := ws.ApplyWorldOp(ctx, wOp, sender)
-	return err
+	return ws.ApplyWorldOp(ctx, wOp, sender)
 }
 
 // FsCopyOpId is the unixfs copy op id.

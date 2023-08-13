@@ -14,7 +14,6 @@ func TestFSCursor(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
 
 	ifs, expectedFiles := iofs_mock.NewMockIoFS()
 	fsc, err := NewFSCursor(ifs)
@@ -22,8 +21,7 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	fsRoot := unixfs.NewFS(ctx, le, fsc, nil)
-	handle, err := fsRoot.AddRootReference(ctx)
+	handle, err := unixfs.NewFSHandle(fsc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

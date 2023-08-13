@@ -83,8 +83,7 @@ func SetPermissions(root *FSTree, paths [][]string, permissions fs.FileMode, ts 
 		if err != nil {
 			return err
 		}
-		node.node.ModTime = ts
-		return nil
+		return node.SetModTimestamp(ts)
 	})
 }
 
@@ -94,8 +93,7 @@ func SetModTimestamp(root *FSTree, paths [][]string, ts *timestamp.Timestamp) er
 		ts = &timestamp.Timestamp{}
 	}
 	return VisitPaths(root, false, paths, func(path []string, node *FSTree) error {
-		node.node.ModTime = ts
-		return nil
+		return node.SetModTimestamp(ts)
 	})
 }
 
@@ -232,6 +230,7 @@ func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *tim
 	ts = FillPlaceholderTimestamp(ts)
 
 	// source path cannot be a parent of destination path
+	// TODO: change this to check the parents recursively (handles symlinks)
 	if PathContains(srcPath, destPath) {
 		return unixfs_errors.ErrMoveToSelf
 	}

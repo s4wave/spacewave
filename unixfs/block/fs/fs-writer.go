@@ -18,7 +18,7 @@ type FSWriter struct {
 	ts *timestamp.Timestamp
 }
 
-// NewFSWriter is a writer which applies changes to a rootCursor.
+// NewFSWriter is a writer which applies changes to a cursor.
 // Note: call SetFS before writer is used.
 func NewFSWriter() *FSWriter {
 	return &FSWriter{}
@@ -126,10 +126,14 @@ func (f *FSWriter) applyOp(
 	ctx context.Context,
 	cb func(ft *unixfs_block.FSTree, wr *unixfs_block.FSWriter) error,
 ) error {
+	rel, err := f.fs.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer rel()
+
 	// build root tx
-	f.fs.rmtx.Lock()
-	fsTree, bcs, btx, err := f.fs.buildRootTx()
-	f.fs.rmtx.Unlock()
+	fsTree, bcs, btx, err := f.fs.buildRootTxLocked()
 	if err == nil {
 		wr := unixfs_block.NewFSWriter(fsTree)
 		err = cb(fsTree, wr)
@@ -138,14 +142,18 @@ func (f *FSWriter) applyOp(
 		return err
 	}
 
+	// write block transaction
 	oldRoot := bcs.GetRef()
 	nroot, _, err := btx.Write(true)
 	if err != nil {
 		return err
 	}
 	if !nroot.EqualsRef(oldRoot) {
-		f.fs.UpdateRootRef(nroot)
+		if err := f.fs.updateRootRefLocked(nroot); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 

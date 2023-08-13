@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"context"
-	"math"
 	"os"
 	"time"
 
@@ -35,9 +34,11 @@ func FsOpsToAttr(ctx context.Context, node *unixfs.FSHandle, out *fuse.Attr) err
 	if nt.GetIsFile() {
 		size := fileInfo.Size()
 		out.Size = uint64(size)
-		// round up # of blocks
+
+		// The blocks size must be calculated correctly:
+		// (out.Size + blockSize - 1) / blockSize
 		if size != 0 {
-			out.Blocks = uint64(math.Ceil(float64(size) / float64(refBlockSize)))
+			out.Blocks = (out.Size + refBlockSize - 1) / refBlockSize
 		}
 
 		// note: this field is most likely ignored by the kernel

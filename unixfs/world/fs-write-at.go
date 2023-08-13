@@ -24,7 +24,7 @@ func FsWriteAt(
 	offset int64,
 	data []byte,
 	ts time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	fpath := unixfs_block.NewFSPath(path)
 	// writes to the blb object
 	blbObjRef, err := world.AccessObject(ctx, obj.AccessWorldState, nil, func(bcs *block.Cursor) error {
@@ -33,11 +33,10 @@ func FsWriteAt(
 		return err
 	})
 	if err != nil {
-		return err
+		return 0, true, err
 	}
 	wOp := NewFsWriteAtOp("", fsType, fpath, offset, blbObjRef.GetRootRef(), ts)
-	_, _, err = world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
-	return err
+	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }
 
 // FsWriteAtOpId is the operation id.

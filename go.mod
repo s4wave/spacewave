@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/hydra
 
-go 1.20
+go 1.21
 
 require github.com/aperturerobotics/bifrost v0.17.11-0.20230811212255-cf08a03ce5a2 // master
 

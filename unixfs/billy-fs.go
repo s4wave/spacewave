@@ -174,10 +174,6 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			return nil, err
 		}
 
-		// TODO: requires a slight delay for the fscursors to update
-		// TODO: This is a bug that currently is being fixed
-		time.Sleep(time.Millisecond * 5)
-
 		// re-open the file again
 		fileHandle, err = h.Lookup(f.ctx, filename)
 		if err == unixfs_errors.ErrNotExist {
@@ -259,7 +255,7 @@ func (f *BillyFS) ReadDir(mpath string) ([]os.FileInfo, error) {
 func (f *BillyFS) MkdirAll(filepath string, perm os.FileMode) error {
 	// lookup and/or create all path components
 	ts := f.timestamp()
-	return f.h.MkdirAll(f.ctx, filepath, perm, ts)
+	return f.h.MkdirAllPath(f.ctx, filepath, perm, ts)
 }
 
 /* TODO: symlink support

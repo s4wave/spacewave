@@ -22,11 +22,10 @@ func FsTruncate(
 	path []string,
 	size int64,
 	ts time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	fpath := unixfs_block.NewFSPath(path)
 	wOp := NewFsTruncateOp("", fsType, fpath, size, ts)
-	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
-	return err
+	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }
 
 // FsTruncateOpId is the operation id.

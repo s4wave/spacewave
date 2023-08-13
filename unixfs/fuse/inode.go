@@ -4,6 +4,7 @@ import (
 	"context"
 	ofs "io/fs"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -25,6 +26,7 @@ type Inode struct {
 	h        *unixfs.FSHandle
 	rfs      *RootFS
 	parent   *Inode
+	attrFn   atomic.Pointer[func(ctx context.Context, attr *fuse.Attr) error]
 	mtx      sync.Mutex
 	children map[string]*Inode
 }
@@ -61,14 +63,18 @@ func (i *Inode) GetNodeType(ctx context.Context) (unixfs.FSCursorNodeType, error
 
 // Attr fills attr with the standard metadata for the node.
 //
-// Fields with reasonable defaults are prepopulated. For example,
-// all times are set to a fixed moment when the program started.
+// The FUSE library will set the inode number in attr.
 //
-// If Inode is left as 0, a dynamic inode number is chosen.
-//
-// The result may be cached for the duration set in Valid.
+// The result may be cached by the kernel for the duration set in Valid.
 func (i *Inode) Attr(ctx context.Context, attr *fuse.Attr) error {
 	err := FsOpsToAttr(ctx, i.h, attr)
+	// if a handle is active, be sure to include the Size from pending writes in the Attr.
+	if fn := i.attrFn.Load(); fn != nil {
+		if err := (*fn)(ctx, attr); err != nil {
+			return err
+		}
+	}
+	i.rfs.le.Warnf("Attr() -> %v", attr.String())
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		err = UnixfsErrorToSyscall(err)
@@ -498,7 +504,7 @@ func (i *Inode) handleInodeChanged(ch *unixfs.FSCursorChange) bool {
 
 // _ is a type assertion
 var (
-	// _ fs.NodeGetattrer is unnecessary!
+	// _ fs.NodeGetattrer is unnecessary: the FUSE library will fill values from Attr().
 
 	// Methods returning Node should take care to return the same Node when the
 	// result is logically the same instance. Without this, each Node will get a

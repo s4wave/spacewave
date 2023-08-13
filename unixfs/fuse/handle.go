@@ -9,7 +9,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
-	"golang.org/x/sync/semaphore"
+	"github.com/aperturerobotics/util/csync"
 )
 
 // Handle wraps unixfs.InodeReference to provide FUSE file/dir handle calls.
@@ -18,8 +18,8 @@ type Handle struct {
 	inode     *Inode
 	openFlags fuse.OpenFlags
 
-	// sema guards below fields
-	sema *semaphore.Weighted
+	// rmtx guards below fields
+	rmtx csync.RWMutex
 
 	// writeSize is the minimum size of each write.
 	// should be a multiple of 4096.
@@ -54,14 +54,45 @@ type pendingWrite struct {
 
 // NewHandle constructs a new inode handle.
 func NewHandle(inode *Inode, openFlags fuse.OpenFlags) *Handle {
-	return &Handle{
+	h := &Handle{
 		inode:     inode,
 		openFlags: openFlags,
-		sema:      semaphore.NewWeighted(1),
 
 		writeBuf: &pendingWrite{},
 		xmitBuf:  &pendingWrite{},
 	}
+	adjustAddr := h.adjustInodeAttr
+	inode.attrFn.Store(&adjustAddr)
+	return h
+}
+
+// adjustInodeAttr is called by the inode in Attr.
+func (h *Handle) adjustInodeAttr(ctx context.Context, attr *fuse.Attr) error {
+	rel, err := h.rmtx.Lock(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer rel()
+
+	var writeBufEnd uint64
+	if wb := h.writeBuf; wb != nil {
+		writeBufEnd = uint64(wb.offset) + uint64(len(wb.buf))
+	}
+	var xmitBufEnd uint64
+	if xb := h.xmitBuf; xb != nil {
+		xmitBufEnd = uint64(xb.offset) + uint64(len(xb.buf))
+	}
+
+	fileSize := max(writeBufEnd, xmitBufEnd, attr.Size)
+	if attr.Size != fileSize {
+		attr.Size = fileSize
+
+		// The blocks size must be calculated correctly:
+		// (out.Size + blockSize - 1) / blockSize
+		attr.Blocks = (fileSize + refBlockSize - 1) / refBlockSize
+	}
+
+	return nil
 }
 
 // ReadDirAll handles the readdir call.
@@ -87,13 +118,20 @@ func (h *Handle) Read(
 	size, offset := int64(req.Size), req.Offset
 	buf := make([]byte, int(size))
 
-	// Attempt to read from pending write buffers first.
-	//  - writeBuf
-	//  - xmitBuf
-	if err := h.sema.Acquire(ctx, 1); err != nil {
+	rel, err := h.rmtx.Lock(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer rel()
+
+	if err != nil {
 		h.inode.rfs.logFilesystemError(err)
 		return UnixfsErrorToSyscall(err)
 	}
+
+	// Attempt to read from pending write buffers first.
+	//  - writeBuf
+	//  - xmitBuf
 
 	pos := offset
 	xbBuf, xbLen, xbOffset := h.xmitBuf, len(h.xmitBuf.buf), h.xmitBuf.offset
@@ -124,7 +162,6 @@ func (h *Handle) Read(
 		pos += readLen
 		// toRead -= readLen
 	}
-	h.sema.Release(1)
 
 	// Read the remaining data directly from the inode.
 	for nread < int64(size) {
@@ -144,6 +181,7 @@ func (h *Handle) Read(
 		// not possible to read past end of the buffer
 		nread = size
 	}
+
 	resp.Data = buf[:nread]
 	return nil
 }
@@ -174,17 +212,22 @@ func (h *Handle) Write(
 	data, offset, ts := req.Data, req.Offset, time.Now()
 	totalWriteSize := len(data)
 
-	// if O_SYNC is set:
-	// - lock sema
-	// - call Write directly
-	// - unlock sema
+	rel, err := h.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		rel()
+	}()
+
+	// if O_SYNC is set, call Write directly
 	if isSync {
 		err := h.inode.h.WriteAt(ctx, offset, data, ts)
-		h.sema.Release(1)
 		if err != nil {
 			h.inode.rfs.logFilesystemError(err)
 			return UnixfsErrorToSyscall(err)
 		}
+
 		resp.Size = len(data)
 		return nil
 	}
@@ -195,39 +238,31 @@ func (h *Handle) Write(
 		if xmiting == nil {
 			return nil
 		}
-		h.sema.Release(1)
+		rel()
 		select {
 		case <-ctx.Done():
 			return UnixfsErrorToSyscall(ctx.Err())
 		case <-xmiting:
 		}
 		// re-lock the sema before continuing
-		if err := h.sema.Acquire(ctx, 1); err != nil {
+		rel, err = h.rmtx.Lock(ctx, true)
+		if err != nil {
 			h.inode.rfs.logFilesystemError(err)
 			return UnixfsErrorToSyscall(err)
 		}
 		return nil
 	}
 
-	// the following routine attempts to asynchronously write the data
-	// waits if necessary: usually in the case of non-sequential writes
-	if err := h.sema.Acquire(ctx, 1); err != nil {
-		h.inode.rfs.logFilesystemError(err)
-		return UnixfsErrorToSyscall(err)
-	}
-
 	if h.writeErr != nil {
 		// return deferred write error
 		err := h.writeErr
 		h.writeErr = nil
-		h.sema.Release(1)
 		h.inode.rfs.logFilesystemError(err)
 		return UnixfsErrorToSyscall(err)
 	}
 
 	optimalWriteSize, err := h.getOptimalWriteSize(ctx)
 	if err != nil {
-		h.sema.Release(1)
 		return err
 	}
 
@@ -297,7 +332,6 @@ func (h *Handle) Write(
 			}
 		}
 	}
-	h.sema.Release(1)
 
 	resp.Size = totalWriteSize
 	return nil
@@ -335,9 +369,11 @@ func (h *Handle) xmitData(xmit *pendingWrite, xmiting chan struct{}) {
 	ctx := h.inode.rfs.ctx
 	xmitOffset, xmitBuf, xmitTs := xmit.offset, xmit.buf, xmit.ts
 	err := h.inode.h.WriteAt(ctx, xmitOffset, xmitBuf, xmitTs)
-	if err := h.sema.Acquire(ctx, 1); err != nil {
+	rel, lockErr := h.rmtx.Lock(context.Background(), true)
+	if lockErr != nil {
 		return
 	}
+	defer rel()
 	if h.xmiting == xmiting {
 		h.xmiting = nil
 		h.xmitBuf.buf = h.xmitBuf.buf[:0]
@@ -353,7 +389,7 @@ func (h *Handle) xmitData(xmit *pendingWrite, xmiting chan struct{}) {
 	}
 	// start next write cycle
 	_ = h.checkOrStartXmit(true)
-	h.sema.Release(1)
+	rel() // release before close to prevent mtx contention
 	close(xmiting)
 }
 
@@ -367,27 +403,28 @@ func (h *Handle) FlushWrites(ctx context.Context) error {
 
 	// flush twice to ensure both writeBuf and xmitBuf are written
 	for i := 0; i < 2; i++ {
-		if err := h.sema.Acquire(ctx, 1); err != nil {
+		rel, err := h.rmtx.Lock(ctx, true)
+		if err != nil {
 			return err
 		}
 		// return any write error
 		if err := h.writeErr; err != nil {
 			h.writeErr = nil
-			h.sema.Release(1)
+			rel()
 			return err
 		}
 
 		// start transmitting
 		isXmit := h.checkOrStartXmit(true)
 		if !isXmit {
-			h.sema.Release(1)
+			rel()
 			break
 		}
 
 		// wait for transmit to complete
 		xmiting := h.xmiting
 		hasMore := len(h.writeBuf.buf) != 0
-		h.sema.Release(1)
+		rel()
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -397,6 +434,7 @@ func (h *Handle) FlushWrites(ctx context.Context) error {
 			break
 		}
 	}
+
 	return nil
 }
 

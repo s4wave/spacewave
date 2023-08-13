@@ -91,11 +91,11 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	return nil, nil
 }
 
-// GetFSCursorOps returns the interface implementing FSCursorOps.
+// GetCursorOps returns the interface implementing FSCursorOps.
 // Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
 // Return nil, nil to indicate this position is null (nothing here).
 // Return nil, ErrReleased to indicate this FSCursor was released.
-func (f *FSCursor) GetFSCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
+func (f *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}

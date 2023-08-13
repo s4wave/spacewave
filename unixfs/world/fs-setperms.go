@@ -22,11 +22,10 @@ func FsSetPermissions(
 	paths [][]string,
 	perms fs.FileMode,
 	ts time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsSetPermissionsOp("", fsType, bpaths, perms, ts)
-	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
-	return err
+	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }
 
 // FsSetPermissionsOpId is the operation id.

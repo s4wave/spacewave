@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"testing"
-	"time"
 
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -33,21 +32,11 @@ func TestSyncFromGitWorkdir(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	watchWorldChanges := false // TODO: test with both false/true
-	ufs, err := unixfs_world.InitTestbed(wtb, objKey, watchWorldChanges)
+	watchWorldChanges := true
+	fsHandle, err := unixfs_world.InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	fsHandle, err := ufs.AddRootReference(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer fsHandle.Release()
-
-	ts := time.Now()
-	_ = ts
-	_ = fsHandle
 
 	wd, err := os.Getwd()
 	if err != nil {

@@ -68,10 +68,7 @@ func SyncFromFS(
 	}
 	defer srcCursor.Release()
 
-	diskFS := unixfs.NewFS(ctx, nil, srcCursor, nil)
-	defer diskFS.Release()
-
-	diskRef, err := diskFS.AddRootReference(ctx)
+	diskRef, err := unixfs.NewFSHandle(srcCursor)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package unixfs_block_fs
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
 	"sync"
@@ -26,39 +25,19 @@ type FSCursorOps struct {
 	fsTree *unixfs_block.FSTree
 	// btx is the block transaction
 	btx *block.Transaction
-
-	// sema is the semaphore for modifying below fields
-	// XXX: use Sema to respect context cancels: sema *semaphore.Weighted
-	mtx sync.Mutex
+	// fileHandleMtx guards fileHandle
+	fileHandleMtx sync.Mutex
 	// fileHandle is the file handle if this is a file node
 	fileHandle *file.Handle
-	// fileWriter is the file writer if this is a file node
-	fileWriter *file.Writer
 }
 
 // newFSCursorOps constructs a new FSCursorOps.
 func newFSCursorOps(fsCursor *FSCursor, fsTree *unixfs_block.FSTree, btx *block.Transaction) *FSCursorOps {
-	ops := &FSCursorOps{cursor: fsCursor}
-	ops.setFsTree(fsTree, btx)
+	ops := &FSCursorOps{cursor: fsCursor, btx: btx, fsTree: fsTree}
+	if ops.GetIsFile() {
+		ops.fileHandle, _ = fsTree.BuildFileHandle(ops.cursor.fs.ctx)
+	}
 	return ops
-}
-
-// setFsTree updates the fsTree, fileHandle, fileWriter, btx fields.
-// expects to be in the constructor or have mtx locked
-func (f *FSCursorOps) setFsTree(fsTree *unixfs_block.FSTree, btx *block.Transaction) {
-	if f.fileWriter != nil {
-		_ = f.fileWriter.Close()
-	}
-	if f.fileHandle != nil {
-		_ = f.fileHandle.Close()
-	}
-
-	f.btx = btx
-	f.fsTree = fsTree
-	if f.GetIsFile() {
-		f.fileHandle, _ = fsTree.BuildFileHandle(f.cursor.fs.ctx)
-		f.fileWriter = file.NewWriter(f.fileHandle, nil, nil)
-	}
 }
 
 // CheckReleased checks if the ops is released without locking anything.
@@ -102,8 +81,6 @@ func (f *FSCursorOps) GetIsSymlink() bool {
 // GetSize returns the size of the inode (in bytes).
 // Usually applicable only if this is a FILE.
 func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -112,8 +89,6 @@ func (f *FSCursorOps) GetSize(ctx context.Context) (uint64, error) {
 
 // GetModTimestamp returns the modification timestamp.
 func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return time.Time{}, unixfs_errors.ErrReleased
 	}
@@ -131,29 +106,22 @@ func (f *FSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) erro
 	}
 
 	// call the writer to persist the change
-	mpath := f.cursor.GetPath()
-	err := writer.SetModTimestamp(ctx, [][]string{mpath}, mtime)
-
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
+	mpath, err := f.cursor.GetPath(ctx)
 	if err != nil {
-		f.release(false)
 		return err
 	}
-	if !f.CheckReleased() {
-		tts := unixfs_block.ToTimestamp(mtime, false)
-		if err := f.fsTree.SetModTimestamp(tts); err != nil {
-			f.release(false)
-		}
+	err = writer.SetModTimestamp(ctx, [][]string{mpath}, mtime)
+	if err != nil {
+		f.release()
+		return err
 	}
+
 	return nil
 }
 
 // GetPermissions returns the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (f *FSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -172,20 +140,14 @@ func (f *FSCursorOps) SetPermissions(ctx context.Context, fm fs.FileMode, ts tim
 	}
 
 	// call the writer to apply the changes
-	npath := f.cursor.GetPath()
-	err := writer.SetPermissions(ctx, [][]string{npath}, fm, ts)
-
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
+	npath, err := f.cursor.GetPath(ctx)
 	if err != nil {
-		f.release(false)
 		return err
 	}
-	if !f.CheckReleased() {
-		if err := f.fsTree.SetPermissions(fm); err != nil {
-			f.release(false)
-		}
+	err = writer.SetPermissions(ctx, [][]string{npath}, fm, ts)
+	if err != nil {
+		f.release()
+		return err
 	}
 
 	return nil
@@ -199,12 +161,6 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 	if f.fileHandle == nil {
 		return 0, unixfs_errors.ErrNotFile
 	}
-
-	// hold the sema
-	// TODO: support concurrent ReadAt calls.
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	if f.CheckReleased() {
 		return 0, unixfs_errors.ErrReleased
 	}
@@ -213,6 +169,9 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 	if f.fileHandle.Size() == 0 {
 		return 0, io.EOF
 	}
+
+	f.fileHandleMtx.Lock()
+	defer f.fileHandleMtx.Unlock()
 
 	idx, err := f.fileHandle.Seek(offset, io.SeekStart)
 	if err == nil && idx < offset {
@@ -241,7 +200,7 @@ func (f *FSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-	if f.fileHandle == nil || f.fileWriter == nil {
+	if f.fileHandle == nil {
 		return unixfs_errors.ErrNotFile
 	}
 	writer := f.cursor.fs.writer
@@ -250,28 +209,17 @@ func (f *FSCursorOps) WriteAt(ctx context.Context, offset int64, data []byte, ts
 	}
 
 	// call the writer to persist the changes.
-	npath := f.cursor.GetPath()
-	err := writer.WriteAt(ctx, npath, offset, data, ts)
-
-	// hold the sema
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	// check error + released
+	npath, err := f.cursor.GetPath(ctx)
 	if err != nil {
-		// release this node because the state is now wrong.
-		f.release(false)
 		return err
 	}
-	if !f.CheckReleased() {
-		// write to the in-memory block graph
-		if err := f.fileWriter.WriteBytes(uint64(offset), data); err != nil {
-			f.release(false)
-		} else {
-			// update the timestamp
-			f.fsTree.GetFSNode().ModTime = unixfs_block.ToTimestamp(ts, true)
-		}
+	err = writer.WriteAt(ctx, npath, offset, data, ts)
+	if err != nil {
+		// release this node because the state is now wrong.
+		f.release()
+		return err
 	}
+
 	return nil
 }
 
@@ -281,7 +229,7 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-	if f.fileHandle == nil || f.fileWriter == nil {
+	if f.fileHandle == nil {
 		return unixfs_errors.ErrNotFile
 	}
 	writer := f.cursor.fs.writer
@@ -290,25 +238,15 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 	}
 
 	// call the writer to persist the changes
-	npath := f.cursor.GetPath()
-	err := writer.Truncate(ctx, npath, int64(nsize), ts)
-
-	// hold the sema
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
+	npath, err := f.cursor.GetPath(ctx)
 	if err != nil {
-		f.release(false)
 		return err
 	}
 
-	// apply the change in memory
-	if !f.CheckReleased() && f.fileHandle.Size() != nsize {
-		if err := f.fileWriter.Truncate(nsize); err != nil {
-			f.release(false)
-		} else {
-			f.fsTree.GetFSNode().ModTime = unixfs_block.ToTimestamp(ts, true)
-		}
+	err = writer.Truncate(ctx, npath, int64(nsize), ts)
+	if err != nil {
+		f.release()
+		return err
 	}
 
 	return nil
@@ -322,10 +260,6 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
-
-	// hold the sema
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
@@ -341,7 +275,7 @@ func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor,
 	}
 
 	// Add this inode
-	return f.cursor.buildChildCursor(name, dirent, childCs)
+	return f.cursor.buildChildCursor(ctx, name, dirent, childCs)
 }
 
 // ReaddirAll reads all directory entries to a callback.
@@ -349,10 +283,6 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent u
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-
-	// hold the sema
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 
 	dirStream, err := f.fsTree.Readdir()
 	if err != nil {
@@ -373,6 +303,7 @@ func (f *FSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(ent u
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -397,49 +328,17 @@ func (f *FSCursorOps) Mknod(
 	}
 
 	// format change for the writer
-	paths := f.buildChildPaths(names)
-	err := writer.Mknod(ctx, paths, nodeType, permissions, ts)
-
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
+	paths, err := f.buildChildPaths(ctx, names)
 	if err != nil {
-		f.release(false)
 		return err
 	}
-	if f.CheckReleased() {
-		return nil
+
+	err = writer.Mknod(ctx, paths, nodeType, permissions, ts)
+	if err != nil {
+		f.release()
+		return err
 	}
 
-	// apply the change in-memory
-	nt := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
-	var dirty bool
-	// force a non-zero timestamp
-	now := unixfs_block.ToTimestamp(ts, true)
-	for _, name := range names {
-		if name == "." {
-			continue
-		}
-
-		_, err := f.fsTree.Mknod(name, nt, nil, permissions, now)
-		if err == unixfs_errors.ErrExist && !checkExist {
-			continue
-		}
-		if err != nil {
-			if dirty {
-				// undo our changes
-				f.release(false)
-				dirty = false
-			}
-			break
-		}
-		dirty = true
-	}
-	if dirty && !f.CheckReleased() {
-		if err := f.flushChanges(); err != nil {
-			f.release(false)
-		}
-	}
 	return nil
 }
 
@@ -449,38 +348,23 @@ func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string,
 		return unixfs_errors.ErrReleased
 	}
 
-	tts := unixfs_block.ToTimestamp(ts, false)
-	tgtPath := unixfs_block.NewFSPath(target)
-	nlnk := unixfs_block.NewFSSymlink(tgtPath)
-
 	writer := f.cursor.fs.writer
 	if writer == nil {
 		return unixfs_errors.ErrReadOnly
 	}
 
 	// call the writer to apply the change
-	childPath := f.buildChildPaths([]string{name})[0]
-	err := writer.Symlink(ctx, childPath, target, ts)
-
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
+	childPaths, err := f.buildChildPaths(ctx, []string{name})
 	if err != nil {
-		f.release(false)
 		return err
 	}
-	if f.CheckReleased() {
-		return nil
+	childPath := childPaths[0]
+	err = writer.Symlink(ctx, childPath, target, ts)
+	if err != nil {
+		f.release()
+		return err
 	}
 
-	// apply the change to the local node
-	if _, err := f.fsTree.Symlink(checkExist, name, nlnk, tts); err != nil {
-		f.release(false)
-		return nil
-	}
-	if err := f.flushChanges(); err != nil {
-		f.release(false)
-	}
 	return nil
 }
 
@@ -598,7 +482,16 @@ func (f *FSCursorOps) moveOrCopyTo(
 	}
 
 	// build the paths
-	srcPath, tgtParentPath := f.cursor.GetPath(), tgtOps.cursor.GetPath()
+	srcPath, err := f.cursor.GetPath(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	tgtParentPath, err := tgtOps.cursor.GetPath(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	tgtPath := make([]string, len(tgtParentPath)+1)
 	copy(tgtPath, tgtParentPath)
 	tgtPath[len(tgtPath)-1] = tgtName
@@ -615,100 +508,6 @@ func (f *FSCursorOps) moveOrCopyTo(
 		return false, err
 	}
 
-	// careful to lock in the correct order here
-	// lock the entire *FS first
-	f.cursor.fs.rmtx.Lock()
-	defer f.cursor.fs.rmtx.Unlock()
-
-	// lock the source cursor
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	// lock the target cursor
-	tgtOps.mtx.Lock()
-	defer tgtOps.mtx.Unlock()
-
-	// check for released or inactive or outdated ops objects
-	if tgtOps.cursor.fsCursorOps != tgtOps || f.cursor.fsCursorOps != f {
-		f.release(false)
-		tgtOps.release(false)
-		return false, nil
-	}
-	if f.CheckReleased() {
-		tgtOps.release(false)
-		return false, nil
-	}
-	if tgtOps.CheckReleased() {
-		f.release(false)
-		return false, nil
-	}
-
-	applyChangeInMemErr := func() error {
-		// check target is dir, return ErrNotDirectory otherwise
-		if tgtOps.GetNodeType() != unixfs_block.NodeType_NodeType_DIRECTORY {
-			return unixfs_errors.ErrNotDirectory
-		}
-
-		// srcBcs points to the source inode
-		srcNodeType := f.GetNodeType()
-		srcBcs := f.fsTree.GetCursor()
-
-		// ensure the source is within a directory if isMove
-		srcParentCursor := f.cursor.parent
-		var srcParentOps *FSCursorOps
-		if isMove {
-			if err := srcParentCursor.resolveFsCursorOps(); err != nil {
-				return err
-			}
-			srcParentOps = srcParentCursor.fsCursorOps
-		}
-		if srcParentOps == nil {
-			// cannot move the root dir, at least not this way
-			return errors.New("cannot move root directory")
-		}
-
-		// access old dirent for the target if it exists
-		tgtCs, _, err := tgtOps.fsTree.LookupFollowDirentAsCursor(tgtName)
-		if err != nil {
-			return err
-		}
-
-		// copy to tgtCs or build new tgtCs
-		if tgtCs == nil {
-			// there was no existing dirent to overwrite, detach the parent
-			tgtCs = tgtOps.fsTree.GetCursor().DetachTransaction()
-		}
-
-		srcBcs.CopyToRecursive(tgtCs, true, true)
-		err = tgtOps.fsTree.SetDirent(tgtName, srcNodeType, tgtCs)
-		if err != nil {
-			return err
-		}
-
-		// fire the changed callbacks to update children states
-		// because we updated the node in-place, the re-lookups will be against the new state
-		// tgtCursor is the target location parent
-		tgtCursor := tgtOps.cursor
-		// tgtCursor.cbs = tgtCursor.cbs.CallCbs(&unixfs.FSCursorChange{Cursor: tgtOps.cursor})
-		_ = tgtCursor
-
-		// delete from source dir if move
-		if isMove {
-			tts := unixfs_block.ToTimestamp(ts, false)
-			_, err := srcParentOps.fsTree.Remove([]string{f.cursor.name}, tts)
-			if err != nil {
-				srcParentOps.release(false)
-			}
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}()
-	if applyChangeInMemErr != nil {
-		f.release(false)
-		tgtOps.release(false)
-	}
 	return true, nil
 }
 
@@ -725,49 +524,38 @@ func (f *FSCursorOps) Remove(ctx context.Context, names []string, ts time.Time) 
 		return unixfs_errors.ErrReadOnly
 	}
 
-	paths := f.buildChildPaths(names)
-	err := writer.Remove(ctx, paths, ts)
-
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
+	paths, err := f.buildChildPaths(ctx, names)
 	if err != nil {
-		f.release(false)
 		return err
 	}
+
+	err = writer.Remove(ctx, paths, ts)
+	if err != nil {
+		f.release()
+		return err
+	}
+
 	if f.CheckReleased() {
 		return nil
 	}
+
 	// apply the change to the local node
 	if _, err := f.fsTree.Remove(names, tts); err != nil {
-		f.release(false)
+		f.release()
 	}
-	return nil
-}
 
-// flushChanges commits the block transaction.
-// depends on sema being locked by caller
-func (f *FSCursorOps) flushChanges() error {
-	if f.btx == nil {
-		// we must release to flush the cache right away.
-		f.release(false)
-		return nil
-	}
-	_, nrootCs, err := f.btx.Write(false)
-	if err == nil {
-		f.fsTree, err = unixfs_block.NewFSTree(f.cursor.fs.ctx, nrootCs, f.fsTree.GetFSNode().GetNodeType())
-	}
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 // buildChildPaths builds a list of paths rooted at f.
 // pass empty (nil) to return a copy of the path to f.
 // names must not be empty
-func (f *FSCursorOps) buildChildPaths(names []string) [][]string {
-	rootPath := f.cursor.GetPath()
+// mtx must not be locked
+func (f *FSCursorOps) buildChildPaths(ctx context.Context, names []string) ([][]string, error) {
+	rootPath, err := f.cursor.GetPath(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out := make([][]string, len(names))
 	for i, name := range names {
 		np := make([]string, len(rootPath)+1)
@@ -775,28 +563,18 @@ func (f *FSCursorOps) buildChildPaths(names []string) [][]string {
 		np[len(np)-1] = name
 		out[i] = np
 	}
-	return out
+	return out, nil
 }
 
-// release marks the fscursorops as released.
-// if f.mtx is locked: set lockSema=false
-// if f.mtx is unlocked: set lockSema=true
-func (f *FSCursorOps) release(lockSema bool) {
-	if lockSema {
-		if f.CheckReleased() {
-			return
-		}
-		f.mtx.Lock()
-		defer f.mtx.Unlock()
-	}
+// release marks the ops as released.
+func (f *FSCursorOps) release() {
 	if f.isReleased.Swap(true) {
 		return
 	}
-	if f.fileWriter != nil {
-		_ = f.fileWriter.Close()
-	}
 	if f.fileHandle != nil {
+		f.fileHandleMtx.Lock()
 		_ = f.fileHandle.Close()
+		f.fileHandleMtx.Unlock()
 	}
 }
 

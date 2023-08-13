@@ -130,6 +130,10 @@ func NewUnixFSError(err error) *UnixFSError {
 
 // ToGoError converts a UnixFSError into the corresponding Go error from unixfs_errors.
 func (e *UnixFSError) ToGoError() error {
+	if e == nil {
+		return nil
+	}
+
 	var err error
 	switch e.ErrorType {
 	case UnixFSErrorType_NONE:

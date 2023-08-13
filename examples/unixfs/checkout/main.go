@@ -173,8 +173,7 @@ func execute(rctx context.Context) error {
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, senderPeerID)
 	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
-	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
-	rref, err := ufs.AddRootReference(ctx)
+	rref, err := unixfs.NewFSHandle(rootFSCursor)
 	if err != nil {
 		return err
 	}

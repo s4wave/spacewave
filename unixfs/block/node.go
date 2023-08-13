@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
+	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 )
@@ -35,14 +36,7 @@ func NewFSNode(nt NodeType, permissions fs.FileMode, now *timestamp.Timestamp) *
 
 // DefaultPermissions returns the default permissions set for a filetype.
 func DefaultPermissions(nt NodeType) fs.FileMode {
-	if nt == NodeType_NodeType_SYMLINK {
-		return 0777
-	}
-	if nt == NodeType_NodeType_DIRECTORY {
-		return 0755
-	}
-	// if nt == NodeType_NodeType_FILE
-	return 0644
+	return unixfs.DefaultPermissions(nt)
 }
 
 // NewFSNodeBlock constructs a FSNode as a Block.

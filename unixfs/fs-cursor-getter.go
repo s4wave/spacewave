@@ -27,11 +27,11 @@ func (f *FSCursorGetter) CheckReleased() bool {
 	return f.released.Load()
 }
 
-// GetFSCursorOps returns the interface implementing FSCursorGetterOps.
+// GetCursorOps returns the interface implementing FSCursorGetterOps.
 // Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
 // Return nil, nil to indicate this position is null (nothing here).
 // Return nil, ErrReleased to indicate this FSCursorGetter was released.
-func (f *FSCursorGetter) GetFSCursorOps(ctx context.Context) (FSCursorOps, error) {
+func (f *FSCursorGetter) GetCursorOps(ctx context.Context) (FSCursorOps, error) {
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}

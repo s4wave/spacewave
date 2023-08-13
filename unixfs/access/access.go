@@ -11,10 +11,10 @@ import (
 // Returns a release function.
 type AccessUnixFSFunc = func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error)
 
-// NewAccessUnixFSFunc constructs a AccessUnixFSFunc from a FS.
-func NewAccessUnixFSFunc(fs *unixfs.FS) AccessUnixFSFunc {
+// NewAccessUnixFSFunc constructs a AccessUnixFSFunc from a FSHandle.
+func NewAccessUnixFSFunc(handle *unixfs.FSHandle) AccessUnixFSFunc {
 	return func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
-		handle, err := fs.AddRootReference(ctx)
+		handle, err := handle.Clone(ctx)
 		if err != nil {
 			return nil, nil, err
 		}

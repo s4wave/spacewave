@@ -7,6 +7,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DefaultPermissions returns the default permissions set for a filetype.
+func DefaultPermissions(nt FSCursorNodeType) fs.FileMode {
+	if nt.GetIsSymlink() {
+		return 0777
+	}
+	if nt.GetIsDirectory() {
+		return 0755
+	}
+	// if nt == NodeType_NodeType_FILE
+	return 0644
+}
+
 // fsCursorNodeType is a static node type value
 type fsCursorNodeType struct {
 	// isDir indicates this is a dir

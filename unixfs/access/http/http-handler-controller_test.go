@@ -33,18 +33,12 @@ func TestHTTPHandlerController(t *testing.T) {
 	}
 
 	objKey := "test-fs"
-	fs, tb, err := unixfs_world.BuildTestbed(
+	rootRef, tb, err := unixfs_world.BuildTestbed(
 		btb,
 		objKey,
 		true,
 		world_testbed.WithWorldVerbose(true),
 	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// fill the sample filesystem
-	rootRef, err := fs.AddRootReference(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -60,10 +54,6 @@ func TestHTTPHandlerController(t *testing.T) {
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0755); err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// wait a moment for the write to be confirmed
-	// TODO: This is a bug that currently is being fixed
-	<-time.After(time.Millisecond * 150)
 
 	// construct the AccessUnixFS handler
 	unixFsID := "test-fs"

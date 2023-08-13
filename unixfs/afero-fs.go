@@ -115,7 +115,7 @@ func (f *AferoFS) MkdirAll(mpath string, perm os.FileMode) error {
 	}
 	defer fsh.Release()
 
-	return fsh.MkdirAll(f.ctx, mpath, perm, f.timestamp())
+	return fsh.MkdirAllPath(f.ctx, mpath, perm, f.timestamp())
 }
 
 // Open opens a file, returning it or an error, if any happens.
@@ -185,10 +185,6 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 		if err != nil {
 			return nil, err
 		}
-
-		// TODO: requires a slight delay for the fscursors to update
-		// TODO: This is a bug that currently is being fixed
-		<-time.After(time.Millisecond * 10)
 
 		// re-open the file again
 		fileHandle, err = h.Lookup(f.ctx, filename)

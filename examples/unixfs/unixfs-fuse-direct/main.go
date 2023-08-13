@@ -196,12 +196,22 @@ func execute(rctx context.Context) error {
 	*/
 
 	// start the filesystem
-	watchChanges := true
-	fsType := unixfs_world.FSType_FSType_FS_NODE
-	writer := unixfs_world.NewFSWriter(ws, objKey, fsType, sender)
-	rootFSCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
-	ufs := unixfs.NewFS(ctx, le, rootFSCursor, nil)
-	rref, err := ufs.AddRootReference(ctx)
+	rootFSCursor, err := unixfs_world.FollowUnixfsRef(
+		ctx,
+		le,
+		ws,
+		&unixfs_world.UnixfsRef{
+			ObjectKey: objKey,
+			FsType:    unixfs_world.FSType_FSType_FS_NODE,
+		},
+		sender,
+		true,
+	)
+	if err != nil {
+		return err
+	}
+
+	rref, err := unixfs.NewFSHandle(rootFSCursor)
 	if err != nil {
 		return err
 	}

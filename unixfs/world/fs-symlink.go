@@ -21,12 +21,11 @@ func FsSymlink(
 	path []string,
 	tgtPath []string,
 	ts time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	bpath, tpath := unixfs_block.NewFSPath(path), unixfs_block.NewFSPath(tgtPath)
 	lnk := unixfs_block.NewFSSymlink(tpath)
 	wOp := NewFsSymlinkOp("", fsType, bpath, lnk, ts)
-	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
-	return err
+	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }
 
 // FsSymlinkOpId is the operation id.

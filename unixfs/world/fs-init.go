@@ -27,7 +27,7 @@ func FsInit(
 	fsRefType FSType,
 	overwrite bool,
 	ts time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	initOp := NewFsInitOp(
 		objKey,
 		fsType,
@@ -36,8 +36,7 @@ func FsInit(
 		overwrite,
 		ts,
 	)
-	_, _, err := ws.ApplyWorldOp(ctx, initOp, sender)
-	return err
+	return ws.ApplyWorldOp(ctx, initOp, sender)
 }
 
 // FsInitOpId is the unixfs init operation id.

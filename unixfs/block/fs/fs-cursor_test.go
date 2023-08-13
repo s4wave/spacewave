@@ -8,23 +8,32 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
+	unixfs_e2e "github.com/aperturerobotics/hydra/unixfs/e2e"
 	"github.com/sirupsen/logrus"
 )
 
 // TestBuildPath tests building the path to a cursor.
 func TestBuildPath(t *testing.T) {
 	// create cursor hierarchy
+	fs := &FS{}
 	root := &FSCursor{}
 	tail := root
 	for i := 0; i < 10; i++ {
 		tail = &FSCursor{
+			fs:     fs,
 			parent: tail,
 			depth:  tail.depth + 1,
 			name:   strconv.Itoa(i),
 		}
 	}
-	tpath := tail.getOrBuildPathLocked()
+	ctx := context.Background()
+	tpath, err := tail.getOrBuildPath(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	t.Logf("%#v\n", tpath)
 	if len(tpath) != 10 {
 		t.Fail()
@@ -116,7 +125,7 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ops, err := pc.GetFSCursorOps(ctx)
+	ops, err := pc.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -125,7 +134,7 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ops, err = dirCs.GetFSCursorOps(ctx)
+	ops, err = dirCs.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -135,7 +144,7 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ops, err = dirCs.GetFSCursorOps(ctx)
+	ops, err = dirCs.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -145,7 +154,7 @@ func TestFSCursor(t *testing.T) {
 	}
 
 	outData := make([]byte, 20)
-	ops, err = fileCs.GetFSCursorOps(ctx)
+	ops, err = fileCs.GetCursorOps(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -162,9 +171,47 @@ func TestFSCursor(t *testing.T) {
 	} else {
 		t.Logf("read data correctly: %s", string(outData))
 	}
-	// ops.Read
+}
 
-	// TODO: more tests, add mock test suite
-	_ = dirCs
-	_ = btx
+// TestFSHandle performs the test suite on the cursor.
+func TestFSHandle(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// build the test filesystem
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+
+	res, _, err := btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Logf("wrote initial fs: %s", res.MarshalString())
+	oc.SetRootRef(res)
+
+	writer := NewFSWriter()
+	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, writer)
+	writer.SetFS(fs)
+
+	handle, err := unixfs.NewFSHandle(fs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer handle.Release()
+
+	if err := unixfs_e2e.TestUnixFS(ctx, handle); err != nil {
+		t.Fatal(err.Error())
+	}
 }

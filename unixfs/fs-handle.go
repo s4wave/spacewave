@@ -4,11 +4,14 @@ import (
 	"context"
 	"io/fs"
 	"path"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/aperturerobotics/util/cqueue"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // FSHandle is an open handle to a location in a FSTree.
@@ -16,21 +19,64 @@ import (
 type FSHandle struct {
 	// isReleased indicates if this is released.
 	isReleased atomic.Bool
-	// i is the underlying inode
-	i *fsInode
-	// relCbs is a list of release callbacks
-	// guarded by the inode waitSema
-	relCbs []func()
+	// inode is the underlying inode
+	// this field changes only if the inode was moved to a different cursor path.
+	inode atomic.Pointer[fsInode]
+	// relCbs is an atomic last-in-first-out set of callbacks
+	relCbs cqueue.AtomicLIFO[func()]
 }
 
-// newFSHandle constructs a new handle attached to fs.
-func newFSHandle(i *fsInode) *FSHandle {
-	return &FSHandle{i: i}
+// NewFSHandle constructs a new FSHandle with a FSCursor.
+// Note: the FSHandle will be released if the FSCursor is released.
+func NewFSHandle(cursor FSCursor) (*FSHandle, error) {
+	inode := newFsInode(nil, "", []FSCursor{cursor})
+	return inode.addReferenceLocked()
+}
+
+// NewFSHandleWithPrefix constructs a new FSHandle with a FSCursor and follows a prefix.
+//
+// if mkdirPath is set, we will attempt to mkdir all elements of prefixPath.
+func NewFSHandleWithPrefix(
+	ctx context.Context,
+	cursor FSCursor,
+	prefixPath []string,
+	mkdirPath bool,
+	ts time.Time,
+) (*FSHandle, error) {
+	rootHandle, err := NewFSHandle(cursor)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(prefixPath) == 0 {
+		return rootHandle, nil
+	}
+
+	// if we should mkdirPath, ensure the prefix exists first.
+	if mkdirPath {
+		err = rootHandle.MkdirAll(
+			ctx,
+			prefixPath,
+			DefaultPermissions(NewFSCursorNodeType_Dir()),
+			ts,
+		)
+		if err != nil {
+			rootHandle.Release()
+			return nil, err
+		}
+	}
+
+	// follow the new prefix path
+	handle, _, err := rootHandle.LookupPathPts(ctx, prefixPath)
+	// release the old root
+	rootHandle.Release()
+	// return the new handle
+	return handle, err
 }
 
 // GetName returns the name of the inode.
 func (h *FSHandle) GetName() string {
-	return h.i.name
+	return h.i().name
 }
 
 // CheckReleased checks if released without locking anything.
@@ -40,7 +86,17 @@ func (h *FSHandle) CheckReleased() bool {
 
 // AddReleaseCallback adds a callback that will be called when the FSHandle is released.
 // May be called immediately (in the same call as AddReleaseCallback).
-func (h *FSHandle) AddReleaseCallback(cb func()) {
+func (h *FSHandle) AddReleaseCallback(rcb func()) {
+	if rcb == nil {
+		return
+	}
+
+	var once sync.Once
+	cb := func() {
+		once.Do(rcb)
+	}
+	h.relCbs.Push(rcb)
+
 	// fast path
 	if h.CheckReleased() {
 		cb()
@@ -48,15 +104,18 @@ func (h *FSHandle) AddReleaseCallback(cb func()) {
 	}
 
 	// slow path
-	waitSema := h.i.f.waitSema
-	relSema := waitSema.Acquire(context.Background(), 1) == nil
-	if h.CheckReleased() {
-		defer cb()
-	} else {
-		h.relCbs = append(h.relCbs, cb)
-	}
-	if relSema {
-		h.i.f.waitSema.Release(1)
+	for {
+		inode := h.i()
+		if inode.checkReleased() {
+			cb()
+			return
+		}
+		inode.relCbs.Push(rcb)
+		// if the inode was released or changed on h, continue & retry
+		if inode.checkReleased() || h.i() != inode {
+			continue
+		}
+		break
 	}
 }
 
@@ -69,7 +128,7 @@ func (h *FSHandle) AddReleaseCallback(cb func()) {
 // If cb returns any other value, returns that value.
 // Note: do not call Release() on the FSCursorOps object.
 func (h *FSHandle) AccessOps(ctx context.Context, cb func(cursor FSCursor, ops FSCursorOps) error) error {
-	return h.i.accessInode(ctx, cb)
+	return h.i().accessInode(ctx, cb)
 }
 
 // GetOps resolves and returns the FSCursor and FSCursorOps once.
@@ -91,7 +150,7 @@ func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 // GetFileInfo constructs a file info object and creation time for the inode at handle.
 func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 	var fileInfo fs.FileInfo
-	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		permissions, err := ops.GetPermissions(ctx)
 		if err != nil {
 			return err
@@ -114,7 +173,7 @@ func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 // GetNodeType returns the FSCursor node type.
 func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 	var nodeType FSCursorNodeType
-	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		nodeType = ops
 		return nil
 	})
@@ -125,7 +184,7 @@ func (h *FSHandle) GetNodeType(ctx context.Context) (FSCursorNodeType, error) {
 // Usually applicable only if this is a FILE.
 func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 	var size uint64
-	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		size, err = ops.GetSize(ctx)
 		return err
@@ -137,7 +196,7 @@ func (h *FSHandle) GetSize(ctx context.Context) (uint64, error) {
 // Usually applicable only if this is a FILE.
 func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 	var size int64
-	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		size, err = ops.GetOptimalWriteSize(ctx)
 		return err
@@ -147,7 +206,7 @@ func (h *FSHandle) GetOptimalWriteSize(ctx context.Context) (int64, error) {
 
 // GetModTimestamp returns the creation time and modification time.
 func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err error) {
-	err = h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err = h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		mtime, err = ops.GetModTimestamp(ctx)
 		return err
@@ -158,7 +217,7 @@ func (h *FSHandle) GetModTimestamp(ctx context.Context) (mtime time.Time, err er
 // GetPermissions returns the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (h *FSHandle) GetPermissions(ctx context.Context) (fm fs.FileMode, err error) {
-	err = h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err = h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var berr error
 		fm, berr = ops.GetPermissions(ctx)
 		return berr
@@ -169,14 +228,14 @@ func (h *FSHandle) GetPermissions(ctx context.Context) (fm fs.FileMode, err erro
 // SetPermissions updates the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (h *FSHandle) SetPermissions(ctx context.Context, permissions fs.FileMode, t time.Time) error {
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.SetPermissions(ctx, permissions, t)
 	})
 }
 
 // SetModTimestamp updates the modification timestamp of the node.
 func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.SetModTimestamp(ctx, mtime)
 	})
 }
@@ -184,7 +243,7 @@ func (h *FSHandle) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 // ReadAt reads from a location in a File node.
 func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64, error) {
 	var read int64
-	err := h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -200,7 +259,7 @@ func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64
 // The change will be fully written to the file before returning.
 // If this isn't a file node, returns ErrNotFile.
 func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -212,7 +271,7 @@ func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts ti
 // Truncate shrinks or extends a file to the specified size.
 // The extended part will be a sparse range (hole) reading as zeros.
 func (h *FSHandle) Truncate(ctx context.Context, nsize uint64, ts time.Time) error {
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		if !ops.GetIsFile() {
 			return unixfs_errors.ErrNotFile
 		}
@@ -223,7 +282,7 @@ func (h *FSHandle) Truncate(ctx context.Context, nsize uint64, ts time.Time) err
 
 // ReaddirAll reads all directory entries.
 func (h *FSHandle) ReaddirAll(ctx context.Context, skip uint64, cb func(ent FSCursorDirent) error) error {
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.ReaddirAll(ctx, skip, cb)
 	})
 }
@@ -233,7 +292,7 @@ func (h *FSHandle) ReaddirAll(ctx context.Context, skip uint64, cb func(ent FSCu
 // Returns ErrReleased if the reference has been released.
 // Creates a new FSCursor at the new location.
 func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
-	return h.i.lookup(ctx, name)
+	return h.i().lookup(ctx, name)
 }
 
 // LookupPath recursively traverses the path, returning a handle pointing to the target.
@@ -305,21 +364,29 @@ func (h *FSHandle) Mknod(
 	permissions fs.FileMode,
 	ts time.Time,
 ) error {
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Mknod(ctx, checkExist, names, nodeType, permissions, ts)
 	})
+}
+
+// MkdirAllPath creates a directory named path, along with any necessary parents,
+// and returns nil, or else returns an error. The permission bits perm are used
+// for all directories that MkdirAllPath creates. If path is/ already a directory,
+// MkdirAllPath does nothing and returns nil.
+func (h *FSHandle) MkdirAllPath(ctx context.Context, filepath string, perm fs.FileMode, ts time.Time) error {
+	if filepath == "" || filepath == "." {
+		return nil
+	}
+
+	dirPath := SplitPath(filepath)
+	return h.MkdirAll(ctx, dirPath, perm, ts)
 }
 
 // MkdirAll creates a directory named path, along with any necessary parents,
 // and returns nil, or else returns an error. The permission bits perm are used
 // for all directories that MkdirAll creates. If path is/ already a directory,
 // MkdirAll does nothing and returns nil.
-func (h *FSHandle) MkdirAll(ctx context.Context, filepath string, perm fs.FileMode, ts time.Time) error {
-	if filepath == "" || filepath == "." {
-		return nil
-	}
-
-	dirPath := SplitPath(filepath)
+func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileMode, ts time.Time) error {
 	dirHandle, err := h.Clone(ctx)
 	if err != nil {
 		return err
@@ -368,7 +435,7 @@ func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, ta
 	if len(name) == 0 || len(target) == 0 {
 		return unixfs_errors.ErrEmptyPath
 	}
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Symlink(ctx, checkExist, name, target, ts)
 	})
 }
@@ -388,7 +455,7 @@ func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, error) 
 	}
 
 	var link []string
-	err := handle.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	err := handle.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
 		link, err = ops.Readlink(ctx, name)
 		return err
@@ -403,18 +470,15 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 	if h == nil || dest == nil || dest.CheckReleased() || h.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-	if h.i.f != dest.i.f {
-		return unixfs_errors.ErrInodeUnresolvable
-	}
 	if h == dest {
 		// TODO: copy to self?
 		return nil
 	}
 
 	// access source inode
-	return h.i.accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
+	return h.i().accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
 		// access destination inode
-		return dest.i.accessInode(ctx, func(_ FSCursor, destOps FSCursorOps) error {
+		return dest.i().accessInode(ctx, func(_ FSCursor, destOps FSCursorOps) error {
 			// Attempt to perform optimized copy from src -> dest.
 			done, err := srcOps.CopyTo(ctx, destOps, destName, ts)
 			if err != nil || done {
@@ -429,9 +493,11 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 
 			// No optimized path exists, do it the slow way.
 			// TODO: recursive copy
-			if le := h.i.f.le; le != nil {
-				le.Warnf("TODO: cross-fs copy between locations: %#v -> %#v", srcOps, destOps)
-			}
+			/*
+				if le := h.i().f.le; le != nil {
+					le.Warnf("TODO: cross-fs copy between locations: %#v -> %#v", srcOps, destOps)
+				}
+			*/
 			return errors.Errorf("unable to copy between these locations")
 		})
 	})
@@ -444,90 +510,239 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 	if h == nil || dest == nil || dest.CheckReleased() || h.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
-	if h.i.f != dest.i.f {
-		return unixfs_errors.ErrInodeUnresolvable
-	}
-	if h == dest {
-		// rename to self? no-op
-		return nil
-	}
 
-	// access source inode
-	err := h.i.accessInode(ctx, func(_ FSCursor, srcOps FSCursorOps) error {
-		// access destination parent inode
-		return dest.i.accessInode(ctx, func(_ FSCursor, destOps FSCursorOps) error {
-			if srcOps.CheckReleased() || destOps.CheckReleased() {
-				return unixfs_errors.ErrReleased
+	// attempt to lock src and destination
+	var srcLoc, destParent *fsInode
+	var relSrcLoc, relDestParent func()
+	var err error
+	lockedNodes := make(map[*fsInode]func())
+	relLockedNodes := func() {
+		for i, rel := range lockedNodes {
+			rel()
+			delete(lockedNodes, i)
+		}
+	}
+	defer relLockedNodes()
+	for {
+		if err := ctx.Err(); err != nil {
+			return context.Canceled
+		}
+
+		srcLoc, destParent = h.i(), dest.i()
+		// check if srcLoc is destParent
+		if srcLoc == destParent {
+			return unixfs_errors.ErrMoveToSelf
+		}
+		// check if srcLoc is a parent of destParent
+		for nn := destParent.parent; nn != nil; nn = nn.parent {
+			if nn == srcLoc {
+				return unixfs_errors.ErrMoveToSelf
 			}
+		}
 
-			// Attempt to perform optimized move from src -> dest.
-			done, err := srcOps.MoveTo(ctx, destOps, destName, ts)
-			if err != nil || done {
+		// to prevent deadlock, if we can't lock, unlock both and try locking the opposite order
+		relSrcLoc, err = srcLoc.rmtx.Lock(ctx, true)
+		if err != nil {
+			return err
+		}
+
+		var locked bool
+		relDestParent, locked = destParent.rmtx.TryLock(true)
+		if !locked {
+			relSrcLoc()
+			relDestParent, err = destParent.rmtx.Lock(ctx, true)
+			if err != nil {
 				return err
 			}
 
-			// Attempt to perform optimized move from dest <- src.
-			done, err = destOps.MoveFrom(ctx, destName, srcOps, ts)
-			if err != nil || done {
-				return err
+			relSrcLoc, locked = srcLoc.rmtx.TryLock(true)
+			if !locked {
+				relDestParent()
+				continue
 			}
+		}
 
-			// No optimized path exists, do it the slow way.
-			// TODO: recursive move
-			if le := h.i.f.le; le != nil {
+		// check that both are not released
+		if _, err := srcLoc.checkReleasedWithErr(); err != nil {
+			relSrcLoc()
+			relDestParent()
+			return err
+		}
+		if _, err := destParent.checkReleasedWithErr(); err != nil {
+			relDestParent()
+			relSrcLoc()
+			return err
+		}
+
+		// if either of them are currently resolving fsOps, wait
+		srcLocWait := srcLoc.fsWait
+		if srcLocWait != nil {
+			select {
+			case <-srcLocWait:
+				srcLocWait, srcLoc.fsWait = nil, nil
+			default:
+			}
+		}
+
+		dstLocWait := destParent.fsWait
+		if dstLocWait != nil {
+			select {
+			case <-dstLocWait:
+				dstLocWait, destParent.fsWait = nil, nil
+			default:
+			}
+		}
+
+		if srcLocWait != nil {
+			relSrcLoc()
+			relDestParent()
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			case <-srcLocWait:
+				continue
+			}
+		}
+
+		if dstLocWait != nil {
+			relDestParent()
+			relSrcLoc()
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			case <-dstLocWait:
+				continue
+			}
+		}
+
+		// resolve fsOps for src and dest
+		fsOpsSrc := srcLoc.fsOps
+		if fsOpsSrc == nil || fsOpsSrc.CheckReleased() {
+			// release the destination loc for now
+			relDestParent()
+			// we will perform the lookup
+			fsWait := make(chan struct{})
+			srcLoc.fsWait = fsWait
+			// expects mtx to be locked on entry & released on exit.
+			srcLoc.resolveOpsRoutineLocked(ctx, fsWait, relSrcLoc)
+			continue
+		}
+
+		fsOpsDest := destParent.fsOps
+		if fsOpsDest == nil || fsOpsSrc.CheckReleased() {
+			// release the src loc for now
+			relSrcLoc()
+			// we will perform the lookup
+			fsWait := make(chan struct{})
+			destParent.fsWait = fsWait
+			// expects mtx to be locked on entry & released on exit.
+			destParent.resolveOpsRoutineLocked(ctx, fsWait, relDestParent)
+			continue
+		}
+
+		// srcLoc and destParent are locked
+		lockedNodes[srcLoc] = relSrcLoc
+		lockedNodes[destParent] = relDestParent
+
+		// lock their children as well
+		// note: we always lock in parent -> child order
+		nodStk := []*fsInode{srcLoc, destParent}
+		for len(nodStk) != 0 {
+			// pop 1 from nodStk
+			nod := nodStk[len(nodStk)-1]
+			nodStk[len(nodStk)-1] = nil
+			nodStk = nodStk[:len(nodStk)-1]
+
+			for _, nodChild := range nod.children {
+				if _, ok := lockedNodes[nodChild]; ok {
+					continue
+				}
+
+				rel, err := nodChild.rmtx.Lock(ctx, true)
+				if err != nil {
+					return err
+				}
+
+				// ignore if released or if no refs + children
+				if nodChild.checkReleased() || nodChild.releaseIfNecessaryLocked() {
+					rel()
+					continue
+				}
+
+				lockedNodes[nodChild] = rel
+				nodStk = append(nodStk, nodChild)
+			}
+		}
+
+		// if the nodes were released while we were doing the above, retry.
+		if fsOpsSrc.CheckReleased() || fsOpsDest.CheckReleased() {
+			relLockedNodes()
+			continue
+		}
+
+		// Attempt to perform optimized move from src -> dest.
+		done, err := fsOpsSrc.MoveTo(ctx, fsOpsDest, destName, ts)
+		if err != nil {
+			return err
+		}
+		if done {
+			break
+		}
+
+		// Attempt to perform optimized move from dest <- src.
+		done, err = fsOpsDest.MoveFrom(ctx, destName, fsOpsSrc, ts)
+		if err != nil {
+			return err
+		}
+		if done {
+			break
+		}
+
+		// No optimized path exists, do it the slow way.
+		// TODO: recursive move
+		/*
+			if le := h.i().f.le; le != nil {
 				le.Warnf("TODO: cross-fs rename between locations: %#v -> %#v", srcOps, destOps)
 			}
-			return errors.Errorf("unable to rename between these locations")
-		})
-	})
-	if err != nil {
-		// note: might be good to expire the fsOps here
-		return err
+		*/
+		return errors.Errorf("unable to rename between these locations")
 	}
 
 	// successful rename: the source location has likely already been released,
 	// and the destination location should have had a change callback called.
 
-	// after the move: we need the old FSHandle and inode from source location
-	// to remain valid, but point to the destination location. copy all
-	// references and merge all children nodes to the destination.
-
-	if err := h.i.f.waitSema.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	defer h.i.f.waitSema.Release(1)
-
 	// remove the source inode from the parent children list
-	srcLoc := h.i
 	if parent := srcLoc.parent; parent != nil {
-		oldChild, oldChildIdx := parent.findChildInode(h.i.name, false)
+		oldChild, oldChildIdx := parent.findChildInode(srcLoc.name, false)
 		if oldChild != nil {
+			// remove the old child from the parent
 			parent.removeChildInodeAtIdx(oldChildIdx)
-		}
-		if oldChild != srcLoc {
-			oldChild.releaseWithChildrenLocked(unixfs_errors.ErrReleased)
+			// release the old child if it's not srcLoc (unlikely)
+			if oldChild != srcLoc {
+				oldChild.releaseWithChildrenLocked(nil)
+			}
 		}
 	}
 
 	// destination parent was released; nothing further we can do from here.
-	if dest.i.checkReleased() {
-		h.i.releaseLocked(unixfs_errors.ErrReleased)
+	if destParent.checkReleased() {
+		destParent.releaseLocked(unixfs_errors.ErrReleased)
 		return unixfs_errors.ErrReleased
 	}
 
-	// lookup or create the destination location
-	destLoc, destLocIdx := dest.i.findChildInode(destName, true)
+	// lookup or create the destination inode location
+	destLoc, destLocIdx := destParent.findChildInode(destName, true)
 	if destLoc == nil {
 		// child inode not found, insert at insertidx.
-		destLoc = newFsInode(dest.i.f, dest.i, destName)
-		dest.i.children = fsInodeSliceInsert(dest.i.children, destLocIdx, destLoc)
+		destLoc = newFsInode(destParent, destName, nil)
+		destParent.children = slices.Insert(destParent.children, destLocIdx, destLoc)
 	}
 
 	// merge srcLoc -> destLoc: moving refs and children
 	destLoc.mergeWithNodeLocked(srcLoc, unixfs_errors.ErrReleased)
 
-	// ensure h.i was updated, in case it was not already
-	h.i = destLoc
+	// recursively release / clear all fs cursors and ops for destLoc
+	destLoc.clearCursorsWithChildrenLocked()
 
 	// done
 	return nil
@@ -538,7 +753,7 @@ func (h *FSHandle) Remove(ctx context.Context, names []string, ts time.Time) err
 	if len(names) == 0 {
 		return nil
 	}
-	return h.i.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		return ops.Remove(ctx, names, ts)
 	})
 }
@@ -548,16 +763,18 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if err := h.i.f.waitSema.Acquire(ctx, 1); err != nil {
+
+	inode := h.i()
+	rel, err := inode.rmtx.Lock(ctx, true)
+	if err != nil {
 		return nil, err
 	}
-	defer h.i.f.waitSema.Release(1)
+	defer rel()
 
-	rel := h.CheckReleased()
-	if rel {
+	if inode.checkReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
-	return h.i.addReference()
+	return h.i().addReferenceLocked()
 }
 
 // Release releases the FSHandle.
@@ -566,15 +783,22 @@ func (h *FSHandle) Release() {
 		// already released
 		return
 	}
-	waitSema := h.i.f.waitSema
-	relSema := waitSema.Acquire(context.Background(), 1) == nil
-	h.i.removeRefLocked(h)
-	relCbs := h.relCbs
-	h.relCbs = nil
-	if relSema {
-		waitSema.Release(1)
+	inode := h.i()
+	rel, err := inode.rmtx.Lock(context.Background(), true)
+	if err == nil {
+		inode.removeRefLocked(h)
+		rel()
 	}
-	for _, cb := range relCbs {
-		cb()
+	for {
+		relCb := h.relCbs.Pop()
+		if relCb == nil {
+			break
+		}
+		relCb()
 	}
+}
+
+// i returns the inode.
+func (h *FSHandle) i() *fsInode {
+	return h.inode.Load()
 }

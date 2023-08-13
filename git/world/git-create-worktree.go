@@ -108,7 +108,18 @@ func (o *GitCreateWorktreeOp) ApplyWorldOp(
 	}
 
 	// create worktree and checkout
-	err = CreateWorldObjectWorktree(ctx, le, worldHandle, objKey, repoObjKey, workdirRef, createWorkdir, checkoutOpts, sender, ts)
+	err = CreateWorldObjectWorktree(
+		ctx,
+		le,
+		worldHandle,
+		objKey,
+		repoObjKey,
+		workdirRef,
+		createWorkdir,
+		checkoutOpts,
+		sender,
+		ts,
+	)
 	if err != nil {
 		return false, err
 	}

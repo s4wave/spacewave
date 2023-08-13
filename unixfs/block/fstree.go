@@ -79,13 +79,20 @@ func (f *FSTree) GetPermissions() (fs.FileMode, error) {
 // SetPermissions sets the permissions bits of the file mode.
 // The file mode portion of the value is ignored.
 func (f *FSTree) SetPermissions(perm fs.FileMode) error {
-	f.node.Permissions = uint32(perm & fs.ModePerm)
+	nperm := uint32(perm & fs.ModePerm)
+	if f.node.Permissions != nperm {
+		f.node.Permissions = nperm
+		f.bcs.MarkDirty()
+	}
 	return nil
 }
 
 // SetModTimestamp changes the modification timestamp for the node.
 func (f *FSTree) SetModTimestamp(ts *timestamp.Timestamp) error {
-	f.node.ModTime = ts
+	if !f.node.ModTime.EqualVT(ts) {
+		f.node.ModTime = ts
+		f.bcs.MarkDirty()
+	}
 	return nil
 }
 
@@ -209,8 +216,10 @@ func (f *FSTree) Symlink(
 
 	dnode := NewFSNode(NodeType_NodeType_SYMLINK, DefaultPermissions(NodeType_NodeType_SYMLINK), ts)
 	dnode.Symlink = lnk
+
 	dnodeCs := dcs.FollowRef(2, nil)
 	dnodeCs.SetBlock(dnode, true)
+
 	return newTxFSTree(f.ctx, dnodeCs, dnode), nil
 }
 
@@ -317,6 +326,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 		}
 		skipBitset.Set(0)
 	}
+
 	return &skipBitset, indexes, nil
 }
 

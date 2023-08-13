@@ -138,7 +138,18 @@ func TestGitClone(t *testing.T) {
 		FsType:    unixfs_world.FSType_FSType_FS_NODE,
 	}
 	le.Info("checking out second worktree")
-	err = GitCreateWorktree(ctx, ws, sender, altWorktreeKey, objKey, workdirRef, true, &git_block.CheckoutOpts{Force: true}, false, ts)
+	err = GitCreateWorktree(
+		ctx,
+		ws,
+		sender,
+		altWorktreeKey,
+		objKey,
+		workdirRef,
+		true,
+		&git_block.CheckoutOpts{Force: true},
+		false,
+		ts,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

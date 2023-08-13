@@ -27,7 +27,7 @@ func TestFSWatcher(t *testing.T) {
 	}
 
 	objKey := "test-fs"
-	fs, tb, err := unixfs_world.BuildTestbed(
+	rootRef, tb, err := unixfs_world.BuildTestbed(
 		btb,
 		objKey,
 		true,
@@ -37,22 +37,11 @@ func TestFSWatcher(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// fill the sample filesystem
-	rootRef, err := fs.AddRootReference(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer rootRef.Release()
-
 	rbfs := unixfs.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// wait a moment for the write to be confirmed
-	// TODO: This is a bug that currently is being fixed
-	<-time.After(time.Millisecond * 100)
 
 	// construct the AccessUnixFS handler
 	unixFsID := "test-fs"
@@ -152,9 +141,6 @@ func TestFSWatcher(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	handleRel()
-	// wait a moment for the write to be confirmed
-	// TODO: This is a bug that currently is being fixed
-	<-time.After(time.Millisecond * 100)
 
 	// assert that the callback is called again
 	assertCalled()

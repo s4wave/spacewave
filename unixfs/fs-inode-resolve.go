@@ -4,10 +4,13 @@ import (
 	"context"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // if the callback returns ErrReleased, the operation will be retried
-// caller must not hold waitSema
+// caller must NOT hold rmtx
+// cb is called with rmtx UNLOCKED!
 func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 	var lastErr error
 	handleErr := func(err error) error {
@@ -16,32 +19,27 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 			return err
 		}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			err = context.Canceled
+		} else if i.checkReleased() && i.relErr != nil {
+			err = i.relErr
+		} else if i.parent != nil && i.parent.checkReleased() && i.parent.relErr != nil {
+			err = i.parent.relErr
 		}
 
-		if i.f.CheckReleased() || i.checkReleased() {
-			_, relErr := i.checkReleasedWithErr()
-			return relErr
-		}
-		if i.parent != nil && i.parent.checkReleased() {
-			// this node will be released as well when parent is released.
-			_, relErr := i.parent.checkReleasedWithErr()
-			return relErr
-		}
-		if i.fsOps != nil && i.fsOps.CheckReleased() {
-			i.fsOps = nil
+		// if this isn't a ErrReleased, return it immediately.
+		if err != unixfs_errors.ErrReleased {
+			return err
 		}
 
+		// return nil to indicate retry
 		lastErr = err
 		return nil
 	}
 
 	for tries := 0; tries < fsInodeTries; tries++ {
 		isRel, relErr := i.checkReleasedWithErr()
-		if i.f.CheckReleased() || isRel {
+		if isRel {
 			if relErr != nil {
 				return relErr
 			}
@@ -83,87 +81,90 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 
 // resolveOps resolves the inode operations.
 // low-level op used by accessInode, use accessInode instead.
-// caller must NOT hold waitSema
-// waitSema may be released temporarily
+// caller must NOT hold rmtx
+// returns with rmtx UNLOCKED
 // may return errors
 func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
-	if err := i.f.waitSema.Acquire(ctx, 1); err != nil {
+	rel, err := i.rmtx.Lock(ctx, true)
+	if err != nil {
 		return nil, nil, err
 	}
+	// note: it's ok to call rel() multiple times.
+	defer rel()
 
 	// check current ops object
-	fsOps := i.fsOps
-	if fsOps != nil {
-		if fsOps.CheckReleased() {
-			fsOps = nil
-			i.fsOps = nil
-			i.checkCursorsLocked()
+	if fsOps := i.fsOps; fsOps != nil {
+		if !fsOps.CheckReleased() {
+			cursor := i.fsCursors[len(i.fsCursors)-1]
+			return cursor, fsOps, nil
 		} else {
-			i.f.waitSema.Release(1)
-			return i.fsCursors[len(i.fsCursors)-1], fsOps, nil
+			i.fsOps = nil
 		}
 	}
 
 	// we need to fetch fsOps.
 	// check if there is an existing fetch op and subscribe to it if so
-	fsOpsWait := i.fsOpsWait
-	if fsOpsWait != nil {
+	fsWait := i.fsWait
+	if fsWait != nil {
+		// Check if fsWait was already closed (finished).
 		select {
-		case <-fsOpsWait:
-			fsOpsWait = nil
+		case <-fsWait:
+			fsWait = nil
 		default:
 		}
 	}
-	waiting := fsOpsWait != nil
-	if !waiting {
-		// we will perform the lookup
-		fsOpsWait = make(chan struct{})
-		i.fsOpsWait = fsOpsWait
+
+	waiting := fsWait != nil
+	if waiting {
+		// unlock rmtx for now
+		rel()
+
+		// wait for other resolve process to complete
+		// then return the "try again" signal (nil, nil)
+		select {
+		case <-ctx.Done():
+			return nil, nil, context.Canceled
+		case <-fsWait:
+			return nil, nil, nil
+		}
 	}
 
-	// unlock waitSema for now
-	i.f.waitSema.Release(1)
+	// we will perform the lookup
+	fsWait = make(chan struct{})
+	i.fsWait = fsWait
+	// expects mtx to be locked on entry & released on exit.
+	i.resolveOpsRoutineLocked(ctx, fsWait, rel)
 
-	// we are the routine that will perform the fetch.
-	if !waiting {
-		// go i.resolveOpsRoutine(fsOpsWait)
-		i.resolveOpsRoutine(fsOpsWait)
+	// note: rmtx is unlocked by resolveOpsRoutineLocked
+	// return context.Canceled if context was canceled
+	if ctx.Err() != nil {
+		return nil, nil, context.Canceled
 	}
 
-	// if waiting, wait for other resolve process to complete
-	// then return the "try again" signal (nil, nil)
-	select {
-	case <-ctx.Done():
-		return nil, nil, ctx.Err()
-	case <-fsOpsWait:
-		return nil, nil, nil
-	}
+	// return try-again signal otherwise
+	return nil, nil, nil
 }
 
 // resolveOpsRoutine is a separate goroutine to resolve the fsOps.
-// waitSema must NOT be held
+// rmtx must be held by caller
+// returns with rmtx UNLOCKED
 // should be called only by resolveOps
-func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
+func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struct{}, rel func()) {
 	parent := i.parent
 	iname := i.name
-	ctx := i.f.ctx
-
-	// TODO: we should try to re-use the existing fsCursors stack on the inode.
-	// the below code will build a new cursors stack and then release the old.
-	// instead, starting with the old fsCursors set:
-	// - from last -> first, remove any cursors that are released
-	// - if there are 0 cursors use the below logic to get the first one via lookup
-	// - perform the existing code below to call GetProxyCursor
 
 	// when returning indicate we finished our work
-	defer close(fsOpsWait)
+	defer close(fsWait)
 
+	// note: rmtx is already locked by the caller.
 	// if the fsOps already exists and is not released, return.
-	if i.fsOps != nil {
-		if !i.fsOps.CheckReleased() {
+	if fsOps := i.fsOps; fsOps != nil {
+		if fsOps.CheckReleased() {
+			i.fsOps = nil
+		} else {
+			// job done: i.fsOps is set and not released
 			return
 		}
-		i.fsOps = nil
 	}
 
 	// remove any released cursors from last -> first
@@ -176,128 +177,116 @@ func (i *fsInode) resolveOpsRoutine(fsOpsWait chan struct{}) {
 		}
 	}
 	i.fsCursors = cursorStack
+	cursorStack = slices.Clone(cursorStack)
 
-	// if there are 0 cursors remaining use lookup to get the first one
-	if len(cursorStack) == 0 {
-		// wait for the parent to be resolved
-		if parent != nil {
-			err := parent.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
-				// lookup this dirent
-				iCursor, err := ops.Lookup(ctx, iname)
-				if err == nil && iCursor == nil {
-					err = unixfs_errors.ErrNotExist
-				}
-				if err != nil {
-					return err
-				}
-				cursorStack = append(cursorStack, iCursor)
-				return nil
-			})
+	// unlock rmtx
+	rel()
+
+	// we may need to try this several times.
+	var fsOps FSCursorOps
+	var err error
+	for {
+		// if there are 0 cursors remaining use lookup to get the first one
+		if len(cursorStack) == 0 {
+			// wait for the parent to be resolved
+			if parent != nil {
+				err = parent.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+					// lookup this dirent
+					iCursor, err := ops.Lookup(ctx, iname)
+					if err == nil && iCursor == nil {
+						err = unixfs_errors.ErrNotExist
+					}
+					if err != nil {
+						return err
+					}
+
+					// append without locking rmtx since nobody but us can touch cursorStack.
+					cursorStack = append(cursorStack, iCursor)
+					return nil
+				})
+			} else {
+				// this cursor is released and there's no parent.
+				// return ErrInodeUnresolvable
+				err = errors.Wrap(unixfs_errors.ErrInodeUnresolvable, "no parent inode")
+			}
 			if err != nil {
 				// error fetching parent cursors.
-				// lock waitSema and release this + all children
-				if err != context.Canceled && err != unixfs_errors.ErrNotExist && i.f.le != nil {
-					i.f.le.WithError(err).Warn("fs: error fetching parent cursor")
-				}
-				i.release(err)
-				return
-			}
-		} else {
-			// note: immutable
-			rootFSCursor := i.f.rootFSCursor
-			if rootFSCursor.CheckReleased() {
-				if !i.checkReleased() {
-					if i.f.le != nil {
-						i.f.le.Warn("fs: cannot resolve, root fs cursor is released")
-					}
-					i.release(nil)
+				// lock rmtx and release this + all children
+				rel, relErr := i.rmtx.Lock(ctx, true)
+				if relErr == nil {
+					i.releaseWithChildrenLocked(err)
+					i.fsWait = nil
+					rel()
 				}
 				return
 			}
-			cursorStack = append(cursorStack, rootFSCursor)
 		}
+
+		// resolve the proxies as needed
+		for len(cursorStack) != 0 {
+			// check if the inode itself was released
+			if i.checkReleased() {
+				return
+			}
+
+			next := cursorStack[len(cursorStack)-1]
+			var pcursor FSCursor
+			pcursor, err = next.GetProxyCursor(ctx)
+			if err != nil {
+				if err != unixfs_errors.ErrReleased {
+					break
+				}
+				cursorStack[len(cursorStack)-1] = nil
+				cursorStack = cursorStack[:len(cursorStack)-1]
+				continue
+			}
+			if pcursor != nil {
+				cursorStack = append(cursorStack, pcursor)
+				continue
+			}
+
+			// no more proxies: return the ops
+			fsOps, err = next.GetCursorOps(ctx)
+			if err == nil && fsOps == nil {
+				err = unixfs_errors.ErrNotExist
+			}
+			if err != nil {
+				if err != unixfs_errors.ErrReleased {
+					break
+				}
+
+				// note: don't set the elem to nil here since we don't lock rmtx.
+				cursorStack[len(cursorStack)-1] = nil
+				cursorStack = cursorStack[:len(cursorStack)-1]
+				continue
+			}
+
+			// done
+			break
+		}
+
+		// if fsOps is set and not released, we are done.
+		if fsOps != nil && !fsOps.CheckReleased() {
+			break
+		}
+
+		// otherwise try again
+		fsOps = nil
 	}
 
-	// resolve the proxies as needed
-	var fsOps FSCursorOps
-	failCleanup := func(withErr error) {
+	// err is set if anything failed.
+	rel, relErr := i.rmtx.Lock(ctx, true)
+	if relErr != nil {
+		// make sure we don't leak cursors
 		for i := len(cursorStack) - 1; i >= 0; i-- {
 			cursorStack[i].Release()
 		}
-		cursorStack = nil
-		i.release(withErr)
-	}
-	for len(cursorStack) != 0 {
-		if i.checkReleased() {
-			failCleanup(nil)
-			return
-		}
-
-		next := cursorStack[len(cursorStack)-1]
-		pcursor, err := next.GetProxyCursor(ctx)
-		if err != nil {
-			if err == unixfs_errors.ErrReleased {
-				cursorStack[len(cursorStack)-1] = nil
-				cursorStack = cursorStack[:len(cursorStack)-1]
-				continue
-			}
-
-			// error, release this + all children
-			if err != context.Canceled && i.f.le != nil {
-				i.f.le.WithError(err).Warn("fs: error getting proxy cursor")
-			}
-			failCleanup(err)
-			return
-		}
-		if pcursor != nil {
-			cursorStack = append(cursorStack, pcursor)
-			continue
-		}
-
-		// no more proxies: return the ops
-		fsOps, err = next.GetFSCursorOps(ctx)
-		if err == nil && fsOps == nil {
-			err = unixfs_errors.ErrNotExist
-		}
-		if err != nil {
-			if err == unixfs_errors.ErrReleased {
-				cursorStack[len(cursorStack)-1] = nil
-				cursorStack = cursorStack[:len(cursorStack)-1]
-				continue
-			}
-
-			// error getting the fs cursor ops.
-			if err != context.Canceled && i.f.le != nil {
-				i.f.le.WithError(err).Warn("fs: error fetching cursor ops")
-			}
-			failCleanup(err)
-			return
-		}
-		break
-	}
-
-	if fsOps == nil {
-		if i.f.le != nil {
-			i.f.le.Warn("fs: failed to resolve ops: all parent cursors were released")
-		}
-		failCleanup(nil)
 		return
 	}
+	defer rel()
 
-	// fsOps is now set to the latest ops
-	// cursorStack is set to the next fsCursors value.
-	if err := i.f.waitSema.Acquire(i.f.ctx, 1); err != nil {
-		failCleanup(err)
-		return
+	i.fsCursors, i.fsOps, i.fsWait = cursorStack, fsOps, nil
+	if err != nil {
+		i.releaseWithChildrenLocked(err)
 	}
-	if i.checkReleased() {
-		i.f.waitSema.Release(1)
-		failCleanup(nil)
-		return
-	}
-	// set new cursor stack
-	i.fsCursors = cursorStack
-	i.fsOps = fsOps
-	// done
-	i.f.waitSema.Release(1)
 }

@@ -233,13 +233,7 @@ func AccessWorldObjectRepoWithWorktree(
 	}
 
 	// open the workdir fs
-	workdirFs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, true, false, ts)
-	if err != nil {
-		return err
-	}
-	defer workdirFs.Release()
-
-	wdFsHandle, err := workdirFs.AddRootReference(ctx)
+	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, true, false, ts)
 	if err != nil {
 		return err
 	}
@@ -293,20 +287,14 @@ func CreateWorldObjectWorktree(
 		}
 
 		// init the workdir
-		err = unixfs_world.FsInit(ctx, ws, sender, workdirObjKey, workdirRef.GetFsType(), nil, 0, false, ts)
+		_, _, err = unixfs_world.FsInit(ctx, ws, sender, workdirObjKey, workdirRef.GetFsType(), nil, 0, false, ts)
 		if err != nil {
 			return err
 		}
 	}
 
 	// open the workdir fs
-	workdirFs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, createWorkdir, false, ts)
-	if err != nil {
-		return err
-	}
-	defer workdirFs.Release()
-
-	wdFsHandle, err := workdirFs.AddRootReference(ctx)
+	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, createWorkdir, true, ts)
 	if err != nil {
 		return err
 	}

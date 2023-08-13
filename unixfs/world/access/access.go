@@ -34,7 +34,7 @@ type Controller struct {
 	*bus.BusController[*Config]
 	sender peer.ID
 	errCtr *ccontainer.CContainer[*error]
-	fsRc   *refcount.RefCount[*unixfs.FS]
+	fsRc   *refcount.RefCount[*unixfs.FSHandle]
 }
 
 // newController constructs the controller with a bus controller.
@@ -159,7 +159,7 @@ func (c *Controller) AccessUnixFS(ctx context.Context, released func()) (*unixfs
 		valRef.Release()
 		return nil, nil, err
 	}
-	rootRef, err := val.AddRootReference(ctx)
+	rootRef, err := val.Clone(ctx)
 	if err != nil {
 		valRef.Release()
 		return nil, nil, err
@@ -171,7 +171,7 @@ func (c *Controller) AccessUnixFS(ctx context.Context, released func()) (*unixfs
 }
 
 // resolveFs resolves building the fs.
-func (c *Controller) resolveFs(ctx context.Context, released func()) (*unixfs.FS, func(), error) {
+func (c *Controller) resolveFs(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 	eng, engRelease, err := c.resolveWorldEngine(ctx, released)
 	if err != nil {
 		return nil, nil, err

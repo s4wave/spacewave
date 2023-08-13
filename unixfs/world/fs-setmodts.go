@@ -20,11 +20,10 @@ func FsSetModTimestamp(
 	fsType FSType,
 	paths [][]string,
 	mtime time.Time,
-) error {
+) (rev uint64, sysErr bool, err error) {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsSetModTimestampOp("", fsType, bpaths, mtime)
-	_, _, err := world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
-	return err
+	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }
 
 // FsSetModTimestampOpId is the operation id.

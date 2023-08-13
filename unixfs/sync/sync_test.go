@@ -28,7 +28,7 @@ func TestSync(t *testing.T) {
 	}
 
 	objKey := "test-fs"
-	fs, _, err := unixfs_world.BuildTestbed(
+	rref, _, err := unixfs_world.BuildTestbed(
 		btb,
 		objKey,
 		true,
@@ -37,12 +37,6 @@ func TestSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	rref, err := fs.AddRootReference(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer rref.Release()
 
 	ts := time.Now()
 	bfs := unixfs.NewBillyFS(ctx, rref, "", ts)
@@ -53,10 +47,6 @@ func TestSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// TODO: requires a slight delay for the fscursors to update
-	// TODO: This is a bug that currently is being fixed
-	time.Sleep(time.Millisecond * 5)
 
 	outFs := memfs.New()
 	err = billy_util.WriteFile(outFs, testFile, []byte("Incorrect data to be overwritten by sync"), 0755)

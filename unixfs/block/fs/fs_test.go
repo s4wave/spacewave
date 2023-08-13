@@ -1,7 +1,9 @@
 package unixfs_block_fs
 
 import (
+	"bytes"
 	"context"
+	"path"
 	"testing"
 	"time"
 
@@ -9,7 +11,9 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // TestFS tests the full end-to-end filesystem.
@@ -24,38 +28,40 @@ func TestFS(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	oc, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	buildFsHandle := func() *unixfs.FSHandle {
+		oc, err := tb.BuildEmptyCursor(ctx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 
-	// init the filesystem root
-	btx, bcs := oc.BuildTransaction(nil)
-	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
-	_, err = unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	rootRef, _, err := btx.Write(true)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	oc.SetRootRef(rootRef)
+		// init the filesystem root
+		btx, bcs := oc.BuildTransaction(nil)
+		bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
+		_, err = unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		rootRef, _, err := btx.Write(true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		oc.SetRootRef(rootRef)
 
-	// construct the fscursor
-	wr := NewFSWriter()
-	fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, wr)
-	defer fs.Release()
-	wr.SetFS(fs)
-	ufs := unixfs.NewFS(ctx, le, fs, nil)
+		// construct the fscursor
+		wr := NewFSWriter()
+		fs := NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, oc, wr)
+		// defer fs.Release()
+		wr.SetFS(fs)
 
-	fsHandle, err := ufs.AddRootReference(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer fsHandle.Release()
-	if fsHandle.GetName() != "" {
-		t.Fail()
+		fsHandle, err := unixfs.NewFSHandle(fs)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if fsHandle.GetName() != "" {
+			fsHandle.Release()
+			t.Fail()
+		}
+		return fsHandle
 	}
 
 	testFsHandle := func(t *testing.T, h *unixfs.FSHandle) {
@@ -63,6 +69,7 @@ func TestFS(t *testing.T) {
 		if err != unixfs_errors.ErrNotExist {
 			t.Fatalf("expected not exist but got %v", err)
 		}
+		testDirName := "test-dir-1"
 		err = h.Mknod(
 			ctx,
 			true,
@@ -74,20 +81,62 @@ func TestFS(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+
+		dirHandle, err := h.Lookup(ctx, testDirName)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		testFilename := "test.txt"
+		testFilePath := path.Join(testDirName, testFilename)
+		if err := dirHandle.Mknod(
+			ctx,
+			true,
+			[]string{testFilename},
+			unixfs.NewFSCursorNodeType_File(),
+			0644,
+			time.Time{},
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+
+		fileContents := []byte("hello world")
+		fileHandle, fileHandlePts, err := h.LookupPath(ctx, testFilePath)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !slices.Equal(fileHandlePts, []string{testDirName, testFilename}) {
+			t.FailNow()
+		}
+		if err := fileHandle.WriteAt(ctx, 0, fileContents, time.Time{}); err != nil {
+			t.Fatal(err.Error())
+		}
+
+		bfs := unixfs.NewBillyFS(ctx, h, "", time.Time{})
+		readData, err := billy_util.ReadFile(bfs, testFilePath)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !bytes.Equal(readData, fileContents) {
+			t.FailNow()
+		}
 	}
 
 	// First try accessing fsHandle directly.
 	t.Run("fsHandle", func(t *testing.T) {
+		fsHandle := buildFsHandle()
+		defer fsHandle.Release()
+
 		testFsHandle(t, fsHandle)
 	})
 
 	// Test accessing via the FSHandle FSCursor.
 	t.Run("fsHandle_FSCursor", func(t *testing.T) {
-		fsHandleCursor := unixfs.NewFSHandleCursor(fsHandle)
-		fsHandleCursorFS := unixfs.NewFS(ctx, le, fsHandleCursor, nil)
-		defer fsHandleCursorFS.Release()
+		fsHandle := buildFsHandle()
+		defer fsHandle.Release()
 
-		fsHandleCursorHandle, err := fsHandleCursorFS.AddRootReference(ctx)
+		fsHandleCursor := unixfs.NewFSHandleCursor(fsHandle)
+		fsHandleCursorHandle, err := unixfs.NewFSHandle(fsHandleCursor)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -98,16 +147,17 @@ func TestFS(t *testing.T) {
 
 	// Test accessing via the FSHandle FSCursor.
 	t.Run("fsHandle_FSCursor_WithGetter", func(t *testing.T) {
+		fsHandle := buildFsHandle()
+		defer fsHandle.Release()
+
 		fsHandleCursorGetter := unixfs.NewFSCursorGetter(func(ctx context.Context) (unixfs.FSCursor, error) {
 			if fsHandle.CheckReleased() {
 				return nil, unixfs_errors.ErrReleased
 			}
 			return unixfs.NewFSHandleCursor(fsHandle), nil
 		})
-		fsHandleCursorFS := unixfs.NewFS(ctx, le, fsHandleCursorGetter, nil)
-		defer fsHandleCursorFS.Release()
 
-		fsHandleCursorHandle, err := fsHandleCursorFS.AddRootReference(ctx)
+		fsHandleCursorHandle, err := unixfs.NewFSHandle(fsHandleCursorGetter)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

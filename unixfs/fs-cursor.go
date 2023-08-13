@@ -26,13 +26,13 @@ type FSCursor interface {
 	//
 	// cb must not block, and should be called when cursor changes / is released
 	// cb will be called immediately (same call tree) if already released.
+	// note: the cursor may hold a mutex internally while calling cb, don't call Release inside the callback.
 	AddChangeCb(cb FSCursorChangeCb)
 
-	// GetFSCursorOps returns the FSCursorOps for the FSCursor.
-	// Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
+	// GetCursorOps returns the FSCursorOps for the FSCursor. // Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
 	// Returning nil, nil will be corrected to nil, ErrNotExist.
 	// Return nil, ErrReleased to indicate this FSCursor was released.
-	GetFSCursorOps(ctx context.Context) (FSCursorOps, error)
+	GetCursorOps(ctx context.Context) (FSCursorOps, error)
 
 	// Release releases the filesystem cursor.
 	Release()
@@ -58,7 +58,7 @@ type FSCursorDirent interface {
 
 // FSCursorOps are operations called against a non-proxy FSCursor.
 // Operations return ErrReleased if the FSCursorOps was released.
-// After release, the system will call GetFSCursorOps again.
+// After release, the system will call GetCursorOps again.
 // If the node type changes for any reason, the ops object should be released.
 // All ops must be concurrency safe and may be called by multiple routines at once.
 type FSCursorOps interface {

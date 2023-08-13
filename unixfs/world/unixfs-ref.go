@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/sirupsen/logrus"
@@ -26,59 +25,31 @@ func BuildFSFromUnixfsRef(
 	mkdirPath bool,
 	watchChanges bool,
 	ts time.Time,
-) (*unixfs.FS, error) {
+) (*unixfs.FSHandle, error) {
 	// lookup the object
-	fsCursor, err := FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges && !mkdirPath)
+	fsCursor, err := FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges)
 	if err != nil {
 		return nil, err
 	}
 
 	// apply prefix if necessary
-	var prefixPath []string
 	refPath := ref.GetPath()
-	if len(refPath.GetNodes()) != 0 {
+	prefixPath := refPath.GetNodes()
+	if len(prefixPath) != 0 {
 		if err := refPath.Validate(); err != nil {
 			return nil, err
 		}
-		prefixPath = unixfs_block.PathsToStringSlices(refPath)[0]
 	}
 
-	// if we should mkdirPath, ensure the prefix exists first.
-	if mkdirPath {
-		baseFs := unixfs.NewFS(ctx, le, fsCursor, nil)
-		baseFsh, err := baseFs.AddRootReference(ctx)
-		if err != nil {
-			baseFs.Release()
-			return nil, err
-		}
-		err = baseFsh.MkdirAll(
-			ctx,
-			unixfs.JoinPath(prefixPath),
-			unixfs_block.DefaultPermissions(unixfs_block.NodeType_NodeType_DIRECTORY),
-			ts,
-		)
-		baseFsh.Release()
-		baseFs.Release()
-		if err != nil {
-			return nil, err
-		}
-
-		// rebuild the fs cursor
-		fsCursor.Release()
-		fsCursor, err = FollowUnixfsRef(ctx, le, ws, ref, sender, watchChanges)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	fs := unixfs.NewFS(ctx, le, fsCursor, prefixPath)
-	return fs, nil
+	// follow the path prefix
+	return unixfs.NewFSHandleWithPrefix(ctx, fsCursor, prefixPath, mkdirPath, ts)
 }
 
 // FollowUnixfsRef builds a fs cursor based on a Unixfs ref.
 //
 // NOTE: ignores the Path field!
-// if sender is empty, the writer will be nil.
+// if sender is empty the fs will be read-only.
+// if watchChanges is nil the fs will be read-only.
 func FollowUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -109,11 +80,24 @@ func FollowUnixfsRef(
 		}
 	}
 
+	var fsw *FSWriter
 	var writer unixfs.FSWriter
-	if len(sender) != 0 {
-		writer = NewFSWriter(ws, objKey, fsType, sender)
+	if len(sender) != 0 && watchChanges {
+		fsw = NewFSWriter(ws, objKey, fsType, sender)
+		writer = fsw
 	}
-	return NewFSCursor(le, ws, objKey, fsType, writer, watchChanges), nil
+
+	// construct the fs cursor
+	fsc := NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
+
+	// we need the writer to wait until the FSCursor has processed the updated
+	// revision of the world before returning from writes. pass the FSCursor to
+	// the writer to set the additional wait function.
+	if fsw != nil {
+		fsw.SetConfirmFunc(fsc.WaitObjectRev)
+	}
+
+	return fsc, nil
 }
 
 // Validate checks the unixfs ref.
