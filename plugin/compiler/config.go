@@ -1,12 +1,14 @@
 package bldr_plugin_compiler
 
 import (
+	"sort"
 	"strings"
 
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 	"golang.org/x/mod/module"
 )
 
@@ -18,6 +20,22 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
+// GetConfigID returns the unique string for this configuration type.
+func (c *Config) GetConfigID() string {
+	return ConfigID
+}
+
+// EqualsConfig checks if the config is equal to another.
+func (c *Config) EqualsConfig(other config.Config) bool {
+	ot, ok := other.(*Config)
+	if !ok {
+		return false
+	}
+	return ot.EqualVT(c)
+}
+
+// GetConfigID returns the unique string for this configuration type.
+
 // UpdateRelativeGoPackagePaths applies the root module path to the go_packages list.
 func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) []string {
 	pkgs := make([]string, len(goPkgsList))
@@ -28,11 +46,6 @@ func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) []stri
 		pkgs[i] = goPkgName
 	}
 	return pkgs
-}
-
-// GetConfigID returns the unique string for this configuration type.
-func (c *Config) GetConfigID() string {
-	return ConfigID
 }
 
 // Validate validates the configuration.
@@ -55,13 +68,64 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// EqualsConfig checks if the config is equal to another.
-func (c *Config) EqualsConfig(other config.Config) bool {
-	ot, ok := other.(*Config)
-	if !ok {
-		return false
+// Alloc allocates any nil maps.
+func (c *Config) Alloc() {
+	if c == nil {
+		return
 	}
-	return ot.EqualVT(c)
+	if c.ConfigSet == nil {
+		c.ConfigSet = make(map[string]*configset_proto.ControllerConfig)
+	}
+	if c.HostConfigSet == nil {
+		c.HostConfigSet = make(map[string]*configset_proto.ControllerConfig)
+	}
+}
+
+// Merge merges the given build config into c.
+func (c *Config) Merge(o *Config) {
+	if o == nil {
+		return
+	}
+
+	// allocate any maps
+	c.Alloc()
+
+	// merge config sets
+	configset_proto.MergeConfigSetMaps(c.ConfigSet, o.GetConfigSet())
+	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
+
+	// append and sort go packages list
+	var goPkgsDirty bool
+	for _, pkg := range o.GetGoPackages() {
+		if pkg != "" && !slices.Contains(c.GoPackages, pkg) {
+			goPkgsDirty = true
+			c.GoPackages = append(c.GoPackages, pkg)
+		}
+	}
+	if goPkgsDirty {
+		sort.Strings(c.GoPackages)
+	}
+
+	// override project id
+	if cproj := o.GetProjectId(); cproj != "" {
+		c.ProjectId = cproj
+	}
+
+	if o.GetDisableRpcFetch() {
+		c.DisableRpcFetch = true
+	}
+
+	if o.GetDisableFetchAssets() {
+		c.DisableFetchAssets = true
+	}
+
+	if daddr := o.GetDelveAddr(); daddr != "" {
+		c.DelveAddr = daddr
+	}
+
+	if o.GetEnableCgo() {
+		c.EnableCgo = true
+	}
 }
 
 // _ is a type assertion

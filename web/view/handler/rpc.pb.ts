@@ -168,9 +168,8 @@ export const HandleWebViewRequest = {
   create<I extends Exact<DeepPartial<HandleWebViewRequest>, I>>(
     base?: I,
   ): HandleWebViewRequest {
-    return HandleWebViewRequest.fromPartial(base ?? {})
+    return HandleWebViewRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HandleWebViewRequest>, I>>(
     object: I,
   ): HandleWebViewRequest {
@@ -276,9 +275,8 @@ export const HandleWebViewResponse = {
   create<I extends Exact<DeepPartial<HandleWebViewResponse>, I>>(
     base?: I,
   ): HandleWebViewResponse {
-    return HandleWebViewResponse.fromPartial(base ?? {})
+    return HandleWebViewResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HandleWebViewResponse>, I>>(
     object: I,
   ): HandleWebViewResponse {

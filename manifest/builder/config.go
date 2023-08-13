@@ -64,7 +64,6 @@ func (c *BuilderConfig) CommitManifest(
 	if err != nil {
 		return nil, nil, err
 	}
-	ts := timestamp.Now()
 	return manifest_world.CommitManifest(
 		ctx,
 		le,
@@ -77,6 +76,6 @@ func (c *BuilderConfig) CommitManifest(
 		c.GetObjectKey(),
 		c.GetLinkObjectKeys(),
 		pid,
-		&ts,
+		timestamp.Now(),
 	)
 }

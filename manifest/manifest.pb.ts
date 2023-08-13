@@ -211,9 +211,8 @@ export const ManifestMeta = {
   },
 
   create<I extends Exact<DeepPartial<ManifestMeta>, I>>(base?: I): ManifestMeta {
-    return ManifestMeta.fromPartial(base ?? {});
+    return ManifestMeta.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ManifestMeta>, I>>(object: I): ManifestMeta {
     const message = createBaseManifestMeta();
     message.manifestId = object.manifestId ?? "";
@@ -348,9 +347,8 @@ export const Manifest = {
   },
 
   create<I extends Exact<DeepPartial<Manifest>, I>>(base?: I): Manifest {
-    return Manifest.fromPartial(base ?? {});
+    return Manifest.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Manifest>, I>>(object: I): Manifest {
     const message = createBaseManifest();
     message.meta = (object.meta !== undefined && object.meta !== null)
@@ -463,9 +461,8 @@ export const ManifestRef = {
   },
 
   create<I extends Exact<DeepPartial<ManifestRef>, I>>(base?: I): ManifestRef {
-    return ManifestRef.fromPartial(base ?? {});
+    return ManifestRef.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ManifestRef>, I>>(object: I): ManifestRef {
     const message = createBaseManifestRef();
     message.meta = (object.meta !== undefined && object.meta !== null)
@@ -576,9 +573,8 @@ export const ManifestBundle = {
   },
 
   create<I extends Exact<DeepPartial<ManifestBundle>, I>>(base?: I): ManifestBundle {
-    return ManifestBundle.fromPartial(base ?? {});
+    return ManifestBundle.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ManifestBundle>, I>>(object: I): ManifestBundle {
     const message = createBaseManifestBundle();
     message.manifestRefs = object.manifestRefs?.map((e) => ManifestRef.fromPartial(e)) || [];
@@ -671,9 +667,8 @@ export const FetchManifestRequest = {
   },
 
   create<I extends Exact<DeepPartial<FetchManifestRequest>, I>>(base?: I): FetchManifestRequest {
-    return FetchManifestRequest.fromPartial(base ?? {});
+    return FetchManifestRequest.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<FetchManifestRequest>, I>>(object: I): FetchManifestRequest {
     const message = createBaseFetchManifestRequest();
     message.manifestMeta = (object.manifestMeta !== undefined && object.manifestMeta !== null)
@@ -765,9 +760,8 @@ export const FetchManifestResponse = {
   },
 
   create<I extends Exact<DeepPartial<FetchManifestResponse>, I>>(base?: I): FetchManifestResponse {
-    return FetchManifestResponse.fromPartial(base ?? {});
+    return FetchManifestResponse.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<FetchManifestResponse>, I>>(object: I): FetchManifestResponse {
     const message = createBaseFetchManifestResponse();
     message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)

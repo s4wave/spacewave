@@ -161,9 +161,8 @@ export const Assembly = {
   },
 
   create<I extends Exact<DeepPartial<Assembly>, I>>(base?: I): Assembly {
-    return Assembly.fromPartial(base ?? {});
+    return Assembly.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Assembly>, I>>(object: I): Assembly {
     const message = createBaseAssembly();
     message.controllerExec = (object.controllerExec !== undefined && object.controllerExec !== null)
@@ -302,9 +301,8 @@ export const SubAssembly = {
   },
 
   create<I extends Exact<DeepPartial<SubAssembly>, I>>(base?: I): SubAssembly {
-    return SubAssembly.fromPartial(base ?? {});
+    return SubAssembly.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<SubAssembly>, I>>(object: I): SubAssembly {
     const message = createBaseSubAssembly();
     message.id = object.id ?? "";
@@ -411,9 +409,8 @@ export const DirectiveBridge = {
   },
 
   create<I extends Exact<DeepPartial<DirectiveBridge>, I>>(base?: I): DirectiveBridge {
-    return DirectiveBridge.fromPartial(base ?? {});
+    return DirectiveBridge.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<DirectiveBridge>, I>>(object: I): DirectiveBridge {
     const message = createBaseDirectiveBridge();
     message.controllerConfig = (object.controllerConfig !== undefined && object.controllerConfig !== null)

@@ -5,55 +5,6 @@ import "github.com/aperturerobotics/controllerbus/controller/configset/proto/con
 
 // Config configures the plugin compiler controller.
 message Config {
-  // GoPackages is the list of Go packages to scan for controller factories.
-  // Looks for package-level functions:
-  //  - NewFactory(b bus.Bus) controller.Factory
-  //  - [TODO] BuildFactories(b bus.Bus) []controller.Factory
-  repeated string go_packages = 1;
-
-  // ConfigSet is a ConfigSet to apply on plugin startup.
-  // This ConfigSet is applied to the plugin bus.
-  // This will be included in the plugin binary.
-  map<string, .configset.proto.ControllerConfig> config_set = 2;
-
-  // HostConfigSet is a ConfigSet to apply to the host on plugin startup.
-  // This ConfigSet is applied to the plugin host bus.
-  // This will be included in the plugin binary.
-  // Adds a config to configSet with ID bldr/plugin/host/configset
-  map<string, .configset.proto.ControllerConfig> host_config_set = 3;
-
-  // DisableRpcFetch disables the default Fetch RPC service handler.
-  // The handler handles the Fetch service by creating a directive.
-  // You can also override config ID "rpc-fetch" in the config-set.
-  // This service is used for the ServiceWorker HTTP calls.
-  bool disable_rpc_fetch = 4;
-
-  // DisableFetchAssets disables the default web assets service handler.
-  // The handler handles Fetch directives with the assets FS.
-  // This service is used for the ServiceWorker HTTP calls.
-  // This usually should be disabled if using custom HTTP handlers.
-  // Override this using config ID "plugin-assets" in the config-set.
-  bool disable_fetch_assets = 5;
-
-  // DelveAddr is the address to listen for Delve remote connections.
-  // If the build mode is dev and this is set, uses delve to run the plugin.
-  // Ignored if build mode is not dev.
-  // Allowed characters: [Z-a0-9.:]
-  // Special value: "wait" - waits for plugin entrypoint to be run manually.
-  // Example: ":5000"
-  string delve_addr = 6;
-
-  // ProjectId overrides the project id set in the project config.
-  string project_id = 7;
-
-  // EnableCgo enables cgo in the Go compiler.
-  // Cgo is disabled by default as it may cause non-reproducible builds.
-  // https://github.com/golang/go/issues/57120#issuecomment-1420752516
-  bool enable_cgo = 8;
-}
-
-// PreBuildHookResult is the output of a pre-build hook.
-message PreBuildHookResult {
   // ConfigSet is a ConfigSet to apply on plugin startup.
   // This ConfigSet is applied to the plugin bus.
   // This will be included in the plugin binary.
@@ -77,8 +28,36 @@ message PreBuildHookResult {
   // ProjectId overrides the project id set in the project config.
   string project_id = 4;
 
+  // DisableRpcFetch disables the default Fetch RPC service handler.
+  // The handler handles the Fetch service by creating a directive.
+  // You can also override config ID "rpc-fetch" in the config-set.
+  // This service is used for the ServiceWorker HTTP calls.
+  bool disable_rpc_fetch = 5;
+
+  // DisableFetchAssets disables the default web assets service handler.
+  // The handler handles Fetch directives with the assets FS.
+  // This service is used for the ServiceWorker HTTP calls.
+  // This usually should be disabled if using custom HTTP handlers.
+  // Override this using config ID "plugin-assets" in the config-set.
+  bool disable_fetch_assets = 6;
+
+  // DelveAddr is the address to listen for Delve remote connections.
+  // If the build mode is dev and this is set, uses delve to run the plugin.
+  // Ignored if build mode is not dev.
+  // Allowed characters: [Z-a0-9.:]
+  // Special value: "wait" - waits for plugin entrypoint to be run manually.
+  // Example: ":5000"
+  string delve_addr = 7;
+
   // EnableCgo enables cgo in the Go compiler.
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
-  bool enable_cgo = 5;
+  bool enable_cgo = 8;
+}
+
+// PreBuildHookResult is the output of a pre-build hook.
+message PreBuildHookResult {
+  // Config is the configuration for the plugin build step.
+  // Merged with the existing configuration.
+  Config config = 1;
 }

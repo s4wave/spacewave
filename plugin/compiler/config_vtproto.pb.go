@@ -26,16 +26,11 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
+		ProjectId:          m.ProjectId,
 		DisableRpcFetch:    m.DisableRpcFetch,
 		DisableFetchAssets: m.DisableFetchAssets,
 		DelveAddr:          m.DelveAddr,
-		ProjectId:          m.ProjectId,
 		EnableCgo:          m.EnableCgo,
-	}
-	if rhs := m.GoPackages; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.GoPackages = tmpContainer
 	}
 	if rhs := m.ConfigSet; rhs != nil {
 		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
@@ -62,6 +57,11 @@ func (m *Config) CloneVT() *Config {
 			}
 		}
 		r.HostConfigSet = tmpContainer
+	}
+	if rhs := m.GoPackages; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.GoPackages = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -79,39 +79,7 @@ func (m *PreBuildHookResult) CloneVT() *PreBuildHookResult {
 		return (*PreBuildHookResult)(nil)
 	}
 	r := &PreBuildHookResult{
-		ProjectId: m.ProjectId,
-		EnableCgo: m.EnableCgo,
-	}
-	if rhs := m.ConfigSet; rhs != nil {
-		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
-		for k, v := range rhs {
-			if vtpb, ok := interface{}(v).(interface {
-				CloneVT() *proto.ControllerConfig
-			}); ok {
-				tmpContainer[k] = vtpb.CloneVT()
-			} else {
-				tmpContainer[k] = proto1.Clone(v).(*proto.ControllerConfig)
-			}
-		}
-		r.ConfigSet = tmpContainer
-	}
-	if rhs := m.HostConfigSet; rhs != nil {
-		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
-		for k, v := range rhs {
-			if vtpb, ok := interface{}(v).(interface {
-				CloneVT() *proto.ControllerConfig
-			}); ok {
-				tmpContainer[k] = vtpb.CloneVT()
-			} else {
-				tmpContainer[k] = proto1.Clone(v).(*proto.ControllerConfig)
-			}
-		}
-		r.HostConfigSet = tmpContainer
-	}
-	if rhs := m.GoPackages; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.GoPackages = tmpContainer
+		Config: m.Config.CloneVT(),
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -129,15 +97,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return true
 	} else if this == nil || that == nil {
 		return false
-	}
-	if len(this.GoPackages) != len(that.GoPackages) {
-		return false
-	}
-	for i, vx := range this.GoPackages {
-		vy := that.GoPackages[i]
-		if vx != vy {
-			return false
-		}
 	}
 	if len(this.ConfigSet) != len(that.ConfigSet) {
 		return false
@@ -191,6 +150,18 @@ func (this *Config) EqualVT(that *Config) bool {
 			}
 		}
 	}
+	if len(this.GoPackages) != len(that.GoPackages) {
+		return false
+	}
+	for i, vx := range this.GoPackages {
+		vy := that.GoPackages[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
 	if this.DisableRpcFetch != that.DisableRpcFetch {
 		return false
 	}
@@ -198,9 +169,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DelveAddr != that.DelveAddr {
-		return false
-	}
-	if this.ProjectId != that.ProjectId {
 		return false
 	}
 	if this.EnableCgo != that.EnableCgo {
@@ -222,71 +190,7 @@ func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if len(this.ConfigSet) != len(that.ConfigSet) {
-		return false
-	}
-	for i, vx := range this.ConfigSet {
-		vy, ok := that.ConfigSet[i]
-		if !ok {
-			return false
-		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &proto.ControllerConfig{}
-			}
-			if q == nil {
-				q = &proto.ControllerConfig{}
-			}
-			if equal, ok := interface{}(p).(interface {
-				EqualVT(*proto.ControllerConfig) bool
-			}); ok {
-				if !equal.EqualVT(q) {
-					return false
-				}
-			} else if !proto1.Equal(p, q) {
-				return false
-			}
-		}
-	}
-	if len(this.HostConfigSet) != len(that.HostConfigSet) {
-		return false
-	}
-	for i, vx := range this.HostConfigSet {
-		vy, ok := that.HostConfigSet[i]
-		if !ok {
-			return false
-		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &proto.ControllerConfig{}
-			}
-			if q == nil {
-				q = &proto.ControllerConfig{}
-			}
-			if equal, ok := interface{}(p).(interface {
-				EqualVT(*proto.ControllerConfig) bool
-			}); ok {
-				if !equal.EqualVT(q) {
-					return false
-				}
-			} else if !proto1.Equal(p, q) {
-				return false
-			}
-		}
-	}
-	if len(this.GoPackages) != len(that.GoPackages) {
-		return false
-	}
-	for i, vx := range this.GoPackages {
-		vy := that.GoPackages[i]
-		if vx != vy {
-			return false
-		}
-	}
-	if this.ProjectId != that.ProjectId {
-		return false
-	}
-	if this.EnableCgo != that.EnableCgo {
+	if !this.Config.EqualVT(that.Config) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -339,19 +243,12 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x40
 	}
-	if len(m.ProjectId) > 0 {
-		i -= len(m.ProjectId)
-		copy(dAtA[i:], m.ProjectId)
-		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
-		i--
-		dAtA[i] = 0x3a
-	}
 	if len(m.DelveAddr) > 0 {
 		i -= len(m.DelveAddr)
 		copy(dAtA[i:], m.DelveAddr)
 		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x3a
 	}
 	if m.DisableFetchAssets {
 		i--
@@ -361,131 +258,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x30
 	}
 	if m.DisableRpcFetch {
 		i--
 		if m.DisableRpcFetch {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.HostConfigSet) > 0 {
-		for k := range m.HostConfigSet {
-			v := m.HostConfigSet[k]
-			baseI := i
-			if vtmsg, ok := interface{}(v).(interface {
-				MarshalToSizedBufferVT([]byte) (int, error)
-			}); ok {
-				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarint(dAtA, i, uint64(size))
-			} else {
-				encoded, err := proto1.Marshal(v)
-				if err != nil {
-					return 0, err
-				}
-				i -= len(encoded)
-				copy(dAtA[i:], encoded)
-				i = encodeVarint(dAtA, i, uint64(len(encoded)))
-			}
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.ConfigSet) > 0 {
-		for k := range m.ConfigSet {
-			v := m.ConfigSet[k]
-			baseI := i
-			if vtmsg, ok := interface{}(v).(interface {
-				MarshalToSizedBufferVT([]byte) (int, error)
-			}); ok {
-				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarint(dAtA, i, uint64(size))
-			} else {
-				encoded, err := proto1.Marshal(v)
-				if err != nil {
-					return 0, err
-				}
-				i -= len(encoded)
-				copy(dAtA[i:], encoded)
-				i = encodeVarint(dAtA, i, uint64(len(encoded)))
-			}
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.GoPackages) > 0 {
-		for iNdEx := len(m.GoPackages) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.GoPackages[iNdEx])
-			copy(dAtA[i:], m.GoPackages[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.GoPackages[iNdEx])))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *PreBuildHookResult) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PreBuildHookResult) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.EnableCgo {
-		i--
-		if m.EnableCgo {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -580,6 +357,49 @@ func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PreBuildHookResult) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PreBuildHookResult) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Config != nil {
+		size, err := m.Config.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarint(dAtA []byte, offset int, v uint64) int {
 	offset -= sov(v)
 	base := offset
@@ -597,12 +417,6 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.GoPackages) > 0 {
-		for _, s := range m.GoPackages {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
-		}
-	}
 	if len(m.ConfigSet) > 0 {
 		for k, v := range m.ConfigSet {
 			_ = k
@@ -641,6 +455,16 @@ func (m *Config) SizeVT() (n int) {
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
 	}
+	if len(m.GoPackages) > 0 {
+		for _, s := range m.GoPackages {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	if m.DisableRpcFetch {
 		n += 2
 	}
@@ -648,10 +472,6 @@ func (m *Config) SizeVT() (n int) {
 		n += 2
 	}
 	l = len(m.DelveAddr)
-	if l > 0 {
-		n += 1 + l + sov(uint64(l))
-	}
-	l = len(m.ProjectId)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -668,56 +488,9 @@ func (m *PreBuildHookResult) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.ConfigSet) > 0 {
-		for k, v := range m.ConfigSet {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				if size, ok := interface{}(v).(interface {
-					SizeVT() int
-				}); ok {
-					l = size.SizeVT()
-				} else {
-					l = proto1.Size(v)
-				}
-			}
-			l += 1 + sov(uint64(l))
-			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
-			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
-		}
-	}
-	if len(m.HostConfigSet) > 0 {
-		for k, v := range m.HostConfigSet {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				if size, ok := interface{}(v).(interface {
-					SizeVT() int
-				}); ok {
-					l = size.SizeVT()
-				} else {
-					l = proto1.Size(v)
-				}
-			}
-			l += 1 + sov(uint64(l))
-			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
-			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
-		}
-	}
-	if len(m.GoPackages) > 0 {
-		for _, s := range m.GoPackages {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
-		}
-	}
-	l = len(m.ProjectId)
-	if l > 0 {
+	if m.Config != nil {
+		l = m.Config.SizeVT()
 		n += 1 + l + sov(uint64(l))
-	}
-	if m.EnableCgo {
-		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -759,38 +532,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GoPackages", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}
@@ -927,7 +668,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)
 			}
@@ -1064,49 +805,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.HostConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableRpcFetch", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.DisableRpcFetch = bool(v != 0)
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableFetchAssets", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.DisableFetchAssets = bool(v != 0)
-		case 6:
+		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GoPackages", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1134,9 +835,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DelveAddr = string(dAtA[iNdEx:postIndex])
+			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 7:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
 			}
@@ -1167,6 +868,78 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableRpcFetch", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableRpcFetch = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableFetchAssets", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableFetchAssets = bool(v != 0)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 8:
 			if wireType != 0 {
@@ -1241,7 +1014,7 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Config", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1268,335 +1041,13 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.ConfigSet == nil {
-				m.ConfigSet = make(map[string]*proto.ControllerConfig)
+			if m.Config == nil {
+				m.Config = &Config{}
 			}
-			var mapkey string
-			var mapvalue *proto.ControllerConfig
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &proto.ControllerConfig{}
-					if unmarshal, ok := interface{}(mapvalue).(interface {
-						UnmarshalVT([]byte) error
-					}); ok {
-						if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-							return err
-						}
-					} else {
-						if err := proto1.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
-							return err
-						}
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
+			if err := m.Config.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
-			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.HostConfigSet == nil {
-				m.HostConfigSet = make(map[string]*proto.ControllerConfig)
-			}
-			var mapkey string
-			var mapvalue *proto.ControllerConfig
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &proto.ControllerConfig{}
-					if unmarshal, ok := interface{}(mapvalue).(interface {
-						UnmarshalVT([]byte) error
-					}); ok {
-						if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-							return err
-						}
-					} else {
-						if err := proto1.Unmarshal(dAtA[iNdEx:postmsgIndex], mapvalue); err != nil {
-							return err
-						}
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.HostConfigSet[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GoPackages", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.GoPackages = append(m.GoPackages, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ProjectId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.EnableCgo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

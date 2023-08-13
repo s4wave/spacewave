@@ -139,9 +139,8 @@ export const StoreManifestOp = {
   },
 
   create<I extends Exact<DeepPartial<StoreManifestOp>, I>>(base?: I): StoreManifestOp {
-    return StoreManifestOp.fromPartial(base ?? {});
+    return StoreManifestOp.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<StoreManifestOp>, I>>(object: I): StoreManifestOp {
     const message = createBaseStoreManifestOp();
     message.objectKey = object.objectKey ?? "";
@@ -265,9 +264,8 @@ export const ExtractManifestBundleOp = {
   },
 
   create<I extends Exact<DeepPartial<ExtractManifestBundleOp>, I>>(base?: I): ExtractManifestBundleOp {
-    return ExtractManifestBundleOp.fromPartial(base ?? {});
+    return ExtractManifestBundleOp.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ExtractManifestBundleOp>, I>>(object: I): ExtractManifestBundleOp {
     const message = createBaseExtractManifestBundleOp();
     message.objectKey = object.objectKey ?? "";

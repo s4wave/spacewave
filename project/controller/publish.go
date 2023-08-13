@@ -237,8 +237,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 
 						manifestTs := storageConf.GetTimestamp()
 						if manifestTs.GetEmpty() {
-							now := timestamp.Now()
-							manifestTs = &now
+							manifestTs = timestamp.Now()
 						}
 
 						_, destManifestObjRef, err := bldr_manifest_world.DeepCopyManifest(

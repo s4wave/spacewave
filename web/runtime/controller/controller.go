@@ -2,7 +2,9 @@ package web_runtime_controller
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -177,9 +180,19 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	rpath := rurl.Path
 
 	// /b/ is for bldr internals
-	// /b/dist/ is for Web plugin distribution files
+	// /b/pkg/ is for Web module distribution files (like react)
+	bPkgPrefix := "/b/pkg/"
+	if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
+		pkgPath := rpath[len(bPkgPrefix):]
+		c.ServeWebModuleHTTP(pkgPath, rw, req)
+		return
+	}
+
+	// TODO: /b/dist/ is for Web plugin distribution files
 	if strings.HasPrefix(rpath, "/b/") {
-		rw.WriteHeader(200)
+		// Return a 501 for now.
+		// rw.WriteHeader(200)
+		rw.WriteHeader(501)
 		_, _ = rw.Write([]byte("TODO serve /b/ path: " + rpath))
 		return
 	}
@@ -234,7 +247,47 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	err = fetch.Fetch(ctx, fetchClient.Fetch, req, rw)
 	if err != nil && err != context.Canceled {
 		rw.WriteHeader(500)
-		_, _ = rw.Write([]byte("bldr: request failed: " + pluginID + ": " + err.Error()))
+		_, _ = rw.Write([]byte("bldr: request failed: plugin " + pluginID + ": " + err.Error()))
+		return
+	}
+}
+
+// ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.
+//
+// pkgPath is the path after /b/pkg/ - for example, "react" or "protobufjs/minimal.js".
+// The first element of the path (split by /) is used as the package name.
+// The package name should be URL encoded if it contains slashes: %40myorg%2Fmypkg for example.
+func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {
+	// call LoadPlugin to get a handle to the desired plugin.
+	ctx := req.Context()
+	c.le.
+		WithField("pkg-path", pkgPath).
+		Debug("forwarding pkg request")
+	err := func() error {
+		_ = ctx
+		pathPts := unixfs.SplitPath(pkgPath)
+		if len(pathPts) == 0 || pathPts[0] == "" {
+			rw.WriteHeader(400)
+			return errors.New("bldr: empty pkg path")
+		}
+
+		pkgName, err := url.QueryUnescape(pathPts[0])
+		if len(pathPts) == 0 || pathPts[0] == "" {
+			rw.WriteHeader(400)
+			return errors.New("bldr: invalid pkg path: " + err.Error())
+		}
+
+		pkgName = strings.TrimSpace(pkgName)
+		if len(pkgName) == 0 {
+			rw.WriteHeader(400)
+			return errors.New("bldr: empty pkg name")
+		}
+
+		return errors.New("TODO implement pkg request: " + pkgName)
+	}()
+	if err != nil && err != context.Canceled {
+		rw.WriteHeader(500) // only applies if we didn't call WriteHeader above.
+		_, _ = rw.Write([]byte("bldr: request failed: pkg " + pkgPath + ": " + err.Error()))
 		return
 	}
 }

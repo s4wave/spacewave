@@ -417,9 +417,8 @@ export const ProjectConfig = {
   },
 
   create<I extends Exact<DeepPartial<ProjectConfig>, I>>(base?: I): ProjectConfig {
-    return ProjectConfig.fromPartial(base ?? {});
+    return ProjectConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ProjectConfig>, I>>(object: I): ProjectConfig {
     const message = createBaseProjectConfig();
     message.id = object.id ?? "";
@@ -561,9 +560,8 @@ export const ProjectConfig_ManifestsEntry = {
   },
 
   create<I extends Exact<DeepPartial<ProjectConfig_ManifestsEntry>, I>>(base?: I): ProjectConfig_ManifestsEntry {
-    return ProjectConfig_ManifestsEntry.fromPartial(base ?? {});
+    return ProjectConfig_ManifestsEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ProjectConfig_ManifestsEntry>, I>>(object: I): ProjectConfig_ManifestsEntry {
     const message = createBaseProjectConfig_ManifestsEntry();
     message.key = object.key ?? "";
@@ -672,9 +670,8 @@ export const ProjectConfig_BuildEntry = {
   },
 
   create<I extends Exact<DeepPartial<ProjectConfig_BuildEntry>, I>>(base?: I): ProjectConfig_BuildEntry {
-    return ProjectConfig_BuildEntry.fromPartial(base ?? {});
+    return ProjectConfig_BuildEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ProjectConfig_BuildEntry>, I>>(object: I): ProjectConfig_BuildEntry {
     const message = createBaseProjectConfig_BuildEntry();
     message.key = object.key ?? "";
@@ -783,9 +780,8 @@ export const ProjectConfig_RemotesEntry = {
   },
 
   create<I extends Exact<DeepPartial<ProjectConfig_RemotesEntry>, I>>(base?: I): ProjectConfig_RemotesEntry {
-    return ProjectConfig_RemotesEntry.fromPartial(base ?? {});
+    return ProjectConfig_RemotesEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ProjectConfig_RemotesEntry>, I>>(object: I): ProjectConfig_RemotesEntry {
     const message = createBaseProjectConfig_RemotesEntry();
     message.key = object.key ?? "";
@@ -894,9 +890,8 @@ export const ProjectConfig_PublishEntry = {
   },
 
   create<I extends Exact<DeepPartial<ProjectConfig_PublishEntry>, I>>(base?: I): ProjectConfig_PublishEntry {
-    return ProjectConfig_PublishEntry.fromPartial(base ?? {});
+    return ProjectConfig_PublishEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ProjectConfig_PublishEntry>, I>>(object: I): ProjectConfig_PublishEntry {
     const message = createBaseProjectConfig_PublishEntry();
     message.key = object.key ?? "";
@@ -1003,9 +998,8 @@ export const ManifestConfig = {
   },
 
   create<I extends Exact<DeepPartial<ManifestConfig>, I>>(base?: I): ManifestConfig {
-    return ManifestConfig.fromPartial(base ?? {});
+    return ManifestConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ManifestConfig>, I>>(object: I): ManifestConfig {
     const message = createBaseManifestConfig();
     message.builder = (object.builder !== undefined && object.builder !== null)
@@ -1112,9 +1106,8 @@ export const StartConfig = {
   },
 
   create<I extends Exact<DeepPartial<StartConfig>, I>>(base?: I): StartConfig {
-    return StartConfig.fromPartial(base ?? {});
+    return StartConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<StartConfig>, I>>(object: I): StartConfig {
     const message = createBaseStartConfig();
     message.plugins = object.plugins?.map((e) => e) || [];
@@ -1219,9 +1212,8 @@ export const BuildConfig = {
   },
 
   create<I extends Exact<DeepPartial<BuildConfig>, I>>(base?: I): BuildConfig {
-    return BuildConfig.fromPartial(base ?? {});
+    return BuildConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<BuildConfig>, I>>(object: I): BuildConfig {
     const message = createBaseBuildConfig();
     message.manifests = object.manifests?.map((e) => e) || [];
@@ -1382,9 +1374,8 @@ export const RemoteConfig = {
   },
 
   create<I extends Exact<DeepPartial<RemoteConfig>, I>>(base?: I): RemoteConfig {
-    return RemoteConfig.fromPartial(base ?? {});
+    return RemoteConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<RemoteConfig>, I>>(object: I): RemoteConfig {
     const message = createBaseRemoteConfig();
     message.hostConfigSet = Object.entries(object.hostConfigSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
@@ -1502,9 +1493,8 @@ export const RemoteConfig_HostConfigSetEntry = {
   },
 
   create<I extends Exact<DeepPartial<RemoteConfig_HostConfigSetEntry>, I>>(base?: I): RemoteConfig_HostConfigSetEntry {
-    return RemoteConfig_HostConfigSetEntry.fromPartial(base ?? {});
+    return RemoteConfig_HostConfigSetEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<RemoteConfig_HostConfigSetEntry>, I>>(
     object: I,
   ): RemoteConfig_HostConfigSetEntry {
@@ -1725,9 +1715,8 @@ export const PublishConfig = {
   },
 
   create<I extends Exact<DeepPartial<PublishConfig>, I>>(base?: I): PublishConfig {
-    return PublishConfig.fromPartial(base ?? {});
+    return PublishConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<PublishConfig>, I>>(object: I): PublishConfig {
     const message = createBasePublishConfig();
     message.sourceObjectKeys = object.sourceObjectKeys?.map((e) => e) || [];
@@ -1851,9 +1840,8 @@ export const PublishConfig_ManifestStorageEntry = {
   create<I extends Exact<DeepPartial<PublishConfig_ManifestStorageEntry>, I>>(
     base?: I,
   ): PublishConfig_ManifestStorageEntry {
-    return PublishConfig_ManifestStorageEntry.fromPartial(base ?? {});
+    return PublishConfig_ManifestStorageEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<PublishConfig_ManifestStorageEntry>, I>>(
     object: I,
   ): PublishConfig_ManifestStorageEntry {
@@ -1980,9 +1968,8 @@ export const PublishStorageConfig = {
   },
 
   create<I extends Exact<DeepPartial<PublishStorageConfig>, I>>(base?: I): PublishStorageConfig {
-    return PublishStorageConfig.fromPartial(base ?? {});
+    return PublishStorageConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<PublishStorageConfig>, I>>(object: I): PublishStorageConfig {
     const message = createBasePublishStorageConfig();
     message.transformConfFromRef = (object.transformConfFromRef !== undefined && object.transformConfFromRef !== null)

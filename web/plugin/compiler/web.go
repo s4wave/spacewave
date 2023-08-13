@@ -193,15 +193,16 @@ func (c *Controller) BundleElectronHook(
 	if err != nil {
 		return nil, err
 	}
-	configSet := map[string]*configset_proto.ControllerConfig{
-		"electron": electronCtrlConf,
-	}
 
 	// return result
 	return &plugin_compiler.PreBuildHookResult{
-		ConfigSet: configSet,
-		GoPackages: []string{
-			basePkg + "/web/plugin/electron",
+		Config: &plugin_compiler.Config{
+			ConfigSet: map[string]*configset_proto.ControllerConfig{
+				"electron": electronCtrlConf,
+			},
+			GoPackages: []string{
+				basePkg + "/web/plugin/electron",
+			},
 		},
 	}, nil
 }

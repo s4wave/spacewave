@@ -308,9 +308,8 @@ export const BuilderConfig = {
   },
 
   create<I extends Exact<DeepPartial<BuilderConfig>, I>>(base?: I): BuilderConfig {
-    return BuilderConfig.fromPartial(base ?? {});
+    return BuilderConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<BuilderConfig>, I>>(object: I): BuilderConfig {
     const message = createBaseBuilderConfig();
     message.manifestMeta = (object.manifestMeta !== undefined && object.manifestMeta !== null)
@@ -438,9 +437,8 @@ export const BuilderResult = {
   },
 
   create<I extends Exact<DeepPartial<BuilderResult>, I>>(base?: I): BuilderResult {
-    return BuilderResult.fromPartial(base ?? {});
+    return BuilderResult.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<BuilderResult>, I>>(object: I): BuilderResult {
     const message = createBaseBuilderResult();
     message.manifest = (object.manifest !== undefined && object.manifest !== null)
@@ -552,9 +550,8 @@ export const InputManifest = {
   },
 
   create<I extends Exact<DeepPartial<InputManifest>, I>>(base?: I): InputManifest {
-    return InputManifest.fromPartial(base ?? {});
+    return InputManifest.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<InputManifest>, I>>(object: I): InputManifest {
     const message = createBaseInputManifest();
     message.files = object.files?.map((e) => InputManifest_File.fromPartial(e)) || [];
@@ -661,9 +658,8 @@ export const InputManifest_File = {
   },
 
   create<I extends Exact<DeepPartial<InputManifest_File>, I>>(base?: I): InputManifest_File {
-    return InputManifest_File.fromPartial(base ?? {});
+    return InputManifest_File.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<InputManifest_File>, I>>(object: I): InputManifest_File {
     const message = createBaseInputManifest_File();
     message.path = object.path ?? "";
@@ -784,9 +780,8 @@ export const BuildManifestArgs = {
   },
 
   create<I extends Exact<DeepPartial<BuildManifestArgs>, I>>(base?: I): BuildManifestArgs {
-    return BuildManifestArgs.fromPartial(base ?? {});
+    return BuildManifestArgs.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<BuildManifestArgs>, I>>(object: I): BuildManifestArgs {
     const message = createBaseBuildManifestArgs();
     message.builderConfig = (object.builderConfig !== undefined && object.builderConfig !== null)

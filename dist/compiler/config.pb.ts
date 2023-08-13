@@ -236,9 +236,8 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {});
+    return Config.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.embedManifests = object.embedManifests?.map((e) => e) || [];
@@ -356,9 +355,8 @@ export const Config_HostConfigSetEntry = {
   },
 
   create<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(base?: I): Config_HostConfigSetEntry {
-    return Config_HostConfigSetEntry.fromPartial(base ?? {});
+    return Config_HostConfigSetEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(object: I): Config_HostConfigSetEntry {
     const message = createBaseConfig_HostConfigSetEntry();
     message.key = object.key ?? "";
@@ -523,9 +521,8 @@ export const PreBuildHookResult = {
   },
 
   create<I extends Exact<DeepPartial<PreBuildHookResult>, I>>(base?: I): PreBuildHookResult {
-    return PreBuildHookResult.fromPartial(base ?? {});
+    return PreBuildHookResult.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<PreBuildHookResult>, I>>(object: I): PreBuildHookResult {
     const message = createBasePreBuildHookResult();
     message.hostConfigSet = Object.entries(object.hostConfigSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
@@ -645,9 +642,8 @@ export const PreBuildHookResult_HostConfigSetEntry = {
   create<I extends Exact<DeepPartial<PreBuildHookResult_HostConfigSetEntry>, I>>(
     base?: I,
   ): PreBuildHookResult_HostConfigSetEntry {
-    return PreBuildHookResult_HostConfigSetEntry.fromPartial(base ?? {});
+    return PreBuildHookResult_HostConfigSetEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<PreBuildHookResult_HostConfigSetEntry>, I>>(
     object: I,
   ): PreBuildHookResult_HostConfigSetEntry {

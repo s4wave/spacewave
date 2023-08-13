@@ -137,9 +137,8 @@ export const WatchWebDocumentStatusRequest = {
   create<I extends Exact<DeepPartial<WatchWebDocumentStatusRequest>, I>>(
     base?: I,
   ): WatchWebDocumentStatusRequest {
-    return WatchWebDocumentStatusRequest.fromPartial(base ?? {})
+    return WatchWebDocumentStatusRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WatchWebDocumentStatusRequest>, I>>(
     _: I,
   ): WatchWebDocumentStatusRequest {
@@ -256,9 +255,8 @@ export const WebDocumentStatus = {
   create<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
     base?: I,
   ): WebDocumentStatus {
-    return WebDocumentStatus.fromPartial(base ?? {})
+    return WebDocumentStatus.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WebDocumentStatus>, I>>(
     object: I,
   ): WebDocumentStatus {
@@ -404,9 +402,8 @@ export const WebViewStatus = {
   create<I extends Exact<DeepPartial<WebViewStatus>, I>>(
     base?: I,
   ): WebViewStatus {
-    return WebViewStatus.fromPartial(base ?? {})
+    return WebViewStatus.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<WebViewStatus>, I>>(
     object: I,
   ): WebViewStatus {
@@ -512,9 +509,8 @@ export const CreateWebViewRequest = {
   create<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
     base?: I,
   ): CreateWebViewRequest {
-    return CreateWebViewRequest.fromPartial(base ?? {})
+    return CreateWebViewRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<CreateWebViewRequest>, I>>(
     object: I,
   ): CreateWebViewRequest {
@@ -617,9 +613,8 @@ export const CreateWebViewResponse = {
   create<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
     base?: I,
   ): CreateWebViewResponse {
-    return CreateWebViewResponse.fromPartial(base ?? {})
+    return CreateWebViewResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<CreateWebViewResponse>, I>>(
     object: I,
   ): CreateWebViewResponse {

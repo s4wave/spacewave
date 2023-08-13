@@ -236,9 +236,8 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {});
+    return Config.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.sourcePath = object.sourcePath ?? "";
@@ -382,9 +381,8 @@ export const ManifestBuilderConfig = {
   },
 
   create<I extends Exact<DeepPartial<ManifestBuilderConfig>, I>>(base?: I): ManifestBuilderConfig {
-    return ManifestBuilderConfig.fromPartial(base ?? {});
+    return ManifestBuilderConfig.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ManifestBuilderConfig>, I>>(object: I): ManifestBuilderConfig {
     const message = createBaseManifestBuilderConfig();
     message.manifestId = object.manifestId ?? "";
@@ -493,9 +491,8 @@ export const ManifestBuilderResult = {
   },
 
   create<I extends Exact<DeepPartial<ManifestBuilderResult>, I>>(base?: I): ManifestBuilderResult {
-    return ManifestBuilderResult.fromPartial(base ?? {});
+    return ManifestBuilderResult.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<ManifestBuilderResult>, I>>(object: I): ManifestBuilderResult {
     const message = createBaseManifestBuilderResult();
     message.builderConfig = (object.builderConfig !== undefined && object.builderConfig !== null)

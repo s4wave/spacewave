@@ -112,9 +112,8 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {});
+    return Config.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{ [key: string]: ControllerConfig }>(
@@ -228,9 +227,8 @@ export const Config_ConfigSetEntry = {
   },
 
   create<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(base?: I): Config_ConfigSetEntry {
-    return Config_ConfigSetEntry.fromPartial(base ?? {});
+    return Config_ConfigSetEntry.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(object: I): Config_ConfigSetEntry {
     const message = createBaseConfig_ConfigSetEntry();
     message.key = object.key ?? "";

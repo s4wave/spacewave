@@ -4,6 +4,7 @@ package bldr.web.plugin;
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 
 // WebPlugin implements the bldr web plugin service.
+// The service is used to tell the Web plugin where to forward requests.
 service WebPlugin {
   // HandleWebViewViaPlugin configures handling web views via a plugin.
   rpc HandleWebViewViaPlugin(HandleWebViewViaPluginRequest) returns (stream HandleWebViewViaPluginResponse) {}

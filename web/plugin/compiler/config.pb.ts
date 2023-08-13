@@ -196,9 +196,8 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{
@@ -333,9 +332,8 @@ export const Config_ConfigSetEntry = {
   create<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(
     base?: I,
   ): Config_ConfigSetEntry {
-    return Config_ConfigSetEntry.fromPartial(base ?? {})
+    return Config_ConfigSetEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config_ConfigSetEntry>, I>>(
     object: I,
   ): Config_ConfigSetEntry {
@@ -460,9 +458,8 @@ export const Config_HostConfigSetEntry = {
   create<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(
     base?: I,
   ): Config_HostConfigSetEntry {
-    return Config_HostConfigSetEntry.fromPartial(base ?? {})
+    return Config_HostConfigSetEntry.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config_HostConfigSetEntry>, I>>(
     object: I,
   ): Config_HostConfigSetEntry {

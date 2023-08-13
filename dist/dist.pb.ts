@@ -128,9 +128,8 @@ export const DistMeta = {
   },
 
   create<I extends Exact<DeepPartial<DistMeta>, I>>(base?: I): DistMeta {
-    return DistMeta.fromPartial(base ?? {});
+    return DistMeta.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<DistMeta>, I>>(object: I): DistMeta {
     const message = createBaseDistMeta();
     message.projectId = object.projectId ?? "";

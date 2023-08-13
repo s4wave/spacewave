@@ -116,9 +116,8 @@ export const StorageInfo = {
   },
 
   create<I extends Exact<DeepPartial<StorageInfo>, I>>(base?: I): StorageInfo {
-    return StorageInfo.fromPartial(base ?? {});
+    return StorageInfo.fromPartial(base ?? ({} as any));
   },
-
   fromPartial<I extends Exact<DeepPartial<StorageInfo>, I>>(object: I): StorageInfo {
     const message = createBaseStorageInfo();
     message.isolated = object.isolated ?? false;

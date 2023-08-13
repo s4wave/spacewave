@@ -174,9 +174,8 @@ export const EsbuildOutput = {
   create<I extends Exact<DeepPartial<EsbuildOutput>, I>>(
     base?: I,
   ): EsbuildOutput {
-    return EsbuildOutput.fromPartial(base ?? {})
+    return EsbuildOutput.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<EsbuildOutput>, I>>(
     object: I,
   ): EsbuildOutput {

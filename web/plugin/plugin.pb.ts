@@ -162,9 +162,8 @@ export const HandleWebViewViaPluginRequest = {
   create<I extends Exact<DeepPartial<HandleWebViewViaPluginRequest>, I>>(
     base?: I,
   ): HandleWebViewViaPluginRequest {
-    return HandleWebViewViaPluginRequest.fromPartial(base ?? {})
+    return HandleWebViewViaPluginRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HandleWebViewViaPluginRequest>, I>>(
     object: I,
   ): HandleWebViewViaPluginRequest {
@@ -278,9 +277,8 @@ export const HandleWebViewViaPluginResponse = {
   create<I extends Exact<DeepPartial<HandleWebViewViaPluginResponse>, I>>(
     base?: I,
   ): HandleWebViewViaPluginResponse {
-    return HandleWebViewViaPluginResponse.fromPartial(base ?? {})
+    return HandleWebViewViaPluginResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HandleWebViewViaPluginResponse>, I>>(
     object: I,
   ): HandleWebViewViaPluginResponse {
@@ -442,9 +440,8 @@ export const HandleRpcViaPluginRequest = {
   create<I extends Exact<DeepPartial<HandleRpcViaPluginRequest>, I>>(
     base?: I,
   ): HandleRpcViaPluginRequest {
-    return HandleRpcViaPluginRequest.fromPartial(base ?? {})
+    return HandleRpcViaPluginRequest.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HandleRpcViaPluginRequest>, I>>(
     object: I,
   ): HandleRpcViaPluginRequest {
@@ -559,9 +556,8 @@ export const HandleRpcViaPluginResponse = {
   create<I extends Exact<DeepPartial<HandleRpcViaPluginResponse>, I>>(
     base?: I,
   ): HandleRpcViaPluginResponse {
-    return HandleRpcViaPluginResponse.fromPartial(base ?? {})
+    return HandleRpcViaPluginResponse.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<HandleRpcViaPluginResponse>, I>>(
     object: I,
   ): HandleRpcViaPluginResponse {
@@ -577,7 +573,10 @@ export const HandleRpcViaPluginResponse = {
   },
 }
 
-/** WebPlugin implements the bldr web plugin service. */
+/**
+ * WebPlugin implements the bldr web plugin service.
+ * The service is used to tell the Web plugin where to forward requests.
+ */
 export interface WebPlugin {
   /** HandleWebViewViaPlugin configures handling web views via a plugin. */
   HandleWebViewViaPlugin(
@@ -630,7 +629,10 @@ export class WebPluginClientImpl implements WebPlugin {
   }
 }
 
-/** WebPlugin implements the bldr web plugin service. */
+/**
+ * WebPlugin implements the bldr web plugin service.
+ * The service is used to tell the Web plugin where to forward requests.
+ */
 export type WebPluginDefinition = typeof WebPluginDefinition
 export const WebPluginDefinition = {
   name: 'WebPlugin',

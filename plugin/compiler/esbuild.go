@@ -53,6 +53,7 @@ func BuildDefEsbuild(
 		}
 
 		buildOpts := buildEsbuildBuildOpts(
+			le,
 			codeRootPath,
 			outAssetsPath,
 			BuildAssetHref(pluginID, ""),
@@ -81,6 +82,7 @@ func BuildDefEsbuild(
 
 			bundleID := pkgEsbuildArgs.BundleID
 			bundleDef := getBundleDef(bundleID)
+
 			// note: ignores the Entrypoint fields
 			mergeEsbuildBuildOpts(bundleDef.buildOpts, buildOpts)
 

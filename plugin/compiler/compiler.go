@@ -82,7 +82,11 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // PreBuildHook is a callback called before building the plugin.
 // Returns an optional PreBuildResult.
-type PreBuildHook func(ctx context.Context, builderConf *manifest_builder.BuilderConfig, worldEng world.Engine) (*PreBuildHookResult, error)
+type PreBuildHook func(
+	ctx context.Context,
+	builderConf *manifest_builder.BuilderConfig,
+	worldEng world.Engine,
+) (*PreBuildHookResult, error)
 
 // AddPreBuildHook adds a callback that is called just after constructing the plugin working dir.
 // Called before calling the Go compiler or bundling the assets or dist fs.
@@ -138,25 +142,11 @@ func (c *Controller) BuildManifest(
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
-	// build base config sets
-	configSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetConfigSet()))
-	for k, v := range conf.GetConfigSet() {
-		configSet[k] = v.CloneVT()
+	// build base plugin config
+	pluginBuildConf := conf.CloneVT()
+	if pluginBuildConf == nil {
+		pluginBuildConf = &Config{}
 	}
-	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetHostConfigSet()))
-	for k, v := range conf.GetHostConfigSet() {
-		hostConfigSet[k] = v.CloneVT()
-	}
-
-	// determine project id
-	projectID := builderConf.GetProjectId()
-	if cproj := conf.GetProjectId(); cproj != "" {
-		projectID = cproj
-	}
-
-	// build list of go packages
-	goPackages := slices.Clone(conf.GetGoPackages())
-	enableCgo := conf.GetEnableCgo()
 
 	// call any pre-build hooks
 	for _, hook := range c.preBuildHooks {
@@ -165,34 +155,25 @@ func (c *Controller) BuildManifest(
 			return nil, err
 		}
 
-		// merge config sets
-		resConfigSet := res.GetConfigSet()
-		if len(resConfigSet) != 0 {
-			configset_proto.MergeConfigSetMaps(configSet, resConfigSet)
-		}
-		resHostConfigSet := res.GetHostConfigSet()
-		if len(resConfigSet) != 0 {
-			configset_proto.MergeConfigSetMaps(hostConfigSet, resHostConfigSet)
-		}
+		// merge the returned config
+		pluginBuildConf.Merge(res.GetConfig())
+	}
 
-		// append go packages list
-		goPackages = append(goPackages, res.GetGoPackages()...)
+	// clone the config set maps
+	configSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetConfigSet()))
+	for k, v := range pluginBuildConf.GetConfigSet() {
+		configSet[k] = v.CloneVT()
+	}
 
-		// enable cgo
-		if res.GetEnableCgo() {
-			enableCgo = true
-		}
-
-		// override project id
-		if cproj := res.GetProjectId(); cproj != "" {
-			projectID = cproj
-		}
+	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetHostConfigSet()))
+	for k, v := range pluginBuildConf.GetHostConfigSet() {
+		hostConfigSet[k] = v.CloneVT()
 	}
 
 	// apply host config set
 	if len(hostConfigSet) != 0 {
 		hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
-			ConfigSet: conf.GetHostConfigSet(),
+			ConfigSet: hostConfigSet,
 		})
 		if err != nil {
 			if err != context.Canceled {
@@ -208,9 +189,19 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
+	// determine project id
+	projectID := builderConf.GetProjectId()
+	if cproj := pluginBuildConf.GetProjectId(); cproj != "" {
+		projectID = cproj
+	}
+
 	// Cleanup list of go packages
+	goPackages := slices.Clone(pluginBuildConf.GetGoPackages())
 	sort.Strings(goPackages)
 	goPackages = slices.Compact(goPackages)
+
+	// Enable cgo only if flag is set (for reproducible builds)
+	enableCgo := pluginBuildConf.GetEnableCgo()
 
 	// TODO: if no Go files changed, rebuild esbuild assets only (hot reload)
 	/*
@@ -236,9 +227,9 @@ func (c *Controller) BuildManifest(
 		outDistPath,
 		outAssetsPath,
 		goPackages,
-		conf.GetDisableRpcFetch(),
-		conf.GetDisableFetchAssets(),
-		conf.GetDelveAddr(),
+		pluginBuildConf.GetDisableRpcFetch(),
+		pluginBuildConf.GetDisableFetchAssets(),
+		pluginBuildConf.GetDelveAddr(),
 		configSet,
 		enableCgo,
 	)

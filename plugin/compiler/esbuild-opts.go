@@ -1,6 +1,9 @@
 package bldr_plugin_compiler
 
-import esbuild_api "github.com/evanw/esbuild/pkg/api"
+import (
+	esbuild_api "github.com/evanw/esbuild/pkg/api"
+	"github.com/sirupsen/logrus"
+)
 
 // mergeMapOverwrite merges two maps together overwriting values in target.
 func mergeMapOverwrite[K comparable, T any](target, source map[K]T) {
@@ -18,7 +21,13 @@ func mergeValueIfSet[T comparable](target *T, source T) {
 }
 
 // buildEsbuildBuildOpts constructs the base esbuild build opts.
-func buildEsbuildBuildOpts(codeRootPath, outAssetsPath, pluginPath string, isRelease bool) *esbuild_api.BuildOptions {
+func buildEsbuildBuildOpts(
+	le *logrus.Entry,
+	codeRootPath,
+	outAssetsPath,
+	pluginPath string,
+	isRelease bool,
+) *esbuild_api.BuildOptions {
 	buildOpts := &esbuild_api.BuildOptions{
 		AbsWorkingDir: codeRootPath,
 		Outdir:        outAssetsPath,
@@ -28,14 +37,16 @@ func buildEsbuildBuildOpts(codeRootPath, outAssetsPath, pluginPath string, isRel
 		LogLevel:    esbuild_api.LogLevelDebug,
 		Platform:    esbuild_api.PlatformBrowser,
 		Format:      esbuild_api.FormatESModule,
-		Target:      esbuild_api.ES2021,
+		Target:      esbuild_api.ES2022,
 		TreeShaking: esbuild_api.TreeShakingTrue,
 
 		AllowOverwrite: true,
 		Bundle:         true,
 		Metafile:       true,
 		Write:          true,
-		Splitting:      true,
+
+		// https://github.com/evanw/esbuild/issues/399
+		// Splitting:      true,
 
 		Define:       make(map[string]string),
 		Alias:        make(map[string]string),
@@ -62,6 +73,7 @@ func buildEsbuildBuildOpts(codeRootPath, outAssetsPath, pluginPath string, isRel
 	for _, ext := range useFileLoader {
 		addLoader("."+ext, esbuild_api.LoaderFile)
 	}
+
 	return buildOpts
 }
 
