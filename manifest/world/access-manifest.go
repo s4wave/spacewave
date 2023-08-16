@@ -25,8 +25,8 @@ func AccessManifest(
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
 		manifest *bldr_manifest.Manifest,
-		distFS *unixfs.FS,
-		assetsFS *unixfs.FS,
+		distFS *unixfs.FSHandle,
+		assetsFS *unixfs.FSHandle,
 	) error,
 ) error {
 	return accessFunc(ctx, manifestRef, func(bls *bucket_lookup.Cursor) error {
@@ -44,7 +44,10 @@ func AccessManifest(
 		distFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, distBls, distWriter)
 		distWriter.SetFS(distFS)
 		defer distFS.Release()
-		distUfs := unixfs.NewFS(ctx, le, distFS, nil)
+		distUfs, err := unixfs.NewFSHandle(distFS)
+		if err != nil {
+			return err
+		}
 		defer distUfs.Release()
 
 		// build unixfs_block_fs backed by the assets fs
@@ -55,7 +58,10 @@ func AccessManifest(
 		assetsFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, assetsBls, assetsWriter)
 		assetsWriter.SetFS(assetsFS)
 		defer assetsFS.Release()
-		assetsUfs := unixfs.NewFS(ctx, le, assetsFS, nil)
+		assetsUfs, err := unixfs.NewFSHandle(assetsFS)
+		if err != nil {
+			return err
+		}
 		defer assetsUfs.Release()
 
 		return cb(ctx, bls, bcs, manifest, distUfs, assetsUfs)

@@ -46,25 +46,15 @@ func DeepCopyManifest(
 			bls *bucket_lookup.Cursor,
 			bcs *block.Cursor,
 			manifest *bldr_manifest.Manifest,
-			distFS *unixfs.FS,
-			assetsFS *unixfs.FS,
+			distFS *unixfs.FSHandle,
+			assetsFS *unixfs.FSHandle,
 		) error {
-			distFSHandle, err := distFS.AddRootReference(ctx)
-			if err != nil {
-				return err
-			}
-			defer distFSHandle.Release()
-			distIoFS := unixfs_iofs.NewFS(ctx, distFSHandle)
-
-			assetsFSHandle, err := assetsFS.AddRootReference(ctx)
-			if err != nil {
-				return err
-			}
-			defer assetsFSHandle.Release()
-			assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFSHandle)
+			distIoFS := unixfs_iofs.NewFS(ctx, distFS)
+			assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFS)
 
 			// note: the transform config and object ref will be based on the
 			// reference contained within the cursor after calling destAccess(nil)
+			var err error
 			outManifest, outRef, err = CommitManifest(
 				ctx,
 				le,

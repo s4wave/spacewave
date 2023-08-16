@@ -33,15 +33,9 @@ func BuildDistSourcesFSCursor() *unixfs_iofs.FSCursor {
 	return fs
 }
 
-// BuildDistSourcesFS builds a unixfs FS for the DistSources.
-func BuildDistSourcesFS(ctx context.Context, le *logrus.Entry) *unixfs.FS {
-	fsCursor := BuildDistSourcesFSCursor()
-	return unixfs.NewFS(ctx, le, fsCursor, nil)
-}
-
 // BuildDistSourcesFSHandle builds a unixfs FSHandle for the DistSources.
 func BuildDistSourcesFSHandle(ctx context.Context, le *logrus.Entry) *unixfs.FSHandle {
-	fs := BuildDistSourcesFS(ctx, le)
-	rootRef, _ := fs.AddRootReference(ctx)
-	return rootRef
+	fsCursor := BuildDistSourcesFSCursor()
+	fsh, _ := unixfs.NewFSHandle(fsCursor)
+	return fsh
 }

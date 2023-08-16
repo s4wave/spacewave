@@ -1,8 +1,8 @@
 module github.com/aperturerobotics/bldr
 
-go 1.20
+go 1.21
 
-require github.com/aperturerobotics/hydra v0.0.0-20230813010420-ebaf779ff24d
+require github.com/aperturerobotics/hydra v0.0.0-20230816230803-c98fd22f0473
 
 require (
 	github.com/evanw/esbuild v0.18.17 // latest
@@ -44,7 +44,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.28.7-0.20230811212143-b5ce5a64708e // latest
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
-	github.com/aperturerobotics/starpc v0.19.2 // latest
+	github.com/aperturerobotics/starpc v0.19.3 // latest
 )
 
 // aperture: use compatibility forks

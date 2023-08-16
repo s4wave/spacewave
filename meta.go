@@ -27,15 +27,10 @@ func BuildMetaSourcesFSCursor() *unixfs_iofs.FSCursor {
 	return fs
 }
 
-// BuildMetaSourcesFS builds a unixfs FS for the MetaSources.
-func BuildMetaSourcesFS(ctx context.Context, le *logrus.Entry) *unixfs.FS {
-	fsCursor := BuildMetaSourcesFSCursor()
-	return unixfs.NewFS(ctx, le, fsCursor, nil)
-}
-
 // BuildMetaSourcesFSHandle builds a unixfs FSHandle for the MetaSources.
 func BuildMetaSourcesFSHandle(ctx context.Context, le *logrus.Entry) *unixfs.FSHandle {
-	fs := BuildMetaSourcesFS(ctx, le)
-	rootRef, _ := fs.AddRootReference(ctx)
-	return rootRef
+	fsCursor := BuildMetaSourcesFSCursor()
+	// NOTE: we assert there is no error in assets_test.go
+	fs, _ := unixfs.NewFSHandle(fsCursor)
+	return fs
 }

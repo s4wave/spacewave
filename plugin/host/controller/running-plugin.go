@@ -119,22 +119,15 @@ func (t *runningPlugin) execPlugin(ctx context.Context) error {
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
 		manifest *bldr_manifest.Manifest,
-		distFS *unixfs.FS,
-		assetsFS *unixfs.FS,
+		distFS *unixfs.FSHandle,
+		assetsFS *unixfs.FSHandle,
 	) error {
-		// add root ref to dist fs
-		fsh, err := distFS.AddRootReference(ctx)
-		if err != nil {
-			return err
-		}
-		defer fsh.Release()
-
 		// execute the plugin
 		execErr := t.c.host.ExecutePlugin(
 			ctx,
 			pluginID,
 			manifest.GetEntrypoint(),
-			fsh,
+			distFS,
 			hostMux,
 			t.updateRpcClient,
 		)

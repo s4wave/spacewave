@@ -255,20 +255,29 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 			if err != nil {
 				return nil, nil, err
 			}
+
 			cursor, err := bucket_lookup.BuildCursor(ctx, b, le, sfsAll, "", pluginManifestRef, nil)
 			if err != nil {
 				return nil, nil, err
 			}
 			_, bcs := cursor.BuildTransaction(nil)
+
 			pluginManifest, err := manifest.UnmarshalManifest(ctx, bcs)
 			if err != nil {
+				cursor.Release()
 				return nil, nil, err
 			}
+
 			cursor.SetRootRef(pluginManifest.GetAssetsFsRef())
 			fsCursor := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor, nil)
-			fs := unixfs.NewFS(ctx, le, fsCursor, nil)
-			rootRef, err := fs.AddRootReference(ctx)
-			rootRef.AddReleaseCallback(released)
+			fs, err := unixfs.NewFSHandle(fsCursor)
+			if err != nil {
+				fsCursor.Release()
+				cursor.Release()
+				return nil, nil, err
+			}
+			fs.AddReleaseCallback(released)
+
 			rel := func() {
 				fs.Release()
 				fsCursor.Release()
@@ -278,7 +287,7 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 				rel()
 				return nil, nil, err
 			}
-			return rootRef, rel, nil
+			return fs, rel, nil
 		},
 	)
 }
