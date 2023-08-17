@@ -24,4 +24,4 @@ yarn-error.log*
 
 vendor/
 debug.test*
-__debug_bin
+__debug_bin*

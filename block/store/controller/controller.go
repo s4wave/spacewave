@@ -115,7 +115,7 @@ func (c *Controller) HandleDirective(
 		if !matched {
 			return nil, nil
 		}
-		return directive.R(directive.NewRefCountResolver(c.rc, true, func(val *block_store.Store) (directive.Value, error) {
+		return directive.R(directive.NewRefCountResolver(c.rc, true, func(ctx context.Context, val *block_store.Store) (directive.Value, error) {
 			if val == nil {
 				return nil, nil
 			}
