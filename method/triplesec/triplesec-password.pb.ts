@@ -28,7 +28,7 @@ function createBaseParameters(): Parameters {
 export const Parameters = {
   encode(
     message: Parameters,
-    writer: _m0.Writer = _m0.Writer.create()
+    writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
     if (message.salt.length !== 0) {
       writer.uint32(10).bytes(message.salt)
@@ -75,7 +75,7 @@ export const Parameters = {
   async *encodeTransform(
     source:
       | AsyncIterable<Parameters | Parameters[]>
-      | Iterable<Parameters | Parameters[]>
+      | Iterable<Parameters | Parameters[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -93,7 +93,7 @@ export const Parameters = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Parameters> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -117,20 +117,20 @@ export const Parameters = {
 
   toJSON(message: Parameters): unknown {
     const obj: any = {}
-    message.salt !== undefined &&
-      (obj.salt = base64FromBytes(
-        message.salt !== undefined ? message.salt : new Uint8Array(0)
-      ))
-    message.version !== undefined && (obj.version = Math.round(message.version))
+    if (message.salt.length !== 0) {
+      obj.salt = base64FromBytes(message.salt)
+    }
+    if (message.version !== 0) {
+      obj.version = Math.round(message.version)
+    }
     return obj
   },
 
   create<I extends Exact<DeepPartial<Parameters>, I>>(base?: I): Parameters {
-    return Parameters.fromPartial(base ?? {})
+    return Parameters.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Parameters>, I>>(
-    object: I
+    object: I,
   ): Parameters {
     const message = createBaseParameters()
     message.salt = object.salt ?? new Uint8Array(0)
@@ -168,7 +168,7 @@ export const Config = {
   // encodeTransform encodes a source of message objects.
   // Transform<Config, Uint8Array>
   async *encodeTransform(
-    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>
+    source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -186,7 +186,7 @@ export const Config = {
   async *decodeTransform(
     source:
       | AsyncIterable<Uint8Array | Uint8Array[]>
-      | Iterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
       if (Array.isArray(pkt)) {
@@ -209,19 +209,18 @@ export const Config = {
   },
 
   create<I extends Exact<DeepPartial<Config>, I>>(base?: I): Config {
-    return Config.fromPartial(base ?? {})
+    return Config.fromPartial(base ?? ({} as any))
   },
-
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(_: I): Config {
     const message = createBaseConfig()
     return message
   },
 }
 
-declare var self: any | undefined
-declare var window: any | undefined
-declare var global: any | undefined
-var tsProtoGlobalThis: any = (() => {
+declare const self: any | undefined
+declare const window: any | undefined
+declare const global: any | undefined
+const tsProtoGlobalThis: any = (() => {
   if (typeof globalThis !== 'undefined') {
     return globalThis
   }
