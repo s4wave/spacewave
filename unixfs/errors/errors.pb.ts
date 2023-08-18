@@ -30,24 +30,24 @@ export enum UnixFSErrorType {
   OUT_OF_BOUNDS = 10,
   /** EMPTY_PATH - EMPTY_PATH corresponds to unixfs_errors.ErrEmptyPath. */
   EMPTY_PATH = 11,
+  /** ABSOLUTE_PATH - ABSOLUTE_PATH corresponds to unixfs_errors.ErrAbsolutePath. */
+  ABSOLUTE_PATH = 12,
   /** INODE_UNRESOLVABLE - INODE_UNRESOLVABLE corresponds to unixfs_errors.ErrInodeUnresolvable. */
-  INODE_UNRESOLVABLE = 12,
+  INODE_UNRESOLVABLE = 13,
   /** NOT_SYMLINK - NOT_SYMLINK corresponds to unixfs_errors.ErrNotSymlink. */
-  NOT_SYMLINK = 13,
+  NOT_SYMLINK = 14,
   /** EMPTY_TIMESTAMP - EMPTY_TIMESTAMP corresponds to unixfs_errors.ErrEmptyTimestamp. */
-  EMPTY_TIMESTAMP = 14,
+  EMPTY_TIMESTAMP = 15,
   /** MOVE_TO_SELF - MOVE_TO_SELF corresponds to unixfs_errors.ErrMoveToSelf. */
-  MOVE_TO_SELF = 15,
+  MOVE_TO_SELF = 16,
   /** INVALID_WRITE - INVALID_WRITE corresponds to unixfs_errors.ErrInvalidWrite. */
-  INVALID_WRITE = 16,
+  INVALID_WRITE = 17,
   /** EMPTY_UNIXFS_ID - EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId. */
-  EMPTY_UNIXFS_ID = 17,
+  EMPTY_UNIXFS_ID = 18,
   /** CONTEXT_CANCELED - CONTEXT_CANCELED corresponds to context.Canceled. */
-  CONTEXT_CANCELED = 18,
+  CONTEXT_CANCELED = 19,
   /** EOF - EOF corresponds to io.EOF. */
-  EOF = 19,
-  /** UNKNOWN - UNKNOWN corresponds to a string error not defined in the unixfs errors list. */
-  UNKNOWN = 20,
+  EOF = 20,
   UNRECOGNIZED = -1,
 }
 
@@ -90,32 +90,32 @@ export function unixFSErrorTypeFromJSON(object: any): UnixFSErrorType {
     case 'EMPTY_PATH':
       return UnixFSErrorType.EMPTY_PATH
     case 12:
+    case 'ABSOLUTE_PATH':
+      return UnixFSErrorType.ABSOLUTE_PATH
+    case 13:
     case 'INODE_UNRESOLVABLE':
       return UnixFSErrorType.INODE_UNRESOLVABLE
-    case 13:
+    case 14:
     case 'NOT_SYMLINK':
       return UnixFSErrorType.NOT_SYMLINK
-    case 14:
+    case 15:
     case 'EMPTY_TIMESTAMP':
       return UnixFSErrorType.EMPTY_TIMESTAMP
-    case 15:
+    case 16:
     case 'MOVE_TO_SELF':
       return UnixFSErrorType.MOVE_TO_SELF
-    case 16:
+    case 17:
     case 'INVALID_WRITE':
       return UnixFSErrorType.INVALID_WRITE
-    case 17:
+    case 18:
     case 'EMPTY_UNIXFS_ID':
       return UnixFSErrorType.EMPTY_UNIXFS_ID
-    case 18:
+    case 19:
     case 'CONTEXT_CANCELED':
       return UnixFSErrorType.CONTEXT_CANCELED
-    case 19:
+    case 20:
     case 'EOF':
       return UnixFSErrorType.EOF
-    case 20:
-    case 'UNKNOWN':
-      return UnixFSErrorType.UNKNOWN
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -149,6 +149,8 @@ export function unixFSErrorTypeToJSON(object: UnixFSErrorType): string {
       return 'OUT_OF_BOUNDS'
     case UnixFSErrorType.EMPTY_PATH:
       return 'EMPTY_PATH'
+    case UnixFSErrorType.ABSOLUTE_PATH:
+      return 'ABSOLUTE_PATH'
     case UnixFSErrorType.INODE_UNRESOLVABLE:
       return 'INODE_UNRESOLVABLE'
     case UnixFSErrorType.NOT_SYMLINK:
@@ -165,8 +167,6 @@ export function unixFSErrorTypeToJSON(object: UnixFSErrorType): string {
       return 'CONTEXT_CANCELED'
     case UnixFSErrorType.EOF:
       return 'EOF'
-    case UnixFSErrorType.UNKNOWN:
-      return 'UNKNOWN'
     case UnixFSErrorType.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'

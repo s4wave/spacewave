@@ -148,27 +148,30 @@ type FSCursorOps interface {
 	Mknod(ctx context.Context, checkExist bool, names []string, nodeType FSCursorNodeType, permissions fs.FileMode, ts time.Time) error
 
 	// Symlink creates a symbolic link from a location to a path.
-	Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error
+	Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error
 
 	// Readlink reads a symbolic link contents.
 	// If name is empty, reads the link at the cursor position.
 	// Returns ErrNotSymlink if not a symbolic link.
-	Readlink(ctx context.Context, name string) ([]string, error)
+	Readlink(ctx context.Context, name string) (pathNodes []string, isAbsolute bool, err error)
 
 	// CopyTo performs an optimized copy of an dirent inode to another inode.
 	// If the src is a directory, this should be a recursive copy.
+	// If the destination already exists, this should clobber the destination (overwrite).
 	// Callers should still check CopyFrom even if CopyTo is not implemented.
 	// Returns false, nil if optimized copy to the target is not implemented.
 	CopyTo(ctx context.Context, tgtDir FSCursorOps, tgtName string, ts time.Time) (done bool, err error)
 
 	// CopyFrom performs an optimized copy from another inode.
 	// If the src is a directory, this should be a recursive copy.
+	// If the destination already exists, this should clobber the destination (overwrite).
 	// Callers should still check CopyTo even if CopyFrom is not implemented.
 	// Returns false, nil if optimized copy from the target is not implemented.
 	CopyFrom(ctx context.Context, name string, srcCursorOps FSCursorOps, ts time.Time) (done bool, err error)
 
 	// MoveTo performs an atomic and optimized move to another inode.
 	// If the src is a directory, this should be a recursive copy.
+	// If the destination already exists, this should clobber the destination (overwrite).
 	// Callers should still check MoveFrom even if MoveTo is not implemented.
 	//
 	// In a single operation: overwrite the target fully with the source data,
@@ -179,6 +182,7 @@ type FSCursorOps interface {
 
 	// MoveFrom performs an atomic and optimized move from another inode.
 	// If the src is a directory, this should be a recursive copy.
+	// If the destination already exists, this should clobber the destination (overwrite).
 	// Callers should still check MoveTo even if MoveFrom is not implemented.
 	//
 	// In a single operation: overwrite the inode fully with the target data,

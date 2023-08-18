@@ -193,6 +193,8 @@ export interface FSConfig {
 export interface FSPath {
   /** Nodes are the node names in the path. */
   nodes: string[]
+  /** Absolute indicates the path is an absolute path (starting at /). */
+  absolute: boolean
 }
 
 /**
@@ -1009,7 +1011,7 @@ export const FSConfig = {
 }
 
 function createBaseFSPath(): FSPath {
-  return { nodes: [] }
+  return { nodes: [], absolute: false }
 }
 
 export const FSPath = {
@@ -1019,6 +1021,9 @@ export const FSPath = {
   ): _m0.Writer {
     for (const v of message.nodes) {
       writer.uint32(10).string(v!)
+    }
+    if (message.absolute === true) {
+      writer.uint32(16).bool(message.absolute)
     }
     return writer
   },
@@ -1037,6 +1042,13 @@ export const FSPath = {
           }
 
           message.nodes.push(reader.string())
+          continue
+        case 2:
+          if (tag !== 16) {
+            break
+          }
+
+          message.absolute = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -1086,6 +1098,7 @@ export const FSPath = {
       nodes: Array.isArray(object?.nodes)
         ? object.nodes.map((e: any) => String(e))
         : [],
+      absolute: isSet(object.absolute) ? Boolean(object.absolute) : false,
     }
   },
 
@@ -1093,6 +1106,9 @@ export const FSPath = {
     const obj: any = {}
     if (message.nodes?.length) {
       obj.nodes = message.nodes
+    }
+    if (message.absolute === true) {
+      obj.absolute = message.absolute
     }
     return obj
   },
@@ -1103,6 +1119,7 @@ export const FSPath = {
   fromPartial<I extends Exact<DeepPartial<FSPath>, I>>(object: I): FSPath {
     const message = createBaseFSPath()
     message.nodes = object.nodes?.map((e) => e) || []
+    message.absolute = object.absolute ?? false
     return message
   },
 }

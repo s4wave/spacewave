@@ -36,7 +36,7 @@ func BuildFSFromUnixfsRef(
 	refPath := ref.GetPath()
 	prefixPath := refPath.GetNodes()
 	if len(prefixPath) != 0 {
-		if err := refPath.Validate(); err != nil {
+		if err := refPath.Validate(true, true); err != nil {
 			return nil, err
 		}
 	}

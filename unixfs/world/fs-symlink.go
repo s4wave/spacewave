@@ -20,9 +20,10 @@ func FsSymlink(
 	fsType FSType,
 	path []string,
 	tgtPath []string,
+	tgtIsAbsolute bool,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
-	bpath, tpath := unixfs_block.NewFSPath(path), unixfs_block.NewFSPath(tgtPath)
+	bpath, tpath := unixfs_block.NewFSPath(path, false), unixfs_block.NewFSPath(tgtPath, tgtIsAbsolute)
 	lnk := unixfs_block.NewFSSymlink(tpath)
 	wOp := NewFsSymlinkOp("", fsType, bpath, lnk, ts)
 	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
@@ -104,7 +105,13 @@ func (o *FsSymlinkOp) ApplyWorldObjectOp(
 
 	_, _, err = AccessUnixfsObject(ctx, objectHandle, true, o.GetFsType(), func(ftree *unixfs_block.FSTree) error {
 		wr := unixfs_block.NewFSWriter(ftree)
-		return wr.Symlink(ctx, o.GetPath().GetNodes(), o.GetSymlink().GetTargetPath().GetNodes(), o.GetTimestamp().ToTime())
+		return wr.Symlink(
+			ctx,
+			o.GetPath().GetNodes(),
+			o.GetSymlink().GetTargetPath().GetNodes(),
+			o.GetSymlink().GetTargetPath().GetAbsolute(),
+			o.GetTimestamp().ToTime(),
+		)
 	}, nil)
 
 	return false, err

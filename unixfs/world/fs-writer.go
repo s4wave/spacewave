@@ -69,13 +69,13 @@ func (w *FSWriter) Mknod(ctx context.Context, paths [][]string, nodeType unixfs.
 
 // Symlink creates a symbolic link from a location to a path.
 // An error may be returned if one or more parent directories don't exist.
-func (w *FSWriter) Symlink(ctx context.Context, path []string, target []string, ts time.Time) error {
+func (w *FSWriter) Symlink(ctx context.Context, path []string, target []string, targetIsAbsolute bool, ts time.Time) error {
 	if len(path) == 0 || len(target) == 0 {
 		return unixfs_errors.ErrEmptyPath
 	}
 
 	return w.applyConfirmOp(ctx, func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error) {
-		return FsSymlink(ctx, wobj, w.sender, w.fsType, path, target, ts)
+		return FsSymlink(ctx, wobj, w.sender, w.fsType, path, target, targetIsAbsolute, ts)
 	})
 }
 

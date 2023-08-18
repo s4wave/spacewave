@@ -23,7 +23,7 @@ func FsTruncate(
 	size int64,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
-	fpath := unixfs_block.NewFSPath(path)
+	fpath := unixfs_block.NewFSPath(path, false)
 	wOp := NewFsTruncateOp("", fsType, fpath, size, ts)
 	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }

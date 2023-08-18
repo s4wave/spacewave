@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/util/billyhttp"
 	"github.com/go-git/go-billy/v5"
@@ -55,7 +56,7 @@ func NewFileSystem(
 	fsHandle *unixfs.FSHandle,
 	unixFsPrefix, httpPrefix string,
 ) http.FileSystem {
-	var billyfs billy.Filesystem = unixfs.NewBillyFS(ctx, fsHandle, "", time.Time{})
+	var billyfs billy.Filesystem = unixfs_billy.NewBillyFS(ctx, fsHandle, "", time.Time{})
 	if unixFsPrefix != "" && unixFsPrefix != "/" && unixFsPrefix != "." {
 		billyfs = chroot.New(billyfs, unixFsPrefix)
 	}

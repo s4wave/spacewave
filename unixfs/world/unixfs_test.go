@@ -6,7 +6,7 @@ import (
 	"time"
 
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_e2e "github.com/aperturerobotics/hydra/unixfs/e2e"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -69,7 +69,7 @@ func TestFsBilly_WriteFile(t *testing.T) {
 	defer fsHandle.Release()
 
 	// create test fs (backed by a block graph + Hydra world)
-	bfs := unixfs.NewBillyFilesystem(ctx, fsHandle, "", time.Now())
+	bfs := unixfs_billy.NewBillyFilesystem(ctx, fsHandle, "", time.Now())
 
 	// create test script
 	filename := "test.js"

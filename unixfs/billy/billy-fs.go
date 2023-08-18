@@ -1,4 +1,4 @@
-package unixfs
+package unixfs_billy
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/util"
@@ -21,7 +22,7 @@ type BillyFS struct {
 	// ctx is the context
 	ctx context.Context
 	// h is the filesystem handle
-	h *FSHandle
+	h *unixfs.FSHandle
 	// t is the write timestamp
 	t atomic.Pointer[time.Time]
 	// basePath is the path of any parent chroots
@@ -32,7 +33,7 @@ type BillyFS struct {
 //
 // if ts is nil, uses time.Now() on each call
 // basePath should contain the path to this FSHandle.
-func NewBillyFS(ctx context.Context, h *FSHandle, basePath string, ts time.Time) *BillyFS {
+func NewBillyFS(ctx context.Context, h *unixfs.FSHandle, basePath string, ts time.Time) *BillyFS {
 	if basePath == "" {
 		basePath = "/"
 	}
@@ -66,7 +67,7 @@ func (f *BillyFS) GetOpTimestamp() time.Time {
 //
 // if ts is nil, uses time.Now() on each call
 // basePath should contain the path to this FSHandle.
-func NewBillyFilesystem(ctx context.Context, h *FSHandle, basePath string, ts time.Time) billy.Filesystem {
+func NewBillyFilesystem(ctx context.Context, h *unixfs.FSHandle, basePath string, ts time.Time) billy.Filesystem {
 	return NewBillyFS(ctx, h, basePath, ts)
 }
 
@@ -123,7 +124,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 		}
 	}
 
-	var h *FSHandle
+	var h *unixfs.FSHandle
 	if filedir == "." {
 		h = f.h
 	} else {
@@ -139,7 +140,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 	}
 
 	fileHandle, err := h.Lookup(f.ctx, filename)
-	isExcl := isExclusive(flag)
+	isExcl := unixfs.FlagIsExclusive(flag)
 	if isExcl {
 		if err == nil {
 			fileHandle.Release()
@@ -157,7 +158,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 	*/
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
-		if !isCreate(flag) {
+		if !unixfs.FlagIsCreate(flag) {
 			return nil, err
 		}
 
@@ -166,7 +167,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			f.ctx,
 			isExcl,
 			[]string{filename},
-			NewFSCursorNodeType_File(),
+			unixfs.NewFSCursorNodeType_File(),
 			perm&fs.ModePerm,
 			f.timestamp(),
 		)
@@ -192,19 +193,19 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 
 // Stat returns a FileInfo describing the named file.
 func (f *BillyFS) Stat(filepath string) (os.FileInfo, error) {
-	return StatWithPath(f.ctx, f.h, filepath)
+	return unixfs.StatWithPath(f.ctx, f.h, filepath)
 }
 
 // Rename renames (moves) oldpath to newpath. If newpath already exists and
 // is not a directory, Rename replaces it. OS-specific restrictions may
 // apply when oldpath and newpath are in different directories.
 func (f *BillyFS) Rename(oldpath, newpath string) error {
-	return RenameWithPaths(f.ctx, f.h, oldpath, newpath, f.timestamp())
+	return unixfs.RenameWithPaths(f.ctx, f.h, oldpath, newpath, f.timestamp())
 }
 
 // Remove removes the named file or directory.
 func (f *BillyFS) Remove(filepath string) error {
-	return RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp())
+	return unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp())
 }
 
 // Join joins any number of path elements into a single path, adding a
@@ -233,7 +234,7 @@ func (f *BillyFS) TempFile(dir, prefix string) (billy.File, error) {
 func (f *BillyFS) ReadDir(mpath string) ([]os.FileInfo, error) {
 	mpath = path.Clean(mpath)
 	if mpath == "" || mpath == "." || mpath == "/" {
-		return ReaddirAllToFileInfo(f.ctx, 0, 0, f.h)
+		return unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, f.h)
 	}
 
 	ch, _, err := f.h.LookupPath(f.ctx, mpath)
@@ -245,7 +246,7 @@ func (f *BillyFS) ReadDir(mpath string) ([]os.FileInfo, error) {
 	}
 	defer ch.Release()
 
-	return ReaddirAllToFileInfo(f.ctx, 0, 0, ch)
+	return unixfs.ReaddirAllToFileInfo(f.ctx, 0, 0, ch)
 }
 
 // MkdirAll creates a directory named path, along with any necessary
@@ -295,7 +296,7 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 // Chmod changes the mode of the named file to mode. If the file is a
 // symbolic link, it changes the mode of the link's target.
 func (f *BillyFS) Chmod(filepath string, mode os.FileMode) error {
-	return ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp())
+	return unixfs.ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp())
 }
 
 // Lchown changes the numeric uid and gid of the named file. If the file is
@@ -321,7 +322,7 @@ func (f *BillyFS) Chtimes(filepath string, atime time.Time, mtime time.Time) err
 	if mtime.IsZero() {
 		mtime = f.timestamp()
 	}
-	return SetModTimestampWithPath(f.ctx, f.h, filepath, mtime)
+	return unixfs.SetModTimestampWithPath(f.ctx, f.h, filepath, mtime)
 }
 
 // Lstat returns a FileInfo describing the named file. If the file is a
@@ -329,7 +330,7 @@ func (f *BillyFS) Chtimes(filepath string, atime time.Time, mtime time.Time) err
 // makes no attempt to follow the link.
 func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
 	// TODO: this will traverse symbolic links: Lstat should be added.
-	return StatWithPath(f.ctx, f.h, filepath)
+	return unixfs.StatWithPath(f.ctx, f.h, filepath)
 }
 
 // Symlink creates a symbolic-link from link to target. target may be an
@@ -347,8 +348,8 @@ func (f *BillyFS) Symlink(target, link string) error {
 	}
 	defer ch.Release()
 
-	tgtComponents := SplitPath(target)
-	return ch.Symlink(f.ctx, true, filename, tgtComponents, f.timestamp())
+	tgtComponents, tgtComponentsIsAbsolute := unixfs.SplitPath(target)
+	return ch.Symlink(f.ctx, true, filename, tgtComponents, tgtComponentsIsAbsolute, f.timestamp())
 }
 
 // Readlink returns the target path of link.
@@ -372,11 +373,11 @@ func (f *BillyFS) Readlink(link string) (string, error) {
 			Err:  unixfs_errors.ErrNotSymlink,
 		}
 	}
-	lnkd, err := ch.Readlink(f.ctx, "")
+	lnkd, lnkdAbsolute, err := ch.Readlink(f.ctx, "")
 	if err != nil {
 		return "", err
 	}
-	return JoinPath(lnkd), nil
+	return unixfs.JoinPath(lnkd, lnkdAbsolute), nil
 }
 
 // Chroot returns a new filesystem from the same type where the new root is

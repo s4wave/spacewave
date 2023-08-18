@@ -25,7 +25,7 @@ func FsWriteAt(
 	data []byte,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
-	fpath := unixfs_block.NewFSPath(path)
+	fpath := unixfs_block.NewFSPath(path, false)
 	// writes to the blb object
 	blbObjRef, err := world.AccessObject(ctx, obj.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetRefAtCursor(nil, true)

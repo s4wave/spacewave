@@ -102,6 +102,8 @@ enum FSChangeType {
 message FSPath {
   // Nodes are the node names in the path.
   repeated string nodes = 1;
+  // Absolute indicates the path is an absolute path (starting at /).
+  bool absolute = 2;
 }
 
 // FSChange is an entry in the changelog.

@@ -313,8 +313,8 @@ message OpsSymlinkRequest {
   bool check_exist = 2;
   // Name is the name of the link to be created.
   string name = 3;
-  // Target is the target path of the symlink.
-  repeated string target = 4;
+  // Symlink is the symlink to create.
+  .unixfs.block.FSSymlink symlink = 4;
   // Timestamp is the desired timestamp for the operation.
   .timestamp.Timestamp timestamp = 5;
 }
@@ -337,8 +337,8 @@ message OpsReadlinkRequest {
 message OpsReadlinkResponse {
   // UnixfsError contains the error returned by the call, if any.
   .unixfs.errors.UnixFSError unixfs_error = 1;
-  // TargetPath contains the target path of the symbolic link.
-  repeated string target_path = 2;
+  // Symlink contains the read symlink.
+  .unixfs.block.FSSymlink symlink = 2;
 }
 
 // OpsCopyToRequest is the body of the ops CopyTo request.

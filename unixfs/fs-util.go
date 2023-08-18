@@ -9,6 +9,7 @@ import (
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // ReaddirAllToFileInfo calls readdir and generates FileInfo objects.
@@ -84,19 +85,26 @@ func ReaddirAllToDirEntries(ctx context.Context, skip, limit uint64, h *FSHandle
 }
 
 // RenameWithPaths renames using two paths within a FSHandle.
-func RenameWithPaths(ctx context.Context, h *FSHandle, oldpath, newpath string, ts time.Time) error {
-	oldpath = path.Clean(oldpath)
-	newpath = path.Clean(newpath)
-	if oldpath == newpath {
+func RenameWithPaths(ctx context.Context, h *FSHandle, oldPath, newPath string, ts time.Time) error {
+	oldPathPts, oldPathAbsolute := SplitPath(oldPath)
+	if oldPathAbsolute {
+		return unixfs_errors.ErrAbsolutePath
+	}
+
+	newPathPts, newPathAbsolute := SplitPath(newPath)
+	if newPathAbsolute {
+		return unixfs_errors.ErrAbsolutePath
+	}
+
+	if slices.Equal(oldPathPts, newPathPts) {
 		return nil
 	}
 
-	newPathPts := SplitPath(newpath)
-	if len(newPathPts) == 0 {
+	if len(newPath) == 0 || len(oldPath) == 0 {
 		return unixfs_errors.ErrEmptyPath
 	}
 
-	oldHandle, _, err := h.LookupPath(ctx, oldpath)
+	oldHandle, _, err := h.LookupPathPts(ctx, oldPathPts)
 	if err != nil {
 		if oldHandle != nil {
 			oldHandle.Release()
@@ -105,8 +113,8 @@ func RenameWithPaths(ctx context.Context, h *FSHandle, oldpath, newpath string, 
 	}
 	defer oldHandle.Release()
 
-	parentPathPts := newPathPts[:len(newPathPts)-1]
-	destName := newPathPts[len(newPathPts)-1]
+	parentPathPts := newPathPts[:len(newPath)-1]
+	destName := newPathPts[len(newPath)-1]
 	nextParent, _, err := h.LookupPathPts(ctx, parentPathPts)
 	if err != nil {
 		if nextParent != nil {

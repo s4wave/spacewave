@@ -74,7 +74,6 @@ func (i *Inode) Attr(ctx context.Context, attr *fuse.Attr) error {
 			return err
 		}
 	}
-	i.rfs.le.Warnf("Attr() -> %v", attr.String())
 	if err != nil {
 		i.rfs.logFilesystemError(err)
 		err = UnixfsErrorToSyscall(err)
@@ -242,8 +241,8 @@ func (i *Inode) Mknod(
 func (i *Inode) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, error) {
 	ts := time.Now()
 	linkName, targetPath := req.NewName, req.Target
-	tgtSplit := unixfs.SplitPath(targetPath)
-	if err := i.h.Symlink(ctx, true, linkName, tgtSplit, ts); err != nil {
+	tgtSplit, tgtAbsolute := unixfs.SplitPath(targetPath)
+	if err := i.h.Symlink(ctx, true, linkName, tgtSplit, tgtAbsolute, ts); err != nil {
 		i.rfs.logFilesystemError(err)
 		return nil, UnixfsErrorToSyscall(err)
 	}
@@ -253,11 +252,11 @@ func (i *Inode) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node,
 
 // Readlink reads a symbolic link.
 func (i *Inode) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
-	linkPath, err := i.h.Readlink(ctx, "")
+	linkPath, linkAbsolute, err := i.h.Readlink(ctx, "")
 	if err != nil {
 		return "", nil
 	}
-	return unixfs.JoinPath(linkPath), nil
+	return unixfs.JoinPath(linkPath, linkAbsolute), nil
 }
 
 // Create creates a new directory entry in the receiver, which must be a

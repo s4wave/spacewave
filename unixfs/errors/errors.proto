@@ -27,24 +27,24 @@ enum UnixFSErrorType {
   OUT_OF_BOUNDS = 10;
   // EMPTY_PATH corresponds to unixfs_errors.ErrEmptyPath.
   EMPTY_PATH = 11;
+  // ABSOLUTE_PATH corresponds to unixfs_errors.ErrAbsolutePath.
+  ABSOLUTE_PATH = 12;
   // INODE_UNRESOLVABLE corresponds to unixfs_errors.ErrInodeUnresolvable.
-  INODE_UNRESOLVABLE = 12;
+  INODE_UNRESOLVABLE = 13;
   // NOT_SYMLINK corresponds to unixfs_errors.ErrNotSymlink.
-  NOT_SYMLINK = 13;
+  NOT_SYMLINK = 14;
   // EMPTY_TIMESTAMP corresponds to unixfs_errors.ErrEmptyTimestamp.
-  EMPTY_TIMESTAMP = 14;
+  EMPTY_TIMESTAMP = 15;
   // MOVE_TO_SELF corresponds to unixfs_errors.ErrMoveToSelf.
-  MOVE_TO_SELF = 15;
+  MOVE_TO_SELF = 16;
   // INVALID_WRITE corresponds to unixfs_errors.ErrInvalidWrite.
-  INVALID_WRITE = 16;
+  INVALID_WRITE = 17;
   // EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId.
-  EMPTY_UNIXFS_ID = 17;
+  EMPTY_UNIXFS_ID = 18;
   // CONTEXT_CANCELED corresponds to context.Canceled.
-  CONTEXT_CANCELED = 18;
+  CONTEXT_CANCELED = 19;
   // EOF corresponds to io.EOF.
-  EOF = 19;
-  // UNKNOWN corresponds to a string error not defined in the unixfs errors list.
-  UNKNOWN = 20;
+  EOF = 20;
 }
 
 // UnixFSError contains an RPC error returned by a cursor, if any.

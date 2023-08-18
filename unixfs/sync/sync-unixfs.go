@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 )
 
 // SyncToUnixfs recursively synchronizes the contents of the UnixFS to another UnixFS.
@@ -19,6 +20,6 @@ func SyncToUnixfs(
 	deleteMode DeleteMode,
 	filterCb FilterCb,
 ) error {
-	bfs := unixfs.NewBillyFS(ctx, dest, "", time.Time{})
+	bfs := unixfs_billy.NewBillyFS(ctx, dest, "", time.Time{})
 	return SyncToBilly(ctx, bfs, src, deleteMode, filterCb)
 }

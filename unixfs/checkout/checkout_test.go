@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	memfs "github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -34,7 +34,7 @@ func TestCheckout(t *testing.T) {
 	defer wtb.Release()
 
 	ts := time.Now()
-	bfs := unixfs.NewBillyFS(ctx, wfs, "", ts)
+	bfs := unixfs_billy.NewBillyFS(ctx, wfs, "", ts)
 
 	testFile := "test.txt"
 	testData := []byte("Hello world!")

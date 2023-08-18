@@ -63,9 +63,10 @@ func (w *FSWatcher) Wake() {
 // SetPath updates the path as a string.
 // Returns the path split into parts and if the path changed or not.
 // Triggers a re-check of the fs state if the path changed.
+// Treats absolute paths as relative to the current directory.
 // Note: do not modify the returned path slice.
 func (w *FSWatcher) SetPath(pathStr string) ([]string, bool) {
-	pathPts := unixfs.SplitPath(pathStr)
+	pathPts, _ := unixfs.SplitPath(pathStr)
 	return pathPts, w.SetPathPts(pathPts)
 }
 

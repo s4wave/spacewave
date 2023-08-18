@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	unixfs_e2e "github.com/aperturerobotics/hydra/unixfs/e2e"
@@ -86,7 +87,7 @@ func TestUnixFsRPC(t *testing.T) {
 	}
 
 	// make a file
-	bfs := unixfs.NewBillyFilesystem(ctx, clientRootRef, "", time.Now())
+	bfs := unixfs_billy.NewBillyFilesystem(ctx, clientRootRef, "", time.Now())
 	filename := "test/dir/test.txt"
 	data := []byte("Hello world!\n")
 	err = billy_util.WriteFile(bfs, filename, data, 0755)

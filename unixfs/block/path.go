@@ -6,16 +6,16 @@ import (
 )
 
 // NewFSPath builds a new filesystem path.
-func NewFSPath(path []string) *FSPath {
+func NewFSPath(path []string, isAbsolute bool) *FSPath {
 	return &FSPath{
-		Nodes: path,
+		Nodes:    path,
+		Absolute: isAbsolute,
 	}
 }
 
 // SplitFSPath splits a path string and returns a FSPath.
 func SplitFSPath(tpath string) *FSPath {
-	nodes := unixfs.SplitPath(tpath)
-	return NewFSPath(nodes)
+	return NewFSPath(unixfs.SplitPath(tpath))
 }
 
 // IsNil returns if the object is nil.
@@ -24,9 +24,15 @@ func (p *FSPath) IsNil() bool {
 }
 
 // Validate validates the path.
-func (p *FSPath) Validate() error {
+func (p *FSPath) Validate(allowEmpty bool, allowAbsolute bool) error {
 	if len(p.GetNodes()) == 0 {
-		return unixfs_errors.ErrEmptyPath
+		if !allowEmpty {
+			return unixfs_errors.ErrEmptyPath
+		}
+		return nil
+	}
+	if !allowAbsolute && p.GetAbsolute() {
+		return unixfs_errors.ErrAbsolutePath
 	}
 	for _, dir := range p.GetNodes() {
 		if err := ValidateDirectoryName(dir); err != nil {
@@ -50,6 +56,7 @@ func (p *FSPath) Clone() *FSPath {
 }
 
 // PathsToStringSlices converts a set of paths to a list of string slices.
+// Assumes that all of the paths are relative.
 func PathsToStringSlices(paths ...*FSPath) [][]string {
 	out := make([][]string, len(paths))
 	for i, x := range paths {
@@ -59,10 +66,11 @@ func PathsToStringSlices(paths ...*FSPath) [][]string {
 }
 
 // StringSlicesToPaths converts the string slices to paths.
+// Assumes that all the paths are relative.
 func StringSlicesToPaths(paths [][]string) []*FSPath {
 	out := make([]*FSPath, len(paths))
 	for i, p := range paths {
-		out[i] = NewFSPath(p)
+		out[i] = NewFSPath(p, false)
 	}
 	return out
 }

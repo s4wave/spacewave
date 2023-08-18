@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/util/mbuffer"
 	"github.com/aperturerobotics/util/scrub"
@@ -291,10 +292,10 @@ func syncToBillyOnce(
 
 		xferBuf := cpyBuffer.GetOrAllocate(32 * 1024)
 		if createTruncateFile {
-			err = unixfs.CopyToBillyFSFile(ctx, of, handle, xferBuf, 0)
+			err = unixfs_billy.CopyToBillyFSFile(ctx, of, handle, xferBuf, 0)
 		} else {
 			wbuffer := writeBuffer.GetOrAllocate(32 * 1024)
-			err = unixfs.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
+			err = unixfs_billy.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
 		}
 
 		if cerr := of.Close(); err == nil && cerr != nil {

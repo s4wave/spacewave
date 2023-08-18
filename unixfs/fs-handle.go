@@ -321,7 +321,8 @@ func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, 
 		}
 	}
 
-	pathParts := SplitPath(filePath)
+	// ignore absolute paths: treat them as relative to ./
+	pathParts, _ := SplitPath(filePath)
 	return h.LookupPathPts(ctx, pathParts)
 }
 
@@ -378,7 +379,8 @@ func (h *FSHandle) MkdirAllPath(ctx context.Context, filepath string, perm fs.Fi
 		return nil
 	}
 
-	dirPath := SplitPath(filepath)
+	// ignore absolute paths: treat them as relative to ./
+	dirPath, _ := SplitPath(filepath)
 	return h.MkdirAll(ctx, dirPath, perm, ts)
 }
 
@@ -431,36 +433,38 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 }
 
 // Symlink creates a symbolic link from a location to a path.
-func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error {
+func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
 	if len(name) == 0 || len(target) == 0 {
 		return unixfs_errors.ErrEmptyPath
 	}
 	return h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
-		return ops.Symlink(ctx, checkExist, name, target, ts)
+		return ops.Symlink(ctx, checkExist, name, target, targetIsAbsolute, ts)
 	})
 }
 
 // Readlink reads a symbolic link contents.
 // If name is empty, reads the link at the FSHandle.
 // Returns ErrNotSymlink if not a symbolic link.
-func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, error) {
+// Returns the path, if the symlink is absolute, and any error.
+func (h *FSHandle) Readlink(ctx context.Context, name string) ([]string, bool, error) {
 	handle := h
 	if len(name) != 0 {
 		var err error
 		handle, err = h.Lookup(ctx, name)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		defer handle.Release()
 	}
 
 	var link []string
+	var isAbs bool
 	err := handle.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		var err error
-		link, err = ops.Readlink(ctx, name)
+		link, isAbs, err = ops.Readlink(ctx, name)
 		return err
 	})
-	return link, err
+	return link, isAbs, err
 }
 
 // Copy recursively copies a location to a destination, overwriting destination.

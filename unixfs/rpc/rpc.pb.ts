@@ -3,6 +3,7 @@ import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.p
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import {
+  FSSymlink,
   NodeType,
   nodeTypeFromJSON,
   nodeTypeToJSON,
@@ -337,8 +338,8 @@ export interface OpsSymlinkRequest {
   checkExist: boolean
   /** Name is the name of the link to be created. */
   name: string
-  /** Target is the target path of the symlink. */
-  target: string[]
+  /** Symlink is the symlink to create. */
+  symlink: FSSymlink | undefined
   /** Timestamp is the desired timestamp for the operation. */
   timestamp: Timestamp | undefined
 }
@@ -361,8 +362,8 @@ export interface OpsReadlinkRequest {
 export interface OpsReadlinkResponse {
   /** UnixfsError contains the error returned by the call, if any. */
   unixfsError: UnixFSError | undefined
-  /** TargetPath contains the target path of the symbolic link. */
-  targetPath: string[]
+  /** Symlink contains the read symlink. */
+  symlink: FSSymlink | undefined
 }
 
 /** OpsCopyToRequest is the body of the ops CopyTo request. */
@@ -5088,7 +5089,7 @@ function createBaseOpsSymlinkRequest(): OpsSymlinkRequest {
     opsHandleId: Long.UZERO,
     checkExist: false,
     name: '',
-    target: [],
+    symlink: undefined,
     timestamp: undefined,
   }
 }
@@ -5107,8 +5108,8 @@ export const OpsSymlinkRequest = {
     if (message.name !== '') {
       writer.uint32(26).string(message.name)
     }
-    for (const v of message.target) {
-      writer.uint32(34).string(v!)
+    if (message.symlink !== undefined) {
+      FSSymlink.encode(message.symlink, writer.uint32(34).fork()).ldelim()
     }
     if (message.timestamp !== undefined) {
       Timestamp.encode(message.timestamp, writer.uint32(42).fork()).ldelim()
@@ -5150,7 +5151,7 @@ export const OpsSymlinkRequest = {
             break
           }
 
-          message.target.push(reader.string())
+          message.symlink = FSSymlink.decode(reader, reader.uint32())
           continue
         case 5:
           if (tag !== 42) {
@@ -5211,9 +5212,9 @@ export const OpsSymlinkRequest = {
         : Long.UZERO,
       checkExist: isSet(object.checkExist) ? Boolean(object.checkExist) : false,
       name: isSet(object.name) ? String(object.name) : '',
-      target: Array.isArray(object?.target)
-        ? object.target.map((e: any) => String(e))
-        : [],
+      symlink: isSet(object.symlink)
+        ? FSSymlink.fromJSON(object.symlink)
+        : undefined,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -5231,8 +5232,8 @@ export const OpsSymlinkRequest = {
     if (message.name !== '') {
       obj.name = message.name
     }
-    if (message.target?.length) {
-      obj.target = message.target
+    if (message.symlink !== undefined) {
+      obj.symlink = FSSymlink.toJSON(message.symlink)
     }
     if (message.timestamp !== undefined) {
       obj.timestamp = Timestamp.toJSON(message.timestamp)
@@ -5255,7 +5256,10 @@ export const OpsSymlinkRequest = {
         : Long.UZERO
     message.checkExist = object.checkExist ?? false
     message.name = object.name ?? ''
-    message.target = object.target?.map((e) => e) || []
+    message.symlink =
+      object.symlink !== undefined && object.symlink !== null
+        ? FSSymlink.fromPartial(object.symlink)
+        : undefined
     message.timestamp =
       object.timestamp !== undefined && object.timestamp !== null
         ? Timestamp.fromPartial(object.timestamp)
@@ -5496,7 +5500,7 @@ export const OpsReadlinkRequest = {
 }
 
 function createBaseOpsReadlinkResponse(): OpsReadlinkResponse {
-  return { unixfsError: undefined, targetPath: [] }
+  return { unixfsError: undefined, symlink: undefined }
 }
 
 export const OpsReadlinkResponse = {
@@ -5507,8 +5511,8 @@ export const OpsReadlinkResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    for (const v of message.targetPath) {
-      writer.uint32(18).string(v!)
+    if (message.symlink !== undefined) {
+      FSSymlink.encode(message.symlink, writer.uint32(18).fork()).ldelim()
     }
     return writer
   },
@@ -5533,7 +5537,7 @@ export const OpsReadlinkResponse = {
             break
           }
 
-          message.targetPath.push(reader.string())
+          message.symlink = FSSymlink.decode(reader, reader.uint32())
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -5585,9 +5589,9 @@ export const OpsReadlinkResponse = {
       unixfsError: isSet(object.unixfsError)
         ? UnixFSError.fromJSON(object.unixfsError)
         : undefined,
-      targetPath: Array.isArray(object?.targetPath)
-        ? object.targetPath.map((e: any) => String(e))
-        : [],
+      symlink: isSet(object.symlink)
+        ? FSSymlink.fromJSON(object.symlink)
+        : undefined,
     }
   },
 
@@ -5596,8 +5600,8 @@ export const OpsReadlinkResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (message.targetPath?.length) {
-      obj.targetPath = message.targetPath
+    if (message.symlink !== undefined) {
+      obj.symlink = FSSymlink.toJSON(message.symlink)
     }
     return obj
   },
@@ -5615,7 +5619,10 @@ export const OpsReadlinkResponse = {
       object.unixfsError !== undefined && object.unixfsError !== null
         ? UnixFSError.fromPartial(object.unixfsError)
         : undefined
-    message.targetPath = object.targetPath?.map((e) => e) || []
+    message.symlink =
+      object.symlink !== undefined && object.symlink !== null
+        ? FSSymlink.fromPartial(object.symlink)
+        : undefined
     return message
   },
 }

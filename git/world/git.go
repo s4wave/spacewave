@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	git_block "github.com/aperturerobotics/hydra/git/block"
-	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
@@ -240,7 +240,7 @@ func AccessWorldObjectRepoWithWorktree(
 	defer wdFsHandle.Release()
 
 	// construct billy fs
-	wdBfs := unixfs.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
+	wdBfs := unixfs_billy.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
 
 	// access worktree object
 	_, _, err = AccessWorldObjectWorktree(ctx, ws, worktreeObjKey, updateWorld, wdBfs, func(bcs *block.Cursor, wt *Worktree) error {
@@ -301,7 +301,7 @@ func CreateWorldObjectWorktree(
 	defer wdFsHandle.Release()
 
 	// construct billy fs
-	wdBfs := unixfs.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
+	wdBfs := unixfs_billy.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
 
 	// create worktree
 	wtree := &Worktree{}

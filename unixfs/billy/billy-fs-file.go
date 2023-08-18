@@ -1,4 +1,4 @@
-package unixfs
+package unixfs_billy
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/go-git/go-billy/v5"
 	"github.com/pkg/errors"
@@ -19,7 +20,7 @@ type BillyFSFile struct {
 	// name is the filename as passed to open
 	name string
 	// h is the filesystem handle
-	h *FSHandle
+	h *unixfs.FSHandle
 	// flag contains file open flags
 	flag int
 	// t is a constant write timestamp
@@ -34,7 +35,7 @@ type BillyFSFile struct {
 // NewBillyFSFile constructs a new Billy FS file handle.
 // The handle will be released when the file is closed.
 // If ts is zero, uses time.Now.
-func NewBillyFSFile(ctx context.Context, name string, h *FSHandle, flag int, ts time.Time) *BillyFSFile {
+func NewBillyFSFile(ctx context.Context, name string, h *unixfs.FSHandle, flag int, ts time.Time) *BillyFSFile {
 	return &BillyFSFile{ctx: ctx, name: name, h: h, flag: flag}
 }
 
@@ -45,7 +46,7 @@ func NewBillyFSFile(ctx context.Context, name string, h *FSHandle, flag int, ts 
 func CopyToBillyFSFile(
 	ctx context.Context,
 	destFile billy.File,
-	srcHandle *FSHandle,
+	srcHandle *unixfs.FSHandle,
 	copyBuffer []byte,
 	limit int64,
 ) error {
@@ -95,7 +96,7 @@ func CopyToBillyFSFile(
 func SyncToBillyFSFile(
 	ctx context.Context,
 	destFile billy.File,
-	srcHandle *FSHandle,
+	srcHandle *unixfs.FSHandle,
 	inBuffer, outBuffer []byte,
 ) error {
 	if len(inBuffer) < 16 {
@@ -172,7 +173,7 @@ func SyncToBillyFSFile(
 
 // GetReadOnly checks if the readonly flag is set.
 func (f *BillyFSFile) GetReadOnly() bool {
-	return isReadOnly(f.flag)
+	return unixfs.FlagIsReadOnly(f.flag)
 }
 
 // Name returns the name of the file as presented to Open.

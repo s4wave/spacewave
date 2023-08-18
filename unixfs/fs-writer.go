@@ -19,38 +19,48 @@ type FSWriter interface {
 	// An error may be returned if one or more parent directories don't exist.
 	// ErrExist should be returned if one of the path entries exists with a different type.
 	// Mkdir is implemented with Mknod.
+	// Paths must be relative.
 	Mknod(ctx context.Context, paths [][]string, nodeType FSCursorNodeType, permissions fs.FileMode, ts time.Time) error
 
-	// Symlink creates a symbolic link from a location to a path.
+	// Symlink creates a symbolic link from one location to another.
 	// An error may be returned if one or more parent directories don't exist.
-	Symlink(ctx context.Context, path []string, target []string, ts time.Time) error
+	// Supports absolute paths with targetIsAbsolute flag.
+	Symlink(ctx context.Context, path []string, target []string, targetIsAbsolute bool, ts time.Time) error
 
 	// SetPermissions sets the permissions bits of the nodes at the paths.
 	// The file mode portion of the value is ignored.
+	// Paths must be relative.
 	SetPermissions(ctx context.Context, paths [][]string, fm fs.FileMode, ts time.Time) error
 
 	// SetModTimestamp sets the modification timestamp of the nodes at the paths.
 	// mtime is the modification timestamp to set.
+	// Paths must be relative.
 	SetModTimestamp(ctx context.Context, paths [][]string, mtime time.Time) error
 
 	// WriteAt writes data to an offset in an inode (usually a file).
 	// Must not retain data after returning.
+	// Paths must be relative.
 	WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error
 
 	// Truncate shrinks or extends a file to the specified size.
 	// The extended part will be a sparse range (hole) reading as zeros.
+	// Paths must be relative.
+	// The file must already exist.
 	Truncate(ctx context.Context, path []string, nsize int64, ts time.Time) error
 
 	// Copy recursively copies a source path to a destination, overwriting destination.
 	// Performs the move in a single operation.
+	// Paths must be relative.
 	Copy(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error
 
 	// Rename recursively moves a source path to a destination, overwriting destination.
 	// Performs the move in a single operation.
+	// Paths must be relative.
 	Rename(ctx context.Context, srcPath, tgtPath []string, ts time.Time) error
 
 	// Remove removes one or more paths from the tree.
 	// Parents must be directories.
 	// Non-existent paths may not return an error.
+	// Paths must be relative.
 	Remove(ctx context.Context, paths [][]string, ts time.Time) error
 }

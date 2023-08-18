@@ -423,7 +423,7 @@ func (o *remoteFSCursorOps) Mknod(
 }
 
 // Symlink creates a symbolic link from a location to a path.
-func (o *remoteFSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error {
+func (o *remoteFSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -433,7 +433,7 @@ func (o *remoteFSCursorOps) Symlink(ctx context.Context, checkExist bool, name s
 		OpsHandleId: o.handleID,
 		CheckExist:  checkExist,
 		Name:        name,
-		Target:      target,
+		Symlink:     unixfs_block.NewFSSymlink(unixfs_block.NewFSPath(target, targetIsAbsolute)),
 		Timestamp:   tts,
 	})
 	if err == nil {
@@ -450,9 +450,9 @@ func (o *remoteFSCursorOps) Symlink(ctx context.Context, checkExist bool, name s
 // Readlink reads a symbolic link contents.
 // If name is empty, reads the link at the cursor position.
 // Returns ErrNotSymlink if not a symbolic link.
-func (o *remoteFSCursorOps) Readlink(ctx context.Context, name string) ([]string, error) {
+func (o *remoteFSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
 	if o.CheckReleased() {
-		return nil, unixfs_errors.ErrReleased
+		return nil, false, unixfs_errors.ErrReleased
 	}
 
 	res, err := o.c.c.client.OpsReadlink(ctx, &unixfs_rpc.OpsReadlinkRequest{
@@ -464,10 +464,11 @@ func (o *remoteFSCursorOps) Readlink(ctx context.Context, name string) ([]string
 	}
 	if err != nil {
 		o.handleErr(err, true)
-		return nil, err
+		return nil, false, err
 	}
 
-	return res.GetTargetPath(), nil
+	tgtPath := res.GetSymlink().GetTargetPath()
+	return tgtPath.GetNodes(), tgtPath.GetAbsolute(), nil
 }
 
 // CopyTo performs an optimized copy of an dirent inode to another inode.

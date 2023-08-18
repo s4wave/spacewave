@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -112,7 +113,7 @@ func TestFS(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		bfs := unixfs.NewBillyFS(ctx, h, "", time.Time{})
+		bfs := unixfs_billy.NewBillyFS(ctx, h, "", time.Time{})
 		readData, err := billy_util.ReadFile(bfs, testFilePath)
 		if err != nil {
 			t.Fatal(err.Error())

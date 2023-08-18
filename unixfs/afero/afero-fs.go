@@ -1,4 +1,4 @@
-package unixfs
+package unixfs_afero
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/spf13/afero"
 )
@@ -24,7 +25,7 @@ type AferoFS struct {
 	// ctx is the context
 	ctx context.Context
 	// h is the filesystem handle
-	h *FSHandle
+	h *unixfs.FSHandle
 	// t is a constant write timestamp
 	t atomic.Pointer[time.Time]
 	// basePath is the path of any parent chroots
@@ -35,7 +36,7 @@ type AferoFS struct {
 //
 // if ts is nil, uses time.Now() on each call
 // basePath should contain the path to this FSHandle.
-func NewAferoFS(ctx context.Context, h *FSHandle, basePath string, ts time.Time) *AferoFS {
+func NewAferoFS(ctx context.Context, h *unixfs.FSHandle, basePath string, ts time.Time) *AferoFS {
 	if basePath == "" {
 		basePath = "/"
 	}
@@ -98,7 +99,7 @@ func (f *AferoFS) Mkdir(name string, perm os.FileMode) error {
 		f.ctx,
 		true,
 		[]string{createDir},
-		NewFSCursorNodeType_Dir(),
+		unixfs.NewFSCursorNodeType_Dir(),
 		perm,
 		ts,
 	)
@@ -135,7 +136,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 	filepath = path.Clean(filepath)
 	filedir, filename := path.Split(filepath)
 
-	var h *FSHandle
+	var h *unixfs.FSHandle
 	if filedir == "." {
 		h = f.h
 	} else {
@@ -151,7 +152,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 	}
 
 	fileHandle, err := h.Lookup(f.ctx, filename)
-	isExcl := isExclusive(flag)
+	isExcl := unixfs.FlagIsExclusive(flag)
 	if isExcl {
 		if err == nil {
 			fileHandle.Release()
@@ -169,7 +170,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 	*/
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
-		if !isCreate(flag) {
+		if !unixfs.FlagIsCreate(flag) {
 			return nil, err
 		}
 
@@ -178,7 +179,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			f.ctx,
 			isExcl,
 			[]string{filename},
-			NewFSCursorNodeType_File(),
+			unixfs.NewFSCursorNodeType_File(),
 			perm&fs.ModePerm,
 			f.timestamp(),
 		)
@@ -210,22 +211,22 @@ func (f *AferoFS) Remove(filepath string) error {
 // RemoveAll removes a directory path and any children it contains. It does not
 // fail if the path does not exist (return nil).
 func (f *AferoFS) RemoveAll(filepath string) error {
-	return RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp())
+	return unixfs.RemoveAllWithPath(f.ctx, f.h, filepath, f.timestamp())
 }
 
 // Rename renames a file.
 func (f *AferoFS) Rename(oldpath, newpath string) error {
-	return RenameWithPaths(f.ctx, f.h, oldpath, newpath, f.timestamp())
+	return unixfs.RenameWithPaths(f.ctx, f.h, oldpath, newpath, f.timestamp())
 }
 
 // Stat returns a FileInfo describing the named file, or any error.
 func (f *AferoFS) Stat(filepath string) (fs.FileInfo, error) {
-	return StatWithPath(f.ctx, f.h, filepath)
+	return unixfs.StatWithPath(f.ctx, f.h, filepath)
 }
 
 // Chmod changes the mode of the named file to mode.
 func (f *AferoFS) Chmod(filepath string, mode os.FileMode) error {
-	return ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp())
+	return unixfs.ChmodWithPath(f.ctx, f.h, filepath, mode, f.timestamp())
 }
 
 // Chown changes the uid and gid of the named file.
@@ -239,7 +240,7 @@ func (f *AferoFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	if mtime.IsZero() {
 		mtime = f.timestamp()
 	}
-	return SetModTimestampWithPath(f.ctx, f.h, name, mtime)
+	return unixfs.SetModTimestampWithPath(f.ctx, f.h, name, mtime)
 }
 
 // timestamp returns the timestamp to use for writes.

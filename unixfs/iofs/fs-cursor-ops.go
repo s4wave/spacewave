@@ -237,7 +237,7 @@ func (f *FSCursorOps) Mknod(
 }
 
 // Symlink creates a symbolic link from a location to a path.
-func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error {
+func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, tgtIsAbsolute bool, ts time.Time) error {
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -247,14 +247,14 @@ func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string,
 // Readlink reads a symbolic link contents.
 // If name is empty, reads the link at the cursor position.
 // Returns ErrNotSymlink if not a symbolic link.
-func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, error) {
+func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
 	if !f.GetIsSymlink() {
-		return nil, unixfs_errors.ErrNotSymlink
+		return nil, false, unixfs_errors.ErrNotSymlink
 	}
 
 	// Readlink is not currently supported by fs.FS
 	// https://github.com/golang/go/issues/49580
-	return nil, errors.New("io/fs: does not support symbolic links")
+	return nil, false, errors.New("io/fs: does not support symbolic links")
 }
 
 // CopyTo performs an optimized copy of an dirent inode to another inode.

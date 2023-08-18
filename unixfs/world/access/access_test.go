@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -37,7 +37,7 @@ func TestUnixFSWorldAccessController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	rbfs := unixfs.NewBillyFS(ctx, rootRef, "", time.Now())
+	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
 		t.Fatal(err.Error())
@@ -72,7 +72,7 @@ func TestUnixFSWorldAccessController(t *testing.T) {
 	}
 	defer fshRel()
 
-	bfs := unixfs.NewBillyFS(ctx, fsh, "/", time.Now())
+	bfs := unixfs_billy.NewBillyFS(ctx, fsh, "/", time.Now())
 	rd, err := billy_util.ReadFile(bfs, "bat/baz/test-file.txt")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -106,7 +106,7 @@ func TestUnixFSWorldAccessController_AccessFunc(t *testing.T) {
 	defer rootRef.Release()
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 
-	rbfs := unixfs.NewBillyFS(ctx, rootRef, "", time.Now())
+	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
 		t.Fatal(err.Error())
@@ -123,7 +123,7 @@ func TestUnixFSWorldAccessController_AccessFunc(t *testing.T) {
 	}
 	defer fshRel()
 
-	bfs := unixfs.NewBillyFS(ctx, fsh, "/", time.Now())
+	bfs := unixfs_billy.NewBillyFS(ctx, fsh, "/", time.Now())
 	rd, err := billy_util.ReadFile(bfs, "bat/baz/test-file.txt")
 	if err != nil {
 		t.Fatal(err.Error())

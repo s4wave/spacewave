@@ -1,4 +1,4 @@
-package unixfs
+package unixfs_afero
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/spf13/afero"
 )
 
@@ -20,7 +21,7 @@ type AferoFSFile struct {
 	// name is the filename as passed to open
 	name string
 	// h is the filesystem handle
-	h *FSHandle
+	h *unixfs.FSHandle
 	// flag contains file open flags
 	flag int
 	// t is a constant write timestamp
@@ -36,7 +37,7 @@ type AferoFSFile struct {
 // The handle may be a file or a directory.
 // The handle will be released when the file is closed.
 // If ts is zero, uses time.Now.
-func NewAferoFSFile(ctx context.Context, name string, h *FSHandle, flag int, ts time.Time) *AferoFSFile {
+func NewAferoFSFile(ctx context.Context, name string, h *unixfs.FSHandle, flag int, ts time.Time) *AferoFSFile {
 	file := &AferoFSFile{ctx: ctx, name: name, h: h, flag: flag}
 	if !ts.IsZero() {
 		file.SetOpTimestamp(ts)
@@ -46,7 +47,7 @@ func NewAferoFSFile(ctx context.Context, name string, h *FSHandle, flag int, ts 
 
 // GetReadOnly checks if the readonly flag is set.
 func (f *AferoFSFile) GetReadOnly() bool {
-	return isReadOnly(f.flag)
+	return unixfs.FlagIsReadOnly(f.flag)
 }
 
 // Name returns the name of the file as presented to Open.
@@ -88,7 +89,7 @@ func (f *AferoFSFile) Readdir(count int) ([]os.FileInfo, error) {
 		count = 0
 	}
 
-	fi, err := ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h)
+	fi, err := unixfs.ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h)
 	if err == nil {
 		f.idx.Add(int64(len(fi)))
 	}

@@ -16,7 +16,7 @@ func (s *FSSymlink) IsNil() bool {
 
 // Validate checks the symlink data for validity.
 func (s *FSSymlink) Validate() error {
-	if err := s.GetTargetPath().Validate(); err != nil {
+	if err := s.GetTargetPath().Validate(true, true); err != nil {
 		return err
 	}
 	return nil

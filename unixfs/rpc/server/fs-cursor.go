@@ -1118,7 +1118,8 @@ func (f *FSCursorService) OpsSymlink(
 			ctx,
 			req.GetCheckExist(),
 			req.GetName(),
-			req.GetTarget(),
+			req.GetSymlink().GetTargetPath().GetNodes(),
+			req.GetSymlink().GetTargetPath().GetAbsolute(),
 			req.GetTimestamp().ToTime(),
 		)
 	})
@@ -1132,14 +1133,14 @@ func (f *FSCursorService) OpsReadlink(
 ) (*unixfs_rpc.OpsReadlinkResponse, error) {
 	var resp unixfs_rpc.OpsReadlinkResponse
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		rp, err := ops.Readlink(
+		rp, rpAbsolute, err := ops.Readlink(
 			ctx,
 			req.GetName(),
 		)
 		if err != nil {
 			return err
 		}
-		resp.TargetPath = rp
+		resp.Symlink = unixfs_block.NewFSSymlink(unixfs_block.NewFSPath(rp, rpAbsolute))
 		return nil
 	})
 	return &resp, nil

@@ -889,10 +889,12 @@ func (m *OpsSymlinkRequest) CloneVT() *OpsSymlinkRequest {
 		CheckExist:  m.CheckExist,
 		Name:        m.Name,
 	}
-	if rhs := m.Target; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Target = tmpContainer
+	if rhs := m.Symlink; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.FSSymlink }); ok {
+			r.Symlink = vtpb.CloneVT()
+		} else {
+			r.Symlink = proto.Clone(rhs).(*block.FSSymlink)
+		}
 	}
 	if rhs := m.Timestamp; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *timestamp.Timestamp }); ok {
@@ -966,10 +968,12 @@ func (m *OpsReadlinkResponse) CloneVT() *OpsReadlinkResponse {
 			r.UnixfsError = proto.Clone(rhs).(*errors.UnixFSError)
 		}
 	}
-	if rhs := m.TargetPath; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.TargetPath = tmpContainer
+	if rhs := m.Symlink; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.FSSymlink }); ok {
+			r.Symlink = vtpb.CloneVT()
+		} else {
+			r.Symlink = proto.Clone(rhs).(*block.FSSymlink)
+		}
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -2317,14 +2321,12 @@ func (this *OpsSymlinkRequest) EqualVT(that *OpsSymlinkRequest) bool {
 	if this.Name != that.Name {
 		return false
 	}
-	if len(this.Target) != len(that.Target) {
-		return false
-	}
-	for i, vx := range this.Target {
-		vy := that.Target[i]
-		if vx != vy {
+	if equal, ok := interface{}(this.Symlink).(interface{ EqualVT(*block.FSSymlink) bool }); ok {
+		if !equal.EqualVT(that.Symlink) {
 			return false
 		}
+	} else if !proto.Equal(this.Symlink, that.Symlink) {
+		return false
 	}
 	if equal, ok := interface{}(this.Timestamp).(interface {
 		EqualVT(*timestamp.Timestamp) bool
@@ -2407,14 +2409,12 @@ func (this *OpsReadlinkResponse) EqualVT(that *OpsReadlinkResponse) bool {
 	} else if !proto.Equal(this.UnixfsError, that.UnixfsError) {
 		return false
 	}
-	if len(this.TargetPath) != len(that.TargetPath) {
-		return false
-	}
-	for i, vx := range this.TargetPath {
-		vy := that.TargetPath[i]
-		if vx != vy {
+	if equal, ok := interface{}(this.Symlink).(interface{ EqualVT(*block.FSSymlink) bool }); ok {
+		if !equal.EqualVT(that.Symlink) {
 			return false
 		}
+	} else if !proto.Equal(this.Symlink, that.Symlink) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -4779,14 +4779,27 @@ func (m *OpsSymlinkRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x2a
 	}
-	if len(m.Target) > 0 {
-		for iNdEx := len(m.Target) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Target[iNdEx])
-			copy(dAtA[i:], m.Target[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.Target[iNdEx])))
-			i--
-			dAtA[i] = 0x22
+	if m.Symlink != nil {
+		if vtmsg, ok := interface{}(m.Symlink).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Symlink)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.Name) > 0 {
 		i -= len(m.Name)
@@ -4943,14 +4956,27 @@ func (m *OpsReadlinkResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.TargetPath) > 0 {
-		for iNdEx := len(m.TargetPath) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.TargetPath[iNdEx])
-			copy(dAtA[i:], m.TargetPath[iNdEx])
-			i = encodeVarint(dAtA, i, uint64(len(m.TargetPath[iNdEx])))
-			i--
-			dAtA[i] = 0x12
+	if m.Symlink != nil {
+		if vtmsg, ok := interface{}(m.Symlink).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Symlink)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
 		}
+		i--
+		dAtA[i] = 0x12
 	}
 	if m.UnixfsError != nil {
 		if vtmsg, ok := interface{}(m.UnixfsError).(interface {
@@ -6455,11 +6481,15 @@ func (m *OpsSymlinkRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	if len(m.Target) > 0 {
-		for _, s := range m.Target {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
+	if m.Symlink != nil {
+		if size, ok := interface{}(m.Symlink).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Symlink)
 		}
+		n += 1 + l + sov(uint64(l))
 	}
 	if m.Timestamp != nil {
 		if size, ok := interface{}(m.Timestamp).(interface {
@@ -6528,11 +6558,15 @@ func (m *OpsReadlinkResponse) SizeVT() (n int) {
 		}
 		n += 1 + l + sov(uint64(l))
 	}
-	if len(m.TargetPath) > 0 {
-		for _, s := range m.TargetPath {
-			l = len(s)
-			n += 1 + l + sov(uint64(l))
+	if m.Symlink != nil {
+		if size, ok := interface{}(m.Symlink).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Symlink)
 		}
+		n += 1 + l + sov(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -10782,9 +10816,9 @@ func (m *OpsSymlinkRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Symlink", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -10794,23 +10828,35 @@ func (m *OpsSymlinkRequest) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Target = append(m.Target, string(dAtA[iNdEx:postIndex]))
+			if m.Symlink == nil {
+				m.Symlink = &block.FSSymlink{}
+			}
+			if unmarshal, ok := interface{}(m.Symlink).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Symlink); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -11150,9 +11196,9 @@ func (m *OpsReadlinkResponse) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TargetPath", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Symlink", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflow
@@ -11162,23 +11208,35 @@ func (m *OpsReadlinkResponse) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.TargetPath = append(m.TargetPath, string(dAtA[iNdEx:postIndex]))
+			if m.Symlink == nil {
+				m.Symlink = &block.FSSymlink{}
+			}
+			if unmarshal, ok := interface{}(m.Symlink).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Symlink); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

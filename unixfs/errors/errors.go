@@ -34,6 +34,8 @@ var (
 	ErrOutOfBounds = errors.New("dirent out of bounds")
 	// ErrEmptyPath is returned if the FSPath was empty.
 	ErrEmptyPath = errors.New("empty path")
+	// ErrAbsolutePath is returned if the FSPath cannot be absolute (but was).
+	ErrAbsolutePath = errors.New("absolute path not allowed")
 	// ErrInodeUnresolvable is returned if the inode could not be resolved in time.
 	ErrInodeUnresolvable = errors.New("inode unable to be resolved")
 	// ErrNotSymlink is returned if readlink is called on a non-symlink entry.
@@ -102,6 +104,8 @@ func NewUnixFSError(err error) *UnixFSError {
 		uErr.ErrorType = UnixFSErrorType_OUT_OF_BOUNDS
 	case ErrEmptyPath:
 		uErr.ErrorType = UnixFSErrorType_EMPTY_PATH
+	case ErrAbsolutePath:
+		uErr.ErrorType = UnixFSErrorType_ABSOLUTE_PATH
 	case ErrInodeUnresolvable:
 		uErr.ErrorType = UnixFSErrorType_INODE_UNRESOLVABLE
 	case ErrNotSymlink:
@@ -158,6 +162,8 @@ func (e *UnixFSError) ToGoError() error {
 		err = ErrOutOfBounds
 	case UnixFSErrorType_EMPTY_PATH:
 		err = ErrEmptyPath
+	case UnixFSErrorType_ABSOLUTE_PATH:
+		err = ErrAbsolutePath
 	case UnixFSErrorType_INODE_UNRESOLVABLE:
 		err = ErrInodeUnresolvable
 	case UnixFSErrorType_NOT_SYMLINK:

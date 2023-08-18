@@ -343,7 +343,7 @@ func (f *FSCursorOps) Mknod(
 }
 
 // Symlink creates a symbolic link from a location to a path.
-func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, ts time.Time) error {
+func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
 	if f.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
@@ -359,7 +359,7 @@ func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string,
 		return err
 	}
 	childPath := childPaths[0]
-	err = writer.Symlink(ctx, childPath, target, ts)
+	err = writer.Symlink(ctx, childPath, target, targetIsAbsolute, ts)
 	if err != nil {
 		f.release()
 		return err
@@ -371,7 +371,7 @@ func (f *FSCursorOps) Symlink(ctx context.Context, checkExist bool, name string,
 // Readlink reads a symbolic link contents.
 // If name is empty, reads the link at the cursor position.
 // Returns ErrNotSymlink if not a symbolic link.
-func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, error) {
+func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, bool, error) {
 	var ftree *unixfs_block.FSTree
 	if len(name) == 0 {
 		ftree = f.fsTree
@@ -379,21 +379,22 @@ func (f *FSCursorOps) Readlink(ctx context.Context, name string) ([]string, erro
 		// lookup the entry
 		nftree, dirent, err := f.fsTree.LookupFollowDirent(name)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if dirent == nil {
-			return nil, unixfs_errors.ErrNotExist
+			return nil, false, unixfs_errors.ErrNotExist
 		}
 		ftree = nftree
 	}
 
 	// verify that it is a symlink
 	if ftree.GetFSNode().GetNodeType() != unixfs_block.NodeType_NodeType_SYMLINK {
-		return nil, unixfs_errors.ErrNotSymlink
+		return nil, false, unixfs_errors.ErrNotSymlink
 	}
 
 	// return symlink value
-	return ftree.GetFSNode().GetSymlink().GetTargetPath().GetNodes(), nil
+	tgtPath := ftree.GetFSNode().GetSymlink().GetTargetPath()
+	return tgtPath.GetNodes(), tgtPath.GetAbsolute(), nil
 }
 
 // CopyTo performs an optimized copy of an dirent inode to another inode.

@@ -46,7 +46,7 @@ func ValidateMknod(paths []*FSPath, nodeType NodeType) error {
 		return errors.Errorf("invalid node type for mknod: %s", nodeType.String())
 	}
 	for _, p := range paths {
-		if err := p.Validate(); err != nil {
+		if err := p.Validate(false, false); err != nil {
 			return err
 		}
 	}
@@ -58,7 +58,7 @@ func ValidateSymlink(path *FSPath, tgt *FSSymlink) error {
 	if err := tgt.Validate(); err != nil {
 		return err
 	}
-	if err := path.Validate(); err != nil {
+	if err := path.Validate(false, false); err != nil {
 		return err
 	}
 	return nil
@@ -70,7 +70,7 @@ func ValidateSetModTimestamp(paths []*FSPath) error {
 		return errors.New("expected at least one path for set modification timestamp")
 	}
 	for _, p := range paths {
-		if err := p.Validate(); err != nil {
+		if err := p.Validate(false, false); err != nil {
 			return err
 		}
 	}
@@ -83,7 +83,7 @@ func ValidateSetPermissions(paths []*FSPath, perms uint32) error {
 		return errors.New("expected at least one path for set permissions")
 	}
 	for _, p := range paths {
-		if err := p.Validate(); err != nil {
+		if err := p.Validate(false, false); err != nil {
 			return err
 		}
 	}
@@ -97,7 +97,7 @@ func ValidateRemove(paths []*FSPath) error {
 		return errors.New("expected at least one path for remove")
 	}
 	for _, p := range paths {
-		if err := p.Validate(); err != nil {
+		if err := p.Validate(false, false); err != nil {
 			return err
 		}
 	}
@@ -109,7 +109,7 @@ func ValidateWrite(path *FSPath, offset int64) error {
 	if offset < 0 {
 		return errors.New("expected positive offset")
 	}
-	if err := path.Validate(); err != nil {
+	if err := path.Validate(false, false); err != nil {
 		return err
 	}
 	return nil
@@ -120,7 +120,7 @@ func ValidateTruncate(path *FSPath, size int64) error {
 	if size < 0 {
 		return errors.New("expected positive file size")
 	}
-	if err := path.Validate(); err != nil {
+	if err := path.Validate(false, false); err != nil {
 		return err
 	}
 	return nil
@@ -128,10 +128,10 @@ func ValidateTruncate(path *FSPath, size int64) error {
 
 // ValidateCopy validates a copy operation.
 func ValidateCopy(srcPath, destPath *FSPath) error {
-	if err := srcPath.Validate(); err != nil {
+	if err := srcPath.Validate(false, false); err != nil {
 		return err
 	}
-	if err := destPath.Validate(); err != nil {
+	if err := destPath.Validate(false, false); err != nil {
 		return err
 	}
 	return nil

@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
@@ -37,7 +38,7 @@ func TestFSWatcher(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	rbfs := unixfs.NewBillyFS(ctx, rootRef, "", time.Now())
+	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
 		t.Fatal(err.Error())
@@ -136,7 +137,7 @@ func TestFSWatcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	handleBfs := unixfs.NewBillyFS(ctx, handle, "", time.Now())
+	handleBfs := unixfs_billy.NewBillyFS(ctx, handle, "", time.Now())
 	if err := billy_util.WriteFile(handleBfs, "bat/baz/testing2.txt", []byte("test file #2\n"), 0644); err != nil {
 		t.Fatal(err.Error())
 	}
