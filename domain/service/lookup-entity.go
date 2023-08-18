@@ -32,8 +32,7 @@ func NewLookupEntityReq(
 		nonce = binary.LittleEndian.Uint64(b[:])
 	}
 	if ts == nil {
-		nts := timestamp.Now()
-		ts = &nts
+		ts = timestamp.Now()
 	}
 	return &LookupEntityReq{
 		Identifier: &EntityLookupIdentifier{
