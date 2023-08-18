@@ -1,0 +1,13 @@
+syntax = "proto3";
+package web.pkg;
+
+// WebPkgInfo is information about a WebPkg.
+message WebPkgInfo {
+  // Id is the web package identifier.
+  // Usually matches the npm package name.
+  string id = 1;
+  // Version is the web package version.
+  // Usually matches the npm package version.
+  // Note: this is sometimes (not always) semver format.
+  string version = 2;
+}

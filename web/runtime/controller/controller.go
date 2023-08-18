@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
+	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -255,37 +255,46 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 // ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.
 //
 // pkgPath is the path after /b/pkg/ - for example, "react" or "protobufjs/minimal.js".
-// The first element of the path (split by /) is used as the package name.
-// The package name should be URL encoded if it contains slashes: %40myorg%2Fmypkg for example.
+// The first element(s) of the path (split by /) are used as the package name.
+// If the path begins with @, it is treated as a scope: @scope/package/...
 func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {
 	// call LoadPlugin to get a handle to the desired plugin.
-	ctx := req.Context()
+	// ctx := req.Context()
 	c.le.
 		WithField("pkg-path", pkgPath).
 		Debug("forwarding pkg request")
 	err := func() error {
-		_ = ctx
-		pathPts := unixfs.SplitPath(pkgPath)
+		pathPts, _ := unixfs.SplitPath(pkgPath)
 		if len(pathPts) == 0 || pathPts[0] == "" {
-			rw.WriteHeader(400)
-			return errors.New("bldr: empty pkg path")
 		}
 
-		pkgName, err := url.QueryUnescape(pathPts[0])
-		if len(pathPts) == 0 || pathPts[0] == "" {
+		/*
+			pkgName, err := url.QueryUnescape(pathPts[0])
+			if len(pathPts) == 0 || pathPts[0] == "" {
+				rw.WriteHeader(400)
+				return errors.New("bldr: invalid pkg path: " + err.Error())
+			}
+
+			pkgName = strings.TrimSpace(pkgName)
+			if len(pkgName) == 0 {
+				rw.WriteHeader(400)
+				return errors.New("bldr: empty pkg name")
+			}
+		*/
+
+		webPkgID, webPkgPath, err := web_pkg.CheckStripWebPkgIdPrefix(pkgPath)
+		if err != nil {
 			rw.WriteHeader(400)
-			return errors.New("bldr: invalid pkg path: " + err.Error())
+			return err
 		}
 
-		pkgName = strings.TrimSpace(pkgName)
-		if len(pkgName) == 0 {
-			rw.WriteHeader(400)
-			return errors.New("bldr: empty pkg name")
-		}
-
-		return errors.New("TODO implement pkg request: " + pkgName)
+		return errors.New("TODO implement pkg request: " + webPkgID + " at " + webPkgPath)
 	}()
 	if err != nil && err != context.Canceled {
+		c.le.
+			WithError(err).
+			WithField("pkg-path", pkgPath).
+			Warn("pkg request failed")
 		rw.WriteHeader(500) // only applies if we didn't call WriteHeader above.
 		_, _ = rw.Write([]byte("bldr: request failed: pkg " + pkgPath + ": " + err.Error()))
 		return
