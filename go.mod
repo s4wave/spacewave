@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.21
 
-require github.com/aperturerobotics/hydra v0.0.0-20230818051804-93c663a869b9
+require github.com/aperturerobotics/hydra v0.0.0-20230821041456-e7d5256839d3
 
 require (
 	github.com/evanw/esbuild v0.18.17 // latest
@@ -12,7 +12,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.0 // master
+require github.com/aperturerobotics/bifrost v0.18.1-0.20230818053152-38d740bb148b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -42,7 +42,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.1 // latest
+	github.com/aperturerobotics/controllerbus v0.30.3-0.20230821192612-76f9c60e2781 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.19.3 // latest
 )
@@ -64,7 +64,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.2 // master
+	github.com/aperturerobotics/util v1.7.3 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -107,7 +107,7 @@ require (
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/mod v0.12.0
 	golang.org/x/sync v0.3.0
-	golang.org/x/tools v0.12.1-0.20230816192654-b225aa0590e7
+	golang.org/x/tools v0.12.1-0.20230818012651-9f2e103e08d2
 )
 
 require (

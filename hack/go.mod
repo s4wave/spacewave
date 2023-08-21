@@ -37,9 +37,9 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20230818051804-93c663a869b9 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20230821041456-e7d5256839d3 // indirect
 	github.com/aperturerobotics/timestamp v0.8.0 // indirect
-	github.com/aperturerobotics/util v1.7.2 // indirect
+	github.com/aperturerobotics/util v1.7.3 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -194,7 +194,7 @@ require (
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230816192654-b225aa0590e7 // indirect
+	golang.org/x/tools v0.12.1-0.20230818012651-9f2e103e08d2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
