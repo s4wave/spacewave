@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.0 // master
+require github.com/aperturerobotics/bifrost v0.18.1-0.20230818053152-38d740bb148b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -34,7 +34,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.29.1 // latest
+	github.com/aperturerobotics/controllerbus v0.30.2 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.19.3 // latest
 )
@@ -56,7 +56,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.2 // master
+	github.com/aperturerobotics/util v1.7.3 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -228,7 +228,7 @@ require (
 	golang.org/x/term v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230816192654-b225aa0590e7 // indirect
+	golang.org/x/tools v0.12.1-0.20230818012651-9f2e103e08d2 // indirect
 	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
 	google.golang.org/grpc v1.45.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
