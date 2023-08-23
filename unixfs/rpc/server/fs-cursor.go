@@ -980,7 +980,7 @@ func (f *FSCursorService) OpsReadAt(
 		// todo: use a buffer arena here?
 		readBuf := make([]byte, readSize)
 		readAmt, err := ops.ReadAt(ctx, offset, readBuf)
-		if err != io.EOF {
+		if err != nil && err != io.EOF {
 			readAmt = 0
 		}
 		if int(readAmt) > len(readBuf) {
