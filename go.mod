@@ -34,9 +34,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.2 // latest
+	github.com/aperturerobotics/controllerbus v0.30.3 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
-	github.com/aperturerobotics/starpc v0.19.3 // latest
+	github.com/aperturerobotics/starpc v0.20.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -47,7 +47,7 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.37.2-0.20230807175030-579e965e762f // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.37.2-0.20230823004354-8e92e689f0a1 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
 	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
@@ -62,7 +62,7 @@ require (
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7
-	github.com/libp2p/go-libp2p v0.29.2
+	github.com/libp2p/go-libp2p v0.30.0
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.11.0 // indirect
@@ -74,14 +74,14 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.4.0 // indirect
-	github.com/quic-go/quic-go v0.37.5 // indirect
+	github.com/quic-go/quic-go v0.38.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.12.0
-	gonum.org/v1/gonum v0.13.0
+	gonum.org/v1/gonum v0.14.0
 	google.golang.org/protobuf v1.31.0
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
 	storj.io/drpc v0.0.33 // indirect
@@ -107,18 +107,18 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/hidal-go/hidalgo v0.2.1-0.20220428091800-b74c839b2fb0
-	github.com/minio/minio-go/v7 v7.0.61
+	github.com/minio/minio-go/v7 v7.0.62
 	github.com/paralin/go-indexeddb v1.1.0
 	github.com/restic/chunker v0.4.0
-	github.com/spf13/afero v1.9.5
-	github.com/spf13/cast v1.5.1
+	github.com/spf13/afero v1.9.3
+	github.com/spf13/cast v1.5.0
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmihailenco/msgpack/v5 v5.3.5
-	go.etcd.io/bbolt v1.3.7
+	go.etcd.io/bbolt v1.3.6
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/sync v0.3.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.25.2
+	gorm.io/gorm v1.25.4
 )
 
 require (
@@ -148,7 +148,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8 // indirect
+	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
-	github.com/kr/pretty v0.3.1 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
@@ -192,8 +192,8 @@ require (
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.3.1 // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.2 // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
@@ -219,16 +219,15 @@ require (
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
+	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/term v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230818012651-9f2e103e08d2 // indirect
+	golang.org/x/tools v0.12.1-0.20230821203513-6eca6dfbb247 // indirect
 	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
 	google.golang.org/grpc v1.45.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

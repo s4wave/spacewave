@@ -18,7 +18,7 @@ require (
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/hydra v0.0.0-20230813010420-ebaf779ff24d
-	github.com/aperturerobotics/starpc v0.19.3
+	github.com/aperturerobotics/starpc v0.20.1
 	github.com/evanw/esbuild v0.19.1
 )
 
@@ -187,17 +187,16 @@ require (
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	gitlab.com/bosi/decorder v0.2.3 // indirect
 	go.tmz.dev/musttag v0.7.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
+	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230818012651-9f2e103e08d2 // indirect
-	gonum.org/v1/gonum v0.13.0 // indirect
+	golang.org/x/tools v0.12.1-0.20230821203513-6eca6dfbb247 // indirect
+	gonum.org/v1/gonum v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
