@@ -166,8 +166,8 @@ func (f *FS) Release() {
 	}
 	if f.rootFSCursor != nil {
 		f.rootFSCursor.releaseLocked()
+		f.rootFSCursor = nil
 	}
-	f.rootFSCursor = nil
 	f.bls.Release()
 	rel()
 }

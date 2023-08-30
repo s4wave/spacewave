@@ -14,13 +14,18 @@ import (
 type FSCursor struct {
 	// released indicates the cursor has been released
 	released atomic.Bool
+	// ctx is the context for the client
+	ctx context.Context
 	// client is the fs cursor service client
 	client unixfs_rpc.SRPCFSCursorServiceClient
 }
 
 // NewFSCursor constructs a new FSCursor from a RPC service client.
-func NewFSCursor(client unixfs_rpc.SRPCFSCursorServiceClient) *FSCursor {
+//
+// ctx is the root cursor to use for the cursor service long-lived client request.
+func NewFSCursor(ctx context.Context, client unixfs_rpc.SRPCFSCursorServiceClient) *FSCursor {
 	return &FSCursor{
+		ctx:    ctx,
 		client: client,
 	}
 }
@@ -38,7 +43,7 @@ func (c *FSCursor) CheckReleased() bool {
 // Return nil, ErrReleased if this FSCursor was released.
 func (c *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
 	// initialize the client session with the remote
-	rootFSCursor, err := BuildFSCursorClient(ctx, c.client)
+	rootFSCursor, err := BuildFSCursorClient(c.ctx, c.client)
 	if err != nil {
 		return nil, err
 	}

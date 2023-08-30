@@ -25,16 +25,23 @@ func FsWriteAt(
 	data []byte,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
+	// Build the blob.
 	fpath := unixfs_block.NewFSPath(path, false)
-	// writes to the blb object
-	blbObjRef, err := world.AccessObject(ctx, obj.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		bcs.SetRefAtCursor(nil, true)
-		_, err := blob.BuildBlobWithBytes(ctx, data, bcs)
-		return err
-	})
+	blbObjRef, err := world.AccessObject(
+		ctx,
+		obj.AccessWorldState,
+		nil,
+		func(bcs *block.Cursor) error {
+			bcs.SetRefAtCursor(nil, true)
+			_, err := blob.BuildBlobWithBytes(ctx, data, bcs)
+			return err
+		},
+	)
 	if err != nil {
 		return 0, true, err
 	}
+
+	// Transmit the blob in a fs write operation.
 	wOp := NewFsWriteAtOp("", fsType, fpath, offset, blbObjRef.GetRootRef(), ts)
 	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
 }

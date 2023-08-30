@@ -24,6 +24,10 @@ import (
 type FSCursor struct {
 	// isReleased is an atomic bool indicating if this cursor is released
 	isReleased atomic.Bool
+	// ctx is the context for watching for changes
+	ctx context.Context
+	// ctxCancel is canceled when the cursor is released
+	ctxCancel context.CancelFunc
 	// le is the logger
 	le *logrus.Entry
 	// ws is the world state
@@ -55,7 +59,11 @@ func NewFSCursor(
 	writer unixfs.FSWriter,
 	watchChanges bool,
 ) *FSCursor {
+	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &FSCursor{
+		ctx:       ctx,
+		ctxCancel: ctxCancel,
+
 		le:           le,
 		ws:           ws,
 		objKey:       objKey,
@@ -124,6 +132,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 	var retErr error
 
 	f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// check if the root fs cursor is valid & return it if so
 		if f.rootFSCursor != nil {
 			if f.rootFSCursor.CheckReleased() {
 				f.rootFSCursor = nil
@@ -133,7 +142,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			}
 		}
 
-		// initial state lookup
+		// lookup the object state
 		objState, objFound, err := f.ws.GetObject(ctx, f.objKey)
 		if !objFound {
 			err = unixfs_errors.ErrNotExist
@@ -165,14 +174,17 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 		}
 		relFns = append(relFns, locCursor.Release)
 
-		f.prevObjRev = objRev
-		broadcast()
+		// mark which revision we have & broadcast to wake waiters
+		if f.prevObjRev < objRev {
+			f.prevObjRev = objRev
+			broadcast()
+		}
 
 		switch f.posType {
 		case FSType_FSType_FS_NODE:
-			nfs := unixfs_block_fs.NewFS(ctx, 0, locCursor, f.writer)
+			nfs := unixfs_block_fs.NewFS(f.ctx, 0, locCursor, f.writer)
 			f.rootFSCursor = nfs
-			// dispatch watch thread
+			// dispatch goroutine to wait for changes
 			if f.watchChanges {
 				go f.watchWorldChanges(nfs, objState, objRef)
 			}
@@ -237,6 +249,7 @@ func (f *FSCursor) Release() {
 		if f.isReleased.Swap(true) {
 			return
 		}
+		f.ctxCancel()
 		if f.rootFSCursor != nil {
 			if !f.rootFSCursor.CheckReleased() {
 				f.rootFSCursor.Release()
@@ -252,7 +265,7 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	markLatestRev := func(rev uint64) {
 		// proc any waiters
 		f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if f.prevObjRev != rev {
+			if f.prevObjRev < rev {
 				f.prevObjRev = rev
 				broadcast()
 			}
@@ -270,38 +283,40 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	) (waitForChanges bool, err error) {
 		// if released, stop watching
 		if f.CheckReleased() {
-			return false, unixfs_errors.ErrReleased
-		}
-		// if no change, continue.
-		if rootRef.GetRootRef().EqualsRef(currRef.GetRootRef()) {
-			markLatestRev(rev)
-			return true, nil
-		}
-		// if anything is different other than the root ref, release.
-		if !rootRef.EqualsRefIgnoreRootRef(currRef) {
-			nfs.Release()
 			return false, nil
 		}
 
-		// apply the change
-		currRef = rootRef
-		if err := nfs.UpdateRootRef(ctx, rootRef.GetRootRef()); err != nil {
-			return true, err
+		switch {
+		// if no change, keep the current fs.
+		case rootRef.GetRootRef().EqualsRef(currRef.GetRootRef()):
+			waitForChanges = true
+		// if anything is different other than the root ref, release nfs.
+		// this will result in GetProxyCursor being called for the next op.
+		case !rootRef.EqualsRefIgnoreRootRef(currRef):
+			nfs.Release()
+		// otherwise, apply the change to the current cursor.
+		default:
+			currRef = rootRef
+			waitForChanges = true
+			err = nfs.UpdateRootRef(ctx, rootRef.GetRootRef())
 		}
 
+		// mark the latest revision
 		markLatestRev(rev)
-		return true, nil
+
+		return waitForChanges, err
 	}
 
 	// pass nil for logger here
 	objLoop := control.NewWatchLoop(nil, f.objKey, handleWorldChange)
-	if err := objLoop.Execute(nfs.GetContext(), f.ws); err != nil {
+	ctx := nfs.GetContext()
+	if err := objLoop.Execute(ctx, f.ws); err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrReleased {
 			f.le.WithError(err).Warn("error watching for world changes")
 		}
 	}
 
-	// release root fs cursor
+	// release root fs cursor when loop exits
 	nfs.Release()
 }
 

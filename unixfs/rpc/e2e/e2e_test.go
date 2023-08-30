@@ -70,7 +70,7 @@ func TestUnixFsRPC(t *testing.T) {
 	fsClient := unixfs_rpc.NewSRPCFSCursorServiceClient(client)
 
 	// build the client cursor
-	clientFsCursor := unixfs_rpc_client.NewFSCursor(fsClient)
+	clientFsCursor := unixfs_rpc_client.NewFSCursor(ctx, fsClient)
 
 	// access the client cursor
 	clientRootRef, err := unixfs.NewFSHandle(clientFsCursor)

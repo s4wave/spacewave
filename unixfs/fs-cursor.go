@@ -18,7 +18,9 @@ type FSCursor interface {
 	// Return nil, nil if no redirection necessary (in most cases).
 	// This will be called before any of the other calls.
 	// Releasing a child cursor does not release the parent, and vise-versa.
+	// The context may be canceled after GetProxyCursor returns and should not be retained.
 	// Return nil, ErrReleased if this FSCursor was released.
+	// Return nil, context.Canceled if ctx was canceled.
 	GetProxyCursor(ctx context.Context) (FSCursor, error)
 
 	// AddChangeCb adds a change callback to detect when the cursor has changed.
@@ -29,9 +31,12 @@ type FSCursor interface {
 	// note: the cursor may hold a mutex internally while calling cb, don't call Release inside the callback.
 	AddChangeCb(cb FSCursorChangeCb)
 
-	// GetCursorOps returns the FSCursorOps for the FSCursor. // Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
+	// GetCursorOps returns the FSCursorOps for the FSCursor.
+	// The context may be canceled after GetProxyCursor returns and should not be retained.
+	// Called after AddChangeCb and only if GetProxyCursor returns nil, nil.
 	// Returning nil, nil will be corrected to nil, ErrNotExist.
 	// Return nil, ErrReleased to indicate this FSCursor was released.
+	// Return nil, context.Canceled if ctx was canceled.
 	GetCursorOps(ctx context.Context) (FSCursorOps, error)
 
 	// Release releases the filesystem cursor.

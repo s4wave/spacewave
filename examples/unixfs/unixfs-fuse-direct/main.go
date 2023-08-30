@@ -19,6 +19,7 @@ import (
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
+	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -119,6 +120,11 @@ func execute(rctx context.Context) error {
 	// ws := wtb.WorldState
 	eng := wtb.Engine
 	ws := world.NewEngineWorldState(eng, true)
+
+	// verbose logger
+	if verbose {
+		ws = world_vlogger.NewWorldState(le, ws)
+	}
 
 	objKey := "test-filesystem"
 	_, exists, err := ws.GetObject(ctx, objKey)
