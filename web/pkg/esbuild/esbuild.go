@@ -17,6 +17,18 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const reactDomImportShim = `
+import * as __bldr_React from '/b/pkg/react/index.mjs';
+const require = (pkgName) => {
+  switch (pkgName) {
+  case 'react':
+    return __bldr_React;
+  default:
+    throw Error('Dynamic require of "' + pkgName + '" within react-dom is not supported');
+  }
+};
+`
+
 // BuildWebPkgsEsbuild builds the WebPkg bundle from the list of web package ids.
 //
 // uses esbuild to compile and the esbuild resolution algorithm
@@ -34,14 +46,6 @@ func BuildWebPkgsEsbuild(
 	webPkgBasePath string,
 	isRelease bool,
 ) (webPkgIDs, sourcePaths []string, err error) {
-	// TODO: Externalize + add imports for any imports within externalized packages.
-	// This would require repeatedly calling esbuild until we discover all imports for each package.
-	// Since this is significantly more complex, it's been left out for now.
-	//
-	// Example case: a package we externalize in the web_pkgs list imports
-	// React: we would want to replace the imports to "react" with
-	// /b/pkg/react/... as well.
-
 	// NOTE: esbuild removes the named exports when bundling libraries like
 	// React which contain commonjs-like constructions for building the
 	// module.exports named export set. To fix this issue, we will run a script
@@ -178,6 +182,29 @@ func BuildWebPkgsEsbuild(
 		msg := fmt.Sprintf("built by bldr/web/pkg: %s/%v", webPkgID, webPkgRef.Imports)
 		buildOpts.Banner["js"] = "// " + msg
 		buildOpts.Banner["css"] = "/* " + msg + " */"
+
+		// TODO: Externalize + add imports for any imports within externalized packages.
+		// This would require repeatedly calling esbuild until we discover all imports for each package.
+		// Since this is significantly more complex, it's been left out for now.
+		//
+		// Example case: a package we externalize in the web_pkgs list imports
+		// React: we would want to replace the imports to "react" with
+		// /b/pkg/react/... as well.
+		//
+		// Since react-dom needs to import "react" correctly, we will specifically
+		// add the transformations for "react" and "react-dom" here, to transform
+		// all web pkgs that reference either package. However: in future, this
+		// should be done in a dynamic way that transforms all web pkg imports.
+		if webPkgID == "react-dom" {
+			// TODO: react-dom uses require("react") which won't work properly when
+			// converting to es modules. To resolve this, replace "require" with
+			// "import" using a code snippet in the banner. This is a hack
+			// specifically for react-dom.
+			//
+			// https://github.com/evanw/esbuild/issues/1921
+			buildOpts.External = append(buildOpts.External, "react")
+			buildOpts.Banner["js"] += reactDomImportShim
+		}
 
 		le.Debugf("compiling web pkg bundle with esbuild: %s", webPkgID)
 		result := esbuild_api.Build(*buildOpts)

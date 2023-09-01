@@ -35,8 +35,7 @@ func NewWebPkgServer(le *logrus.Entry, pkg web_pkg.WebPkg) *WebPkgServer {
 	})
 	srv := unixfs_rpc_server.NewFSCursorService(rootFSCursor)
 	_ = unixfs_rpc.SRPCRegisterFSCursorService(mux, srv)
-	// TODO remove verbose logger
-	mux = srpc.NewVMux(mux, s.le, true)
+	// mux = srpc.NewVMux(mux, s.le, true)
 	s.fsMux = mux
 	return s
 }
