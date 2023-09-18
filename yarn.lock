@@ -2046,11 +2046,6 @@ it-first@^2.0.1:
   resolved "https://registry.npmjs.org/it-first/-/it-first-2.0.1.tgz"
   integrity sha512-noC1oEQcWZZMUwq7VWxHNLML43dM+5bviZpfmkxkXlvBe60z7AFRqpZSga9uQBo792jKv9otnn1IjA4zwgNARw==
 
-it-first@^3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/it-first/-/it-first-3.0.3.tgz#76d4b7b0c761114690dd46d730333ac55ee4e350"
-  integrity sha512-RC8tplctsDpoBUljwsp1viiyaR5fPvMe+FgbbcU0sFjKkJa7iwbB4CCPhHtVYSdjsrREfr0QEotfQrBoGyt7Dw==
-
 it-length-prefixed@^8.0.0:
   version "8.0.4"
   resolved "https://registry.npmjs.org/it-length-prefixed/-/it-length-prefixed-8.0.4.tgz"
@@ -2059,18 +2054,6 @@ it-length-prefixed@^8.0.0:
     err-code "^3.0.1"
     it-stream-types "^1.0.4"
     uint8-varint "^1.0.1"
-    uint8arraylist "^2.0.0"
-    uint8arrays "^4.0.2"
-
-it-length-prefixed@^9.0.3:
-  version "9.0.3"
-  resolved "https://registry.yarnpkg.com/it-length-prefixed/-/it-length-prefixed-9.0.3.tgz#73af16f786cab60a0a9bfc2997e88eb26d3a72ca"
-  integrity sha512-YAu424ceYpXctxtjcLOqn7vJq082CaoP8J646ZusYISfQc3bpzQErgTUqMFj81V262KG2W9/YMBHsy6A/4yvmg==
-  dependencies:
-    err-code "^3.0.1"
-    it-reader "^6.0.1"
-    it-stream-types "^2.0.1"
-    uint8-varint "^2.0.1"
     uint8arraylist "^2.0.0"
     uint8arrays "^4.0.2"
 
@@ -2111,20 +2094,12 @@ it-pushable@^3.1.0, it-pushable@^3.1.2, it-pushable@^3.1.3:
   resolved "https://registry.yarnpkg.com/it-pushable/-/it-pushable-3.1.3.tgz#b6f4a1e0236502f12b5661b40468b629799baf0e"
   integrity sha512-f50iQ85HISS6DaWCyrqf9QJ6G/kQtKIMf9xZkgZgyOvxEQDfn8OfYcLXXquCqgoLboxQtAW1ZFZyFIAsLHDtJw==
 
-it-pushable@^3.2.0, it-pushable@^3.2.1:
+it-pushable@^3.2.0:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/it-pushable/-/it-pushable-3.2.1.tgz#72d7ccf7e7c0ccecf8cbaf74064f7be56e775c59"
   integrity sha512-sLFz2Q0oyDCJpTciZog7ipP4vSftfPy3e6JnH6YyztRa1XqkpGQaafK3Jw/JlfEBtCXfnX9uVfcpu3xpSAqCVQ==
   dependencies:
     p-defer "^4.0.0"
-
-it-reader@^6.0.1:
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/it-reader/-/it-reader-6.0.4.tgz#439cb88225dcd15116be0ffde9e846a928c3871a"
-  integrity sha512-XCWifEcNFFjjBHtor4Sfaj8rcpt+FkY0L6WdhD578SCDhV4VUm7fCkF3dv5a+fTcfQqvN9BsxBTvWbYO6iCjTg==
-  dependencies:
-    it-stream-types "^2.0.1"
-    uint8arraylist "^2.0.0"
 
 it-stream-types@^1.0.3, it-stream-types@^1.0.4, it-stream-types@^1.0.5:
   version "1.0.5"

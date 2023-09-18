@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.21
 
-require github.com/aperturerobotics/hydra v0.0.0-20230830220334-8903b7136c2f
+require github.com/aperturerobotics/hydra v0.0.0-20230918212937-71b54141dbe0
 
 require (
 	github.com/evanw/esbuild v0.19.2 // latest
@@ -12,7 +12,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.1-0.20230818053152-38d740bb148b // master
+require github.com/aperturerobotics/bifrost v0.18.3-0.20230901060112-7c3514d41806 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -42,7 +42,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.3 // latest
+	github.com/aperturerobotics/controllerbus v0.30.4-0.20230918212448-9aa9a8272bff // latest
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.20.2-0.20230831234506-f952dc861392 // latest
 )
@@ -64,13 +64,13 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.3 // master
+	github.com/aperturerobotics/util v1.7.5-0.20230918214141-e977bceb5eeb // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7
-	github.com/libp2p/go-libp2p v0.30.0
+	github.com/libp2p/go-libp2p v0.31.0
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.11.0 // indirect
@@ -215,7 +215,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.12.1-0.20230915184527-c7ff727a8c41 // indirect
 	golang.org/x/term v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.3.0 // indirect

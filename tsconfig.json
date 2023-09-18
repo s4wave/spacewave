@@ -7,7 +7,7 @@
     "baseUrl": "./",
     "paths": {
       "@go/*": ["vendor/*"],
-      "@bldr/*": [".bldr/bldr/*"]
+      "@bldr/*": ["./*"]
     },
     "allowSyntheticDefaultImports": true,
     "declaration": true,
