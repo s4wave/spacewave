@@ -11,6 +11,7 @@ import (
 // The value from the getter is returned in GetProxyCursor.
 // If the getter returns nil, nil, returns nil, ErrNotExist instead.
 // If the getter function is nil, returns ErrNotExist.
+// The context passed to the getter should not be used after the getter returns.
 // CheckReleased never returns false until Release is called.
 type FSCursorGetter struct {
 	released atomic.Bool
