@@ -1,11 +1,11 @@
 import React from 'react'
 
 import {
-  createFunctionComponent,
+  // createFunctionComponent,
   BldrComponent,
   DebugInfo,
-} from '@bldr/web/bldr-react'
-import { retryWithAbort } from '@bldr/web/bldr'
+} from '@aptre/bldr-react'
+import { retryWithAbort } from '@aptre/bldr'
 import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 
 import './example.css'
@@ -54,4 +54,5 @@ class Example extends BldrComponent<{}, IExampleState> {
 }
 
 // Example will be constructed when the component is loaded.
-export default createFunctionComponent(() => <Example />)
+// export default createFunctionComponent(() => <Example />)
+export default () => <Example />

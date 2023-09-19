@@ -527,7 +527,19 @@ func (c *Controller) BuildPlugin(
 			if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 				return nil
 			}
-			le.Debugf("copy %s to %s", srcPath, outDistPath)
+
+			// log relative to cwd
+			relSrcPath, relOutDistPath := srcPath, outDistPath
+			if cwd, cwdErr := os.Getwd(); cwdErr == nil {
+				if rs, err := filepath.Rel(cwd, relSrcPath); err == nil {
+					relSrcPath = rs
+				}
+				if rs, err := filepath.Rel(cwd, relOutDistPath); err == nil {
+					relOutDistPath = rs
+				}
+			}
+			le.Debugf("copy %s to %s", relSrcPath, relOutDistPath)
+
 			return fsutil.CopyFileToDir(outDistPath, srcPath, 0644)
 		}
 

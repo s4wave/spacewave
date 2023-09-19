@@ -255,7 +255,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 
 // ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.
 //
-// pkgPath is the path after /b/pkg/ - for example, "react" or "protobufjs/minimal.js".
+// pkgPath is the path after /b/pkg/ - for example, "pkg" or "pkg/client.js" or "@my/pkg".
 // The first element(s) of the path (split by /) are used as the package name.
 // If the path begins with @, it is treated as a scope: @scope/package/...
 func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {

@@ -6,7 +6,17 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app. </noscript>
-    <script type="module" src="./entrypoint/entrypoint.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "./pkgs/react/index.mjs",
+          "react-dom/client": "./pkgs/react-dom/client.mjs",
+          "@aptre/bldr": "./pkgs/@aptre/bldr/index.mjs",
+          "@aptre/bldr-react": "./pkgs/@aptre/bldr-react/index.mjs"
+        }
+      }
+    </script>
+    <script type="module" src="./entrypoint/entrypoint.mjs"></script>
     <div
       id="bldr-root"
       style="width: 100%; height: 100%; margin: 0; padding: 0"

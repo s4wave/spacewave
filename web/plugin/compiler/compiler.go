@@ -154,6 +154,8 @@ func (c *Controller) BundleElectronHook(
 		buildPlatform,
 		workingDir,
 		electronDistPath,
+		// NOTE: we use electron nightly for ESM support until v28 is released.
+		true,
 	); err != nil {
 		return nil, err
 	}
@@ -168,7 +170,7 @@ func (c *Controller) BundleElectronHook(
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	err = entrypoint_electron_bundle.BuildElectronBundle(le, distSrcDir, workingEntrypointDir, minify, debugMode)
+	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, distSrcDir, workingEntrypointDir, minify, debugMode)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +191,7 @@ func (c *Controller) BundleElectronHook(
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, &electron.Config{
 		WebRuntimeId:  webRuntimeId,
 		ElectronPath:  filepath.Join("electron", entrypoint_electron_bundle.GetElectronBinName(buildPlatform)),
-		RendererPath:  "app.asar",
+		RendererPath:  "app.asar/index.mjs",
 		ElectronFlags: extraElectronFlags,
 	}), false)
 	if err != nil {

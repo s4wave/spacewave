@@ -17,8 +17,9 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// NOTE: we can't use async import() here since require() is called w/o await.
 const reactDomImportShim = `
-import * as __bldr_React from '/b/pkg/react/index.mjs';
+import * as __bldr_React from 'react';
 const require = (pkgName) => {
   switch (pkgName) {
   case 'react':
@@ -178,6 +179,13 @@ func BuildWebPkgsEsbuild(
 		buildOpts.Alias[pkgRootAlias] = webPkgRef.WebPkgRoot
 		buildOpts.Alias[webPkgID] = webPkgRef.WebPkgRoot
 
+		// externalize some packages
+		for _, toExternalize := range []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react"} {
+			if webPkgID != toExternalize && !slices.Contains(buildOpts.External, toExternalize) {
+				buildOpts.External = append(buildOpts.External, toExternalize)
+			}
+		}
+
 		// add banner
 		msg := fmt.Sprintf("built by bldr/web/pkg: %s/%v", webPkgID, webPkgRef.Imports)
 		buildOpts.Banner["js"] = "// " + msg
@@ -186,10 +194,6 @@ func BuildWebPkgsEsbuild(
 		// TODO: Externalize + add imports for any imports within externalized packages.
 		// This would require repeatedly calling esbuild until we discover all imports for each package.
 		// Since this is significantly more complex, it's been left out for now.
-		//
-		// Example case: a package we externalize in the web_pkgs list imports
-		// React: we would want to replace the imports to "react" with
-		// /b/pkg/react/... as well.
 		//
 		// Since react-dom needs to import "react" correctly, we will specifically
 		// add the transformations for "react" and "react-dom" here, to transform
@@ -202,7 +206,6 @@ func BuildWebPkgsEsbuild(
 			// specifically for react-dom.
 			//
 			// https://github.com/evanw/esbuild/issues/1921
-			buildOpts.External = append(buildOpts.External, "react")
 			buildOpts.Banner["js"] += reactDomImportShim
 		}
 

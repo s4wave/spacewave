@@ -64,6 +64,10 @@ function appRequestHandler(
       // file doesn't exist
       // TODO: forward requests for /b/ and /p/ to service worker fetch()
       debugConsole.error('appRequestHandler: failed to fetch', filePath) // , err)
+      next({
+        statusCode: 404,
+        data: Buffer.from('Not found: ' + filePath, 'ascii'),
+      })
     }
   })
 }

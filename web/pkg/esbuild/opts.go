@@ -67,5 +67,13 @@ func BuildEsbuildBuildOpts(
 		addLoader("."+ext, esbuild_api.LoaderFile)
 	}
 
+	// bldr provides itself and react via an importmap
+	buildOpts.External = append(buildOpts.External,
+		"react",
+		"react-dom",
+		"@aptre/bldr",
+		"@aptre/bldr-react",
+	)
+
 	return buildOpts
 }

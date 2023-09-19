@@ -1289,10 +1289,10 @@ duplexify@^4.1.1:
     readable-stream "^3.1.1"
     stream-shift "^1.0.0"
 
-electron@^26.1.0:
-  version "26.1.0"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-26.1.0.tgz#d26fefba5a5c68069b07a117d87aee1c4e5d172d"
-  integrity sha512-qEh19H09Pysn3ibms5nZ0haIh5pFoOd7/5Ww7gzmAwDQOulRi8Sa2naeueOyIb1GKpf+6L4ix3iceYRAuA5r5Q==
+electron-nightly@^28.0.0-nightly.20230915:
+  version "28.0.0-nightly.20230915"
+  resolved "https://registry.yarnpkg.com/electron-nightly/-/electron-nightly-28.0.0-nightly.20230915.tgz#bb272c5da1ce8fe21392a62cece1d407db84e6df"
+  integrity sha512-6LtTPb3p/EnbV0fU4m/tZu9jv7XER404vBzF6tdz5qvkTQFPXpeC1cMwU9FOLC4jInbts9tP8OhBYOlMdXR5yg==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"

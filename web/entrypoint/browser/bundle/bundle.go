@@ -23,8 +23,8 @@ func DefaultBanner() map[string]string {
 func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 	return esbuild.BuildOptions{
 		Bundle:   true,
-		Target:   esbuild.ES2021,
-		Format:   esbuild.FormatDefault,
+		Target:   esbuild.ES2022,
+		Format:   esbuild.FormatESModule,
 		Platform: esbuild.PlatformBrowser,
 		LogLevel: EsbuildLogLevel,
 
@@ -37,6 +37,9 @@ func BrowserBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 		Loader: map[string]esbuild.Loader{
 			".woff":  esbuild.LoaderFile,
 			".woff2": esbuild.LoaderFile,
+		},
+		OutExtension: map[string]string{
+			".js": ".mjs",
 		},
 
 		MinifyWhitespace:  minify,
@@ -66,7 +69,7 @@ func ServiceWorkerBuildOpts(repoRoot string, minify bool) esbuild.BuildOptions {
 // BuildServiceWorkerBundle builds specifically the service worker files.
 func BuildServiceWorkerBundle(le *logrus.Entry, repoRoot, buildDir string, minify bool) error {
 	le.Debug("generating service-worker bundle")
-	swOut := filepath.Join(buildDir, "sw.js")
+	swOut := filepath.Join(buildDir, "sw.mjs")
 	swOpts := ServiceWorkerBuildOpts(repoRoot, minify)
 	swOpts.Outfile = swOut
 	swOpts.Write = true
@@ -104,13 +107,14 @@ func BuildRendererBundle(le *logrus.Entry, repoRoot, buildDir, runtimeJsPath str
 	if !minify {
 		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
 	}
+
 	res := esbuild.Build(rendererBuildOpts)
 	return util_esbuild.BuildResultToErr(res)
 }
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
 //
-// NOTE: we expect runtime-wasm.js to exist at buildDir/runtime/runtime-wasm.js
+// NOTE: TODO: runtime-wasm.js build
 func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir, runtimeJsPath string, minify bool) error {
 	err := os.MkdirAll(buildDir, 0755)
 	if err != nil {
@@ -121,6 +125,8 @@ func BuildBrowserBundle(le *logrus.Entry, repoRoot, buildDir, runtimeJsPath stri
 	if err := BuildServiceWorkerBundle(le, repoRoot, buildDir, minify); err != nil {
 		return err
 	}
+
+	// TODO: web pkgs bundle, see electron.
 
 	// renderer bundle
 	if err := BuildRendererBundle(le, repoRoot, buildDir, runtimeJsPath, minify); err != nil {

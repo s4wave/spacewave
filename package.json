@@ -63,7 +63,7 @@
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
     "depcheck": "^1.4.5",
-    "electron": "^26.1.0",
+    "electron-nightly": "^28.0.0-nightly.20230915",
     "enhanced-resolve": "^5.15.0",
     "eslint": "^8.48.0",
     "eslint-config-prettier": "^9.0.0",

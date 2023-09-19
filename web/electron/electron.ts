@@ -31,7 +31,6 @@ declare const BLDR_ELECTRON: BldrElectron | undefined
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
 // openElectronPort connects a MessagePort to the remote Electron main WebRuntime.
-// called from runtime-electron.ts
 export async function openElectronPort(
   init: Uint8Array,
   port: MessagePort,

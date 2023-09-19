@@ -5,8 +5,11 @@ import { OpenStreamCtr, Conn, buildPushableSink } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 
+// note: import relative paths so we don't externalize bldr here.
 import { initProtocol, APP_SCHEME } from './protocol.js'
 import { debugConsole } from './console.js'
+import debugWhenReady from './debug.js'
+import { WebRuntime } from '../../bldr/web-runtime.js'
 import {
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
@@ -14,8 +17,6 @@ import {
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
-import { WebRuntime } from '../../bldr/web-runtime.js'
-import debugWhenReady from './debug.js'
 
 const app = electron.app
 const distPath = app.getAppPath()
@@ -23,7 +24,7 @@ const pipeWorkdir = distPath
 const ipcMain: Electron.IpcMain = electron.ipcMain
 
 function createWindow(urlSuffix?: string): electron.BrowserWindow {
-  const preload = path.join(distPath, 'preload.js')
+  const preload = path.join(distPath, 'preload.mjs')
   const nwindow = new electron.BrowserWindow({
     frame: false,
     height: 680,

@@ -26,8 +26,9 @@ export function renderProto<T>(
   }
 }
 
-// createFunctionComponent builds a FunctionComponent from a React render function.
-export function createFunctionComponent(
+// createReactFunctionComponent builds a FunctionComponent from a React render function.
+// NOTE: not recommended: use ReactComponent instead.
+export function createReactFunctionComponent(
   render: RenderFunc,
   rootOptions?: RootOptions,
 ): FunctionComponent {
@@ -44,11 +45,12 @@ export function createFunctionComponent(
   }
 }
 
-// createProtoFunctionComponent builds a FunctionComponent from a React component with a protobuf props message.
-export function createProtoFunctionComponent<T>(
+// createReactProtoFunctionComponent builds a FunctionComponent from a React component with a protobuf props message.
+// NOTE: not recommended: use ReactComponent instead.
+export function createReactProtoFunctionComponent<T>(
   def: MessageDefinition<T>,
   render: (props: T) => React.ReactNode | JSX.Element | undefined,
   rootOptions?: RootOptions,
 ): FunctionComponent {
-  return createFunctionComponent(renderProto(def, render), rootOptions)
+  return createReactFunctionComponent(renderProto(def, render), rootOptions)
 }

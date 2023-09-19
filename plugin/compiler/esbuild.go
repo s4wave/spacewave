@@ -144,13 +144,9 @@ func BuildDefEsbuild(
 	}
 
 	// build list of packages to externalize
-	externalizePkgs := append([]string{
-		// always externalize React as bldr uses it (bldr-react)
-		"react",
-		"react-dom",
-	}, webPkgs...)
-	slices.Sort(externalizePkgs)
-	externalizePkgs = slices.Compact(externalizePkgs)
+	extWebPkgs := slices.Clone(webPkgs)
+	slices.Sort(extWebPkgs)
+	extWebPkgs = slices.Compact(extWebPkgs)
 
 	// build all bundles
 	bundleIDs := maps.Keys(bundles)
@@ -165,7 +161,7 @@ func BuildDefEsbuild(
 			buildOpts.Plugins,
 			web_pkg_esbuild.BuildEsbuildPlugin(
 				le,
-				externalizePkgs,
+				extWebPkgs,
 				addWebPkgRef,
 			),
 		)

@@ -1,0 +1,25 @@
+{
+  "name": "@aperturerobotics/bldr",
+  "description": "application bundler and user interface toolkit",
+  "version": "0.0.0-dist",
+  "private": true,
+  "author": {
+    "name": "Aperture Robotics LLC.",
+    "email": "support@aperture.us",
+    "url": "http://aperture.us"
+  },
+  "contributors": [
+    {
+      "name": "Christian Stewart",
+      "email": "christian@aperture.us",
+      "url": "http://github.com/paralin"
+    }
+  ],
+  "repository": {
+    "url": "git@github.com:aperturerobotics/bldr.git"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

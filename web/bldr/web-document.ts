@@ -355,7 +355,7 @@ export class WebDocument {
     // NOTE: scope controls which /pages/ are covered by the worker
     // NOTE: scope can only be narrower than paths below the script path.
     // NOTE: leader controls all the pages in this browsing context.
-    const swUrl = '/sw.js'
+    const swUrl = '/sw.mjs'
     console.log('WebDocument: registering service worker', swUrl)
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb

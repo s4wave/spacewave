@@ -17,7 +17,11 @@ import (
 // BuildEsbuildPlugin constructs the bldr esbuild plugin.
 //
 // externalizePkgs will be marked as external and remapped to /b/pkg/{path}.
-func BuildEsbuildPlugin(le *logrus.Entry, externalizePkgs []string, addWebPkgImport func(webPkgID, webPkgRoot, webPkgSubPath string)) esbuild_api.Plugin {
+func BuildEsbuildPlugin(
+	le *logrus.Entry,
+	externalizePkgs []string,
+	addWebPkgImport func(webPkgID, webPkgRoot, webPkgSubPath string),
+) esbuild_api.Plugin {
 	// add the bldr plugin
 	// https://esbuild.github.io/plugins/#concepts
 	return esbuild_api.Plugin{

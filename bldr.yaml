@@ -96,12 +96,12 @@ manifests:
               handlePluginId: bldr-demo
               serverIdRe: web-view/.*
           # configure the web plugin to handle web pkg lookups via bldr-demo
-          web-handle-pkgs:
-            id: bldr/web/plugin/handle-web-pkg
-            config:
-              webPluginId: web
-              handlePluginId: bldr-demo
-              webPkgIdList: ["react", "react-dom"]
+          #web-handle-pkgs:
+          #  id: bldr/web/plugin/handle-web-pkg
+          #  config:
+          #    webPluginId: web
+          #    handlePluginId: bldr-demo
+          #    webPkgIdList: ["@my/common-package"]
         hostConfigSet:
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:

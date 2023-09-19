@@ -152,7 +152,7 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:        "minify-entrypoint",
-			Usage:       "enables minifying the entrypoint js files",
+			Usage:       "enables minifying the entrypoint files",
 			EnvVars:     []string{"BLDR_MINIFY_ENTRYPOINT"},
 			Value:       a.MinifyEntrypoint,
 			Destination: &a.MinifyEntrypoint,

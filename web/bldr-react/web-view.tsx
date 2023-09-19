@@ -292,7 +292,7 @@ export class WebView
             })
           : undefined}
         {this.state.ready &&
-        this.state.renderMode === 1 &&
+        this.state.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
         this.state.reactComponent ? (
           <WebViewErrorBoundary>
             <Suspense fallback={<div>Loading...</div>}>
@@ -305,7 +305,7 @@ export class WebView
           </WebViewErrorBoundary>
         ) : undefined}
         {this.state.ready &&
-        this.state.renderMode === 2 &&
+        this.state.renderMode === RenderMode.RenderMode_FUNCTION &&
         this.state.scriptPath ? (
           <FunctionComponentContainer
             key={this.state.scriptPath}

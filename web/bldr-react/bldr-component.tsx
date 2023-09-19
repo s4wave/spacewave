@@ -2,7 +2,7 @@ import React from 'react'
 import { Client } from 'starpc'
 
 import { AbortComponent } from './abort-component.js'
-import { BldrContext } from '../bldr-react/bldr-context.js'
+import { BldrContext } from './bldr-context.js'
 import {
   WebDocument as BldrWebDocument,
   WebView as BldrWebView,
