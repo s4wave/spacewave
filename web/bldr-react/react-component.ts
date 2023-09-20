@@ -13,14 +13,12 @@ export type ProtoComponentType = React.ComponentType<IRenderProtoProps>
 export type LoadedProtoComponent = React.LazyExoticComponent<ProtoComponentType>
 
 // ProtoRenderFunc is a valid render function accepting a protobuf message.
-export type ProtoRenderFunc = (
-  props: IRenderProtoProps,
-) => React.ReactNode | JSX.Element | undefined
+export type ProtoRenderFunc = React.FC<IRenderProtoProps>
 
 // renderProto wraps a render function with parsing a protobuf props object.
 export function renderProto<T>(
   def: MessageDefinition<T>,
-  render: (props: T) => React.ReactNode | JSX.Element | undefined,
+  render: React.FC<T>,
 ): ProtoRenderFunc {
   return (props: IRenderProtoProps) => {
     return render(def.decode(props.componentProps || new Uint8Array(0)))
