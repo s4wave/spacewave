@@ -1,4 +1,4 @@
-import electron, { MessagePortMain, MessageChannelMain } from 'electron'
+import electron, { MessagePortMain, MessageChannelMain } from 'electron-nightly'
 import net from 'net'
 import path from 'path'
 import { OpenStreamCtr, Conn, buildPushableSink } from 'starpc'
@@ -37,12 +37,9 @@ function createWindow(urlSuffix?: string): electron.BrowserWindow {
     },
   })
 
-  // installExtension(REACT_DEVELOPER_TOOLS)
-  // mainWindow.loadURL('http://localhost:5100');
   nwindow.webContents.openDevTools()
-
-  // mainWindow.loadFile('index.html')
   nwindow.loadURL(`${APP_SCHEME}://index.html${urlSuffix || ''}`)
+
   return nwindow
 }
 
