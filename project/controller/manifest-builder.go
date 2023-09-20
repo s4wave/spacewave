@@ -123,9 +123,9 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return errors.Errorf("invalid platform id: %s", meta.GetPlatformId())
 	}
 
-	// TODO: could there be a path collision here?
+	// build paths
 	buildWorkingPath := filepath.Join(t.c.c.GetWorkingPath(), "build", platformIDPath, manifestID)
-	distSrcPath := filepath.Join(t.c.c.GetWorkingPath(), "bldr")
+	distSrcPath := filepath.Join(t.c.c.GetWorkingPath(), "src")
 
 	// load plugin config from project config
 	projectConfig := t.c.c.GetProjectConfig()

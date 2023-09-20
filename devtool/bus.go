@@ -291,7 +291,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// distSrcDir is the path to the dist sources dir
-	distSrcDir := filepath.Join(stateRoot, "bldr")
+	distSrcDir := filepath.Join(stateRoot, "src")
+
 	return &DevtoolBus{
 		ctx:                 ctx,
 		b:                   b,

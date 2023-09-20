@@ -34,7 +34,7 @@
     "build:cross": "npm run bldr -- --build-type=release build -b cross",
     "publish:release": "npm run bldr -- --build-type=release publish -p demo-dist",
     "dist": "npm run build:release && npm run publish:release",
-    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common,@electron/asar",
+    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common",
     "codegen": "npm run gen",
     "gen": "make genproto",
     "test": "make test && npm run check",
@@ -56,7 +56,6 @@
   },
   "devDependencies": {
     "@aperturerobotics/ts-common": "^0.6.4",
-    "@electron/asar": "^3.2.3",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",

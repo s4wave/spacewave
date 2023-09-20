@@ -8,12 +8,8 @@
     "paths": {
       "@go/*": ["vendor/*"],
       "@aptre/bldr": ["./web/bldr"],
-      "@aptre/bldr-react": [
-        "./web/bldr-react"
-      ],
-      "electron": [
-        "electron-nightly"
-      ],
+      "@aptre/bldr-react": ["./web/bldr-react"],
+      "electron": ["electron-nightly"],
       "electron/*": ["electron-nightly/*"]
     },
     "allowSyntheticDefaultImports": true,
