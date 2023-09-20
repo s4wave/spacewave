@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import type { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import type { WebView as BldrWebView } from '../bldr/web-view.js'
 
@@ -12,3 +12,8 @@ export interface IBldrContext {
 
 // BldrContext provides the IBldrContext to child components.
 export const BldrContext = React.createContext<IBldrContext | null>(null)
+
+// useBldrContext returns the current BldrContext.
+export function useBldrContext() {
+  return useContext(BldrContext)
+}

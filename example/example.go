@@ -179,9 +179,15 @@ func (d *Demo) resolveHandleWebView(
 	}
 
 	le := d.GetLogger()
+	componentProps, err := (&ExampleProps{
+		Msg: "Hello world from the props -> echo rpc call -> frontend!",
+	}).MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+
 	handlers := web_view_handler.MergeWebViewHandlers(
-		// web_view_handler.NewSetFunctionComponent(le, ExampleEntrypoint.EntrypointHref, nil),
-		web_view_handler.NewSetReactComponent(le, ExampleEntrypoint.EntrypointHref, nil),
+		web_view_handler.NewSetReactComponent(le, ExampleEntrypoint.EntrypointHref, componentProps),
 		web_view_handler.NewSetHtmlLinks(le, &web_view.SetHtmlLinksRequest{
 			Clear: true,
 			SetLinks: map[string]*web_view.HtmlLink{

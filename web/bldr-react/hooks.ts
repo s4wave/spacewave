@@ -1,6 +1,6 @@
-import { DependencyList, useEffect, useContext } from 'react'
+import { DependencyList, useEffect } from 'react'
 import { Client } from 'starpc'
-import { BldrContext } from './bldr-context.js'
+import { useBldrContext } from './bldr-context.js'
 import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import { WebView as BldrWebView } from '../bldr/web-view.js'
 
@@ -17,12 +17,12 @@ export function useWebViewHostClient(
   ) => void | Destructor,
   deps?: DependencyList,
 ) {
-  const bldrContext = useContext(BldrContext)
+  const bldrContext = useBldrContext()
   const webDocument = bldrContext?.webDocument
   const webView = bldrContext?.webView
   let effectDeps: DependencyList = [webDocument, webView]
-  if (deps) {
-    effectDeps = effectDeps.concat(deps)
+  if (deps?.length) {
+    effectDeps = [...effectDeps, ...deps]
   }
   useEffect(() => {
     if (!webDocument || !webView) {

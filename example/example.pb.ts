@@ -10,6 +10,12 @@ export interface Config {
   runDemo: boolean
 }
 
+/** ExampleProps contains properties for the example component. */
+export interface ExampleProps {
+  /** Msg is the message to display. */
+  msg: string
+}
+
 function createBaseConfig(): Config {
   return { runDemo: false }
 }
@@ -101,6 +107,107 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.runDemo = object.runDemo ?? false
+    return message
+  },
+}
+
+function createBaseExampleProps(): ExampleProps {
+  return { msg: '' }
+}
+
+export const ExampleProps = {
+  encode(
+    message: ExampleProps,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.msg !== '') {
+      writer.uint32(10).string(message.msg)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ExampleProps {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseExampleProps()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break
+          }
+
+          message.msg = reader.string()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ExampleProps, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ExampleProps | ExampleProps[]>
+      | Iterable<ExampleProps | ExampleProps[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ExampleProps.encode(p).finish()]
+        }
+      } else {
+        yield* [ExampleProps.encode(pkt).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ExampleProps>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ExampleProps> {
+    for await (const pkt of source) {
+      if (Array.isArray(pkt)) {
+        for (const p of pkt) {
+          yield* [ExampleProps.decode(p)]
+        }
+      } else {
+        yield* [ExampleProps.decode(pkt)]
+      }
+    }
+  },
+
+  fromJSON(object: any): ExampleProps {
+    return { msg: isSet(object.msg) ? String(object.msg) : '' }
+  },
+
+  toJSON(message: ExampleProps): unknown {
+    const obj: any = {}
+    if (message.msg !== '') {
+      obj.msg = message.msg
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<ExampleProps>, I>>(
+    base?: I,
+  ): ExampleProps {
+    return ExampleProps.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<ExampleProps>, I>>(
+    object: I,
+  ): ExampleProps {
+    const message = createBaseExampleProps()
+    message.msg = object.msg ?? ''
     return message
   },
 }

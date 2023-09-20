@@ -1,58 +1,42 @@
-import React from 'react'
-
-import {
-  // createFunctionComponent,
-  BldrComponent,
-  DebugInfo,
-} from '@aptre/bldr-react'
+import React, { useState } from 'react'
+import { DebugInfo, renderProto, useWebViewHostClient } from '@aptre/bldr-react'
 import { retryWithAbort } from '@aptre/bldr'
 import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 
 import './example.css'
+import { ExampleProps } from './example.pb.js'
 
-// IExampleState contains state for Example.
-interface IExampleState {
-  message?: string
-}
+// Example is an example of a functional react component accessing a host rpc.
+const Example: React.FC<ExampleProps> = (props: ExampleProps) => {
+  const [message, setMessage] = useState<string | undefined>(undefined)
 
-class Example extends BldrComponent<{}, IExampleState> {
-  // echoHost is the echo service running on the plugin host.
-  private echoHost?: EchoerClientImpl
-
-  constructor(props: {}) {
-    super(props)
-    this.state = {}
-  }
-
-  public componentDidMount() {
-    this.echoHost = new EchoerClientImpl(this.buildWebViewHostClient())
-    retryWithAbort(this.abortController.signal, this.runEchoRpc.bind(this), {
-      errorCb: (err) => {
-        console.warn('example Echo failed', err)
+  useWebViewHostClient((client, abortSignal) => {
+    const host = new EchoerClientImpl(client)
+    retryWithAbort(
+      abortSignal,
+      async () => {
+        const resp = await host.Echo({
+          body: props.msg,
+        })
+        setMessage(resp?.body)
       },
-    })
-  }
-
-  // runEchoRpc runs the echo rpc and updates the state.
-  private async runEchoRpc(): Promise<void> {
-    const resp = await this.echoHost?.Echo({
-      body: 'Hello from TypeScript via RPC round-trip to the plugin!',
-    })
-    this.setState({ message: resp?.body })
-  }
-
-  public render() {
-    return (
-      <>
-        <DebugInfo>TestDebugInfo</DebugInfo>
-        <div className="example-message">
-          {this.state.message || 'Loading...'}
-        </div>
-      </>
+      {
+        errorCb: (err) => {
+          console.warn('example Echo failed', err)
+        },
+      },
     )
-  }
+  })
+
+  return (
+    <>
+      <DebugInfo>TestDebugInfo</DebugInfo>
+      <div className="example-message">{message || 'Loading...'}</div>
+    </>
+  )
 }
 
-// Example will be constructed when the component is loaded.
-// export default createFunctionComponent(() => <Example />)
-export default () => <Example />
+export default renderProto<ExampleProps>(
+  ExampleProps,
+  (props: ExampleProps) => <Example {...props} />,
+)

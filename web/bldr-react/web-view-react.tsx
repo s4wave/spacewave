@@ -1,11 +1,9 @@
 import React, { Suspense } from 'react'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
-
-// LoadedReactComponentType is the type the loaded component should implement.
-type LoadedReactComponentType = React.ComponentType<unknown>
-
-// LoadedReactComponent is a lazy-loaded React component.
-type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
+import type {
+  LoadedProtoComponent,
+  ProtoComponentType,
+} from './react-component.js'
 
 // IReactComponentContainerProps are props for ReactComponentContainer.
 export interface IReactComponentContainerProps {
@@ -19,28 +17,16 @@ export interface IReactComponentContainerProps {
 
 // ReactComponentContainer imports and initializes a ReactComponent script.
 export function ReactComponentContainer(props: IReactComponentContainerProps) {
-  const LoadedComponent: LoadedReactComponent = React.lazy(
-    async (): Promise<{ default: LoadedReactComponentType }> =>
+  const LoadedComponent: ProtoComponentType = React.lazy(
+    async (): Promise<{ default: LoadedProtoComponent }> =>
       import(props.scriptPath),
   )
 
-  // TODO: how to set componentProps on reactComponent ?
   return (
     <WebViewErrorBoundary>
       <Suspense fallback={props.renderLoading ?? <div>Loading...</div>}>
-        <LoadedComponent />
+        <LoadedComponent componentProps={props.componentProps} />
       </Suspense>
     </WebViewErrorBoundary>
   )
-  /*
-  <div
-    style={{
-      width: '100%',
-      height: '100%',
-      position: 'relative',
-      overflow: 'hidden',
-    }}
-    ref={(ref) => this.update(this.functionComponent, ref || undefined)}
-  />
-    */
 }
