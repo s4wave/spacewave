@@ -6,8 +6,8 @@ export { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 export { AbortComponent } from './abort-component.js'
 export { BldrComponent } from './bldr-component.js'
 export {
-  ReactComponentType,
-  IReactComponentProtoProps,
+  ProtoComponentType,
+  IRenderProtoProps,
   ProtoRenderFunc,
   renderProto,
 } from './react-component.js'

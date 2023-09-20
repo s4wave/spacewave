@@ -1,4 +1,4 @@
-import electron, { MessagePortMain, MessageChannelMain } from 'electron-nightly'
+import electron, { MessagePortMain, MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
 import { OpenStreamCtr, Conn, buildPushableSink } from 'starpc'

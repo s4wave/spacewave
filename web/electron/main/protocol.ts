@@ -1,4 +1,4 @@
-import electron from 'electron-nightly'
+import electron from 'electron'
 import fs from 'fs'
 import path from 'path'
 

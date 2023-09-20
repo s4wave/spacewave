@@ -10,7 +10,6 @@
       "@aptre/bldr": ["./web/bldr"],
       "@aptre/bldr-react": ["./web/bldr-react"],
       "electron": ["electron-nightly"],
-      "electron/*": ["electron-nightly/*"]
     },
     "allowSyntheticDefaultImports": true,
     "declaration": true,

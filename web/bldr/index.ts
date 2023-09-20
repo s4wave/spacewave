@@ -11,3 +11,4 @@ export {
 export type { WebView, WebViewRegistration } from './web-view.js'
 export { randomId } from './random-id.js'
 export { ItState } from './it-state.js'
+export { isElectron } from '../electron/electron.js'

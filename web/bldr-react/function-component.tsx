@@ -21,11 +21,13 @@ export function createReactFunctionComponent(
   return (
     ctx: IBldrContext,
     parent: HTMLDivElement,
-    props?: Uint8Array,
+    componentProps?: Uint8Array,
   ): (() => void) => {
     const root = createRoot(parent, rootOptions)
     root.render(
-      <BldrContext.Provider value={ctx}>{render(props)}</BldrContext.Provider>,
+      <BldrContext.Provider value={ctx}>
+        {render({ componentProps })}
+      </BldrContext.Provider>,
     )
     return root.unmount.bind(root)
   }

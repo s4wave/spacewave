@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron-nightly'
+import { contextBridge, ipcRenderer } from 'electron'
 import {
   WebRuntimeToClient,
   ClientToWebRuntime,
