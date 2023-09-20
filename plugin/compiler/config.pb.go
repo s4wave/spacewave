@@ -52,13 +52,12 @@ type Config struct {
 	//
 	// Externalized web packages (npm modules) are imported separately from the web bundle.
 	// They will be deduplicated such that a single version is imported at a time by the app.
-	// This is useful for packages like "react" that require a single instance per WebDocument.
+	// This is useful for packages that require a single instance per WebDocument.
 	//
 	// These packages will be available with the LookupWebPkg directive.
 	// They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
 	//
 	// Note: only files & entrypoints imported by at least one js file will be included.
-	// Note: "react" and "react-dom" are automatically added to this list.
 	WebPkgs []string `protobuf:"bytes,5,rep,name=web_pkgs,json=webPkgs,proto3" json:"web_pkgs,omitempty"`
 	// DisableRpcFetch disables the default Fetch RPC service handler.
 	// The handler handles the Fetch service by creating a directive.

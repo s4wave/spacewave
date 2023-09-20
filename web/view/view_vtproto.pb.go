@@ -26,7 +26,6 @@ func (m *SetRenderModeRequest) CloneVT() *SetRenderModeRequest {
 	}
 	r := &SetRenderModeRequest{
 		RenderMode: m.RenderMode,
-		Wait:       m.Wait,
 		ScriptPath: m.ScriptPath,
 	}
 	if rhs := m.Props; rhs != nil {
@@ -167,9 +166,6 @@ func (this *SetRenderModeRequest) EqualVT(that *SetRenderModeRequest) bool {
 		return false
 	}
 	if this.RenderMode != that.RenderMode {
-		return false
-	}
-	if this.Wait != that.Wait {
 		return false
 	}
 	if this.ScriptPath != that.ScriptPath {
@@ -360,24 +356,14 @@ func (m *SetRenderModeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		copy(dAtA[i:], m.Props)
 		i = encodeVarint(dAtA, i, uint64(len(m.Props)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x1a
 	}
 	if len(m.ScriptPath) > 0 {
 		i -= len(m.ScriptPath)
 		copy(dAtA[i:], m.ScriptPath)
 		i = encodeVarint(dAtA, i, uint64(len(m.ScriptPath)))
 		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Wait {
-		i--
-		if m.Wait {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x12
 	}
 	if m.RenderMode != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.RenderMode))
@@ -670,9 +656,6 @@ func (m *SetRenderModeRequest) SizeVT() (n int) {
 	if m.RenderMode != 0 {
 		n += 1 + sov(uint64(m.RenderMode))
 	}
-	if m.Wait {
-		n += 2
-	}
 	l = len(m.ScriptPath)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
@@ -833,26 +816,6 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Wait", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Wait = bool(v != 0)
-		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ScriptPath", wireType)
 			}
@@ -884,7 +847,7 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ScriptPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Props", wireType)
 			}

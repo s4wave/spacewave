@@ -40,20 +40,13 @@ message SetRenderModeRequest {
   // RenderMode is the new render mode.
   RenderMode render_mode = 1;
 
-  // Wait waits for the mode to become active before returning.
-  // If loading a script: will wait for the script to load successfully.
-  // If any error is encountered, returns it as the RPC result.
-  bool wait = 2;
-
   // ScriptPath is a path to a script to load to render.
   // RenderMode_REACT_COMPONENT: expects default export to be a Component.
-  // RenderMode_FUNCTION: expects default export to be a function.
-  string script_path = 3;
+  // RenderMode_FUNCTION: expects default export to be a ReactNode.
+  string script_path = 2;
 
-  // Props is an object passed as properties to the renderer/component.
-  // RenderMode_REACT_COMPONENT: parsed as JSON & passed as the React props for the component.
-  // RenderMode_FUNCTION: passed to the mount function as a Uint8Array.
-  bytes props = 4;
+  // Props is a protobuf message passed as properties to the renderer/component.
+  bytes props = 3;
 }
 
 // SetRenderModeResponse is the response to the SetRenderMode request.

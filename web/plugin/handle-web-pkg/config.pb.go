@@ -22,7 +22,6 @@ const (
 )
 
 // Config configures a controller to forward LookupWebPkg to a plugin.
-// Creates a LookupRpcClient directive prefixed with the plugin id.
 // webPluginId should correspond to a bldr/web/plugin plugin.
 // Resolves the LookupWebPkg directive on the web plugin bus.
 type Config struct {

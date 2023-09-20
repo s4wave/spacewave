@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React from 'react'
 import { Client } from 'starpc'
 
 import { BldrContext, IBldrContext } from './bldr-context.js'
@@ -13,19 +13,13 @@ import {
   SetHtmlLinksRequest,
   HtmlLink,
 } from '../view/view.pb.js'
-import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import { randomId } from '../bldr/random-id.js'
 import { FunctionComponentContainer } from './web-view-function.js'
+import { ReactComponentContainer } from './web-view-react.js'
 import { DebugInfo } from './debug-info.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void
-
-// LoadedReactComponentType is the type the loaded component should implement.
-type LoadedReactComponentType = React.ComponentType<unknown>
-
-// LoadedReactComponent is a lazy-loaded React component.
-type LoadedReactComponent = React.LazyExoticComponent<LoadedReactComponentType>
 
 interface IWebViewProps {
   // uuid is the unique identifier for the web view.
@@ -59,10 +53,6 @@ interface IWebViewState {
   scriptPath?: string
   // props is the binary props field.
   props?: Uint8Array
-  // reactProps are props to pass to the component (an Object).
-  reactProps?: unknown
-  // reactComponent is the lazy-loaded contents for REACT_COMPONENT.
-  reactComponent?: LoadedReactComponent
   // htmlLinks is the set of html link components.
   htmlLinks: IWebViewHtmlLink[]
 }
@@ -136,56 +126,15 @@ export class WebView
   // setRenderMode sets the render mode of the view.
   // if wait=true, should wait for op to complete before returning.
   public async setRenderMode(options: SetRenderModeRequest): Promise<void> {
-    const renderMode = options.renderMode
-    let scriptPath = options.scriptPath?.trim() || ''
-    let reactComponent: LoadedReactComponent | undefined = undefined
-    let componentPromise: Promise<{ default: unknown }> | undefined = undefined
-    const props = options.props
-    let reactProps: unknown | undefined = undefined
     console.log('set render mode', options)
-    switch (options.renderMode) {
-      case RenderMode.RenderMode_REACT_COMPONENT:
-        if (props.length) {
-          const propsTxt = new TextDecoder().decode(props)
-          try {
-            reactProps = JSON.parse(propsTxt)
-          } catch (err) {
-            console.error('ignoring invalid json props', propsTxt)
-            reactProps = undefined
-          }
-        }
-        if (scriptPath) {
-          ;[reactComponent, componentPromise] =
-            this._initReactComponent(scriptPath)
-        }
-        break
-      case RenderMode.RenderMode_FUNCTION:
-        break
-      default:
-      case RenderMode.RenderMode_NONE:
-        // make sure script is unset
-        scriptPath = ''
-        break
-    }
-
     this.setState({
-      renderMode,
-      reactComponent,
-      scriptPath,
-      reactProps,
-      props,
+      renderMode: options.renderMode,
+      scriptPath:
+        (options.renderMode !== RenderMode.RenderMode_NONE &&
+          options.scriptPath?.trim()) ||
+        undefined,
+      props: options.props,
     })
-
-    if (!options.wait) {
-      return
-    }
-
-    // wait for the component to load
-    if (componentPromise) {
-      await componentPromise
-    }
-
-    return
   }
 
   // setHtmlLinks sets or updates the list of HTML links.
@@ -292,18 +241,14 @@ export class WebView
             })
           : undefined}
         {this.state.ready &&
-        this.state.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
-        this.state.reactComponent ? (
-          <WebViewErrorBoundary>
-            <Suspense fallback={<div>Loading...</div>}>
-              <this.state.reactComponent
-                {...(typeof this.state.reactProps === 'object'
-                  ? this.state.reactProps
-                  : {})}
-              />
-            </Suspense>
-          </WebViewErrorBoundary>
-        ) : undefined}
+          this.state.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
+          !!this.state.scriptPath && (
+            <ReactComponentContainer
+              key={this.state.scriptPath}
+              scriptPath={this.state.scriptPath}
+              componentProps={this.state.props}
+            />
+          )}
         {this.state.ready &&
         this.state.renderMode === RenderMode.RenderMode_FUNCTION &&
         this.state.scriptPath ? (
@@ -316,18 +261,5 @@ export class WebView
         <br />
       </BldrContext.Provider>
     )
-  }
-
-  // _initReactComponent initializes the promises to load a react component.
-  private _initReactComponent(
-    scriptPath: string,
-  ): [LoadedReactComponent, Promise<{ default: LoadedReactComponentType }>] {
-    const loadPromise = import(scriptPath)
-    return [
-      React.lazy(async (): Promise<{ default: LoadedReactComponentType }> => {
-        return loadPromise
-      }),
-      loadPromise,
-    ]
   }
 }

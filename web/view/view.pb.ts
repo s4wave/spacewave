@@ -64,22 +64,12 @@ export interface SetRenderModeRequest {
   /** RenderMode is the new render mode. */
   renderMode: RenderMode
   /**
-   * Wait waits for the mode to become active before returning.
-   * If loading a script: will wait for the script to load successfully.
-   * If any error is encountered, returns it as the RPC result.
-   */
-  wait: boolean
-  /**
    * ScriptPath is a path to a script to load to render.
    * RenderMode_REACT_COMPONENT: expects default export to be a Component.
-   * RenderMode_FUNCTION: expects default export to be a function.
+   * RenderMode_FUNCTION: expects default export to be a ReactNode.
    */
   scriptPath: string
-  /**
-   * Props is an object passed as properties to the renderer/component.
-   * RenderMode_REACT_COMPONENT: parsed as JSON & passed as the React props for the component.
-   * RenderMode_FUNCTION: passed to the mount function as a Uint8Array.
-   */
+  /** Props is a protobuf message passed as properties to the renderer/component. */
   props: Uint8Array
 }
 
@@ -125,12 +115,7 @@ export interface RemoveWebViewResponse {
 }
 
 function createBaseSetRenderModeRequest(): SetRenderModeRequest {
-  return {
-    renderMode: 0,
-    wait: false,
-    scriptPath: '',
-    props: new Uint8Array(0),
-  }
+  return { renderMode: 0, scriptPath: '', props: new Uint8Array(0) }
 }
 
 export const SetRenderModeRequest = {
@@ -141,14 +126,11 @@ export const SetRenderModeRequest = {
     if (message.renderMode !== 0) {
       writer.uint32(8).int32(message.renderMode)
     }
-    if (message.wait === true) {
-      writer.uint32(16).bool(message.wait)
-    }
     if (message.scriptPath !== '') {
-      writer.uint32(26).string(message.scriptPath)
+      writer.uint32(18).string(message.scriptPath)
     }
     if (message.props.length !== 0) {
-      writer.uint32(34).bytes(message.props)
+      writer.uint32(26).bytes(message.props)
     }
     return writer
   },
@@ -172,21 +154,14 @@ export const SetRenderModeRequest = {
           message.renderMode = reader.int32() as any
           continue
         case 2:
-          if (tag !== 16) {
-            break
-          }
-
-          message.wait = reader.bool()
-          continue
-        case 3:
-          if (tag !== 26) {
+          if (tag !== 18) {
             break
           }
 
           message.scriptPath = reader.string()
           continue
-        case 4:
-          if (tag !== 34) {
+        case 3:
+          if (tag !== 26) {
             break
           }
 
@@ -242,7 +217,6 @@ export const SetRenderModeRequest = {
       renderMode: isSet(object.renderMode)
         ? renderModeFromJSON(object.renderMode)
         : 0,
-      wait: isSet(object.wait) ? Boolean(object.wait) : false,
       scriptPath: isSet(object.scriptPath) ? String(object.scriptPath) : '',
       props: isSet(object.props)
         ? bytesFromBase64(object.props)
@@ -254,9 +228,6 @@ export const SetRenderModeRequest = {
     const obj: any = {}
     if (message.renderMode !== 0) {
       obj.renderMode = renderModeToJSON(message.renderMode)
-    }
-    if (message.wait === true) {
-      obj.wait = message.wait
     }
     if (message.scriptPath !== '') {
       obj.scriptPath = message.scriptPath
@@ -277,7 +248,6 @@ export const SetRenderModeRequest = {
   ): SetRenderModeRequest {
     const message = createBaseSetRenderModeRequest()
     message.renderMode = object.renderMode ?? 0
-    message.wait = object.wait ?? false
     message.scriptPath = object.scriptPath ?? ''
     message.props = object.props ?? new Uint8Array(0)
     return message
