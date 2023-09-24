@@ -97,6 +97,8 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 }
 
 // BuildWebPkgsBundle builds the web pkg bundle files.
+//
+// TODO: this needs to be included in the browser bundle too and moved to a common place.
 func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir string, minify, debug bool) error {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
@@ -141,7 +143,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 	refs := []*web_pkg_esbuild.WebPkgRef{{
 		WebPkgID:   "react",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
-		Imports:    []string{"index.js"},
+		Imports:    []string{"index.js", "jsx-runtime.js"},
 	}, {
 		WebPkgID:   "react-dom",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),

@@ -313,6 +313,7 @@ func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions) {
 
 const bldrBuiltInsRequireShim = `
 import * as __bldr_React from 'react';
+import * as __bldr_ReactJsxRuntime from 'react/jsx-runtime';
 import * as __bldr_ReactDomIndex from 'react-dom';
 import * as __bldr_ReactDomClient from 'react-dom/client';
 import * as __bldr_AptreBldr from '@aptre/bldr';
@@ -321,6 +322,8 @@ const require = (pkgName) => {
   switch (pkgName) {
   case 'react':
     return __bldr_React;
+  case 'react/jsx-runtime':
+    return __bldr_ReactJsxRuntime;
   case 'react-dom':
     return __bldr_ReactDomIndex;
   case 'react-dom/client':

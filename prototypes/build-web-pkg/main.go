@@ -33,11 +33,11 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	refs := []*web_pkg_esbuild.WebPkgRef{{
 		WebPkgID:   "react",
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react"),
-		Imports:    []string{"index.js"},
+		Imports:    []string{"index.js", "jsx-runtime.js"},
 	}, {
 		WebPkgID:   "react-dom",
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react-dom"),
-		Imports:    []string{"client.js"},
+		Imports:    []string{"index.js", "client.js"},
 	}}
 	webPkgIds, srcPaths, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 		ctx,
