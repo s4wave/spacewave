@@ -147,7 +147,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 	}, {
 		WebPkgID:   "react-dom",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
-		Imports:    []string{"client.js", "index.js"},
+		Imports:    []string{"index.js", "client.js"},
 	}, {
 		WebPkgID:   "@aptre/bldr",
 		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
@@ -163,7 +163,8 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 		buildDir,
 		refs,
 		outDir,
-		"./pkgs/",
+		// "./pkgs/",
+		"/pkgs/",
 		false,
 	)
 	if err != nil {

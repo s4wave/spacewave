@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
@@ -82,6 +83,9 @@ func BuildWebPkgsEsbuild(
 		}
 
 		pkgPublicPath := path.Join(webPkgBasePath, webPkgID)
+		if strings.HasPrefix(webPkgBasePath, "./") {
+			pkgPublicPath = "./" + pkgPublicPath
+		}
 
 		// Create a temporary dir for the entrypoints
 		pkgBuildPath := webPkgRef.WebPkgRoot
@@ -179,6 +183,9 @@ func BuildWebPkgsEsbuild(
 		buildOpts.OutExtension = map[string]string{".js": ".mjs"}
 		buildOpts.Alias[pkgRootAlias] = webPkgRef.WebPkgRoot
 		buildOpts.Alias[webPkgID] = webPkgRef.WebPkgRoot
+
+		// see: https://github.com/evanw/esbuild/issues/399
+		buildOpts.Splitting = true
 
 		// externalize some packages
 		for _, toExternalize := range []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react"} {
