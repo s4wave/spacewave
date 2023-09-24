@@ -55,6 +55,7 @@ func BuildDefEsbuild(
 			return bundleDef
 		}
 
+		// construct build options
 		buildOpts := web_pkg_esbuild.BuildEsbuildBuildOpts(
 			le,
 			codeRootPath,
@@ -63,6 +64,11 @@ func BuildDefEsbuild(
 			isRelease,
 			true,
 		)
+
+		// https://github.com/evanw/esbuild/issues/1921
+		// NOTE: we can't use async import() here since require() is called w/o await.
+		FixEsbuildIssue1921(buildOpts)
+
 		bundleDef = &esbuildBundleDef{buildOpts: buildOpts}
 		bundles[bundleID] = bundleDef
 		return bundleDef
@@ -290,3 +296,41 @@ func BuildDefEsbuild(
 
 	return goVariableDefs, webPkgRefs, sourceFilesList, nil
 }
+
+// FixEsbuildIssue1921 fixes externalized esbuild imports failing with compiled commonjs modules.
+//
+// https://github.com/evanw/esbuild/issues/1921
+func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions) {
+	if opts.Banner == nil {
+		opts.Banner = make(map[string]string, 1)
+	}
+	old := opts.Banner["js"]
+	if len(old) != 0 {
+		old += "\n"
+	}
+	opts.Banner["js"] = old + bldrBuiltInsRequireShim
+}
+
+const bldrBuiltInsRequireShim = `
+import * as __bldr_React from 'react';
+import * as __bldr_ReactDomIndex from 'react-dom';
+import * as __bldr_ReactDomClient from 'react-dom/client';
+import * as __bldr_AptreBldr from '@aptre/bldr';
+import * as __bldr_AptreBldrReact from '@aptre/bldr-react';
+const require = (pkgName) => {
+  switch (pkgName) {
+  case 'react':
+    return __bldr_React;
+  case 'react-dom':
+    return __bldr_ReactDomIndex;
+  case 'react-dom/client':
+    return __bldr_ReactDomClient;
+  case '@aptre/bldr':
+    return __bldr_AptreBldr;
+  case '@aptre/bldr-react':
+    return __bldr_AptreBldrReact;
+  default:
+    throw Error('Dynamic require of "' + pkgName + '" is not supported: see esbuild issue 1921.');
+  }
+};
+`

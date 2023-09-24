@@ -17,6 +17,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// https://github.com/evanw/esbuild/issues/1921
 // NOTE: we can't use async import() here since require() is called w/o await.
 const reactDomImportShim = `
 import * as __bldr_React from 'react';
