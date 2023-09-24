@@ -117,7 +117,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 
 	if flag&int(os.O_CREATE) != 0 {
 		// billyfs expects: create directories as needed
-		if filedir != "." {
+		if len(filedir) != 0 && filedir != "." {
 			if err := f.MkdirAll(filedir, 0755); err != nil {
 				return nil, err
 			}
@@ -125,7 +125,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 	}
 
 	var h *unixfs.FSHandle
-	if filedir == "." {
+	if len(filedir) == 0 || filedir == "." {
 		h = f.h
 	} else {
 		dirHandle, _, err := f.h.LookupPath(f.ctx, filedir)
