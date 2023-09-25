@@ -72,8 +72,8 @@ github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a h1:/xsy
 github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a/go.mod h1:Xy3hcQA28rRTR/zduljtUihrM7YuHPnTovkPXNraBE8=
 github.com/aperturerobotics/hidalgo v0.2.1-0.20230526002043-6e494c6ad96b h1:Aui1o2SoE7J8T57YAkUdR3H2EqPAgC7wlyBuxOgqfDo=
 github.com/aperturerobotics/hidalgo v0.2.1-0.20230526002043-6e494c6ad96b/go.mod h1:2d9OYyDt8CXLHX1jan1yFWuUzBxoGCJlcWsVt7XDGyU=
-github.com/aperturerobotics/hydra v0.0.0-20230924100819-2a803f9edaea h1:8WIK4V0cHeVBiWwtPHRZXMg84DqjGnb7YPyeOukZFd4=
-github.com/aperturerobotics/hydra v0.0.0-20230924100819-2a803f9edaea/go.mod h1:gFTmwB2fjrVHPmC0j010Eoo0W4PfrHYfXfUocK5/sIU=
+github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46 h1:wWMzPBRfHXhOJTGb1CLNvoZc6Pmd7Gi9gty8aPFkoiY=
+github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46/go.mod h1:gFTmwB2fjrVHPmC0j010Eoo0W4PfrHYfXfUocK5/sIU=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af h1:nRveANX8PK0j+6M+d6Hyl45W+fQpg6BDBfcrrFMbbrw=
 github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 h1:tmSL70kLHo6vJZU8IaeeXP+3RujVdIAEgsu/XVYyn/4=
@@ -86,8 +86,8 @@ github.com/aperturerobotics/timestamp v0.8.0 h1:33HLje1vrCWCOfLLaUi7Lgyz/1U9xTas
 github.com/aperturerobotics/timestamp v0.8.0/go.mod h1:nrwzlUGvxs244CIBjDWHZ8qRudqk8m/SQ5n5GKXaFVw=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0 h1:OtlIxcXjfRDvgY2OQC6dZSiAAXral6kaZ+kD+JviZo0=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0/go.mod h1:8QXVbEzjPvsaxWQ5RgZtAA9CcOdhWDyMaYdWVKZo8To=
-github.com/aperturerobotics/util v1.7.5-0.20230918214141-e977bceb5eeb h1:s7zHMTDsR5oQF3zajwHWLnp4qK5UPMQ27Vr1WuS8Cwo=
-github.com/aperturerobotics/util v1.7.5-0.20230918214141-e977bceb5eeb/go.mod h1:IlAJoxX0lIs+ppF8+neAZ08DpMZDBQaaDPoIHcGKiYk=
+github.com/aperturerobotics/util v1.7.5 h1:mP9C2uZuKL2EHsXYXwS7xEq7SIICwRjPbQoGSw5TdAM=
+github.com/aperturerobotics/util v1.7.5/go.mod h1:gugu+Tiiiy9UxrLYN711yzwFhV6ztbEItr33CrXqRKQ=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
@@ -822,8 +822,8 @@ golang.org/x/sys v0.0.0-20220908164124-27713097b956/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.3.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.12.1-0.20230915184527-c7ff727a8c41 h1:SKKUG6lEsyR+Pa+g6CYbQyZbS+2hRNzRxLEcMTN0O/w=
-golang.org/x/sys v0.12.1-0.20230915184527-c7ff727a8c41/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.12.1-0.20230922162325-aa9470e40da9 h1:WC+rGRJR7w7pPh7UZzPM5v7BTFNngogQD0WsZPSO3qY=
+golang.org/x/sys v0.12.1-0.20230922162325-aa9470e40da9/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210927222741-03fcf44c2211/go.mod h1:jbD1KX2456YbFQfuXm/mYQcufACuNUgVhRMnK/tPxf8=
 golang.org/x/term v0.12.0 h1:/ZfYdc3zq+q02Rv9vGqTeSItdzZTSNDmfTi0mBAuidU=

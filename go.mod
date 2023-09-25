@@ -2,7 +2,7 @@ module github.com/aperturerobotics/bldr
 
 go 1.21
 
-require github.com/aperturerobotics/hydra v0.0.0-20230924100819-2a803f9edaea
+require github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46
 
 require (
 	github.com/evanw/esbuild v0.19.2 // latest
@@ -64,7 +64,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.5-0.20230918214141-e977bceb5eeb // master
+	github.com/aperturerobotics/util v1.7.5 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -215,7 +215,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/net v0.15.0 // indirect
-	golang.org/x/sys v0.12.1-0.20230915184527-c7ff727a8c41 // indirect
+	golang.org/x/sys v0.12.1-0.20230922162325-aa9470e40da9 // indirect
 	golang.org/x/term v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
