@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.21
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20230918212937-71b54141dbe0
+	github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46
 	github.com/aperturerobotics/identity v0.0.0-20230818200115-3bf5491d950a
 )
 
@@ -11,7 +11,7 @@ require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.3-0.20230901060112-7c3514d41806 // master
+require github.com/aperturerobotics/bifrost v0.18.3 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -42,7 +42,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.4-0.20230918212448-9aa9a8272bff // latest
+	github.com/aperturerobotics/controllerbus v0.30.4 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.20.1 // latest
 )
@@ -55,7 +55,7 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.37.2-0.20230823004354-8e92e689f0a1 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.38.1-0.20230825183957-c8fe91ef0573 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
 	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
@@ -64,7 +64,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.3 // master
+	github.com/aperturerobotics/util v1.7.4 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -88,7 +88,7 @@ require (
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.12.0
+	golang.org/x/crypto v0.13.0
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0
 	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
@@ -108,7 +108,7 @@ require (
 	filippo.io/edwards25519 v1.0.1-0.20220803165937-8c58ed0e3550 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
-	github.com/Workiva/go-datastructures v1.1.0 // indirect
+	github.com/Workiva/go-datastructures v1.1.1 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/bits-and-blooms/bitset v1.8.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
@@ -164,7 +164,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.62 // indirect
+	github.com/minio/minio-go/v7 v7.0.63 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -214,15 +214,15 @@ require (
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
-	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/term v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/sys v0.12.1-0.20230915184527-c7ff727a8c41 // indirect
+	golang.org/x/term v0.12.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230821203513-6eca6dfbb247 // indirect
+	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
 	google.golang.org/grpc v1.45.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

@@ -16,7 +16,7 @@
     }
   ],
   "repository": {
-    "url": "git@github.com:aperturerobotics/forge.git"
+    "url": "git+ssh://git@github.com/aperturerobotics/forge.git"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",
@@ -42,15 +42,15 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.6.4",
+    "@aperturerobotics/ts-common": "^0.6.5",
     "@typescript-eslint/eslint-plugin": "^6.7.2",
     "@typescript-eslint/parser": "^6.7.2",
     "depcheck": "^1.4.6",
-    "eslint": "^8.49.0",
+    "eslint": "^8.50.0",
     "eslint-config-prettier": "^9.0.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.0.3",
-    "ts-proto": "^1.157.1",
+    "ts-proto": "^1.158.0",
     "typescript": "^5.2.2"
   },
   "dependencies": {
