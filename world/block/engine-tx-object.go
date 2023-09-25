@@ -138,7 +138,13 @@ func (t *EngineTxObjectState) WaitRev(
 			return currRev, nil
 		}
 
-		seqno, err = t.t.engine.WaitSeqno(ctx, seqno+1)
+		// If this is a write transaction: wait for any change to the write
+		// transaction to exceed the seqno. Otherwise, wait for the engine.
+		if writeTx := t.t.writeTx; writeTx != nil {
+			seqno, err = writeTx.WaitSeqno(ctx, seqno+1)
+		} else {
+			seqno, err = t.t.engine.WaitSeqno(ctx, seqno+1)
+		}
 		if err != nil {
 			return 0, err
 		}

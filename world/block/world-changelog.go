@@ -8,7 +8,8 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// queueWorldChange adds a world change to the apply queue.
+// queueWorldChange adds a world change to the apply queue and updates the seqno.
+// expects rmtx to be locked
 // returns nil, nil if changelog disabled
 func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*block.Cursor, error) {
 	if w == nil {
@@ -29,7 +30,26 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	changeBcs := t.bcs.Detach(false)
 	changeBcs.SetBlock(w, true)
 	t.pendingChanges = append(t.pendingChanges, changeBcs)
+
+	// estimate next sequence number
+	currSeqno := r.GetLastChange().GetSeqno()
+	nextSeqno := currSeqno + uint64(len(t.pendingChanges))
+	t.pendingSeqno = nextSeqno
+
+	// proc waiters
+	t.procWaiters(nextSeqno)
+
 	return changeBcs, nil
+}
+
+// procWaiters calls all waiters.
+// expects rmtx to be locked
+func (w *WorldState) procWaiters(nseqno uint64) {
+	proc := w.waiters
+	w.waiters = nil
+	for _, w := range proc {
+		w(nseqno)
+	}
 }
 
 // flushWorldChanges flushes the queued world changes to the log.

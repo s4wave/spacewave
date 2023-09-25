@@ -39,6 +39,7 @@ type WorldState struct {
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
 
+	pendingSeqno   uint64
 	pendingChanges []*block.Cursor // *WorldChange
 
 	// mtx guards below fields only
@@ -121,7 +122,9 @@ func (t *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return w.GetLastChange().GetSeqno(), nil
+
+	seqno := w.GetLastChange().GetSeqno()
+	return max(t.pendingSeqno, seqno), nil
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
@@ -226,7 +229,6 @@ func (t *WorldState) ApplyWorldOp(
 	if err != nil {
 		return 0, true, err
 	}
-	seq += uint64(len(t.pendingChanges))
 	return seq, false, nil
 }
 

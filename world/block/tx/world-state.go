@@ -145,6 +145,7 @@ func (w *WorldState) ApplyWorldOp(
 			seqno = w.seqno
 		}
 	}
+
 	return seqno, sysErr, err
 }
 
