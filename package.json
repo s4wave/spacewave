@@ -55,7 +55,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.6.5",
+    "@aperturerobotics/ts-common": "^0.6.6",
     "@types/random-string": "^0.0.28",
     "@types/react": "^18.2.22",
     "@types/react-dom": "^18.2.7",
@@ -81,13 +81,14 @@
     "@libp2p/mplex": "^9.0.6",
     "browser-readablestream-to-it": "^2.0.4",
     "console": "^0.7.2",
+    "electron": "^26.2.2",
     "event-iterator": "^2.0.0",
     "idb": "^7.1.1",
     "long": "^5.2.1",
     "protobufjs": "^7.2.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.20.1",
+    "starpc": "^0.21.2",
     "uint8arraylist": "^2.4.3",
     "workbox-window": "^7.0.0"
   }

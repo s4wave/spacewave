@@ -16,7 +16,7 @@ import (
 //go:embed web/bldr/*.ts web/bldr/*.tsx
 //go:embed web/document/*.ts web/view/*.ts
 //go:embed web/electron web/entrypoint web/index.html
-//go:embed web/fetch/*.ts web/leader/*.ts
+//go:embed web/fetch/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go

@@ -1,5 +1,6 @@
-import type { Duplex, Sink } from 'it-stream-types'
+import type { Sink, Source } from 'it-stream-types'
 import { pushable, Pushable } from 'it-pushable'
+import { Stream } from 'starpc'
 
 // ChannelStreamMessage is a message sent over the stream.
 interface ChannelStreamMessage<T> {
@@ -21,19 +22,16 @@ interface ChannelStreamMessage<T> {
 type Channel = MessagePort | { tx: BroadcastChannel; rx: BroadcastChannel }
 
 // ChannelStream implements a Stream over a BroadcastChannel duplex or MessagePort.
-// Note: TSource and TSink must be primitives or basic objects.
-export class ChannelStream<TSource, TSink = TSource>
-  implements Duplex<TSource, TSink>
-{
+export class ChannelStream<T> implements Stream<T> {
   // channel is the read/write channel.
   public readonly channel: Channel
   // sink is the sink for incoming messages.
-  public sink: Sink<TSink>
+  public sink: Sink<Source<T>, Promise<void>>
   // source is the source for outgoing messages.
-  public source: AsyncIterable<TSource>
+  public source: AsyncGenerator<T>
   // _source emits incoming data to the source.
   private readonly _source: {
-    push: (val: TSource) => void
+    push: (val: T) => void
     end: (err?: Error) => void
   }
   // localId is the local identifier
@@ -98,7 +96,7 @@ export class ChannelStream<TSource, TSink = TSource>
       this.waitRemoteAck.catch(() => {})
     }
 
-    const source: Pushable<TSource> = pushable({ objectMode: true })
+    const source: Pushable<T> = pushable({ objectMode: true })
     this.source = source
     this._source = source
 
@@ -113,7 +111,7 @@ export class ChannelStream<TSource, TSink = TSource>
   }
 
   // postMessage writes a message to the stream.
-  private postMessage(msg: Partial<ChannelStreamMessage<TSink>>) {
+  private postMessage(msg: Partial<ChannelStreamMessage<T>>) {
     msg.from = this.localId
     if (this.channel instanceof MessagePort) {
       this.channel.postMessage(msg)
@@ -169,9 +167,8 @@ export class ChannelStream<TSource, TSink = TSource>
     }
   }
 
-  // _createSink initializes the sink field.
-  private _createSink(): Sink<TSink> {
-    return async (source) => {
+  private _createSink(): Sink<Source<T>, Promise<void>> {
+    return async (source: Source<T>) => {
       // make sure the remote is open before we send any data.
       await this.waitRemoteAck
       this.onLocalOpened()
@@ -184,10 +181,12 @@ export class ChannelStream<TSource, TSink = TSource>
       } catch (error) {
         this.postMessage({ closed: true, error: error as Error })
       }
+
+      return Promise.resolve()
     }
   }
 
-  private onMessage(ev: MessageEvent<ChannelStreamMessage<TSource>>) {
+  private onMessage(ev: MessageEvent<ChannelStreamMessage<T>>) {
     const msg = ev.data
     if (!msg || msg.from === this.localId || !msg.from) {
       return
@@ -213,13 +212,13 @@ export class ChannelStream<TSource, TSink = TSource>
 }
 
 // newBroadcastChannelStream constructs a ChannelStream with a channel name.
-export function newBroadcastChannelStream<TSource, TSink = TSource>(
+export function newBroadcastChannelStream<T>(
   id: string,
   readName: string,
   writeName: string,
   remoteOpen: boolean,
-): ChannelStream<TSource, TSink> {
-  return new ChannelStream<TSource, TSink>(
+): ChannelStream<T> {
+  return new ChannelStream<T>(
     id,
     { tx: new BroadcastChannel(writeName), rx: new BroadcastChannel(readName) },
     remoteOpen,

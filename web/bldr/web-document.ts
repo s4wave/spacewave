@@ -10,8 +10,8 @@ import {
   handleRpcStream,
   buildRpcStreamOpenStream,
   RpcStreamGetter,
+  Stream,
 } from 'starpc'
-import { Duplex } from 'it-stream-types'
 import { Workbox } from 'workbox-window'
 
 import {
@@ -354,7 +354,6 @@ export class WebDocument {
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
     // NOTE: scope can only be narrower than paths below the script path.
-    // NOTE: leader controls all the pages in this browsing context.
     const swUrl = '/sw.mjs'
     console.log('WebDocument: registering service worker', swUrl)
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
@@ -380,7 +379,7 @@ export class WebDocument {
   }
 
   // openWebDocumentHostStream opens a stream with the WebDocumentHost.
-  public async openWebDocumentHostStream(): Promise<Duplex<Uint8Array>> {
+  public async openWebDocumentHostStream(): Promise<Stream> {
     const channel = new MessageChannel()
     const localPort = channel.port1
     const channelStream = new ChannelStream<Uint8Array>(

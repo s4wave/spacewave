@@ -12,7 +12,7 @@ import {
   OpenStreamFunc,
 } from 'starpc'
 import { pipe } from 'it-pipe'
-import { Duplex } from 'it-stream-types'
+import { Duplex, Source } from 'it-stream-types'
 
 import {
   WebRuntimeClientInit,
@@ -51,7 +51,7 @@ class WebRuntimeClientInstance {
   //
   // note: the stream has message framing (via postMessage)
   // it is not necessary to use length prefixing for packets
-  public async openStream(): Promise<Duplex<Uint8Array>> {
+  public async openStream(): Promise<Duplex<Source<Uint8Array>>> {
     const channel = new MessageChannel()
     const localPort = channel.port1
     const remotePort = channel.port2
