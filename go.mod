@@ -5,7 +5,7 @@ go 1.21
 require github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46
 
 require (
-	github.com/evanw/esbuild v0.19.2 // latest
+	github.com/evanw/esbuild v0.19.3 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 )
@@ -44,7 +44,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.30.4 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
-	github.com/aperturerobotics/starpc v0.21.0 // latest
+	github.com/aperturerobotics/starpc v0.21.2 // latest
 )
 
 // aperture: use compatibility forks
@@ -69,7 +69,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.16.7
+	github.com/klauspost/compress v1.17.0
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
@@ -96,11 +96,11 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.0
+	github.com/Microsoft/go-winio v0.6.1
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a
 	github.com/aperturerobotics/timestamp v0.8.0
 	github.com/cayleygraph/quad v1.2.4
-	github.com/fatih/color v1.12.0
+	github.com/fatih/color v1.15.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/sergi/go-diff v1.3.1
@@ -162,7 +162,7 @@ require (
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect

@@ -75,8 +75,8 @@ github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlz
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
 github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46 h1:wWMzPBRfHXhOJTGb1CLNvoZc6Pmd7Gi9gty8aPFkoiY=
 github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46/go.mod h1:gFTmwB2fjrVHPmC0j010Eoo0W4PfrHYfXfUocK5/sIU=
-github.com/aperturerobotics/starpc v0.21.0 h1:K+Ey1fxK7bq8wCsM/7uxoU901q4g5rx1IPcM4f9OlcY=
-github.com/aperturerobotics/starpc v0.21.0/go.mod h1:0RYBcmV7HGTqsFuOEJBhK6FCXaJiMrh8jetELYjA+s0=
+github.com/aperturerobotics/starpc v0.21.2 h1:v5P5VttYDeoXlVWKDwEMo9v29dcJEV9dW7n4MeWUbVs=
+github.com/aperturerobotics/starpc v0.21.2/go.mod h1:Q3T2anjw2P6gkJq7gp3vAO+pniPgv3Qx1uaX/mOuzWk=
 github.com/aperturerobotics/timestamp v0.8.0 h1:33HLje1vrCWCOfLLaUi7Lgyz/1U9xTasNCw0PtLiDGc=
 github.com/aperturerobotics/timestamp v0.8.0/go.mod h1:nrwzlUGvxs244CIBjDWHZ8qRudqk8m/SQ5n5GKXaFVw=
 github.com/aperturerobotics/util v1.7.5 h1:mP9C2uZuKL2EHsXYXwS7xEq7SIICwRjPbQoGSw5TdAM=
@@ -141,8 +141,8 @@ github.com/esimonov/ifshort v1.0.4 h1:6SID4yGWfRae/M7hkVDVVyppy8q/v9OuxNdmjLQStB
 github.com/esimonov/ifshort v1.0.4/go.mod h1:Pe8zjlRrJ80+q2CxHLfEOfTwxCZ4O+MuhcHcfgNWTk0=
 github.com/ettle/strcase v0.1.1 h1:htFueZyVeE1XNnMEfbqp5r67qAN/4r6ya1ysq8Q+Zcw=
 github.com/ettle/strcase v0.1.1/go.mod h1:hzDLsPC7/lwKyBOywSHEP89nt2pDgdy+No1NBA9o9VY=
-github.com/evanw/esbuild v0.19.2 h1:Ju+VvhVepfXW+sNQ189j9aLK4brlN36lEZUajJaK3Ig=
-github.com/evanw/esbuild v0.19.2/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
+github.com/evanw/esbuild v0.19.3 h1:foPr0xwQM3lBWKBtscauTN9FrmJzRDVI2+EGOs82H/I=
+github.com/evanw/esbuild v0.19.3/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/fatih/color v1.15.0 h1:kOqh6YHBtK8aywxGerMG2Eq3H6Qgoqeo13Bk2Mv/nBs=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
 github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
