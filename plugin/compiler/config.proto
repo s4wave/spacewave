@@ -65,6 +65,11 @@ message Config {
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
   bool enable_cgo = 9;
+
+  // EsbuildFlags is a string containing additional flags to pass to esbuild.
+  // Flags passed by bldr:esbuild directives can override these values.
+  // E.x.: --target es2020
+  repeated string esbuild_flags = 10;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

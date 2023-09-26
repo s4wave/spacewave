@@ -12,7 +12,7 @@ import {
 } from '../../bldr/web-runtime.js'
 
 import { duplex } from 'it-ws'
-import WebSocket from 'it-ws/dist/src/web-socket.js';
+import WebSocket from 'it-ws/dist/src/web-socket.js'
 
 import { pipe } from 'it-pipe'
 // import { MessagePortIterable } from 'starpc'

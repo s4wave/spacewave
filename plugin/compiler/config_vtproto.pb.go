@@ -68,6 +68,11 @@ func (m *Config) CloneVT() *Config {
 		copy(tmpContainer, rhs)
 		r.WebPkgs = tmpContainer
 	}
+	if rhs := m.EsbuildFlags; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EsbuildFlags = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -188,6 +193,15 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.EnableCgo != that.EnableCgo {
 		return false
 	}
+	if len(this.EsbuildFlags) != len(that.EsbuildFlags) {
+		return false
+	}
+	for i, vx := range this.EsbuildFlags {
+		vy := that.EsbuildFlags[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -246,6 +260,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EsbuildFlags) > 0 {
+		for iNdEx := len(m.EsbuildFlags) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.EsbuildFlags[iNdEx])
+			copy(dAtA[i:], m.EsbuildFlags[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.EsbuildFlags[iNdEx])))
+			i--
+			dAtA[i] = 0x52
+		}
 	}
 	if m.EnableCgo {
 		i--
@@ -506,6 +529,12 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.EnableCgo {
 		n += 2
+	}
+	if len(m.EsbuildFlags) > 0 {
+		for _, s := range m.EsbuildFlags {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1022,6 +1051,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.EnableCgo = bool(v != 0)
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildFlags", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

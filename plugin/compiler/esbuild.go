@@ -28,6 +28,7 @@ func BuildDefEsbuild(
 	codeRootPath string,
 	codeFiles map[string][]*ast.File,
 	fset *token.FileSet,
+	baseEsbuildOpts *esbuild_api.BuildOptions,
 	pkgs map[string](map[string]*EsbuildArgs),
 	webPkgs []string,
 	outAssetsPath string,
@@ -68,6 +69,11 @@ func BuildDefEsbuild(
 		// https://github.com/evanw/esbuild/issues/1921
 		// NOTE: we can't use async import() here since require() is called w/o await.
 		FixEsbuildIssue1921(buildOpts)
+
+		// merge options set by baseEsbuildOpts
+		if baseEsbuildOpts != nil {
+			web_pkg_esbuild.MergeEsbuildBuildOpts(buildOpts, baseEsbuildOpts)
+		}
 
 		bundleDef = &esbuildBundleDef{buildOpts: buildOpts}
 		bundles[bundleID] = bundleDef

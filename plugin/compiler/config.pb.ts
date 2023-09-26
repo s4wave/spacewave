@@ -75,6 +75,12 @@ export interface Config {
    * https://github.com/golang/go/issues/57120#issuecomment-1420752516
    */
   enableCgo: boolean;
+  /**
+   * EsbuildFlags is a string containing additional flags to pass to esbuild.
+   * Flags passed by bldr:esbuild directives can override these values.
+   * E.x.: --target es2020
+   */
+  esbuildFlags: string[];
 }
 
 export interface Config_ConfigSetEntry {
@@ -107,6 +113,7 @@ function createBaseConfig(): Config {
     disableFetchAssets: false,
     delveAddr: "",
     enableCgo: false,
+    esbuildFlags: [],
   };
 }
 
@@ -138,6 +145,9 @@ export const Config = {
     }
     if (message.enableCgo === true) {
       writer.uint32(72).bool(message.enableCgo);
+    }
+    for (const v of message.esbuildFlags) {
+      writer.uint32(82).string(v!);
     }
     return writer;
   },
@@ -218,6 +228,13 @@ export const Config = {
 
           message.enableCgo = reader.bool();
           continue;
+        case 10:
+          if (tag !== 82) {
+            break;
+          }
+
+          message.esbuildFlags.push(reader.string());
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -280,6 +297,7 @@ export const Config = {
       disableFetchAssets: isSet(object.disableFetchAssets) ? Boolean(object.disableFetchAssets) : false,
       delveAddr: isSet(object.delveAddr) ? String(object.delveAddr) : "",
       enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
+      esbuildFlags: Array.isArray(object?.esbuildFlags) ? object.esbuildFlags.map((e: any) => String(e)) : [],
     };
   },
 
@@ -324,6 +342,9 @@ export const Config = {
     if (message.enableCgo === true) {
       obj.enableCgo = message.enableCgo;
     }
+    if (message.esbuildFlags?.length) {
+      obj.esbuildFlags = message.esbuildFlags;
+    }
     return obj;
   },
 
@@ -357,6 +378,7 @@ export const Config = {
     message.disableFetchAssets = object.disableFetchAssets ?? false;
     message.delveAddr = object.delveAddr ?? "";
     message.enableCgo = object.enableCgo ?? false;
+    message.esbuildFlags = object.esbuildFlags?.map((e) => e) || [];
     return message;
   },
 };

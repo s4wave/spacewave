@@ -25,6 +25,7 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/blang/semver"
+	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -211,6 +212,11 @@ func (c *Controller) BuildManifest(
 	// Enable cgo only if flag is set (for reproducible builds)
 	enableCgo := pluginBuildConf.GetEnableCgo()
 
+	baseEsbuildOpts, err := pluginBuildConf.ParseEsbuildFlags()
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO: if no Go files changed, rebuild esbuild assets only (hot reload)
 	/*
 		prevResult := args.GetPrevBuilderResult()
@@ -241,6 +247,7 @@ func (c *Controller) BuildManifest(
 		pluginBuildConf.GetDelveAddr(),
 		configSet,
 		enableCgo,
+		baseEsbuildOpts,
 	)
 	if err != nil {
 		return nil, err
@@ -310,6 +317,7 @@ func (c *Controller) BuildPlugin(
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
 	enableCgo bool,
+	baseEsbuildOpts *esbuild_api.BuildOptions,
 ) (*Analysis, []string, error) {
 	// plugin id
 	pluginID := pluginMeta.GetPluginId()
@@ -401,11 +409,13 @@ func (c *Controller) BuildPlugin(
 	}
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
+
 		esbuildVarDefs, esbuildWebPkgRefs, esbuildSrcFiles, err := BuildDefEsbuild(
 			le,
 			sourcePath,
 			codeFiles,
 			fset,
+			baseEsbuildOpts,
 			esbuildPkgs,
 			webPkgs,
 			outAssetsPath,

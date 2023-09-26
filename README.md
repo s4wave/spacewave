@@ -156,11 +156,13 @@ with the same bundle ID will be combined together into a single esbuild bundle
 request, with one esbuild entrypoint per bldr:esbuild directive. If you want to
 have a separate bundle, specify a different `--bundle-id=value` in the comment.
 
+Flags can also be specified in the plugin compiler config with "esbuildFlags".
+
 ## Developing
 
 You need the following tools installed:
 
- - [Go](https://golang.org) >= 1.20
+ - [Go](https://golang.org) >= 1.21
  - If using UI: [Node](https://nodejs.org)
  - Yarn `npm install -g yarn`
 
