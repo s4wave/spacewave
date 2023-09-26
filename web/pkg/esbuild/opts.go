@@ -67,6 +67,10 @@ func BuildEsbuildBuildOpts(
 		addLoader("."+ext, esbuild_api.LoaderFile)
 	}
 
+	// add css module loader
+	// https://esbuild.github.io/content-types/#local-css
+	addLoader(".module.css", esbuild_api.LoaderLocalCSS)
+
 	// bldr provides itself and react via an importmap
 	buildOpts.External = append(buildOpts.External,
 		"react",
