@@ -8,6 +8,7 @@ import (
 	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
+	"github.com/evanw/esbuild/pkg/api"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -55,9 +56,9 @@ func BuildEsbuildPlugin(
 				}
 
 				// Use esbuild's resolution algorithm.
-				resolvePkgPath := func(path string) (string, error) {
+				resolvePkgPath := func(path string, kind api.ResolveKind) (string, error) {
 					res := pb.Resolve(path, esbuild_api.ResolveOptions{
-						Kind:       ora.Kind,
+						Kind:       kind,
 						ResolveDir: ora.ResolveDir,
 						Importer:   ora.Importer,
 						Namespace:  "bldr-pkg-resolve",
@@ -69,7 +70,10 @@ func BuildEsbuildPlugin(
 				}
 
 				// First resolve the path to the root of the web pkg.
-				resPkgRoot, err := resolvePkgPath(path.Join(webPkgID, "package.json"))
+				resPkgRoot, err := resolvePkgPath(
+					path.Join(webPkgID, "package.json"),
+					api.ResolveJSImportStatement,
+				)
 				if err != nil {
 					return result, err
 				}
@@ -77,7 +81,7 @@ func BuildEsbuildPlugin(
 
 				// Rewrite the import path to be more specific, if necessary:
 				// e.g. "react-dom/client" -> react-dom/client.js according to "exports" in package.json
-				resPkgSubPath, err := resolvePkgPath(ora.Path)
+				resPkgSubPath, err := resolvePkgPath(ora.Path, ora.Kind)
 				if err != nil {
 					return result, err
 				}

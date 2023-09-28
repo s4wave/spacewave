@@ -30,6 +30,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	}
 	rootDir := filepath.Join(wd, "../../")
 	outDir := filepath.Join(wd, "out")
+
 	refs := []*web_pkg_esbuild.WebPkgRef{{
 		WebPkgID:   "react",
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react"),
@@ -39,6 +40,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react-dom"),
 		Imports:    []string{"index.js", "client.js"},
 	}}
+
 	webPkgIds, srcPaths, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 		ctx,
 		le,

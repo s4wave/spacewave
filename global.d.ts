@@ -12,3 +12,9 @@ declare module '*.svg' {
   export default value;
 }
 
+// Declare WebkitAppRegion
+declare module 'csstype' {
+  interface StandardLonghandProperties {
+    WebkitAppRegion?: 'drag' | 'no-drag' | string;
+  }
+}
