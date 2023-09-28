@@ -1,9 +1,12 @@
 package web_pkg_esbuild
 
 // mergeMapOverwrite merges two maps together overwriting values in target.
-func mergeMapOverwrite[K comparable, T any](target, source map[K]T) {
+func mergeMapOverwrite[K comparable, T any](target *map[K]T, source map[K]T) {
+	if *target == nil {
+		*target = make(map[K]T)
+	}
 	for k, v := range source {
-		target[k] = v
+		(*target)[k] = v
 	}
 }
 

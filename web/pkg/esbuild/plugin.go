@@ -137,7 +137,10 @@ func MergeEsbuildBuildOpts(target, source *esbuild_api.BuildOptions) {
 	if len(source.Engines) != 0 {
 		target.Engines = source.Engines
 	}
-	mergeMapOverwrite(target.Supported, source.Supported)
+	mergeValueIfSet(&target.LogLevel, source.LogLevel)
+	mergeValueIfSet(&target.LogLimit, source.LogLimit)
+	mergeMapOverwrite(&target.LogOverride, source.LogOverride)
+	mergeMapOverwrite(&target.Supported, source.Supported)
 	mergeValueIfSet(&target.MangleProps, source.MangleProps)
 	mergeValueIfSet(&target.ReserveProps, source.ReserveProps)
 	mergeValueIfSet(&target.MangleQuoted, source.MangleQuoted)
@@ -150,7 +153,7 @@ func MergeEsbuildBuildOpts(target, source *esbuild_api.BuildOptions) {
 	mergeValueIfSet(&target.JSXImportSource, source.JSXImportSource)
 	mergeValueIfSet(&target.JSXDev, source.JSXDev)
 	mergeValueIfSet(&target.JSXSideEffects, source.JSXSideEffects)
-	mergeMapOverwrite(target.Define, source.Define)
+	mergeMapOverwrite(&target.Define, source.Define)
 	if len(source.Pure) != 0 {
 		target.Pure = append(target.Pure, source.Pure...)
 	}
@@ -160,24 +163,24 @@ func MergeEsbuildBuildOpts(target, source *esbuild_api.BuildOptions) {
 		target.External = append(target.External, source.External...)
 	}
 	mergeValueIfSet(&target.Packages, source.Packages)
-	mergeMapOverwrite(target.Alias, source.Alias)
+	mergeMapOverwrite(&target.Alias, source.Alias)
 	if len(source.MainFields) != 0 {
 		target.MainFields = append(target.MainFields, source.MainFields...)
 	}
 	if len(source.Conditions) != 0 {
 		target.Conditions = append(target.Conditions, source.Conditions...)
 	}
-	mergeMapOverwrite(target.Loader, source.Loader)
+	mergeMapOverwrite(&target.Loader, source.Loader)
 	if len(source.ResolveExtensions) != 0 {
 		target.ResolveExtensions = append(target.ResolveExtensions, source.ResolveExtensions...)
 	}
 	mergeValueIfSet(&target.Tsconfig, source.Tsconfig)
-	mergeMapOverwrite(target.OutExtension, source.OutExtension)
+	mergeMapOverwrite(&target.OutExtension, source.OutExtension)
 	if len(source.Inject) != 0 {
 		target.Inject = append(target.Inject, source.Inject...)
 	}
-	mergeMapOverwrite(target.Banner, source.Banner)
-	mergeMapOverwrite(target.Footer, source.Footer)
+	mergeMapOverwrite(&target.Banner, source.Banner)
+	mergeMapOverwrite(&target.Footer, source.Footer)
 	mergeValueIfSet(&target.EntryNames, source.EntryNames)
 	mergeValueIfSet(&target.ChunkNames, source.ChunkNames)
 	mergeValueIfSet(&target.AssetNames, source.AssetNames)
