@@ -176,8 +176,6 @@ github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad/go.m
 github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d/go.mod h1:cXg6YxExXjJnVBQHBLXeUAgxn2UodCpnH306RInaBQk=
 github.com/envoyproxy/go-control-plane v0.9.10-0.20210907150352-cf90f659a021/go.mod h1:AFq3mo9L8Lqqiid3OhADV3RfLJnjiw63cSpi+fDTRC0=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
-github.com/evanw/esbuild v0.19.3 h1:foPr0xwQM3lBWKBtscauTN9FrmJzRDVI2+EGOs82H/I=
-github.com/evanw/esbuild v0.19.3/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.15.0 h1:kOqh6YHBtK8aywxGerMG2Eq3H6Qgoqeo13Bk2Mv/nBs=
 github.com/fatih/color v1.15.0/go.mod h1:0h5ZqXfHYED7Bhv2ZJamyIOUej9KtShiJESRwBDUSsw=
@@ -459,6 +457,8 @@ github.com/onsi/gomega v1.27.8 h1:gegWiwZjBsf2DgiSbf5hpokZ98JVDMcWkUiigk6/KXc=
 github.com/onsi/gomega v1.27.8/go.mod h1:2J8vzI/s+2shY9XHRApDkdgPo1TKT7P2u6fXeJKFnNQ=
 github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb h1:TovWNMdDXg+PcU/4EX9VFdnaC8IG3rLXJdmuk6A4EEo=
 github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb/go.mod h1:opUwvtQEv6hbheTyWeDgvb8CrqPHp8ggJetOOiAQODI=
+github.com/paralin/esbuild v0.0.0-20230929084030-8ef5fca6512f h1:xnJ888uZBg6F+9Dy5+43LFtzA1GZFVrDfEDpXFiPR90=
+github.com/paralin/esbuild v0.0.0-20230929084030-8ef5fca6512f/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/paralin/go-indexeddb v1.1.0 h1:pVIq9VSSXqkNCV6Fp5ygjkZZXLvj+FOI4J6gkoOW/WY=
 github.com/paralin/go-indexeddb v1.1.0/go.mod h1:QqFTdYE+f4otdjFysBurd4BSjrHno7DXZnDDdE4RE1Y=
 github.com/paralin/go-multiaddr v0.10.2-0.20230807174004-e1767541c061 h1:iyLv/nZoLEQu9I/Y6CaitdPmt7GXwuiQPtkOU6E22Zo=

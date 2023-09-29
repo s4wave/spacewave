@@ -107,9 +107,10 @@ func BuildWebPkgsEsbuild(
 			// pass other imports directly to esbuild as-is
 			ext := filepath.Ext(webPkgImpPath)
 			if !determine_cjs_exports.SupportsExtension(ext) {
+				// strip the output file extension, esbuild will add it automatically
 				buildEntrypoints[i] = esbuild_api.EntryPoint{
 					InputPath:  webPkgImpPath,
-					OutputPath: impOutPath,
+					OutputPath: impOutPath[:len(impOutPath)-len(path.Ext(impOutPath))],
 				}
 				continue
 			}

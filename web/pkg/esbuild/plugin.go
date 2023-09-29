@@ -34,6 +34,9 @@ func BuildEsbuildPlugin(
 				Namespace: "file",
 			}, func(ora esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
 				var result esbuild_api.OnResolveResult
+				if ora.Importer == "bldr-pkg-resolve" {
+					return result, nil
+				}
 
 				// If the import path has a valid web pkg id prefix, use it.
 				// Otherwise ignore this import.
@@ -60,8 +63,8 @@ func BuildEsbuildPlugin(
 					res := pb.Resolve(path, esbuild_api.ResolveOptions{
 						Kind:       kind,
 						ResolveDir: ora.ResolveDir,
-						Importer:   ora.Importer,
-						Namespace:  "bldr-pkg-resolve",
+						Importer:   "bldr-pkg-resolve",
+						Namespace:  "file",
 					})
 					if err := util_esbuild.ResolveResultToErr(res); err != nil {
 						return "", err

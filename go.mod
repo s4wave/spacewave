@@ -2,6 +2,9 @@ module github.com/aperturerobotics/bldr
 
 go 1.21
 
+// https://github.com/evanw/esbuild/pull/3413
+replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.0.0-20230929084030-8ef5fca6512f // aperture
+
 require github.com/aperturerobotics/hydra v0.0.0-20230925022821-895dc9174a46
 
 require (
