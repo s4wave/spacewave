@@ -27,8 +27,7 @@ func BuildEsbuildBuildOpts(
 		PublicPath:    publicPath,
 		EntryNames:    entryNames,
 
-		// LogLevel:    esbuild_api.LogLevelDebug,
-		LogLevel:    esbuild_api.LogLevelVerbose,
+		LogLevel:    esbuild_api.LogLevelInfo,
 		Platform:    esbuild_api.PlatformBrowser,
 		Format:      esbuild_api.FormatESModule,
 		Target:      esbuild_api.ES2022,
