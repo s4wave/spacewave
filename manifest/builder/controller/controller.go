@@ -158,7 +158,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			PrevBuilderResult: prevResult,
 			ChangedFiles:      changedFiles,
 		}
-		prevResult, changedFiles = nil, nil
+		changedFiles = nil
 		result, err := builderCtrl.BuildManifest(ctx, args)
 		resultPromise.SetResult(result, err)
 		prevResult = result

@@ -12,7 +12,11 @@ import {
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
-const global: any = self
+interface Global extends SharedWorkerGlobalScope {
+  BLDR_INIT?: Uint8Array;
+  BLDR_PORT?: MessagePort;
+}
+const global: Global = self
 
 // See wasm_exec.js
 declare class Go {

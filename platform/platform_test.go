@@ -29,4 +29,5 @@ func TestParsePlatform(t *testing.T) {
 	if err == nil {
 		t.Fail()
 	}
+	_ = p
 }

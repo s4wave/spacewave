@@ -13,8 +13,8 @@ import {
 } from './fetch.pb.js'
 
 // buildFetchHeaders builds a Headers map from a Headers object.
-export function buildFetchHeaders(headers: Headers): { [key: string]: string } {
-  const result: any = {}
+export function buildFetchHeaders(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {}
   headers.forEach((value: string, key: string) => {
     result[key] = value
   })

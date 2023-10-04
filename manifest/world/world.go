@@ -111,7 +111,8 @@ func SetManifest(
 		return nil, err
 	}
 	if objOk {
-		currRootRef, _, err := obj.GetRootRef(ctx)
+		var currRootRef *bucket.ObjectRef
+		currRootRef, _, err = obj.GetRootRef(ctx)
 		if err != nil || !currRootRef.EqualVT(rootRef) {
 			_, err = obj.SetRootRef(ctx, rootRef)
 		}
@@ -363,6 +364,10 @@ func ExtractManifestBundle(
 	}
 
 	obj, objOk, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	if objOk {
 		_, err = obj.SetRootRef(ctx, rootRef)
 		if err != nil {

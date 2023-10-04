@@ -68,6 +68,7 @@ ExecLoop:
 
 		c.mtx.Lock()
 		for _, runningAsm := range c.assemblies {
+			runningAsm := runningAsm
 			if runningAsm.ctxCancel == nil {
 				rctx, rctxCancel := context.WithCancel(ctx)
 				runningAsm.ctxCancel = rctxCancel

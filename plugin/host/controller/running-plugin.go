@@ -26,8 +26,6 @@ type runningPlugin struct {
 	le *logrus.Entry
 	// pluginID is the plugin id
 	pluginID string
-	// mux is the rpc mux to use for incoming calls
-	mux srpc.Mux
 	// rpcClientCtr contains the srpc client
 	rpcClientCtr *ccontainer.CContainer[*srpc.Client]
 }
@@ -129,7 +127,7 @@ func (t *runningPlugin) execPlugin(ctx context.Context) error {
 			manifest.GetEntrypoint(),
 			distFS,
 			hostMux,
-			t.updateRpcClient,
+			func(client srpc.Client) error { t.updateRpcClient(client); return nil },
 		)
 
 		// clear the rpc client after the plugin exits
@@ -153,7 +151,7 @@ func (t *runningPlugin) execPlugin(ctx context.Context) error {
 }
 
 // updateRpcClient is called by the plugin when the RPC client changes.
-func (t *runningPlugin) updateRpcClient(client srpc.Client) error {
+func (t *runningPlugin) updateRpcClient(client srpc.Client) {
 	_ = t.rpcClientCtr.SwapValue(func(val *srpc.Client) *srpc.Client {
 		changed := ((client == nil) != (val == nil)) || (val != nil && *val != client)
 		if !changed {
@@ -166,8 +164,6 @@ func (t *runningPlugin) updateRpcClient(client srpc.Client) error {
 		t.le.Debug("plugin rpc client is ready")
 		return &client
 	})
-
-	return nil
 }
 
 // _ is a type assertion

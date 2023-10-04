@@ -46,7 +46,7 @@ async function connectWebsocket(address: string): Promise<WebSocket> {
     ws.onclose = (ev) => {
       reject(new Error(ev.reason))
     }
-    ws.onopen = (_) => {
+    ws.onopen = () => {
       resolve(ws)
     }
   })
@@ -59,7 +59,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
     `bldr: connecting to ${connAddr} as WebRuntime: ${msg.webRuntimeId}`,
   )
   const ws = await connectWebsocket(connAddr)
-  ws.onclose = (_) => {
+  ws.onclose = () => {
     // re-start after close
     console.warn('bldr: websocket closed, restarting')
     openStreamCtr.set(undefined)
