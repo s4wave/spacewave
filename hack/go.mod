@@ -6,11 +6,11 @@ toolchain go1.21.0
 
 replace github.com/aperturerobotics/bldr => ../
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.30.1-0.20230428014030-7089409cbc63 // aperture
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.31.1-0.20231004004114-bf10d4f3cd42 // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.54.1
-	github.com/planetscale/vtprotobuf v0.4.0
+	github.com/planetscale/vtprotobuf v0.5.0
 	github.com/psampaz/go-mod-outdated v0.9.0
 	google.golang.org/protobuf v1.31.0
 )
