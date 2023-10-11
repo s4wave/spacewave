@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
@@ -18,8 +19,15 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// BldrExternal are packages that are provided by bldr with an <importmap>.
+var BldrExternal = []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react"}
+
+// pkgRootAlias is an alias to the root of the bldr web pkg.
+const pkgRootAlias = "@bldr-web-pkg"
+
 // https://github.com/evanw/esbuild/issues/1921
 // NOTE: we can't use async import() here since require() is called w/o await.
+/*
 const reactDomImportShim = `
 import * as __bldr_React from 'react';
 const require = (pkgName) => {
@@ -31,6 +39,150 @@ const require = (pkgName) => {
   }
 };
 `
+*/
+
+// ResolveWebPkgRefsEsbuild resolves the WebPkgRef list and ensures that all
+// necessary imports are listed within the refs list. It also computes the Refs
+// field on each WebPkgRef.
+//
+// This function solves the case where a WebPkg within the bundle references
+// another WebPkg within the bundle. Initially the webPkgsRefs list will contain
+// only references made from within the plugin we are currently compiling. This
+// function will repeatedly resolve each WebPkgRef and search for references to
+// other WebPkg. If the WebPkg references add an additional entrypoint to the
+// WebPkgRef that was not previously referenced within the WebPkgRef, the
+// entrypoint will be added and the WebPkgRef will be queued for scanning again.
+//
+// Note: the refs slice will be edited in-place.
+func ResolveWebPkgRefsEsbuild(
+	ctx context.Context,
+	le *logrus.Entry,
+	codeRootPath string,
+	webPkgsRefs []*WebPkgRef,
+) ([]*WebPkgRef, error) {
+	// stack contains the list of refs we need to process
+	// sort by web pkg id
+	stack := slices.Clone(webPkgsRefs)
+	sortStack := func() {
+		SortWebPkgRefs(stack)
+	}
+	sortStack()
+
+	// process repeatedly
+	for len(stack) != 0 {
+		// dequeue next ref
+		ref := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		// use esbuild to determine the list of web pkg references
+		// webPkgRoot := ref.WebPkgRoot
+		webPkgID := ref.WebPkgID
+		buildOpts := BuildEsbuildBuildOpts(
+			le,
+			codeRootPath, // resolve relative to project root for node_modules
+			"",           // empty output path
+			"",           // empty public path
+			false,        // set isRelease to false
+			false,        // skip using file hashes
+		)
+
+		// clear all output
+		buildOpts.Outdir = "./" // note: not actually written since write=false.
+		buildOpts.Write = false
+		buildOpts.Metafile = false
+		buildOpts.Splitting = false
+
+		// disable too verbose logging (for resolving web pkg refs)
+		// buildOpts.LogLevel = esbuild_api.LogLevelError
+		buildOpts.LogLevel = esbuild_api.LogLevelVerbose
+
+		// disable some unnecessary processing
+		buildOpts.Sourcemap = esbuild_api.SourceMapNone
+		buildOpts.TreeShaking = esbuild_api.TreeShakingFalse
+
+		// alias + out ext
+		buildOpts.OutExtension = map[string]string{".js": ".mjs"}
+		buildOpts.Alias[pkgRootAlias] = ref.WebPkgRoot
+		buildOpts.Alias[webPkgID] = ref.WebPkgRoot
+
+		// ensure external does not contain webPkgID or any of the other refs we need to resolve
+		// we need to resolve the actual paths to the web pkg files
+		buildOpts.External = slices.DeleteFunc(buildOpts.External, func(v string) bool {
+			if v == webPkgID {
+				return true
+			}
+
+			return slices.Contains(BldrExternal, v)
+		})
+
+		// configure entrypoints
+		buildEntrypoints := make([]esbuild_api.EntryPoint, len(ref.Imports))
+		for i, impPath := range ref.Imports {
+			webPkgImpPath := path.Join(webPkgID, impPath)
+			buildEntrypoints[i] = esbuild_api.EntryPoint{
+				InputPath:  webPkgImpPath,
+				OutputPath: impPath[:len(impPath)-len(path.Ext(impPath))],
+			}
+		}
+		buildOpts.EntryPointsAdvanced = buildEntrypoints
+		buildOpts.EntryPoints = nil
+
+		// build full list of web pkgs so far
+		webPkgIDs := make([]string, len(webPkgsRefs))
+		for i, ref := range webPkgsRefs {
+			webPkgIDs[i] = ref.WebPkgID
+		}
+		slices.Sort(webPkgIDs)
+		webPkgIDs = slices.Compact(webPkgIDs)
+
+		// clear the Refs field on the Ref
+		// we will re-build this slice below
+		ref.Refs = nil
+
+		// when we find a web pkg ref we can add it to the list & queue for processing
+		addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
+			if !slices.Contains(ref.Refs, webPkgID) {
+				ref.Refs = append(ref.Refs, webPkgID)
+			}
+
+			var dirty bool
+			webPkgsRefs, dirty = AddWebPkgRef(webPkgsRefs, webPkgID, webPkgRoot, webPkgSubPath)
+			if dirty {
+				le.WithFields(logrus.Fields{
+					"web-pkg-id":         ref.WebPkgID,
+					"ref-web-pkg-id":     webPkgID,
+					"ref-web-pkg-import": webPkgSubPath,
+				}).Debug("added web pkg ref")
+				changedRef, _ := FindWebPkgRef(webPkgsRefs, webPkgID)
+				if changedRef != nil && !slices.Contains(stack, changedRef) {
+					stack = append(stack, changedRef)
+					sortStack()
+				}
+			}
+		}
+
+		// add plugin to scan for web pkg imports & update the refs list
+		buildOpts.Plugins = append(
+			buildOpts.Plugins,
+			BuildEsbuildPlugin(
+				le,
+				webPkgIDs,
+				addWebPkgRef,
+			),
+		)
+
+		le.
+			WithField("web-pkg-id", webPkgID).
+			WithField("web-pkg-imports", ref.Imports).
+			Debug("analyzing web pkg bundle with esbuild")
+		result := esbuild_api.Build(*buildOpts)
+		if err := bldr_esbuild.BuildResultToErr(result); err != nil {
+			return nil, err
+		}
+	}
+
+	return webPkgsRefs, nil
+}
 
 // BuildWebPkgsEsbuild builds the WebPkg bundle from the list of web package ids.
 //
@@ -49,6 +201,12 @@ func BuildWebPkgsEsbuild(
 	webPkgBasePath string,
 	isRelease bool,
 ) (webPkgIDs, sourcePaths []string, err error) {
+	// Build list of web pkg IDs
+	for _, webPkgRef := range webPkgsRefs {
+		webPkgID := webPkgRef.WebPkgID
+		webPkgIDs = append(webPkgIDs, webPkgID)
+	}
+
 	// NOTE: esbuild removes the named exports when bundling libraries like
 	// React which contain commonjs-like constructions for building the
 	// module.exports named export set. To fix this issue, we will run a script
@@ -66,15 +224,6 @@ func BuildWebPkgsEsbuild(
 	var sourceFilesList []string
 	for _, webPkgRef := range webPkgsRefs {
 		webPkgID := webPkgRef.WebPkgID
-		webPkgIDs = append(webPkgIDs, webPkgID)
-
-		/*
-			webPkgRoot, err := filepath.Rel(codeRootPath, webPkgRef.WebPkgRoot)
-			if err != nil {
-				return nil, nil, err
-			}
-		*/
-
 		pkgOutputPath := filepath.Join(outputPath, webPkgID)
 		if _, err := os.Stat(pkgOutputPath); !os.IsNotExist(err) {
 			if err := os.RemoveAll(pkgOutputPath); err != nil {
@@ -94,10 +243,14 @@ func BuildWebPkgsEsbuild(
 			return nil, nil, err
 		}
 
+		le.
+			WithField("web-pkg-id", webPkgID).
+			WithField("web-pkg-imports", webPkgRef.Imports).
+			Debug("analyzing web pkg bundle exports")
+
 		// Determine the list of exports for each of the imports.
 		buildEntrypoints := make([]esbuild_api.EntryPoint, len(webPkgRef.Imports))
 		origEntrypointImpPaths := make(map[string]string)
-		pkgRootAlias := "@bldr-web-pkg"
 		for i, impPath := range webPkgRef.Imports {
 			// webPkgImpPath := filepath.Join(webPkgRoot, impPath)
 			webPkgImpPath := path.Join(webPkgID, impPath)
@@ -118,9 +271,9 @@ func BuildWebPkgsEsbuild(
 			webPkgExports, err := determine_cjs_exports_exec.ExecDetermineCjsExports(
 				ctx,
 				le.WithFields(logrus.Fields{
-					"exec":        "determine-cjs-exports",
-					"web-pkg-id":  webPkgID,
-					"web-pkg-imp": impPath,
+					"exec":           "determine-cjs-exports",
+					"web-pkg-id":     webPkgID,
+					"web-pkg-import": impPath,
 				}),
 				webPkgRef.WebPkgRoot, // codeRootPath,
 				"./"+impPath,
@@ -142,6 +295,7 @@ func BuildWebPkgsEsbuild(
 
 			// remap the output file extension to .mjs
 			impOutExt := filepath.Ext(impOutPath)
+
 			// strip the output file extension, esbuild will add it automatically
 			impOutPath = impOutPath[:len(impOutPath)-len(impOutExt)] // + ".mjs"
 
@@ -168,6 +322,11 @@ func BuildWebPkgsEsbuild(
 			}
 		}
 
+		le.
+			WithField("web-pkg-id", webPkgID).
+			WithField("web-pkg-imports", webPkgRef.Imports).
+			Debug("building web pkg bundle with esbuild")
+
 		buildOpts := BuildEsbuildBuildOpts(
 			le,
 			pkgBuildPath, // codeRootPath,
@@ -186,36 +345,55 @@ func BuildWebPkgsEsbuild(
 		buildOpts.Alias[webPkgID] = webPkgRef.WebPkgRoot
 
 		// see: https://github.com/evanw/esbuild/issues/399
-		buildOpts.Splitting = true
+		buildOpts.Splitting = false
 
-		// externalize some packages
-		for _, toExternalize := range []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react"} {
+		// externalize some packages we remap with an import map
+		for _, toExternalize := range BldrExternal {
 			if webPkgID != toExternalize && !slices.Contains(buildOpts.External, toExternalize) {
 				buildOpts.External = append(buildOpts.External, toExternalize)
 			}
 		}
+
+		// ensure external does not contain any of the web pkgs ids
+		// we need to resolve the actual paths to the web pkg files
+		/*
+			buildOpts.External = slices.DeleteFunc(buildOpts.External, func(v string) bool {
+				if v == webPkgID {
+					return true
+				}
+
+				return slices.Contains(BldrExternal, v)
+			})
+		*/
+
+		// add plugin to rewrite peer web pkg imports
+		// we expect that the web pkgs ids list has been previously resolved by ResolveWebPkgsEsbuild
+		// remove the current web pkg from the list
+		webPkgIDsExclCurr := slices.DeleteFunc(slices.Clone(webPkgIDs), func(id string) bool {
+			return id == webPkgID
+		})
+		webPkgIDsExclCurrAndExternal := slices.DeleteFunc(slices.Clone(webPkgIDsExclCurr), func(id string) bool {
+			return slices.Contains(BldrExternal, id)
+		})
+
+		buildOpts.Plugins = append(
+			buildOpts.Plugins,
+			BuildEsbuildPlugin(
+				le,
+				webPkgIDsExclCurrAndExternal,
+				nil, // addWebPkgRef,
+			),
+		)
 
 		// add banner
 		msg := fmt.Sprintf("built by bldr/web/pkg: %s/%v", webPkgID, webPkgRef.Imports)
 		buildOpts.Banner["js"] = "// " + msg
 		buildOpts.Banner["css"] = "/* " + msg + " */"
 
-		// TODO: Externalize + add imports for any imports within externalized packages.
-		// This would require repeatedly calling esbuild until we discover all imports for each package.
-		// Since this is significantly more complex, it's been left out for now.
-		//
-		// Since react-dom needs to import "react" correctly, we will specifically
-		// add the transformations for "react" and "react-dom" here, to transform
-		// all web pkgs that reference either package. However: in future, this
-		// should be done in a dynamic way that transforms all web pkg imports.
-		if webPkgID == "react-dom" {
-			// TODO: react-dom uses require("react") which won't work properly when
-			// converting to es modules. To resolve this, replace "require" with
-			// "import" using a code snippet in the banner. This is a hack
-			// specifically for react-dom.
-			//
-			// https://github.com/evanw/esbuild/issues/1921
-			buildOpts.Banner["js"] += reactDomImportShim
+		// add import shim for common-js support
+		// HACK: exclude react to avoid issues w/ secret internals
+		if webPkgID != "react" {
+			FixEsbuildIssue1921(buildOpts, webPkgIDsExclCurr)
 		}
 
 		le.Debugf("compiling web pkg bundle with esbuild: %s", webPkgID)
@@ -279,4 +457,63 @@ func BuildWebPkgsEsbuild(
 	webPkgIDs = slices.Compact(webPkgIDs)
 
 	return webPkgIDs, sourceFilesList, nil
+}
+
+// NewImportBannerShim generates an esbuild require() shim for cjs module compatibility.
+//
+// This is a hack to work around issues with require() in esbuild.
+// The require() function is not asynchronous but import() is.
+//
+// https://github.com/evanw/esbuild/issues/1921
+func NewImportBannerShim(pkgs []string) string {
+	var sb strings.Builder
+	// write import statements
+	// import * as __bldr_react from 'react';
+	pkgVarNames := make([]string, len(pkgs))
+	for i, pkg := range pkgs {
+		// clean pkg name for use as variable
+		pkgVarName := strings.ReplaceAll(pkg, "@", "_")
+		pkgVarName = strings.ReplaceAll(pkgVarName, "/", "_")
+		pkgVarName = strings.ReplaceAll(pkgVarName, "-", "_")
+
+		// prepend __bldr_ to variable name to deconflict
+		pkgVarName = "__bldr_" + pkgVarName
+		pkgVarNames[i] = pkgVarName
+
+		_, _ = sb.WriteString("import * as ")
+		_, _ = sb.WriteString(pkgVarName)
+		_, _ = sb.WriteString(" from ")
+		_, _ = sb.WriteString(strconv.Quote(pkg))
+		_, _ = sb.WriteString(";\n")
+	}
+
+	// write require function implementation
+	_, _ = sb.WriteString("const require = (pkgName) => {\n")
+	_, _ = sb.WriteString("  switch (pkgName) {\n")
+	for i, pkg := range pkgs {
+		_, _ = sb.WriteString("  case ")
+		_, _ = sb.WriteString(strconv.Quote(pkg))
+		_, _ = sb.WriteString(":\n")
+		_, _ = sb.WriteString("    return ")
+		_, _ = sb.WriteString(pkgVarNames[i])
+		_, _ = sb.WriteString(";\n")
+	}
+	_, _ = sb.WriteString("  default:\n")
+	_, _ = sb.WriteString("    throw Error('Dynamic require of \"' + pkgName + '\" is not supported');\n")
+	_, _ = sb.WriteString("  }\n};\n")
+	return sb.String()
+}
+
+// FixEsbuildIssue1921 fixes externalized esbuild imports failing with compiled commonjs modules.
+//
+// https://github.com/evanw/esbuild/issues/1921
+func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions, pkgs []string) {
+	if opts.Banner == nil {
+		opts.Banner = make(map[string]string, 1)
+	}
+	old := opts.Banner["js"]
+	if len(old) != 0 {
+		old += "\n"
+	}
+	opts.Banner["js"] = old + NewImportBannerShim(pkgs)
 }

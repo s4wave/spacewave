@@ -429,7 +429,12 @@ func (c *Controller) BuildPlugin(
 		sourceFilesList = append(sourceFilesList, esbuildSrcFiles...)
 		for _, webPkgRef := range esbuildWebPkgRefs {
 			for _, impPath := range webPkgRef.Imports {
-				webPkgRefs = web_pkg_esbuild.AddWebPkgRef(webPkgRefs, webPkgRef.WebPkgID, webPkgRef.WebPkgRoot, impPath)
+				webPkgRefs, _ = web_pkg_esbuild.AddWebPkgRef(
+					webPkgRefs,
+					webPkgRef.WebPkgID,
+					webPkgRef.WebPkgRoot,
+					impPath,
+				)
 			}
 		}
 	}

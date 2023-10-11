@@ -41,6 +41,11 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		Imports:    []string{"index.js", "client.js"},
 	}}
 
+	refs, err = web_pkg_esbuild.ResolveWebPkgRefsEsbuild(ctx, le, rootDir, refs)
+	if err != nil {
+		return err
+	}
+
 	webPkgIds, srcPaths, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 		ctx,
 		le,

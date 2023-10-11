@@ -152,7 +152,7 @@ func BuildDefEsbuild(
 	var sourceFilesList []string
 	var webPkgRefs []*web_pkg_esbuild.WebPkgRef
 	addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
-		webPkgRefs = web_pkg_esbuild.AddWebPkgRef(webPkgRefs, webPkgID, webPkgRoot, webPkgSubPath)
+		webPkgRefs, _ = web_pkg_esbuild.AddWebPkgRef(webPkgRefs, webPkgID, webPkgRoot, webPkgSubPath)
 	}
 
 	// build list of packages to externalize

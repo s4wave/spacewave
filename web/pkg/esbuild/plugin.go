@@ -61,13 +61,18 @@ func BuildEsbuildPlugin(
 				// Use esbuild's resolution algorithm.
 				resolvePkgPath := func(path string, kind api.ResolveKind) (string, error) {
 					res := pb.Resolve(path, esbuild_api.ResolveOptions{
-						Kind:       kind,
+						Importer:  "bldr-pkg-resolve",
+						Namespace: "file",
+						// ResolveDir: projectRootDir, // ora.ResolveDir,
 						ResolveDir: ora.ResolveDir,
-						Importer:   "bldr-pkg-resolve",
-						Namespace:  "file",
+						Kind:       kind,
 					})
 					if err := util_esbuild.ResolveResultToErr(res); err != nil {
 						return "", err
+					}
+					// expect the path to have changed
+					if res.Path == path || res.Path == "" {
+						return "", errors.Errorf("web pkg %s import could not be resolved: %s", webPkgID, path)
 					}
 					return res.Path, nil
 				}
@@ -105,8 +110,9 @@ func BuildEsbuildPlugin(
 					)
 				}
 
-				// Trim ./
-				relPkgSubPath = strings.TrimPrefix(relPkgSubPath, "./")
+				// Trim ./ and .
+				relPkgSubPath = strings.TrimPrefix(relPkgSubPath, ".")
+				relPkgSubPath = strings.TrimPrefix(relPkgSubPath, "/")
 
 				// Adjust suffix if we will rewrite .js -> .mjs in the build process.
 				relPkgSubImpPath := relPkgSubPath
