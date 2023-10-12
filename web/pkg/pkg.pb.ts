@@ -60,12 +60,12 @@ export const WebPkgInfo = {
       | Iterable<WebPkgInfo | WebPkgInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WebPkgInfo.encode(p).finish()]
         }
       } else {
-        yield* [WebPkgInfo.encode(pkt).finish()]
+        yield* [WebPkgInfo.encode(pkt as any).finish()]
       }
     }
   },
@@ -78,18 +78,18 @@ export const WebPkgInfo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebPkgInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WebPkgInfo.decode(p)]
         }
       } else {
-        yield* [WebPkgInfo.decode(pkt)]
+        yield* [WebPkgInfo.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WebPkgInfo {
-    return { id: isSet(object.id) ? String(object.id) : '' }
+    return { id: isSet(object.id) ? globalThis.String(object.id) : '' }
   },
 
   toJSON(message: WebPkgInfo): unknown {
@@ -125,8 +125,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

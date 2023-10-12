@@ -123,12 +123,12 @@ export const PluginStatus = {
     source: AsyncIterable<PluginStatus | PluginStatus[]> | Iterable<PluginStatus | PluginStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PluginStatus.encode(p).finish()];
         }
       } else {
-        yield* [PluginStatus.encode(pkt).finish()];
+        yield* [PluginStatus.encode(pkt as any).finish()];
       }
     }
   },
@@ -139,20 +139,20 @@ export const PluginStatus = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PluginStatus> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PluginStatus.decode(p)];
         }
       } else {
-        yield* [PluginStatus.decode(pkt)];
+        yield* [PluginStatus.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PluginStatus {
     return {
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      running: isSet(object.running) ? Boolean(object.running) : false,
+      pluginId: isSet(object.pluginId) ? globalThis.String(object.pluginId) : "",
+      running: isSet(object.running) ? globalThis.Boolean(object.running) : false,
     };
   },
 
@@ -211,12 +211,12 @@ export const GetPluginInfoRequest = {
       | Iterable<GetPluginInfoRequest | GetPluginInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [GetPluginInfoRequest.encode(p).finish()];
         }
       } else {
-        yield* [GetPluginInfoRequest.encode(pkt).finish()];
+        yield* [GetPluginInfoRequest.encode(pkt as any).finish()];
       }
     }
   },
@@ -227,12 +227,12 @@ export const GetPluginInfoRequest = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetPluginInfoRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [GetPluginInfoRequest.decode(p)];
         }
       } else {
-        yield* [GetPluginInfoRequest.decode(pkt)];
+        yield* [GetPluginInfoRequest.decode(pkt as any)];
       }
     }
   },
@@ -318,12 +318,12 @@ export const GetPluginInfoResponse = {
       | Iterable<GetPluginInfoResponse | GetPluginInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [GetPluginInfoResponse.encode(p).finish()];
         }
       } else {
-        yield* [GetPluginInfoResponse.encode(pkt).finish()];
+        yield* [GetPluginInfoResponse.encode(pkt as any).finish()];
       }
     }
   },
@@ -334,19 +334,19 @@ export const GetPluginInfoResponse = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetPluginInfoResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [GetPluginInfoResponse.decode(p)];
         }
       } else {
-        yield* [GetPluginInfoResponse.decode(pkt)];
+        yield* [GetPluginInfoResponse.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): GetPluginInfoResponse {
     return {
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
+      pluginId: isSet(object.pluginId) ? globalThis.String(object.pluginId) : "",
       manifestRef: isSet(object.manifestRef) ? ManifestRef.fromJSON(object.manifestRef) : undefined,
       hostVolumeInfo: isSet(object.hostVolumeInfo) ? VolumeInfo.fromJSON(object.hostVolumeInfo) : undefined,
     };
@@ -423,12 +423,12 @@ export const LoadPluginRequest = {
     source: AsyncIterable<LoadPluginRequest | LoadPluginRequest[]> | Iterable<LoadPluginRequest | LoadPluginRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [LoadPluginRequest.encode(p).finish()];
         }
       } else {
-        yield* [LoadPluginRequest.encode(pkt).finish()];
+        yield* [LoadPluginRequest.encode(pkt as any).finish()];
       }
     }
   },
@@ -439,18 +439,18 @@ export const LoadPluginRequest = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LoadPluginRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [LoadPluginRequest.decode(p)];
         }
       } else {
-        yield* [LoadPluginRequest.decode(pkt)];
+        yield* [LoadPluginRequest.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): LoadPluginRequest {
-    return { pluginId: isSet(object.pluginId) ? String(object.pluginId) : "" };
+    return { pluginId: isSet(object.pluginId) ? globalThis.String(object.pluginId) : "" };
   },
 
   toJSON(message: LoadPluginRequest): unknown {
@@ -514,12 +514,12 @@ export const LoadPluginResponse = {
       | Iterable<LoadPluginResponse | LoadPluginResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [LoadPluginResponse.encode(p).finish()];
         }
       } else {
-        yield* [LoadPluginResponse.encode(pkt).finish()];
+        yield* [LoadPluginResponse.encode(pkt as any).finish()];
       }
     }
   },
@@ -530,12 +530,12 @@ export const LoadPluginResponse = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LoadPluginResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [LoadPluginResponse.decode(p)];
         }
       } else {
-        yield* [LoadPluginResponse.decode(pkt)];
+        yield* [LoadPluginResponse.decode(pkt as any)];
       }
     }
   },
@@ -625,12 +625,12 @@ export const PluginMeta = {
     source: AsyncIterable<PluginMeta | PluginMeta[]> | Iterable<PluginMeta | PluginMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PluginMeta.encode(p).finish()];
         }
       } else {
-        yield* [PluginMeta.encode(pkt).finish()];
+        yield* [PluginMeta.encode(pkt as any).finish()];
       }
     }
   },
@@ -641,21 +641,21 @@ export const PluginMeta = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PluginMeta> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PluginMeta.decode(p)];
         }
       } else {
-        yield* [PluginMeta.decode(pkt)];
+        yield* [PluginMeta.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PluginMeta {
     return {
-      projectId: isSet(object.projectId) ? String(object.projectId) : "",
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      projectId: isSet(object.projectId) ? globalThis.String(object.projectId) : "",
+      pluginId: isSet(object.pluginId) ? globalThis.String(object.pluginId) : "",
+      platformId: isSet(object.platformId) ? globalThis.String(object.platformId) : "",
     };
   },
 
@@ -726,12 +726,12 @@ export const PluginStartInfo = {
     source: AsyncIterable<PluginStartInfo | PluginStartInfo[]> | Iterable<PluginStartInfo | PluginStartInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PluginStartInfo.encode(p).finish()];
         }
       } else {
-        yield* [PluginStartInfo.encode(pkt).finish()];
+        yield* [PluginStartInfo.encode(pkt as any).finish()];
       }
     }
   },
@@ -742,18 +742,18 @@ export const PluginStartInfo = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PluginStartInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PluginStartInfo.decode(p)];
         }
       } else {
-        yield* [PluginStartInfo.decode(pkt)];
+        yield* [PluginStartInfo.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PluginStartInfo {
-    return { instanceId: isSet(object.instanceId) ? String(object.instanceId) : "" };
+    return { instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "" };
   },
 
   toJSON(message: PluginStartInfo): unknown {
@@ -955,7 +955,7 @@ interface Rpc {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

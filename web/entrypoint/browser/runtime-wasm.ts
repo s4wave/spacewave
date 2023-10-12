@@ -13,8 +13,8 @@ import {
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
 interface Global extends SharedWorkerGlobalScope {
-  BLDR_INIT?: Uint8Array;
-  BLDR_PORT?: MessagePort;
+  BLDR_INIT?: Uint8Array
+  BLDR_PORT?: MessagePort
 }
 const global: Global = self
 

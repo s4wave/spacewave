@@ -102,12 +102,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.encode(p).finish()];
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt as any).finish()];
       }
     }
   },
@@ -118,21 +118,21 @@ export const Config = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.decode(p)];
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      pluginId: isSet(object.pluginId) ? String(object.pluginId) : "",
-      serviceIdRe: isSet(object.serviceIdRe) ? String(object.serviceIdRe) : "",
-      serverIdRe: isSet(object.serverIdRe) ? String(object.serverIdRe) : "",
+      pluginId: isSet(object.pluginId) ? globalThis.String(object.pluginId) : "",
+      serviceIdRe: isSet(object.serviceIdRe) ? globalThis.String(object.serviceIdRe) : "",
+      serverIdRe: isSet(object.serverIdRe) ? globalThis.String(object.serverIdRe) : "",
       backoff: isSet(object.backoff) ? Backoff.fromJSON(object.backoff) : undefined,
     };
   },
@@ -172,7 +172,7 @@ export const Config = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

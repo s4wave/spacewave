@@ -197,12 +197,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.encode(p).finish()];
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt as any).finish()];
       }
     }
   },
@@ -213,28 +213,30 @@ export const Config = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.decode(p)];
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
-      peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : "",
-      alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? Boolean(object.alwaysFetchManifest) : false,
-      disableStoreManifest: isSet(object.disableStoreManifest) ? Boolean(object.disableStoreManifest) : false,
-      fetchConcurrency: isSet(object.fetchConcurrency) ? Number(object.fetchConcurrency) : 0,
+      engineId: isSet(object.engineId) ? globalThis.String(object.engineId) : "",
+      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : "",
+      volumeId: isSet(object.volumeId) ? globalThis.String(object.volumeId) : "",
+      alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? globalThis.Boolean(object.alwaysFetchManifest) : false,
+      disableStoreManifest: isSet(object.disableStoreManifest)
+        ? globalThis.Boolean(object.disableStoreManifest)
+        : false,
+      fetchConcurrency: isSet(object.fetchConcurrency) ? globalThis.Number(object.fetchConcurrency) : 0,
       fetchBackoff: isSet(object.fetchBackoff) ? Backoff.fromJSON(object.fetchBackoff) : undefined,
-      stateDir: isSet(object.stateDir) ? String(object.stateDir) : "",
-      distDir: isSet(object.distDir) ? String(object.distDir) : "",
+      stateDir: isSet(object.stateDir) ? globalThis.String(object.stateDir) : "",
+      distDir: isSet(object.distDir) ? globalThis.String(object.distDir) : "",
     };
   },
 
@@ -297,7 +299,7 @@ export const Config = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

@@ -71,12 +71,12 @@ export const StorageInfo = {
     source: AsyncIterable<StorageInfo | StorageInfo[]> | Iterable<StorageInfo | StorageInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [StorageInfo.encode(p).finish()];
         }
       } else {
-        yield* [StorageInfo.encode(pkt).finish()];
+        yield* [StorageInfo.encode(pkt as any).finish()];
       }
     }
   },
@@ -87,20 +87,20 @@ export const StorageInfo = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<StorageInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [StorageInfo.decode(p)];
         }
       } else {
-        yield* [StorageInfo.decode(pkt)];
+        yield* [StorageInfo.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): StorageInfo {
     return {
-      isolated: isSet(object.isolated) ? Boolean(object.isolated) : false,
-      cache: isSet(object.cache) ? Boolean(object.cache) : false,
+      isolated: isSet(object.isolated) ? globalThis.Boolean(object.isolated) : false,
+      cache: isSet(object.cache) ? globalThis.Boolean(object.cache) : false,
     };
   },
 
@@ -129,7 +129,7 @@ export const StorageInfo = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

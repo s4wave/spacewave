@@ -79,12 +79,12 @@ export const DistMeta = {
     source: AsyncIterable<DistMeta | DistMeta[]> | Iterable<DistMeta | DistMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [DistMeta.encode(p).finish()];
         }
       } else {
-        yield* [DistMeta.encode(pkt).finish()];
+        yield* [DistMeta.encode(pkt as any).finish()];
       }
     }
   },
@@ -95,21 +95,23 @@ export const DistMeta = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DistMeta> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [DistMeta.decode(p)];
         }
       } else {
-        yield* [DistMeta.decode(pkt)];
+        yield* [DistMeta.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): DistMeta {
     return {
-      projectId: isSet(object.projectId) ? String(object.projectId) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
-      startupPlugins: Array.isArray(object?.startupPlugins) ? object.startupPlugins.map((e: any) => String(e)) : [],
+      projectId: isSet(object.projectId) ? globalThis.String(object.projectId) : "",
+      platformId: isSet(object.platformId) ? globalThis.String(object.platformId) : "",
+      startupPlugins: globalThis.Array.isArray(object?.startupPlugins)
+        ? object.startupPlugins.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -142,7 +144,7 @@ export const DistMeta = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

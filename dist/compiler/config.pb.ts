@@ -168,12 +168,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.encode(p).finish()];
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt as any).finish()];
       }
     }
   },
@@ -184,28 +184,32 @@ export const Config = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.decode(p)];
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      embedManifests: Array.isArray(object?.embedManifests) ? object.embedManifests.map((e: any) => String(e)) : [],
-      loadPlugins: Array.isArray(object?.loadPlugins) ? object.loadPlugins.map((e: any) => String(e)) : [],
+      embedManifests: globalThis.Array.isArray(object?.embedManifests)
+        ? object.embedManifests.map((e: any) => globalThis.String(e))
+        : [],
+      loadPlugins: globalThis.Array.isArray(object?.loadPlugins)
+        ? object.loadPlugins.map((e: any) => globalThis.String(e))
+        : [],
       hostConfigSet: isObject(object.hostConfigSet)
         ? Object.entries(object.hostConfigSet).reduce<{ [key: string]: ControllerConfig }>((acc, [key, value]) => {
           acc[key] = ControllerConfig.fromJSON(value);
           return acc;
         }, {})
         : {},
-      projectId: isSet(object.projectId) ? String(object.projectId) : "",
-      enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
+      projectId: isSet(object.projectId) ? globalThis.String(object.projectId) : "",
+      enableCgo: isSet(object.enableCgo) ? globalThis.Boolean(object.enableCgo) : false,
     };
   },
 
@@ -310,12 +314,12 @@ export const Config_HostConfigSetEntry = {
       | Iterable<Config_HostConfigSetEntry | Config_HostConfigSetEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config_HostConfigSetEntry.encode(p).finish()];
         }
       } else {
-        yield* [Config_HostConfigSetEntry.encode(pkt).finish()];
+        yield* [Config_HostConfigSetEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -326,19 +330,19 @@ export const Config_HostConfigSetEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config_HostConfigSetEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config_HostConfigSetEntry.decode(p)];
         }
       } else {
-        yield* [Config_HostConfigSetEntry.decode(pkt)];
+        yield* [Config_HostConfigSetEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Config_HostConfigSetEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -453,12 +457,12 @@ export const PreBuildHookResult = {
       | Iterable<PreBuildHookResult | PreBuildHookResult[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PreBuildHookResult.encode(p).finish()];
         }
       } else {
-        yield* [PreBuildHookResult.encode(pkt).finish()];
+        yield* [PreBuildHookResult.encode(pkt as any).finish()];
       }
     }
   },
@@ -469,12 +473,12 @@ export const PreBuildHookResult = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PreBuildHookResult> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PreBuildHookResult.decode(p)];
         }
       } else {
-        yield* [PreBuildHookResult.decode(pkt)];
+        yield* [PreBuildHookResult.decode(pkt as any)];
       }
     }
   },
@@ -487,10 +491,14 @@ export const PreBuildHookResult = {
           return acc;
         }, {})
         : {},
-      loadPlugins: Array.isArray(object?.loadPlugins) ? object.loadPlugins.map((e: any) => String(e)) : [],
-      embedManifests: Array.isArray(object?.embedManifests) ? object.embedManifests.map((e: any) => String(e)) : [],
-      projectId: isSet(object.projectId) ? String(object.projectId) : "",
-      enableCgo: isSet(object.enableCgo) ? Boolean(object.enableCgo) : false,
+      loadPlugins: globalThis.Array.isArray(object?.loadPlugins)
+        ? object.loadPlugins.map((e: any) => globalThis.String(e))
+        : [],
+      embedManifests: globalThis.Array.isArray(object?.embedManifests)
+        ? object.embedManifests.map((e: any) => globalThis.String(e))
+        : [],
+      projectId: isSet(object.projectId) ? globalThis.String(object.projectId) : "",
+      enableCgo: isSet(object.enableCgo) ? globalThis.Boolean(object.enableCgo) : false,
     };
   },
 
@@ -595,12 +603,12 @@ export const PreBuildHookResult_HostConfigSetEntry = {
       | Iterable<PreBuildHookResult_HostConfigSetEntry | PreBuildHookResult_HostConfigSetEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PreBuildHookResult_HostConfigSetEntry.encode(p).finish()];
         }
       } else {
-        yield* [PreBuildHookResult_HostConfigSetEntry.encode(pkt).finish()];
+        yield* [PreBuildHookResult_HostConfigSetEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -611,19 +619,19 @@ export const PreBuildHookResult_HostConfigSetEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PreBuildHookResult_HostConfigSetEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PreBuildHookResult_HostConfigSetEntry.decode(p)];
         }
       } else {
-        yield* [PreBuildHookResult_HostConfigSetEntry.decode(pkt)];
+        yield* [PreBuildHookResult_HostConfigSetEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PreBuildHookResult_HostConfigSetEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -659,7 +667,7 @@ export const PreBuildHookResult_HostConfigSetEntry = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

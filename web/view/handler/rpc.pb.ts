@@ -111,12 +111,12 @@ export const HandleWebViewRequest = {
       | Iterable<HandleWebViewRequest | HandleWebViewRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewRequest.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebViewRequest.encode(pkt).finish()]
+        yield* [HandleWebViewRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -129,22 +129,28 @@ export const HandleWebViewRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewRequest.decode(p)]
         }
       } else {
-        yield* [HandleWebViewRequest.decode(pkt)]
+        yield* [HandleWebViewRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): HandleWebViewRequest {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
-      parentId: isSet(object.parentId) ? String(object.parentId) : '',
-      documentId: isSet(object.documentId) ? String(object.documentId) : '',
-      permanent: isSet(object.permanent) ? Boolean(object.permanent) : false,
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      parentId: isSet(object.parentId)
+        ? globalThis.String(object.parentId)
+        : '',
+      documentId: isSet(object.documentId)
+        ? globalThis.String(object.documentId)
+        : '',
+      permanent: isSet(object.permanent)
+        ? globalThis.Boolean(object.permanent)
+        : false,
     }
   },
 
@@ -232,12 +238,12 @@ export const HandleWebViewResponse = {
       | Iterable<HandleWebViewResponse | HandleWebViewResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewResponse.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebViewResponse.encode(pkt).finish()]
+        yield* [HandleWebViewResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -250,18 +256,18 @@ export const HandleWebViewResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewResponse.decode(p)]
         }
       } else {
-        yield* [HandleWebViewResponse.decode(pkt)]
+        yield* [HandleWebViewResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): HandleWebViewResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: HandleWebViewResponse): unknown {
@@ -373,8 +379,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

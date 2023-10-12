@@ -235,12 +235,12 @@ export const BuilderConfig = {
     source: AsyncIterable<BuilderConfig | BuilderConfig[]> | Iterable<BuilderConfig | BuilderConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuilderConfig.encode(p).finish()];
         }
       } else {
-        yield* [BuilderConfig.encode(pkt).finish()];
+        yield* [BuilderConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -251,12 +251,12 @@ export const BuilderConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuilderConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuilderConfig.decode(p)];
         }
       } else {
-        yield* [BuilderConfig.decode(pkt)];
+        yield* [BuilderConfig.decode(pkt as any)];
       }
     }
   },
@@ -264,14 +264,16 @@ export const BuilderConfig = {
   fromJSON(object: any): BuilderConfig {
     return {
       manifestMeta: isSet(object.manifestMeta) ? ManifestMeta.fromJSON(object.manifestMeta) : undefined,
-      sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
-      distSourcePath: isSet(object.distSourcePath) ? String(object.distSourcePath) : "",
-      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
-      engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
-      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
-      peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      projectId: isSet(object.projectId) ? String(object.projectId) : "",
+      sourcePath: isSet(object.sourcePath) ? globalThis.String(object.sourcePath) : "",
+      distSourcePath: isSet(object.distSourcePath) ? globalThis.String(object.distSourcePath) : "",
+      workingPath: isSet(object.workingPath) ? globalThis.String(object.workingPath) : "",
+      engineId: isSet(object.engineId) ? globalThis.String(object.engineId) : "",
+      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
+      linkObjectKeys: globalThis.Array.isArray(object?.linkObjectKeys)
+        ? object.linkObjectKeys.map((e: any) => globalThis.String(e))
+        : [],
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : "",
+      projectId: isSet(object.projectId) ? globalThis.String(object.projectId) : "",
     };
   },
 
@@ -388,12 +390,12 @@ export const BuilderResult = {
     source: AsyncIterable<BuilderResult | BuilderResult[]> | Iterable<BuilderResult | BuilderResult[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuilderResult.encode(p).finish()];
         }
       } else {
-        yield* [BuilderResult.encode(pkt).finish()];
+        yield* [BuilderResult.encode(pkt as any).finish()];
       }
     }
   },
@@ -404,12 +406,12 @@ export const BuilderResult = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuilderResult> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuilderResult.decode(p)];
         }
       } else {
-        yield* [BuilderResult.decode(pkt)];
+        yield* [BuilderResult.decode(pkt as any)];
       }
     }
   },
@@ -505,12 +507,12 @@ export const InputManifest = {
     source: AsyncIterable<InputManifest | InputManifest[]> | Iterable<InputManifest | InputManifest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [InputManifest.encode(p).finish()];
         }
       } else {
-        yield* [InputManifest.encode(pkt).finish()];
+        yield* [InputManifest.encode(pkt as any).finish()];
       }
     }
   },
@@ -521,19 +523,21 @@ export const InputManifest = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<InputManifest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [InputManifest.decode(p)];
         }
       } else {
-        yield* [InputManifest.decode(pkt)];
+        yield* [InputManifest.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): InputManifest {
     return {
-      files: Array.isArray(object?.files) ? object.files.map((e: any) => InputManifest_File.fromJSON(e)) : [],
+      files: globalThis.Array.isArray(object?.files)
+        ? object.files.map((e: any) => InputManifest_File.fromJSON(e))
+        : [],
       metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(0),
     };
   },
@@ -613,12 +617,12 @@ export const InputManifest_File = {
       | Iterable<InputManifest_File | InputManifest_File[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [InputManifest_File.encode(p).finish()];
         }
       } else {
-        yield* [InputManifest_File.encode(pkt).finish()];
+        yield* [InputManifest_File.encode(pkt as any).finish()];
       }
     }
   },
@@ -629,19 +633,19 @@ export const InputManifest_File = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<InputManifest_File> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [InputManifest_File.decode(p)];
         }
       } else {
-        yield* [InputManifest_File.decode(pkt)];
+        yield* [InputManifest_File.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): InputManifest_File {
     return {
-      path: isSet(object.path) ? String(object.path) : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
       metadata: isSet(object.metadata) ? bytesFromBase64(object.metadata) : new Uint8Array(0),
     };
   },
@@ -729,12 +733,12 @@ export const BuildManifestArgs = {
     source: AsyncIterable<BuildManifestArgs | BuildManifestArgs[]> | Iterable<BuildManifestArgs | BuildManifestArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuildManifestArgs.encode(p).finish()];
         }
       } else {
-        yield* [BuildManifestArgs.encode(pkt).finish()];
+        yield* [BuildManifestArgs.encode(pkt as any).finish()];
       }
     }
   },
@@ -745,12 +749,12 @@ export const BuildManifestArgs = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuildManifestArgs> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuildManifestArgs.decode(p)];
         }
       } else {
-        yield* [BuildManifestArgs.decode(pkt)];
+        yield* [BuildManifestArgs.decode(pkt as any)];
       }
     }
   },
@@ -759,7 +763,7 @@ export const BuildManifestArgs = {
     return {
       builderConfig: isSet(object.builderConfig) ? BuilderConfig.fromJSON(object.builderConfig) : undefined,
       prevBuilderResult: isSet(object.prevBuilderResult) ? BuilderResult.fromJSON(object.prevBuilderResult) : undefined,
-      changedFiles: Array.isArray(object?.changedFiles)
+      changedFiles: globalThis.Array.isArray(object?.changedFiles)
         ? object.changedFiles.map((e: any) => InputManifest_File.fromJSON(e))
         : [],
     };
@@ -795,30 +799,11 @@ export const BuildManifestArgs = {
   },
 };
 
-declare const self: any | undefined;
-declare const window: any | undefined;
-declare const global: any | undefined;
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== "undefined") {
-    return globalThis;
-  }
-  if (typeof self !== "undefined") {
-    return self;
-  }
-  if (typeof window !== "undefined") {
-    return window;
-  }
-  if (typeof global !== "undefined") {
-    return global;
-  }
-  throw "Unable to locate global object";
-})();
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, "base64"));
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
   } else {
-    const bin = tsProtoGlobalThis.atob(b64);
+    const bin = globalThis.atob(b64);
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i);
@@ -828,21 +813,21 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString("base64");
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
   } else {
     const bin: string[] = [];
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte));
+      bin.push(globalThis.String.fromCharCode(byte));
     });
-    return tsProtoGlobalThis.btoa(bin.join(""));
+    return globalThis.btoa(bin.join(""));
   }
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

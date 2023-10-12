@@ -133,12 +133,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -151,12 +151,12 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
@@ -164,17 +164,19 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       serviceIdPrefix: isSet(object.serviceIdPrefix)
-        ? String(object.serviceIdPrefix)
+        ? globalThis.String(object.serviceIdPrefix)
         : '',
-      webPkgIdRe: isSet(object.webPkgIdRe) ? String(object.webPkgIdRe) : '',
-      webPkgIdPrefixes: Array.isArray(object?.webPkgIdPrefixes)
-        ? object.webPkgIdPrefixes.map((e: any) => String(e))
+      webPkgIdRe: isSet(object.webPkgIdRe)
+        ? globalThis.String(object.webPkgIdRe)
+        : '',
+      webPkgIdPrefixes: globalThis.Array.isArray(object?.webPkgIdPrefixes)
+        ? object.webPkgIdPrefixes.map((e: any) => globalThis.String(e))
         : [],
-      webPkgIdList: Array.isArray(object?.webPkgIdList)
-        ? object.webPkgIdList.map((e: any) => String(e))
+      webPkgIdList: globalThis.Array.isArray(object?.webPkgIdList)
+        ? object.webPkgIdList.map((e: any) => globalThis.String(e))
         : [],
       releaseDelay: isSet(object.releaseDelay)
-        ? String(object.releaseDelay)
+        ? globalThis.String(object.releaseDelay)
         : '',
     }
   },
@@ -226,8 +228,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

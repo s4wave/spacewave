@@ -171,12 +171,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.encode(p).finish()];
         }
       } else {
-        yield* [Config.encode(pkt).finish()];
+        yield* [Config.encode(pkt as any).finish()];
       }
     }
   },
@@ -187,25 +187,25 @@ export const Config = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Config.decode(p)];
         }
       } else {
-        yield* [Config.decode(pkt)];
+        yield* [Config.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      sourcePath: isSet(object.sourcePath) ? String(object.sourcePath) : "",
-      workingPath: isSet(object.workingPath) ? String(object.workingPath) : "",
+      sourcePath: isSet(object.sourcePath) ? globalThis.String(object.sourcePath) : "",
+      workingPath: isSet(object.workingPath) ? globalThis.String(object.workingPath) : "",
       projectConfig: isSet(object.projectConfig) ? ProjectConfig.fromJSON(object.projectConfig) : undefined,
       buildBackoff: isSet(object.buildBackoff) ? Backoff.fromJSON(object.buildBackoff) : undefined,
-      watch: isSet(object.watch) ? Boolean(object.watch) : false,
-      start: isSet(object.start) ? Boolean(object.start) : false,
-      fetchManifestRemote: isSet(object.fetchManifestRemote) ? String(object.fetchManifestRemote) : "",
+      watch: isSet(object.watch) ? globalThis.Boolean(object.watch) : false,
+      start: isSet(object.start) ? globalThis.Boolean(object.start) : false,
+      fetchManifestRemote: isSet(object.fetchManifestRemote) ? globalThis.String(object.fetchManifestRemote) : "",
     };
   },
 
@@ -328,12 +328,12 @@ export const ManifestBuilderConfig = {
       | Iterable<ManifestBuilderConfig | ManifestBuilderConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestBuilderConfig.encode(p).finish()];
         }
       } else {
-        yield* [ManifestBuilderConfig.encode(pkt).finish()];
+        yield* [ManifestBuilderConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -344,22 +344,22 @@ export const ManifestBuilderConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ManifestBuilderConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestBuilderConfig.decode(p)];
         }
       } else {
-        yield* [ManifestBuilderConfig.decode(pkt)];
+        yield* [ManifestBuilderConfig.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ManifestBuilderConfig {
     return {
-      manifestId: isSet(object.manifestId) ? String(object.manifestId) : "",
-      buildType: isSet(object.buildType) ? String(object.buildType) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
-      remoteId: isSet(object.remoteId) ? String(object.remoteId) : "",
+      manifestId: isSet(object.manifestId) ? globalThis.String(object.manifestId) : "",
+      buildType: isSet(object.buildType) ? globalThis.String(object.buildType) : "",
+      platformId: isSet(object.platformId) ? globalThis.String(object.platformId) : "",
+      remoteId: isSet(object.remoteId) ? globalThis.String(object.remoteId) : "",
     };
   },
 
@@ -446,12 +446,12 @@ export const ManifestBuilderResult = {
       | Iterable<ManifestBuilderResult | ManifestBuilderResult[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestBuilderResult.encode(p).finish()];
         }
       } else {
-        yield* [ManifestBuilderResult.encode(pkt).finish()];
+        yield* [ManifestBuilderResult.encode(pkt as any).finish()];
       }
     }
   },
@@ -462,12 +462,12 @@ export const ManifestBuilderResult = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ManifestBuilderResult> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestBuilderResult.decode(p)];
         }
       } else {
-        yield* [ManifestBuilderResult.decode(pkt)];
+        yield* [ManifestBuilderResult.decode(pkt as any)];
       }
     }
   },
@@ -508,7 +508,7 @@ export const ManifestBuilderResult = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

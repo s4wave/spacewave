@@ -90,12 +90,12 @@ export const StoreManifestOp = {
     source: AsyncIterable<StoreManifestOp | StoreManifestOp[]> | Iterable<StoreManifestOp | StoreManifestOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [StoreManifestOp.encode(p).finish()];
         }
       } else {
-        yield* [StoreManifestOp.encode(pkt).finish()];
+        yield* [StoreManifestOp.encode(pkt as any).finish()];
       }
     }
   },
@@ -106,20 +106,22 @@ export const StoreManifestOp = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<StoreManifestOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [StoreManifestOp.decode(p)];
         }
       } else {
-        yield* [StoreManifestOp.decode(pkt)];
+        yield* [StoreManifestOp.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): StoreManifestOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
-      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
+      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
+      linkObjectKeys: globalThis.Array.isArray(object?.linkObjectKeys)
+        ? object.linkObjectKeys.map((e: any) => globalThis.String(e))
+        : [],
       manifestRef: isSet(object.manifestRef) ? ManifestRef.fromJSON(object.manifestRef) : undefined,
     };
   },
@@ -215,12 +217,12 @@ export const ExtractManifestBundleOp = {
       | Iterable<ExtractManifestBundleOp | ExtractManifestBundleOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ExtractManifestBundleOp.encode(p).finish()];
         }
       } else {
-        yield* [ExtractManifestBundleOp.encode(pkt).finish()];
+        yield* [ExtractManifestBundleOp.encode(pkt as any).finish()];
       }
     }
   },
@@ -231,20 +233,22 @@ export const ExtractManifestBundleOp = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExtractManifestBundleOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ExtractManifestBundleOp.decode(p)];
         }
       } else {
-        yield* [ExtractManifestBundleOp.decode(pkt)];
+        yield* [ExtractManifestBundleOp.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ExtractManifestBundleOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
-      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
+      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
+      linkObjectKeys: globalThis.Array.isArray(object?.linkObjectKeys)
+        ? object.linkObjectKeys.map((e: any) => globalThis.String(e))
+        : [],
       manifestBundle: isSet(object.manifestBundle) ? ObjectRef.fromJSON(object.manifestBundle) : undefined,
     };
   },
@@ -280,7 +284,7 @@ export const ExtractManifestBundleOp = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

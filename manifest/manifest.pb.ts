@@ -158,12 +158,12 @@ export const ManifestMeta = {
     source: AsyncIterable<ManifestMeta | ManifestMeta[]> | Iterable<ManifestMeta | ManifestMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestMeta.encode(p).finish()];
         }
       } else {
-        yield* [ManifestMeta.encode(pkt).finish()];
+        yield* [ManifestMeta.encode(pkt as any).finish()];
       }
     }
   },
@@ -174,21 +174,21 @@ export const ManifestMeta = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ManifestMeta> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestMeta.decode(p)];
         }
       } else {
-        yield* [ManifestMeta.decode(pkt)];
+        yield* [ManifestMeta.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ManifestMeta {
     return {
-      manifestId: isSet(object.manifestId) ? String(object.manifestId) : "",
-      buildType: isSet(object.buildType) ? String(object.buildType) : "",
-      platformId: isSet(object.platformId) ? String(object.platformId) : "",
+      manifestId: isSet(object.manifestId) ? globalThis.String(object.manifestId) : "",
+      buildType: isSet(object.buildType) ? globalThis.String(object.buildType) : "",
+      platformId: isSet(object.platformId) ? globalThis.String(object.platformId) : "",
       rev: isSet(object.rev) ? Long.fromValue(object.rev) : Long.UZERO,
     };
   },
@@ -294,12 +294,12 @@ export const Manifest = {
     source: AsyncIterable<Manifest | Manifest[]> | Iterable<Manifest | Manifest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Manifest.encode(p).finish()];
         }
       } else {
-        yield* [Manifest.encode(pkt).finish()];
+        yield* [Manifest.encode(pkt as any).finish()];
       }
     }
   },
@@ -310,12 +310,12 @@ export const Manifest = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Manifest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Manifest.decode(p)];
         }
       } else {
-        yield* [Manifest.decode(pkt)];
+        yield* [Manifest.decode(pkt as any)];
       }
     }
   },
@@ -323,7 +323,7 @@ export const Manifest = {
   fromJSON(object: any): Manifest {
     return {
       meta: isSet(object.meta) ? ManifestMeta.fromJSON(object.meta) : undefined,
-      entrypoint: isSet(object.entrypoint) ? String(object.entrypoint) : "",
+      entrypoint: isSet(object.entrypoint) ? globalThis.String(object.entrypoint) : "",
       distFsRef: isSet(object.distFsRef) ? BlockRef.fromJSON(object.distFsRef) : undefined,
       assetsFsRef: isSet(object.assetsFsRef) ? BlockRef.fromJSON(object.assetsFsRef) : undefined,
     };
@@ -416,12 +416,12 @@ export const ManifestRef = {
     source: AsyncIterable<ManifestRef | ManifestRef[]> | Iterable<ManifestRef | ManifestRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestRef.encode(p).finish()];
         }
       } else {
-        yield* [ManifestRef.encode(pkt).finish()];
+        yield* [ManifestRef.encode(pkt as any).finish()];
       }
     }
   },
@@ -432,12 +432,12 @@ export const ManifestRef = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ManifestRef> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestRef.decode(p)];
         }
       } else {
-        yield* [ManifestRef.decode(pkt)];
+        yield* [ManifestRef.decode(pkt as any)];
       }
     }
   },
@@ -526,12 +526,12 @@ export const ManifestBundle = {
     source: AsyncIterable<ManifestBundle | ManifestBundle[]> | Iterable<ManifestBundle | ManifestBundle[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestBundle.encode(p).finish()];
         }
       } else {
-        yield* [ManifestBundle.encode(pkt).finish()];
+        yield* [ManifestBundle.encode(pkt as any).finish()];
       }
     }
   },
@@ -542,19 +542,19 @@ export const ManifestBundle = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ManifestBundle> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestBundle.decode(p)];
         }
       } else {
-        yield* [ManifestBundle.decode(pkt)];
+        yield* [ManifestBundle.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ManifestBundle {
     return {
-      manifestRefs: Array.isArray(object?.manifestRefs)
+      manifestRefs: globalThis.Array.isArray(object?.manifestRefs)
         ? object.manifestRefs.map((e: any) => ManifestRef.fromJSON(e))
         : [],
       timestamp: isSet(object.timestamp) ? Timestamp.fromJSON(object.timestamp) : undefined,
@@ -628,12 +628,12 @@ export const FetchManifestRequest = {
       | Iterable<FetchManifestRequest | FetchManifestRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [FetchManifestRequest.encode(p).finish()];
         }
       } else {
-        yield* [FetchManifestRequest.encode(pkt).finish()];
+        yield* [FetchManifestRequest.encode(pkt as any).finish()];
       }
     }
   },
@@ -644,12 +644,12 @@ export const FetchManifestRequest = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchManifestRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [FetchManifestRequest.decode(p)];
         }
       } else {
-        yield* [FetchManifestRequest.decode(pkt)];
+        yield* [FetchManifestRequest.decode(pkt as any)];
       }
     }
   },
@@ -721,12 +721,12 @@ export const FetchManifestResponse = {
       | Iterable<FetchManifestResponse | FetchManifestResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [FetchManifestResponse.encode(p).finish()];
         }
       } else {
-        yield* [FetchManifestResponse.encode(pkt).finish()];
+        yield* [FetchManifestResponse.encode(pkt as any).finish()];
       }
     }
   },
@@ -737,12 +737,12 @@ export const FetchManifestResponse = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FetchManifestResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [FetchManifestResponse.decode(p)];
         }
       } else {
-        yield* [FetchManifestResponse.decode(pkt)];
+        yield* [FetchManifestResponse.decode(pkt as any)];
       }
     }
   },
@@ -824,7 +824,7 @@ interface Rpc {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

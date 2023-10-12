@@ -123,12 +123,12 @@ export const EsbuildOutput = {
       | Iterable<EsbuildOutput | EsbuildOutput[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EsbuildOutput.encode(p).finish()]
         }
       } else {
-        yield* [EsbuildOutput.encode(pkt).finish()]
+        yield* [EsbuildOutput.encode(pkt as any).finish()]
       }
     }
   },
@@ -141,12 +141,12 @@ export const EsbuildOutput = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EsbuildOutput> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EsbuildOutput.decode(p)]
         }
       } else {
-        yield* [EsbuildOutput.decode(pkt)]
+        yield* [EsbuildOutput.decode(pkt as any)]
       }
     }
   },
@@ -154,9 +154,9 @@ export const EsbuildOutput = {
   fromJSON(object: any): EsbuildOutput {
     return {
       entrypointHref: isSet(object.entrypointHref)
-        ? String(object.entrypointHref)
+        ? globalThis.String(object.entrypointHref)
         : '',
-      cssHref: isSet(object.cssHref) ? String(object.cssHref) : '',
+      cssHref: isSet(object.cssHref) ? globalThis.String(object.cssHref) : '',
     }
   },
 
@@ -199,8 +199,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

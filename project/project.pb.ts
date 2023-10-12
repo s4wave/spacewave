@@ -312,12 +312,12 @@ export const ProjectConfig = {
     source: AsyncIterable<ProjectConfig | ProjectConfig[]> | Iterable<ProjectConfig | ProjectConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig.encode(pkt).finish()];
+        yield* [ProjectConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -328,19 +328,19 @@ export const ProjectConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ProjectConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig.decode(p)];
         }
       } else {
-        yield* [ProjectConfig.decode(pkt)];
+        yield* [ProjectConfig.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ProjectConfig {
     return {
-      id: isSet(object.id) ? String(object.id) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
       start: isSet(object.start) ? StartConfig.fromJSON(object.start) : undefined,
       manifests: isObject(object.manifests)
         ? Object.entries(object.manifests).reduce<{ [key: string]: ManifestConfig }>((acc, [key, value]) => {
@@ -515,12 +515,12 @@ export const ProjectConfig_ManifestsEntry = {
       | Iterable<ProjectConfig_ManifestsEntry | ProjectConfig_ManifestsEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_ManifestsEntry.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig_ManifestsEntry.encode(pkt).finish()];
+        yield* [ProjectConfig_ManifestsEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -531,19 +531,19 @@ export const ProjectConfig_ManifestsEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ProjectConfig_ManifestsEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_ManifestsEntry.decode(p)];
         }
       } else {
-        yield* [ProjectConfig_ManifestsEntry.decode(pkt)];
+        yield* [ProjectConfig_ManifestsEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ProjectConfig_ManifestsEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? ManifestConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -625,12 +625,12 @@ export const ProjectConfig_BuildEntry = {
       | Iterable<ProjectConfig_BuildEntry | ProjectConfig_BuildEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_BuildEntry.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig_BuildEntry.encode(pkt).finish()];
+        yield* [ProjectConfig_BuildEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -641,19 +641,19 @@ export const ProjectConfig_BuildEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ProjectConfig_BuildEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_BuildEntry.decode(p)];
         }
       } else {
-        yield* [ProjectConfig_BuildEntry.decode(pkt)];
+        yield* [ProjectConfig_BuildEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ProjectConfig_BuildEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? BuildConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -735,12 +735,12 @@ export const ProjectConfig_RemotesEntry = {
       | Iterable<ProjectConfig_RemotesEntry | ProjectConfig_RemotesEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_RemotesEntry.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig_RemotesEntry.encode(pkt).finish()];
+        yield* [ProjectConfig_RemotesEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -751,19 +751,19 @@ export const ProjectConfig_RemotesEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ProjectConfig_RemotesEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_RemotesEntry.decode(p)];
         }
       } else {
-        yield* [ProjectConfig_RemotesEntry.decode(pkt)];
+        yield* [ProjectConfig_RemotesEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ProjectConfig_RemotesEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? RemoteConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -845,12 +845,12 @@ export const ProjectConfig_PublishEntry = {
       | Iterable<ProjectConfig_PublishEntry | ProjectConfig_PublishEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_PublishEntry.encode(p).finish()];
         }
       } else {
-        yield* [ProjectConfig_PublishEntry.encode(pkt).finish()];
+        yield* [ProjectConfig_PublishEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -861,19 +861,19 @@ export const ProjectConfig_PublishEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ProjectConfig_PublishEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ProjectConfig_PublishEntry.decode(p)];
         }
       } else {
-        yield* [ProjectConfig_PublishEntry.decode(pkt)];
+        yield* [ProjectConfig_PublishEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): ProjectConfig_PublishEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? PublishConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -953,12 +953,12 @@ export const ManifestConfig = {
     source: AsyncIterable<ManifestConfig | ManifestConfig[]> | Iterable<ManifestConfig | ManifestConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestConfig.encode(p).finish()];
         }
       } else {
-        yield* [ManifestConfig.encode(pkt).finish()];
+        yield* [ManifestConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -969,12 +969,12 @@ export const ManifestConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ManifestConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [ManifestConfig.decode(p)];
         }
       } else {
-        yield* [ManifestConfig.decode(pkt)];
+        yield* [ManifestConfig.decode(pkt as any)];
       }
     }
   },
@@ -1061,12 +1061,12 @@ export const StartConfig = {
     source: AsyncIterable<StartConfig | StartConfig[]> | Iterable<StartConfig | StartConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [StartConfig.encode(p).finish()];
         }
       } else {
-        yield* [StartConfig.encode(pkt).finish()];
+        yield* [StartConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -1077,20 +1077,20 @@ export const StartConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<StartConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [StartConfig.decode(p)];
         }
       } else {
-        yield* [StartConfig.decode(pkt)];
+        yield* [StartConfig.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): StartConfig {
     return {
-      plugins: Array.isArray(object?.plugins) ? object.plugins.map((e: any) => String(e)) : [],
-      disableBuild: isSet(object.disableBuild) ? Boolean(object.disableBuild) : false,
+      plugins: globalThis.Array.isArray(object?.plugins) ? object.plugins.map((e: any) => globalThis.String(e)) : [],
+      disableBuild: isSet(object.disableBuild) ? globalThis.Boolean(object.disableBuild) : false,
     };
   },
 
@@ -1167,12 +1167,12 @@ export const BuildConfig = {
     source: AsyncIterable<BuildConfig | BuildConfig[]> | Iterable<BuildConfig | BuildConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuildConfig.encode(p).finish()];
         }
       } else {
-        yield* [BuildConfig.encode(pkt).finish()];
+        yield* [BuildConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -1183,20 +1183,24 @@ export const BuildConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuildConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [BuildConfig.decode(p)];
         }
       } else {
-        yield* [BuildConfig.decode(pkt)];
+        yield* [BuildConfig.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): BuildConfig {
     return {
-      manifests: Array.isArray(object?.manifests) ? object.manifests.map((e: any) => String(e)) : [],
-      platformIds: Array.isArray(object?.platformIds) ? object.platformIds.map((e: any) => String(e)) : [],
+      manifests: globalThis.Array.isArray(object?.manifests)
+        ? object.manifests.map((e: any) => globalThis.String(e))
+        : [],
+      platformIds: globalThis.Array.isArray(object?.platformIds)
+        ? object.platformIds.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -1306,12 +1310,12 @@ export const RemoteConfig = {
     source: AsyncIterable<RemoteConfig | RemoteConfig[]> | Iterable<RemoteConfig | RemoteConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RemoteConfig.encode(p).finish()];
         }
       } else {
-        yield* [RemoteConfig.encode(pkt).finish()];
+        yield* [RemoteConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -1322,12 +1326,12 @@ export const RemoteConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoteConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RemoteConfig.decode(p)];
         }
       } else {
-        yield* [RemoteConfig.decode(pkt)];
+        yield* [RemoteConfig.decode(pkt as any)];
       }
     }
   },
@@ -1340,10 +1344,12 @@ export const RemoteConfig = {
           return acc;
         }, {})
         : {},
-      engineId: isSet(object.engineId) ? String(object.engineId) : "",
-      peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : "",
-      linkObjectKeys: Array.isArray(object?.linkObjectKeys) ? object.linkObjectKeys.map((e: any) => String(e)) : [],
+      engineId: isSet(object.engineId) ? globalThis.String(object.engineId) : "",
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : "",
+      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
+      linkObjectKeys: globalThis.Array.isArray(object?.linkObjectKeys)
+        ? object.linkObjectKeys.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -1448,12 +1454,12 @@ export const RemoteConfig_HostConfigSetEntry = {
       | Iterable<RemoteConfig_HostConfigSetEntry | RemoteConfig_HostConfigSetEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RemoteConfig_HostConfigSetEntry.encode(p).finish()];
         }
       } else {
-        yield* [RemoteConfig_HostConfigSetEntry.encode(pkt).finish()];
+        yield* [RemoteConfig_HostConfigSetEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -1464,19 +1470,19 @@ export const RemoteConfig_HostConfigSetEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoteConfig_HostConfigSetEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RemoteConfig_HostConfigSetEntry.decode(p)];
         }
       } else {
-        yield* [RemoteConfig_HostConfigSetEntry.decode(pkt)];
+        yield* [RemoteConfig_HostConfigSetEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): RemoteConfig_HostConfigSetEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? ControllerConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -1630,12 +1636,12 @@ export const PublishConfig = {
     source: AsyncIterable<PublishConfig | PublishConfig[]> | Iterable<PublishConfig | PublishConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PublishConfig.encode(p).finish()];
         }
       } else {
-        yield* [PublishConfig.encode(pkt).finish()];
+        yield* [PublishConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -1646,26 +1652,30 @@ export const PublishConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PublishConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PublishConfig.decode(p)];
         }
       } else {
-        yield* [PublishConfig.decode(pkt)];
+        yield* [PublishConfig.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PublishConfig {
     return {
-      sourceObjectKeys: Array.isArray(object?.sourceObjectKeys)
-        ? object.sourceObjectKeys.map((e: any) => String(e))
+      sourceObjectKeys: globalThis.Array.isArray(object?.sourceObjectKeys)
+        ? object.sourceObjectKeys.map((e: any) => globalThis.String(e))
         : [],
-      manifests: Array.isArray(object?.manifests) ? object.manifests.map((e: any) => String(e)) : [],
-      allManifestRevs: isSet(object.allManifestRevs) ? Boolean(object.allManifestRevs) : false,
-      platformIds: Array.isArray(object?.platformIds) ? object.platformIds.map((e: any) => String(e)) : [],
-      remotes: Array.isArray(object?.remotes) ? object.remotes.map((e: any) => String(e)) : [],
-      destObjectKey: isSet(object.destObjectKey) ? String(object.destObjectKey) : "",
+      manifests: globalThis.Array.isArray(object?.manifests)
+        ? object.manifests.map((e: any) => globalThis.String(e))
+        : [],
+      allManifestRevs: isSet(object.allManifestRevs) ? globalThis.Boolean(object.allManifestRevs) : false,
+      platformIds: globalThis.Array.isArray(object?.platformIds)
+        ? object.platformIds.map((e: any) => globalThis.String(e))
+        : [],
+      remotes: globalThis.Array.isArray(object?.remotes) ? object.remotes.map((e: any) => globalThis.String(e)) : [],
+      destObjectKey: isSet(object.destObjectKey) ? globalThis.String(object.destObjectKey) : "",
       storage: isSet(object.storage) ? PublishStorageConfig.fromJSON(object.storage) : undefined,
       manifestStorage: isObject(object.manifestStorage)
         ? Object.entries(object.manifestStorage).reduce<{ [key: string]: PublishStorageConfig }>(
@@ -1793,12 +1803,12 @@ export const PublishConfig_ManifestStorageEntry = {
       | Iterable<PublishConfig_ManifestStorageEntry | PublishConfig_ManifestStorageEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PublishConfig_ManifestStorageEntry.encode(p).finish()];
         }
       } else {
-        yield* [PublishConfig_ManifestStorageEntry.encode(pkt).finish()];
+        yield* [PublishConfig_ManifestStorageEntry.encode(pkt as any).finish()];
       }
     }
   },
@@ -1809,19 +1819,19 @@ export const PublishConfig_ManifestStorageEntry = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PublishConfig_ManifestStorageEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PublishConfig_ManifestStorageEntry.decode(p)];
         }
       } else {
-        yield* [PublishConfig_ManifestStorageEntry.decode(pkt)];
+        yield* [PublishConfig_ManifestStorageEntry.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PublishConfig_ManifestStorageEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
       value: isSet(object.value) ? PublishStorageConfig.fromJSON(object.value) : undefined,
     };
   },
@@ -1917,12 +1927,12 @@ export const PublishStorageConfig = {
       | Iterable<PublishStorageConfig | PublishStorageConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PublishStorageConfig.encode(p).finish()];
         }
       } else {
-        yield* [PublishStorageConfig.encode(pkt).finish()];
+        yield* [PublishStorageConfig.encode(pkt as any).finish()];
       }
     }
   },
@@ -1933,12 +1943,12 @@ export const PublishStorageConfig = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PublishStorageConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PublishStorageConfig.decode(p)];
         }
       } else {
-        yield* [PublishStorageConfig.decode(pkt)];
+        yield* [PublishStorageConfig.decode(pkt as any)];
       }
     }
   },
@@ -1988,7 +1998,7 @@ export const PublishStorageConfig = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

@@ -139,12 +139,12 @@ export const HandleWebViewViaPluginRequest = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewViaPluginRequest.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebViewViaPluginRequest.encode(pkt).finish()]
+        yield* [HandleWebViewViaPluginRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -157,12 +157,12 @@ export const HandleWebViewViaPluginRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewViaPluginRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewViaPluginRequest.decode(p)]
         }
       } else {
-        yield* [HandleWebViewViaPluginRequest.decode(pkt)]
+        yield* [HandleWebViewViaPluginRequest.decode(pkt as any)]
       }
     }
   },
@@ -170,9 +170,11 @@ export const HandleWebViewViaPluginRequest = {
   fromJSON(object: any): HandleWebViewViaPluginRequest {
     return {
       handlePluginId: isSet(object.handlePluginId)
-        ? String(object.handlePluginId)
+        ? globalThis.String(object.handlePluginId)
         : '',
-      webViewIdRe: isSet(object.webViewIdRe) ? String(object.webViewIdRe) : '',
+      webViewIdRe: isSet(object.webViewIdRe)
+        ? globalThis.String(object.webViewIdRe)
+        : '',
     }
   },
 
@@ -258,12 +260,12 @@ export const HandleWebViewViaPluginResponse = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewViaPluginResponse.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebViewViaPluginResponse.encode(pkt).finish()]
+        yield* [HandleWebViewViaPluginResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -276,12 +278,12 @@ export const HandleWebViewViaPluginResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebViewViaPluginResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebViewViaPluginResponse.decode(p)]
         }
       } else {
-        yield* [HandleWebViewViaPluginResponse.decode(pkt)]
+        yield* [HandleWebViewViaPluginResponse.decode(pkt as any)]
       }
     }
   },
@@ -289,7 +291,7 @@ export const HandleWebViewViaPluginResponse = {
   fromJSON(object: any): HandleWebViewViaPluginResponse {
     return {
       body: isSet(object.ready)
-        ? { $case: 'ready', ready: Boolean(object.ready) }
+        ? { $case: 'ready', ready: globalThis.Boolean(object.ready) }
         : undefined,
     }
   },
@@ -409,12 +411,12 @@ export const HandleWebPkgViaPluginRequest = {
       | Iterable<HandleWebPkgViaPluginRequest | HandleWebPkgViaPluginRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebPkgViaPluginRequest.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebPkgViaPluginRequest.encode(pkt).finish()]
+        yield* [HandleWebPkgViaPluginRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -427,12 +429,12 @@ export const HandleWebPkgViaPluginRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebPkgViaPluginRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebPkgViaPluginRequest.decode(p)]
         }
       } else {
-        yield* [HandleWebPkgViaPluginRequest.decode(pkt)]
+        yield* [HandleWebPkgViaPluginRequest.decode(pkt as any)]
       }
     }
   },
@@ -440,14 +442,16 @@ export const HandleWebPkgViaPluginRequest = {
   fromJSON(object: any): HandleWebPkgViaPluginRequest {
     return {
       handlePluginId: isSet(object.handlePluginId)
-        ? String(object.handlePluginId)
+        ? globalThis.String(object.handlePluginId)
         : '',
-      webPkgIdRe: isSet(object.webPkgIdRe) ? String(object.webPkgIdRe) : '',
-      webPkgIdPrefixes: Array.isArray(object?.webPkgIdPrefixes)
-        ? object.webPkgIdPrefixes.map((e: any) => String(e))
+      webPkgIdRe: isSet(object.webPkgIdRe)
+        ? globalThis.String(object.webPkgIdRe)
+        : '',
+      webPkgIdPrefixes: globalThis.Array.isArray(object?.webPkgIdPrefixes)
+        ? object.webPkgIdPrefixes.map((e: any) => globalThis.String(e))
         : [],
-      webPkgIdList: Array.isArray(object?.webPkgIdList)
-        ? object.webPkgIdList.map((e: any) => String(e))
+      webPkgIdList: globalThis.Array.isArray(object?.webPkgIdList)
+        ? object.webPkgIdList.map((e: any) => globalThis.String(e))
         : [],
     }
   },
@@ -542,12 +546,12 @@ export const HandleWebPkgViaPluginResponse = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebPkgViaPluginResponse.encode(p).finish()]
         }
       } else {
-        yield* [HandleWebPkgViaPluginResponse.encode(pkt).finish()]
+        yield* [HandleWebPkgViaPluginResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -560,12 +564,12 @@ export const HandleWebPkgViaPluginResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleWebPkgViaPluginResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleWebPkgViaPluginResponse.decode(p)]
         }
       } else {
-        yield* [HandleWebPkgViaPluginResponse.decode(pkt)]
+        yield* [HandleWebPkgViaPluginResponse.decode(pkt as any)]
       }
     }
   },
@@ -573,7 +577,7 @@ export const HandleWebPkgViaPluginResponse = {
   fromJSON(object: any): HandleWebPkgViaPluginResponse {
     return {
       body: isSet(object.ready)
-        ? { $case: 'ready', ready: Boolean(object.ready) }
+        ? { $case: 'ready', ready: globalThis.Boolean(object.ready) }
         : undefined,
     }
   },
@@ -691,12 +695,12 @@ export const HandleRpcViaPluginRequest = {
       | Iterable<HandleRpcViaPluginRequest | HandleRpcViaPluginRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleRpcViaPluginRequest.encode(p).finish()]
         }
       } else {
-        yield* [HandleRpcViaPluginRequest.encode(pkt).finish()]
+        yield* [HandleRpcViaPluginRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -709,12 +713,12 @@ export const HandleRpcViaPluginRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleRpcViaPluginRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleRpcViaPluginRequest.decode(p)]
         }
       } else {
-        yield* [HandleRpcViaPluginRequest.decode(pkt)]
+        yield* [HandleRpcViaPluginRequest.decode(pkt as any)]
       }
     }
   },
@@ -722,10 +726,14 @@ export const HandleRpcViaPluginRequest = {
   fromJSON(object: any): HandleRpcViaPluginRequest {
     return {
       handlePluginId: isSet(object.handlePluginId)
-        ? String(object.handlePluginId)
+        ? globalThis.String(object.handlePluginId)
         : '',
-      serviceIdRe: isSet(object.serviceIdRe) ? String(object.serviceIdRe) : '',
-      serverIdRe: isSet(object.serverIdRe) ? String(object.serverIdRe) : '',
+      serviceIdRe: isSet(object.serviceIdRe)
+        ? globalThis.String(object.serviceIdRe)
+        : '',
+      serverIdRe: isSet(object.serverIdRe)
+        ? globalThis.String(object.serverIdRe)
+        : '',
       backoff: isSet(object.backoff)
         ? Backoff.fromJSON(object.backoff)
         : undefined,
@@ -821,12 +829,12 @@ export const HandleRpcViaPluginResponse = {
       | Iterable<HandleRpcViaPluginResponse | HandleRpcViaPluginResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleRpcViaPluginResponse.encode(p).finish()]
         }
       } else {
-        yield* [HandleRpcViaPluginResponse.encode(pkt).finish()]
+        yield* [HandleRpcViaPluginResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -839,12 +847,12 @@ export const HandleRpcViaPluginResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HandleRpcViaPluginResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HandleRpcViaPluginResponse.decode(p)]
         }
       } else {
-        yield* [HandleRpcViaPluginResponse.decode(pkt)]
+        yield* [HandleRpcViaPluginResponse.decode(pkt as any)]
       }
     }
   },
@@ -852,7 +860,7 @@ export const HandleRpcViaPluginResponse = {
   fromJSON(object: any): HandleRpcViaPluginResponse {
     return {
       body: isSet(object.ready)
-        ? { $case: 'ready', ready: Boolean(object.ready) }
+        ? { $case: 'ready', ready: globalThis.Boolean(object.ready) }
         : undefined,
     }
   },
@@ -1040,8 +1048,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

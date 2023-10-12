@@ -97,12 +97,12 @@ export const WatchWebDocumentStatusRequest = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WatchWebDocumentStatusRequest.encode(p).finish()]
         }
       } else {
-        yield* [WatchWebDocumentStatusRequest.encode(pkt).finish()]
+        yield* [WatchWebDocumentStatusRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -115,12 +115,12 @@ export const WatchWebDocumentStatusRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchWebDocumentStatusRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WatchWebDocumentStatusRequest.decode(p)]
         }
       } else {
-        yield* [WatchWebDocumentStatusRequest.decode(pkt)]
+        yield* [WatchWebDocumentStatusRequest.decode(pkt as any)]
       }
     }
   },
@@ -204,12 +204,12 @@ export const WebDocumentStatus = {
       | Iterable<WebDocumentStatus | WebDocumentStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WebDocumentStatus.encode(p).finish()]
         }
       } else {
-        yield* [WebDocumentStatus.encode(pkt).finish()]
+        yield* [WebDocumentStatus.encode(pkt as any).finish()]
       }
     }
   },
@@ -222,20 +222,22 @@ export const WebDocumentStatus = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebDocumentStatus> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WebDocumentStatus.decode(p)]
         }
       } else {
-        yield* [WebDocumentStatus.decode(pkt)]
+        yield* [WebDocumentStatus.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WebDocumentStatus {
     return {
-      snapshot: isSet(object.snapshot) ? Boolean(object.snapshot) : false,
-      webViews: Array.isArray(object?.webViews)
+      snapshot: isSet(object.snapshot)
+        ? globalThis.Boolean(object.snapshot)
+        : false,
+      webViews: globalThis.Array.isArray(object?.webViews)
         ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
         : [],
     }
@@ -345,12 +347,12 @@ export const WebViewStatus = {
       | Iterable<WebViewStatus | WebViewStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WebViewStatus.encode(p).finish()]
         }
       } else {
-        yield* [WebViewStatus.encode(pkt).finish()]
+        yield* [WebViewStatus.encode(pkt as any).finish()]
       }
     }
   },
@@ -363,22 +365,28 @@ export const WebViewStatus = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WebViewStatus> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WebViewStatus.decode(p)]
         }
       } else {
-        yield* [WebViewStatus.decode(pkt)]
+        yield* [WebViewStatus.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WebViewStatus {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
-      deleted: isSet(object.deleted) ? Boolean(object.deleted) : false,
-      parentId: isSet(object.parentId) ? String(object.parentId) : '',
-      permanent: isSet(object.permanent) ? Boolean(object.permanent) : false,
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      deleted: isSet(object.deleted)
+        ? globalThis.Boolean(object.deleted)
+        : false,
+      parentId: isSet(object.parentId)
+        ? globalThis.String(object.parentId)
+        : '',
+      permanent: isSet(object.permanent)
+        ? globalThis.Boolean(object.permanent)
+        : false,
     }
   },
 
@@ -466,12 +474,12 @@ export const CreateWebViewRequest = {
       | Iterable<CreateWebViewRequest | CreateWebViewRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CreateWebViewRequest.encode(p).finish()]
         }
       } else {
-        yield* [CreateWebViewRequest.encode(pkt).finish()]
+        yield* [CreateWebViewRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -484,18 +492,18 @@ export const CreateWebViewRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CreateWebViewRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CreateWebViewRequest.decode(p)]
         }
       } else {
-        yield* [CreateWebViewRequest.decode(pkt)]
+        yield* [CreateWebViewRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): CreateWebViewRequest {
-    return { id: isSet(object.id) ? String(object.id) : '' }
+    return { id: isSet(object.id) ? globalThis.String(object.id) : '' }
   },
 
   toJSON(message: CreateWebViewRequest): unknown {
@@ -570,12 +578,12 @@ export const CreateWebViewResponse = {
       | Iterable<CreateWebViewResponse | CreateWebViewResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CreateWebViewResponse.encode(p).finish()]
         }
       } else {
-        yield* [CreateWebViewResponse.encode(pkt).finish()]
+        yield* [CreateWebViewResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -588,18 +596,22 @@ export const CreateWebViewResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CreateWebViewResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CreateWebViewResponse.decode(p)]
         }
       } else {
-        yield* [CreateWebViewResponse.decode(pkt)]
+        yield* [CreateWebViewResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): CreateWebViewResponse {
-    return { created: isSet(object.created) ? Boolean(object.created) : false }
+    return {
+      created: isSet(object.created)
+        ? globalThis.Boolean(object.created)
+        : false,
+    }
   },
 
   toJSON(message: CreateWebViewResponse): unknown {
@@ -860,8 +872,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

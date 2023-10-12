@@ -114,12 +114,12 @@ export const Assembly = {
     source: AsyncIterable<Assembly | Assembly[]> | Iterable<Assembly | Assembly[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Assembly.encode(p).finish()];
         }
       } else {
-        yield* [Assembly.encode(pkt).finish()];
+        yield* [Assembly.encode(pkt as any).finish()];
       }
     }
   },
@@ -130,12 +130,12 @@ export const Assembly = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Assembly> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Assembly.decode(p)];
         }
       } else {
-        yield* [Assembly.decode(pkt)];
+        yield* [Assembly.decode(pkt as any)];
       }
     }
   },
@@ -143,7 +143,7 @@ export const Assembly = {
   fromJSON(object: any): Assembly {
     return {
       controllerExec: isSet(object.controllerExec) ? ExecControllerRequest.fromJSON(object.controllerExec) : undefined,
-      subAssemblies: Array.isArray(object?.subAssemblies)
+      subAssemblies: globalThis.Array.isArray(object?.subAssemblies)
         ? object.subAssemblies.map((e: any) => SubAssembly.fromJSON(e))
         : [],
     };
@@ -244,12 +244,12 @@ export const SubAssembly = {
     source: AsyncIterable<SubAssembly | SubAssembly[]> | Iterable<SubAssembly | SubAssembly[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [SubAssembly.encode(p).finish()];
         }
       } else {
-        yield* [SubAssembly.encode(pkt).finish()];
+        yield* [SubAssembly.encode(pkt as any).finish()];
       }
     }
   },
@@ -260,24 +260,26 @@ export const SubAssembly = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SubAssembly> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [SubAssembly.decode(p)];
         }
       } else {
-        yield* [SubAssembly.decode(pkt)];
+        yield* [SubAssembly.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): SubAssembly {
     return {
-      id: isSet(object.id) ? String(object.id) : "",
-      assemblies: Array.isArray(object?.assemblies) ? object.assemblies.map((e: any) => Assembly.fromJSON(e)) : [],
-      assemblyRefs: Array.isArray(object?.assemblyRefs)
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      assemblies: globalThis.Array.isArray(object?.assemblies)
+        ? object.assemblies.map((e: any) => Assembly.fromJSON(e))
+        : [],
+      assemblyRefs: globalThis.Array.isArray(object?.assemblyRefs)
         ? object.assemblyRefs.map((e: any) => BlockRef.fromJSON(e))
         : [],
-      directiveBridges: Array.isArray(object?.directiveBridges)
+      directiveBridges: globalThis.Array.isArray(object?.directiveBridges)
         ? object.directiveBridges.map((e: any) => DirectiveBridge.fromJSON(e))
         : [],
     };
@@ -364,12 +366,12 @@ export const DirectiveBridge = {
     source: AsyncIterable<DirectiveBridge | DirectiveBridge[]> | Iterable<DirectiveBridge | DirectiveBridge[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [DirectiveBridge.encode(p).finish()];
         }
       } else {
-        yield* [DirectiveBridge.encode(pkt).finish()];
+        yield* [DirectiveBridge.encode(pkt as any).finish()];
       }
     }
   },
@@ -380,12 +382,12 @@ export const DirectiveBridge = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DirectiveBridge> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [DirectiveBridge.decode(p)];
         }
       } else {
-        yield* [DirectiveBridge.decode(pkt)];
+        yield* [DirectiveBridge.decode(pkt as any)];
       }
     }
   },
@@ -393,7 +395,7 @@ export const DirectiveBridge = {
   fromJSON(object: any): DirectiveBridge {
     return {
       controllerConfig: isSet(object.controllerConfig) ? ControllerConfig.fromJSON(object.controllerConfig) : undefined,
-      bridgeToParent: isSet(object.bridgeToParent) ? Boolean(object.bridgeToParent) : false,
+      bridgeToParent: isSet(object.bridgeToParent) ? globalThis.Boolean(object.bridgeToParent) : false,
     };
   },
 
@@ -424,7 +426,7 @@ export const DirectiveBridge = {
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

@@ -184,12 +184,12 @@ export const SetRenderModeRequest = {
       | Iterable<SetRenderModeRequest | SetRenderModeRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetRenderModeRequest.encode(p).finish()]
         }
       } else {
-        yield* [SetRenderModeRequest.encode(pkt).finish()]
+        yield* [SetRenderModeRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -202,12 +202,12 @@ export const SetRenderModeRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetRenderModeRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetRenderModeRequest.decode(p)]
         }
       } else {
-        yield* [SetRenderModeRequest.decode(pkt)]
+        yield* [SetRenderModeRequest.decode(pkt as any)]
       }
     }
   },
@@ -217,7 +217,9 @@ export const SetRenderModeRequest = {
       renderMode: isSet(object.renderMode)
         ? renderModeFromJSON(object.renderMode)
         : 0,
-      scriptPath: isSet(object.scriptPath) ? String(object.scriptPath) : '',
+      scriptPath: isSet(object.scriptPath)
+        ? globalThis.String(object.scriptPath)
+        : '',
       props: isSet(object.props)
         ? bytesFromBase64(object.props)
         : new Uint8Array(0),
@@ -294,12 +296,12 @@ export const SetRenderModeResponse = {
       | Iterable<SetRenderModeResponse | SetRenderModeResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetRenderModeResponse.encode(p).finish()]
         }
       } else {
-        yield* [SetRenderModeResponse.encode(pkt).finish()]
+        yield* [SetRenderModeResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -312,12 +314,12 @@ export const SetRenderModeResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetRenderModeResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetRenderModeResponse.decode(p)]
         }
       } else {
-        yield* [SetRenderModeResponse.decode(pkt)]
+        yield* [SetRenderModeResponse.decode(pkt as any)]
       }
     }
   },
@@ -420,12 +422,12 @@ export const SetHtmlLinksRequest = {
       | Iterable<SetHtmlLinksRequest | SetHtmlLinksRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetHtmlLinksRequest.encode(p).finish()]
         }
       } else {
-        yield* [SetHtmlLinksRequest.encode(pkt).finish()]
+        yield* [SetHtmlLinksRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -438,21 +440,21 @@ export const SetHtmlLinksRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetHtmlLinksRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetHtmlLinksRequest.decode(p)]
         }
       } else {
-        yield* [SetHtmlLinksRequest.decode(pkt)]
+        yield* [SetHtmlLinksRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): SetHtmlLinksRequest {
     return {
-      clear: isSet(object.clear) ? Boolean(object.clear) : false,
-      remove: Array.isArray(object?.remove)
-        ? object.remove.map((e: any) => String(e))
+      clear: isSet(object.clear) ? globalThis.Boolean(object.clear) : false,
+      remove: globalThis.Array.isArray(object?.remove)
+        ? object.remove.map((e: any) => globalThis.String(e))
         : [],
       setLinks: isObject(object.setLinks)
         ? Object.entries(object.setLinks).reduce<{ [key: string]: HtmlLink }>(
@@ -575,12 +577,12 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetHtmlLinksRequest_SetLinksEntry.encode(p).finish()]
         }
       } else {
-        yield* [SetHtmlLinksRequest_SetLinksEntry.encode(pkt).finish()]
+        yield* [SetHtmlLinksRequest_SetLinksEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -593,19 +595,19 @@ export const SetHtmlLinksRequest_SetLinksEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetHtmlLinksRequest_SetLinksEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetHtmlLinksRequest_SetLinksEntry.decode(p)]
         }
       } else {
-        yield* [SetHtmlLinksRequest_SetLinksEntry.decode(pkt)]
+        yield* [SetHtmlLinksRequest_SetLinksEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): SetHtmlLinksRequest_SetLinksEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? HtmlLink.fromJSON(object.value) : undefined,
     }
   },
@@ -696,12 +698,12 @@ export const HtmlLink = {
       | Iterable<HtmlLink | HtmlLink[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HtmlLink.encode(p).finish()]
         }
       } else {
-        yield* [HtmlLink.encode(pkt).finish()]
+        yield* [HtmlLink.encode(pkt as any).finish()]
       }
     }
   },
@@ -714,20 +716,20 @@ export const HtmlLink = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HtmlLink> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HtmlLink.decode(p)]
         }
       } else {
-        yield* [HtmlLink.decode(pkt)]
+        yield* [HtmlLink.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): HtmlLink {
     return {
-      href: isSet(object.href) ? String(object.href) : '',
-      rel: isSet(object.rel) ? String(object.rel) : '',
+      href: isSet(object.href) ? globalThis.String(object.href) : '',
+      rel: isSet(object.rel) ? globalThis.String(object.rel) : '',
     }
   },
 
@@ -793,12 +795,12 @@ export const SetHtmlLinksResponse = {
       | Iterable<SetHtmlLinksResponse | SetHtmlLinksResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetHtmlLinksResponse.encode(p).finish()]
         }
       } else {
-        yield* [SetHtmlLinksResponse.encode(pkt).finish()]
+        yield* [SetHtmlLinksResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -811,12 +813,12 @@ export const SetHtmlLinksResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SetHtmlLinksResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SetHtmlLinksResponse.decode(p)]
         }
       } else {
-        yield* [SetHtmlLinksResponse.decode(pkt)]
+        yield* [SetHtmlLinksResponse.decode(pkt as any)]
       }
     }
   },
@@ -883,12 +885,12 @@ export const RemoveWebViewRequest = {
       | Iterable<RemoveWebViewRequest | RemoveWebViewRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RemoveWebViewRequest.encode(p).finish()]
         }
       } else {
-        yield* [RemoveWebViewRequest.encode(pkt).finish()]
+        yield* [RemoveWebViewRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -901,12 +903,12 @@ export const RemoveWebViewRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveWebViewRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RemoveWebViewRequest.decode(p)]
         }
       } else {
-        yield* [RemoveWebViewRequest.decode(pkt)]
+        yield* [RemoveWebViewRequest.decode(pkt as any)]
       }
     }
   },
@@ -983,12 +985,12 @@ export const RemoveWebViewResponse = {
       | Iterable<RemoveWebViewResponse | RemoveWebViewResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RemoveWebViewResponse.encode(p).finish()]
         }
       } else {
-        yield* [RemoveWebViewResponse.encode(pkt).finish()]
+        yield* [RemoveWebViewResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1001,18 +1003,22 @@ export const RemoveWebViewResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveWebViewResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RemoveWebViewResponse.decode(p)]
         }
       } else {
-        yield* [RemoveWebViewResponse.decode(pkt)]
+        yield* [RemoveWebViewResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): RemoveWebViewResponse {
-    return { removed: isSet(object.removed) ? Boolean(object.removed) : false }
+    return {
+      removed: isSet(object.removed)
+        ? globalThis.Boolean(object.removed)
+        : false,
+    }
   },
 
   toJSON(message: RemoveWebViewResponse): unknown {
@@ -1265,30 +1271,11 @@ interface Rpc {
   ): AsyncIterable<Uint8Array>
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -1298,14 +1285,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -1322,8 +1309,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

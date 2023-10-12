@@ -52,12 +52,12 @@ export const GetInfoRequest = {
       | Iterable<GetInfoRequest | GetInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetInfoRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetInfoRequest.encode(pkt).finish()]
+        yield* [GetInfoRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -70,12 +70,12 @@ export const GetInfoRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetInfoRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetInfoRequest.decode(p)]
         }
       } else {
-        yield* [GetInfoRequest.decode(pkt)]
+        yield* [GetInfoRequest.decode(pkt as any)]
       }
     }
   },
@@ -149,12 +149,12 @@ export const GetInfoResponse = {
       | Iterable<GetInfoResponse | GetInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetInfoResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetInfoResponse.encode(pkt).finish()]
+        yield* [GetInfoResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -167,12 +167,12 @@ export const GetInfoResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetInfoResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetInfoResponse.decode(p)]
         }
       } else {
-        yield* [GetInfoResponse.decode(pkt)]
+        yield* [GetInfoResponse.decode(pkt as any)]
       }
     }
   },
@@ -338,8 +338,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

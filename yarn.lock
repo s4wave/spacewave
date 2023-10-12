@@ -487,10 +487,10 @@
   resolved "https://registry.yarnpkg.com/@types/random-string/-/random-string-0.0.29.tgz#0b5d0deaf9d3dfbbc328e40e0fbdf8703017d27e"
   integrity sha512-zZtaqTWcjYRoQfcOjIZ3lm/pAZZRhKNiBvxc4t8G3Diy5VaJaGaqECUrC83PdE808Fw4UkOYFoMaSsTYQmSHtg==
 
-"@types/react-dom@^18.2.12":
-  version "18.2.12"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.12.tgz#58479c463d1e0b7f1ee7cd80e09186189f9ec32d"
-  integrity sha512-QWZuiA/7J/hPIGocXreCRbx7wyoeet9ooxfbSA+zbIWqyQEE7GMtRn4A37BdYyksnN+/NDnWgfxZH9UVGDw1hg==
+"@types/react-dom@^18.2.13":
+  version "18.2.13"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.13.tgz#89cd7f9ec8b28c8b6f0392b9591671fb4a9e96b7"
+  integrity sha512-eJIUv7rPP+EC45uNYp/ThhSpE16k22VJUknt5OLoH9tbXoi8bMhwLf5xRuWMywamNbWzhrSmU7IBJfPup1+3fw==
   dependencies:
     "@types/react" "*"
 
@@ -503,10 +503,10 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/react@^18.2.27":
-  version "18.2.27"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.27.tgz#746e52b06f3ccd5d7a724fd53769b70792601440"
-  integrity sha512-Wfv7B7FZiR2r3MIqbAlXoY1+tXm4bOqfz4oRr+nyXdBqapDBZ0l/IGcSlAfvxIHEEJjkPU0MYAc/BlFPOcrgLw==
+"@types/react@^18.2.28":
+  version "18.2.28"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.28.tgz#86877465c0fcf751659a36c769ecedfcfacee332"
+  integrity sha512-ad4aa/RaaJS3hyGz0BGegdnSRXQBkd1CCYDCdNjBPg90UUpLgo+WlJqb9fMYUxtehmzF3PJaTWqRZjko6BRzBg==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -1171,19 +1171,19 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron-nightly@^28.0.0-nightly.20231009:
-  version "28.0.0-nightly.20231009"
-  resolved "https://registry.yarnpkg.com/electron-nightly/-/electron-nightly-28.0.0-nightly.20231009.tgz#f2e0d8900d5773c1941b8db0abbe7962c5e455b4"
-  integrity sha512-3VZGTvR6lokvMnlqSqkvAU0pzJ1CGTKhzL2FWthwTiI6RyR7eHQwIWVbIgEst0wIP0OtCIC0w0fziRpqRGRy7A==
+electron-nightly@^29.0.0-nightly.20231012:
+  version "29.0.0-nightly.20231012"
+  resolved "https://registry.yarnpkg.com/electron-nightly/-/electron-nightly-29.0.0-nightly.20231012.tgz#4a7ea2b021e1f4169d5268dd422f4dddcdfb9f02"
+  integrity sha512-WU8mGfXqPBIDUXY9PO+wKSu29w7xA84KxSLUeZ+6FRJpc751RPdd8+UkRrEN3RIK3siA2/wtMoNGct+lbhiuwg==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"
     extract-zip "^2.0.1"
 
-electron@^26.3.0:
-  version "26.3.0"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-26.3.0.tgz#3267773d170310384db76819cf6375bd98b3cc76"
-  integrity sha512-7ZpvSHu+jmqialSvywTZnOQZZGLqlyj+yV5HGDrEzFnMiFaXBRpbByHgoUhaExJ/8t/0xKQjKlMRAY65w+zNZQ==
+electron@^27.0.0:
+  version "27.0.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-27.0.0.tgz#bb6c45881e531b2ec1c7cc46c47aba773f38ee14"
+  integrity sha512-mr3Zoy82l8XKK/TgguE5FeNeHZ9KHXIGIpUMjbjZWIREfAv+X2Q3vdX6RG0Pmi1K23AFAxANXQezIHBA2Eypwg==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"
@@ -2928,10 +2928,10 @@ ts-proto-descriptors@1.15.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.160.0:
-  version "1.160.0"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.160.0.tgz#0ae62b7951c61476a28ce55ca3a964f5d8a0ff33"
-  integrity sha512-AUJQ0noLEkLew81MYmNPF/z8QDIBxAIJ4UKt9sH2AwdaywOTk1jh1NoluoCr3cGScpVh0GHWCB/UA4V0fOO8fg==
+ts-proto@^1.161.1:
+  version "1.161.1"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.161.1.tgz#592655efa9f325423dd1d126bb166e18e0d07455"
+  integrity sha512-9hbIJ9RWCeA+GhDrj0lTwgDZn/eergxXXDAqW42xWfMnZTzQbSvapLcgxA7oQtiJFH9b8mLBDSZso0Tv2Rqe5g==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"
