@@ -129,12 +129,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -147,22 +147,28 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
-      write: isSet(object.write) ? Boolean(object.write) : false,
-      pathPrefix: isSet(object.pathPrefix) ? String(object.pathPrefix) : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
+      write: isSet(object.write) ? globalThis.Boolean(object.write) : false,
+      pathPrefix: isSet(object.pathPrefix)
+        ? globalThis.String(object.pathPrefix)
+        : '',
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
@@ -216,8 +222,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -110,12 +110,12 @@ export const ApplyBucketConfigRequest = {
       | Iterable<ApplyBucketConfigRequest | ApplyBucketConfigRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfigRequest.encode(p).finish()]
         }
       } else {
-        yield* [ApplyBucketConfigRequest.encode(pkt).finish()]
+        yield* [ApplyBucketConfigRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -128,12 +128,12 @@ export const ApplyBucketConfigRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfigRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfigRequest.decode(p)]
         }
       } else {
-        yield* [ApplyBucketConfigRequest.decode(pkt)]
+        yield* [ApplyBucketConfigRequest.decode(pkt as any)]
       }
     }
   },
@@ -239,12 +239,12 @@ export const ApplyBucketConfigResponse = {
       | Iterable<ApplyBucketConfigResponse | ApplyBucketConfigResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfigResponse.encode(p).finish()]
         }
       } else {
-        yield* [ApplyBucketConfigResponse.encode(pkt).finish()]
+        yield* [ApplyBucketConfigResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -257,19 +257,21 @@ export const ApplyBucketConfigResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfigResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfigResponse.decode(p)]
         }
       } else {
-        yield* [ApplyBucketConfigResponse.decode(pkt)]
+        yield* [ApplyBucketConfigResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ApplyBucketConfigResponse {
     return {
-      updated: isSet(object.updated) ? Boolean(object.updated) : false,
+      updated: isSet(object.updated)
+        ? globalThis.Boolean(object.updated)
+        : false,
       prev: isSet(object.prev) ? Config.fromJSON(object.prev) : undefined,
       curr: isSet(object.curr) ? Config.fromJSON(object.curr) : undefined,
     }
@@ -361,12 +363,12 @@ export const GetBucketConfigRequest = {
       | Iterable<GetBucketConfigRequest | GetBucketConfigRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketConfigRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetBucketConfigRequest.encode(pkt).finish()]
+        yield* [GetBucketConfigRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -379,18 +381,22 @@ export const GetBucketConfigRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketConfigRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketConfigRequest.decode(p)]
         }
       } else {
-        yield* [GetBucketConfigRequest.decode(pkt)]
+        yield* [GetBucketConfigRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GetBucketConfigRequest {
-    return { bucketId: isSet(object.bucketId) ? String(object.bucketId) : '' }
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+    }
   },
 
   toJSON(message: GetBucketConfigRequest): unknown {
@@ -465,12 +471,12 @@ export const GetBucketConfigResponse = {
       | Iterable<GetBucketConfigResponse | GetBucketConfigResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketConfigResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetBucketConfigResponse.encode(pkt).finish()]
+        yield* [GetBucketConfigResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -483,12 +489,12 @@ export const GetBucketConfigResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketConfigResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketConfigResponse.decode(p)]
         }
       } else {
-        yield* [GetBucketConfigResponse.decode(pkt)]
+        yield* [GetBucketConfigResponse.decode(pkt as any)]
       }
     }
   },
@@ -574,12 +580,12 @@ export const GetBucketInfoRequest = {
       | Iterable<GetBucketInfoRequest | GetBucketInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketInfoRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetBucketInfoRequest.encode(pkt).finish()]
+        yield* [GetBucketInfoRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -592,18 +598,22 @@ export const GetBucketInfoRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketInfoRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketInfoRequest.decode(p)]
         }
       } else {
-        yield* [GetBucketInfoRequest.decode(pkt)]
+        yield* [GetBucketInfoRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GetBucketInfoRequest {
-    return { bucketId: isSet(object.bucketId) ? String(object.bucketId) : '' }
+    return {
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+    }
   },
 
   toJSON(message: GetBucketInfoRequest): unknown {
@@ -678,12 +688,12 @@ export const GetBucketInfoResponse = {
       | Iterable<GetBucketInfoResponse | GetBucketInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketInfoResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetBucketInfoResponse.encode(pkt).finish()]
+        yield* [GetBucketInfoResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -696,12 +706,12 @@ export const GetBucketInfoResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetBucketInfoResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetBucketInfoResponse.decode(p)]
         }
       } else {
-        yield* [GetBucketInfoResponse.decode(pkt)]
+        yield* [GetBucketInfoResponse.decode(pkt as any)]
       }
     }
   },
@@ -789,12 +799,12 @@ export const ListBucketInfoRequest = {
       | Iterable<ListBucketInfoRequest | ListBucketInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListBucketInfoRequest.encode(p).finish()]
         }
       } else {
-        yield* [ListBucketInfoRequest.encode(pkt).finish()]
+        yield* [ListBucketInfoRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -807,19 +817,21 @@ export const ListBucketInfoRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListBucketInfoRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListBucketInfoRequest.decode(p)]
         }
       } else {
-        yield* [ListBucketInfoRequest.decode(pkt)]
+        yield* [ListBucketInfoRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ListBucketInfoRequest {
     return {
-      bucketIdRe: isSet(object.bucketIdRe) ? String(object.bucketIdRe) : '',
+      bucketIdRe: isSet(object.bucketIdRe)
+        ? globalThis.String(object.bucketIdRe)
+        : '',
     }
   },
 
@@ -895,12 +907,12 @@ export const ListBucketInfoResponse = {
       | Iterable<ListBucketInfoResponse | ListBucketInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListBucketInfoResponse.encode(p).finish()]
         }
       } else {
-        yield* [ListBucketInfoResponse.encode(pkt).finish()]
+        yield* [ListBucketInfoResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -913,19 +925,19 @@ export const ListBucketInfoResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListBucketInfoResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListBucketInfoResponse.decode(p)]
         }
       } else {
-        yield* [ListBucketInfoResponse.decode(pkt)]
+        yield* [ListBucketInfoResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ListBucketInfoResponse {
     return {
-      bucketInfo: Array.isArray(object?.bucketInfo)
+      bucketInfo: globalThis.Array.isArray(object?.bucketInfo)
         ? object.bucketInfo.map((e: any) => BucketInfo.fromJSON(e))
         : [],
     }
@@ -1122,8 +1134,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

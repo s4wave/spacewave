@@ -504,12 +504,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -522,30 +522,36 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      dir: isSet(object.dir) ? String(object.dir) : '',
-      valueDir: isSet(object.valueDir) ? String(object.valueDir) : '',
+      dir: isSet(object.dir) ? globalThis.String(object.dir) : '',
+      valueDir: isSet(object.valueDir)
+        ? globalThis.String(object.valueDir)
+        : '',
       kvKeyOpts: isSet(object.kvKeyOpts)
         ? Config1.fromJSON(object.kvKeyOpts)
         : undefined,
       noGenerateKey: isSet(object.noGenerateKey)
-        ? Boolean(object.noGenerateKey)
+        ? globalThis.Boolean(object.noGenerateKey)
         : false,
-      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
-      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
+      noWriteKey: isSet(object.noWriteKey)
+        ? globalThis.Boolean(object.noWriteKey)
+        : false,
+      verbose: isSet(object.verbose)
+        ? globalThis.Boolean(object.verbose)
+        : false,
       badgerDebug: isSet(object.badgerDebug)
-        ? Boolean(object.badgerDebug)
+        ? globalThis.Boolean(object.badgerDebug)
         : false,
       volumeConfig: isSet(object.volumeConfig)
         ? Config2.fromJSON(object.volumeConfig)
@@ -560,26 +566,28 @@ export const Config = {
         ? fileLoadingModeFromJSON(object.valueLogLoadingMode)
         : 0,
       numVersionsToKeep: isSet(object.numVersionsToKeep)
-        ? Number(object.numVersionsToKeep)
+        ? globalThis.Number(object.numVersionsToKeep)
         : 0,
       maxTableSize: isSet(object.maxTableSize)
         ? Long.fromValue(object.maxTableSize)
         : Long.UZERO,
       levelSizeMultiplier: isSet(object.levelSizeMultiplier)
-        ? Number(object.levelSizeMultiplier)
+        ? globalThis.Number(object.levelSizeMultiplier)
         : 0,
-      maxLevels: isSet(object.maxLevels) ? Number(object.maxLevels) : 0,
+      maxLevels: isSet(object.maxLevels)
+        ? globalThis.Number(object.maxLevels)
+        : 0,
       valueThreshold: isSet(object.valueThreshold)
-        ? Number(object.valueThreshold)
+        ? globalThis.Number(object.valueThreshold)
         : 0,
       numMemtables: isSet(object.numMemtables)
-        ? Number(object.numMemtables)
+        ? globalThis.Number(object.numMemtables)
         : 0,
       numLevelZeroTables: isSet(object.numLevelZeroTables)
-        ? Number(object.numLevelZeroTables)
+        ? globalThis.Number(object.numLevelZeroTables)
         : 0,
       numLevelZeroTablesStall: isSet(object.numLevelZeroTablesStall)
-        ? Number(object.numLevelZeroTablesStall)
+        ? globalThis.Number(object.numLevelZeroTablesStall)
         : 0,
       levelOneSize: isSet(object.levelOneSize)
         ? Long.fromValue(object.levelOneSize)
@@ -588,14 +596,16 @@ export const Config = {
         ? Long.fromValue(object.valueLogFileSize)
         : Long.UZERO,
       valueLogMaxEntries: isSet(object.valueLogMaxEntries)
-        ? Number(object.valueLogMaxEntries)
+        ? globalThis.Number(object.valueLogMaxEntries)
         : 0,
       numCompactors: isSet(object.numCompactors)
-        ? Number(object.numCompactors)
+        ? globalThis.Number(object.numCompactors)
         : 0,
-      truncate: isSet(object.truncate) ? Boolean(object.truncate) : false,
+      truncate: isSet(object.truncate)
+        ? globalThis.Boolean(object.truncate)
+        : false,
       noSyncWrites: isSet(object.noSyncWrites)
-        ? Boolean(object.noSyncWrites)
+        ? globalThis.Boolean(object.noSyncWrites)
         : false,
     }
   },
@@ -747,8 +757,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

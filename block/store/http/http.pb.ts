@@ -208,12 +208,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -226,12 +226,12 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
@@ -239,20 +239,24 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       blockStoreId: isSet(object.blockStoreId)
-        ? String(object.blockStoreId)
+        ? globalThis.String(object.blockStoreId)
         : '',
-      url: isSet(object.url) ? String(object.url) : '',
-      readOnly: isSet(object.readOnly) ? Boolean(object.readOnly) : false,
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
+      readOnly: isSet(object.readOnly)
+        ? globalThis.Boolean(object.readOnly)
+        : false,
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
-      bucketIds: Array.isArray(object?.bucketIds)
-        ? object.bucketIds.map((e: any) => String(e))
+      bucketIds: globalThis.Array.isArray(object?.bucketIds)
+        ? object.bucketIds.map((e: any) => globalThis.String(e))
         : [],
       skipNotFound: isSet(object.skipNotFound)
-        ? Boolean(object.skipNotFound)
+        ? globalThis.Boolean(object.skipNotFound)
         : false,
-      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
+      verbose: isSet(object.verbose)
+        ? globalThis.Boolean(object.verbose)
+        : false,
     }
   },
 
@@ -355,12 +359,12 @@ export const PutRequest = {
       | Iterable<PutRequest | PutRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutRequest.encode(p).finish()]
         }
       } else {
-        yield* [PutRequest.encode(pkt).finish()]
+        yield* [PutRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -373,12 +377,12 @@ export const PutRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutRequest.decode(p)]
         }
       } else {
-        yield* [PutRequest.decode(pkt)]
+        yield* [PutRequest.decode(pkt as any)]
       }
     }
   },
@@ -488,12 +492,12 @@ export const PutResponse = {
       | Iterable<PutResponse | PutResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutResponse.encode(p).finish()]
         }
       } else {
-        yield* [PutResponse.encode(pkt).finish()]
+        yield* [PutResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -506,12 +510,12 @@ export const PutResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutResponse.decode(p)]
         }
       } else {
-        yield* [PutResponse.decode(pkt)]
+        yield* [PutResponse.decode(pkt as any)]
       }
     }
   },
@@ -519,8 +523,8 @@ export const PutResponse = {
   fromJSON(object: any): PutResponse {
     return {
       ref: isSet(object.ref) ? BlockRef.fromJSON(object.ref) : undefined,
-      exists: isSet(object.exists) ? Boolean(object.exists) : false,
-      err: isSet(object.err) ? String(object.err) : '',
+      exists: isSet(object.exists) ? globalThis.Boolean(object.exists) : false,
+      err: isSet(object.err) ? globalThis.String(object.err) : '',
     }
   },
 
@@ -622,12 +626,12 @@ export const GetResponse = {
       | Iterable<GetResponse | GetResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetResponse.encode(pkt).finish()]
+        yield* [GetResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -640,23 +644,25 @@ export const GetResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetResponse.decode(p)]
         }
       } else {
-        yield* [GetResponse.decode(pkt)]
+        yield* [GetResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GetResponse {
     return {
-      notFound: isSet(object.notFound) ? Boolean(object.notFound) : false,
+      notFound: isSet(object.notFound)
+        ? globalThis.Boolean(object.notFound)
+        : false,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
         : new Uint8Array(0),
-      err: isSet(object.err) ? String(object.err) : '',
+      err: isSet(object.err) ? globalThis.String(object.err) : '',
     }
   },
 
@@ -755,12 +761,12 @@ export const ExistsResponse = {
       | Iterable<ExistsResponse | ExistsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ExistsResponse.encode(p).finish()]
         }
       } else {
-        yield* [ExistsResponse.encode(pkt).finish()]
+        yield* [ExistsResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -773,21 +779,23 @@ export const ExistsResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExistsResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ExistsResponse.decode(p)]
         }
       } else {
-        yield* [ExistsResponse.decode(pkt)]
+        yield* [ExistsResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ExistsResponse {
     return {
-      exists: isSet(object.exists) ? Boolean(object.exists) : false,
-      notFound: isSet(object.notFound) ? Boolean(object.notFound) : false,
-      err: isSet(object.err) ? String(object.err) : '',
+      exists: isSet(object.exists) ? globalThis.Boolean(object.exists) : false,
+      notFound: isSet(object.notFound)
+        ? globalThis.Boolean(object.notFound)
+        : false,
+      err: isSet(object.err) ? globalThis.String(object.err) : '',
     }
   },
 
@@ -878,12 +886,12 @@ export const RmResponse = {
       | Iterable<RmResponse | RmResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmResponse.encode(p).finish()]
         }
       } else {
-        yield* [RmResponse.encode(pkt).finish()]
+        yield* [RmResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -896,20 +904,22 @@ export const RmResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmResponse.decode(p)]
         }
       } else {
-        yield* [RmResponse.decode(pkt)]
+        yield* [RmResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): RmResponse {
     return {
-      removed: isSet(object.removed) ? Boolean(object.removed) : false,
-      err: isSet(object.err) ? String(object.err) : '',
+      removed: isSet(object.removed)
+        ? globalThis.Boolean(object.removed)
+        : false,
+      err: isSet(object.err) ? globalThis.String(object.err) : '',
     }
   },
 
@@ -937,30 +947,11 @@ export const RmResponse = {
   },
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -970,14 +961,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -994,8 +985,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -65,12 +65,12 @@ export const MockObjectOp = {
       | Iterable<MockObjectOp | MockObjectOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MockObjectOp.encode(p).finish()]
         }
       } else {
-        yield* [MockObjectOp.encode(pkt).finish()]
+        yield* [MockObjectOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -83,18 +83,20 @@ export const MockObjectOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MockObjectOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MockObjectOp.decode(p)]
         }
       } else {
-        yield* [MockObjectOp.decode(pkt)]
+        yield* [MockObjectOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): MockObjectOp {
-    return { nextMsg: isSet(object.nextMsg) ? String(object.nextMsg) : '' }
+    return {
+      nextMsg: isSet(object.nextMsg) ? globalThis.String(object.nextMsg) : '',
+    }
   },
 
   toJSON(message: MockObjectOp): unknown {
@@ -176,12 +178,12 @@ export const MockWorldOp = {
       | Iterable<MockWorldOp | MockWorldOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MockWorldOp.encode(p).finish()]
         }
       } else {
-        yield* [MockWorldOp.encode(pkt).finish()]
+        yield* [MockWorldOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -194,20 +196,22 @@ export const MockWorldOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MockWorldOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MockWorldOp.decode(p)]
         }
       } else {
-        yield* [MockWorldOp.decode(pkt)]
+        yield* [MockWorldOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): MockWorldOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
-      nextMsg: isSet(object.nextMsg) ? String(object.nextMsg) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
+      nextMsg: isSet(object.nextMsg) ? globalThis.String(object.nextMsg) : '',
     }
   },
 
@@ -248,8 +252,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

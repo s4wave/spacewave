@@ -522,12 +522,12 @@ export const GetProxyCursorRequest = {
       | Iterable<GetProxyCursorRequest | GetProxyCursorRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetProxyCursorRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetProxyCursorRequest.encode(pkt).finish()]
+        yield* [GetProxyCursorRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -540,12 +540,12 @@ export const GetProxyCursorRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetProxyCursorRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetProxyCursorRequest.decode(p)]
         }
       } else {
-        yield* [GetProxyCursorRequest.decode(pkt)]
+        yield* [GetProxyCursorRequest.decode(pkt as any)]
       }
     }
   },
@@ -653,12 +653,12 @@ export const GetProxyCursorResponse = {
       | Iterable<GetProxyCursorResponse | GetProxyCursorResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetProxyCursorResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetProxyCursorResponse.encode(pkt).finish()]
+        yield* [GetProxyCursorResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -671,12 +671,12 @@ export const GetProxyCursorResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetProxyCursorResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetProxyCursorResponse.decode(p)]
         }
       } else {
-        yield* [GetProxyCursorResponse.decode(pkt)]
+        yield* [GetProxyCursorResponse.decode(pkt as any)]
       }
     }
   },
@@ -806,12 +806,12 @@ export const FSCursorChange = {
       | Iterable<FSCursorChange | FSCursorChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorChange.encode(p).finish()]
         }
       } else {
-        yield* [FSCursorChange.encode(pkt).finish()]
+        yield* [FSCursorChange.encode(pkt as any).finish()]
       }
     }
   },
@@ -824,12 +824,12 @@ export const FSCursorChange = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSCursorChange> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorChange.decode(p)]
         }
       } else {
-        yield* [FSCursorChange.decode(pkt)]
+        yield* [FSCursorChange.decode(pkt as any)]
       }
     }
   },
@@ -839,7 +839,9 @@ export const FSCursorChange = {
       cursorHandleId: isSet(object.cursorHandleId)
         ? Long.fromValue(object.cursorHandleId)
         : Long.UZERO,
-      released: isSet(object.released) ? Boolean(object.released) : false,
+      released: isSet(object.released)
+        ? globalThis.Boolean(object.released)
+        : false,
       offset: isSet(object.offset) ? Long.fromValue(object.offset) : Long.UZERO,
       size: isSet(object.size) ? Long.fromValue(object.size) : Long.UZERO,
     }
@@ -945,12 +947,12 @@ export const FSCursorDirent = {
       | Iterable<FSCursorDirent | FSCursorDirent[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorDirent.encode(p).finish()]
         }
       } else {
-        yield* [FSCursorDirent.encode(pkt).finish()]
+        yield* [FSCursorDirent.encode(pkt as any).finish()]
       }
     }
   },
@@ -963,19 +965,19 @@ export const FSCursorDirent = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSCursorDirent> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorDirent.decode(p)]
         }
       } else {
-        yield* [FSCursorDirent.decode(pkt)]
+        yield* [FSCursorDirent.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FSCursorDirent {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
     }
   },
@@ -1046,12 +1048,12 @@ export const FSCursorClientRequest = {
       | Iterable<FSCursorClientRequest | FSCursorClientRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorClientRequest.encode(p).finish()]
         }
       } else {
-        yield* [FSCursorClientRequest.encode(pkt).finish()]
+        yield* [FSCursorClientRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1064,12 +1066,12 @@ export const FSCursorClientRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSCursorClientRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorClientRequest.decode(p)]
         }
       } else {
-        yield* [FSCursorClientRequest.decode(pkt)]
+        yield* [FSCursorClientRequest.decode(pkt as any)]
       }
     }
   },
@@ -1186,12 +1188,12 @@ export const FSCursorClientResponse = {
       | Iterable<FSCursorClientResponse | FSCursorClientResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorClientResponse.encode(p).finish()]
         }
       } else {
-        yield* [FSCursorClientResponse.encode(pkt).finish()]
+        yield* [FSCursorClientResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1204,12 +1206,12 @@ export const FSCursorClientResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSCursorClientResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSCursorClientResponse.decode(p)]
         }
       } else {
-        yield* [FSCursorClientResponse.decode(pkt)]
+        yield* [FSCursorClientResponse.decode(pkt as any)]
       }
     }
   },
@@ -1346,12 +1348,12 @@ export const FSClientInit = {
       | Iterable<FSClientInit | FSClientInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSClientInit.encode(p).finish()]
         }
       } else {
-        yield* [FSClientInit.encode(pkt).finish()]
+        yield* [FSClientInit.encode(pkt as any).finish()]
       }
     }
   },
@@ -1364,12 +1366,12 @@ export const FSClientInit = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSClientInit> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSClientInit.decode(p)]
         }
       } else {
-        yield* [FSClientInit.decode(pkt)]
+        yield* [FSClientInit.decode(pkt as any)]
       }
     }
   },
@@ -1464,12 +1466,12 @@ export const GetCursorOpsRequest = {
       | Iterable<GetCursorOpsRequest | GetCursorOpsRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetCursorOpsRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetCursorOpsRequest.encode(pkt).finish()]
+        yield* [GetCursorOpsRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1482,12 +1484,12 @@ export const GetCursorOpsRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetCursorOpsRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetCursorOpsRequest.decode(p)]
         }
       } else {
-        yield* [GetCursorOpsRequest.decode(pkt)]
+        yield* [GetCursorOpsRequest.decode(pkt as any)]
       }
     }
   },
@@ -1610,12 +1612,12 @@ export const GetCursorOpsResponse = {
       | Iterable<GetCursorOpsResponse | GetCursorOpsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetCursorOpsResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetCursorOpsResponse.encode(pkt).finish()]
+        yield* [GetCursorOpsResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1628,12 +1630,12 @@ export const GetCursorOpsResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetCursorOpsResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetCursorOpsResponse.decode(p)]
         }
       } else {
-        yield* [GetCursorOpsResponse.decode(pkt)]
+        yield* [GetCursorOpsResponse.decode(pkt as any)]
       }
     }
   },
@@ -1646,7 +1648,7 @@ export const GetCursorOpsResponse = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
     }
   },
@@ -1751,12 +1753,12 @@ export const ReleaseFSCursorRequest = {
       | Iterable<ReleaseFSCursorRequest | ReleaseFSCursorRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReleaseFSCursorRequest.encode(p).finish()]
         }
       } else {
-        yield* [ReleaseFSCursorRequest.encode(pkt).finish()]
+        yield* [ReleaseFSCursorRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1769,12 +1771,12 @@ export const ReleaseFSCursorRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ReleaseFSCursorRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReleaseFSCursorRequest.decode(p)]
         }
       } else {
-        yield* [ReleaseFSCursorRequest.decode(pkt)]
+        yield* [ReleaseFSCursorRequest.decode(pkt as any)]
       }
     }
   },
@@ -1862,12 +1864,12 @@ export const ReleaseFSCursorResponse = {
       | Iterable<ReleaseFSCursorResponse | ReleaseFSCursorResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReleaseFSCursorResponse.encode(p).finish()]
         }
       } else {
-        yield* [ReleaseFSCursorResponse.encode(pkt).finish()]
+        yield* [ReleaseFSCursorResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1880,12 +1882,12 @@ export const ReleaseFSCursorResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ReleaseFSCursorResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReleaseFSCursorResponse.decode(p)]
         }
       } else {
-        yield* [ReleaseFSCursorResponse.decode(pkt)]
+        yield* [ReleaseFSCursorResponse.decode(pkt as any)]
       }
     }
   },
@@ -1962,12 +1964,12 @@ export const OpsGetPermissionsRequest = {
       | Iterable<OpsGetPermissionsRequest | OpsGetPermissionsRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetPermissionsRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetPermissionsRequest.encode(pkt).finish()]
+        yield* [OpsGetPermissionsRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1980,12 +1982,12 @@ export const OpsGetPermissionsRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetPermissionsRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetPermissionsRequest.decode(p)]
         }
       } else {
-        yield* [OpsGetPermissionsRequest.decode(pkt)]
+        yield* [OpsGetPermissionsRequest.decode(pkt as any)]
       }
     }
   },
@@ -2083,12 +2085,12 @@ export const OpsGetPermissionsResponse = {
       | Iterable<OpsGetPermissionsResponse | OpsGetPermissionsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetPermissionsResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetPermissionsResponse.encode(pkt).finish()]
+        yield* [OpsGetPermissionsResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -2101,12 +2103,12 @@ export const OpsGetPermissionsResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetPermissionsResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetPermissionsResponse.decode(p)]
         }
       } else {
-        yield* [OpsGetPermissionsResponse.decode(pkt)]
+        yield* [OpsGetPermissionsResponse.decode(pkt as any)]
       }
     }
   },
@@ -2116,7 +2118,7 @@ export const OpsGetPermissionsResponse = {
       unixfsError: isSet(object.unixfsError)
         ? UnixFSError.fromJSON(object.unixfsError)
         : undefined,
-      fileMode: isSet(object.fileMode) ? Number(object.fileMode) : 0,
+      fileMode: isSet(object.fileMode) ? globalThis.Number(object.fileMode) : 0,
     }
   },
 
@@ -2219,12 +2221,12 @@ export const OpsSetPermissionsRequest = {
       | Iterable<OpsSetPermissionsRequest | OpsSetPermissionsRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetPermissionsRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsSetPermissionsRequest.encode(pkt).finish()]
+        yield* [OpsSetPermissionsRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -2237,12 +2239,12 @@ export const OpsSetPermissionsRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsSetPermissionsRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetPermissionsRequest.decode(p)]
         }
       } else {
-        yield* [OpsSetPermissionsRequest.decode(pkt)]
+        yield* [OpsSetPermissionsRequest.decode(pkt as any)]
       }
     }
   },
@@ -2252,7 +2254,7 @@ export const OpsSetPermissionsRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      fileMode: isSet(object.fileMode) ? Number(object.fileMode) : 0,
+      fileMode: isSet(object.fileMode) ? globalThis.Number(object.fileMode) : 0,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -2345,12 +2347,12 @@ export const OpsSetPermissionsResponse = {
       | Iterable<OpsSetPermissionsResponse | OpsSetPermissionsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetPermissionsResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsSetPermissionsResponse.encode(pkt).finish()]
+        yield* [OpsSetPermissionsResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -2363,12 +2365,12 @@ export const OpsSetPermissionsResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsSetPermissionsResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetPermissionsResponse.decode(p)]
         }
       } else {
-        yield* [OpsSetPermissionsResponse.decode(pkt)]
+        yield* [OpsSetPermissionsResponse.decode(pkt as any)]
       }
     }
   },
@@ -2453,12 +2455,12 @@ export const OpsGetSizeRequest = {
       | Iterable<OpsGetSizeRequest | OpsGetSizeRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetSizeRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetSizeRequest.encode(pkt).finish()]
+        yield* [OpsGetSizeRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -2471,12 +2473,12 @@ export const OpsGetSizeRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetSizeRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetSizeRequest.decode(p)]
         }
       } else {
-        yield* [OpsGetSizeRequest.decode(pkt)]
+        yield* [OpsGetSizeRequest.decode(pkt as any)]
       }
     }
   },
@@ -2571,12 +2573,12 @@ export const OpsGetSizeResponse = {
       | Iterable<OpsGetSizeResponse | OpsGetSizeResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetSizeResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetSizeResponse.encode(pkt).finish()]
+        yield* [OpsGetSizeResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -2589,12 +2591,12 @@ export const OpsGetSizeResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetSizeResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetSizeResponse.decode(p)]
         }
       } else {
-        yield* [OpsGetSizeResponse.decode(pkt)]
+        yield* [OpsGetSizeResponse.decode(pkt as any)]
       }
     }
   },
@@ -2690,12 +2692,12 @@ export const OpsGetModTimestampRequest = {
       | Iterable<OpsGetModTimestampRequest | OpsGetModTimestampRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetModTimestampRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetModTimestampRequest.encode(pkt).finish()]
+        yield* [OpsGetModTimestampRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -2708,12 +2710,12 @@ export const OpsGetModTimestampRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetModTimestampRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetModTimestampRequest.decode(p)]
         }
       } else {
-        yield* [OpsGetModTimestampRequest.decode(pkt)]
+        yield* [OpsGetModTimestampRequest.decode(pkt as any)]
       }
     }
   },
@@ -2811,12 +2813,12 @@ export const OpsGetModTimestampResponse = {
       | Iterable<OpsGetModTimestampResponse | OpsGetModTimestampResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetModTimestampResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetModTimestampResponse.encode(pkt).finish()]
+        yield* [OpsGetModTimestampResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -2829,12 +2831,12 @@ export const OpsGetModTimestampResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetModTimestampResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetModTimestampResponse.decode(p)]
         }
       } else {
-        yield* [OpsGetModTimestampResponse.decode(pkt)]
+        yield* [OpsGetModTimestampResponse.decode(pkt as any)]
       }
     }
   },
@@ -2942,12 +2944,12 @@ export const OpsSetModTimestampRequest = {
       | Iterable<OpsSetModTimestampRequest | OpsSetModTimestampRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetModTimestampRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsSetModTimestampRequest.encode(pkt).finish()]
+        yield* [OpsSetModTimestampRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -2960,12 +2962,12 @@ export const OpsSetModTimestampRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsSetModTimestampRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetModTimestampRequest.decode(p)]
         }
       } else {
-        yield* [OpsSetModTimestampRequest.decode(pkt)]
+        yield* [OpsSetModTimestampRequest.decode(pkt as any)]
       }
     }
   },
@@ -3063,12 +3065,12 @@ export const OpsSetModTimestampResponse = {
       | Iterable<OpsSetModTimestampResponse | OpsSetModTimestampResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetModTimestampResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsSetModTimestampResponse.encode(pkt).finish()]
+        yield* [OpsSetModTimestampResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -3081,12 +3083,12 @@ export const OpsSetModTimestampResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsSetModTimestampResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSetModTimestampResponse.decode(p)]
         }
       } else {
-        yield* [OpsSetModTimestampResponse.decode(pkt)]
+        yield* [OpsSetModTimestampResponse.decode(pkt as any)]
       }
     }
   },
@@ -3191,12 +3193,12 @@ export const OpsReadAtRequest = {
       | Iterable<OpsReadAtRequest | OpsReadAtRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadAtRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsReadAtRequest.encode(pkt).finish()]
+        yield* [OpsReadAtRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -3209,12 +3211,12 @@ export const OpsReadAtRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsReadAtRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadAtRequest.decode(p)]
         }
       } else {
-        yield* [OpsReadAtRequest.decode(pkt)]
+        yield* [OpsReadAtRequest.decode(pkt as any)]
       }
     }
   },
@@ -3325,12 +3327,12 @@ export const OpsReadAtResponse = {
       | Iterable<OpsReadAtResponse | OpsReadAtResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadAtResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsReadAtResponse.encode(pkt).finish()]
+        yield* [OpsReadAtResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -3343,12 +3345,12 @@ export const OpsReadAtResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsReadAtResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadAtResponse.decode(p)]
         }
       } else {
-        yield* [OpsReadAtResponse.decode(pkt)]
+        yield* [OpsReadAtResponse.decode(pkt as any)]
       }
     }
   },
@@ -3447,12 +3449,12 @@ export const OpsGetOptimalWriteSizeRequest = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetOptimalWriteSizeRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetOptimalWriteSizeRequest.encode(pkt).finish()]
+        yield* [OpsGetOptimalWriteSizeRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -3465,12 +3467,12 @@ export const OpsGetOptimalWriteSizeRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetOptimalWriteSizeRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetOptimalWriteSizeRequest.decode(p)]
         }
       } else {
-        yield* [OpsGetOptimalWriteSizeRequest.decode(pkt)]
+        yield* [OpsGetOptimalWriteSizeRequest.decode(pkt as any)]
       }
     }
   },
@@ -3572,12 +3574,12 @@ export const OpsGetOptimalWriteSizeResponse = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetOptimalWriteSizeResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsGetOptimalWriteSizeResponse.encode(pkt).finish()]
+        yield* [OpsGetOptimalWriteSizeResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -3590,12 +3592,12 @@ export const OpsGetOptimalWriteSizeResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsGetOptimalWriteSizeResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsGetOptimalWriteSizeResponse.decode(p)]
         }
       } else {
-        yield* [OpsGetOptimalWriteSizeResponse.decode(pkt)]
+        yield* [OpsGetOptimalWriteSizeResponse.decode(pkt as any)]
       }
     }
   },
@@ -3725,12 +3727,12 @@ export const OpsWriteAtRequest = {
       | Iterable<OpsWriteAtRequest | OpsWriteAtRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsWriteAtRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsWriteAtRequest.encode(pkt).finish()]
+        yield* [OpsWriteAtRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -3743,12 +3745,12 @@ export const OpsWriteAtRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsWriteAtRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsWriteAtRequest.decode(p)]
         }
       } else {
-        yield* [OpsWriteAtRequest.decode(pkt)]
+        yield* [OpsWriteAtRequest.decode(pkt as any)]
       }
     }
   },
@@ -3858,12 +3860,12 @@ export const OpsWriteAtResponse = {
       | Iterable<OpsWriteAtResponse | OpsWriteAtResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsWriteAtResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsWriteAtResponse.encode(pkt).finish()]
+        yield* [OpsWriteAtResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -3876,12 +3878,12 @@ export const OpsWriteAtResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsWriteAtResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsWriteAtResponse.decode(p)]
         }
       } else {
-        yield* [OpsWriteAtResponse.decode(pkt)]
+        yield* [OpsWriteAtResponse.decode(pkt as any)]
       }
     }
   },
@@ -3986,12 +3988,12 @@ export const OpsTruncateRequest = {
       | Iterable<OpsTruncateRequest | OpsTruncateRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsTruncateRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsTruncateRequest.encode(pkt).finish()]
+        yield* [OpsTruncateRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -4004,12 +4006,12 @@ export const OpsTruncateRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsTruncateRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsTruncateRequest.decode(p)]
         }
       } else {
-        yield* [OpsTruncateRequest.decode(pkt)]
+        yield* [OpsTruncateRequest.decode(pkt as any)]
       }
     }
   },
@@ -4112,12 +4114,12 @@ export const OpsTruncateResponse = {
       | Iterable<OpsTruncateResponse | OpsTruncateResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsTruncateResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsTruncateResponse.encode(pkt).finish()]
+        yield* [OpsTruncateResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -4130,12 +4132,12 @@ export const OpsTruncateResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsTruncateResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsTruncateResponse.decode(p)]
         }
       } else {
-        yield* [OpsTruncateResponse.decode(pkt)]
+        yield* [OpsTruncateResponse.decode(pkt as any)]
       }
     }
   },
@@ -4255,12 +4257,12 @@ export const OpsLookupRequest = {
       | Iterable<OpsLookupRequest | OpsLookupRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsLookupRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsLookupRequest.encode(pkt).finish()]
+        yield* [OpsLookupRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -4273,12 +4275,12 @@ export const OpsLookupRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsLookupRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsLookupRequest.decode(p)]
         }
       } else {
-        yield* [OpsLookupRequest.decode(pkt)]
+        yield* [OpsLookupRequest.decode(pkt as any)]
       }
     }
   },
@@ -4294,7 +4296,7 @@ export const OpsLookupRequest = {
       clientHandleId: isSet(object.clientHandleId)
         ? Long.fromValue(object.clientHandleId)
         : Long.UZERO,
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
     }
   },
 
@@ -4398,12 +4400,12 @@ export const OpsLookupResponse = {
       | Iterable<OpsLookupResponse | OpsLookupResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsLookupResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsLookupResponse.encode(pkt).finish()]
+        yield* [OpsLookupResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -4416,12 +4418,12 @@ export const OpsLookupResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsLookupResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsLookupResponse.decode(p)]
         }
       } else {
-        yield* [OpsLookupResponse.decode(pkt)]
+        yield* [OpsLookupResponse.decode(pkt as any)]
       }
     }
   },
@@ -4529,12 +4531,12 @@ export const OpsReaddirAllRequest = {
       | Iterable<OpsReaddirAllRequest | OpsReaddirAllRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReaddirAllRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsReaddirAllRequest.encode(pkt).finish()]
+        yield* [OpsReaddirAllRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -4547,12 +4549,12 @@ export const OpsReaddirAllRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsReaddirAllRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReaddirAllRequest.decode(p)]
         }
       } else {
-        yield* [OpsReaddirAllRequest.decode(pkt)]
+        yield* [OpsReaddirAllRequest.decode(pkt as any)]
       }
     }
   },
@@ -4682,12 +4684,12 @@ export const OpsReaddirAllResponse = {
       | Iterable<OpsReaddirAllResponse | OpsReaddirAllResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReaddirAllResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsReaddirAllResponse.encode(pkt).finish()]
+        yield* [OpsReaddirAllResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -4700,12 +4702,12 @@ export const OpsReaddirAllResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsReaddirAllResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReaddirAllResponse.decode(p)]
         }
       } else {
-        yield* [OpsReaddirAllResponse.decode(pkt)]
+        yield* [OpsReaddirAllResponse.decode(pkt as any)]
       }
     }
   },
@@ -4718,7 +4720,7 @@ export const OpsReaddirAllResponse = {
             unixfsError: UnixFSError.fromJSON(object.unixfsError),
           }
         : isSet(object.done)
-        ? { $case: 'done', done: Boolean(object.done) }
+        ? { $case: 'done', done: globalThis.Boolean(object.done) }
         : isSet(object.dirent)
         ? { $case: 'dirent', dirent: FSCursorDirent.fromJSON(object.dirent) }
         : undefined,
@@ -4883,12 +4885,12 @@ export const OpsMknodRequest = {
       | Iterable<OpsMknodRequest | OpsMknodRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMknodRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsMknodRequest.encode(pkt).finish()]
+        yield* [OpsMknodRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -4901,12 +4903,12 @@ export const OpsMknodRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsMknodRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMknodRequest.decode(p)]
         }
       } else {
-        yield* [OpsMknodRequest.decode(pkt)]
+        yield* [OpsMknodRequest.decode(pkt as any)]
       }
     }
   },
@@ -4916,12 +4918,16 @@ export const OpsMknodRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      checkExist: isSet(object.checkExist) ? Boolean(object.checkExist) : false,
-      names: Array.isArray(object?.names)
-        ? object.names.map((e: any) => String(e))
+      checkExist: isSet(object.checkExist)
+        ? globalThis.Boolean(object.checkExist)
+        : false,
+      names: globalThis.Array.isArray(object?.names)
+        ? object.names.map((e: any) => globalThis.String(e))
         : [],
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
-      permissions: isSet(object.permissions) ? Number(object.permissions) : 0,
+      permissions: isSet(object.permissions)
+        ? globalThis.Number(object.permissions)
+        : 0,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -5023,12 +5029,12 @@ export const OpsMknodResponse = {
       | Iterable<OpsMknodResponse | OpsMknodResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMknodResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsMknodResponse.encode(pkt).finish()]
+        yield* [OpsMknodResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -5041,12 +5047,12 @@ export const OpsMknodResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsMknodResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMknodResponse.decode(p)]
         }
       } else {
-        yield* [OpsMknodResponse.decode(pkt)]
+        yield* [OpsMknodResponse.decode(pkt as any)]
       }
     }
   },
@@ -5177,12 +5183,12 @@ export const OpsSymlinkRequest = {
       | Iterable<OpsSymlinkRequest | OpsSymlinkRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSymlinkRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsSymlinkRequest.encode(pkt).finish()]
+        yield* [OpsSymlinkRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -5195,12 +5201,12 @@ export const OpsSymlinkRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsSymlinkRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSymlinkRequest.decode(p)]
         }
       } else {
-        yield* [OpsSymlinkRequest.decode(pkt)]
+        yield* [OpsSymlinkRequest.decode(pkt as any)]
       }
     }
   },
@@ -5210,8 +5216,10 @@ export const OpsSymlinkRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      checkExist: isSet(object.checkExist) ? Boolean(object.checkExist) : false,
-      name: isSet(object.name) ? String(object.name) : '',
+      checkExist: isSet(object.checkExist)
+        ? globalThis.Boolean(object.checkExist)
+        : false,
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       symlink: isSet(object.symlink)
         ? FSSymlink.fromJSON(object.symlink)
         : undefined,
@@ -5315,12 +5323,12 @@ export const OpsSymlinkResponse = {
       | Iterable<OpsSymlinkResponse | OpsSymlinkResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSymlinkResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsSymlinkResponse.encode(pkt).finish()]
+        yield* [OpsSymlinkResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -5333,12 +5341,12 @@ export const OpsSymlinkResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsSymlinkResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsSymlinkResponse.decode(p)]
         }
       } else {
-        yield* [OpsSymlinkResponse.decode(pkt)]
+        yield* [OpsSymlinkResponse.decode(pkt as any)]
       }
     }
   },
@@ -5433,12 +5441,12 @@ export const OpsReadlinkRequest = {
       | Iterable<OpsReadlinkRequest | OpsReadlinkRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadlinkRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsReadlinkRequest.encode(pkt).finish()]
+        yield* [OpsReadlinkRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -5451,12 +5459,12 @@ export const OpsReadlinkRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsReadlinkRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadlinkRequest.decode(p)]
         }
       } else {
-        yield* [OpsReadlinkRequest.decode(pkt)]
+        yield* [OpsReadlinkRequest.decode(pkt as any)]
       }
     }
   },
@@ -5466,7 +5474,7 @@ export const OpsReadlinkRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
     }
   },
 
@@ -5556,12 +5564,12 @@ export const OpsReadlinkResponse = {
       | Iterable<OpsReadlinkResponse | OpsReadlinkResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadlinkResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsReadlinkResponse.encode(pkt).finish()]
+        yield* [OpsReadlinkResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -5574,12 +5582,12 @@ export const OpsReadlinkResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsReadlinkResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsReadlinkResponse.decode(p)]
         }
       } else {
-        yield* [OpsReadlinkResponse.decode(pkt)]
+        yield* [OpsReadlinkResponse.decode(pkt as any)]
       }
     }
   },
@@ -5709,12 +5717,12 @@ export const OpsCopyToRequest = {
       | Iterable<OpsCopyToRequest | OpsCopyToRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyToRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsCopyToRequest.encode(pkt).finish()]
+        yield* [OpsCopyToRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -5727,12 +5735,12 @@ export const OpsCopyToRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsCopyToRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyToRequest.decode(p)]
         }
       } else {
-        yield* [OpsCopyToRequest.decode(pkt)]
+        yield* [OpsCopyToRequest.decode(pkt as any)]
       }
     }
   },
@@ -5745,7 +5753,9 @@ export const OpsCopyToRequest = {
       targetDirOpsHandleId: isSet(object.targetDirOpsHandleId)
         ? Long.fromValue(object.targetDirOpsHandleId)
         : Long.UZERO,
-      targetName: isSet(object.targetName) ? String(object.targetName) : '',
+      targetName: isSet(object.targetName)
+        ? globalThis.String(object.targetName)
+        : '',
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -5855,12 +5865,12 @@ export const OpsCopyToResponse = {
       | Iterable<OpsCopyToResponse | OpsCopyToResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyToResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsCopyToResponse.encode(pkt).finish()]
+        yield* [OpsCopyToResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -5873,12 +5883,12 @@ export const OpsCopyToResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsCopyToResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyToResponse.decode(p)]
         }
       } else {
-        yield* [OpsCopyToResponse.decode(pkt)]
+        yield* [OpsCopyToResponse.decode(pkt as any)]
       }
     }
   },
@@ -5888,7 +5898,7 @@ export const OpsCopyToResponse = {
       unixfsError: isSet(object.unixfsError)
         ? UnixFSError.fromJSON(object.unixfsError)
         : undefined,
-      done: isSet(object.done) ? Boolean(object.done) : false,
+      done: isSet(object.done) ? globalThis.Boolean(object.done) : false,
     }
   },
 
@@ -6003,12 +6013,12 @@ export const OpsCopyFromRequest = {
       | Iterable<OpsCopyFromRequest | OpsCopyFromRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyFromRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsCopyFromRequest.encode(pkt).finish()]
+        yield* [OpsCopyFromRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -6021,12 +6031,12 @@ export const OpsCopyFromRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsCopyFromRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyFromRequest.decode(p)]
         }
       } else {
-        yield* [OpsCopyFromRequest.decode(pkt)]
+        yield* [OpsCopyFromRequest.decode(pkt as any)]
       }
     }
   },
@@ -6036,7 +6046,7 @@ export const OpsCopyFromRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       srcCursorOpsHandleId: isSet(object.srcCursorOpsHandleId)
         ? Long.fromValue(object.srcCursorOpsHandleId)
         : Long.UZERO,
@@ -6149,12 +6159,12 @@ export const OpsCopyFromResponse = {
       | Iterable<OpsCopyFromResponse | OpsCopyFromResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyFromResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsCopyFromResponse.encode(pkt).finish()]
+        yield* [OpsCopyFromResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -6167,12 +6177,12 @@ export const OpsCopyFromResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsCopyFromResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsCopyFromResponse.decode(p)]
         }
       } else {
-        yield* [OpsCopyFromResponse.decode(pkt)]
+        yield* [OpsCopyFromResponse.decode(pkt as any)]
       }
     }
   },
@@ -6182,7 +6192,7 @@ export const OpsCopyFromResponse = {
       unixfsError: isSet(object.unixfsError)
         ? UnixFSError.fromJSON(object.unixfsError)
         : undefined,
-      done: isSet(object.done) ? Boolean(object.done) : false,
+      done: isSet(object.done) ? globalThis.Boolean(object.done) : false,
     }
   },
 
@@ -6297,12 +6307,12 @@ export const OpsMoveToRequest = {
       | Iterable<OpsMoveToRequest | OpsMoveToRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveToRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsMoveToRequest.encode(pkt).finish()]
+        yield* [OpsMoveToRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -6315,12 +6325,12 @@ export const OpsMoveToRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsMoveToRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveToRequest.decode(p)]
         }
       } else {
-        yield* [OpsMoveToRequest.decode(pkt)]
+        yield* [OpsMoveToRequest.decode(pkt as any)]
       }
     }
   },
@@ -6333,7 +6343,9 @@ export const OpsMoveToRequest = {
       targetDirOpsHandleId: isSet(object.targetDirOpsHandleId)
         ? Long.fromValue(object.targetDirOpsHandleId)
         : Long.UZERO,
-      targetName: isSet(object.targetName) ? String(object.targetName) : '',
+      targetName: isSet(object.targetName)
+        ? globalThis.String(object.targetName)
+        : '',
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -6443,12 +6455,12 @@ export const OpsMoveToResponse = {
       | Iterable<OpsMoveToResponse | OpsMoveToResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveToResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsMoveToResponse.encode(pkt).finish()]
+        yield* [OpsMoveToResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -6461,12 +6473,12 @@ export const OpsMoveToResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsMoveToResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveToResponse.decode(p)]
         }
       } else {
-        yield* [OpsMoveToResponse.decode(pkt)]
+        yield* [OpsMoveToResponse.decode(pkt as any)]
       }
     }
   },
@@ -6476,7 +6488,7 @@ export const OpsMoveToResponse = {
       unixfsError: isSet(object.unixfsError)
         ? UnixFSError.fromJSON(object.unixfsError)
         : undefined,
-      done: isSet(object.done) ? Boolean(object.done) : false,
+      done: isSet(object.done) ? globalThis.Boolean(object.done) : false,
     }
   },
 
@@ -6591,12 +6603,12 @@ export const OpsMoveFromRequest = {
       | Iterable<OpsMoveFromRequest | OpsMoveFromRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveFromRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsMoveFromRequest.encode(pkt).finish()]
+        yield* [OpsMoveFromRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -6609,12 +6621,12 @@ export const OpsMoveFromRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsMoveFromRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveFromRequest.decode(p)]
         }
       } else {
-        yield* [OpsMoveFromRequest.decode(pkt)]
+        yield* [OpsMoveFromRequest.decode(pkt as any)]
       }
     }
   },
@@ -6624,7 +6636,7 @@ export const OpsMoveFromRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       srcOpsHandleId: isSet(object.srcOpsHandleId)
         ? Long.fromValue(object.srcOpsHandleId)
         : Long.UZERO,
@@ -6734,12 +6746,12 @@ export const OpsMoveFromResponse = {
       | Iterable<OpsMoveFromResponse | OpsMoveFromResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveFromResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsMoveFromResponse.encode(pkt).finish()]
+        yield* [OpsMoveFromResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -6752,12 +6764,12 @@ export const OpsMoveFromResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsMoveFromResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsMoveFromResponse.decode(p)]
         }
       } else {
-        yield* [OpsMoveFromResponse.decode(pkt)]
+        yield* [OpsMoveFromResponse.decode(pkt as any)]
       }
     }
   },
@@ -6767,7 +6779,7 @@ export const OpsMoveFromResponse = {
       unixfsError: isSet(object.unixfsError)
         ? UnixFSError.fromJSON(object.unixfsError)
         : undefined,
-      done: isSet(object.done) ? Boolean(object.done) : false,
+      done: isSet(object.done) ? globalThis.Boolean(object.done) : false,
     }
   },
 
@@ -6867,12 +6879,12 @@ export const OpsRemoveRequest = {
       | Iterable<OpsRemoveRequest | OpsRemoveRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsRemoveRequest.encode(p).finish()]
         }
       } else {
-        yield* [OpsRemoveRequest.encode(pkt).finish()]
+        yield* [OpsRemoveRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -6885,12 +6897,12 @@ export const OpsRemoveRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsRemoveRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsRemoveRequest.decode(p)]
         }
       } else {
-        yield* [OpsRemoveRequest.decode(pkt)]
+        yield* [OpsRemoveRequest.decode(pkt as any)]
       }
     }
   },
@@ -6900,8 +6912,8 @@ export const OpsRemoveRequest = {
       opsHandleId: isSet(object.opsHandleId)
         ? Long.fromValue(object.opsHandleId)
         : Long.UZERO,
-      names: Array.isArray(object?.names)
-        ? object.names.map((e: any) => String(e))
+      names: globalThis.Array.isArray(object?.names)
+        ? object.names.map((e: any) => globalThis.String(e))
         : [],
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
@@ -6992,12 +7004,12 @@ export const OpsRemoveResponse = {
       | Iterable<OpsRemoveResponse | OpsRemoveResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsRemoveResponse.encode(p).finish()]
         }
       } else {
-        yield* [OpsRemoveResponse.encode(pkt).finish()]
+        yield* [OpsRemoveResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -7010,12 +7022,12 @@ export const OpsRemoveResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<OpsRemoveResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [OpsRemoveResponse.decode(p)]
         }
       } else {
-        yield* [OpsRemoveResponse.decode(pkt)]
+        yield* [OpsRemoveResponse.decode(pkt as any)]
       }
     }
   },
@@ -7849,30 +7861,11 @@ interface Rpc {
   ): AsyncIterable<Uint8Array>
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -7882,14 +7875,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -7906,8 +7899,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

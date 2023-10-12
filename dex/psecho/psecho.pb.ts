@@ -218,12 +218,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -236,23 +236,25 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
-      pubsubChannel: isSet(object.pubsubChannel)
-        ? String(object.pubsubChannel)
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
         : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      pubsubChannel: isSet(object.pubsubChannel)
+        ? globalThis.String(object.pubsubChannel)
+        : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
       transportId: isSet(object.transportId)
         ? Long.fromValue(object.transportId)
         : Long.UZERO,
@@ -379,12 +381,12 @@ export const PubSubMessage = {
       | Iterable<PubSubMessage | PubSubMessage[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PubSubMessage.encode(p).finish()]
         }
       } else {
-        yield* [PubSubMessage.encode(pkt).finish()]
+        yield* [PubSubMessage.encode(pkt as any).finish()]
       }
     }
   },
@@ -397,28 +399,30 @@ export const PubSubMessage = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PubSubMessage> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PubSubMessage.decode(p)]
         }
       } else {
-        yield* [PubSubMessage.decode(pkt)]
+        yield* [PubSubMessage.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): PubSubMessage {
     return {
-      wantRefs: Array.isArray(object?.wantRefs)
+      wantRefs: globalThis.Array.isArray(object?.wantRefs)
         ? object.wantRefs.map((e: any) => BlockRef.fromJSON(e))
         : [],
-      haveRefs: Array.isArray(object?.haveRefs)
+      haveRefs: globalThis.Array.isArray(object?.haveRefs)
         ? object.haveRefs.map((e: any) => BlockRef.fromJSON(e))
         : [],
-      clearRefs: Array.isArray(object?.clearRefs)
+      clearRefs: globalThis.Array.isArray(object?.clearRefs)
         ? object.clearRefs.map((e: any) => BlockRef.fromJSON(e))
         : [],
-      wantEmpty: isSet(object.wantEmpty) ? Boolean(object.wantEmpty) : false,
+      wantEmpty: isSet(object.wantEmpty)
+        ? globalThis.Boolean(object.wantEmpty)
+        : false,
     }
   },
 
@@ -552,12 +556,12 @@ export const SyncMessage = {
       | Iterable<SyncMessage | SyncMessage[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SyncMessage.encode(p).finish()]
         }
       } else {
-        yield* [SyncMessage.encode(pkt).finish()]
+        yield* [SyncMessage.encode(pkt as any).finish()]
       }
     }
   },
@@ -570,12 +574,12 @@ export const SyncMessage = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<SyncMessage> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [SyncMessage.decode(p)]
         }
       } else {
-        yield* [SyncMessage.decode(pkt)]
+        yield* [SyncMessage.decode(pkt as any)]
       }
     }
   },
@@ -589,8 +593,12 @@ export const SyncMessage = {
       chunk: isSet(object.chunk)
         ? bytesFromBase64(object.chunk)
         : new Uint8Array(0),
-      complete: isSet(object.complete) ? Boolean(object.complete) : false,
-      blockSize: isSet(object.blockSize) ? Number(object.blockSize) : 0,
+      complete: isSet(object.complete)
+        ? globalThis.Boolean(object.complete)
+        : false,
+      blockSize: isSet(object.blockSize)
+        ? globalThis.Number(object.blockSize)
+        : 0,
     }
   },
 
@@ -633,30 +641,11 @@ export const SyncMessage = {
   },
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -666,14 +655,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -690,8 +679,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

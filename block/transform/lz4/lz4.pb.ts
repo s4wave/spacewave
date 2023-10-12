@@ -155,12 +155,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -173,12 +173,12 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
@@ -189,13 +189,13 @@ export const Config = {
         ? blockSizeFromJSON(object.blockSize)
         : 0,
       blockChecksum: isSet(object.blockChecksum)
-        ? Boolean(object.blockChecksum)
+        ? globalThis.Boolean(object.blockChecksum)
         : false,
       disableChecksum: isSet(object.disableChecksum)
-        ? Boolean(object.disableChecksum)
+        ? globalThis.Boolean(object.disableChecksum)
         : false,
       compressionLevel: isSet(object.compressionLevel)
-        ? Number(object.compressionLevel)
+        ? globalThis.Number(object.compressionLevel)
         : 0,
     }
   },
@@ -243,8 +243,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

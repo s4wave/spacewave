@@ -77,12 +77,12 @@ export const LookupBlockFromNetworkRequest = {
         >,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupBlockFromNetworkRequest.encode(p).finish()]
         }
       } else {
-        yield* [LookupBlockFromNetworkRequest.encode(pkt).finish()]
+        yield* [LookupBlockFromNetworkRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -95,19 +95,21 @@ export const LookupBlockFromNetworkRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupBlockFromNetworkRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupBlockFromNetworkRequest.decode(p)]
         }
       } else {
-        yield* [LookupBlockFromNetworkRequest.decode(pkt)]
+        yield* [LookupBlockFromNetworkRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): LookupBlockFromNetworkRequest {
     return {
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
       ref: isSet(object.ref) ? BlockRef.fromJSON(object.ref) : undefined,
     }
   },
@@ -154,8 +156,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

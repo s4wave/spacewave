@@ -85,12 +85,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -103,18 +103,20 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
-    return { pollDur: isSet(object.pollDur) ? String(object.pollDur) : '' }
+    return {
+      pollDur: isSet(object.pollDur) ? globalThis.String(object.pollDur) : '',
+    }
   },
 
   toJSON(message: Config): unknown {
@@ -208,12 +210,12 @@ export const MQQueueMeta = {
       | Iterable<MQQueueMeta | MQQueueMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MQQueueMeta.encode(p).finish()]
         }
       } else {
-        yield* [MQQueueMeta.encode(pkt).finish()]
+        yield* [MQQueueMeta.encode(pkt as any).finish()]
       }
     }
   },
@@ -226,12 +228,12 @@ export const MQQueueMeta = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MQQueueMeta> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MQQueueMeta.decode(p)]
         }
       } else {
-        yield* [MQQueueMeta.decode(pkt)]
+        yield* [MQQueueMeta.decode(pkt as any)]
       }
     }
   },
@@ -291,7 +293,7 @@ export const MQQueueMeta = {
       [key: string]: string
     }>((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[key] = String(value)
+        acc[key] = globalThis.String(value)
       }
       return acc
     }, {})
@@ -359,12 +361,12 @@ export const MQQueueMeta_MetaEntry = {
       | Iterable<MQQueueMeta_MetaEntry | MQQueueMeta_MetaEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MQQueueMeta_MetaEntry.encode(p).finish()]
         }
       } else {
-        yield* [MQQueueMeta_MetaEntry.encode(pkt).finish()]
+        yield* [MQQueueMeta_MetaEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -377,20 +379,20 @@ export const MQQueueMeta_MetaEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MQQueueMeta_MetaEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MQQueueMeta_MetaEntry.decode(p)]
         }
       } else {
-        yield* [MQQueueMeta_MetaEntry.decode(pkt)]
+        yield* [MQQueueMeta_MetaEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): MQQueueMeta_MetaEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : '',
-      value: isSet(object.value) ? String(object.value) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : '',
     }
   },
 
@@ -477,12 +479,12 @@ export const MQMessageWrapper = {
       | Iterable<MQMessageWrapper | MQMessageWrapper[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MQMessageWrapper.encode(p).finish()]
         }
       } else {
-        yield* [MQMessageWrapper.encode(pkt).finish()]
+        yield* [MQMessageWrapper.encode(pkt as any).finish()]
       }
     }
   },
@@ -495,12 +497,12 @@ export const MQMessageWrapper = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MQMessageWrapper> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MQMessageWrapper.decode(p)]
         }
       } else {
-        yield* [MQMessageWrapper.decode(pkt)]
+        yield* [MQMessageWrapper.decode(pkt as any)]
       }
     }
   },
@@ -545,30 +547,11 @@ export const MQMessageWrapper = {
   },
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -578,14 +561,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -602,8 +585,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

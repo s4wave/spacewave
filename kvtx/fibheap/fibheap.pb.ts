@@ -142,12 +142,12 @@ export const Entry = {
     source: AsyncIterable<Entry | Entry[]> | Iterable<Entry | Entry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Entry.encode(p).finish()]
         }
       } else {
-        yield* [Entry.encode(pkt).finish()]
+        yield* [Entry.encode(pkt as any).finish()]
       }
     }
   },
@@ -160,20 +160,20 @@ export const Entry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Entry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Entry.decode(p)]
         }
       } else {
-        yield* [Entry.decode(pkt)]
+        yield* [Entry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Entry {
     return {
-      degree: isSet(object.degree) ? Number(object.degree) : 0,
-      marked: isSet(object.marked) ? Boolean(object.marked) : false,
+      degree: isSet(object.degree) ? globalThis.Number(object.degree) : 0,
+      marked: isSet(object.marked) ? globalThis.Boolean(object.marked) : false,
       next: isSet(object.next)
         ? bytesFromBase64(object.next)
         : new Uint8Array(0),
@@ -186,7 +186,7 @@ export const Entry = {
       parent: isSet(object.parent)
         ? bytesFromBase64(object.parent)
         : new Uint8Array(0),
-      priority: isSet(object.priority) ? Number(object.priority) : 0,
+      priority: isSet(object.priority) ? globalThis.Number(object.priority) : 0,
     }
   },
 
@@ -294,12 +294,12 @@ export const Root = {
     source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Root.encode(p).finish()]
         }
       } else {
-        yield* [Root.encode(pkt).finish()]
+        yield* [Root.encode(pkt as any).finish()]
       }
     }
   },
@@ -312,12 +312,12 @@ export const Root = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Root.decode(p)]
         }
       } else {
-        yield* [Root.decode(pkt)]
+        yield* [Root.decode(pkt as any)]
       }
     }
   },
@@ -325,8 +325,10 @@ export const Root = {
   fromJSON(object: any): Root {
     return {
       min: isSet(object.min) ? bytesFromBase64(object.min) : new Uint8Array(0),
-      minPriority: isSet(object.minPriority) ? Number(object.minPriority) : 0,
-      size: isSet(object.size) ? Number(object.size) : 0,
+      minPriority: isSet(object.minPriority)
+        ? globalThis.Number(object.minPriority)
+        : 0,
+      size: isSet(object.size) ? globalThis.Number(object.size) : 0,
     }
   },
 
@@ -356,30 +358,11 @@ export const Root = {
   },
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -389,14 +372,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -413,8 +396,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

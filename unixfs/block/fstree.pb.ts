@@ -335,12 +335,12 @@ export const FSNode = {
     source: AsyncIterable<FSNode | FSNode[]> | Iterable<FSNode | FSNode[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSNode.encode(p).finish()]
         }
       } else {
-        yield* [FSNode.encode(pkt).finish()]
+        yield* [FSNode.encode(pkt as any).finish()]
       }
     }
   },
@@ -353,12 +353,12 @@ export const FSNode = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSNode> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSNode.decode(p)]
         }
       } else {
-        yield* [FSNode.decode(pkt)]
+        yield* [FSNode.decode(pkt as any)]
       }
     }
   },
@@ -369,9 +369,11 @@ export const FSNode = {
       modTime: isSet(object.modTime)
         ? Timestamp.fromJSON(object.modTime)
         : undefined,
-      permissions: isSet(object.permissions) ? Number(object.permissions) : 0,
+      permissions: isSet(object.permissions)
+        ? globalThis.Number(object.permissions)
+        : 0,
       file: isSet(object.file) ? File.fromJSON(object.file) : undefined,
-      directoryEntry: Array.isArray(object?.directoryEntry)
+      directoryEntry: globalThis.Array.isArray(object?.directoryEntry)
         ? object.directoryEntry.map((e: any) => Dirent.fromJSON(e))
         : [],
       symlink: isSet(object.symlink)
@@ -493,12 +495,12 @@ export const Dirent = {
     source: AsyncIterable<Dirent | Dirent[]> | Iterable<Dirent | Dirent[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Dirent.encode(p).finish()]
         }
       } else {
-        yield* [Dirent.encode(pkt).finish()]
+        yield* [Dirent.encode(pkt as any).finish()]
       }
     }
   },
@@ -511,19 +513,19 @@ export const Dirent = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Dirent> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Dirent.decode(p)]
         }
       } else {
-        yield* [Dirent.decode(pkt)]
+        yield* [Dirent.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Dirent {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       nodeRef: isSet(object.nodeRef)
         ? BlockRef.fromJSON(object.nodeRef)
         : undefined,
@@ -607,12 +609,12 @@ export const FSSymlink = {
       | Iterable<FSSymlink | FSSymlink[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSSymlink.encode(p).finish()]
         }
       } else {
-        yield* [FSSymlink.encode(pkt).finish()]
+        yield* [FSSymlink.encode(pkt as any).finish()]
       }
     }
   },
@@ -625,12 +627,12 @@ export const FSSymlink = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSSymlink> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSSymlink.decode(p)]
         }
       } else {
-        yield* [FSSymlink.decode(pkt)]
+        yield* [FSSymlink.decode(pkt as any)]
       }
     }
   },
@@ -733,12 +735,12 @@ export const FSObject = {
       | Iterable<FSObject | FSObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSObject.encode(p).finish()]
         }
       } else {
-        yield* [FSObject.encode(pkt).finish()]
+        yield* [FSObject.encode(pkt as any).finish()]
       }
     }
   },
@@ -751,12 +753,12 @@ export const FSObject = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSObject> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSObject.decode(p)]
         }
       } else {
-        yield* [FSObject.decode(pkt)]
+        yield* [FSObject.decode(pkt as any)]
       }
     }
   },
@@ -855,12 +857,12 @@ export const FSHostVolume = {
       | Iterable<FSHostVolume | FSHostVolume[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSHostVolume.encode(p).finish()]
         }
       } else {
-        yield* [FSHostVolume.encode(pkt).finish()]
+        yield* [FSHostVolume.encode(pkt as any).finish()]
       }
     }
   },
@@ -873,18 +875,22 @@ export const FSHostVolume = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSHostVolume> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSHostVolume.decode(p)]
         }
       } else {
-        yield* [FSHostVolume.decode(pkt)]
+        yield* [FSHostVolume.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FSHostVolume {
-    return { volumeId: isSet(object.volumeId) ? String(object.volumeId) : '' }
+    return {
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
+    }
   },
 
   toJSON(message: FSHostVolume): unknown {
@@ -956,12 +962,12 @@ export const FSConfig = {
       | Iterable<FSConfig | FSConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSConfig.encode(p).finish()]
         }
       } else {
-        yield* [FSConfig.encode(pkt).finish()]
+        yield* [FSConfig.encode(pkt as any).finish()]
       }
     }
   },
@@ -974,12 +980,12 @@ export const FSConfig = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSConfig.decode(p)]
         }
       } else {
-        yield* [FSConfig.decode(pkt)]
+        yield* [FSConfig.decode(pkt as any)]
       }
     }
   },
@@ -987,7 +993,7 @@ export const FSConfig = {
   fromJSON(object: any): FSConfig {
     return {
       disableChangelog: isSet(object.disableChangelog)
-        ? Boolean(object.disableChangelog)
+        ? globalThis.Boolean(object.disableChangelog)
         : false,
     }
   },
@@ -1065,12 +1071,12 @@ export const FSPath = {
     source: AsyncIterable<FSPath | FSPath[]> | Iterable<FSPath | FSPath[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSPath.encode(p).finish()]
         }
       } else {
-        yield* [FSPath.encode(pkt).finish()]
+        yield* [FSPath.encode(pkt as any).finish()]
       }
     }
   },
@@ -1083,22 +1089,24 @@ export const FSPath = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSPath> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSPath.decode(p)]
         }
       } else {
-        yield* [FSPath.decode(pkt)]
+        yield* [FSPath.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FSPath {
     return {
-      nodes: Array.isArray(object?.nodes)
-        ? object.nodes.map((e: any) => String(e))
+      nodes: globalThis.Array.isArray(object?.nodes)
+        ? object.nodes.map((e: any) => globalThis.String(e))
         : [],
-      absolute: isSet(object.absolute) ? Boolean(object.absolute) : false,
+      absolute: isSet(object.absolute)
+        ? globalThis.Boolean(object.absolute)
+        : false,
     }
   },
 
@@ -1239,12 +1247,12 @@ export const FSChange = {
       | Iterable<FSChange | FSChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSChange.encode(p).finish()]
         }
       } else {
-        yield* [FSChange.encode(pkt).finish()]
+        yield* [FSChange.encode(pkt as any).finish()]
       }
     }
   },
@@ -1257,12 +1265,12 @@ export const FSChange = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FSChange> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FSChange.decode(p)]
         }
       } else {
-        yield* [FSChange.decode(pkt)]
+        yield* [FSChange.decode(pkt as any)]
       }
     }
   },
@@ -1279,11 +1287,11 @@ export const FSChange = {
       transactionRef: isSet(object.transactionRef)
         ? BlockRef.fromJSON(object.transactionRef)
         : undefined,
-      paths: Array.isArray(object?.paths)
+      paths: globalThis.Array.isArray(object?.paths)
         ? object.paths.map((e: any) => FSPath.fromJSON(e))
         : [],
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
-      valueRef: Array.isArray(object?.valueRef)
+      valueRef: globalThis.Array.isArray(object?.valueRef)
         ? object.valueRef.map((e: any) => BlockRef.fromJSON(e))
         : [],
     }
@@ -1354,8 +1362,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -53,12 +53,12 @@ export const Root = {
     source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Root.encode(p).finish()]
         }
       } else {
-        yield* [Root.encode(pkt).finish()]
+        yield* [Root.encode(pkt as any).finish()]
       }
     }
   },
@@ -71,12 +71,12 @@ export const Root = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Root.decode(p)]
         }
       } else {
-        yield* [Root.decode(pkt)]
+        yield* [Root.decode(pkt as any)]
       }
     }
   },
@@ -123,8 +123,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

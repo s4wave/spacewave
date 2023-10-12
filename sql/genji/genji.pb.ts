@@ -58,12 +58,12 @@ export const StoreMeta = {
       | Iterable<StoreMeta | StoreMeta[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [StoreMeta.encode(p).finish()]
         }
       } else {
-        yield* [StoreMeta.encode(pkt).finish()]
+        yield* [StoreMeta.encode(pkt as any).finish()]
       }
     }
   },
@@ -76,12 +76,12 @@ export const StoreMeta = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<StoreMeta> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [StoreMeta.decode(p)]
         }
       } else {
-        yield* [StoreMeta.decode(pkt)]
+        yield* [StoreMeta.decode(pkt as any)]
       }
     }
   },
@@ -130,8 +130,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

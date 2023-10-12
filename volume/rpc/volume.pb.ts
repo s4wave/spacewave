@@ -88,12 +88,12 @@ export const WatchVolumeInfoRequest = {
       | Iterable<WatchVolumeInfoRequest | WatchVolumeInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WatchVolumeInfoRequest.encode(p).finish()]
         }
       } else {
-        yield* [WatchVolumeInfoRequest.encode(pkt).finish()]
+        yield* [WatchVolumeInfoRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -106,18 +106,22 @@ export const WatchVolumeInfoRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchVolumeInfoRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WatchVolumeInfoRequest.decode(p)]
         }
       } else {
-        yield* [WatchVolumeInfoRequest.decode(pkt)]
+        yield* [WatchVolumeInfoRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WatchVolumeInfoRequest {
-    return { volumeId: isSet(object.volumeId) ? String(object.volumeId) : '' }
+    return {
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
+    }
   },
 
   toJSON(message: WatchVolumeInfoRequest): unknown {
@@ -202,12 +206,12 @@ export const WatchVolumeInfoResponse = {
       | Iterable<WatchVolumeInfoResponse | WatchVolumeInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WatchVolumeInfoResponse.encode(p).finish()]
         }
       } else {
-        yield* [WatchVolumeInfoResponse.encode(pkt).finish()]
+        yield* [WatchVolumeInfoResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -220,19 +224,21 @@ export const WatchVolumeInfoResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WatchVolumeInfoResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WatchVolumeInfoResponse.decode(p)]
         }
       } else {
-        yield* [WatchVolumeInfoResponse.decode(pkt)]
+        yield* [WatchVolumeInfoResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WatchVolumeInfoResponse {
     return {
-      notFound: isSet(object.notFound) ? Boolean(object.notFound) : false,
+      notFound: isSet(object.notFound)
+        ? globalThis.Boolean(object.notFound)
+        : false,
       volumeInfo: isSet(object.volumeInfo)
         ? VolumeInfo.fromJSON(object.volumeInfo)
         : undefined,
@@ -308,12 +314,12 @@ export const GetVolumeInfoRequest = {
       | Iterable<GetVolumeInfoRequest | GetVolumeInfoRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetVolumeInfoRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetVolumeInfoRequest.encode(pkt).finish()]
+        yield* [GetVolumeInfoRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -326,12 +332,12 @@ export const GetVolumeInfoRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetVolumeInfoRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetVolumeInfoRequest.decode(p)]
         }
       } else {
-        yield* [GetVolumeInfoRequest.decode(pkt)]
+        yield* [GetVolumeInfoRequest.decode(pkt as any)]
       }
     }
   },
@@ -408,12 +414,12 @@ export const GetVolumeInfoResponse = {
       | Iterable<GetVolumeInfoResponse | GetVolumeInfoResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetVolumeInfoResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetVolumeInfoResponse.encode(pkt).finish()]
+        yield* [GetVolumeInfoResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -426,12 +432,12 @@ export const GetVolumeInfoResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetVolumeInfoResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetVolumeInfoResponse.decode(p)]
         }
       } else {
-        yield* [GetVolumeInfoResponse.decode(pkt)]
+        yield* [GetVolumeInfoResponse.decode(pkt as any)]
       }
     }
   },
@@ -506,12 +512,12 @@ export const GetPeerPrivRequest = {
       | Iterable<GetPeerPrivRequest | GetPeerPrivRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetPeerPrivRequest.encode(p).finish()]
         }
       } else {
-        yield* [GetPeerPrivRequest.encode(pkt).finish()]
+        yield* [GetPeerPrivRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -524,12 +530,12 @@ export const GetPeerPrivRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetPeerPrivRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetPeerPrivRequest.decode(p)]
         }
       } else {
-        yield* [GetPeerPrivRequest.decode(pkt)]
+        yield* [GetPeerPrivRequest.decode(pkt as any)]
       }
     }
   },
@@ -603,12 +609,12 @@ export const GetPeerPrivResponse = {
       | Iterable<GetPeerPrivResponse | GetPeerPrivResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetPeerPrivResponse.encode(p).finish()]
         }
       } else {
-        yield* [GetPeerPrivResponse.encode(pkt).finish()]
+        yield* [GetPeerPrivResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -621,18 +627,20 @@ export const GetPeerPrivResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GetPeerPrivResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GetPeerPrivResponse.decode(p)]
         }
       } else {
-        yield* [GetPeerPrivResponse.decode(pkt)]
+        yield* [GetPeerPrivResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GetPeerPrivResponse {
-    return { privKey: isSet(object.privKey) ? String(object.privKey) : '' }
+    return {
+      privKey: isSet(object.privKey) ? globalThis.String(object.privKey) : '',
+    }
   },
 
   toJSON(message: GetPeerPrivResponse): unknown {
@@ -899,8 +907,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

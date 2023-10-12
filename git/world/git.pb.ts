@@ -182,12 +182,12 @@ export const GitInitOp = {
       | Iterable<GitInitOp | GitInitOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GitInitOp.encode(p).finish()]
         }
       } else {
-        yield* [GitInitOp.encode(pkt).finish()]
+        yield* [GitInitOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -200,24 +200,26 @@ export const GitInitOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GitInitOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GitInitOp.decode(p)]
         }
       } else {
-        yield* [GitInitOp.decode(pkt)]
+        yield* [GitInitOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GitInitOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       repoRef: isSet(object.repoRef)
         ? ObjectRef.fromJSON(object.repoRef)
         : undefined,
       disableCheckout: isSet(object.disableCheckout)
-        ? Boolean(object.disableCheckout)
+        ? globalThis.Boolean(object.disableCheckout)
         : false,
       createWorktree: isSet(object.createWorktree)
         ? GitCreateWorktreeOp.fromJSON(object.createWorktree)
@@ -323,12 +325,12 @@ export const Worktree = {
       | Iterable<Worktree | Worktree[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Worktree.encode(p).finish()]
         }
       } else {
-        yield* [Worktree.encode(pkt).finish()]
+        yield* [Worktree.encode(pkt as any).finish()]
       }
     }
   },
@@ -341,12 +343,12 @@ export const Worktree = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Worktree> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Worktree.decode(p)]
         }
       } else {
-        yield* [Worktree.decode(pkt)]
+        yield* [Worktree.decode(pkt as any)]
       }
     }
   },
@@ -457,12 +459,12 @@ export const HeadRefStore = {
       | Iterable<HeadRefStore | HeadRefStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HeadRefStore.encode(p).finish()]
         }
       } else {
-        yield* [HeadRefStore.encode(pkt).finish()]
+        yield* [HeadRefStore.encode(pkt as any).finish()]
       }
     }
   },
@@ -475,12 +477,12 @@ export const HeadRefStore = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HeadRefStore> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HeadRefStore.decode(p)]
         }
       } else {
-        yield* [HeadRefStore.decode(pkt)]
+        yield* [HeadRefStore.decode(pkt as any)]
       }
     }
   },
@@ -488,12 +490,12 @@ export const HeadRefStore = {
   fromJSON(object: any): HeadRefStore {
     return {
       submoduleName: isSet(object.submoduleName)
-        ? String(object.submoduleName)
+        ? globalThis.String(object.submoduleName)
         : '',
       headRef: isSet(object.headRef)
         ? Reference.fromJSON(object.headRef)
         : undefined,
-      submodules: Array.isArray(object?.submodules)
+      submodules: globalThis.Array.isArray(object?.submodules)
         ? object.submodules.map((e: any) => HeadRefStore.fromJSON(e))
         : [],
     }
@@ -651,12 +653,12 @@ export const GitCreateWorktreeOp = {
       | Iterable<GitCreateWorktreeOp | GitCreateWorktreeOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GitCreateWorktreeOp.encode(p).finish()]
         }
       } else {
-        yield* [GitCreateWorktreeOp.encode(pkt).finish()]
+        yield* [GitCreateWorktreeOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -669,33 +671,35 @@ export const GitCreateWorktreeOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GitCreateWorktreeOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GitCreateWorktreeOp.decode(p)]
         }
       } else {
-        yield* [GitCreateWorktreeOp.decode(pkt)]
+        yield* [GitCreateWorktreeOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GitCreateWorktreeOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       repoObjectKey: isSet(object.repoObjectKey)
-        ? String(object.repoObjectKey)
+        ? globalThis.String(object.repoObjectKey)
         : '',
       workdirRef: isSet(object.workdirRef)
         ? UnixfsRef.fromJSON(object.workdirRef)
         : undefined,
       createWorkdir: isSet(object.createWorkdir)
-        ? Boolean(object.createWorkdir)
+        ? globalThis.Boolean(object.createWorkdir)
         : false,
       checkoutOpts: isSet(object.checkoutOpts)
         ? CheckoutOpts.fromJSON(object.checkoutOpts)
         : undefined,
       disableCheckout: isSet(object.disableCheckout)
-        ? Boolean(object.disableCheckout)
+        ? globalThis.Boolean(object.disableCheckout)
         : false,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
@@ -846,12 +850,12 @@ export const GitWorktreeCheckoutOp = {
       | Iterable<GitWorktreeCheckoutOp | GitWorktreeCheckoutOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GitWorktreeCheckoutOp.encode(p).finish()]
         }
       } else {
-        yield* [GitWorktreeCheckoutOp.encode(pkt).finish()]
+        yield* [GitWorktreeCheckoutOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -864,21 +868,23 @@ export const GitWorktreeCheckoutOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<GitWorktreeCheckoutOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [GitWorktreeCheckoutOp.decode(p)]
         }
       } else {
-        yield* [GitWorktreeCheckoutOp.decode(pkt)]
+        yield* [GitWorktreeCheckoutOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): GitWorktreeCheckoutOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       repoObjectKey: isSet(object.repoObjectKey)
-        ? String(object.repoObjectKey)
+        ? globalThis.String(object.repoObjectKey)
         : '',
       checkoutOpts: isSet(object.checkoutOpts)
         ? CheckoutOpts.fromJSON(object.checkoutOpts)
@@ -942,8 +948,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

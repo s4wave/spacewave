@@ -90,12 +90,12 @@ export const BloomFilter = {
       | Iterable<BloomFilter | BloomFilter[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BloomFilter.encode(p).finish()]
         }
       } else {
-        yield* [BloomFilter.encode(pkt).finish()]
+        yield* [BloomFilter.encode(pkt as any).finish()]
       }
     }
   },
@@ -108,20 +108,20 @@ export const BloomFilter = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BloomFilter> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BloomFilter.decode(p)]
         }
       } else {
-        yield* [BloomFilter.decode(pkt)]
+        yield* [BloomFilter.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): BloomFilter {
     return {
-      k: isSet(object.k) ? Number(object.k) : 0,
-      m: isSet(object.m) ? Number(object.m) : 0,
+      k: isSet(object.k) ? globalThis.Number(object.k) : 0,
+      m: isSet(object.m) ? globalThis.Number(object.m) : 0,
       bitSet: isSet(object.bitSet) ? BitSet.fromJSON(object.bitSet) : undefined,
     }
   },
@@ -170,8 +170,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

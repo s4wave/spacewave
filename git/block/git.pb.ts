@@ -558,12 +558,12 @@ export const Repo = {
     source: AsyncIterable<Repo | Repo[]> | Iterable<Repo | Repo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Repo.encode(p).finish()]
         }
       } else {
-        yield* [Repo.encode(pkt).finish()]
+        yield* [Repo.encode(pkt as any).finish()]
       }
     }
   },
@@ -576,12 +576,12 @@ export const Repo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Repo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Repo.decode(p)]
         }
       } else {
-        yield* [Repo.decode(pkt)]
+        yield* [Repo.decode(pkt as any)]
       }
     }
   },
@@ -600,7 +600,9 @@ export const Repo = {
       shallowRefsStoreRef: isSet(object.shallowRefsStoreRef)
         ? BlockRef.fromJSON(object.shallowRefsStoreRef)
         : undefined,
-      gitConfig: isSet(object.gitConfig) ? String(object.gitConfig) : '',
+      gitConfig: isSet(object.gitConfig)
+        ? globalThis.String(object.gitConfig)
+        : '',
     }
   },
 
@@ -714,12 +716,12 @@ export const EncodedObjectStore = {
       | Iterable<EncodedObjectStore | EncodedObjectStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EncodedObjectStore.encode(p).finish()]
         }
       } else {
-        yield* [EncodedObjectStore.encode(pkt).finish()]
+        yield* [EncodedObjectStore.encode(pkt as any).finish()]
       }
     }
   },
@@ -732,12 +734,12 @@ export const EncodedObjectStore = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EncodedObjectStore> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EncodedObjectStore.decode(p)]
         }
       } else {
-        yield* [EncodedObjectStore.decode(pkt)]
+        yield* [EncodedObjectStore.decode(pkt as any)]
       }
     }
   },
@@ -832,12 +834,12 @@ export const ReferencesStore = {
       | Iterable<ReferencesStore | ReferencesStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReferencesStore.encode(p).finish()]
         }
       } else {
-        yield* [ReferencesStore.encode(pkt).finish()]
+        yield* [ReferencesStore.encode(pkt as any).finish()]
       }
     }
   },
@@ -850,12 +852,12 @@ export const ReferencesStore = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ReferencesStore> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReferencesStore.decode(p)]
         }
       } else {
-        yield* [ReferencesStore.decode(pkt)]
+        yield* [ReferencesStore.decode(pkt as any)]
       }
     }
   },
@@ -943,12 +945,12 @@ export const ModuleReferencesStore = {
       | Iterable<ModuleReferencesStore | ModuleReferencesStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ModuleReferencesStore.encode(p).finish()]
         }
       } else {
-        yield* [ModuleReferencesStore.encode(pkt).finish()]
+        yield* [ModuleReferencesStore.encode(pkt as any).finish()]
       }
     }
   },
@@ -961,12 +963,12 @@ export const ModuleReferencesStore = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ModuleReferencesStore> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ModuleReferencesStore.decode(p)]
         }
       } else {
-        yield* [ModuleReferencesStore.decode(pkt)]
+        yield* [ModuleReferencesStore.decode(pkt as any)]
       }
     }
   },
@@ -1051,12 +1053,12 @@ export const ShallowRefsStore = {
       | Iterable<ShallowRefsStore | ShallowRefsStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ShallowRefsStore.encode(p).finish()]
         }
       } else {
-        yield* [ShallowRefsStore.encode(pkt).finish()]
+        yield* [ShallowRefsStore.encode(pkt as any).finish()]
       }
     }
   },
@@ -1069,19 +1071,19 @@ export const ShallowRefsStore = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ShallowRefsStore> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ShallowRefsStore.decode(p)]
         }
       } else {
-        yield* [ShallowRefsStore.decode(pkt)]
+        yield* [ShallowRefsStore.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ShallowRefsStore {
     return {
-      shallowRefs: Array.isArray(object?.shallowRefs)
+      shallowRefs: globalThis.Array.isArray(object?.shallowRefs)
         ? object.shallowRefs.map((e: any) => Hash.fromJSON(e))
         : [],
     }
@@ -1167,12 +1169,12 @@ export const Submodule = {
       | Iterable<Submodule | Submodule[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Submodule.encode(p).finish()]
         }
       } else {
-        yield* [Submodule.encode(pkt).finish()]
+        yield* [Submodule.encode(pkt as any).finish()]
       }
     }
   },
@@ -1185,19 +1187,19 @@ export const Submodule = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Submodule> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Submodule.decode(p)]
         }
       } else {
-        yield* [Submodule.decode(pkt)]
+        yield* [Submodule.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Submodule {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       repoRef: isSet(object.repoRef)
         ? BlockRef.fromJSON(object.repoRef)
         : undefined,
@@ -1313,12 +1315,12 @@ export const Reference = {
       | Iterable<Reference | Reference[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Reference.encode(p).finish()]
         }
       } else {
-        yield* [Reference.encode(pkt).finish()]
+        yield* [Reference.encode(pkt as any).finish()]
       }
     }
   },
@@ -1331,25 +1333,25 @@ export const Reference = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Reference> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Reference.decode(p)]
         }
       } else {
-        yield* [Reference.decode(pkt)]
+        yield* [Reference.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Reference {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       referenceType: isSet(object.referenceType)
         ? referenceTypeFromJSON(object.referenceType)
         : 0,
       hash: isSet(object.hash) ? Hash.fromJSON(object.hash) : undefined,
       targetReferenceName: isSet(object.targetReferenceName)
-        ? String(object.targetReferenceName)
+        ? globalThis.String(object.targetReferenceName)
         : '',
     }
   },
@@ -1456,12 +1458,12 @@ export const EncodedObject = {
       | Iterable<EncodedObject | EncodedObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EncodedObject.encode(p).finish()]
         }
       } else {
-        yield* [EncodedObject.encode(pkt).finish()]
+        yield* [EncodedObject.encode(pkt as any).finish()]
       }
     }
   },
@@ -1474,12 +1476,12 @@ export const EncodedObject = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EncodedObject> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EncodedObject.decode(p)]
         }
       } else {
-        yield* [EncodedObject.decode(pkt)]
+        yield* [EncodedObject.decode(pkt as any)]
       }
     }
   },
@@ -1628,12 +1630,12 @@ export const Index = {
     source: AsyncIterable<Index | Index[]> | Iterable<Index | Index[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Index.encode(p).finish()]
         }
       } else {
-        yield* [Index.encode(pkt).finish()]
+        yield* [Index.encode(pkt as any).finish()]
       }
     }
   },
@@ -1646,20 +1648,20 @@ export const Index = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Index> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Index.decode(p)]
         }
       } else {
-        yield* [Index.decode(pkt)]
+        yield* [Index.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Index {
     return {
-      version: isSet(object.version) ? Number(object.version) : 0,
-      entries: Array.isArray(object?.entries)
+      version: isSet(object.version) ? globalThis.Number(object.version) : 0,
+      entries: globalThis.Array.isArray(object?.entries)
         ? object.entries.map((e: any) => IndexEntry.fromJSON(e))
         : [],
       cache: isSet(object.cache) ? Tree.fromJSON(object.cache) : undefined,
@@ -1758,12 +1760,12 @@ export const Tree = {
     source: AsyncIterable<Tree | Tree[]> | Iterable<Tree | Tree[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tree.encode(p).finish()]
         }
       } else {
-        yield* [Tree.encode(pkt).finish()]
+        yield* [Tree.encode(pkt as any).finish()]
       }
     }
   },
@@ -1776,19 +1778,19 @@ export const Tree = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tree> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tree.decode(p)]
         }
       } else {
-        yield* [Tree.decode(pkt)]
+        yield* [Tree.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Tree {
     return {
-      entries: Array.isArray(object?.entries)
+      entries: globalThis.Array.isArray(object?.entries)
         ? object.entries.map((e: any) => TreeEntry.fromJSON(e))
         : [],
     }
@@ -1889,12 +1891,12 @@ export const TreeEntry = {
       | Iterable<TreeEntry | TreeEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TreeEntry.encode(p).finish()]
         }
       } else {
-        yield* [TreeEntry.encode(pkt).finish()]
+        yield* [TreeEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -1907,21 +1909,21 @@ export const TreeEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TreeEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TreeEntry.decode(p)]
         }
       } else {
-        yield* [TreeEntry.decode(pkt)]
+        yield* [TreeEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TreeEntry {
     return {
-      path: isSet(object.path) ? String(object.path) : '',
-      entries: isSet(object.entries) ? Number(object.entries) : 0,
-      trees: isSet(object.trees) ? Number(object.trees) : 0,
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
+      entries: isSet(object.entries) ? globalThis.Number(object.entries) : 0,
+      trees: isSet(object.trees) ? globalThis.Number(object.trees) : 0,
       hash: isSet(object.hash) ? Hash.fromJSON(object.hash) : undefined,
     }
   },
@@ -2008,12 +2010,12 @@ export const ResolveUndo = {
       | Iterable<ResolveUndo | ResolveUndo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ResolveUndo.encode(p).finish()]
         }
       } else {
-        yield* [ResolveUndo.encode(pkt).finish()]
+        yield* [ResolveUndo.encode(pkt as any).finish()]
       }
     }
   },
@@ -2026,19 +2028,19 @@ export const ResolveUndo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResolveUndo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ResolveUndo.decode(p)]
         }
       } else {
-        yield* [ResolveUndo.decode(pkt)]
+        yield* [ResolveUndo.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ResolveUndo {
     return {
-      entries: Array.isArray(object?.entries)
+      entries: globalThis.Array.isArray(object?.entries)
         ? object.entries.map((e: any) => ResolveUndoEntry.fromJSON(e))
         : [],
     }
@@ -2131,12 +2133,12 @@ export const ResolveUndoEntry = {
       | Iterable<ResolveUndoEntry | ResolveUndoEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ResolveUndoEntry.encode(p).finish()]
         }
       } else {
-        yield* [ResolveUndoEntry.encode(pkt).finish()]
+        yield* [ResolveUndoEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -2149,23 +2151,23 @@ export const ResolveUndoEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResolveUndoEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ResolveUndoEntry.decode(p)]
         }
       } else {
-        yield* [ResolveUndoEntry.decode(pkt)]
+        yield* [ResolveUndoEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ResolveUndoEntry {
     return {
-      path: isSet(object.path) ? String(object.path) : '',
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
       stages: isObject(object.stages)
         ? Object.entries(object.stages).reduce<{ [key: number]: Hash }>(
             (acc, [key, value]) => {
-              acc[Number(key)] = Hash.fromJSON(value)
+              acc[globalThis.Number(key)] = Hash.fromJSON(value)
               return acc
             },
             {},
@@ -2205,7 +2207,7 @@ export const ResolveUndoEntry = {
       [key: number]: Hash
     }>((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[Number(key)] = Hash.fromPartial(value)
+        acc[globalThis.Number(key)] = Hash.fromPartial(value)
       }
       return acc
     }, {})
@@ -2275,12 +2277,12 @@ export const ResolveUndoEntry_StagesEntry = {
       | Iterable<ResolveUndoEntry_StagesEntry | ResolveUndoEntry_StagesEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ResolveUndoEntry_StagesEntry.encode(p).finish()]
         }
       } else {
-        yield* [ResolveUndoEntry_StagesEntry.encode(pkt).finish()]
+        yield* [ResolveUndoEntry_StagesEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -2293,19 +2295,19 @@ export const ResolveUndoEntry_StagesEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ResolveUndoEntry_StagesEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ResolveUndoEntry_StagesEntry.decode(p)]
         }
       } else {
-        yield* [ResolveUndoEntry_StagesEntry.decode(pkt)]
+        yield* [ResolveUndoEntry_StagesEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ResolveUndoEntry_StagesEntry {
     return {
-      key: isSet(object.key) ? Number(object.key) : 0,
+      key: isSet(object.key) ? globalThis.Number(object.key) : 0,
       value: isSet(object.value) ? Hash.fromJSON(object.value) : undefined,
     }
   },
@@ -2396,12 +2398,12 @@ export const EndOfIndexEntry = {
       | Iterable<EndOfIndexEntry | EndOfIndexEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EndOfIndexEntry.encode(p).finish()]
         }
       } else {
-        yield* [EndOfIndexEntry.encode(pkt).finish()]
+        yield* [EndOfIndexEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -2414,19 +2416,19 @@ export const EndOfIndexEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EndOfIndexEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EndOfIndexEntry.decode(p)]
         }
       } else {
-        yield* [EndOfIndexEntry.decode(pkt)]
+        yield* [EndOfIndexEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): EndOfIndexEntry {
     return {
-      offset: isSet(object.offset) ? Number(object.offset) : 0,
+      offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
       hash: isSet(object.hash) ? Hash.fromJSON(object.hash) : undefined,
     }
   },
@@ -2641,12 +2643,12 @@ export const IndexEntry = {
       | Iterable<IndexEntry | IndexEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [IndexEntry.encode(p).finish()]
         }
       } else {
-        yield* [IndexEntry.encode(pkt).finish()]
+        yield* [IndexEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -2659,12 +2661,12 @@ export const IndexEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<IndexEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [IndexEntry.decode(p)]
         }
       } else {
-        yield* [IndexEntry.decode(pkt)]
+        yield* [IndexEntry.decode(pkt as any)]
       }
     }
   },
@@ -2674,25 +2676,25 @@ export const IndexEntry = {
       dataHash: isSet(object.dataHash)
         ? Hash.fromJSON(object.dataHash)
         : undefined,
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       createdAt: isSet(object.createdAt)
         ? Timestamp.fromJSON(object.createdAt)
         : undefined,
       modifiedAt: isSet(object.modifiedAt)
         ? Timestamp.fromJSON(object.modifiedAt)
         : undefined,
-      dev: isSet(object.dev) ? Number(object.dev) : 0,
-      inode: isSet(object.inode) ? Number(object.inode) : 0,
-      fileMode: isSet(object.fileMode) ? Number(object.fileMode) : 0,
-      uid: isSet(object.uid) ? Number(object.uid) : 0,
-      gid: isSet(object.gid) ? Number(object.gid) : 0,
-      size: isSet(object.size) ? Number(object.size) : 0,
-      stage: isSet(object.stage) ? Number(object.stage) : 0,
+      dev: isSet(object.dev) ? globalThis.Number(object.dev) : 0,
+      inode: isSet(object.inode) ? globalThis.Number(object.inode) : 0,
+      fileMode: isSet(object.fileMode) ? globalThis.Number(object.fileMode) : 0,
+      uid: isSet(object.uid) ? globalThis.Number(object.uid) : 0,
+      gid: isSet(object.gid) ? globalThis.Number(object.gid) : 0,
+      size: isSet(object.size) ? globalThis.Number(object.size) : 0,
+      stage: isSet(object.stage) ? globalThis.Number(object.stage) : 0,
       skipWorktree: isSet(object.skipWorktree)
-        ? Boolean(object.skipWorktree)
+        ? globalThis.Boolean(object.skipWorktree)
         : false,
       intentToAdd: isSet(object.intentToAdd)
-        ? Boolean(object.intentToAdd)
+        ? globalThis.Boolean(object.intentToAdd)
         : false,
     }
   },
@@ -2831,12 +2833,12 @@ export const AuthOpts = {
       | Iterable<AuthOpts | AuthOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [AuthOpts.encode(p).finish()]
         }
       } else {
-        yield* [AuthOpts.encode(pkt).finish()]
+        yield* [AuthOpts.encode(pkt as any).finish()]
       }
     }
   },
@@ -2849,20 +2851,22 @@ export const AuthOpts = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<AuthOpts> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [AuthOpts.decode(p)]
         }
       } else {
-        yield* [AuthOpts.decode(pkt)]
+        yield* [AuthOpts.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): AuthOpts {
     return {
-      username: isSet(object.username) ? String(object.username) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      username: isSet(object.username)
+        ? globalThis.String(object.username)
+        : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
     }
   },
 
@@ -3036,12 +3040,12 @@ export const CloneOpts = {
       | Iterable<CloneOpts | CloneOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CloneOpts.encode(p).finish()]
         }
       } else {
-        yield* [CloneOpts.encode(pkt).finish()]
+        yield* [CloneOpts.encode(pkt as any).finish()]
       }
     }
   },
@@ -3054,32 +3058,40 @@ export const CloneOpts = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CloneOpts> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CloneOpts.decode(p)]
         }
       } else {
-        yield* [CloneOpts.decode(pkt)]
+        yield* [CloneOpts.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): CloneOpts {
     return {
-      url: isSet(object.url) ? String(object.url) : '',
-      remoteName: isSet(object.remoteName) ? String(object.remoteName) : '',
-      ref: isSet(object.ref) ? String(object.ref) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
+      remoteName: isSet(object.remoteName)
+        ? globalThis.String(object.remoteName)
+        : '',
+      ref: isSet(object.ref) ? globalThis.String(object.ref) : '',
       singleBranch: isSet(object.singleBranch)
-        ? Boolean(object.singleBranch)
+        ? globalThis.Boolean(object.singleBranch)
         : false,
       disableCheckout: isSet(object.disableCheckout)
-        ? Boolean(object.disableCheckout)
+        ? globalThis.Boolean(object.disableCheckout)
         : false,
-      depth: isSet(object.depth) ? Number(object.depth) : 0,
-      recursive: isSet(object.recursive) ? Boolean(object.recursive) : false,
+      depth: isSet(object.depth) ? globalThis.Number(object.depth) : 0,
+      recursive: isSet(object.recursive)
+        ? globalThis.Boolean(object.recursive)
+        : false,
       tagMode: isSet(object.tagMode) ? tagModeFromJSON(object.tagMode) : 0,
-      insecure: isSet(object.insecure) ? Boolean(object.insecure) : false,
-      caBundle: isSet(object.caBundle) ? String(object.caBundle) : '',
+      insecure: isSet(object.insecure)
+        ? globalThis.Boolean(object.insecure)
+        : false,
+      caBundle: isSet(object.caBundle)
+        ? globalThis.String(object.caBundle)
+        : '',
     }
   },
 
@@ -3232,12 +3244,12 @@ export const CheckoutOpts = {
       | Iterable<CheckoutOpts | CheckoutOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CheckoutOpts.encode(p).finish()]
         }
       } else {
-        yield* [CheckoutOpts.encode(pkt).finish()]
+        yield* [CheckoutOpts.encode(pkt as any).finish()]
       }
     }
   },
@@ -3250,12 +3262,12 @@ export const CheckoutOpts = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<CheckoutOpts> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [CheckoutOpts.decode(p)]
         }
       } else {
-        yield* [CheckoutOpts.decode(pkt)]
+        yield* [CheckoutOpts.decode(pkt as any)]
       }
     }
   },
@@ -3263,10 +3275,10 @@ export const CheckoutOpts = {
   fromJSON(object: any): CheckoutOpts {
     return {
       commit: isSet(object.commit) ? Hash.fromJSON(object.commit) : undefined,
-      branch: isSet(object.branch) ? String(object.branch) : '',
-      create: isSet(object.create) ? Boolean(object.create) : false,
-      force: isSet(object.force) ? Boolean(object.force) : false,
-      keep: isSet(object.keep) ? Boolean(object.keep) : false,
+      branch: isSet(object.branch) ? globalThis.String(object.branch) : '',
+      create: isSet(object.create) ? globalThis.Boolean(object.create) : false,
+      force: isSet(object.force) ? globalThis.Boolean(object.force) : false,
+      keep: isSet(object.keep) ? globalThis.Boolean(object.keep) : false,
     }
   },
 
@@ -3324,8 +3336,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

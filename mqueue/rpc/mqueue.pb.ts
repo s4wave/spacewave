@@ -178,12 +178,12 @@ export const RmMqueueRequest = {
       | Iterable<RmMqueueRequest | RmMqueueRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmMqueueRequest.encode(p).finish()]
         }
       } else {
-        yield* [RmMqueueRequest.encode(pkt).finish()]
+        yield* [RmMqueueRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -196,12 +196,12 @@ export const RmMqueueRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmMqueueRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmMqueueRequest.decode(p)]
         }
       } else {
-        yield* [RmMqueueRequest.decode(pkt)]
+        yield* [RmMqueueRequest.decode(pkt as any)]
       }
     }
   },
@@ -283,12 +283,12 @@ export const RmMqueueResponse = {
       | Iterable<RmMqueueResponse | RmMqueueResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmMqueueResponse.encode(p).finish()]
         }
       } else {
-        yield* [RmMqueueResponse.encode(pkt).finish()]
+        yield* [RmMqueueResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -301,18 +301,18 @@ export const RmMqueueResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmMqueueResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmMqueueResponse.decode(p)]
         }
       } else {
-        yield* [RmMqueueResponse.decode(pkt)]
+        yield* [RmMqueueResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): RmMqueueResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: RmMqueueResponse): unknown {
@@ -394,12 +394,12 @@ export const ListMqueuesRequest = {
       | Iterable<ListMqueuesRequest | ListMqueuesRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListMqueuesRequest.encode(p).finish()]
         }
       } else {
-        yield* [ListMqueuesRequest.encode(pkt).finish()]
+        yield* [ListMqueuesRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -412,12 +412,12 @@ export const ListMqueuesRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListMqueuesRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListMqueuesRequest.decode(p)]
         }
       } else {
-        yield* [ListMqueuesRequest.decode(pkt)]
+        yield* [ListMqueuesRequest.decode(pkt as any)]
       }
     }
   },
@@ -427,7 +427,7 @@ export const ListMqueuesRequest = {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
         : new Uint8Array(0),
-      filled: isSet(object.filled) ? Boolean(object.filled) : false,
+      filled: isSet(object.filled) ? globalThis.Boolean(object.filled) : false,
     }
   },
 
@@ -514,12 +514,12 @@ export const ListMqueuesResponse = {
       | Iterable<ListMqueuesResponse | ListMqueuesResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListMqueuesResponse.encode(p).finish()]
         }
       } else {
-        yield* [ListMqueuesResponse.encode(pkt).finish()]
+        yield* [ListMqueuesResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -532,20 +532,20 @@ export const ListMqueuesResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListMqueuesResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListMqueuesResponse.decode(p)]
         }
       } else {
-        yield* [ListMqueuesResponse.decode(pkt)]
+        yield* [ListMqueuesResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ListMqueuesResponse {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
-      mqueueIds: Array.isArray(object?.mqueueIds)
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      mqueueIds: globalThis.Array.isArray(object?.mqueueIds)
         ? object.mqueueIds.map((e: any) => bytesFromBase64(e))
         : [],
     }
@@ -611,12 +611,12 @@ export const PeekRequest = {
       | Iterable<PeekRequest | PeekRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PeekRequest.encode(p).finish()]
         }
       } else {
-        yield* [PeekRequest.encode(pkt).finish()]
+        yield* [PeekRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -629,12 +629,12 @@ export const PeekRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PeekRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PeekRequest.decode(p)]
         }
       } else {
-        yield* [PeekRequest.decode(pkt)]
+        yield* [PeekRequest.decode(pkt as any)]
       }
     }
   },
@@ -724,12 +724,12 @@ export const PeekResponse = {
       | Iterable<PeekResponse | PeekResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PeekResponse.encode(p).finish()]
         }
       } else {
-        yield* [PeekResponse.encode(pkt).finish()]
+        yield* [PeekResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -742,20 +742,20 @@ export const PeekResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PeekResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PeekResponse.decode(p)]
         }
       } else {
-        yield* [PeekResponse.decode(pkt)]
+        yield* [PeekResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): PeekResponse {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
-      found: isSet(object.found) ? Boolean(object.found) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      found: isSet(object.found) ? globalThis.Boolean(object.found) : false,
       msg: isSet(object.msg) ? MqueueMsg.fromJSON(object.msg) : undefined,
     }
   },
@@ -840,12 +840,12 @@ export const AckRequest = {
       | Iterable<AckRequest | AckRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [AckRequest.encode(p).finish()]
         }
       } else {
-        yield* [AckRequest.encode(pkt).finish()]
+        yield* [AckRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -858,12 +858,12 @@ export const AckRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<AckRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [AckRequest.decode(p)]
         }
       } else {
-        yield* [AckRequest.decode(pkt)]
+        yield* [AckRequest.decode(pkt as any)]
       }
     }
   },
@@ -942,12 +942,12 @@ export const AckResponse = {
       | Iterable<AckResponse | AckResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [AckResponse.encode(p).finish()]
         }
       } else {
-        yield* [AckResponse.encode(pkt).finish()]
+        yield* [AckResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -960,18 +960,18 @@ export const AckResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<AckResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [AckResponse.decode(p)]
         }
       } else {
-        yield* [AckResponse.decode(pkt)]
+        yield* [AckResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): AckResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: AckResponse): unknown {
@@ -1041,12 +1041,12 @@ export const PushRequest = {
       | Iterable<PushRequest | PushRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PushRequest.encode(p).finish()]
         }
       } else {
-        yield* [PushRequest.encode(pkt).finish()]
+        yield* [PushRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1059,12 +1059,12 @@ export const PushRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PushRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PushRequest.decode(p)]
         }
       } else {
-        yield* [PushRequest.decode(pkt)]
+        yield* [PushRequest.decode(pkt as any)]
       }
     }
   },
@@ -1154,12 +1154,12 @@ export const PushResponse = {
       | Iterable<PushResponse | PushResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PushResponse.encode(p).finish()]
         }
       } else {
-        yield* [PushResponse.encode(pkt).finish()]
+        yield* [PushResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1172,19 +1172,19 @@ export const PushResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PushResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PushResponse.decode(p)]
         }
       } else {
-        yield* [PushResponse.decode(pkt)]
+        yield* [PushResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): PushResponse {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
       msg: isSet(object.msg) ? MqueueMsg.fromJSON(object.msg) : undefined,
     }
   },
@@ -1290,12 +1290,12 @@ export const MqueueMsg = {
       | Iterable<MqueueMsg | MqueueMsg[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MqueueMsg.encode(p).finish()]
         }
       } else {
-        yield* [MqueueMsg.encode(pkt).finish()]
+        yield* [MqueueMsg.encode(pkt as any).finish()]
       }
     }
   },
@@ -1308,12 +1308,12 @@ export const MqueueMsg = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MqueueMsg> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MqueueMsg.decode(p)]
         }
       } else {
-        yield* [MqueueMsg.decode(pkt)]
+        yield* [MqueueMsg.decode(pkt as any)]
       }
     }
   },
@@ -1408,12 +1408,12 @@ export const WaitRequest = {
       | Iterable<WaitRequest | WaitRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WaitRequest.encode(p).finish()]
         }
       } else {
-        yield* [WaitRequest.encode(pkt).finish()]
+        yield* [WaitRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1426,18 +1426,18 @@ export const WaitRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WaitRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WaitRequest.decode(p)]
         }
       } else {
-        yield* [WaitRequest.decode(pkt)]
+        yield* [WaitRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WaitRequest {
-    return { ack: isSet(object.ack) ? Boolean(object.ack) : false }
+    return { ack: isSet(object.ack) ? globalThis.Boolean(object.ack) : false }
   },
 
   toJSON(message: WaitRequest): unknown {
@@ -1507,12 +1507,12 @@ export const WaitResponse = {
       | Iterable<WaitResponse | WaitResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WaitResponse.encode(p).finish()]
         }
       } else {
-        yield* [WaitResponse.encode(pkt).finish()]
+        yield* [WaitResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1525,12 +1525,12 @@ export const WaitResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WaitResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WaitResponse.decode(p)]
         }
       } else {
-        yield* [WaitResponse.decode(pkt)]
+        yield* [WaitResponse.decode(pkt as any)]
       }
     }
   },
@@ -1603,12 +1603,12 @@ export const DeleteQueueRequest = {
       | Iterable<DeleteQueueRequest | DeleteQueueRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DeleteQueueRequest.encode(p).finish()]
         }
       } else {
-        yield* [DeleteQueueRequest.encode(pkt).finish()]
+        yield* [DeleteQueueRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1621,12 +1621,12 @@ export const DeleteQueueRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DeleteQueueRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DeleteQueueRequest.decode(p)]
         }
       } else {
-        yield* [DeleteQueueRequest.decode(pkt)]
+        yield* [DeleteQueueRequest.decode(pkt as any)]
       }
     }
   },
@@ -1700,12 +1700,12 @@ export const DeleteQueueResponse = {
       | Iterable<DeleteQueueResponse | DeleteQueueResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DeleteQueueResponse.encode(p).finish()]
         }
       } else {
-        yield* [DeleteQueueResponse.encode(pkt).finish()]
+        yield* [DeleteQueueResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1718,18 +1718,18 @@ export const DeleteQueueResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DeleteQueueResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DeleteQueueResponse.decode(p)]
         }
       } else {
-        yield* [DeleteQueueResponse.decode(pkt)]
+        yield* [DeleteQueueResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): DeleteQueueResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: DeleteQueueResponse): unknown {
@@ -2069,30 +2069,11 @@ interface Rpc {
   ): AsyncIterable<Uint8Array>
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -2102,14 +2083,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -2126,8 +2107,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }
@@ -2154,14 +2135,14 @@ function toTimestamp(date: Date): Timestamp {
 function fromTimestamp(t: Timestamp): Date {
   let millis = (t.seconds.toNumber() || 0) * 1_000
   millis += (t.nanos || 0) / 1_000_000
-  return new Date(millis)
+  return new globalThis.Date(millis)
 }
 
 function fromJsonTimestamp(o: any): Date {
-  if (o instanceof Date) {
+  if (o instanceof globalThis.Date) {
     return o
   } else if (typeof o === 'string') {
-    return new Date(o)
+    return new globalThis.Date(o)
   } else {
     return fromTimestamp(Timestamp.fromJSON(o))
   }

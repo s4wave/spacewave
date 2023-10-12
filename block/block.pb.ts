@@ -80,12 +80,12 @@ export const BlockRef = {
       | Iterable<BlockRef | BlockRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BlockRef.encode(p).finish()]
         }
       } else {
-        yield* [BlockRef.encode(pkt).finish()]
+        yield* [BlockRef.encode(pkt as any).finish()]
       }
     }
   },
@@ -98,12 +98,12 @@ export const BlockRef = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BlockRef> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BlockRef.decode(p)]
         }
       } else {
-        yield* [BlockRef.decode(pkt)]
+        yield* [BlockRef.decode(pkt as any)]
       }
     }
   },
@@ -188,12 +188,12 @@ export const PutOpts = {
     source: AsyncIterable<PutOpts | PutOpts[]> | Iterable<PutOpts | PutOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutOpts.encode(p).finish()]
         }
       } else {
-        yield* [PutOpts.encode(pkt).finish()]
+        yield* [PutOpts.encode(pkt as any).finish()]
       }
     }
   },
@@ -206,12 +206,12 @@ export const PutOpts = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutOpts> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutOpts.decode(p)]
         }
       } else {
-        yield* [PutOpts.decode(pkt)]
+        yield* [PutOpts.decode(pkt as any)]
       }
     }
   },
@@ -263,8 +263,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

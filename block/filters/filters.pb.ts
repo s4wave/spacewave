@@ -98,12 +98,12 @@ export const KeyFilters = {
       | Iterable<KeyFilters | KeyFilters[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyFilters.encode(p).finish()]
         }
       } else {
-        yield* [KeyFilters.encode(pkt).finish()]
+        yield* [KeyFilters.encode(pkt as any).finish()]
       }
     }
   },
@@ -116,19 +116,21 @@ export const KeyFilters = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyFilters> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyFilters.decode(p)]
         }
       } else {
-        yield* [KeyFilters.decode(pkt)]
+        yield* [KeyFilters.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KeyFilters {
     return {
-      keyPrefix: isSet(object.keyPrefix) ? String(object.keyPrefix) : '',
+      keyPrefix: isSet(object.keyPrefix)
+        ? globalThis.String(object.keyPrefix)
+        : '',
       quadPrefix: isSet(object.quadPrefix)
         ? Quad.fromJSON(object.quadPrefix)
         : undefined,
@@ -185,8 +187,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -79,12 +79,12 @@ export const BitSet = {
     source: AsyncIterable<BitSet | BitSet[]> | Iterable<BitSet | BitSet[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BitSet.encode(p).finish()]
         }
       } else {
-        yield* [BitSet.encode(pkt).finish()]
+        yield* [BitSet.encode(pkt as any).finish()]
       }
     }
   },
@@ -97,22 +97,22 @@ export const BitSet = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BitSet> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BitSet.decode(p)]
         }
       } else {
-        yield* [BitSet.decode(pkt)]
+        yield* [BitSet.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): BitSet {
     return {
-      set: Array.isArray(object?.set)
+      set: globalThis.Array.isArray(object?.set)
         ? object.set.map((e: any) => Long.fromValue(e))
         : [],
-      len: isSet(object.len) ? Number(object.len) : 0,
+      len: isSet(object.len) ? globalThis.Number(object.len) : 0,
     }
   },
 
@@ -151,8 +151,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

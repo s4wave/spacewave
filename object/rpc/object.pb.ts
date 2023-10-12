@@ -70,12 +70,12 @@ export const RmObjectStoreRequest = {
       | Iterable<RmObjectStoreRequest | RmObjectStoreRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmObjectStoreRequest.encode(p).finish()]
         }
       } else {
-        yield* [RmObjectStoreRequest.encode(pkt).finish()]
+        yield* [RmObjectStoreRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -88,12 +88,12 @@ export const RmObjectStoreRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmObjectStoreRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmObjectStoreRequest.decode(p)]
         }
       } else {
-        yield* [RmObjectStoreRequest.decode(pkt)]
+        yield* [RmObjectStoreRequest.decode(pkt as any)]
       }
     }
   },
@@ -101,7 +101,7 @@ export const RmObjectStoreRequest = {
   fromJSON(object: any): RmObjectStoreRequest {
     return {
       objectStoreId: isSet(object.objectStoreId)
-        ? String(object.objectStoreId)
+        ? globalThis.String(object.objectStoreId)
         : '',
     }
   },
@@ -178,12 +178,12 @@ export const RmObjectStoreResponse = {
       | Iterable<RmObjectStoreResponse | RmObjectStoreResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmObjectStoreResponse.encode(p).finish()]
         }
       } else {
-        yield* [RmObjectStoreResponse.encode(pkt).finish()]
+        yield* [RmObjectStoreResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -196,18 +196,18 @@ export const RmObjectStoreResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmObjectStoreResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmObjectStoreResponse.decode(p)]
         }
       } else {
-        yield* [RmObjectStoreResponse.decode(pkt)]
+        yield* [RmObjectStoreResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): RmObjectStoreResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: RmObjectStoreResponse): unknown {
@@ -366,8 +366,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

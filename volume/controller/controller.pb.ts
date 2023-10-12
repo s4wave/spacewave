@@ -138,12 +138,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -156,12 +156,12 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
@@ -169,19 +169,19 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       disableEventBlockRm: isSet(object.disableEventBlockRm)
-        ? Boolean(object.disableEventBlockRm)
+        ? globalThis.Boolean(object.disableEventBlockRm)
         : false,
-      volumeIdAlias: Array.isArray(object?.volumeIdAlias)
-        ? object.volumeIdAlias.map((e: any) => String(e))
+      volumeIdAlias: globalThis.Array.isArray(object?.volumeIdAlias)
+        ? object.volumeIdAlias.map((e: any) => globalThis.String(e))
         : [],
       disableReconcilerQueues: isSet(object.disableReconcilerQueues)
-        ? Boolean(object.disableReconcilerQueues)
+        ? globalThis.Boolean(object.disableReconcilerQueues)
         : false,
       disablePeer: isSet(object.disablePeer)
-        ? Boolean(object.disablePeer)
+        ? globalThis.Boolean(object.disablePeer)
         : false,
       blockStoreId: isSet(object.blockStoreId)
-        ? String(object.blockStoreId)
+        ? globalThis.String(object.blockStoreId)
         : '',
       blockStoreMode: isSet(object.blockStoreMode)
         ? blockStoreModeFromJSON(object.blockStoreMode)
@@ -240,8 +240,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

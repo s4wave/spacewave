@@ -159,12 +159,12 @@ export const Event = {
     source: AsyncIterable<Event | Event[]> | Iterable<Event | Event[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Event.encode(p).finish()]
         }
       } else {
-        yield* [Event.encode(pkt).finish()]
+        yield* [Event.encode(pkt as any).finish()]
       }
     }
   },
@@ -177,12 +177,12 @@ export const Event = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Event> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Event.decode(p)]
         }
       } else {
-        yield* [Event.decode(pkt)]
+        yield* [Event.decode(pkt as any)]
       }
     }
   },
@@ -310,12 +310,12 @@ export const BlockCommon = {
       | Iterable<BlockCommon | BlockCommon[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BlockCommon.encode(p).finish()]
         }
       } else {
-        yield* [BlockCommon.encode(pkt).finish()]
+        yield* [BlockCommon.encode(pkt as any).finish()]
       }
     }
   },
@@ -328,22 +328,26 @@ export const BlockCommon = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BlockCommon> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BlockCommon.decode(p)]
         }
       } else {
-        yield* [BlockCommon.decode(pkt)]
+        yield* [BlockCommon.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): BlockCommon {
     return {
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
       bucketConfRev: isSet(object.bucketConfRev)
-        ? Number(object.bucketConfRev)
+        ? globalThis.Number(object.bucketConfRev)
         : 0,
       blockRef: isSet(object.blockRef)
         ? BlockRef.fromJSON(object.blockRef)
@@ -433,12 +437,12 @@ export const PutBlock = {
       | Iterable<PutBlock | PutBlock[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutBlock.encode(p).finish()]
         }
       } else {
-        yield* [PutBlock.encode(pkt).finish()]
+        yield* [PutBlock.encode(pkt as any).finish()]
       }
     }
   },
@@ -451,12 +455,12 @@ export const PutBlock = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PutBlock> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [PutBlock.decode(p)]
         }
       } else {
-        yield* [PutBlock.decode(pkt)]
+        yield* [PutBlock.decode(pkt as any)]
       }
     }
   },
@@ -535,12 +539,12 @@ export const RmBlock = {
     source: AsyncIterable<RmBlock | RmBlock[]> | Iterable<RmBlock | RmBlock[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmBlock.encode(p).finish()]
         }
       } else {
-        yield* [RmBlock.encode(pkt).finish()]
+        yield* [RmBlock.encode(pkt as any).finish()]
       }
     }
   },
@@ -553,12 +557,12 @@ export const RmBlock = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RmBlock> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RmBlock.decode(p)]
         }
       } else {
-        yield* [RmBlock.decode(pkt)]
+        yield* [RmBlock.decode(pkt as any)]
       }
     }
   },
@@ -605,8 +609,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

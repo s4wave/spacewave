@@ -157,12 +157,12 @@ export const Root = {
     source: AsyncIterable<Root | Root[]> | Iterable<Root | Root[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Root.encode(p).finish()]
         }
       } else {
-        yield* [Root.encode(pkt).finish()]
+        yield* [Root.encode(pkt as any).finish()]
       }
     }
   },
@@ -175,19 +175,19 @@ export const Root = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Root> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Root.decode(p)]
         }
       } else {
-        yield* [Root.decode(pkt)]
+        yield* [Root.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Root {
     return {
-      databases: Array.isArray(object?.databases)
+      databases: globalThis.Array.isArray(object?.databases)
         ? object.databases.map((e: any) => RootDb.fromJSON(e))
         : [],
     }
@@ -267,12 +267,12 @@ export const RootDb = {
     source: AsyncIterable<RootDb | RootDb[]> | Iterable<RootDb | RootDb[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RootDb.encode(p).finish()]
         }
       } else {
-        yield* [RootDb.encode(pkt).finish()]
+        yield* [RootDb.encode(pkt as any).finish()]
       }
     }
   },
@@ -285,19 +285,19 @@ export const RootDb = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RootDb> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RootDb.decode(p)]
         }
       } else {
-        yield* [RootDb.decode(pkt)]
+        yield* [RootDb.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): RootDb {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       ref: isSet(object.ref) ? BlockRef.fromJSON(object.ref) : undefined,
     }
   },
@@ -374,12 +374,12 @@ export const DatabaseRoot = {
       | Iterable<DatabaseRoot | DatabaseRoot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DatabaseRoot.encode(p).finish()]
         }
       } else {
-        yield* [DatabaseRoot.encode(pkt).finish()]
+        yield* [DatabaseRoot.encode(pkt as any).finish()]
       }
     }
   },
@@ -392,19 +392,19 @@ export const DatabaseRoot = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DatabaseRoot> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DatabaseRoot.decode(p)]
         }
       } else {
-        yield* [DatabaseRoot.decode(pkt)]
+        yield* [DatabaseRoot.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): DatabaseRoot {
     return {
-      tables: Array.isArray(object?.tables)
+      tables: globalThis.Array.isArray(object?.tables)
         ? object.tables.map((e: any) => DatabaseRootTable.fromJSON(e))
         : [],
     }
@@ -490,12 +490,12 @@ export const DatabaseRootTable = {
       | Iterable<DatabaseRootTable | DatabaseRootTable[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DatabaseRootTable.encode(p).finish()]
         }
       } else {
-        yield* [DatabaseRootTable.encode(pkt).finish()]
+        yield* [DatabaseRootTable.encode(pkt as any).finish()]
       }
     }
   },
@@ -508,19 +508,19 @@ export const DatabaseRootTable = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DatabaseRootTable> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DatabaseRootTable.decode(p)]
         }
       } else {
-        yield* [DatabaseRootTable.decode(pkt)]
+        yield* [DatabaseRootTable.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): DatabaseRootTable {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       ref: isSet(object.ref) ? BlockRef.fromJSON(object.ref) : undefined,
     }
   },
@@ -672,12 +672,12 @@ export const TableRoot = {
       | Iterable<TableRoot | TableRoot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableRoot.encode(p).finish()]
         }
       } else {
-        yield* [TableRoot.encode(pkt).finish()]
+        yield* [TableRoot.encode(pkt as any).finish()]
       }
     }
   },
@@ -690,12 +690,12 @@ export const TableRoot = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableRoot> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableRoot.decode(p)]
         }
       } else {
-        yield* [TableRoot.decode(pkt)]
+        yield* [TableRoot.decode(pkt as any)]
       }
     }
   },
@@ -705,10 +705,10 @@ export const TableRoot = {
       tableSchema: isSet(object.tableSchema)
         ? TableSchema.fromJSON(object.tableSchema)
         : undefined,
-      primaryKeyOrdinals: Array.isArray(object?.primaryKeyOrdinals)
-        ? object.primaryKeyOrdinals.map((e: any) => Number(e))
+      primaryKeyOrdinals: globalThis.Array.isArray(object?.primaryKeyOrdinals)
+        ? object.primaryKeyOrdinals.map((e: any) => globalThis.Number(e))
         : [],
-      tablePartitions: Array.isArray(object?.tablePartitions)
+      tablePartitions: globalThis.Array.isArray(object?.tablePartitions)
         ? object.tablePartitions.map((e: any) => TablePartitionRoot.fromJSON(e))
         : [],
       rowNonce: isSet(object.rowNonce)
@@ -717,7 +717,9 @@ export const TableRoot = {
       autoIncrVal: isSet(object.autoIncrVal)
         ? TableColumn.fromJSON(object.autoIncrVal)
         : undefined,
-      collationId: isSet(object.collationId) ? Number(object.collationId) : 0,
+      collationId: isSet(object.collationId)
+        ? globalThis.Number(object.collationId)
+        : 0,
     }
   },
 
@@ -826,12 +828,12 @@ export const TablePartitionRoot = {
       | Iterable<TablePartitionRoot | TablePartitionRoot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TablePartitionRoot.encode(p).finish()]
         }
       } else {
-        yield* [TablePartitionRoot.encode(pkt).finish()]
+        yield* [TablePartitionRoot.encode(pkt as any).finish()]
       }
     }
   },
@@ -844,12 +846,12 @@ export const TablePartitionRoot = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TablePartitionRoot> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TablePartitionRoot.decode(p)]
         }
       } else {
-        yield* [TablePartitionRoot.decode(pkt)]
+        yield* [TablePartitionRoot.decode(pkt as any)]
       }
     }
   },
@@ -934,12 +936,12 @@ export const TableRow = {
       | Iterable<TableRow | TableRow[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableRow.encode(p).finish()]
         }
       } else {
-        yield* [TableRow.encode(pkt).finish()]
+        yield* [TableRow.encode(pkt as any).finish()]
       }
     }
   },
@@ -952,19 +954,19 @@ export const TableRow = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableRow> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableRow.decode(p)]
         }
       } else {
-        yield* [TableRow.decode(pkt)]
+        yield* [TableRow.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TableRow {
     return {
-      columns: Array.isArray(object?.columns)
+      columns: globalThis.Array.isArray(object?.columns)
         ? object.columns.map((e: any) => TableColumn.fromJSON(e))
         : [],
     }
@@ -1036,12 +1038,12 @@ export const TableColumn = {
       | Iterable<TableColumn | TableColumn[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableColumn.encode(p).finish()]
         }
       } else {
-        yield* [TableColumn.encode(pkt).finish()]
+        yield* [TableColumn.encode(pkt as any).finish()]
       }
     }
   },
@@ -1054,12 +1056,12 @@ export const TableColumn = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableColumn> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableColumn.decode(p)]
         }
       } else {
-        yield* [TableColumn.decode(pkt)]
+        yield* [TableColumn.decode(pkt as any)]
       }
     }
   },
@@ -1144,12 +1146,12 @@ export const TableSchema = {
       | Iterable<TableSchema | TableSchema[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableSchema.encode(p).finish()]
         }
       } else {
-        yield* [TableSchema.encode(pkt).finish()]
+        yield* [TableSchema.encode(pkt as any).finish()]
       }
     }
   },
@@ -1162,19 +1164,19 @@ export const TableSchema = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableSchema> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableSchema.decode(p)]
         }
       } else {
-        yield* [TableSchema.decode(pkt)]
+        yield* [TableSchema.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TableSchema {
     return {
-      columns: Array.isArray(object?.columns)
+      columns: globalThis.Array.isArray(object?.columns)
         ? object.columns.map((e: any) => TableSchemaColumn.fromJSON(e))
         : [],
     }
@@ -1338,12 +1340,12 @@ export const TableSchemaColumn = {
       | Iterable<TableSchemaColumn | TableSchemaColumn[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableSchemaColumn.encode(p).finish()]
         }
       } else {
-        yield* [TableSchemaColumn.encode(pkt).finish()]
+        yield* [TableSchemaColumn.encode(pkt as any).finish()]
       }
     }
   },
@@ -1356,31 +1358,37 @@ export const TableSchemaColumn = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TableSchemaColumn> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TableSchemaColumn.decode(p)]
         }
       } else {
-        yield* [TableSchemaColumn.decode(pkt)]
+        yield* [TableSchemaColumn.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TableSchemaColumn {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
-      columnType: isSet(object.columnType) ? String(object.columnType) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      columnType: isSet(object.columnType)
+        ? globalThis.String(object.columnType)
+        : '',
       defaultValueExpr: isSet(object.defaultValueExpr)
-        ? String(object.defaultValueExpr)
+        ? globalThis.String(object.defaultValueExpr)
         : '',
       autoIncrement: isSet(object.autoIncrement)
-        ? Boolean(object.autoIncrement)
+        ? globalThis.Boolean(object.autoIncrement)
         : false,
-      nullable: isSet(object.nullable) ? Boolean(object.nullable) : false,
-      source: isSet(object.source) ? String(object.source) : '',
-      primaryKey: isSet(object.primaryKey) ? Boolean(object.primaryKey) : false,
-      comment: isSet(object.comment) ? String(object.comment) : '',
-      extra: isSet(object.extra) ? String(object.extra) : '',
+      nullable: isSet(object.nullable)
+        ? globalThis.Boolean(object.nullable)
+        : false,
+      source: isSet(object.source) ? globalThis.String(object.source) : '',
+      primaryKey: isSet(object.primaryKey)
+        ? globalThis.Boolean(object.primaryKey)
+        : false,
+      comment: isSet(object.comment) ? globalThis.String(object.comment) : '',
+      extra: isSet(object.extra) ? globalThis.String(object.extra) : '',
     }
   },
 
@@ -1451,8 +1459,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

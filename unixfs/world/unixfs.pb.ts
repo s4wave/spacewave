@@ -426,12 +426,12 @@ export const UnixfsRef = {
       | Iterable<UnixfsRef | UnixfsRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [UnixfsRef.encode(p).finish()]
         }
       } else {
-        yield* [UnixfsRef.encode(pkt).finish()]
+        yield* [UnixfsRef.encode(pkt as any).finish()]
       }
     }
   },
@@ -444,19 +444,21 @@ export const UnixfsRef = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<UnixfsRef> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [UnixfsRef.decode(p)]
         }
       } else {
-        yield* [UnixfsRef.decode(pkt)]
+        yield* [UnixfsRef.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): UnixfsRef {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       path: isSet(object.path) ? FSPath.fromJSON(object.path) : undefined,
     }
@@ -597,12 +599,12 @@ export const FsInitOp = {
       | Iterable<FsInitOp | FsInitOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsInitOp.encode(p).finish()]
         }
       } else {
-        yield* [FsInitOp.encode(pkt).finish()]
+        yield* [FsInitOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -615,24 +617,26 @@ export const FsInitOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsInitOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsInitOp.decode(p)]
         }
       } else {
-        yield* [FsInitOp.decode(pkt)]
+        yield* [FsInitOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsInitOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       fsRef: isSet(object.fsRef) ? ObjectRef.fromJSON(object.fsRef) : undefined,
       fsRefType: isSet(object.fsRefType) ? fSTypeFromJSON(object.fsRefType) : 0,
       fsOverwrite: isSet(object.fsOverwrite)
-        ? Boolean(object.fsOverwrite)
+        ? globalThis.Boolean(object.fsOverwrite)
         : false,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
@@ -788,12 +792,12 @@ export const FsMknodOp = {
       | Iterable<FsMknodOp | FsMknodOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsMknodOp.encode(p).finish()]
         }
       } else {
-        yield* [FsMknodOp.encode(pkt).finish()]
+        yield* [FsMknodOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -806,24 +810,28 @@ export const FsMknodOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsMknodOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsMknodOp.decode(p)]
         }
       } else {
-        yield* [FsMknodOp.decode(pkt)]
+        yield* [FsMknodOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsMknodOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
-      paths: Array.isArray(object?.paths)
+      paths: globalThis.Array.isArray(object?.paths)
         ? object.paths.map((e: any) => FSPath.fromJSON(e))
         : [],
-      permissions: isSet(object.permissions) ? Number(object.permissions) : 0,
+      permissions: isSet(object.permissions)
+        ? globalThis.Number(object.permissions)
+        : 0,
       nodeType: isSet(object.nodeType) ? nodeTypeFromJSON(object.nodeType) : 0,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
@@ -967,12 +975,12 @@ export const FsSymlinkOp = {
       | Iterable<FsSymlinkOp | FsSymlinkOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsSymlinkOp.encode(p).finish()]
         }
       } else {
-        yield* [FsSymlinkOp.encode(pkt).finish()]
+        yield* [FsSymlinkOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -985,19 +993,21 @@ export const FsSymlinkOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsSymlinkOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsSymlinkOp.decode(p)]
         }
       } else {
-        yield* [FsSymlinkOp.decode(pkt)]
+        yield* [FsSymlinkOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsSymlinkOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       path: isSet(object.path) ? FSPath.fromJSON(object.path) : undefined,
       symlink: isSet(object.symlink)
@@ -1147,12 +1157,12 @@ export const FsSetPermissionsOp = {
       | Iterable<FsSetPermissionsOp | FsSetPermissionsOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsSetPermissionsOp.encode(p).finish()]
         }
       } else {
-        yield* [FsSetPermissionsOp.encode(pkt).finish()]
+        yield* [FsSetPermissionsOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -1165,24 +1175,28 @@ export const FsSetPermissionsOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsSetPermissionsOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsSetPermissionsOp.decode(p)]
         }
       } else {
-        yield* [FsSetPermissionsOp.decode(pkt)]
+        yield* [FsSetPermissionsOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsSetPermissionsOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
-      paths: Array.isArray(object?.paths)
+      paths: globalThis.Array.isArray(object?.paths)
         ? object.paths.map((e: any) => FSPath.fromJSON(e))
         : [],
-      permissions: isSet(object.permissions) ? Number(object.permissions) : 0,
+      permissions: isSet(object.permissions)
+        ? globalThis.Number(object.permissions)
+        : 0,
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -1307,12 +1321,12 @@ export const FsSetModTimestampOp = {
       | Iterable<FsSetModTimestampOp | FsSetModTimestampOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsSetModTimestampOp.encode(p).finish()]
         }
       } else {
-        yield* [FsSetModTimestampOp.encode(pkt).finish()]
+        yield* [FsSetModTimestampOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -1325,21 +1339,23 @@ export const FsSetModTimestampOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsSetModTimestampOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsSetModTimestampOp.decode(p)]
         }
       } else {
-        yield* [FsSetModTimestampOp.decode(pkt)]
+        yield* [FsSetModTimestampOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsSetModTimestampOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
-      paths: Array.isArray(object?.paths)
+      paths: globalThis.Array.isArray(object?.paths)
         ? object.paths.map((e: any) => FSPath.fromJSON(e))
         : [],
       timestamp: isSet(object.timestamp)
@@ -1489,12 +1505,12 @@ export const FsWriteAtOp = {
       | Iterable<FsWriteAtOp | FsWriteAtOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsWriteAtOp.encode(p).finish()]
         }
       } else {
-        yield* [FsWriteAtOp.encode(pkt).finish()]
+        yield* [FsWriteAtOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -1507,19 +1523,21 @@ export const FsWriteAtOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsWriteAtOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsWriteAtOp.decode(p)]
         }
       } else {
-        yield* [FsWriteAtOp.decode(pkt)]
+        yield* [FsWriteAtOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsWriteAtOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       path: isSet(object.path) ? FSPath.fromJSON(object.path) : undefined,
       offset: isSet(object.offset) ? Long.fromValue(object.offset) : Long.ZERO,
@@ -1677,12 +1695,12 @@ export const FsTruncateOp = {
       | Iterable<FsTruncateOp | FsTruncateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsTruncateOp.encode(p).finish()]
         }
       } else {
-        yield* [FsTruncateOp.encode(pkt).finish()]
+        yield* [FsTruncateOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -1695,19 +1713,21 @@ export const FsTruncateOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsTruncateOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsTruncateOp.decode(p)]
         }
       } else {
-        yield* [FsTruncateOp.decode(pkt)]
+        yield* [FsTruncateOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsTruncateOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       path: isSet(object.path) ? FSPath.fromJSON(object.path) : undefined,
       fileSize: isSet(object.fileSize)
@@ -1859,12 +1879,12 @@ export const FsCopyOp = {
       | Iterable<FsCopyOp | FsCopyOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsCopyOp.encode(p).finish()]
         }
       } else {
-        yield* [FsCopyOp.encode(pkt).finish()]
+        yield* [FsCopyOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -1877,19 +1897,21 @@ export const FsCopyOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsCopyOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsCopyOp.decode(p)]
         }
       } else {
-        yield* [FsCopyOp.decode(pkt)]
+        yield* [FsCopyOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsCopyOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       srcPath: isSet(object.srcPath)
         ? FSPath.fromJSON(object.srcPath)
@@ -2039,12 +2061,12 @@ export const FsRenameOp = {
       | Iterable<FsRenameOp | FsRenameOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsRenameOp.encode(p).finish()]
         }
       } else {
-        yield* [FsRenameOp.encode(pkt).finish()]
+        yield* [FsRenameOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -2057,19 +2079,21 @@ export const FsRenameOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsRenameOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsRenameOp.decode(p)]
         }
       } else {
-        yield* [FsRenameOp.decode(pkt)]
+        yield* [FsRenameOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsRenameOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
       srcPath: isSet(object.srcPath)
         ? FSPath.fromJSON(object.srcPath)
@@ -2205,12 +2229,12 @@ export const FsRemoveOp = {
       | Iterable<FsRemoveOp | FsRemoveOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsRemoveOp.encode(p).finish()]
         }
       } else {
-        yield* [FsRemoveOp.encode(pkt).finish()]
+        yield* [FsRemoveOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -2223,21 +2247,23 @@ export const FsRemoveOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<FsRemoveOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [FsRemoveOp.decode(p)]
         }
       } else {
-        yield* [FsRemoveOp.decode(pkt)]
+        yield* [FsRemoveOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): FsRemoveOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       fsType: isSet(object.fsType) ? fSTypeFromJSON(object.fsType) : 0,
-      paths: Array.isArray(object?.paths)
+      paths: globalThis.Array.isArray(object?.paths)
         ? object.paths.map((e: any) => FSPath.fromJSON(e))
         : [],
       timestamp: isSet(object.timestamp)
@@ -2338,12 +2364,12 @@ export const MountValue = {
       | Iterable<MountValue | MountValue[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MountValue.encode(p).finish()]
         }
       } else {
-        yield* [MountValue.encode(pkt).finish()]
+        yield* [MountValue.encode(pkt as any).finish()]
       }
     }
   },
@@ -2356,20 +2382,22 @@ export const MountValue = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MountValue> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MountValue.decode(p)]
         }
       } else {
-        yield* [MountValue.decode(pkt)]
+        yield* [MountValue.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): MountValue {
     return {
-      mountpoint: isSet(object.mountpoint) ? String(object.mountpoint) : '',
-      prefix: isSet(object.prefix) ? String(object.prefix) : '',
+      mountpoint: isSet(object.mountpoint)
+        ? globalThis.String(object.mountpoint)
+        : '',
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : '',
     }
   },
 
@@ -2454,12 +2482,12 @@ export const RefValue = {
       | Iterable<RefValue | RefValue[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RefValue.encode(p).finish()]
         }
       } else {
-        yield* [RefValue.encode(pkt).finish()]
+        yield* [RefValue.encode(pkt as any).finish()]
       }
     }
   },
@@ -2472,12 +2500,12 @@ export const RefValue = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RefValue> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RefValue.decode(p)]
         }
       } else {
-        yield* [RefValue.decode(pkt)]
+        yield* [RefValue.decode(pkt as any)]
       }
     }
   },
@@ -2527,8 +2555,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

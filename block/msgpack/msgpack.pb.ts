@@ -67,12 +67,12 @@ export const MsgpackBlob = {
       | Iterable<MsgpackBlob | MsgpackBlob[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MsgpackBlob.encode(p).finish()]
         }
       } else {
-        yield* [MsgpackBlob.encode(pkt).finish()]
+        yield* [MsgpackBlob.encode(pkt as any).finish()]
       }
     }
   },
@@ -85,12 +85,12 @@ export const MsgpackBlob = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<MsgpackBlob> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [MsgpackBlob.decode(p)]
         }
       } else {
-        yield* [MsgpackBlob.decode(pkt)]
+        yield* [MsgpackBlob.decode(pkt as any)]
       }
     }
   },
@@ -135,8 +135,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -203,12 +203,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -221,21 +221,21 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
-      rev: isSet(object.rev) ? Number(object.rev) : 0,
-      reconcilers: Array.isArray(object?.reconcilers)
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      rev: isSet(object.rev) ? globalThis.Number(object.rev) : 0,
+      reconcilers: globalThis.Array.isArray(object?.reconcilers)
         ? object.reconcilers.map((e: any) => ReconcilerConfig.fromJSON(e))
         : [],
       putOpts: isSet(object.putOpts)
@@ -337,12 +337,12 @@ export const BucketInfo = {
       | Iterable<BucketInfo | BucketInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BucketInfo.encode(p).finish()]
         }
       } else {
-        yield* [BucketInfo.encode(pkt).finish()]
+        yield* [BucketInfo.encode(pkt as any).finish()]
       }
     }
   },
@@ -355,12 +355,12 @@ export const BucketInfo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BucketInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BucketInfo.decode(p)]
         }
       } else {
-        yield* [BucketInfo.decode(pkt)]
+        yield* [BucketInfo.decode(pkt as any)]
       }
     }
   },
@@ -464,12 +464,12 @@ export const ReconcilerConfig = {
       | Iterable<ReconcilerConfig | ReconcilerConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReconcilerConfig.encode(p).finish()]
         }
       } else {
-        yield* [ReconcilerConfig.encode(pkt).finish()]
+        yield* [ReconcilerConfig.encode(pkt as any).finish()]
       }
     }
   },
@@ -482,23 +482,25 @@ export const ReconcilerConfig = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ReconcilerConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ReconcilerConfig.decode(p)]
         }
       } else {
-        yield* [ReconcilerConfig.decode(pkt)]
+        yield* [ReconcilerConfig.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ReconcilerConfig {
     return {
-      id: isSet(object.id) ? String(object.id) : '',
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
       controller: isSet(object.controller)
         ? ControllerConfig.fromJSON(object.controller)
         : undefined,
-      filterPut: isSet(object.filterPut) ? Boolean(object.filterPut) : false,
+      filterPut: isSet(object.filterPut)
+        ? globalThis.Boolean(object.filterPut)
+        : false,
     }
   },
 
@@ -595,12 +597,12 @@ export const LookupConfig = {
       | Iterable<LookupConfig | LookupConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupConfig.encode(p).finish()]
         }
       } else {
-        yield* [LookupConfig.encode(pkt).finish()]
+        yield* [LookupConfig.encode(pkt as any).finish()]
       }
     }
   },
@@ -613,19 +615,21 @@ export const LookupConfig = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupConfig.decode(p)]
         }
       } else {
-        yield* [LookupConfig.decode(pkt)]
+        yield* [LookupConfig.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): LookupConfig {
     return {
-      disable: isSet(object.disable) ? Boolean(object.disable) : false,
+      disable: isSet(object.disable)
+        ? globalThis.Boolean(object.disable)
+        : false,
       controller: isSet(object.controller)
         ? ControllerConfig.fromJSON(object.controller)
         : undefined,
@@ -779,12 +783,12 @@ export const ApplyBucketConfigResult = {
       | Iterable<ApplyBucketConfigResult | ApplyBucketConfigResult[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfigResult.encode(p).finish()]
         }
       } else {
-        yield* [ApplyBucketConfigResult.encode(pkt).finish()]
+        yield* [ApplyBucketConfigResult.encode(pkt as any).finish()]
       }
     }
   },
@@ -797,20 +801,24 @@ export const ApplyBucketConfigResult = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfigResult> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfigResult.decode(p)]
         }
       } else {
-        yield* [ApplyBucketConfigResult.decode(pkt)]
+        yield* [ApplyBucketConfigResult.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ApplyBucketConfigResult {
     return {
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
       bucketConf: isSet(object.bucketConf)
         ? Config.fromJSON(object.bucketConf)
         : undefined,
@@ -820,8 +828,10 @@ export const ApplyBucketConfigResult = {
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
-      updated: isSet(object.updated) ? Boolean(object.updated) : false,
-      error: isSet(object.error) ? String(object.error) : '',
+      updated: isSet(object.updated)
+        ? globalThis.Boolean(object.updated)
+        : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
     }
   },
 
@@ -965,12 +975,12 @@ export const ObjectRef = {
       | Iterable<ObjectRef | ObjectRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ObjectRef.encode(p).finish()]
         }
       } else {
-        yield* [ObjectRef.encode(pkt).finish()]
+        yield* [ObjectRef.encode(pkt as any).finish()]
       }
     }
   },
@@ -983,12 +993,12 @@ export const ObjectRef = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ObjectRef> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ObjectRef.decode(p)]
         }
       } else {
-        yield* [ObjectRef.decode(pkt)]
+        yield* [ObjectRef.decode(pkt as any)]
       }
     }
   },
@@ -998,7 +1008,9 @@ export const ObjectRef = {
       rootRef: isSet(object.rootRef)
         ? BlockRef.fromJSON(object.rootRef)
         : undefined,
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
       transformConfRef: isSet(object.transformConfRef)
         ? BlockRef.fromJSON(object.transformConfRef)
         : undefined,
@@ -1106,12 +1118,12 @@ export const BucketOpArgs = {
       | Iterable<BucketOpArgs | BucketOpArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BucketOpArgs.encode(p).finish()]
         }
       } else {
-        yield* [BucketOpArgs.encode(pkt).finish()]
+        yield* [BucketOpArgs.encode(pkt as any).finish()]
       }
     }
   },
@@ -1124,20 +1136,24 @@ export const BucketOpArgs = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BucketOpArgs> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BucketOpArgs.decode(p)]
         }
       } else {
-        yield* [BucketOpArgs.decode(pkt)]
+        yield* [BucketOpArgs.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): BucketOpArgs {
     return {
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
     }
   },
 
@@ -1180,8 +1196,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

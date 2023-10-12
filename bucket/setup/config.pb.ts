@@ -81,12 +81,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -99,19 +99,19 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      applyBucketConfigs: Array.isArray(object?.applyBucketConfigs)
+      applyBucketConfigs: globalThis.Array.isArray(object?.applyBucketConfigs)
         ? object.applyBucketConfigs.map((e: any) =>
             ApplyBucketConfig.fromJSON(e),
           )
@@ -208,12 +208,12 @@ export const ApplyBucketConfig = {
       | Iterable<ApplyBucketConfig | ApplyBucketConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfig.encode(p).finish()]
         }
       } else {
-        yield* [ApplyBucketConfig.encode(pkt).finish()]
+        yield* [ApplyBucketConfig.encode(pkt as any).finish()]
       }
     }
   },
@@ -226,12 +226,12 @@ export const ApplyBucketConfig = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ApplyBucketConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ApplyBucketConfig.decode(p)]
         }
       } else {
-        yield* [ApplyBucketConfig.decode(pkt)]
+        yield* [ApplyBucketConfig.decode(pkt as any)]
       }
     }
   },
@@ -241,9 +241,11 @@ export const ApplyBucketConfig = {
       config: isSet(object.config)
         ? Config1.fromJSON(object.config)
         : undefined,
-      volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : '',
-      volumeIdList: Array.isArray(object?.volumeIdList)
-        ? object.volumeIdList.map((e: any) => String(e))
+      volumeIdRe: isSet(object.volumeIdRe)
+        ? globalThis.String(object.volumeIdRe)
+        : '',
+      volumeIdList: globalThis.Array.isArray(object?.volumeIdList)
+        ? object.volumeIdList.map((e: any) => globalThis.String(e))
         : [],
     }
   },
@@ -294,8 +296,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

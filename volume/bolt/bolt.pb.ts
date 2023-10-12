@@ -179,12 +179,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -197,23 +197,25 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      path: isSet(object.path) ? String(object.path) : '',
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
       kvKeyOpts: isSet(object.kvKeyOpts)
         ? Config1.fromJSON(object.kvKeyOpts)
         : undefined,
-      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
+      verbose: isSet(object.verbose)
+        ? globalThis.Boolean(object.verbose)
+        : false,
       volumeConfig: isSet(object.volumeConfig)
         ? Config2.fromJSON(object.volumeConfig)
         : undefined,
@@ -221,12 +223,14 @@ export const Config = {
         ? Config3.fromJSON(object.storeConfig)
         : undefined,
       noGenerateKey: isSet(object.noGenerateKey)
-        ? Boolean(object.noGenerateKey)
+        ? globalThis.Boolean(object.noGenerateKey)
         : false,
-      noWriteKey: isSet(object.noWriteKey) ? Boolean(object.noWriteKey) : false,
-      sync: isSet(object.sync) ? Boolean(object.sync) : false,
+      noWriteKey: isSet(object.noWriteKey)
+        ? globalThis.Boolean(object.noWriteKey)
+        : false,
+      sync: isSet(object.sync) ? globalThis.Boolean(object.sync) : false,
       freelistSync: isSet(object.freelistSync)
-        ? Boolean(object.freelistSync)
+        ? globalThis.Boolean(object.freelistSync)
         : false,
     }
   },
@@ -303,8 +307,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

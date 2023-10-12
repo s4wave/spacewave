@@ -197,12 +197,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -215,29 +215,35 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      serviceId: isSet(object.serviceId) ? String(object.serviceId) : '',
-      volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : '',
-      volumeIdList: Array.isArray(object?.volumeIdList)
-        ? object.volumeIdList.map((e: any) => String(e))
+      serviceId: isSet(object.serviceId)
+        ? globalThis.String(object.serviceId)
+        : '',
+      volumeIdRe: isSet(object.volumeIdRe)
+        ? globalThis.String(object.volumeIdRe)
+        : '',
+      volumeIdList: globalThis.Array.isArray(object?.volumeIdList)
+        ? object.volumeIdList.map((e: any) => globalThis.String(e))
         : [],
       loadOnStartup: isSet(object.loadOnStartup)
-        ? Boolean(object.loadOnStartup)
+        ? globalThis.Boolean(object.loadOnStartup)
         : false,
-      clientId: isSet(object.clientId) ? String(object.clientId) : '',
+      clientId: isSet(object.clientId)
+        ? globalThis.String(object.clientId)
+        : '',
       releaseDelay: isSet(object.releaseDelay)
-        ? String(object.releaseDelay)
+        ? globalThis.String(object.releaseDelay)
         : '',
       volumeAliases: isObject(object.volumeAliases)
         ? Object.entries(object.volumeAliases).reduce<{
@@ -375,12 +381,12 @@ export const Config_VolumeAliasesEntry = {
       | Iterable<Config_VolumeAliasesEntry | Config_VolumeAliasesEntry[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config_VolumeAliasesEntry.encode(p).finish()]
         }
       } else {
-        yield* [Config_VolumeAliasesEntry.encode(pkt).finish()]
+        yield* [Config_VolumeAliasesEntry.encode(pkt as any).finish()]
       }
     }
   },
@@ -393,19 +399,19 @@ export const Config_VolumeAliasesEntry = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config_VolumeAliasesEntry> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config_VolumeAliasesEntry.decode(p)]
         }
       } else {
-        yield* [Config_VolumeAliasesEntry.decode(pkt)]
+        yield* [Config_VolumeAliasesEntry.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config_VolumeAliasesEntry {
     return {
-      key: isSet(object.key) ? String(object.key) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value)
         ? VolumeAliases.fromJSON(object.value)
         : undefined,
@@ -488,12 +494,12 @@ export const VolumeAliases = {
       | Iterable<VolumeAliases | VolumeAliases[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [VolumeAliases.encode(p).finish()]
         }
       } else {
-        yield* [VolumeAliases.encode(pkt).finish()]
+        yield* [VolumeAliases.encode(pkt as any).finish()]
       }
     }
   },
@@ -506,20 +512,20 @@ export const VolumeAliases = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<VolumeAliases> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [VolumeAliases.decode(p)]
         }
       } else {
-        yield* [VolumeAliases.decode(pkt)]
+        yield* [VolumeAliases.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): VolumeAliases {
     return {
-      from: Array.isArray(object?.from)
-        ? object.from.map((e: any) => String(e))
+      from: globalThis.Array.isArray(object?.from)
+        ? object.from.map((e: any) => globalThis.String(e))
         : [],
     }
   },
@@ -559,8 +565,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

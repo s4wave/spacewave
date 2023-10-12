@@ -153,12 +153,12 @@ export const VolumeInfo = {
       | Iterable<VolumeInfo | VolumeInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [VolumeInfo.encode(p).finish()]
         }
       } else {
-        yield* [VolumeInfo.encode(pkt).finish()]
+        yield* [VolumeInfo.encode(pkt as any).finish()]
       }
     }
   },
@@ -171,21 +171,23 @@ export const VolumeInfo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<VolumeInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [VolumeInfo.decode(p)]
         }
       } else {
-        yield* [VolumeInfo.decode(pkt)]
+        yield* [VolumeInfo.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): VolumeInfo {
     return {
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
-      peerPub: isSet(object.peerPub) ? String(object.peerPub) : '',
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
+      peerPub: isSet(object.peerPub) ? globalThis.String(object.peerPub) : '',
       controllerInfo: isSet(object.controllerInfo)
         ? Info.fromJSON(object.controllerInfo)
         : undefined,
@@ -289,12 +291,12 @@ export const VolumeBucketInfo = {
       | Iterable<VolumeBucketInfo | VolumeBucketInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [VolumeBucketInfo.encode(p).finish()]
         }
       } else {
-        yield* [VolumeBucketInfo.encode(pkt).finish()]
+        yield* [VolumeBucketInfo.encode(pkt as any).finish()]
       }
     }
   },
@@ -307,12 +309,12 @@ export const VolumeBucketInfo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<VolumeBucketInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [VolumeBucketInfo.decode(p)]
         }
       } else {
-        yield* [VolumeBucketInfo.decode(pkt)]
+        yield* [VolumeBucketInfo.decode(pkt as any)]
       }
     }
   },
@@ -427,12 +429,12 @@ export const ListBucketsRequest = {
       | Iterable<ListBucketsRequest | ListBucketsRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListBucketsRequest.encode(p).finish()]
         }
       } else {
-        yield* [ListBucketsRequest.encode(pkt).finish()]
+        yield* [ListBucketsRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -445,22 +447,26 @@ export const ListBucketsRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ListBucketsRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ListBucketsRequest.decode(p)]
         }
       } else {
-        yield* [ListBucketsRequest.decode(pkt)]
+        yield* [ListBucketsRequest.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ListBucketsRequest {
     return {
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
-      volumeIdRe: isSet(object.volumeIdRe) ? String(object.volumeIdRe) : '',
-      volumeIdList: Array.isArray(object?.volumeIdList)
-        ? object.volumeIdList.map((e: any) => String(e))
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+      volumeIdRe: isSet(object.volumeIdRe)
+        ? globalThis.String(object.volumeIdRe)
+        : '',
+      volumeIdList: globalThis.Array.isArray(object?.volumeIdList)
+        ? object.volumeIdList.map((e: any) => globalThis.String(e))
         : [],
     }
   },
@@ -508,8 +514,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

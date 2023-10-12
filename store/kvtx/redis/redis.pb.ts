@@ -57,12 +57,12 @@ export const ClientConfig = {
       | Iterable<ClientConfig | ClientConfig[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClientConfig.encode(p).finish()]
         }
       } else {
-        yield* [ClientConfig.encode(pkt).finish()]
+        yield* [ClientConfig.encode(pkt as any).finish()]
       }
     }
   },
@@ -75,18 +75,18 @@ export const ClientConfig = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClientConfig> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClientConfig.decode(p)]
         }
       } else {
-        yield* [ClientConfig.decode(pkt)]
+        yield* [ClientConfig.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClientConfig {
-    return { url: isSet(object.url) ? String(object.url) : '' }
+    return { url: isSet(object.url) ? globalThis.String(object.url) : '' }
   },
 
   toJSON(message: ClientConfig): unknown {
@@ -124,8 +124,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

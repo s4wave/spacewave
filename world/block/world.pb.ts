@@ -300,12 +300,12 @@ export const World = {
     source: AsyncIterable<World | World[]> | Iterable<World | World[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [World.encode(p).finish()]
         }
       } else {
-        yield* [World.encode(pkt).finish()]
+        yield* [World.encode(pkt as any).finish()]
       }
     }
   },
@@ -318,12 +318,12 @@ export const World = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<World> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [World.decode(p)]
         }
       } else {
-        yield* [World.decode(pkt)]
+        yield* [World.decode(pkt as any)]
       }
     }
   },
@@ -340,7 +340,7 @@ export const World = {
         ? ChangeLogLL.fromJSON(object.lastChange)
         : undefined,
       lastChangeDisable: isSet(object.lastChangeDisable)
-        ? Boolean(object.lastChangeDisable)
+        ? globalThis.Boolean(object.lastChangeDisable)
         : false,
     }
   },
@@ -449,12 +449,12 @@ export const Object = {
     source: AsyncIterable<Object | Object[]> | Iterable<Object | Object[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Object.encode(p).finish()]
         }
       } else {
-        yield* [Object.encode(pkt).finish()]
+        yield* [Object.encode(pkt as any).finish()]
       }
     }
   },
@@ -467,19 +467,19 @@ export const Object = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Object> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Object.decode(p)]
         }
       } else {
-        yield* [Object.decode(pkt)]
+        yield* [Object.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Object {
     return {
-      key: isSet(object.key) ? String(object.key) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       rootRef: isSet(object.rootRef)
         ? ObjectRef.fromJSON(object.rootRef)
         : undefined,
@@ -634,12 +634,12 @@ export const WorldChange = {
       | Iterable<WorldChange | WorldChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorldChange.encode(p).finish()]
         }
       } else {
-        yield* [WorldChange.encode(pkt).finish()]
+        yield* [WorldChange.encode(pkt as any).finish()]
       }
     }
   },
@@ -652,12 +652,12 @@ export const WorldChange = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorldChange> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorldChange.decode(p)]
         }
       } else {
-        yield* [WorldChange.decode(pkt)]
+        yield* [WorldChange.decode(pkt as any)]
       }
     }
   },
@@ -667,7 +667,7 @@ export const WorldChange = {
       changeType: isSet(object.changeType)
         ? worldChangeTypeFromJSON(object.changeType)
         : 0,
-      key: isSet(object.key) ? String(object.key) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       quad: isSet(object.quad) ? Quad.fromJSON(object.quad) : undefined,
       transactionRef: isSet(object.transactionRef)
         ? BlockRef.fromJSON(object.transactionRef)
@@ -820,12 +820,12 @@ export const WorldChangeLL = {
       | Iterable<WorldChangeLL | WorldChangeLL[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorldChangeLL.encode(p).finish()]
         }
       } else {
-        yield* [WorldChangeLL.encode(pkt).finish()]
+        yield* [WorldChangeLL.encode(pkt as any).finish()]
       }
     }
   },
@@ -838,24 +838,26 @@ export const WorldChangeLL = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorldChangeLL> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorldChangeLL.decode(p)]
         }
       } else {
-        yield* [WorldChangeLL.decode(pkt)]
+        yield* [WorldChangeLL.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WorldChangeLL {
     return {
-      height: isSet(object.height) ? Number(object.height) : 0,
+      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
       prevRef: isSet(object.prevRef)
         ? BlockRef.fromJSON(object.prevRef)
         : undefined,
-      totalSize: isSet(object.totalSize) ? Number(object.totalSize) : 0,
-      changes: Array.isArray(object?.changes)
+      totalSize: isSet(object.totalSize)
+        ? globalThis.Number(object.totalSize)
+        : 0,
+      changes: globalThis.Array.isArray(object?.changes)
         ? object.changes.map((e: any) => WorldChange.fromJSON(e))
         : [],
     }
@@ -995,12 +997,12 @@ export const ChangeLogLL = {
       | Iterable<ChangeLogLL | ChangeLogLL[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ChangeLogLL.encode(p).finish()]
         }
       } else {
-        yield* [ChangeLogLL.encode(pkt).finish()]
+        yield* [ChangeLogLL.encode(pkt as any).finish()]
       }
     }
   },
@@ -1013,12 +1015,12 @@ export const ChangeLogLL = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChangeLogLL> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ChangeLogLL.decode(p)]
         }
       } else {
-        yield* [ChangeLogLL.decode(pkt)]
+        yield* [ChangeLogLL.decode(pkt as any)]
       }
     }
   },
@@ -1102,8 +1104,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

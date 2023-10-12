@@ -283,12 +283,12 @@ export const KvtxTransactionRequest = {
       | Iterable<KvtxTransactionRequest | KvtxTransactionRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionRequest.encode(p).finish()]
         }
       } else {
-        yield* [KvtxTransactionRequest.encode(pkt).finish()]
+        yield* [KvtxTransactionRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -301,12 +301,12 @@ export const KvtxTransactionRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionRequest.decode(p)]
         }
       } else {
-        yield* [KvtxTransactionRequest.decode(pkt)]
+        yield* [KvtxTransactionRequest.decode(pkt as any)]
       }
     }
   },
@@ -316,9 +316,9 @@ export const KvtxTransactionRequest = {
       body: isSet(object.init)
         ? { $case: 'init', init: KvtxTransactionInit.fromJSON(object.init) }
         : isSet(object.commit)
-        ? { $case: 'commit', commit: Boolean(object.commit) }
+        ? { $case: 'commit', commit: globalThis.Boolean(object.commit) }
         : isSet(object.discard)
-        ? { $case: 'discard', discard: Boolean(object.discard) }
+        ? { $case: 'discard', discard: globalThis.Boolean(object.discard) }
         : undefined,
     }
   },
@@ -421,12 +421,12 @@ export const KvtxTransactionInit = {
       | Iterable<KvtxTransactionInit | KvtxTransactionInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionInit.encode(p).finish()]
         }
       } else {
-        yield* [KvtxTransactionInit.encode(pkt).finish()]
+        yield* [KvtxTransactionInit.encode(pkt as any).finish()]
       }
     }
   },
@@ -439,18 +439,20 @@ export const KvtxTransactionInit = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionInit> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionInit.decode(p)]
         }
       } else {
-        yield* [KvtxTransactionInit.decode(pkt)]
+        yield* [KvtxTransactionInit.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxTransactionInit {
-    return { write: isSet(object.write) ? Boolean(object.write) : false }
+    return {
+      write: isSet(object.write) ? globalThis.Boolean(object.write) : false,
+    }
   },
 
   toJSON(message: KvtxTransactionInit): unknown {
@@ -549,12 +551,12 @@ export const KvtxTransactionResponse = {
       | Iterable<KvtxTransactionResponse | KvtxTransactionResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxTransactionResponse.encode(pkt).finish()]
+        yield* [KvtxTransactionResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -567,12 +569,12 @@ export const KvtxTransactionResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionResponse.decode(p)]
         }
       } else {
-        yield* [KvtxTransactionResponse.decode(pkt)]
+        yield* [KvtxTransactionResponse.decode(pkt as any)]
       }
     }
   },
@@ -691,12 +693,12 @@ export const KvtxTransactionAck = {
       | Iterable<KvtxTransactionAck | KvtxTransactionAck[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionAck.encode(p).finish()]
         }
       } else {
-        yield* [KvtxTransactionAck.encode(pkt).finish()]
+        yield* [KvtxTransactionAck.encode(pkt as any).finish()]
       }
     }
   },
@@ -709,21 +711,21 @@ export const KvtxTransactionAck = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionAck> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionAck.decode(p)]
         }
       } else {
-        yield* [KvtxTransactionAck.decode(pkt)]
+        yield* [KvtxTransactionAck.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxTransactionAck {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
       transactionId: isSet(object.transactionId)
-        ? String(object.transactionId)
+        ? globalThis.String(object.transactionId)
         : '',
     }
   },
@@ -824,12 +826,12 @@ export const KvtxTransactionComplete = {
       | Iterable<KvtxTransactionComplete | KvtxTransactionComplete[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionComplete.encode(p).finish()]
         }
       } else {
-        yield* [KvtxTransactionComplete.encode(pkt).finish()]
+        yield* [KvtxTransactionComplete.encode(pkt as any).finish()]
       }
     }
   },
@@ -842,21 +844,25 @@ export const KvtxTransactionComplete = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxTransactionComplete> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxTransactionComplete.decode(p)]
         }
       } else {
-        yield* [KvtxTransactionComplete.decode(pkt)]
+        yield* [KvtxTransactionComplete.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxTransactionComplete {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
-      committed: isSet(object.committed) ? Boolean(object.committed) : false,
-      discarded: isSet(object.discarded) ? Boolean(object.discarded) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      committed: isSet(object.committed)
+        ? globalThis.Boolean(object.committed)
+        : false,
+      discarded: isSet(object.discarded)
+        ? globalThis.Boolean(object.discarded)
+        : false,
     }
   },
 
@@ -927,12 +933,12 @@ export const KeyCountRequest = {
       | Iterable<KeyCountRequest | KeyCountRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyCountRequest.encode(p).finish()]
         }
       } else {
-        yield* [KeyCountRequest.encode(pkt).finish()]
+        yield* [KeyCountRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -945,12 +951,12 @@ export const KeyCountRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyCountRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyCountRequest.decode(p)]
         }
       } else {
-        yield* [KeyCountRequest.decode(pkt)]
+        yield* [KeyCountRequest.decode(pkt as any)]
       }
     }
   },
@@ -1024,12 +1030,12 @@ export const KeyCountResponse = {
       | Iterable<KeyCountResponse | KeyCountResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyCountResponse.encode(p).finish()]
         }
       } else {
-        yield* [KeyCountResponse.encode(pkt).finish()]
+        yield* [KeyCountResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1042,12 +1048,12 @@ export const KeyCountResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyCountResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyCountResponse.decode(p)]
         }
       } else {
-        yield* [KeyCountResponse.decode(pkt)]
+        yield* [KeyCountResponse.decode(pkt as any)]
       }
     }
   },
@@ -1132,12 +1138,12 @@ export const KvtxKeyRequest = {
       | Iterable<KvtxKeyRequest | KvtxKeyRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxKeyRequest.encode(p).finish()]
         }
       } else {
-        yield* [KvtxKeyRequest.encode(pkt).finish()]
+        yield* [KvtxKeyRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1150,12 +1156,12 @@ export const KvtxKeyRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxKeyRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxKeyRequest.decode(p)]
         }
       } else {
-        yield* [KvtxKeyRequest.decode(pkt)]
+        yield* [KvtxKeyRequest.decode(pkt as any)]
       }
     }
   },
@@ -1255,12 +1261,12 @@ export const KvtxKeyDataResponse = {
       | Iterable<KvtxKeyDataResponse | KvtxKeyDataResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxKeyDataResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxKeyDataResponse.encode(pkt).finish()]
+        yield* [KvtxKeyDataResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1273,20 +1279,20 @@ export const KvtxKeyDataResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxKeyDataResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxKeyDataResponse.decode(p)]
         }
       } else {
-        yield* [KvtxKeyDataResponse.decode(pkt)]
+        yield* [KvtxKeyDataResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxKeyDataResponse {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
-      found: isSet(object.found) ? Boolean(object.found) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      found: isSet(object.found) ? globalThis.Boolean(object.found) : false,
       data: isSet(object.data)
         ? bytesFromBase64(object.data)
         : new Uint8Array(0),
@@ -1383,12 +1389,12 @@ export const KvtxKeyExistsResponse = {
       | Iterable<KvtxKeyExistsResponse | KvtxKeyExistsResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxKeyExistsResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxKeyExistsResponse.encode(pkt).finish()]
+        yield* [KvtxKeyExistsResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1401,20 +1407,20 @@ export const KvtxKeyExistsResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxKeyExistsResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxKeyExistsResponse.decode(p)]
         }
       } else {
-        yield* [KvtxKeyExistsResponse.decode(pkt)]
+        yield* [KvtxKeyExistsResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxKeyExistsResponse {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
-      found: isSet(object.found) ? Boolean(object.found) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      found: isSet(object.found) ? globalThis.Boolean(object.found) : false,
     }
   },
 
@@ -1501,12 +1507,12 @@ export const KvtxSetKeyRequest = {
       | Iterable<KvtxSetKeyRequest | KvtxSetKeyRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxSetKeyRequest.encode(p).finish()]
         }
       } else {
-        yield* [KvtxSetKeyRequest.encode(pkt).finish()]
+        yield* [KvtxSetKeyRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1519,12 +1525,12 @@ export const KvtxSetKeyRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxSetKeyRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxSetKeyRequest.decode(p)]
         }
       } else {
-        yield* [KvtxSetKeyRequest.decode(pkt)]
+        yield* [KvtxSetKeyRequest.decode(pkt as any)]
       }
     }
   },
@@ -1611,12 +1617,12 @@ export const KvtxSetKeyResponse = {
       | Iterable<KvtxSetKeyResponse | KvtxSetKeyResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxSetKeyResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxSetKeyResponse.encode(pkt).finish()]
+        yield* [KvtxSetKeyResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1629,18 +1635,18 @@ export const KvtxSetKeyResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxSetKeyResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxSetKeyResponse.decode(p)]
         }
       } else {
-        yield* [KvtxSetKeyResponse.decode(pkt)]
+        yield* [KvtxSetKeyResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxSetKeyResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: KvtxSetKeyResponse): unknown {
@@ -1715,12 +1721,12 @@ export const KvtxDeleteKeyRequest = {
       | Iterable<KvtxDeleteKeyRequest | KvtxDeleteKeyRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxDeleteKeyRequest.encode(p).finish()]
         }
       } else {
-        yield* [KvtxDeleteKeyRequest.encode(pkt).finish()]
+        yield* [KvtxDeleteKeyRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1733,12 +1739,12 @@ export const KvtxDeleteKeyRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxDeleteKeyRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxDeleteKeyRequest.decode(p)]
         }
       } else {
-        yield* [KvtxDeleteKeyRequest.decode(pkt)]
+        yield* [KvtxDeleteKeyRequest.decode(pkt as any)]
       }
     }
   },
@@ -1821,12 +1827,12 @@ export const KvtxDeleteKeyResponse = {
       | Iterable<KvtxDeleteKeyResponse | KvtxDeleteKeyResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxDeleteKeyResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxDeleteKeyResponse.encode(pkt).finish()]
+        yield* [KvtxDeleteKeyResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -1839,18 +1845,18 @@ export const KvtxDeleteKeyResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxDeleteKeyResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxDeleteKeyResponse.decode(p)]
         }
       } else {
-        yield* [KvtxDeleteKeyResponse.decode(pkt)]
+        yield* [KvtxDeleteKeyResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxDeleteKeyResponse {
-    return { error: isSet(object.error) ? String(object.error) : '' }
+    return { error: isSet(object.error) ? globalThis.String(object.error) : '' }
   },
 
   toJSON(message: KvtxDeleteKeyResponse): unknown {
@@ -1935,12 +1941,12 @@ export const KvtxScanPrefixRequest = {
       | Iterable<KvtxScanPrefixRequest | KvtxScanPrefixRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxScanPrefixRequest.encode(p).finish()]
         }
       } else {
-        yield* [KvtxScanPrefixRequest.encode(pkt).finish()]
+        yield* [KvtxScanPrefixRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -1953,12 +1959,12 @@ export const KvtxScanPrefixRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxScanPrefixRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxScanPrefixRequest.decode(p)]
         }
       } else {
-        yield* [KvtxScanPrefixRequest.decode(pkt)]
+        yield* [KvtxScanPrefixRequest.decode(pkt as any)]
       }
     }
   },
@@ -1968,7 +1974,9 @@ export const KvtxScanPrefixRequest = {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
         : new Uint8Array(0),
-      onlyKeys: isSet(object.onlyKeys) ? Boolean(object.onlyKeys) : false,
+      onlyKeys: isSet(object.onlyKeys)
+        ? globalThis.Boolean(object.onlyKeys)
+        : false,
     }
   },
 
@@ -2068,12 +2076,12 @@ export const KvtxScanPrefixResponse = {
       | Iterable<KvtxScanPrefixResponse | KvtxScanPrefixResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxScanPrefixResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxScanPrefixResponse.encode(pkt).finish()]
+        yield* [KvtxScanPrefixResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -2086,19 +2094,19 @@ export const KvtxScanPrefixResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxScanPrefixResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxScanPrefixResponse.decode(p)]
         }
       } else {
-        yield* [KvtxScanPrefixResponse.decode(pkt)]
+        yield* [KvtxScanPrefixResponse.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxScanPrefixResponse {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
       key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
       value: isSet(object.value)
         ? bytesFromBase64(object.value)
@@ -2244,12 +2252,12 @@ export const KvtxIterateRequest = {
       | Iterable<KvtxIterateRequest | KvtxIterateRequest[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateRequest.encode(p).finish()]
         }
       } else {
-        yield* [KvtxIterateRequest.encode(pkt).finish()]
+        yield* [KvtxIterateRequest.encode(pkt as any).finish()]
       }
     }
   },
@@ -2262,12 +2270,12 @@ export const KvtxIterateRequest = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateRequest> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateRequest.decode(p)]
         }
       } else {
-        yield* [KvtxIterateRequest.decode(pkt)]
+        yield* [KvtxIterateRequest.decode(pkt as any)]
       }
     }
   },
@@ -2277,18 +2285,21 @@ export const KvtxIterateRequest = {
       body: isSet(object.init)
         ? { $case: 'init', init: KvtxIterateInit.fromJSON(object.init) }
         : isSet(object.lookupValue)
-        ? { $case: 'lookupValue', lookupValue: Boolean(object.lookupValue) }
+        ? {
+            $case: 'lookupValue',
+            lookupValue: globalThis.Boolean(object.lookupValue),
+          }
         : isSet(object.next)
-        ? { $case: 'next', next: Boolean(object.next) }
+        ? { $case: 'next', next: globalThis.Boolean(object.next) }
         : isSet(object.seek)
         ? { $case: 'seek', seek: bytesFromBase64(object.seek) }
         : isSet(object.seekBeginning)
         ? {
             $case: 'seekBeginning',
-            seekBeginning: Boolean(object.seekBeginning),
+            seekBeginning: globalThis.Boolean(object.seekBeginning),
           }
         : isSet(object.close)
-        ? { $case: 'close', close: Boolean(object.close) }
+        ? { $case: 'close', close: globalThis.Boolean(object.close) }
         : undefined,
     }
   },
@@ -2447,12 +2458,12 @@ export const KvtxIterateInit = {
       | Iterable<KvtxIterateInit | KvtxIterateInit[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateInit.encode(p).finish()]
         }
       } else {
-        yield* [KvtxIterateInit.encode(pkt).finish()]
+        yield* [KvtxIterateInit.encode(pkt as any).finish()]
       }
     }
   },
@@ -2465,12 +2476,12 @@ export const KvtxIterateInit = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateInit> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateInit.decode(p)]
         }
       } else {
-        yield* [KvtxIterateInit.decode(pkt)]
+        yield* [KvtxIterateInit.decode(pkt as any)]
       }
     }
   },
@@ -2480,8 +2491,10 @@ export const KvtxIterateInit = {
       prefix: isSet(object.prefix)
         ? bytesFromBase64(object.prefix)
         : new Uint8Array(0),
-      sort: isSet(object.sort) ? Boolean(object.sort) : false,
-      reverse: isSet(object.reverse) ? Boolean(object.reverse) : false,
+      sort: isSet(object.sort) ? globalThis.Boolean(object.sort) : false,
+      reverse: isSet(object.reverse)
+        ? globalThis.Boolean(object.reverse)
+        : false,
     }
   },
 
@@ -2610,12 +2623,12 @@ export const KvtxIterateResponse = {
       | Iterable<KvtxIterateResponse | KvtxIterateResponse[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateResponse.encode(p).finish()]
         }
       } else {
-        yield* [KvtxIterateResponse.encode(pkt).finish()]
+        yield* [KvtxIterateResponse.encode(pkt as any).finish()]
       }
     }
   },
@@ -2628,12 +2641,12 @@ export const KvtxIterateResponse = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateResponse> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateResponse.decode(p)]
         }
       } else {
-        yield* [KvtxIterateResponse.decode(pkt)]
+        yield* [KvtxIterateResponse.decode(pkt as any)]
       }
     }
   },
@@ -2641,15 +2654,15 @@ export const KvtxIterateResponse = {
   fromJSON(object: any): KvtxIterateResponse {
     return {
       body: isSet(object.ack)
-        ? { $case: 'ack', ack: Boolean(object.ack) }
+        ? { $case: 'ack', ack: globalThis.Boolean(object.ack) }
         : isSet(object.reqError)
-        ? { $case: 'reqError', reqError: String(object.reqError) }
+        ? { $case: 'reqError', reqError: globalThis.String(object.reqError) }
         : isSet(object.status)
         ? { $case: 'status', status: KvtxIterateStatus.fromJSON(object.status) }
         : isSet(object.value)
         ? { $case: 'value', value: bytesFromBase64(object.value) }
         : isSet(object.closed)
-        ? { $case: 'closed', closed: Boolean(object.closed) }
+        ? { $case: 'closed', closed: globalThis.Boolean(object.closed) }
         : undefined,
     }
   },
@@ -2792,12 +2805,12 @@ export const KvtxIterateStatus = {
       | Iterable<KvtxIterateStatus | KvtxIterateStatus[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateStatus.encode(p).finish()]
         }
       } else {
-        yield* [KvtxIterateStatus.encode(pkt).finish()]
+        yield* [KvtxIterateStatus.encode(pkt as any).finish()]
       }
     }
   },
@@ -2810,20 +2823,20 @@ export const KvtxIterateStatus = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KvtxIterateStatus> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KvtxIterateStatus.decode(p)]
         }
       } else {
-        yield* [KvtxIterateStatus.decode(pkt)]
+        yield* [KvtxIterateStatus.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): KvtxIterateStatus {
     return {
-      error: isSet(object.error) ? String(object.error) : '',
-      valid: isSet(object.valid) ? Boolean(object.valid) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      valid: isSet(object.valid) ? globalThis.Boolean(object.valid) : false,
       key: isSet(object.key) ? bytesFromBase64(object.key) : new Uint8Array(0),
     }
   },
@@ -3234,30 +3247,11 @@ interface Rpc {
   ): AsyncIterable<Uint8Array>
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -3267,14 +3261,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -3291,8 +3285,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -193,12 +193,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -211,29 +211,33 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      sqlDbId: isSet(object.sqlDbId) ? String(object.sqlDbId) : '',
-      bucketId: isSet(object.bucketId) ? String(object.bucketId) : '',
-      volumeId: isSet(object.volumeId) ? String(object.volumeId) : '',
+      sqlDbId: isSet(object.sqlDbId) ? globalThis.String(object.sqlDbId) : '',
+      bucketId: isSet(object.bucketId)
+        ? globalThis.String(object.bucketId)
+        : '',
+      volumeId: isSet(object.volumeId)
+        ? globalThis.String(object.volumeId)
+        : '',
       objectStoreId: isSet(object.objectStoreId)
-        ? String(object.objectStoreId)
+        ? globalThis.String(object.objectStoreId)
         : '',
       objectStorePrefix: isSet(object.objectStorePrefix)
-        ? String(object.objectStorePrefix)
+        ? globalThis.String(object.objectStorePrefix)
         : '',
       objectStoreHeadKey: isSet(object.objectStoreHeadKey)
-        ? String(object.objectStoreHeadKey)
+        ? globalThis.String(object.objectStoreHeadKey)
         : '',
       initHeadRef: isSet(object.initHeadRef)
         ? ObjectRef.fromJSON(object.initHeadRef)
@@ -241,8 +245,8 @@ export const Config = {
       stateTransformConf: isSet(object.stateTransformConf)
         ? Config1.fromJSON(object.stateTransformConf)
         : undefined,
-      createDbs: Array.isArray(object?.createDbs)
-        ? object.createDbs.map((e: any) => String(e))
+      createDbs: globalThis.Array.isArray(object?.createDbs)
+        ? object.createDbs.map((e: any) => globalThis.String(e))
         : [],
     }
   },
@@ -351,12 +355,12 @@ export const HeadState = {
       | Iterable<HeadState | HeadState[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HeadState.encode(p).finish()]
         }
       } else {
-        yield* [HeadState.encode(pkt).finish()]
+        yield* [HeadState.encode(pkt as any).finish()]
       }
     }
   },
@@ -369,12 +373,12 @@ export const HeadState = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<HeadState> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [HeadState.decode(p)]
         }
       } else {
-        yield* [HeadState.decode(pkt)]
+        yield* [HeadState.decode(pkt as any)]
       }
     }
   },
@@ -423,8 +427,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -243,12 +243,12 @@ export const UnixFSError = {
       | Iterable<UnixFSError | UnixFSError[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [UnixFSError.encode(p).finish()]
         }
       } else {
-        yield* [UnixFSError.encode(pkt).finish()]
+        yield* [UnixFSError.encode(pkt as any).finish()]
       }
     }
   },
@@ -261,12 +261,12 @@ export const UnixFSError = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<UnixFSError> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [UnixFSError.decode(p)]
         }
       } else {
-        yield* [UnixFSError.decode(pkt)]
+        yield* [UnixFSError.decode(pkt as any)]
       }
     }
   },
@@ -276,7 +276,9 @@ export const UnixFSError = {
       errorType: isSet(object.errorType)
         ? unixFSErrorTypeFromJSON(object.errorType)
         : 0,
-      errorBody: isSet(object.errorBody) ? String(object.errorBody) : '',
+      errorBody: isSet(object.errorBody)
+        ? globalThis.String(object.errorBody)
+        : '',
     }
   },
 
@@ -317,8 +319,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -201,12 +201,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -219,12 +219,12 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
@@ -232,27 +232,35 @@ export const Config = {
   fromJSON(object: any): Config {
     return {
       blockStoreId: isSet(object.blockStoreId)
-        ? String(object.blockStoreId)
+        ? globalThis.String(object.blockStoreId)
         : '',
-      blockStoreIds: Array.isArray(object?.blockStoreIds)
-        ? object.blockStoreIds.map((e: any) => String(e))
+      blockStoreIds: globalThis.Array.isArray(object?.blockStoreIds)
+        ? object.blockStoreIds.map((e: any) => globalThis.String(e))
         : [],
-      serviceId: isSet(object.serviceId) ? String(object.serviceId) : '',
-      clientId: isSet(object.clientId) ? String(object.clientId) : '',
-      readOnly: isSet(object.readOnly) ? Boolean(object.readOnly) : false,
+      serviceId: isSet(object.serviceId)
+        ? globalThis.String(object.serviceId)
+        : '',
+      clientId: isSet(object.clientId)
+        ? globalThis.String(object.clientId)
+        : '',
+      readOnly: isSet(object.readOnly)
+        ? globalThis.Boolean(object.readOnly)
+        : false,
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
-      bucketIds: Array.isArray(object?.bucketIds)
-        ? object.bucketIds.map((e: any) => String(e))
+      bucketIds: globalThis.Array.isArray(object?.bucketIds)
+        ? object.bucketIds.map((e: any) => globalThis.String(e))
         : [],
       lookupOnStart: isSet(object.lookupOnStart)
-        ? Boolean(object.lookupOnStart)
+        ? globalThis.Boolean(object.lookupOnStart)
         : false,
       skipNotFound: isSet(object.skipNotFound)
-        ? Boolean(object.skipNotFound)
+        ? globalThis.Boolean(object.skipNotFound)
         : false,
-      verbose: isSet(object.verbose) ? Boolean(object.verbose) : false,
+      verbose: isSet(object.verbose)
+        ? globalThis.Boolean(object.verbose)
+        : false,
     }
   },
 
@@ -323,8 +331,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

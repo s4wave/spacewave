@@ -261,12 +261,12 @@ export const Blob = {
     source: AsyncIterable<Blob | Blob[]> | Iterable<Blob | Blob[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Blob.encode(p).finish()]
         }
       } else {
-        yield* [Blob.encode(pkt).finish()]
+        yield* [Blob.encode(pkt as any).finish()]
       }
     }
   },
@@ -279,12 +279,12 @@ export const Blob = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Blob> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Blob.decode(p)]
         }
       } else {
-        yield* [Blob.decode(pkt)]
+        yield* [Blob.decode(pkt as any)]
       }
     }
   },
@@ -397,12 +397,12 @@ export const BuildBlobOpts = {
       | Iterable<BuildBlobOpts | BuildBlobOpts[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BuildBlobOpts.encode(p).finish()]
         }
       } else {
-        yield* [BuildBlobOpts.encode(pkt).finish()]
+        yield* [BuildBlobOpts.encode(pkt as any).finish()]
       }
     }
   },
@@ -415,12 +415,12 @@ export const BuildBlobOpts = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<BuildBlobOpts> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [BuildBlobOpts.decode(p)]
         }
       } else {
-        yield* [BuildBlobOpts.decode(pkt)]
+        yield* [BuildBlobOpts.decode(pkt as any)]
       }
     }
   },
@@ -525,12 +525,12 @@ export const ChunkIndex = {
       | Iterable<ChunkIndex | ChunkIndex[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ChunkIndex.encode(p).finish()]
         }
       } else {
-        yield* [ChunkIndex.encode(pkt).finish()]
+        yield* [ChunkIndex.encode(pkt as any).finish()]
       }
     }
   },
@@ -543,19 +543,19 @@ export const ChunkIndex = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChunkIndex> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ChunkIndex.decode(p)]
         }
       } else {
-        yield* [ChunkIndex.decode(pkt)]
+        yield* [ChunkIndex.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ChunkIndex {
     return {
-      chunks: Array.isArray(object?.chunks)
+      chunks: globalThis.Array.isArray(object?.chunks)
         ? object.chunks.map((e: any) => Chunk.fromJSON(e))
         : [],
       chunkerArgs: isSet(object.chunkerArgs)
@@ -648,12 +648,12 @@ export const ChunkerArgs = {
       | Iterable<ChunkerArgs | ChunkerArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ChunkerArgs.encode(p).finish()]
         }
       } else {
-        yield* [ChunkerArgs.encode(pkt).finish()]
+        yield* [ChunkerArgs.encode(pkt as any).finish()]
       }
     }
   },
@@ -666,12 +666,12 @@ export const ChunkerArgs = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ChunkerArgs> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ChunkerArgs.decode(p)]
         }
       } else {
-        yield* [ChunkerArgs.decode(pkt)]
+        yield* [ChunkerArgs.decode(pkt as any)]
       }
     }
   },
@@ -796,12 +796,12 @@ export const RabinArgs = {
       | Iterable<RabinArgs | RabinArgs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RabinArgs.encode(p).finish()]
         }
       } else {
-        yield* [RabinArgs.encode(pkt).finish()]
+        yield* [RabinArgs.encode(pkt as any).finish()]
       }
     }
   },
@@ -814,12 +814,12 @@ export const RabinArgs = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RabinArgs> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [RabinArgs.decode(p)]
         }
       } else {
-        yield* [RabinArgs.decode(pkt)]
+        yield* [RabinArgs.decode(pkt as any)]
       }
     }
   },
@@ -827,7 +827,9 @@ export const RabinArgs = {
   fromJSON(object: any): RabinArgs {
     return {
       pol: isSet(object.pol) ? Long.fromValue(object.pol) : Long.UZERO,
-      randomPol: isSet(object.randomPol) ? Boolean(object.randomPol) : false,
+      randomPol: isSet(object.randomPol)
+        ? globalThis.Boolean(object.randomPol)
+        : false,
       chunkingMinSize: isSet(object.chunkingMinSize)
         ? Long.fromValue(object.chunkingMinSize)
         : Long.UZERO,
@@ -940,12 +942,12 @@ export const Chunk = {
     source: AsyncIterable<Chunk | Chunk[]> | Iterable<Chunk | Chunk[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Chunk.encode(p).finish()]
         }
       } else {
-        yield* [Chunk.encode(pkt).finish()]
+        yield* [Chunk.encode(pkt as any).finish()]
       }
     }
   },
@@ -958,12 +960,12 @@ export const Chunk = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Chunk> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Chunk.decode(p)]
         }
       } else {
-        yield* [Chunk.decode(pkt)]
+        yield* [Chunk.decode(pkt as any)]
       }
     }
   },
@@ -1013,30 +1015,11 @@ export const Chunk = {
   },
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -1046,14 +1029,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -1070,8 +1053,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

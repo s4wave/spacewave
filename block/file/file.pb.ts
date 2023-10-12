@@ -136,12 +136,12 @@ export const File = {
     source: AsyncIterable<File | File[]> | Iterable<File | File[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [File.encode(p).finish()]
         }
       } else {
-        yield* [File.encode(pkt).finish()]
+        yield* [File.encode(pkt as any).finish()]
       }
     }
   },
@@ -154,12 +154,12 @@ export const File = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<File> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [File.decode(p)]
         }
       } else {
-        yield* [File.decode(pkt)]
+        yield* [File.decode(pkt as any)]
       }
     }
   },
@@ -175,7 +175,7 @@ export const File = {
       rangeNonce: isSet(object.rangeNonce)
         ? Long.fromValue(object.rangeNonce)
         : Long.UZERO,
-      ranges: Array.isArray(object?.ranges)
+      ranges: globalThis.Array.isArray(object?.ranges)
         ? object.ranges.map((e: any) => Range.fromJSON(e))
         : [],
     }
@@ -297,12 +297,12 @@ export const Range = {
     source: AsyncIterable<Range | Range[]> | Iterable<Range | Range[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Range.encode(p).finish()]
         }
       } else {
-        yield* [Range.encode(pkt).finish()]
+        yield* [Range.encode(pkt as any).finish()]
       }
     }
   },
@@ -315,12 +315,12 @@ export const Range = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Range> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Range.decode(p)]
         }
       } else {
-        yield* [Range.decode(pkt)]
+        yield* [Range.decode(pkt as any)]
       }
     }
   },
@@ -389,8 +389,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

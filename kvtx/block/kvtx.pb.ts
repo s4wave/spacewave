@@ -112,12 +112,12 @@ export const KeyValueStore = {
       | Iterable<KeyValueStore | KeyValueStore[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyValueStore.encode(p).finish()]
         }
       } else {
-        yield* [KeyValueStore.encode(pkt).finish()]
+        yield* [KeyValueStore.encode(pkt as any).finish()]
       }
     }
   },
@@ -130,12 +130,12 @@ export const KeyValueStore = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeyValueStore> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeyValueStore.decode(p)]
         }
       } else {
-        yield* [KeyValueStore.decode(pkt)]
+        yield* [KeyValueStore.decode(pkt as any)]
       }
     }
   },
@@ -193,8 +193,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }
