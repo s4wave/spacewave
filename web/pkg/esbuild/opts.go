@@ -62,7 +62,19 @@ func BuildEsbuildBuildOpts(
 			buildOpts.Loader[ext] = typ
 		}
 	}
-	useFileLoader := []string{"woff", "woff2", "png", "jpg", "jpeg", "svg", "gif", "tif", "tiff"}
+
+	// use file loader for these types
+	useFileLoader := []string{
+		"woff",
+		"woff2",
+		"png",
+		"jpg",
+		"jpeg",
+		"svg",
+		"gif",
+		"tif",
+		"tiff",
+	}
 	for _, ext := range useFileLoader {
 		addLoader("."+ext, esbuild_api.LoaderFile)
 	}

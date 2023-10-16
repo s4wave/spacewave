@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
@@ -35,7 +36,7 @@ var EsbuildLogLevel = esbuild.LogLevelInfo
 func ElectronBuildOpts(bldrDistRoot string, minify, debug bool) esbuild.BuildOptions {
 	opts := bundle.BrowserBuildOpts(bldrDistRoot, minify)
 	opts.Define = ElectronDefine(debug)
-	opts.External = []string{"electron", "electron-nightly"}
+	opts.External = []string{"electron"}
 	opts.LogLevel = EsbuildLogLevel
 	return opts
 }
@@ -289,8 +290,8 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, buildDir, outPath string) 
 }
 
 // DownloadElectronRedist downloads the electron redistributable to the destination dir.
-// Uses electron@latest.
-func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, buildDir, destDir string, nightly bool) error {
+// Defaults npmPkg if empty.
+func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
 	npmPlat, err := bldr_platform_npm.PlatformToNpm(plat)
 	if err != nil {
 		return err
@@ -301,9 +302,16 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 		return err
 	}
 
-	npmPkg := "electron"
-	if nightly {
-		npmPkg = "electron-nightly"
+	// NOTE: we use electron v28 for ESM support until v28 is released
+	if npmPkg == "" {
+		npmPkg = "electron@28.0.0-alpha.2"
+	}
+
+	// trim the version from the name
+	npmPkgName := npmPkg
+	npmPkgVerIdx := strings.LastIndex(npmPkgName, "@")
+	if npmPkgVerIdx > 0 {
+		npmPkgName = npmPkgName[:npmPkgVerIdx]
 	}
 
 	le.
@@ -324,7 +332,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 
 	// move the redistributable out of node_modules
 	nodeModulesPath := filepath.Join(npmDir, "node_modules")
-	electronDistPath := filepath.Join(nodeModulesPath, npmPkg, "dist")
+	electronDistPath := filepath.Join(nodeModulesPath, npmPkgName, "dist")
 	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
 		return err
 	}

@@ -27,6 +27,11 @@ export interface Config {
    * Special value: "wait" - waits for plugin entrypoint to be run manually.
    */
   delveAddr: string
+  /**
+   * ElectronPkg is the name and version of the npm package to use for electron.
+   * Defaults to electron-nightly@latest.
+   */
+  electronPkg: string
 }
 
 export interface Config_ConfigSetEntry {
@@ -40,7 +45,7 @@ export interface Config_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { configSet: {}, hostConfigSet: {}, delveAddr: '' }
+  return { configSet: {}, hostConfigSet: {}, delveAddr: '', electronPkg: '' }
 }
 
 export const Config = {
@@ -62,6 +67,9 @@ export const Config = {
     })
     if (message.delveAddr !== '') {
       writer.uint32(26).string(message.delveAddr)
+    }
+    if (message.electronPkg !== '') {
+      writer.uint32(34).string(message.electronPkg)
     }
     return writer
   },
@@ -103,6 +111,13 @@ export const Config = {
           }
 
           message.delveAddr = reader.string()
+          continue
+        case 4:
+          if (tag !== 34) {
+            break
+          }
+
+          message.electronPkg = reader.string()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -168,6 +183,9 @@ export const Config = {
       delveAddr: isSet(object.delveAddr)
         ? globalThis.String(object.delveAddr)
         : '',
+      electronPkg: isSet(object.electronPkg)
+        ? globalThis.String(object.electronPkg)
+        : '',
     }
   },
 
@@ -194,6 +212,9 @@ export const Config = {
     if (message.delveAddr !== '') {
       obj.delveAddr = message.delveAddr
     }
+    if (message.electronPkg !== '') {
+      obj.electronPkg = message.electronPkg
+    }
     return obj
   },
 
@@ -219,6 +240,7 @@ export const Config = {
       return acc
     }, {})
     message.delveAddr = object.delveAddr ?? ''
+    message.electronPkg = object.electronPkg ?? ''
     return message
   },
 }

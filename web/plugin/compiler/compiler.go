@@ -154,8 +154,7 @@ func (c *Controller) BundleElectronHook(
 		buildPlatform,
 		workingDir,
 		electronDistPath,
-		// NOTE: we use electron nightly for ESM support until v28 is released.
-		true,
+		c.GetConfig().GetElectronPkg(),
 	); err != nil {
 		return nil, err
 	}
