@@ -3,6 +3,7 @@ package plugin_entrypoint
 import (
 	"context"
 	"io/fs"
+	"os"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
@@ -10,6 +11,7 @@ import (
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
@@ -307,4 +309,17 @@ func ConfigSetFuncFromFS(ifs fs.FS, fileName string) BuildConfigSetFunc {
 		}
 		return []configset.ConfigSet{cset}, nil
 	}
+}
+
+// PluginDevInfoFromFile loads a PluginDevInfo object from a .bin file.
+func PluginDevInfoFromFile(filePath string) (*vardef.PluginDevInfo, error) {
+	dat, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	info := &vardef.PluginDevInfo{}
+	if err := info.UnmarshalVT(dat); err != nil {
+		return nil, err
+	}
+	return info, nil
 }

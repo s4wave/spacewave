@@ -66,6 +66,14 @@ export interface EsbuildOutput {
   cssHref: string
 }
 
+/** EsbuildEntrypoint is an entrypoint passed to Esbuild. */
+export interface EsbuildEntrypoint {
+  /** InputPath is the input file path. */
+  inputPath: string
+  /** OutputPath is the output file path, if any. */
+  outputPath: string
+}
+
 function createBaseEsbuildOutput(): EsbuildOutput {
   return { entrypointHref: '', cssHref: '' }
 }
@@ -182,6 +190,128 @@ export const EsbuildOutput = {
     const message = createBaseEsbuildOutput()
     message.entrypointHref = object.entrypointHref ?? ''
     message.cssHref = object.cssHref ?? ''
+    return message
+  },
+}
+
+function createBaseEsbuildEntrypoint(): EsbuildEntrypoint {
+  return { inputPath: '', outputPath: '' }
+}
+
+export const EsbuildEntrypoint = {
+  encode(
+    message: EsbuildEntrypoint,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.inputPath !== '') {
+      writer.uint32(10).string(message.inputPath)
+    }
+    if (message.outputPath !== '') {
+      writer.uint32(18).string(message.outputPath)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): EsbuildEntrypoint {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEsbuildEntrypoint()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break
+          }
+
+          message.inputPath = reader.string()
+          continue
+        case 2:
+          if (tag !== 18) {
+            break
+          }
+
+          message.outputPath = reader.string()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<EsbuildEntrypoint, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<EsbuildEntrypoint | EsbuildEntrypoint[]>
+      | Iterable<EsbuildEntrypoint | EsbuildEntrypoint[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [EsbuildEntrypoint.encode(p).finish()]
+        }
+      } else {
+        yield* [EsbuildEntrypoint.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, EsbuildEntrypoint>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<EsbuildEntrypoint> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [EsbuildEntrypoint.decode(p)]
+        }
+      } else {
+        yield* [EsbuildEntrypoint.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(object: any): EsbuildEntrypoint {
+    return {
+      inputPath: isSet(object.inputPath)
+        ? globalThis.String(object.inputPath)
+        : '',
+      outputPath: isSet(object.outputPath)
+        ? globalThis.String(object.outputPath)
+        : '',
+    }
+  },
+
+  toJSON(message: EsbuildEntrypoint): unknown {
+    const obj: any = {}
+    if (message.inputPath !== '') {
+      obj.inputPath = message.inputPath
+    }
+    if (message.outputPath !== '') {
+      obj.outputPath = message.outputPath
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<EsbuildEntrypoint>, I>>(
+    base?: I,
+  ): EsbuildEntrypoint {
+    return EsbuildEntrypoint.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<EsbuildEntrypoint>, I>>(
+    object: I,
+  ): EsbuildEntrypoint {
+    const message = createBaseEsbuildEntrypoint()
+    message.inputPath = object.inputPath ?? ''
+    message.outputPath = object.outputPath ?? ''
     return message
   },
 }

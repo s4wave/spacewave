@@ -2,8 +2,68 @@
 import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { EsbuildVarType, esbuildVarTypeFromJSON, esbuildVarTypeToJSON } from "../../web/esbuild/esbuild.pb.js";
+import { WebPkgRef } from "../../web/pkg/esbuild/esbuild.pb.js";
+import { PluginDevInfo } from "./vardef/vardef.pb.js";
 
 export const protobufPackage = "bldr.plugin.compiler";
+
+/** InputFileKind is the kind of file this is. */
+export enum InputFileKind {
+  /** InputFileKind_UNKNOWN - InputFileKind_UNKNOWN is the default kind. */
+  InputFileKind_UNKNOWN = 0,
+  /** InputFileKind_ASSET - InputFileKind_ASSET is a static asset. */
+  InputFileKind_ASSET = 1,
+  /** InputFileKind_GO - InputFileKind_GO is a file built by the Go compiler. */
+  InputFileKind_GO = 2,
+  /** InputFileKind_ESBUILD - InputFileKind_ESBUILD is an input consumed by esbuild. */
+  InputFileKind_ESBUILD = 3,
+  /** InputFileKind_WEB_PKG - InputFileKind_WEB_PKG is a third party bundled npm package. */
+  InputFileKind_WEB_PKG = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function inputFileKindFromJSON(object: any): InputFileKind {
+  switch (object) {
+    case 0:
+    case "InputFileKind_UNKNOWN":
+      return InputFileKind.InputFileKind_UNKNOWN;
+    case 1:
+    case "InputFileKind_ASSET":
+      return InputFileKind.InputFileKind_ASSET;
+    case 2:
+    case "InputFileKind_GO":
+      return InputFileKind.InputFileKind_GO;
+    case 3:
+    case "InputFileKind_ESBUILD":
+      return InputFileKind.InputFileKind_ESBUILD;
+    case 4:
+    case "InputFileKind_WEB_PKG":
+      return InputFileKind.InputFileKind_WEB_PKG;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return InputFileKind.UNRECOGNIZED;
+  }
+}
+
+export function inputFileKindToJSON(object: InputFileKind): string {
+  switch (object) {
+    case InputFileKind.InputFileKind_UNKNOWN:
+      return "InputFileKind_UNKNOWN";
+    case InputFileKind.InputFileKind_ASSET:
+      return "InputFileKind_ASSET";
+    case InputFileKind.InputFileKind_GO:
+      return "InputFileKind_GO";
+    case InputFileKind.InputFileKind_ESBUILD:
+      return "InputFileKind_ESBUILD";
+    case InputFileKind.InputFileKind_WEB_PKG:
+      return "InputFileKind_WEB_PKG";
+    case InputFileKind.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
 
 /** Config configures the plugin compiler controller. */
 export interface Config {
@@ -100,6 +160,70 @@ export interface PreBuildHookResult {
    * Merged with the existing configuration.
    */
   config: Config | undefined;
+}
+
+/** InputFileMeta is metadata attached to an input manifest file. */
+export interface InputFileMeta {
+  /** Kind is the input file kind. */
+  kind: InputFileKind;
+}
+
+/** InputManifestMeta is metadata attached to the input manifest. */
+export interface InputManifestMeta {
+  /** EsbuildBundles contains the set of esbuild bundles. */
+  esbuildBundles: { [key: string]: EsbuildBundleMeta };
+  /** WebPkgRefs contains the list of web pkg references. */
+  webPkgRefs: WebPkgRef[];
+  /** WebPkgs is the list of web pkgs that we separate from the bundle. */
+  webPkgs: string[];
+  /** EsbuildFlags are the base command-line arguments to pass to esbuild. */
+  esbuildFlags: string[];
+  /** DevInfo contains the set of plugin variable definitions. */
+  devInfo:
+    | PluginDevInfo
+    | undefined;
+  /** EsbuildOutputs contains a list of files written by esbuild. */
+  esbuildOutputs: EsbuildOutputMeta[];
+}
+
+export interface InputManifestMeta_EsbuildBundlesEntry {
+  key: string;
+  value: EsbuildBundleMeta | undefined;
+}
+
+/** EsbuildOutputMeta is information about an esbuild output. */
+export interface EsbuildOutputMeta {
+  /** Path is the path to the file within the output dir. */
+  path: string;
+  /** Length is the size of the file in bytes. */
+  length: number;
+  /**
+   * EntrypointPath is the entrypoint that produced this output file.
+   * May be empty.
+   */
+  entrypointPath: string;
+}
+
+/** EsbuildBundleMeta is information about an esbuild bundle. */
+export interface EsbuildBundleMeta {
+  /** Id is the identifier of the bundle. */
+  id: string;
+  /** EntrypointVars is the list of entrypoint variables. */
+  entrypointVars: EsbuildEntrypointVar[];
+}
+
+/** EsbuildEntrypointVar is a variable in the Go code referring to a esbuild entrypoint. */
+export interface EsbuildEntrypointVar {
+  /** PkgImportPath is the go package import path. */
+  pkgImportPath: string;
+  /** PkgVar is the variable within the go package. */
+  pkgVar: string;
+  /** PkgCodePath is the relative path to the code dir from the project root. */
+  pkgCodePath: string;
+  /** PkgVarType is the type of esbuild variable this is. */
+  pkgVarType: EsbuildVarType;
+  /** EsbuildFlags are the command-line arguments to pass to esbuild. */
+  esbuildFlags: string[];
 }
 
 function createBaseConfig(): Config {
@@ -694,6 +818,789 @@ export const PreBuildHookResult = {
     message.config = (object.config !== undefined && object.config !== null)
       ? Config.fromPartial(object.config)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseInputFileMeta(): InputFileMeta {
+  return { kind: 0 };
+}
+
+export const InputFileMeta = {
+  encode(message: InputFileMeta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.kind !== 0) {
+      writer.uint32(8).int32(message.kind);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): InputFileMeta {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInputFileMeta();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 8) {
+            break;
+          }
+
+          message.kind = reader.int32() as any;
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<InputFileMeta, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<InputFileMeta | InputFileMeta[]> | Iterable<InputFileMeta | InputFileMeta[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [InputFileMeta.encode(p).finish()];
+        }
+      } else {
+        yield* [InputFileMeta.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, InputFileMeta>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<InputFileMeta> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [InputFileMeta.decode(p)];
+        }
+      } else {
+        yield* [InputFileMeta.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): InputFileMeta {
+    return { kind: isSet(object.kind) ? inputFileKindFromJSON(object.kind) : 0 };
+  },
+
+  toJSON(message: InputFileMeta): unknown {
+    const obj: any = {};
+    if (message.kind !== 0) {
+      obj.kind = inputFileKindToJSON(message.kind);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InputFileMeta>, I>>(base?: I): InputFileMeta {
+    return InputFileMeta.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InputFileMeta>, I>>(object: I): InputFileMeta {
+    const message = createBaseInputFileMeta();
+    message.kind = object.kind ?? 0;
+    return message;
+  },
+};
+
+function createBaseInputManifestMeta(): InputManifestMeta {
+  return { esbuildBundles: {}, webPkgRefs: [], webPkgs: [], esbuildFlags: [], devInfo: undefined, esbuildOutputs: [] };
+}
+
+export const InputManifestMeta = {
+  encode(message: InputManifestMeta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    Object.entries(message.esbuildBundles).forEach(([key, value]) => {
+      InputManifestMeta_EsbuildBundlesEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+    });
+    for (const v of message.webPkgRefs) {
+      WebPkgRef.encode(v!, writer.uint32(18).fork()).ldelim();
+    }
+    for (const v of message.webPkgs) {
+      writer.uint32(26).string(v!);
+    }
+    for (const v of message.esbuildFlags) {
+      writer.uint32(34).string(v!);
+    }
+    if (message.devInfo !== undefined) {
+      PluginDevInfo.encode(message.devInfo, writer.uint32(42).fork()).ldelim();
+    }
+    for (const v of message.esbuildOutputs) {
+      EsbuildOutputMeta.encode(v!, writer.uint32(50).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): InputManifestMeta {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInputManifestMeta();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          const entry1 = InputManifestMeta_EsbuildBundlesEntry.decode(reader, reader.uint32());
+          if (entry1.value !== undefined) {
+            message.esbuildBundles[entry1.key] = entry1.value;
+          }
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.webPkgRefs.push(WebPkgRef.decode(reader, reader.uint32()));
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.webPkgs.push(reader.string());
+          continue;
+        case 4:
+          if (tag !== 34) {
+            break;
+          }
+
+          message.esbuildFlags.push(reader.string());
+          continue;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.devInfo = PluginDevInfo.decode(reader, reader.uint32());
+          continue;
+        case 6:
+          if (tag !== 50) {
+            break;
+          }
+
+          message.esbuildOutputs.push(EsbuildOutputMeta.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<InputManifestMeta, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<InputManifestMeta | InputManifestMeta[]> | Iterable<InputManifestMeta | InputManifestMeta[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [InputManifestMeta.encode(p).finish()];
+        }
+      } else {
+        yield* [InputManifestMeta.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, InputManifestMeta>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<InputManifestMeta> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [InputManifestMeta.decode(p)];
+        }
+      } else {
+        yield* [InputManifestMeta.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): InputManifestMeta {
+    return {
+      esbuildBundles: isObject(object.esbuildBundles)
+        ? Object.entries(object.esbuildBundles).reduce<{ [key: string]: EsbuildBundleMeta }>((acc, [key, value]) => {
+          acc[key] = EsbuildBundleMeta.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
+      webPkgRefs: globalThis.Array.isArray(object?.webPkgRefs)
+        ? object.webPkgRefs.map((e: any) => WebPkgRef.fromJSON(e))
+        : [],
+      webPkgs: globalThis.Array.isArray(object?.webPkgs) ? object.webPkgs.map((e: any) => globalThis.String(e)) : [],
+      esbuildFlags: globalThis.Array.isArray(object?.esbuildFlags)
+        ? object.esbuildFlags.map((e: any) => globalThis.String(e))
+        : [],
+      devInfo: isSet(object.devInfo) ? PluginDevInfo.fromJSON(object.devInfo) : undefined,
+      esbuildOutputs: globalThis.Array.isArray(object?.esbuildOutputs)
+        ? object.esbuildOutputs.map((e: any) => EsbuildOutputMeta.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: InputManifestMeta): unknown {
+    const obj: any = {};
+    if (message.esbuildBundles) {
+      const entries = Object.entries(message.esbuildBundles);
+      if (entries.length > 0) {
+        obj.esbuildBundles = {};
+        entries.forEach(([k, v]) => {
+          obj.esbuildBundles[k] = EsbuildBundleMeta.toJSON(v);
+        });
+      }
+    }
+    if (message.webPkgRefs?.length) {
+      obj.webPkgRefs = message.webPkgRefs.map((e) => WebPkgRef.toJSON(e));
+    }
+    if (message.webPkgs?.length) {
+      obj.webPkgs = message.webPkgs;
+    }
+    if (message.esbuildFlags?.length) {
+      obj.esbuildFlags = message.esbuildFlags;
+    }
+    if (message.devInfo !== undefined) {
+      obj.devInfo = PluginDevInfo.toJSON(message.devInfo);
+    }
+    if (message.esbuildOutputs?.length) {
+      obj.esbuildOutputs = message.esbuildOutputs.map((e) => EsbuildOutputMeta.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InputManifestMeta>, I>>(base?: I): InputManifestMeta {
+    return InputManifestMeta.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InputManifestMeta>, I>>(object: I): InputManifestMeta {
+    const message = createBaseInputManifestMeta();
+    message.esbuildBundles = Object.entries(object.esbuildBundles ?? {}).reduce<{ [key: string]: EsbuildBundleMeta }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = EsbuildBundleMeta.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
+    message.webPkgRefs = object.webPkgRefs?.map((e) => WebPkgRef.fromPartial(e)) || [];
+    message.webPkgs = object.webPkgs?.map((e) => e) || [];
+    message.esbuildFlags = object.esbuildFlags?.map((e) => e) || [];
+    message.devInfo = (object.devInfo !== undefined && object.devInfo !== null)
+      ? PluginDevInfo.fromPartial(object.devInfo)
+      : undefined;
+    message.esbuildOutputs = object.esbuildOutputs?.map((e) => EsbuildOutputMeta.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseInputManifestMeta_EsbuildBundlesEntry(): InputManifestMeta_EsbuildBundlesEntry {
+  return { key: "", value: undefined };
+}
+
+export const InputManifestMeta_EsbuildBundlesEntry = {
+  encode(message: InputManifestMeta_EsbuildBundlesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      EsbuildBundleMeta.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): InputManifestMeta_EsbuildBundlesEntry {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInputManifestMeta_EsbuildBundlesEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = EsbuildBundleMeta.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<InputManifestMeta_EsbuildBundlesEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<InputManifestMeta_EsbuildBundlesEntry | InputManifestMeta_EsbuildBundlesEntry[]>
+      | Iterable<InputManifestMeta_EsbuildBundlesEntry | InputManifestMeta_EsbuildBundlesEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [InputManifestMeta_EsbuildBundlesEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [InputManifestMeta_EsbuildBundlesEntry.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, InputManifestMeta_EsbuildBundlesEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<InputManifestMeta_EsbuildBundlesEntry> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [InputManifestMeta_EsbuildBundlesEntry.decode(p)];
+        }
+      } else {
+        yield* [InputManifestMeta_EsbuildBundlesEntry.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): InputManifestMeta_EsbuildBundlesEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? EsbuildBundleMeta.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: InputManifestMeta_EsbuildBundlesEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = EsbuildBundleMeta.toJSON(message.value);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InputManifestMeta_EsbuildBundlesEntry>, I>>(
+    base?: I,
+  ): InputManifestMeta_EsbuildBundlesEntry {
+    return InputManifestMeta_EsbuildBundlesEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InputManifestMeta_EsbuildBundlesEntry>, I>>(
+    object: I,
+  ): InputManifestMeta_EsbuildBundlesEntry {
+    const message = createBaseInputManifestMeta_EsbuildBundlesEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? EsbuildBundleMeta.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEsbuildOutputMeta(): EsbuildOutputMeta {
+  return { path: "", length: 0, entrypointPath: "" };
+}
+
+export const EsbuildOutputMeta = {
+  encode(message: EsbuildOutputMeta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.path !== "") {
+      writer.uint32(10).string(message.path);
+    }
+    if (message.length !== 0) {
+      writer.uint32(16).uint32(message.length);
+    }
+    if (message.entrypointPath !== "") {
+      writer.uint32(26).string(message.entrypointPath);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): EsbuildOutputMeta {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEsbuildOutputMeta();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        case 2:
+          if (tag !== 16) {
+            break;
+          }
+
+          message.length = reader.uint32();
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.entrypointPath = reader.string();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<EsbuildOutputMeta, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<EsbuildOutputMeta | EsbuildOutputMeta[]> | Iterable<EsbuildOutputMeta | EsbuildOutputMeta[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [EsbuildOutputMeta.encode(p).finish()];
+        }
+      } else {
+        yield* [EsbuildOutputMeta.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, EsbuildOutputMeta>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<EsbuildOutputMeta> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [EsbuildOutputMeta.decode(p)];
+        }
+      } else {
+        yield* [EsbuildOutputMeta.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): EsbuildOutputMeta {
+    return {
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      length: isSet(object.length) ? globalThis.Number(object.length) : 0,
+      entrypointPath: isSet(object.entrypointPath) ? globalThis.String(object.entrypointPath) : "",
+    };
+  },
+
+  toJSON(message: EsbuildOutputMeta): unknown {
+    const obj: any = {};
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.length !== 0) {
+      obj.length = Math.round(message.length);
+    }
+    if (message.entrypointPath !== "") {
+      obj.entrypointPath = message.entrypointPath;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EsbuildOutputMeta>, I>>(base?: I): EsbuildOutputMeta {
+    return EsbuildOutputMeta.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EsbuildOutputMeta>, I>>(object: I): EsbuildOutputMeta {
+    const message = createBaseEsbuildOutputMeta();
+    message.path = object.path ?? "";
+    message.length = object.length ?? 0;
+    message.entrypointPath = object.entrypointPath ?? "";
+    return message;
+  },
+};
+
+function createBaseEsbuildBundleMeta(): EsbuildBundleMeta {
+  return { id: "", entrypointVars: [] };
+}
+
+export const EsbuildBundleMeta = {
+  encode(message: EsbuildBundleMeta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    for (const v of message.entrypointVars) {
+      EsbuildEntrypointVar.encode(v!, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): EsbuildBundleMeta {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEsbuildBundleMeta();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.entrypointVars.push(EsbuildEntrypointVar.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<EsbuildBundleMeta, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<EsbuildBundleMeta | EsbuildBundleMeta[]> | Iterable<EsbuildBundleMeta | EsbuildBundleMeta[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [EsbuildBundleMeta.encode(p).finish()];
+        }
+      } else {
+        yield* [EsbuildBundleMeta.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, EsbuildBundleMeta>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<EsbuildBundleMeta> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [EsbuildBundleMeta.decode(p)];
+        }
+      } else {
+        yield* [EsbuildBundleMeta.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): EsbuildBundleMeta {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      entrypointVars: globalThis.Array.isArray(object?.entrypointVars)
+        ? object.entrypointVars.map((e: any) => EsbuildEntrypointVar.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: EsbuildBundleMeta): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.entrypointVars?.length) {
+      obj.entrypointVars = message.entrypointVars.map((e) => EsbuildEntrypointVar.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EsbuildBundleMeta>, I>>(base?: I): EsbuildBundleMeta {
+    return EsbuildBundleMeta.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EsbuildBundleMeta>, I>>(object: I): EsbuildBundleMeta {
+    const message = createBaseEsbuildBundleMeta();
+    message.id = object.id ?? "";
+    message.entrypointVars = object.entrypointVars?.map((e) => EsbuildEntrypointVar.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseEsbuildEntrypointVar(): EsbuildEntrypointVar {
+  return { pkgImportPath: "", pkgVar: "", pkgCodePath: "", pkgVarType: 0, esbuildFlags: [] };
+}
+
+export const EsbuildEntrypointVar = {
+  encode(message: EsbuildEntrypointVar, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.pkgImportPath !== "") {
+      writer.uint32(10).string(message.pkgImportPath);
+    }
+    if (message.pkgVar !== "") {
+      writer.uint32(18).string(message.pkgVar);
+    }
+    if (message.pkgCodePath !== "") {
+      writer.uint32(26).string(message.pkgCodePath);
+    }
+    if (message.pkgVarType !== 0) {
+      writer.uint32(32).int32(message.pkgVarType);
+    }
+    for (const v of message.esbuildFlags) {
+      writer.uint32(42).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): EsbuildEntrypointVar {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEsbuildEntrypointVar();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.pkgImportPath = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.pkgVar = reader.string();
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.pkgCodePath = reader.string();
+          continue;
+        case 4:
+          if (tag !== 32) {
+            break;
+          }
+
+          message.pkgVarType = reader.int32() as any;
+          continue;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.esbuildFlags.push(reader.string());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<EsbuildEntrypointVar, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<EsbuildEntrypointVar | EsbuildEntrypointVar[]>
+      | Iterable<EsbuildEntrypointVar | EsbuildEntrypointVar[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [EsbuildEntrypointVar.encode(p).finish()];
+        }
+      } else {
+        yield* [EsbuildEntrypointVar.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, EsbuildEntrypointVar>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<EsbuildEntrypointVar> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [EsbuildEntrypointVar.decode(p)];
+        }
+      } else {
+        yield* [EsbuildEntrypointVar.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): EsbuildEntrypointVar {
+    return {
+      pkgImportPath: isSet(object.pkgImportPath) ? globalThis.String(object.pkgImportPath) : "",
+      pkgVar: isSet(object.pkgVar) ? globalThis.String(object.pkgVar) : "",
+      pkgCodePath: isSet(object.pkgCodePath) ? globalThis.String(object.pkgCodePath) : "",
+      pkgVarType: isSet(object.pkgVarType) ? esbuildVarTypeFromJSON(object.pkgVarType) : 0,
+      esbuildFlags: globalThis.Array.isArray(object?.esbuildFlags)
+        ? object.esbuildFlags.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: EsbuildEntrypointVar): unknown {
+    const obj: any = {};
+    if (message.pkgImportPath !== "") {
+      obj.pkgImportPath = message.pkgImportPath;
+    }
+    if (message.pkgVar !== "") {
+      obj.pkgVar = message.pkgVar;
+    }
+    if (message.pkgCodePath !== "") {
+      obj.pkgCodePath = message.pkgCodePath;
+    }
+    if (message.pkgVarType !== 0) {
+      obj.pkgVarType = esbuildVarTypeToJSON(message.pkgVarType);
+    }
+    if (message.esbuildFlags?.length) {
+      obj.esbuildFlags = message.esbuildFlags;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EsbuildEntrypointVar>, I>>(base?: I): EsbuildEntrypointVar {
+    return EsbuildEntrypointVar.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EsbuildEntrypointVar>, I>>(object: I): EsbuildEntrypointVar {
+    const message = createBaseEsbuildEntrypointVar();
+    message.pkgImportPath = object.pkgImportPath ?? "";
+    message.pkgVar = object.pkgVar ?? "";
+    message.pkgCodePath = object.pkgCodePath ?? "";
+    message.pkgVarType = object.pkgVarType ?? 0;
+    message.esbuildFlags = object.esbuildFlags?.map((e) => e) || [];
     return message;
   },
 };

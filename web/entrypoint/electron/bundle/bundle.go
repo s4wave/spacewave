@@ -142,19 +142,19 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 
 	// web pkgs we distribute with bldr
 	refs := []*web_pkg_esbuild.WebPkgRef{{
-		WebPkgID:   "react",
+		WebPkgId:   "react",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
 		Imports:    []string{"index.js", "jsx-runtime.js"},
 	}, {
-		WebPkgID:   "react-dom",
+		WebPkgId:   "react-dom",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
 		Imports:    []string{"index.js", "client.js"},
 	}, {
-		WebPkgID:   "@aptre/bldr",
+		WebPkgId:   "@aptre/bldr",
 		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
 		Imports:    []string{"index.ts"},
 	}, {
-		WebPkgID:   "@aptre/bldr-react",
+		WebPkgId:   "@aptre/bldr-react",
 		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
 		Imports:    []string{"index.ts"},
 	}}
@@ -304,7 +304,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 
 	// NOTE: we use electron v28 for ESM support until v28 is released
 	if npmPkg == "" {
-		npmPkg = "electron@28.0.0-alpha.2"
+		npmPkg = "electron@28.0.0-alpha.3"
 	}
 
 	// trim the version from the name

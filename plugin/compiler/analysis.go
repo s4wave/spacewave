@@ -11,6 +11,7 @@ import (
 	"go/token"
 	"go/types"
 
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -254,9 +255,9 @@ func (a *Analysis) GetImportedModules() map[string]*packages.Module {
 }
 
 // AddVariableDefImports adds imports for the given variable defs.
-func (a *Analysis) AddVariableDefImports(le *logrus.Entry, varDefs []*GoVarDef) {
+func (a *Analysis) AddVariableDefImports(le *logrus.Entry, varDefs []*vardef.PluginVar) {
 	for _, varDef := range varDefs {
-		if pkgPath := varDef.PackagePath; pkgPath != "" {
+		if pkgPath := varDef.GetPkgImportPath(); pkgPath != "" {
 			_, ok := a.imports[pkgPath]
 			if !ok {
 				pkg := a.packages[pkgPath]

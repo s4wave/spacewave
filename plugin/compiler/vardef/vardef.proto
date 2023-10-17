@@ -1,0 +1,25 @@
+syntax = "proto3";
+package bldr.plugin.compiler.vardef;
+
+import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
+
+// PluginDevInfo is information passed as a .bin file as part of the development plugin entrypoint.
+message PluginDevInfo {
+  // PluginVars is the set of variables to set at init time by the development plugin.
+  repeated PluginVar plugin_vars = 1;
+}
+
+// PluginVar contains a definition of a variable set by the development plugin entrypoint.
+message PluginVar {
+  // PkgImportPath is the go package import path.
+  string pkg_import_path = 1;
+  // PkgVar is the variable within the go package.
+  string pkg_var = 2;
+  // Body contains the variable value depending on the variable type.
+  oneof body {
+    // StringValue is a value set to a string variable.
+    string string_value = 3;
+    // EsbuildOutput is an esbuild build output / entrypoint.
+    .bldr.esbuild.EsbuildOutput esbuild_output = 4;
+  }
+}

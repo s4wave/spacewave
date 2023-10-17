@@ -8,6 +8,7 @@ import (
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -51,19 +52,24 @@ func NewModuleCompiler(
 // GenerateModule builds the module files in the codegen path.
 //
 // if configSetBinary is set and len() != 0, will be embedded as a config set.
+//
+// devInfoFile will be loaded at runtime and used to populate variables init().
+// if devInfoFile is empty, the values of the go variable defs are hardcoded into init().
+// if devInfoFile is set, the file will be written at that path.
 func (m *ModuleCompiler) GenerateModule(
 	analysis *Analysis,
 	pluginMeta *bldr_plugin.PluginMeta,
 	configSetBinary []byte,
-	goVarDefs []*GoVarDef,
-) error {
+	goVarDefs []*vardef.PluginVar,
+	devInfoFile string,
+) (*vardef.PluginDevInfo, error) {
 	if _, err := os.Stat(m.pluginCodegenPath); err != nil {
-		return err
+		return nil, err
 	}
 
 	loadedModules := analysis.GetImportedModules()
 	if len(loadedModules) == 0 {
-		return errors.New("must load at least one module")
+		return nil, errors.New("must load at least one module")
 	}
 
 	// Create the embedded config set file, if necessary.
@@ -72,69 +78,23 @@ func (m *ModuleCompiler) GenerateModule(
 		configSetBinFilename := "config-set.bin"
 		outConfigSetBinPath := filepath.Join(m.pluginCodegenPath, configSetBinFilename)
 		if err := os.WriteFile(outConfigSetBinPath, configSetBinary, 0644); err != nil {
-			return err
+			return nil, err
 		}
 		configSetBinFiles = append(configSetBinFiles, configSetBinFilename)
 	}
 
-	// outGoMod will contain the go.mod for the plugin.
-	/*
-		outPluginModFilePath := filepath.Join(m.pluginCodegenPath, "go.mod")
-		outGoMod := analysis.GetBaseModFile()
-		if err := gocompiler.RelocateGoModFile(outGoMod, outPluginModFilePath); err != nil {
-			return err
-		}
-		if err := outGoMod.AddModuleStmt(m.pluginGoModule); err != nil {
-			return err
-		}
-
-		for _, mod := range loadedModules {
-			srcMod := mod
-			for mod.Replace != nil {
-				m.le.
-					WithField("mod-curr-path", mod.Path).
-					WithField("mod-next-path", mod.Replace.Path).
-					Debug("module was replaced with another")
-				mod = mod.Replace
-			}
-
-			// If the module exists within the source repository:
-			modPathAbs := filepath.Dir(mod.GoMod)
-			if !strings.HasPrefix(modPathAbs, analysis.workDir) {
-				m.le.
-					WithField("mod-path", mod.Path).
-					Debug("skipping replacing out-of-tree module")
-				continue
-			}
-
-			// Add a replace to the relative path of the containing repo.
-			//
-			// Ex: github.com/my/package => ../../
-			modPathRel, err := filepath.Rel(m.pluginCodegenPath, modPathAbs)
-			if err != nil {
-				return err
-			}
-
-			err = outGoMod.AddReplace(srcMod.Path, "", modPathRel, "")
-			if err != nil {
-				return err
-			}
-		}
-
-		// cleanup go mod file
-		outGoMod.SortBlocks()
-		outGoMod.Cleanup()
-
-		// format & write go mod file
-		pluginGoMod, err := outGoMod.Format()
+	// Create the dev info file if necessary.
+	pluginDevInfo := &vardef.PluginDevInfo{PluginVars: goVarDefs}
+	if len(devInfoFile) != 0 && len(goVarDefs) != 0 {
+		outDevInfoFilePath := filepath.Join(m.pluginCodegenPath, devInfoFile)
+		devInfoBin, err := (pluginDevInfo).MarshalVT()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = os.WriteFile(outPluginModFilePath, pluginGoMod, 0644)
-		if err != nil {
-			return err
+		if err := os.WriteFile(outDevInfoFilePath, devInfoBin, 0644); err != nil {
+			return nil, err
 		}
-	*/
+	}
 
 	// Build the plugin main() code file.
 	gfile, err := CodegenPluginWrapperFromAnalysis(
@@ -143,40 +103,33 @@ func (m *ModuleCompiler) GenerateModule(
 		pluginMeta,
 		configSetBinFiles,
 		goVarDefs,
+		devInfoFile,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	pluginCodeData, err := gocompiler.FormatCodeFile(analysis.fset, gfile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// remove any unused imports
 	outPluginCodeFilePath := filepath.Join(m.pluginCodegenPath, "plugin.go")
 	pluginCodeData, err = imports.Process(outPluginCodeFilePath, pluginCodeData, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := os.WriteFile(outPluginCodeFilePath, pluginCodeData, 0644); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return pluginDevInfo, nil
 }
 
 // CompilePlugin compiles the plugin to outFile.
 // The module structure should have been built already.
-func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform, enableCgo bool) error {
+func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform, enableCgo, isRelease bool) error {
 	workDir := m.pluginCodegenPath
-
-	// go mod tidy
-	/*
-		if err := gocompiler.RunGoModTidy(ctx, le, workDir); err != nil {
-			return err
-		}
-	*/
-
-	return gocompiler.ExecBuildEntrypoint(le, platform, workDir, outFile, enableCgo)
+	return gocompiler.ExecBuildEntrypoint(le, platform, workDir, outFile, enableCgo, isRelease)
 }
 
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.

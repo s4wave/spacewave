@@ -7,9 +7,9 @@ import (
 	"go/token"
 	"go/types"
 	"path/filepath"
-	"strconv"
 	"strings"
 
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -82,8 +82,8 @@ func BuildDefAssetHrefs(
 	outAssetsPath string,
 	pluginID string,
 	isRelease bool,
-) ([]*GoVarDef, error) {
-	var defs []*GoVarDef
+) ([]*vardef.PluginVar, error) {
+	var defs []*vardef.PluginVar
 	for pkgImportPath, pkgVars := range pkgs {
 		pkgCodeFiles := codeFiles[pkgImportPath]
 		if len(pkgCodeFiles) == 0 {
@@ -100,12 +100,11 @@ func BuildDefAssetHrefs(
 			}
 			destPathRel = filepath.ToSlash(destPathRel)
 
-			defs = append(defs, NewGoVarDef(
+			defs = append(defs, vardef.NewPluginVar(
 				pkgImportPath,
 				pkgVar,
-				&gast.BasicLit{
-					Kind:  token.STRING,
-					Value: strconv.Quote(BuildAssetHref(pluginID, destPathRel)),
+				&vardef.PluginVar_StringValue{
+					StringValue: BuildAssetHref(pluginID, destPathRel),
 				},
 			))
 		}

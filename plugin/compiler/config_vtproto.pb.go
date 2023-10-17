@@ -9,6 +9,9 @@ import (
 	io "io"
 	bits "math/bits"
 
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	esbuild1 "github.com/aperturerobotics/bldr/web/esbuild"
+	esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	proto1 "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -99,6 +102,153 @@ func (m *PreBuildHookResult) CloneVT() *PreBuildHookResult {
 }
 
 func (m *PreBuildHookResult) CloneMessageVT() proto1.Message {
+	return m.CloneVT()
+}
+
+func (m *InputFileMeta) CloneVT() *InputFileMeta {
+	if m == nil {
+		return (*InputFileMeta)(nil)
+	}
+	r := &InputFileMeta{
+		Kind: m.Kind,
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *InputFileMeta) CloneMessageVT() proto1.Message {
+	return m.CloneVT()
+}
+
+func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
+	if m == nil {
+		return (*InputManifestMeta)(nil)
+	}
+	r := &InputManifestMeta{}
+	if rhs := m.EsbuildBundles; rhs != nil {
+		tmpContainer := make(map[string]*EsbuildBundleMeta, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.EsbuildBundles = tmpContainer
+	}
+	if rhs := m.WebPkgRefs; rhs != nil {
+		tmpContainer := make([]*esbuild.WebPkgRef, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *esbuild.WebPkgRef }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto1.Clone(v).(*esbuild.WebPkgRef)
+			}
+		}
+		r.WebPkgRefs = tmpContainer
+	}
+	if rhs := m.WebPkgs; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.WebPkgs = tmpContainer
+	}
+	if rhs := m.EsbuildFlags; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EsbuildFlags = tmpContainer
+	}
+	if rhs := m.DevInfo; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *vardef.PluginDevInfo }); ok {
+			r.DevInfo = vtpb.CloneVT()
+		} else {
+			r.DevInfo = proto1.Clone(rhs).(*vardef.PluginDevInfo)
+		}
+	}
+	if rhs := m.EsbuildOutputs; rhs != nil {
+		tmpContainer := make([]*EsbuildOutputMeta, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.EsbuildOutputs = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *InputManifestMeta) CloneMessageVT() proto1.Message {
+	return m.CloneVT()
+}
+
+func (m *EsbuildOutputMeta) CloneVT() *EsbuildOutputMeta {
+	if m == nil {
+		return (*EsbuildOutputMeta)(nil)
+	}
+	r := &EsbuildOutputMeta{
+		Path:           m.Path,
+		Length:         m.Length,
+		EntrypointPath: m.EntrypointPath,
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *EsbuildOutputMeta) CloneMessageVT() proto1.Message {
+	return m.CloneVT()
+}
+
+func (m *EsbuildBundleMeta) CloneVT() *EsbuildBundleMeta {
+	if m == nil {
+		return (*EsbuildBundleMeta)(nil)
+	}
+	r := &EsbuildBundleMeta{
+		Id: m.Id,
+	}
+	if rhs := m.EntrypointVars; rhs != nil {
+		tmpContainer := make([]*EsbuildEntrypointVar, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.EntrypointVars = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *EsbuildBundleMeta) CloneMessageVT() proto1.Message {
+	return m.CloneVT()
+}
+
+func (m *EsbuildEntrypointVar) CloneVT() *EsbuildEntrypointVar {
+	if m == nil {
+		return (*EsbuildEntrypointVar)(nil)
+	}
+	r := &EsbuildEntrypointVar{
+		PkgImportPath: m.PkgImportPath,
+		PkgVar:        m.PkgVar,
+		PkgCodePath:   m.PkgCodePath,
+		PkgVarType:    m.PkgVarType,
+	}
+	if rhs := m.EsbuildFlags; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EsbuildFlags = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *EsbuildEntrypointVar) CloneMessageVT() proto1.Message {
 	return m.CloneVT()
 }
 
@@ -226,6 +376,224 @@ func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 
 func (this *PreBuildHookResult) EqualMessageVT(thatMsg proto1.Message) bool {
 	that, ok := thatMsg.(*PreBuildHookResult)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *InputFileMeta) EqualVT(that *InputFileMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InputFileMeta) EqualMessageVT(thatMsg proto1.Message) bool {
+	that, ok := thatMsg.(*InputFileMeta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.EsbuildBundles) != len(that.EsbuildBundles) {
+		return false
+	}
+	for i, vx := range this.EsbuildBundles {
+		vy, ok := that.EsbuildBundles[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EsbuildBundleMeta{}
+			}
+			if q == nil {
+				q = &EsbuildBundleMeta{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.WebPkgRefs) != len(that.WebPkgRefs) {
+		return false
+	}
+	for i, vx := range this.WebPkgRefs {
+		vy := that.WebPkgRefs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &esbuild.WebPkgRef{}
+			}
+			if q == nil {
+				q = &esbuild.WebPkgRef{}
+			}
+			if equal, ok := interface{}(p).(interface{ EqualVT(*esbuild.WebPkgRef) bool }); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto1.Equal(p, q) {
+				return false
+			}
+		}
+	}
+	if len(this.WebPkgs) != len(that.WebPkgs) {
+		return false
+	}
+	for i, vx := range this.WebPkgs {
+		vy := that.WebPkgs[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.EsbuildFlags) != len(that.EsbuildFlags) {
+		return false
+	}
+	for i, vx := range this.EsbuildFlags {
+		vy := that.EsbuildFlags[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if equal, ok := interface{}(this.DevInfo).(interface {
+		EqualVT(*vardef.PluginDevInfo) bool
+	}); ok {
+		if !equal.EqualVT(that.DevInfo) {
+			return false
+		}
+	} else if !proto1.Equal(this.DevInfo, that.DevInfo) {
+		return false
+	}
+	if len(this.EsbuildOutputs) != len(that.EsbuildOutputs) {
+		return false
+	}
+	for i, vx := range this.EsbuildOutputs {
+		vy := that.EsbuildOutputs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EsbuildOutputMeta{}
+			}
+			if q == nil {
+				q = &EsbuildOutputMeta{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InputManifestMeta) EqualMessageVT(thatMsg proto1.Message) bool {
+	that, ok := thatMsg.(*InputManifestMeta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *EsbuildOutputMeta) EqualVT(that *EsbuildOutputMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.Length != that.Length {
+		return false
+	}
+	if this.EntrypointPath != that.EntrypointPath {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EsbuildOutputMeta) EqualMessageVT(thatMsg proto1.Message) bool {
+	that, ok := thatMsg.(*EsbuildOutputMeta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *EsbuildBundleMeta) EqualVT(that *EsbuildBundleMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if len(this.EntrypointVars) != len(that.EntrypointVars) {
+		return false
+	}
+	for i, vx := range this.EntrypointVars {
+		vy := that.EntrypointVars[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EsbuildEntrypointVar{}
+			}
+			if q == nil {
+				q = &EsbuildEntrypointVar{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EsbuildBundleMeta) EqualMessageVT(thatMsg proto1.Message) bool {
+	that, ok := thatMsg.(*EsbuildBundleMeta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *EsbuildEntrypointVar) EqualVT(that *EsbuildEntrypointVar) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PkgImportPath != that.PkgImportPath {
+		return false
+	}
+	if this.PkgVar != that.PkgVar {
+		return false
+	}
+	if this.PkgCodePath != that.PkgCodePath {
+		return false
+	}
+	if this.PkgVarType != that.PkgVarType {
+		return false
+	}
+	if len(this.EsbuildFlags) != len(that.EsbuildFlags) {
+		return false
+	}
+	for i, vx := range this.EsbuildFlags {
+		vy := that.EsbuildFlags[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EsbuildEntrypointVar) EqualMessageVT(thatMsg proto1.Message) bool {
+	that, ok := thatMsg.(*EsbuildEntrypointVar)
 	if !ok {
 		return false
 	}
@@ -446,6 +814,347 @@ func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *InputFileMeta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InputFileMeta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InputFileMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Kind != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InputManifestMeta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InputManifestMeta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EsbuildOutputs) > 0 {
+		for iNdEx := len(m.EsbuildOutputs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.EsbuildOutputs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if m.DevInfo != nil {
+		if vtmsg, ok := interface{}(m.DevInfo).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto1.Marshal(m.DevInfo)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = encodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.EsbuildFlags) > 0 {
+		for iNdEx := len(m.EsbuildFlags) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.EsbuildFlags[iNdEx])
+			copy(dAtA[i:], m.EsbuildFlags[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.EsbuildFlags[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.WebPkgs) > 0 {
+		for iNdEx := len(m.WebPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.WebPkgs[iNdEx])
+			copy(dAtA[i:], m.WebPkgs[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.WebPkgs[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.WebPkgRefs) > 0 {
+		for iNdEx := len(m.WebPkgRefs) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.WebPkgRefs[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto1.Marshal(m.WebPkgRefs[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = encodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.EsbuildBundles) > 0 {
+		for k := range m.EsbuildBundles {
+			v := m.EsbuildBundles[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EsbuildOutputMeta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EsbuildOutputMeta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EsbuildOutputMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EntrypointPath) > 0 {
+		i -= len(m.EntrypointPath)
+		copy(dAtA[i:], m.EntrypointPath)
+		i = encodeVarint(dAtA, i, uint64(len(m.EntrypointPath)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Length != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.Length))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = encodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EsbuildBundleMeta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EsbuildBundleMeta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EsbuildBundleMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EntrypointVars) > 0 {
+		for iNdEx := len(m.EntrypointVars) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.EntrypointVars[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = encodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EsbuildEntrypointVar) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EsbuildEntrypointVar) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EsbuildEntrypointVar) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EsbuildFlags) > 0 {
+		for iNdEx := len(m.EsbuildFlags) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.EsbuildFlags[iNdEx])
+			copy(dAtA[i:], m.EsbuildFlags[iNdEx])
+			i = encodeVarint(dAtA, i, uint64(len(m.EsbuildFlags[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if m.PkgVarType != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.PkgVarType))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.PkgCodePath) > 0 {
+		i -= len(m.PkgCodePath)
+		copy(dAtA[i:], m.PkgCodePath)
+		i = encodeVarint(dAtA, i, uint64(len(m.PkgCodePath)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PkgVar) > 0 {
+		i -= len(m.PkgVar)
+		copy(dAtA[i:], m.PkgVar)
+		i = encodeVarint(dAtA, i, uint64(len(m.PkgVar)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PkgImportPath) > 0 {
+		i -= len(m.PkgImportPath)
+		copy(dAtA[i:], m.PkgImportPath)
+		i = encodeVarint(dAtA, i, uint64(len(m.PkgImportPath)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarint(dAtA []byte, offset int, v uint64) int {
 	offset -= sov(v)
 	base := offset
@@ -549,6 +1258,154 @@ func (m *PreBuildHookResult) SizeVT() (n int) {
 	if m.Config != nil {
 		l = m.Config.SizeVT()
 		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InputFileMeta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Kind != 0 {
+		n += 1 + sov(uint64(m.Kind))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InputManifestMeta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.EsbuildBundles) > 0 {
+		for k, v := range m.EsbuildBundles {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + sov(uint64(l))
+			mapEntrySize := 1 + len(k) + sov(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
+		}
+	}
+	if len(m.WebPkgRefs) > 0 {
+		for _, e := range m.WebPkgRefs {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto1.Size(e)
+			}
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.WebPkgs) > 0 {
+		for _, s := range m.WebPkgs {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if len(m.EsbuildFlags) > 0 {
+		for _, s := range m.EsbuildFlags {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	if m.DevInfo != nil {
+		if size, ok := interface{}(m.DevInfo).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto1.Size(m.DevInfo)
+		}
+		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.EsbuildOutputs) > 0 {
+		for _, e := range m.EsbuildOutputs {
+			l = e.SizeVT()
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EsbuildOutputMeta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.Length != 0 {
+		n += 1 + sov(uint64(m.Length))
+	}
+	l = len(m.EntrypointPath)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EsbuildBundleMeta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if len(m.EntrypointVars) > 0 {
+		for _, e := range m.EntrypointVars {
+			l = e.SizeVT()
+			n += 1 + l + sov(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EsbuildEntrypointVar) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PkgImportPath)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PkgVar)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	l = len(m.PkgCodePath)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
+	if m.PkgVarType != 0 {
+		n += 1 + sov(uint64(m.PkgVarType))
+	}
+	if len(m.EsbuildFlags) > 0 {
+		for _, s := range m.EsbuildFlags {
+			l = len(s)
+			n += 1 + l + sov(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1169,6 +2026,889 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 			if err := m.Config.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InputFileMeta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InputFileMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InputFileMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Kind |= InputFileKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InputManifestMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InputManifestMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildBundles", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.EsbuildBundles == nil {
+				m.EsbuildBundles = make(map[string]*EsbuildBundleMeta)
+			}
+			var mapkey string
+			var mapvalue *EsbuildBundleMeta
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &EsbuildBundleMeta{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.EsbuildBundles[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgRefs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgRefs = append(m.WebPkgRefs, &esbuild.WebPkgRef{})
+			if unmarshal, ok := interface{}(m.WebPkgRefs[len(m.WebPkgRefs)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto1.Unmarshal(dAtA[iNdEx:postIndex], m.WebPkgRefs[len(m.WebPkgRefs)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgs = append(m.WebPkgs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildFlags", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevInfo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DevInfo == nil {
+				m.DevInfo = &vardef.PluginDevInfo{}
+			}
+			if unmarshal, ok := interface{}(m.DevInfo).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto1.Unmarshal(dAtA[iNdEx:postIndex], m.DevInfo); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildOutputs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EsbuildOutputs = append(m.EsbuildOutputs, &EsbuildOutputMeta{})
+			if err := m.EsbuildOutputs[len(m.EsbuildOutputs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EsbuildOutputMeta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EsbuildOutputMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EsbuildOutputMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Length", wireType)
+			}
+			m.Length = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Length |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EsbuildBundleMeta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EsbuildBundleMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EsbuildBundleMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointVars", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointVars = append(m.EntrypointVars, &EsbuildEntrypointVar{})
+			if err := m.EntrypointVars[len(m.EntrypointVars)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EsbuildEntrypointVar) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EsbuildEntrypointVar: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EsbuildEntrypointVar: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgImportPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgImportPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgVar", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgVar = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgCodePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgCodePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgVarType", wireType)
+			}
+			m.PkgVarType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PkgVarType |= esbuild1.EsbuildVarType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildFlags", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

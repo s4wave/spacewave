@@ -30,7 +30,7 @@ const Example: React.FC<ExampleProps> = (props: ExampleProps) => {
 
   return (
     <>
-      <DebugInfo>TestDebugInfo</DebugInfo>
+      <DebugInfo>TestDebugInfo 1</DebugInfo>
       <div className="example-message">{message || 'Loading...'}</div>
     </>
   )

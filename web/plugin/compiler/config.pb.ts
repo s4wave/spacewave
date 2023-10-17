@@ -29,7 +29,7 @@ export interface Config {
   delveAddr: string
   /**
    * ElectronPkg is the name and version of the npm package to use for electron.
-   * Defaults to electron-nightly@latest.
+   * Defaults to electron@latest.
    */
   electronPkg: string
 }

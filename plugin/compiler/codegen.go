@@ -11,22 +11,10 @@ import (
 	"strings"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// GeneratePluginWrapper generates a wrapper package for a list of packages
-// containing controller factories.
-func GeneratePluginWrapper(
-	le *logrus.Entry,
-	an *Analysis,
-	pluginMeta *bldr_plugin.PluginMeta,
-	configSetFiles []string,
-	goVarDefs []*GoVarDef,
-) (*gast.File, error) {
-	// Build the plugin main package.
-	return CodegenPluginWrapperFromAnalysis(le, an, pluginMeta, configSetFiles, goVarDefs)
-}
 
 // FormatFile formats the output file.
 func FormatFile(gf *gast.File) ([]byte, error) {
@@ -48,12 +36,16 @@ func BuildPackageName(pkg *types.Package) string {
 // CodegenPluginWrapperFromAnalysis codegens a plugin wrapper from analysis.
 //
 // configSetFiles will be embedded in the binary and parsed as a ConfigSet.
+//
+// devInfoFile will be loaded at runtime and used to populate variables init().
+// if devInfoFile is empty, the values of the go variable defs are hardcoded into init().
 func CodegenPluginWrapperFromAnalysis(
 	le *logrus.Entry,
 	a *Analysis,
 	pluginMeta *bldr_plugin.PluginMeta,
 	configSetFiles []string,
-	goVarDefs []*GoVarDef,
+	goVarDefs []*vardef.PluginVar,
+	devInfoFile string,
 ) (*gast.File, error) {
 	var allDecls []gast.Decl
 	importStrs := make([]string, 0, len(a.imports))
@@ -316,24 +308,92 @@ func CodegenPluginWrapperFromAnalysis(
 		},
 	})
 
+	// check that all imports are defined for the var defs
+	for _, varDef := range goVarDefs {
+		_, impOk := a.imports[varDef.GetPkgImportPath()]
+		if !impOk {
+			return nil, errors.Errorf("variable defined for unimported package: %s", varDef.GetPkgImportPath())
+		}
+	}
+
 	// init initializes any defined variables
 	if len(goVarDefs) != 0 {
 		var initBody []gast.Stmt
+
+		// if the dev info file is set, load from a file.
+		devInfoVarName := "devInfo"
+		if devInfoFile != "" {
+			initBody = append(initBody,
+				// devInfo, err := plugin_entrypoint.PluginDevInfoFromFile("dev-info.bin")
+				&gast.AssignStmt{
+					Lhs: []gast.Expr{
+						&gast.Ident{Name: devInfoVarName},
+						&gast.Ident{Name: "err"},
+					},
+					Tok: token.DEFINE, // :=
+					Rhs: []gast.Expr{
+						&gast.CallExpr{
+							Fun: &gast.SelectorExpr{
+								X:   &gast.Ident{Name: "plugin_entrypoint"},
+								Sel: &gast.Ident{Name: "PluginDevInfoFromFile"},
+							},
+							Args: []gast.Expr{
+								&gast.BasicLit{Kind: token.STRING, Value: `"dev-info.bin"`},
+							},
+						},
+					},
+				},
+				// if err != nil { panic(err) }
+				&gast.IfStmt{
+					Cond: &gast.BinaryExpr{
+						X:  &gast.Ident{Name: "err"},
+						Op: token.NEQ,
+						Y:  &gast.Ident{Name: "nil"},
+					},
+					Body: &gast.BlockStmt{
+						List: []gast.Stmt{
+							&gast.ExprStmt{
+								X: &gast.CallExpr{
+									Fun:  &gast.Ident{Name: "panic"},
+									Args: []gast.Expr{&gast.Ident{Name: "err"}},
+								},
+							},
+						},
+					},
+				},
+			)
+		}
+
+		// set each of the variables
 		for _, varDef := range goVarDefs {
-			imp, impOk := a.imports[varDef.PackagePath]
-			if !impOk {
-				return nil, errors.Errorf("variable defined for unimported package: %s", varDef.PackagePath)
-			}
+			imp := a.imports[varDef.GetPkgImportPath()]
 			pkgName := BuildPackageName(imp)
+			var rhs []gast.Expr
+
+			// if the dev info file is set, use it instead of hardcoding the value.
+			if devInfoFile != "" {
+				exp, err := varDef.ToGoDevInfoRefAst(devInfoVarName)
+				if err != nil {
+					return nil, err
+				}
+				rhs = []gast.Expr{exp}
+			} else {
+				expr, err := varDef.ToGoValueAst()
+				if err != nil {
+					return nil, err
+				}
+				rhs = []gast.Expr{expr}
+			}
+
 			initBody = append(initBody, &gast.AssignStmt{
 				Lhs: []gast.Expr{
 					&gast.SelectorExpr{
 						X:   gast.NewIdent(pkgName),
-						Sel: gast.NewIdent(varDef.VariableName),
+						Sel: gast.NewIdent(varDef.GetPkgVar()),
 					},
 				},
 				Tok: token.ASSIGN,
-				Rhs: []gast.Expr{varDef.Value},
+				Rhs: rhs,
 			})
 		}
 

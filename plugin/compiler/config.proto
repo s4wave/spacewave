@@ -2,6 +2,9 @@ syntax = "proto3";
 package bldr.plugin.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
+import "github.com/aperturerobotics/bldr/web/pkg/esbuild/esbuild.proto";
+import "github.com/aperturerobotics/bldr/plugin/compiler/vardef/vardef.proto";
 
 // Config configures the plugin compiler controller.
 message Config {
@@ -77,4 +80,73 @@ message PreBuildHookResult {
   // Config is the configuration for the plugin build step.
   // Merged with the existing configuration.
   Config config = 1;
+}
+
+// InputFileKind is the kind of file this is.
+enum InputFileKind {
+  // InputFileKind_UNKNOWN is the default kind.
+  InputFileKind_UNKNOWN = 0;
+  // InputFileKind_ASSET is a static asset.
+  InputFileKind_ASSET = 1;
+  // InputFileKind_GO is a file built by the Go compiler.
+  InputFileKind_GO = 2;
+  // InputFileKind_ESBUILD is an input consumed by esbuild.
+  InputFileKind_ESBUILD = 3;
+  // InputFileKind_WEB_PKG is a third party bundled npm package.
+  InputFileKind_WEB_PKG = 4;
+}
+
+// InputFileMeta is metadata attached to an input manifest file.
+message InputFileMeta {
+  // Kind is the input file kind.
+  InputFileKind kind = 1;
+}
+
+// InputManifestMeta is metadata attached to the input manifest.
+message InputManifestMeta {
+  // EsbuildBundles contains the set of esbuild bundles.
+  map<string, EsbuildBundleMeta> esbuild_bundles = 1;
+  // WebPkgRefs contains the list of web pkg references.
+  repeated .web.pkg.esbuild.WebPkgRef web_pkg_refs = 2;
+  // WebPkgs is the list of web pkgs that we separate from the bundle.
+  repeated string web_pkgs = 3;
+  // EsbuildFlags are the base command-line arguments to pass to esbuild.
+  repeated string esbuild_flags = 4;
+  // DevInfo contains the set of plugin variable definitions.
+  .bldr.plugin.compiler.vardef.PluginDevInfo dev_info = 5;
+  // EsbuildOutputs contains a list of files written by esbuild.
+  repeated EsbuildOutputMeta esbuild_outputs = 6;
+}
+
+// EsbuildOutputMeta is information about an esbuild output.
+message EsbuildOutputMeta {
+  // Path is the path to the file within the output dir.
+  string path = 1;
+  // Length is the size of the file in bytes.
+  uint32 length = 2;
+  // EntrypointPath is the entrypoint that produced this output file.
+  // May be empty.
+  string entrypoint_path = 3;
+}
+
+// EsbuildBundleMeta is information about an esbuild bundle.
+message EsbuildBundleMeta {
+  // Id is the identifier of the bundle.
+  string id = 1;
+  // EntrypointVars is the list of entrypoint variables.
+  repeated EsbuildEntrypointVar entrypoint_vars = 2;
+}
+
+// EsbuildEntrypointVar is a variable in the Go code referring to a esbuild entrypoint.
+message EsbuildEntrypointVar {
+  // PkgImportPath is the go package import path.
+  string pkg_import_path = 1;
+  // PkgVar is the variable within the go package.
+  string pkg_var = 2;
+  // PkgCodePath is the relative path to the code dir from the project root.
+  string pkg_code_path = 3;
+  // PkgVarType is the type of esbuild variable this is.
+  .bldr.esbuild.EsbuildVarType pkg_var_type = 4;
+  // EsbuildFlags are the command-line arguments to pass to esbuild.
+  repeated string esbuild_flags = 5;
 }

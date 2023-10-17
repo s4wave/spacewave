@@ -3,9 +3,11 @@ package bldr_manifest_builder
 import (
 	"context"
 	"path"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"golang.org/x/exp/slices"
 )
 
 // ControllerConfig is a configuration for a manifest Builder controller.
@@ -44,4 +46,13 @@ func NewInputManifest(paths []string) *InputManifest {
 		manifest.Files = append(manifest.Files, &InputManifest_File{Path: cleanPath})
 	}
 	return manifest
+}
+
+// SortFiles sorts the files field on the input manifest.
+func (i *InputManifest) SortFiles() {
+	if i != nil {
+		slices.SortFunc(i.Files, func(a, b *InputManifest_File) int {
+			return strings.Compare(a.GetPath(), b.GetPath())
+		})
+	}
 }

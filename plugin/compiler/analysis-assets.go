@@ -9,10 +9,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	cf "github.com/aperturerobotics/bldr/util/fsutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -104,8 +104,8 @@ func BuildDefAssets(
 	outAssetsPath string,
 	pluginID string,
 	isRelease bool,
-) ([]*GoVarDef, []string, error) {
-	var defs []*GoVarDef
+) ([]*vardef.PluginVar, []string, error) {
+	var defs []*vardef.PluginVar
 	var srcFilesPaths []string
 	for pkgImportPath, pkgVars := range pkgs {
 		pkgCodeFiles := codeFiles[pkgImportPath]
@@ -150,12 +150,11 @@ func BuildDefAssets(
 				return nil, nil, err
 			}
 
-			defs = append(defs, NewGoVarDef(
+			defs = append(defs, vardef.NewPluginVar(
 				pkgImportPath,
 				pkgVar,
-				&gast.BasicLit{
-					Kind:  token.STRING,
-					Value: strconv.Quote(BuildAssetHref(pluginID, destPathRel)),
+				&vardef.PluginVar_StringValue{
+					StringValue: BuildAssetHref(pluginID, destPathRel),
 				},
 			))
 		}

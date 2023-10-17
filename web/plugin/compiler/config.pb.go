@@ -43,7 +43,7 @@ type Config struct {
 	// Special value: "wait" - waits for plugin entrypoint to be run manually.
 	DelveAddr string `protobuf:"bytes,3,opt,name=delve_addr,json=delveAddr,proto3" json:"delve_addr,omitempty"`
 	// ElectronPkg is the name and version of the npm package to use for electron.
-	// Defaults to electron-nightly@latest.
+	// Defaults to electron@latest.
 	ElectronPkg string `protobuf:"bytes,4,opt,name=electron_pkg,json=electronPkg,proto3" json:"electron_pkg,omitempty"`
 }
 

@@ -5,6 +5,7 @@ import "github.com/aperturerobotics/bldr/manifest/manifest.proto";
 import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {
@@ -76,7 +77,7 @@ message PluginMeta {
   string platform_id = 3;
 }
 
-// PluginStartInfo are details passed to the plugin by the plugin host.
+// PluginStartInfo are details passed to the plugin by the plugin host in the environment.
 message PluginStartInfo {
   // InstanceId is the plugin instance id.
   string instance_id = 1;

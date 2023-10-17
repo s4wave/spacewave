@@ -66,7 +66,7 @@ export interface PluginMeta {
   platformId: string;
 }
 
-/** PluginStartInfo are details passed to the plugin by the plugin host. */
+/** PluginStartInfo are details passed to the plugin by the plugin host in the environment. */
 export interface PluginStartInfo {
   /** InstanceId is the plugin instance id. */
   instanceId: string;

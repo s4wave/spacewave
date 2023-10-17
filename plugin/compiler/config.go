@@ -5,11 +5,10 @@ import (
 	"strings"
 
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
-	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
-	shellquote "github.com/kballard/go-shellquote"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 	"golang.org/x/mod/module"
@@ -78,23 +77,7 @@ func (c *Config) Validate() error {
 // ParseEsbuildFlags parsed the esbuild flags field, if set.
 // Returns nil if no flags were set.
 func (c *Config) ParseEsbuildFlags() (*esbuild_api.BuildOptions, error) {
-	var args []string
-	for _, flagStr := range c.GetEsbuildFlags() {
-		flagArgs, err := shellquote.Split(flagStr)
-		if err != nil {
-			return nil, err
-		}
-		args = append(args, flagArgs...)
-	}
-	if len(args) == 0 {
-		return nil, nil
-	}
-
-	opts, err := esbuild_cli.ParseBuildOptions(args)
-	if err != nil {
-		return nil, err
-	}
-	return &opts, nil
+	return bldr_esbuild.ParseEsbuildFlags(c.GetEsbuildFlags())
 }
 
 // Alloc allocates any nil maps.

@@ -76,7 +76,7 @@ func ResolveWebPkgRefsEsbuild(
 
 		// use esbuild to determine the list of web pkg references
 		// webPkgRoot := ref.WebPkgRoot
-		webPkgID := ref.WebPkgID
+		webPkgID := ref.WebPkgId
 		buildOpts := BuildEsbuildBuildOpts(
 			le,
 			codeRootPath, // resolve relative to project root for node_modules
@@ -130,26 +130,26 @@ func ResolveWebPkgRefsEsbuild(
 		// build full list of web pkgs so far
 		webPkgIDs := make([]string, len(webPkgsRefs))
 		for i, ref := range webPkgsRefs {
-			webPkgIDs[i] = ref.WebPkgID
+			webPkgIDs[i] = ref.WebPkgId
 		}
 		slices.Sort(webPkgIDs)
 		webPkgIDs = slices.Compact(webPkgIDs)
 
-		// clear the Refs field on the Ref
+		// clear the CrossRefs field on the Ref
 		// we will re-build this slice below
-		ref.Refs = nil
+		ref.CrossRefs = nil
 
 		// when we find a web pkg ref we can add it to the list & queue for processing
 		addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
-			if !slices.Contains(ref.Refs, webPkgID) {
-				ref.Refs = append(ref.Refs, webPkgID)
+			if !slices.Contains(ref.CrossRefs, webPkgID) {
+				ref.CrossRefs = append(ref.CrossRefs, webPkgID)
 			}
 
 			var dirty bool
-			webPkgsRefs, dirty = AddWebPkgRef(webPkgsRefs, webPkgID, webPkgRoot, webPkgSubPath)
+			webPkgsRefs, dirty = WebPkgRefSlice(webPkgsRefs).AppendWebPkgRef(webPkgID, webPkgRoot, webPkgSubPath)
 			if dirty {
 				le.WithFields(logrus.Fields{
-					"web-pkg-id":         ref.WebPkgID,
+					"web-pkg-id":         ref.WebPkgId,
 					"ref-web-pkg-id":     webPkgID,
 					"ref-web-pkg-import": webPkgSubPath,
 				}).Debug("added web pkg ref")
@@ -203,8 +203,7 @@ func BuildWebPkgsEsbuild(
 ) (webPkgIDs, sourcePaths []string, err error) {
 	// Build list of web pkg IDs
 	for _, webPkgRef := range webPkgsRefs {
-		webPkgID := webPkgRef.WebPkgID
-		webPkgIDs = append(webPkgIDs, webPkgID)
+		webPkgIDs = append(webPkgIDs, webPkgRef.WebPkgId)
 	}
 
 	// NOTE: esbuild removes the named exports when bundling libraries like
@@ -223,7 +222,7 @@ func BuildWebPkgsEsbuild(
 	//  - Run esbuild to bundle the package + named exports to out
 	var sourceFilesList []string
 	for _, webPkgRef := range webPkgsRefs {
-		webPkgID := webPkgRef.WebPkgID
+		webPkgID := webPkgRef.WebPkgId
 		pkgOutputPath := filepath.Join(outputPath, webPkgID)
 		if _, err := os.Stat(pkgOutputPath); !os.IsNotExist(err) {
 			if err := os.RemoveAll(pkgOutputPath); err != nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -13,8 +12,10 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
+	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	"github.com/aperturerobotics/bldr/util/fsutil"
+	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
@@ -25,9 +26,9 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/blang/semver"
-	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
@@ -120,9 +121,18 @@ func (c *Controller) BuildManifest(
 
 	platformID := meta.GetPlatformId()
 	pluginID := strings.TrimSpace(meta.GetManifestId())
-
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	isRelease := buildType.IsRelease()
+
+	// output paths
+	workingPath := builderConf.GetWorkingPath()
+	outDistPath := filepath.Join(workingPath, "dist")
+	outAssetsPath := filepath.Join(workingPath, "assets")
+	outBinName := pluginID + buildPlatform.GetExecutableExt()
+
+	// build output world engine
+	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
@@ -130,127 +140,138 @@ func (c *Controller) BuildManifest(
 		WithField("platform-id", platformID)
 	le.Debug("building plugin manifest")
 
-	// clean / create dist dir
-	workingPath := builderConf.GetWorkingPath()
-	outDistPath := filepath.Join(workingPath, "dist")
-	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
-		return nil, err
+	// if we are in dev mode, use the dev info file for hot reload compatibility.
+	var devInfoFile string
+	if !isRelease {
+		devInfoFile = "dev-info.bin"
 	}
 
-	// clean / create assets dir
-	outAssetsPath := filepath.Join(workingPath, "assets")
-	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
-		return nil, err
-	}
-
-	// build output world engine
-	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
-
-	// build base plugin config
-	pluginBuildConf := conf.CloneVT()
-	if pluginBuildConf == nil {
-		pluginBuildConf = &Config{}
-	}
-
-	// call any pre-build hooks
-	for _, hook := range c.preBuildHooks {
-		res, err := hook(ctx, builderConf, busEngine)
+	// If no Go files changed, rebuild esbuild assets only (hot reload)
+	prevResult := args.GetPrevBuilderResult()
+	var updatedManifestMeta *manifest_builder.InputManifest
+	if prevResult != nil && !isRelease {
+		// prevManifest := prevResult.GetManifest()
+		updatedManifestMeta, err = c.FastRebuildPlugin(
+			ctx,
+			le,
+			pluginID,
+			sourcePath,
+			outDistPath,
+			outAssetsPath,
+			prevResult.GetInputManifest(),
+			args.GetChangedFiles(),
+			devInfoFile,
+		)
 		if err != nil {
+			le.WithError(err).Warn("fast rebuild failed: continuing with normal build")
+			updatedManifestMeta, err = nil, nil
+		} else if updatedManifestMeta != nil {
+			le.Debug("completed fast rebuild")
+		}
+	}
+
+	// if fast-rebuild skipped or failed, use the full rebuild process (slower)
+	if updatedManifestMeta == nil {
+		// clean/create build directories
+		if err := fsutil.CleanCreateDir(outDistPath); err != nil {
+			return nil, err
+		}
+		if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
 			return nil, err
 		}
 
-		// merge the returned config
-		pluginBuildConf.Merge(res.GetConfig())
-	}
+		// build base plugin config
+		pluginBuildConf := conf.CloneVT()
+		if pluginBuildConf == nil {
+			pluginBuildConf = &Config{}
+		}
 
-	// clone the config set maps
-	configSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetConfigSet()))
-	for k, v := range pluginBuildConf.GetConfigSet() {
-		configSet[k] = v.CloneVT()
-	}
-
-	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetHostConfigSet()))
-	for k, v := range pluginBuildConf.GetHostConfigSet() {
-		hostConfigSet[k] = v.CloneVT()
-	}
-
-	// apply host config set
-	if len(hostConfigSet) != 0 {
-		hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
-			ConfigSet: hostConfigSet,
-		})
-		if err != nil {
-			if err != context.Canceled {
+		// call any pre-build hooks
+		for _, hook := range c.preBuildHooks {
+			res, err := hook(ctx, builderConf, busEngine)
+			if err != nil {
 				return nil, err
 			}
-			return nil, errors.Wrap(err, "marshal plugin host configset")
+
+			// merge the returned config
+			pluginBuildConf.Merge(res.GetConfig())
 		}
 
-		configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
-			Id:     plugin_host_configset.ConfigID,
-			Rev:    1,
-			Config: hostConfigSetConf,
+		// clone the config set maps
+		configSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetConfigSet()))
+		for k, v := range pluginBuildConf.GetConfigSet() {
+			configSet[k] = v.CloneVT()
 		}
-	}
 
-	// determine project id
-	projectID := builderConf.GetProjectId()
-	if cproj := pluginBuildConf.GetProjectId(); cproj != "" {
-		projectID = cproj
-	}
-
-	// Cleanup list of go packages
-	goPkgs := slices.Clone(pluginBuildConf.GetGoPkgs())
-	sort.Strings(goPkgs)
-	goPkgs = slices.Compact(goPkgs)
-
-	// Cleanup list of web packages
-	webPkgs := slices.Clone(pluginBuildConf.GetWebPkgs())
-	sort.Strings(webPkgs)
-	webPkgs = slices.Compact(webPkgs)
-
-	// Enable cgo only if flag is set (for reproducible builds)
-	enableCgo := pluginBuildConf.GetEnableCgo()
-
-	baseEsbuildOpts, err := pluginBuildConf.ParseEsbuildFlags()
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: if no Go files changed, rebuild esbuild assets only (hot reload)
-	/*
-		prevResult := args.GetPrevBuilderResult()
-		if prevResult != nil {
-			prevManifest := prevResult.GetManifest()
-			changedFiles := args.GetChangedFiles()
+		hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetHostConfigSet()))
+		for k, v := range pluginBuildConf.GetHostConfigSet() {
+			hostConfigSet[k] = v.CloneVT()
 		}
-	*/
 
-	le.Debug("compiling plugin")
-	outBinName := pluginID + buildPlatform.GetExecutableExt()
-	pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
-	_, consumedSrcFiles, err := c.BuildPlugin(
-		ctx,
-		le,
-		pluginMeta,
-		buildType,
-		buildPlatform,
-		outBinName,
-		workingPath,
-		sourcePath,
-		outDistPath,
-		outAssetsPath,
-		goPkgs,
-		webPkgs,
-		pluginBuildConf.GetDisableRpcFetch(),
-		pluginBuildConf.GetDisableFetchAssets(),
-		pluginBuildConf.GetDelveAddr(),
-		configSet,
-		enableCgo,
-		baseEsbuildOpts,
-	)
-	if err != nil {
-		return nil, err
+		// apply host config set
+		if len(hostConfigSet) != 0 {
+			hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
+				ConfigSet: hostConfigSet,
+			})
+			if err != nil {
+				if err != context.Canceled {
+					return nil, err
+				}
+				return nil, errors.Wrap(err, "marshal plugin host configset")
+			}
+
+			configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
+				Id:     plugin_host_configset.ConfigID,
+				Rev:    1,
+				Config: hostConfigSetConf,
+			}
+		}
+
+		// determine project id
+		projectID := builderConf.GetProjectId()
+		if cproj := pluginBuildConf.GetProjectId(); cproj != "" {
+			projectID = cproj
+		}
+
+		// Cleanup list of go packages
+		goPkgs := slices.Clone(pluginBuildConf.GetGoPkgs())
+		slices.Sort(goPkgs)
+		goPkgs = slices.Compact(goPkgs)
+
+		// Cleanup list of web packages
+		webPkgs := slices.Clone(pluginBuildConf.GetWebPkgs())
+		slices.Sort(webPkgs)
+		webPkgs = slices.Compact(webPkgs)
+
+		// Enable cgo only if flag is set (for reproducible builds)
+		enableCgo := pluginBuildConf.GetEnableCgo()
+		pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
+
+		le.Debug("compiling plugin")
+		_, updatedManifestMeta, err = c.BuildPlugin(
+			ctx,
+			le,
+			pluginMeta,
+			buildType,
+			buildPlatform,
+			outBinName,
+			workingPath,
+			sourcePath,
+			outDistPath,
+			outAssetsPath,
+			goPkgs,
+			webPkgs,
+			pluginBuildConf.GetDisableRpcFetch(),
+			pluginBuildConf.GetDisableFetchAssets(),
+			pluginBuildConf.GetDelveAddr(),
+			configSet,
+			enableCgo,
+			pluginBuildConf.GetEsbuildFlags(),
+			devInfoFile,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tx, err := busEngine.NewTransaction(ctx, true)
@@ -275,26 +296,235 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// convert paths to relative
-	err = fsutil.ConvertPathsToRelative(sourcePath, consumedSrcFiles)
-	if err != nil {
-		return nil, errors.Wrap(err, "source paths")
-	}
-
 	le.Debugf(
-		"plugin build complete: %d go packages with %d files",
-		len(goPkgs),
-		len(consumedSrcFiles),
+		"plugin build complete with %d input files",
+		len(updatedManifestMeta.Files),
 	)
 	result := manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
-		manifest_builder.NewInputManifest(consumedSrcFiles),
+		updatedManifestMeta,
 	)
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+
 	return result, nil
+}
+
+// FastRebuildPlugin compiles the plugin once skipping running the Go compiler if possible.
+// Assumes we are in dev mode (not release mode).
+// Returns nil, nil if fast rebuild is not applicable.
+func (c *Controller) FastRebuildPlugin(
+	ctx context.Context,
+	le *logrus.Entry,
+	pluginID,
+	sourcePath,
+	outDistPath,
+	outAssetsPath string,
+	prevInputManifest *manifest_builder.InputManifest,
+	changedFiles []*manifest_builder.InputManifest_File,
+	devInfoFile string,
+) (*manifest_builder.InputManifest, error) {
+	// Skip if there is no previous result.
+	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
+		return nil, nil
+	}
+
+	// Skip if there is no valid input manifest metadata.
+	prevMetaBin := prevInputManifest.Metadata
+	if len(prevMetaBin) == 0 {
+		return nil, nil
+	}
+	inputMeta := &InputManifestMeta{}
+	if err := inputMeta.UnmarshalVT(prevMetaBin); err != nil {
+		return nil, errors.Wrap(err, "unmarshal input metadata")
+	}
+
+	webPkgs := inputMeta.GetWebPkgs()
+	baseEsbuildOpts, err := bldr_esbuild.ParseEsbuildFlags(inputMeta.GetEsbuildFlags())
+	if err != nil {
+		return nil, err
+	}
+
+	// If any non-esbuild assets changed, skip fast rebuild.
+	meta := &InputFileMeta{}
+	for _, changedFile := range changedFiles {
+		meta.Reset()
+		err := meta.UnmarshalVT(changedFile.GetMetadata())
+		if err != nil {
+			// parsing error
+			return nil, errors.Wrap(err, "failed to parse file metadata")
+		}
+		if meta.GetKind() != InputFileKind_InputFileKind_ESBUILD {
+			// Skip fast rebuild: non-esbuild asset
+			return nil, nil
+		}
+	}
+
+	// Perform fast rebuild by running the esbuild compiler only.
+	le.Info("performing fast rebuild")
+
+	// execute the build
+	esbuildBundleMeta := inputMeta.GetEsbuildBundles()
+	bundleIDs := maps.Keys(esbuildBundleMeta)
+	slices.Sort(bundleIDs)
+	var updatedWebPkgRefs []*web_pkg_esbuild.WebPkgRef
+	var esbuildSrcFiles []string
+	var goVariableDefs []*vardef.PluginVar
+	var updatedEsbuildOutputs []*EsbuildOutputMeta
+	for _, bundleID := range bundleIDs {
+		bundleDef := esbuildBundleMeta[bundleID]
+		esbuildVarDefs, esbuildWebPkgRefs, esbuildOutputMeta, esbuildSrcs, err := BuildEsbuildBundle(
+			le,
+			sourcePath,
+			bundleDef,
+			baseEsbuildOpts,
+			webPkgs,
+			outAssetsPath,
+			pluginID,
+			false,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		esbuildSrcFiles = append(esbuildSrcFiles, esbuildSrcs...)
+		goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
+		updatedEsbuildOutputs = append(updatedEsbuildOutputs, esbuildOutputMeta...)
+		for _, webPkgRef := range esbuildWebPkgRefs {
+			for _, impPath := range webPkgRef.Imports {
+				updatedWebPkgRefs, _ = web_pkg_esbuild.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
+					webPkgRef.WebPkgId,
+					webPkgRef.WebPkgRoot,
+					impPath,
+				)
+			}
+		}
+	}
+
+	// sort the web pkg refs
+	web_pkg_esbuild.SortWebPkgRefs(updatedWebPkgRefs)
+
+	// compare the web pkg refs to see if they changed.
+	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
+	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
+		le.Info("references to web pkgs changed: forcing a full re-build")
+		return nil, nil
+	}
+
+	// cleanup esbuild src files list
+	slices.Sort(esbuildSrcFiles)
+	esbuildSrcFiles = slices.Compact(esbuildSrcFiles)
+
+	// cleanup outputs list
+	updatedEsbuildOutputs = SortEsbuildOutputMetas(updatedEsbuildOutputs)
+
+	// compare the outputs list with the old outputs list.
+	// delete any output file from the old outputs that was not overwritten by esbuild.
+	// for example: changed files with hashes in the filename will delete the old hash.
+	updatedOutputs := make(map[string]struct{}, len(updatedEsbuildOutputs))
+	for _, updatedOutput := range updatedEsbuildOutputs {
+		updatedOutputs[updatedOutput.GetPath()] = struct{}{}
+	}
+	for _, oldOutput := range inputMeta.GetEsbuildOutputs() {
+		if _, ok := updatedOutputs[oldOutput.GetPath()]; !ok {
+			oldOutputPath := oldOutput.GetPath()
+			absPath := filepath.Join(outAssetsPath, oldOutputPath)
+			relPath, err := filepath.Rel(outAssetsPath, absPath)
+			if err != nil {
+				return nil, err
+			}
+			if strings.HasPrefix(relPath, "..") {
+				// prevent deleting things outside the assets dir
+				le.Warnf("skipping removing old output path outside assets dir: %s", relPath)
+				continue
+			}
+			if _, err := os.Stat(absPath); os.IsNotExist(err) {
+				le.Warnf("old output path not found: %s", oldOutputPath)
+			} else if err := os.Remove(absPath); err != nil {
+				return nil, err
+			} else {
+				le.Debugf("removed old output: %s", oldOutputPath)
+			}
+		}
+	}
+
+	// build the updated input manifest
+	updatedInputManifest := prevInputManifest.CloneVT()
+	updatedInputMeta := inputMeta.CloneVT()
+	if updatedInputMeta.DevInfo == nil {
+		updatedInputMeta.DevInfo = &vardef.PluginDevInfo{}
+	}
+	updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
+
+	// drop all esbuild files from the set (we will add them back next)
+	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
+		meta.Reset()
+		err := meta.UnmarshalVT(f.GetMetadata())
+		if err != nil {
+			return false
+		}
+		return meta.GetKind() == InputFileKind_InputFileKind_ESBUILD
+	})
+
+	// drop all overwritten variable definitions from the set (we will add them back next)
+	type varDefKey struct {
+		pkgPath string
+		pkgVar  string
+	}
+	overwrittenVarDefs := make(map[varDefKey]struct{})
+	for _, goVarDef := range goVariableDefs {
+		overwrittenVarDefs[varDefKey{pkgPath: goVarDef.PkgImportPath, pkgVar: goVarDef.PkgVar}] = struct{}{}
+	}
+	updatedInputMeta.DevInfo.PluginVars = slices.DeleteFunc(updatedInputMeta.DevInfo.PluginVars, func(goVarDef *vardef.PluginVar) bool {
+		_, overwritten := overwrittenVarDefs[varDefKey{pkgPath: goVarDef.PkgImportPath, pkgVar: goVarDef.PkgVar}]
+		return overwritten
+	})
+
+	// add the updated go variable defs to the list
+	updatedInputMeta.DevInfo.PluginVars = append(updatedInputMeta.DevInfo.PluginVars, goVariableDefs...)
+	vardef.SortPluginVars(updatedInputMeta.DevInfo.PluginVars)
+
+	// add the updated esbuild files to the list
+	if err := fsutil.ConvertPathsToRelative(sourcePath, esbuildSrcFiles); err != nil {
+		return nil, err
+	}
+	inputFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_ESBUILD}
+	inputFileMetaBin, err := inputFileMeta.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	for _, srcPath := range esbuildSrcFiles {
+		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
+			Path:     srcPath,
+			Metadata: inputFileMetaBin,
+		})
+	}
+	updatedInputManifest.SortFiles()
+
+	// encode the updated meta
+	updMeta, err := updatedInputMeta.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	updatedInputManifest.Metadata = updMeta
+
+	// encode the updated dev info file
+	if devInfoFile != "" {
+		updDevInfo, err := updatedInputMeta.GetDevInfo().MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+		devInfoPath := filepath.Join(outDistPath, devInfoFile)
+		if err := os.WriteFile(devInfoPath, updDevInfo, 0644); err != nil {
+			return nil, err
+		}
+		le.Debugf("wrote file: %s", devInfoFile)
+	}
+
+	le.Debug("fast rebuild complete")
+	return updatedInputManifest, nil
 }
 
 // BuildPlugin compiles the plugin once, committing it to the target world.
@@ -317,14 +547,20 @@ func (c *Controller) BuildPlugin(
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
 	enableCgo bool,
-	baseEsbuildOpts *esbuild_api.BuildOptions,
-) (*Analysis, []string, error) {
+	baseEsbuildFlags []string,
+	devInfoFile string,
+) (*Analysis, *manifest_builder.InputManifest, error) {
 	// plugin id
 	pluginID := pluginMeta.GetPluginId()
+	isRelease := buildType.IsRelease()
+
+	baseEsbuildOpts, err := bldr_esbuild.ParseEsbuildFlags(baseEsbuildFlags)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
-	var err error
 	if !disableRpcFetch {
 		embedConfigSet["rpc-fetch"], err = configset_proto.NewControllerConfig(
 			configset.NewControllerConfig(1, web_fetch_controller.NewConfig()),
@@ -355,18 +591,17 @@ func (c *Controller) BuildPlugin(
 
 	// mapping between go.package.path.Variable and value
 	// for the Go compiler linker flags
-	isRelease := buildType.IsRelease()
-	var goVariableDefs []*GoVarDef
+	var goVariableDefs []*vardef.PluginVar
 
 	codeFiles := an.GetGoCodeFiles()
 	fset := an.GetFileSet()
 
 	// build source files list with go files
-	var sourceFilesList []string
+	var goSrcFiles []string
 	for _, pkgFiles := range codeFiles {
 		for _, codeFile := range pkgFiles {
 			pkgFile := an.GetFileToken(codeFile)
-			sourceFilesList = append(sourceFilesList, pkgFile.Name())
+			goSrcFiles = append(goSrcFiles, pkgFile.Name())
 		}
 	}
 
@@ -375,14 +610,15 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
+	var assetSrcFiles []string
 	if len(assetPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(assetPkgs), AssetTag)
 		assetVarDefs, assetSrcPaths, err := BuildDefAssets(le, codeFiles, fset, assetPkgs, outAssetsPath, pluginID, isRelease)
 		if err != nil {
 			return nil, nil, err
 		}
+		assetSrcFiles = assetSrcPaths
 		goVariableDefs = append(goVariableDefs, assetVarDefs...)
-		sourceFilesList = append(sourceFilesList, assetSrcPaths...)
 	}
 
 	// parse bldr:asset:href comments
@@ -407,42 +643,62 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
+	var esbuildSrcFiles []string
+	var esbuildBundleMeta map[string]*EsbuildBundleMeta
+	var esbuildOutputMeta []*EsbuildOutputMeta
 	if len(esbuildPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(esbuildPkgs), EsbuildTag)
 
-		esbuildVarDefs, esbuildWebPkgRefs, esbuildSrcFiles, err := BuildDefEsbuild(
-			le,
-			sourcePath,
-			codeFiles,
-			fset,
-			baseEsbuildOpts,
-			esbuildPkgs,
-			webPkgs,
-			outAssetsPath,
-			pluginID,
-			isRelease,
-		)
+		esbuildBundleMeta, err = BuildEsbuildBundleMeta(le, sourcePath, codeFiles, fset, esbuildPkgs)
 		if err != nil {
 			return nil, nil, err
 		}
-		goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
-		sourceFilesList = append(sourceFilesList, esbuildSrcFiles...)
-		for _, webPkgRef := range esbuildWebPkgRefs {
-			for _, impPath := range webPkgRef.Imports {
-				webPkgRefs, _ = web_pkg_esbuild.AddWebPkgRef(
-					webPkgRefs,
-					webPkgRef.WebPkgID,
-					webPkgRef.WebPkgRoot,
-					impPath,
-				)
+
+		bundleIDs := maps.Keys(esbuildBundleMeta)
+		slices.Sort(bundleIDs)
+		for _, bundleID := range bundleIDs {
+			bundleDef := esbuildBundleMeta[bundleID]
+			esbuildVarDefs, esbuildWebPkgRefs, esbuildOutputs, esbuildSrcs, err := BuildEsbuildBundle(
+				le,
+				sourcePath,
+				bundleDef,
+				baseEsbuildOpts,
+				webPkgs,
+				outAssetsPath,
+				pluginID,
+				isRelease,
+			)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			esbuildSrcFiles = append(esbuildSrcFiles, esbuildSrcs...)
+			goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
+			esbuildOutputMeta = append(esbuildOutputMeta, esbuildOutputs...)
+			for _, webPkgRef := range esbuildWebPkgRefs {
+				for _, impPath := range webPkgRef.Imports {
+					webPkgRefs, _ = web_pkg_esbuild.WebPkgRefSlice(webPkgRefs).AppendWebPkgRef(
+						webPkgRef.WebPkgId,
+						webPkgRef.WebPkgRoot,
+						impPath,
+					)
+				}
 			}
 		}
 	}
 
-	// sort for determinism
-	sort.Slice(goVariableDefs, func(i, j int) bool {
-		return goVariableDefs[i].VariableName < goVariableDefs[j].VariableName
-	})
+	// cleanup esbuild src files list
+	slices.Sort(esbuildSrcFiles)
+	esbuildSrcFiles = slices.Compact(esbuildSrcFiles)
+
+	// sort the web pkg refs
+	web_pkg_esbuild.SortWebPkgRefs(webPkgRefs)
+
+	// sort go variable defs
+	vardef.SortPluginVars(goVariableDefs)
+
+	// cleanup the list of outputs
+	esbuildOutputMeta = SortEsbuildOutputMetas(esbuildOutputMeta)
 
 	// run esbuild on the web pkgs (if any)
 	outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
@@ -458,7 +714,6 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
-	sourceFilesList = append(sourceFilesList, webPkgSrcFiles...)
 
 	if len(webPkgIDs) != 0 {
 		// add the web packages rpc server to the config set.
@@ -496,7 +751,7 @@ func (c *Controller) BuildPlugin(
 					false,
 				)
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 		*/
 	}
@@ -521,60 +776,103 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 	an.AddVariableDefImports(le, goVariableDefs)
-	if err := mc.GenerateModule(an, pluginMeta, configSetBin, goVariableDefs); err != nil {
+
+	pluginDevInfo, err := mc.GenerateModule(an, pluginMeta, configSetBin, goVariableDefs, devInfoFile)
+	if err != nil {
 		return nil, nil, err
 	}
 
+	copyFiles := []string{devInfoFile}
 	outDistBinary := filepath.Join(outDistPath, outBinName)
-	if isRelease {
-		le.Info("compiling release binary")
-		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo); err != nil {
+	// only use dev wrapper if !isRelease && delveAddr != ""
+	if isRelease || delveAddr == "" {
+		le.Info("compiling plugin binary")
+		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo, isRelease); err != nil {
 			return nil, nil, err
 		}
 	} else {
-		le.Info("compiling dev wrapper binary")
+		le.Info("compiling plugin dev wrapper binary")
 		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, enableCgo); err != nil {
 			return nil, nil, err
 		}
+		copyFiles = append(copyFiles, "plugin.go", "config-set.bin")
+	}
 
-		copyFile := func(filename string) error {
-			srcPath := filepath.Join(mc.pluginCodegenPath, filename)
-			if _, err := os.Stat(srcPath); os.IsNotExist(err) {
-				return nil
-			}
-
-			// log relative to cwd
-			relSrcPath, relOutDistPath := srcPath, outDistPath
-			if cwd, cwdErr := os.Getwd(); cwdErr == nil {
-				if rs, err := filepath.Rel(cwd, relSrcPath); err == nil {
-					relSrcPath = rs
-				}
-				if rs, err := filepath.Rel(cwd, relOutDistPath); err == nil {
-					relOutDistPath = rs
-				}
-			}
-			le.Debugf("copy %s to %s", relSrcPath, relOutDistPath)
-
-			return fsutil.CopyFileToDir(outDistPath, srcPath, 0644)
+	copyFile := func(filename string) error {
+		if filename == "" {
+			return nil
 		}
 
-		// copy some files to dist/ which the entrypoint will need
-		copyFiles := []string{
-			// Don't copy go.mod, use the host program go.mod go.sum.
-			// "go.mod",
-			// "go.sum",
-			"config-set.bin",
-			"plugin.go",
+		srcPath := filepath.Join(mc.pluginCodegenPath, filename)
+		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+			return nil
 		}
-		for _, filename := range copyFiles {
-			if err := copyFile(filename); err != nil {
-				return nil, nil, err
+
+		// log relative to cwd
+		relSrcPath, relOutDistPath := srcPath, outDistPath
+		if cwd, cwdErr := os.Getwd(); cwdErr == nil {
+			if rs, err := filepath.Rel(cwd, relSrcPath); err == nil {
+				relSrcPath = rs
 			}
+			if rs, err := filepath.Rel(cwd, relOutDistPath); err == nil {
+				relOutDistPath = rs
+			}
+		}
+		le.Debugf("copy %s to %s", relSrcPath, relOutDistPath)
+
+		return fsutil.CopyFileToDir(outDistPath, srcPath, 0644)
+	}
+
+	// copy some files to dist/ which the entrypoint will need
+	for _, filename := range copyFiles {
+		if err := copyFile(filename); err != nil {
+			return nil, nil, err
 		}
 	}
 
-	sort.Strings(sourceFilesList)
-	return an, sourceFilesList, nil
+	// build manifest metadata
+	inputManifestMeta := &InputManifestMeta{
+		DevInfo:        pluginDevInfo,
+		EsbuildBundles: esbuildBundleMeta,
+		EsbuildFlags:   baseEsbuildFlags,
+		EsbuildOutputs: esbuildOutputMeta,
+		WebPkgRefs:     webPkgRefs,
+		WebPkgs:        webPkgs,
+	}
+	inputManifestMetaBin, err := inputManifestMeta.MarshalVT()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	inputManifest := &manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
+	inputFileKinds := map[InputFileKind][]string{
+		InputFileKind_InputFileKind_GO:      goSrcFiles,
+		InputFileKind_InputFileKind_ASSET:   assetSrcFiles,
+		InputFileKind_InputFileKind_ESBUILD: esbuildSrcFiles,
+		InputFileKind_InputFileKind_WEB_PKG: webPkgSrcFiles,
+	}
+	for kind, srcPaths := range inputFileKinds {
+		meta := &InputFileMeta{Kind: kind}
+		metaBin, err := meta.MarshalVT()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = fsutil.ConvertPathsToRelative(sourcePath, srcPaths)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, srcPath := range srcPaths {
+			inputManifest.Files = append(inputManifest.Files, &manifest_builder.InputManifest_File{
+				Path:     srcPath,
+				Metadata: metaBin,
+			})
+		}
+	}
+	inputManifest.SortFiles()
+
+	return an, inputManifest, nil
 }
 
 // _ is a type assertion

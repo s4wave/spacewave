@@ -24,3 +24,11 @@ message EsbuildOutput {
   // e.x: /p/plugin-id/script.css
   string css_href = 2;
 }
+
+// EsbuildEntrypoint is an entrypoint passed to Esbuild.
+message EsbuildEntrypoint {
+  // InputPath is the input file path.
+  string input_path = 1;
+  // OutputPath is the output file path, if any.
+  string output_path = 2;
+}
