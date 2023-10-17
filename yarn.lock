@@ -1171,19 +1171,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron-nightly@^29.0.0-nightly.20231012:
-  version "29.0.0-nightly.20231012"
-  resolved "https://registry.yarnpkg.com/electron-nightly/-/electron-nightly-29.0.0-nightly.20231012.tgz#4a7ea2b021e1f4169d5268dd422f4dddcdfb9f02"
-  integrity sha512-WU8mGfXqPBIDUXY9PO+wKSu29w7xA84KxSLUeZ+6FRJpc751RPdd8+UkRrEN3RIK3siA2/wtMoNGct+lbhiuwg==
-  dependencies:
-    "@electron/get" "^2.0.0"
-    "@types/node" "^18.11.18"
-    extract-zip "^2.0.1"
-
-electron@^27.0.0:
-  version "27.0.0"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-27.0.0.tgz#bb6c45881e531b2ec1c7cc46c47aba773f38ee14"
-  integrity sha512-mr3Zoy82l8XKK/TgguE5FeNeHZ9KHXIGIpUMjbjZWIREfAv+X2Q3vdX6RG0Pmi1K23AFAxANXQezIHBA2Eypwg==
+electron@28.0.0-alpha.3:
+  version "28.0.0-alpha.3"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-28.0.0-alpha.3.tgz#1a8c580f795b35d6c3f9e4f29ae9fc2c4db64a80"
+  integrity sha512-Zwa1rD85kfSUUZT/0V28Jao2hoEEfBVK+TlnNRTS0wj+DmuPn1+F0mCbKtQ3c0yVeT9+/Xss+aPXCkVuFA5czA==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"
