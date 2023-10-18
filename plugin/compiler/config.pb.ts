@@ -141,6 +141,17 @@ export interface Config {
    * E.x.: --target es2020
    */
   esbuildFlags: string[];
+  /**
+   * WebPluginId sets the plugin id for the web plugin.
+   * If set, the compiler automatically adds these controllers to the config set:
+   * - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+   * - handle-web-view-rpc: handle incoming RPCs for web-view
+   * - handle-web-view-server: handle incoming RPCs for HandleWebView
+   * - handle-web-view: handle web views via HandleWebView
+   * - load-web: loads the web plugin on startup
+   * - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+   */
+  webPluginId: string;
 }
 
 export interface Config_ConfigSetEntry {
@@ -238,6 +249,7 @@ function createBaseConfig(): Config {
     delveAddr: "",
     enableCgo: false,
     esbuildFlags: [],
+    webPluginId: "",
   };
 }
 
@@ -272,6 +284,9 @@ export const Config = {
     }
     for (const v of message.esbuildFlags) {
       writer.uint32(82).string(v!);
+    }
+    if (message.webPluginId !== "") {
+      writer.uint32(90).string(message.webPluginId);
     }
     return writer;
   },
@@ -359,6 +374,13 @@ export const Config = {
 
           message.esbuildFlags.push(reader.string());
           continue;
+        case 11:
+          if (tag !== 90) {
+            break;
+          }
+
+          message.webPluginId = reader.string();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -424,6 +446,7 @@ export const Config = {
       esbuildFlags: globalThis.Array.isArray(object?.esbuildFlags)
         ? object.esbuildFlags.map((e: any) => globalThis.String(e))
         : [],
+      webPluginId: isSet(object.webPluginId) ? globalThis.String(object.webPluginId) : "",
     };
   },
 
@@ -471,6 +494,9 @@ export const Config = {
     if (message.esbuildFlags?.length) {
       obj.esbuildFlags = message.esbuildFlags;
     }
+    if (message.webPluginId !== "") {
+      obj.webPluginId = message.webPluginId;
+    }
     return obj;
   },
 
@@ -505,6 +531,7 @@ export const Config = {
     message.delveAddr = object.delveAddr ?? "";
     message.enableCgo = object.enableCgo ?? false;
     message.esbuildFlags = object.esbuildFlags?.map((e) => e) || [];
+    message.webPluginId = object.webPluginId ?? "";
     return message;
   },
 };

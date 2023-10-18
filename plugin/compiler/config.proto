@@ -73,6 +73,16 @@ message Config {
   // Flags passed by bldr:esbuild directives can override these values.
   // E.x.: --target es2020
   repeated string esbuild_flags = 10;
+
+  // WebPluginId sets the plugin id for the web plugin.
+  // If set, the compiler automatically adds these controllers to the config set:
+  // - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+  // - handle-web-view-rpc: handle incoming RPCs for web-view
+  // - handle-web-view-server: handle incoming RPCs for HandleWebView
+  // - handle-web-view: handle web views via HandleWebView
+  // - load-web: loads the web plugin on startup
+  // - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+  string web_plugin_id = 11;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

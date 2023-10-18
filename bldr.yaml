@@ -40,7 +40,8 @@ publish:
     remotes: ["demo-dist"]
     manifests: ["web", "bldr-demo", "dist"]
     storage:
-      timestamp: "2023-04-27T08:39:53Z"
+      # bifrost util timestamp
+      timestamp: "2023-10-18T18:38:40Z"
       # if empty: uses transform config from remote world
       transformConf:
         steps:
@@ -50,7 +51,7 @@ publish:
             blockEnc: BlockEnc_XCHACHA20_POLY1305
             # generate with: bifrost util generate-crypto-key
             # after changing: npm run clean
-            key: zSEXvXfPi3zVCb2qJl3cN3EjCqzvxUts7aat/P4rZ/Q=
+            key: DEn7LStBTb2ZOP1mlLixkmPLg6x773/TQ1mnyyXJu1A=
 manifests:
   web:
     builder:
@@ -69,39 +70,6 @@ manifests:
           demo-1:
             id: bldr/example/demo
             config: {}
-          # TODO: add an option to plugin compiler to automatically configure the below.
-          load-web:
-            id: bldr/plugin/load
-            config:
-              pluginId: web
-          # source LookupWebView calls from the HandleWebView calls
-          web-view-observer:
-            id: bldr/web/view/observer
-            config: {}
-          # handle incoming rpc requests to handle web views with HandleWebView
-          web-view-handler-server:
-            id: bldr/web/view/handler/server
-            config: {}
-          # configure the web plugin to handle web views via bldr-demo
-          web-handle-view:
-            id: bldr/web/plugin/handle-web-view
-            config:
-              webPluginId: web
-              handlePluginId: bldr-demo
-          # configure the web plugin to handle web view rpc calls via bldr-demo
-          web-handle-view-rpc:
-            id: bldr/web/plugin/handle-rpc
-            config:
-              webPluginId: web
-              handlePluginId: bldr-demo
-              serverIdRe: web-view/.*
-          # configure the web plugin to handle web pkg lookups via bldr-demo
-          #web-handle-pkgs:
-          #  id: bldr/web/plugin/handle-web-pkg
-          #  config:
-          #    webPluginId: web
-          #    handlePluginId: bldr-demo
-          #    webPkgIdList: ["@my/common-package"]
         hostConfigSet:
           # configure the devtool to fetch demo-* plugins from bldr-demo
           fetch-plugin-via-bldr-demo:

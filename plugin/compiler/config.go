@@ -132,6 +132,11 @@ func (c *Config) Merge(o *Config) {
 		c.ProjectId = cproj
 	}
 
+	// override web plugin id
+	if webPluginID := o.GetWebPluginId(); webPluginID != "" {
+		c.WebPluginId = webPluginID
+	}
+
 	if o.GetDisableRpcFetch() {
 		c.DisableRpcFetch = true
 	}

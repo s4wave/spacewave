@@ -14,13 +14,20 @@ import (
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
+	"github.com/aperturerobotics/bldr/plugin/load"
 	"github.com/aperturerobotics/bldr/util/fsutil"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
 	web_pkg_rpc_server "github.com/aperturerobotics/bldr/web/pkg/rpc/server"
+	"github.com/aperturerobotics/bldr/web/plugin/handle-rpc"
+	"github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg"
+	"github.com/aperturerobotics/bldr/web/plugin/handle-web-view"
+	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
+	"github.com/aperturerobotics/bldr/web/view/observer"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -208,25 +215,6 @@ func (c *Controller) BuildManifest(
 			hostConfigSet[k] = v.CloneVT()
 		}
 
-		// apply host config set
-		if len(hostConfigSet) != 0 {
-			hostConfigSetConf, err := jsonpb.Marshal(&plugin_host_configset.Config{
-				ConfigSet: hostConfigSet,
-			})
-			if err != nil {
-				if err != context.Canceled {
-					return nil, err
-				}
-				return nil, errors.Wrap(err, "marshal plugin host configset")
-			}
-
-			configSet["plugin-host-configset"] = &configset_proto.ControllerConfig{
-				Id:     plugin_host_configset.ConfigID,
-				Rev:    1,
-				Config: hostConfigSetConf,
-			}
-		}
-
 		// determine project id
 		projectID := builderConf.GetProjectId()
 		if cproj := pluginBuildConf.GetProjectId(); cproj != "" {
@@ -246,6 +234,85 @@ func (c *Controller) BuildManifest(
 		// Enable cgo only if flag is set (for reproducible builds)
 		enableCgo := pluginBuildConf.GetEnableCgo()
 		pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
+
+		// applyToConfigSet conditionally applies the config to the config set if not already set.
+		applyToConfigSet := func(id string, conf config.Config) error {
+			if _, ok := configSet[id]; ok {
+				return nil
+			}
+
+			configBin, err := jsonpb.Marshal(conf)
+			if err != nil {
+				if err == context.Canceled {
+					return err
+				}
+				return errors.Wrap(err, "marshal configset")
+			}
+
+			configSet[id] = &configset_proto.ControllerConfig{
+				Id:     id,
+				Rev:    1,
+				Config: configBin,
+			}
+			return nil
+		}
+
+		// apply the config set entries for the web plugin, if applicable.
+		if webPluginID := pluginBuildConf.GetWebPluginId(); webPluginID != "" {
+			// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+			if len(webPkgs) != 0 {
+				if err := applyToConfigSet("handle-web-pkgs", &bldr_web_plugin_handle_web_pkg.Config{
+					WebPluginId:    webPluginID,
+					HandlePluginId: pluginID,
+					WebPkgIdList:   webPkgs,
+				}); err != nil {
+					return nil, err
+				}
+			}
+
+			// - handle-web-view-rpc: handle incoming RPCs for web-view
+			if err := applyToConfigSet("handle-web-view-rpc", &bldr_web_plugin_handle_rpc.Config{
+				WebPluginId:    webPluginID,
+				HandlePluginId: pluginID,
+				ServerIdRe:     "web-view/.*",
+			}); err != nil {
+				return nil, err
+			}
+
+			// - handle-web-view-server: handle incoming RPCs for HandleWebView
+			if err := applyToConfigSet("handle-web-view-server", &web_view_handler_server.Config{}); err != nil {
+				return nil, err
+			}
+
+			// - handle-web-view: handle web views via HandleWebView
+			if err := applyToConfigSet("handle-web-view", &bldr_web_plugin_handle_web_view.Config{
+				WebPluginId:    webPluginID,
+				HandlePluginId: pluginID,
+			}); err != nil {
+				return nil, err
+			}
+
+			// - load-web: loads the web plugin on startup
+			if err := applyToConfigSet("load-web", &bldr_plugin_load.Config{
+				PluginId: webPluginID,
+			}); err != nil {
+				return nil, err
+			}
+
+			// - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+			if err := applyToConfigSet("observe-web-view", &bldr_web_view_observer.Config{}); err != nil {
+				return nil, err
+			}
+		}
+
+		// apply host config set
+		if len(hostConfigSet) != 0 {
+			if err := applyToConfigSet("plugin-host-configset", &plugin_host_configset.Config{
+				ConfigSet: hostConfigSet,
+			}); err != nil {
+				return nil, err
+			}
+		}
 
 		le.Debug("compiling plugin")
 		_, updatedManifestMeta, err = c.BuildPlugin(
