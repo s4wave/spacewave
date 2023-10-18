@@ -221,6 +221,7 @@ func BuildWebPkgsEsbuild(
 	//  - Run the cjs lexer to determine the list of named exports
 	//  - Run esbuild to bundle the package + named exports to out
 	var sourceFilesList []string
+	bldrEsbuildTmpDir := "__bldr_esbuild_tmp"
 	for _, webPkgRef := range webPkgsRefs {
 		webPkgID := webPkgRef.WebPkgId
 		pkgOutputPath := filepath.Join(outputPath, webPkgID)
@@ -237,7 +238,7 @@ func BuildWebPkgsEsbuild(
 
 		// Create a temporary dir for the entrypoints
 		pkgBuildPath := webPkgRef.WebPkgRoot
-		pkgTmpPath := filepath.Join(pkgOutputPath, "__bldr_esbuild_tmp")
+		pkgTmpPath := filepath.Join(pkgOutputPath, bldrEsbuildTmpDir)
 		if err := os.MkdirAll(pkgTmpPath, 0755); err != nil {
 			return nil, nil, err
 		}
@@ -416,9 +417,11 @@ func BuildWebPkgsEsbuild(
 		}
 
 		// Clear the temporary entrypoint sources path.
-		if err := os.RemoveAll(pkgTmpPath); err != nil {
-			return nil, nil, err
-		}
+		/*
+			if err := os.RemoveAll(pkgTmpPath); err != nil {
+				return nil, nil, err
+			}
+		*/
 
 		// Use it to get the list of source files to watch.
 		// Note: the paths are relative to the codeRootPath.
@@ -429,6 +432,7 @@ func BuildWebPkgsEsbuild(
 
 			// Join the file path with the esbuild working directory.
 			inFilePath = filepath.Join(pkgBuildPath, inFilePath)
+
 			// Transform it to be relative to the code root.
 			inFilePath, err = filepath.Rel(codeRootPath, inFilePath)
 			if err != nil {
@@ -441,6 +445,11 @@ func BuildWebPkgsEsbuild(
 				if !os.IsNotExist(err) {
 					return nil, nil, err
 				}
+				continue
+			}
+
+			// If the file has the tmp dir within it, skip it.
+			if strings.Contains(inFilePath, bldrEsbuildTmpDir) {
 				continue
 			}
 

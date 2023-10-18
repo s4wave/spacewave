@@ -52,17 +52,17 @@ type CjsExportsResult struct {
 // GenerateRemapExports generates a javascript file which imports and re-exports
 // the exports from the commonjs module as an esm module.
 func GenerateRemapExports(importPath string, result *CjsExportsResult) string {
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "export * from %q;\n", importPath)
+	buf := bytes.NewBuffer(nil)
 	exports := result.Exports
-	// TODO: https://github.com/esm-dev/esm.sh/issues/713
-	// if result.ExportDefault && (len(exports) == 0 || slices.Contains(exports, "default")) {
-	{
-		fmt.Fprintf(&buf, "export { default } from %q;\n", importPath)
-	}
+
+	fmt.Fprintf(buf, "import * as __module from %q;\n", importPath)
+	fmt.Fprintf(buf, "export * from %q;\n", importPath)
+	fmt.Fprintf(buf, "const { default: __default, ...__rest } = __module;\n")
+	fmt.Fprintf(buf, "export default (__default !== undefined ? __default : __rest);\n")
 	if len(exports) > 0 {
-		fmt.Fprintf(&buf, "import __cjs_exports$ from %q;\n", importPath)
-		fmt.Fprintf(&buf, "export const { %s } = __cjs_exports$;\n", strings.Join(exports, ", "))
+		fmt.Fprintf(buf, "import __cjs_exports$ from %q;\n", importPath)
+		fmt.Fprintf(buf, "export const { %s } = __cjs_exports$;\n", strings.Join(exports, ", "))
 	}
+
 	return buf.String()
 }
