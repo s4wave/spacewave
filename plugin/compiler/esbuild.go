@@ -219,7 +219,9 @@ func BuildEsbuildBundle(
 
 	// https://github.com/evanw/esbuild/issues/1921
 	// NOTE: we can't use async import() here since require() is called w/o await.
-	web_pkg_esbuild.FixEsbuildIssue1921(buildOpts, web_pkg_esbuild.BldrExternal)
+	externalWebPkgs := slices.Clone(web_pkg_esbuild.BldrExternal)
+	externalWebPkgs = append(externalWebPkgs, webPkgs...)
+	web_pkg_esbuild.FixEsbuildIssue1921(buildOpts, externalWebPkgs)
 
 	// compile the bundle
 	bundleID := meta.GetId()

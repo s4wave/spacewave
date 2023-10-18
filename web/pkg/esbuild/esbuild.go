@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
@@ -471,9 +472,10 @@ func BuildWebPkgsEsbuild(
 //
 // This is a hack to work around issues with require() in esbuild.
 // The require() function is not asynchronous but import() is.
+// xfrmImport can be set to override the import path for a package.
 //
 // https://github.com/evanw/esbuild/issues/1921
-func NewImportBannerShim(pkgs []string) string {
+func NewImportBannerShim(pkgs []string, xfrmImport func(pkg string) string) string {
 	var sb strings.Builder
 	// write import statements
 	// import * as __bldr_react from 'react';
@@ -491,7 +493,14 @@ func NewImportBannerShim(pkgs []string) string {
 		_, _ = sb.WriteString("import * as ")
 		_, _ = sb.WriteString(pkgVarName)
 		_, _ = sb.WriteString(" from ")
-		_, _ = sb.WriteString(strconv.Quote(pkg))
+		impPkg := pkg
+		if xfrmImport != nil {
+			impPkg = xfrmImport(impPkg)
+			if impPkg == "" {
+				impPkg = pkg
+			}
+		}
+		_, _ = sb.WriteString(strconv.Quote(impPkg))
 		_, _ = sb.WriteString(";\n")
 	}
 
@@ -523,5 +532,11 @@ func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions, pkgs []string) {
 	if len(old) != 0 {
 		old += "\n"
 	}
-	opts.Banner["js"] = old + NewImportBannerShim(pkgs)
+	xfrmImport := func(pkg string) string {
+		if slices.Contains(BldrExternal, pkg) {
+			return pkg
+		}
+		return bldr_plugin.PluginWebPkgHttpPrefix + pkg
+	}
+	opts.Banner["js"] = old + NewImportBannerShim(pkgs, xfrmImport)
 }

@@ -6,13 +6,13 @@ import (
 )
 
 const expectedShim = `import * as __bldr_react from "react";
-import * as __bldr_react-dom from "react-dom";
+import * as __bldr_react_dom from "react-dom";
 const require = (pkgName) => {
   switch (pkgName) {
   case "react":
     return __bldr_react;
   case "react-dom":
-    return __bldr_react-dom;
+    return __bldr_react_dom;
   default:
     throw Error('Dynamic require of "' + pkgName + '" is not supported');
   }
@@ -20,7 +20,7 @@ const require = (pkgName) => {
 `
 
 func TestNewImportBannerShim(t *testing.T) {
-	shim := NewImportBannerShim([]string{"react", "react-dom"})
+	shim := NewImportBannerShim([]string{"react", "react-dom"}, nil)
 	os.Stderr.WriteString(shim)
 	if shim != expectedShim {
 		t.FailNow()
