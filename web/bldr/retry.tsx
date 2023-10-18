@@ -35,6 +35,8 @@ export class Retry<T = void> {
   private _backoffFn: BackoffFn
   // _errorCb is the error callback.
   private _errorCb?: (err: unknown) => void
+  // _abortSignal is the current abort signal (if set).
+  private _abortSignal?: AbortSignal;
 
   // _canceled indicates retrying this has been canceled
   private _canceled?: boolean
@@ -52,6 +54,8 @@ export class Retry<T = void> {
     opts?: RetryOptions,
   ) {
     opts?.abortSignal?.addEventListener('abort', this.cancel.bind(this))
+    this._abortSignal = opts?.abortSignal
+
     this._backoffFn = opts?.backoffFn || constantBackoff()
     this._errorCb = opts?.errorCb
 
@@ -82,7 +86,7 @@ export class Retry<T = void> {
       clearTimeout(this._currRetry)
       delete this._currRetry
     }
-    if (this._canceled) {
+    if (this._canceled || this._abortSignal?.aborted) {
       return
     }
     this.fn()
