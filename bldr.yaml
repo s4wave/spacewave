@@ -63,6 +63,7 @@ manifests:
       id: bldr/plugin/compiler
       config:
         # delveAddr: wait
+        webPluginId: web
         goPkgs:
           - ./example
         # configure the configset to apply on startup
