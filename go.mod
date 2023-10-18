@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.7 // master
+require github.com/aperturerobotics/bifrost v0.18.8-0.20231017230441-f34f3ee4c88b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -47,7 +47,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.30.6 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
-	github.com/aperturerobotics/starpc v0.21.2 // latest
+	github.com/aperturerobotics/starpc v0.21.3-0.20231017210535-46a0b60906dd // latest
 )
 
 // aperture: use compatibility forks
@@ -218,7 +218,7 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
-	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
