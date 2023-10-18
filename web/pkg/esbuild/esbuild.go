@@ -417,11 +417,9 @@ func BuildWebPkgsEsbuild(
 		}
 
 		// Clear the temporary entrypoint sources path.
-		/*
-			if err := os.RemoveAll(pkgTmpPath); err != nil {
-				return nil, nil, err
-			}
-		*/
+		if err := os.RemoveAll(pkgTmpPath); err != nil {
+			return nil, nil, err
+		}
 
 		// Use it to get the list of source files to watch.
 		// Note: the paths are relative to the codeRootPath.
