@@ -217,6 +217,14 @@ func BuildEsbuildBundle(
 		),
 	)
 
+	// https://github.com/evanw/esbuild/issues/1921
+	// NOTE: we can't use async import() here since require() is called w/o await.
+	shimRequirePkgs := slices.Clone(webPkgs)
+	shimRequirePkgs = append(shimRequirePkgs, web_pkg_esbuild.BldrExternal...)
+	slices.Sort(shimRequirePkgs)
+	shimRequirePkgs = slices.Compact(shimRequirePkgs)
+	web_pkg_esbuild.FixEsbuildIssue1921(buildOpts, shimRequirePkgs)
+
 	// compile the bundle
 	bundleID := meta.GetId()
 	le.Debugf("compiling bundle with esbuild: %s", bundleID)
