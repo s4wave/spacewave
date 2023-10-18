@@ -250,7 +250,7 @@ func (c *Controller) BuildManifest(
 			}
 
 			configSet[id] = &configset_proto.ControllerConfig{
-				Id:     id,
+				Id:     conf.GetConfigID(),
 				Rev:    1,
 				Config: configBin,
 			}
