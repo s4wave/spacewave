@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
@@ -394,7 +393,7 @@ func BuildWebPkgsEsbuild(
 		// add import shim for common-js support
 		// HACK: exclude react to avoid issues w/ secret internals
 		if webPkgID != "react" {
-			FixEsbuildIssue1921(buildOpts, webPkgIDsExclCurr)
+			FixEsbuildIssue1921(buildOpts)
 		}
 
 		le.Debugf("compiling web pkg bundle with esbuild: %s", webPkgID)
@@ -524,7 +523,7 @@ func NewImportBannerShim(pkgs []string, xfrmImport func(pkg string) string) stri
 // FixEsbuildIssue1921 fixes externalized esbuild imports failing with compiled commonjs modules.
 //
 // https://github.com/evanw/esbuild/issues/1921
-func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions, pkgs []string) {
+func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions) {
 	if opts.Banner == nil {
 		opts.Banner = make(map[string]string, 1)
 	}
@@ -532,11 +531,5 @@ func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions, pkgs []string) {
 	if len(old) != 0 {
 		old += "\n"
 	}
-	xfrmImport := func(pkg string) string {
-		if slices.Contains(BldrExternal, pkg) {
-			return pkg
-		}
-		return bldr_plugin.PluginWebPkgHttpPrefix + pkg
-	}
-	opts.Banner["js"] = old + NewImportBannerShim(pkgs, xfrmImport)
+	opts.Banner["js"] = old + NewImportBannerShim(BldrExternal, nil)
 }
