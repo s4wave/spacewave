@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { BlockRef } from '../../hydra/block/block.pb.js'
+import { Timestamp } from '../../timestamp/timestamp.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
 
@@ -287,12 +287,12 @@ export const Task = {
     source: AsyncIterable<Task | Task[]> | Iterable<Task | Task[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Task.encode(p).finish()]
         }
       } else {
-        yield* [Task.encode(pkt).finish()]
+        yield* [Task.encode(pkt as any).finish()]
       }
     }
   },
@@ -305,12 +305,12 @@ export const Task = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Task> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Task.decode(p)]
         }
       } else {
-        yield* [Task.decode(pkt)]
+        yield* [Task.decode(pkt as any)]
       }
     }
   },
@@ -318,9 +318,9 @@ export const Task = {
   fromJSON(object: any): Task {
     return {
       taskState: isSet(object.taskState) ? stateFromJSON(object.taskState) : 0,
-      name: isSet(object.name) ? String(object.name) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
-      replicas: isSet(object.replicas) ? Number(object.replicas) : 0,
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
+      replicas: isSet(object.replicas) ? globalThis.Number(object.replicas) : 0,
       passNonce: isSet(object.passNonce)
         ? Long.fromValue(object.passNonce)
         : Long.UZERO,
@@ -415,8 +415,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { BlockRef } from '../../hydra/block/block.pb.js'
+import { Timestamp } from '../../timestamp/timestamp.pb.js'
 import {
   State as State1,
   stateFromJSON as stateFromJSON2,
@@ -305,12 +305,12 @@ export const Pass = {
     source: AsyncIterable<Pass | Pass[]> | Iterable<Pass | Pass[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Pass.encode(p).finish()]
         }
       } else {
-        yield* [Pass.encode(pkt).finish()]
+        yield* [Pass.encode(pkt as any).finish()]
       }
     }
   },
@@ -323,12 +323,12 @@ export const Pass = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Pass> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Pass.decode(p)]
         }
       } else {
-        yield* [Pass.decode(pkt)]
+        yield* [Pass.decode(pkt as any)]
       }
     }
   },
@@ -336,7 +336,7 @@ export const Pass = {
   fromJSON(object: any): Pass {
     return {
       passState: isSet(object.passState) ? stateFromJSON(object.passState) : 0,
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
       targetRef: isSet(object.targetRef)
         ? BlockRef.fromJSON(object.targetRef)
         : undefined,
@@ -344,11 +344,11 @@ export const Pass = {
         ? ValueSet.fromJSON(object.valueSet)
         : undefined,
       result: isSet(object.result) ? Result.fromJSON(object.result) : undefined,
-      replicas: isSet(object.replicas) ? Number(object.replicas) : 0,
+      replicas: isSet(object.replicas) ? globalThis.Number(object.replicas) : 0,
       passNonce: isSet(object.passNonce)
         ? Long.fromValue(object.passNonce)
         : Long.UZERO,
-      execStates: Array.isArray(object?.execStates)
+      execStates: globalThis.Array.isArray(object?.execStates)
         ? object.execStates.map((e: any) => ExecState.fromJSON(e))
         : [],
       timestamp: isSet(object.timestamp)
@@ -527,12 +527,12 @@ export const ExecState = {
       | Iterable<ExecState | ExecState[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ExecState.encode(p).finish()]
         }
       } else {
-        yield* [ExecState.encode(pkt).finish()]
+        yield* [ExecState.encode(pkt as any).finish()]
       }
     }
   },
@@ -545,23 +545,25 @@ export const ExecState = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExecState> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ExecState.decode(p)]
         }
       } else {
-        yield* [ExecState.decode(pkt)]
+        yield* [ExecState.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ExecState {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       executionState: isSet(object.executionState)
         ? stateFromJSON2(object.executionState)
         : 0,
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -634,8 +636,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -95,12 +95,12 @@ export const Tx = {
     source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tx.encode(p).finish()]
         }
       } else {
-        yield* [Tx.encode(pkt).finish()]
+        yield* [Tx.encode(pkt as any).finish()]
       }
     }
   },
@@ -113,12 +113,12 @@ export const Tx = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tx> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tx.decode(p)]
         }
       } else {
-        yield* [Tx.decode(pkt)]
+        yield* [Tx.decode(pkt as any)]
       }
     }
   },
@@ -127,7 +127,7 @@ export const Tx = {
     return {
       txType: isSet(object.txType) ? txTypeFromJSON(object.txType) : 0,
       clusterObjectKey: isSet(object.clusterObjectKey)
-        ? String(object.clusterObjectKey)
+        ? globalThis.String(object.clusterObjectKey)
         : '',
     }
   },
@@ -167,8 +167,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

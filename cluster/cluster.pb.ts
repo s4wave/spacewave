@@ -167,12 +167,12 @@ export const Cluster = {
     source: AsyncIterable<Cluster | Cluster[]> | Iterable<Cluster | Cluster[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Cluster.encode(p).finish()]
         }
       } else {
-        yield* [Cluster.encode(pkt).finish()]
+        yield* [Cluster.encode(pkt as any).finish()]
       }
     }
   },
@@ -185,20 +185,20 @@ export const Cluster = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Cluster> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Cluster.decode(p)]
         }
       } else {
-        yield* [Cluster.decode(pkt)]
+        yield* [Cluster.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Cluster {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
     }
   },
 
@@ -291,12 +291,12 @@ export const ClusterCreateOp = {
       | Iterable<ClusterCreateOp | ClusterCreateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterCreateOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterCreateOp.encode(pkt).finish()]
+        yield* [ClusterCreateOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -309,21 +309,23 @@ export const ClusterCreateOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterCreateOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterCreateOp.decode(p)]
         }
       } else {
-        yield* [ClusterCreateOp.decode(pkt)]
+        yield* [ClusterCreateOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterCreateOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      name: isSet(object.name) ? String(object.name) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
     }
   },
 
@@ -414,12 +416,12 @@ export const ClusterAssignPeerOp = {
       | Iterable<ClusterAssignPeerOp | ClusterAssignPeerOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignPeerOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterAssignPeerOp.encode(pkt).finish()]
+        yield* [ClusterAssignPeerOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -432,20 +434,22 @@ export const ClusterAssignPeerOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignPeerOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignPeerOp.decode(p)]
         }
       } else {
-        yield* [ClusterAssignPeerOp.decode(pkt)]
+        yield* [ClusterAssignPeerOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterAssignPeerOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
     }
   },
 
@@ -532,12 +536,12 @@ export const ClusterAssignJobOp = {
       | Iterable<ClusterAssignJobOp | ClusterAssignJobOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignJobOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterAssignJobOp.encode(pkt).finish()]
+        yield* [ClusterAssignJobOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -550,20 +554,22 @@ export const ClusterAssignJobOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignJobOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignJobOp.decode(p)]
         }
       } else {
-        yield* [ClusterAssignJobOp.decode(pkt)]
+        yield* [ClusterAssignJobOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterAssignJobOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      jobKey: isSet(object.jobKey) ? String(object.jobKey) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      jobKey: isSet(object.jobKey) ? globalThis.String(object.jobKey) : '',
     }
   },
 
@@ -653,12 +659,12 @@ export const ClusterAssignWorkerOp = {
       | Iterable<ClusterAssignWorkerOp | ClusterAssignWorkerOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignWorkerOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterAssignWorkerOp.encode(pkt).finish()]
+        yield* [ClusterAssignWorkerOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -671,20 +677,24 @@ export const ClusterAssignWorkerOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignWorkerOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignWorkerOp.decode(p)]
         }
       } else {
-        yield* [ClusterAssignWorkerOp.decode(pkt)]
+        yield* [ClusterAssignWorkerOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterAssignWorkerOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      workerKey: isSet(object.workerKey) ? String(object.workerKey) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      workerKey: isSet(object.workerKey)
+        ? globalThis.String(object.workerKey)
+        : '',
     }
   },
 
@@ -771,12 +781,12 @@ export const ClusterStartJobOp = {
       | Iterable<ClusterStartJobOp | ClusterStartJobOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterStartJobOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterStartJobOp.encode(pkt).finish()]
+        yield* [ClusterStartJobOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -789,20 +799,22 @@ export const ClusterStartJobOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterStartJobOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterStartJobOp.decode(p)]
         }
       } else {
-        yield* [ClusterStartJobOp.decode(pkt)]
+        yield* [ClusterStartJobOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterStartJobOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      jobKey: isSet(object.jobKey) ? String(object.jobKey) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      jobKey: isSet(object.jobKey) ? globalThis.String(object.jobKey) : '',
     }
   },
 
@@ -899,12 +911,12 @@ export const ClusterAssignTaskOp = {
       | Iterable<ClusterAssignTaskOp | ClusterAssignTaskOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignTaskOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterAssignTaskOp.encode(pkt).finish()]
+        yield* [ClusterAssignTaskOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -917,21 +929,23 @@ export const ClusterAssignTaskOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterAssignTaskOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterAssignTaskOp.decode(p)]
         }
       } else {
-        yield* [ClusterAssignTaskOp.decode(pkt)]
+        yield* [ClusterAssignTaskOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterAssignTaskOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      jobKey: isSet(object.jobKey) ? String(object.jobKey) : '',
-      taskKey: isSet(object.taskKey) ? String(object.taskKey) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      jobKey: isSet(object.jobKey) ? globalThis.String(object.jobKey) : '',
+      taskKey: isSet(object.taskKey) ? globalThis.String(object.taskKey) : '',
     }
   },
 
@@ -1025,12 +1039,12 @@ export const ClusterCompleteJobOp = {
       | Iterable<ClusterCompleteJobOp | ClusterCompleteJobOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterCompleteJobOp.encode(p).finish()]
         }
       } else {
-        yield* [ClusterCompleteJobOp.encode(pkt).finish()]
+        yield* [ClusterCompleteJobOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -1043,20 +1057,22 @@ export const ClusterCompleteJobOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ClusterCompleteJobOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ClusterCompleteJobOp.decode(p)]
         }
       } else {
-        yield* [ClusterCompleteJobOp.decode(pkt)]
+        yield* [ClusterCompleteJobOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ClusterCompleteJobOp {
     return {
-      clusterKey: isSet(object.clusterKey) ? String(object.clusterKey) : '',
-      jobKey: isSet(object.jobKey) ? String(object.jobKey) : '',
+      clusterKey: isSet(object.clusterKey)
+        ? globalThis.String(object.clusterKey)
+        : '',
+      jobKey: isSet(object.jobKey) ? globalThis.String(object.jobKey) : '',
     }
   },
 
@@ -1099,8 +1115,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

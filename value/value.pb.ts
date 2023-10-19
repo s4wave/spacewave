@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
-import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { BlockRef } from '../../hydra/block/block.pb.js'
+import { ObjectRef } from '../../hydra/bucket/bucket.pb.js'
 
 export const protobufPackage = 'forge.value'
 
@@ -218,12 +218,12 @@ export const Value = {
     source: AsyncIterable<Value | Value[]> | Iterable<Value | Value[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Value.encode(p).finish()]
         }
       } else {
-        yield* [Value.encode(pkt).finish()]
+        yield* [Value.encode(pkt as any).finish()]
       }
     }
   },
@@ -236,19 +236,19 @@ export const Value = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Value> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Value.decode(p)]
         }
       } else {
-        yield* [Value.decode(pkt)]
+        yield* [Value.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Value {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       valueType: isSet(object.valueType)
         ? valueTypeFromJSON(object.valueType)
         : 0,
@@ -375,12 +375,12 @@ export const Result = {
     source: AsyncIterable<Result | Result[]> | Iterable<Result | Result[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Result.encode(p).finish()]
         }
       } else {
-        yield* [Result.encode(pkt).finish()]
+        yield* [Result.encode(pkt as any).finish()]
       }
     }
   },
@@ -393,21 +393,27 @@ export const Result = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Result> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Result.decode(p)]
         }
       } else {
-        yield* [Result.decode(pkt)]
+        yield* [Result.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Result {
     return {
-      success: isSet(object.success) ? Boolean(object.success) : false,
-      failError: isSet(object.failError) ? String(object.failError) : '',
-      canceled: isSet(object.canceled) ? Boolean(object.canceled) : false,
+      success: isSet(object.success)
+        ? globalThis.Boolean(object.success)
+        : false,
+      failError: isSet(object.failError)
+        ? globalThis.String(object.failError)
+        : '',
+      canceled: isSet(object.canceled)
+        ? globalThis.Boolean(object.canceled)
+        : false,
     }
   },
 
@@ -530,12 +536,12 @@ export const WorldObjectSnapshot = {
       | Iterable<WorldObjectSnapshot | WorldObjectSnapshot[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorldObjectSnapshot.encode(p).finish()]
         }
       } else {
-        yield* [WorldObjectSnapshot.encode(pkt).finish()]
+        yield* [WorldObjectSnapshot.encode(pkt as any).finish()]
       }
     }
   },
@@ -548,26 +554,28 @@ export const WorldObjectSnapshot = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorldObjectSnapshot> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorldObjectSnapshot.decode(p)]
         }
       } else {
-        yield* [WorldObjectSnapshot.decode(pkt)]
+        yield* [WorldObjectSnapshot.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WorldObjectSnapshot {
     return {
-      key: isSet(object.key) ? String(object.key) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       rootRef: isSet(object.rootRef)
         ? ObjectRef.fromJSON(object.rootRef)
         : undefined,
       rev: isSet(object.rev) ? Long.fromValue(object.rev) : Long.UZERO,
-      objectType: isSet(object.objectType) ? String(object.objectType) : '',
+      objectType: isSet(object.objectType)
+        ? globalThis.String(object.objectType)
+        : '',
       objectParent: isSet(object.objectParent)
-        ? String(object.objectParent)
+        ? globalThis.String(object.objectParent)
         : '',
     }
   },
@@ -629,8 +637,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -1,11 +1,8 @@
 /* eslint-disable */
-import {
-  AuthOpts,
-  CloneOpts,
-} from '@go/github.com/aperturerobotics/hydra/git/block/git.pb.js'
-import { GitCreateWorktreeOp } from '@go/github.com/aperturerobotics/hydra/git/world/git.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { AuthOpts, CloneOpts } from '../../../../hydra/git/block/git.pb.js'
+import { GitCreateWorktreeOp } from '../../../../hydra/git/world/git.pb.js'
 
 export const protobufPackage = 'forge.lib.git.clone'
 
@@ -118,12 +115,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -136,19 +133,21 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       cloneOpts: isSet(object.cloneOpts)
         ? CloneOpts.fromJSON(object.cloneOpts)
         : undefined,
@@ -213,8 +212,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

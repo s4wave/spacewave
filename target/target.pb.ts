@@ -1,7 +1,7 @@
 /* eslint-disable */
-import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { ControllerConfig } from '../../controllerbus/controller/configset/proto/configset.pb.js'
 import { Value } from '../value/value.pb.js'
 
 export const protobufPackage = 'forge.target'
@@ -302,12 +302,12 @@ export const Target = {
     source: AsyncIterable<Target | Target[]> | Iterable<Target | Target[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Target.encode(p).finish()]
         }
       } else {
-        yield* [Target.encode(pkt).finish()]
+        yield* [Target.encode(pkt as any).finish()]
       }
     }
   },
@@ -320,22 +320,22 @@ export const Target = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Target> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Target.decode(p)]
         }
       } else {
-        yield* [Target.decode(pkt)]
+        yield* [Target.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Target {
     return {
-      inputs: Array.isArray(object?.inputs)
+      inputs: globalThis.Array.isArray(object?.inputs)
         ? object.inputs.map((e: any) => Input.fromJSON(e))
         : [],
-      outputs: Array.isArray(object?.outputs)
+      outputs: globalThis.Array.isArray(object?.outputs)
         ? object.outputs.map((e: any) => Output.fromJSON(e))
         : [],
       exec: isSet(object.exec) ? Exec.fromJSON(object.exec) : undefined,
@@ -484,12 +484,12 @@ export const Input = {
     source: AsyncIterable<Input | Input[]> | Iterable<Input | Input[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Input.encode(p).finish()]
         }
       } else {
-        yield* [Input.encode(pkt).finish()]
+        yield* [Input.encode(pkt as any).finish()]
       }
     }
   },
@@ -502,25 +502,25 @@ export const Input = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Input> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Input.decode(p)]
         }
       } else {
-        yield* [Input.decode(pkt)]
+        yield* [Input.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Input {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       inputType: isSet(object.inputType)
         ? inputTypeFromJSON(object.inputType)
         : 0,
-      alias: isSet(object.alias) ? String(object.alias) : '',
+      alias: isSet(object.alias) ? globalThis.String(object.alias) : '',
       watchChanges: isSet(object.watchChanges)
-        ? Boolean(object.watchChanges)
+        ? globalThis.Boolean(object.watchChanges)
         : false,
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
       world: isSet(object.world)
@@ -640,12 +640,12 @@ export const InputWorld = {
       | Iterable<InputWorld | InputWorld[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [InputWorld.encode(p).finish()]
         }
       } else {
-        yield* [InputWorld.encode(pkt).finish()]
+        yield* [InputWorld.encode(pkt as any).finish()]
       }
     }
   },
@@ -658,21 +658,23 @@ export const InputWorld = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<InputWorld> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [InputWorld.decode(p)]
         }
       } else {
-        yield* [InputWorld.decode(pkt)]
+        yield* [InputWorld.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): InputWorld {
     return {
-      engineId: isSet(object.engineId) ? String(object.engineId) : '',
+      engineId: isSet(object.engineId)
+        ? globalThis.String(object.engineId)
+        : '',
       lookupImmediate: isSet(object.lookupImmediate)
-        ? Boolean(object.lookupImmediate)
+        ? globalThis.Boolean(object.lookupImmediate)
         : false,
     }
   },
@@ -768,12 +770,12 @@ export const InputWorldObject = {
       | Iterable<InputWorldObject | InputWorldObject[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [InputWorldObject.encode(p).finish()]
         }
       } else {
-        yield* [InputWorldObject.encode(pkt).finish()]
+        yield* [InputWorldObject.encode(pkt as any).finish()]
       }
     }
   },
@@ -786,20 +788,22 @@ export const InputWorldObject = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<InputWorldObject> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [InputWorldObject.decode(p)]
         }
       } else {
-        yield* [InputWorldObject.decode(pkt)]
+        yield* [InputWorldObject.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): InputWorldObject {
     return {
-      world: isSet(object.world) ? String(object.world) : '',
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
+      world: isSet(object.world) ? globalThis.String(object.world) : '',
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
       objectRev: isSet(object.objectRev)
         ? Long.fromValue(object.objectRev)
         : Long.UZERO,
@@ -914,12 +918,12 @@ export const Output = {
     source: AsyncIterable<Output | Output[]> | Iterable<Output | Output[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Output.encode(p).finish()]
         }
       } else {
-        yield* [Output.encode(pkt).finish()]
+        yield* [Output.encode(pkt as any).finish()]
       }
     }
   },
@@ -932,23 +936,25 @@ export const Output = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Output> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Output.decode(p)]
         }
       } else {
-        yield* [Output.decode(pkt)]
+        yield* [Output.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Output {
     return {
-      name: isSet(object.name) ? String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       outputType: isSet(object.outputType)
         ? outputTypeFromJSON(object.outputType)
         : 0,
-      execOutput: isSet(object.execOutput) ? String(object.execOutput) : '',
+      execOutput: isSet(object.execOutput)
+        ? globalThis.String(object.execOutput)
+        : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     }
   },
@@ -1041,12 +1047,12 @@ export const Exec = {
     source: AsyncIterable<Exec | Exec[]> | Iterable<Exec | Exec[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Exec.encode(p).finish()]
         }
       } else {
-        yield* [Exec.encode(pkt).finish()]
+        yield* [Exec.encode(pkt as any).finish()]
       }
     }
   },
@@ -1059,19 +1065,21 @@ export const Exec = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Exec> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Exec.decode(p)]
         }
       } else {
-        yield* [Exec.decode(pkt)]
+        yield* [Exec.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Exec {
     return {
-      disable: isSet(object.disable) ? Boolean(object.disable) : false,
+      disable: isSet(object.disable)
+        ? globalThis.Boolean(object.disable)
+        : false,
       controller: isSet(object.controller)
         ? ControllerConfig.fromJSON(object.controller)
         : undefined,
@@ -1160,12 +1168,12 @@ export const ValueSet = {
       | Iterable<ValueSet | ValueSet[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ValueSet.encode(p).finish()]
         }
       } else {
-        yield* [ValueSet.encode(pkt).finish()]
+        yield* [ValueSet.encode(pkt as any).finish()]
       }
     }
   },
@@ -1178,22 +1186,22 @@ export const ValueSet = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ValueSet> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ValueSet.decode(p)]
         }
       } else {
-        yield* [ValueSet.decode(pkt)]
+        yield* [ValueSet.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ValueSet {
     return {
-      inputs: Array.isArray(object?.inputs)
+      inputs: globalThis.Array.isArray(object?.inputs)
         ? object.inputs.map((e: any) => Value.fromJSON(e))
         : [],
-      outputs: Array.isArray(object?.outputs)
+      outputs: globalThis.Array.isArray(object?.outputs)
         ? object.outputs.map((e: any) => Value.fromJSON(e))
         : [],
     }
@@ -1234,8 +1242,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -287,12 +287,12 @@ export const Tx = {
     source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tx.encode(p).finish()]
         }
       } else {
-        yield* [Tx.encode(pkt).finish()]
+        yield* [Tx.encode(pkt as any).finish()]
       }
     }
   },
@@ -305,12 +305,12 @@ export const Tx = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tx> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tx.decode(p)]
         }
       } else {
-        yield* [Tx.decode(pkt)]
+        yield* [Tx.decode(pkt as any)]
       }
     }
   },
@@ -319,7 +319,7 @@ export const Tx = {
     return {
       txType: isSet(object.txType) ? txTypeFromJSON(object.txType) : 0,
       passObjectKey: isSet(object.passObjectKey)
-        ? String(object.passObjectKey)
+        ? globalThis.String(object.passObjectKey)
         : '',
       txStart: isSet(object.txStart)
         ? TxStart.fromJSON(object.txStart)
@@ -439,12 +439,12 @@ export const ExecSpec = {
       | Iterable<ExecSpec | ExecSpec[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ExecSpec.encode(p).finish()]
         }
       } else {
-        yield* [ExecSpec.encode(pkt).finish()]
+        yield* [ExecSpec.encode(pkt as any).finish()]
       }
     }
   },
@@ -457,18 +457,20 @@ export const ExecSpec = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ExecSpec> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ExecSpec.decode(p)]
         }
       } else {
-        yield* [ExecSpec.decode(pkt)]
+        yield* [ExecSpec.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ExecSpec {
-    return { peerId: isSet(object.peerId) ? String(object.peerId) : '' }
+    return {
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
+    }
   },
 
   toJSON(message: ExecSpec): unknown {
@@ -540,12 +542,12 @@ export const TxStart = {
     source: AsyncIterable<TxStart | TxStart[]> | Iterable<TxStart | TxStart[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxStart.encode(p).finish()]
         }
       } else {
-        yield* [TxStart.encode(pkt).finish()]
+        yield* [TxStart.encode(pkt as any).finish()]
       }
     }
   },
@@ -558,12 +560,12 @@ export const TxStart = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxStart> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxStart.decode(p)]
         }
       } else {
-        yield* [TxStart.decode(pkt)]
+        yield* [TxStart.decode(pkt as any)]
       }
     }
   },
@@ -654,12 +656,12 @@ export const TxCreateExecSpecs = {
       | Iterable<TxCreateExecSpecs | TxCreateExecSpecs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxCreateExecSpecs.encode(p).finish()]
         }
       } else {
-        yield* [TxCreateExecSpecs.encode(pkt).finish()]
+        yield* [TxCreateExecSpecs.encode(pkt as any).finish()]
       }
     }
   },
@@ -672,23 +674,23 @@ export const TxCreateExecSpecs = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxCreateExecSpecs> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxCreateExecSpecs.decode(p)]
         }
       } else {
-        yield* [TxCreateExecSpecs.decode(pkt)]
+        yield* [TxCreateExecSpecs.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TxCreateExecSpecs {
     return {
-      execSpecs: Array.isArray(object?.execSpecs)
+      execSpecs: globalThis.Array.isArray(object?.execSpecs)
         ? object.execSpecs.map((e: any) => ExecSpec.fromJSON(e))
         : [],
       clearExisting: isSet(object.clearExisting)
-        ? Boolean(object.clearExisting)
+        ? globalThis.Boolean(object.clearExisting)
         : false,
     }
   },
@@ -757,12 +759,12 @@ export const TxUpdateExecStates = {
       | Iterable<TxUpdateExecStates | TxUpdateExecStates[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxUpdateExecStates.encode(p).finish()]
         }
       } else {
-        yield* [TxUpdateExecStates.encode(pkt).finish()]
+        yield* [TxUpdateExecStates.encode(pkt as any).finish()]
       }
     }
   },
@@ -775,12 +777,12 @@ export const TxUpdateExecStates = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxUpdateExecStates> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxUpdateExecStates.decode(p)]
         }
       } else {
-        yield* [TxUpdateExecStates.decode(pkt)]
+        yield* [TxUpdateExecStates.decode(pkt as any)]
       }
     }
   },
@@ -864,12 +866,12 @@ export const TxComplete = {
       | Iterable<TxComplete | TxComplete[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxComplete.encode(p).finish()]
         }
       } else {
-        yield* [TxComplete.encode(pkt).finish()]
+        yield* [TxComplete.encode(pkt as any).finish()]
       }
     }
   },
@@ -882,12 +884,12 @@ export const TxComplete = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxComplete> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxComplete.decode(p)]
         }
       } else {
-        yield* [TxComplete.decode(pkt)]
+        yield* [TxComplete.decode(pkt as any)]
       }
     }
   },
@@ -944,8 +946,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

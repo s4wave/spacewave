@@ -36,9 +36,9 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.18.6 // indirect
-	github.com/aperturerobotics/controllerbus v0.30.5 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231009233506-3a4eddc1cfca // indirect
+	github.com/aperturerobotics/bifrost v0.18.7 // indirect
+	github.com/aperturerobotics/controllerbus v0.30.6 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231017230021-e6d92834f959 // indirect
 	github.com/aperturerobotics/identity v0.0.0-20230818200115-3bf5491d950a // indirect
 	github.com/aperturerobotics/timestamp v0.8.0 // indirect
 	github.com/aperturerobotics/util v1.7.6 // indirect
@@ -124,7 +124,7 @@ require (
 	github.com/kisielk/errcheck v1.6.2 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.3 // indirect
-	github.com/klauspost/compress v1.17.0 // indirect
+	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.6 // indirect
@@ -155,7 +155,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.11.0 // indirect
+	github.com/multiformats/go-multiaddr v0.12.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect

@@ -268,12 +268,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -286,24 +286,26 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      ops: Array.isArray(object?.ops)
+      ops: globalThis.Array.isArray(object?.ops)
         ? object.ops.map((e: any) => Op.fromJSON(e))
         : [],
-      configInput: isSet(object.configInput) ? String(object.configInput) : '',
+      configInput: isSet(object.configInput)
+        ? globalThis.String(object.configInput)
+        : '',
       ignoreErrors: isSet(object.ignoreErrors)
-        ? Boolean(object.ignoreErrors)
+        ? globalThis.Boolean(object.ignoreErrors)
         : false,
     }
   },
@@ -381,12 +383,12 @@ export const ConfigInput = {
       | Iterable<ConfigInput | ConfigInput[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ConfigInput.encode(p).finish()]
         }
       } else {
-        yield* [ConfigInput.encode(pkt).finish()]
+        yield* [ConfigInput.encode(pkt as any).finish()]
       }
     }
   },
@@ -399,19 +401,19 @@ export const ConfigInput = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<ConfigInput> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [ConfigInput.decode(p)]
         }
       } else {
-        yield* [ConfigInput.decode(pkt)]
+        yield* [ConfigInput.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): ConfigInput {
     return {
-      ops: Array.isArray(object?.ops)
+      ops: globalThis.Array.isArray(object?.ops)
         ? object.ops.map((e: any) => Op.fromJSON(e))
         : [],
     }
@@ -558,12 +560,12 @@ export const Op = {
     source: AsyncIterable<Op | Op[]> | Iterable<Op | Op[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Op.encode(p).finish()]
         }
       } else {
-        yield* [Op.encode(pkt).finish()]
+        yield* [Op.encode(pkt as any).finish()]
       }
     }
   },
@@ -576,12 +578,12 @@ export const Op = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Op> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Op.decode(p)]
         }
       } else {
-        yield* [Op.decode(pkt)]
+        yield* [Op.decode(pkt as any)]
       }
     }
   },
@@ -589,13 +591,19 @@ export const Op = {
   fromJSON(object: any): Op {
     return {
       opType: isSet(object.opType) ? opTypeFromJSON(object.opType) : 0,
-      keyInput: isSet(object.keyInput) ? String(object.keyInput) : '',
-      key: isSet(object.key) ? String(object.key) : '',
-      valueInput: isSet(object.valueInput) ? String(object.valueInput) : '',
+      keyInput: isSet(object.keyInput)
+        ? globalThis.String(object.keyInput)
+        : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      valueInput: isSet(object.valueInput)
+        ? globalThis.String(object.valueInput)
+        : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
-      valueString: isSet(object.valueString) ? String(object.valueString) : '',
-      output: isSet(object.output) ? String(object.output) : '',
-      ops: Array.isArray(object?.ops)
+      valueString: isSet(object.valueString)
+        ? globalThis.String(object.valueString)
+        : '',
+      output: isSet(object.output) ? globalThis.String(object.output) : '',
+      ops: globalThis.Array.isArray(object?.ops)
         ? object.ops.map((e: any) => Op.fromJSON(e))
         : [],
     }
@@ -663,8 +671,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

@@ -1,7 +1,7 @@
 /* eslint-disable */
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { Timestamp } from '../../timestamp/timestamp.pb.js'
 import { Result } from '../value/value.pb.js'
 
 export const protobufPackage = 'forge.job'
@@ -155,12 +155,12 @@ export const Job = {
     source: AsyncIterable<Job | Job[]> | Iterable<Job | Job[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Job.encode(p).finish()]
         }
       } else {
-        yield* [Job.encode(pkt).finish()]
+        yield* [Job.encode(pkt as any).finish()]
       }
     }
   },
@@ -173,12 +173,12 @@ export const Job = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Job> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Job.decode(p)]
         }
       } else {
-        yield* [Job.decode(pkt)]
+        yield* [Job.decode(pkt as any)]
       }
     }
   },
@@ -238,8 +238,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

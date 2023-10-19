@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { BlockRef } from '../../hydra/block/block.pb.js'
+import { Timestamp } from '../../timestamp/timestamp.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
 
@@ -216,12 +216,12 @@ export const Execution = {
       | Iterable<Execution | Execution[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Execution.encode(p).finish()]
         }
       } else {
-        yield* [Execution.encode(pkt).finish()]
+        yield* [Execution.encode(pkt as any).finish()]
       }
     }
   },
@@ -234,12 +234,12 @@ export const Execution = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Execution> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Execution.decode(p)]
         }
       } else {
-        yield* [Execution.decode(pkt)]
+        yield* [Execution.decode(pkt as any)]
       }
     }
   },
@@ -249,7 +249,7 @@ export const Execution = {
       executionState: isSet(object.executionState)
         ? stateFromJSON(object.executionState)
         : 0,
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
       timestamp: isSet(object.timestamp)
         ? Timestamp.fromJSON(object.timestamp)
         : undefined,
@@ -377,12 +377,12 @@ export const Spec = {
     source: AsyncIterable<Spec | Spec[]> | Iterable<Spec | Spec[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Spec.encode(p).finish()]
         }
       } else {
-        yield* [Spec.encode(pkt).finish()]
+        yield* [Spec.encode(pkt as any).finish()]
       }
     }
   },
@@ -395,19 +395,19 @@ export const Spec = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Spec> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Spec.decode(p)]
         }
       } else {
-        yield* [Spec.decode(pkt)]
+        yield* [Spec.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Spec {
     return {
-      peerId: isSet(object.peerId) ? String(object.peerId) : '',
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
       valueSet: isSet(object.valueSet)
         ? ValueSet.fromJSON(object.valueSet)
         : undefined,
@@ -462,8 +462,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

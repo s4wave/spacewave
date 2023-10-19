@@ -1,9 +1,9 @@
 /* eslint-disable */
-import { Config as Config1 } from '@go/github.com/aperturerobotics/bifrost/daemon/api/api.pb.js'
-import { Config as Config2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
-import { Config as Config3 } from '@go/github.com/aperturerobotics/hydra/daemon/api/api.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { Config as Config1 } from '../../../../bifrost/daemon/api/api.pb.js'
+import { Config as Config2 } from '../../../../controllerbus/bus/api/api.pb.js'
+import { Config as Config3 } from '../../../../hydra/daemon/api/api.pb.js'
 import { Config as Config4 } from '../api.pb.js'
 
 export const protobufPackage = 'forge.api.controller'
@@ -168,12 +168,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -186,39 +186,41 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      listenAddr: isSet(object.listenAddr) ? String(object.listenAddr) : '',
+      listenAddr: isSet(object.listenAddr)
+        ? globalThis.String(object.listenAddr)
+        : '',
       disableBifrostApi: isSet(object.disableBifrostApi)
-        ? Boolean(object.disableBifrostApi)
+        ? globalThis.Boolean(object.disableBifrostApi)
         : false,
       bifrostApiConfig: isSet(object.bifrostApiConfig)
         ? Config1.fromJSON(object.bifrostApiConfig)
         : undefined,
       disableBusApi: isSet(object.disableBusApi)
-        ? Boolean(object.disableBusApi)
+        ? globalThis.Boolean(object.disableBusApi)
         : false,
       busApiConfig: isSet(object.busApiConfig)
         ? Config2.fromJSON(object.busApiConfig)
         : undefined,
       disableHydraApi: isSet(object.disableHydraApi)
-        ? Boolean(object.disableHydraApi)
+        ? globalThis.Boolean(object.disableHydraApi)
         : false,
       hydraApiConfig: isSet(object.hydraApiConfig)
         ? Config3.fromJSON(object.hydraApiConfig)
         : undefined,
       disableForgeApi: isSet(object.disableForgeApi)
-        ? Boolean(object.disableForgeApi)
+        ? globalThis.Boolean(object.disableForgeApi)
         : false,
       forgeApiConfig: isSet(object.forgeApiConfig)
         ? Config4.fromJSON(object.forgeApiConfig)
@@ -301,8 +303,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

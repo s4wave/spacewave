@@ -193,12 +193,12 @@ export const Tx = {
     source: AsyncIterable<Tx | Tx[]> | Iterable<Tx | Tx[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tx.encode(p).finish()]
         }
       } else {
-        yield* [Tx.encode(pkt).finish()]
+        yield* [Tx.encode(pkt as any).finish()]
       }
     }
   },
@@ -211,12 +211,12 @@ export const Tx = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Tx> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Tx.decode(p)]
         }
       } else {
-        yield* [Tx.decode(pkt)]
+        yield* [Tx.decode(pkt as any)]
       }
     }
   },
@@ -320,12 +320,12 @@ export const TxStart = {
     source: AsyncIterable<TxStart | TxStart[]> | Iterable<TxStart | TxStart[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxStart.encode(p).finish()]
         }
       } else {
-        yield* [TxStart.encode(pkt).finish()]
+        yield* [TxStart.encode(pkt as any).finish()]
       }
     }
   },
@@ -338,18 +338,20 @@ export const TxStart = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxStart> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxStart.decode(p)]
         }
       } else {
-        yield* [TxStart.decode(pkt)]
+        yield* [TxStart.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TxStart {
-    return { peerId: isSet(object.peerId) ? String(object.peerId) : '' }
+    return {
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : '',
+    }
   },
 
   toJSON(message: TxStart): unknown {
@@ -427,12 +429,12 @@ export const TxSetOutputs = {
       | Iterable<TxSetOutputs | TxSetOutputs[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxSetOutputs.encode(p).finish()]
         }
       } else {
-        yield* [TxSetOutputs.encode(pkt).finish()]
+        yield* [TxSetOutputs.encode(pkt as any).finish()]
       }
     }
   },
@@ -445,22 +447,24 @@ export const TxSetOutputs = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxSetOutputs> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxSetOutputs.decode(p)]
         }
       } else {
-        yield* [TxSetOutputs.decode(pkt)]
+        yield* [TxSetOutputs.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): TxSetOutputs {
     return {
-      outputs: Array.isArray(object?.outputs)
+      outputs: globalThis.Array.isArray(object?.outputs)
         ? object.outputs.map((e: any) => Value.fromJSON(e))
         : [],
-      clearOld: isSet(object.clearOld) ? Boolean(object.clearOld) : false,
+      clearOld: isSet(object.clearOld)
+        ? globalThis.Boolean(object.clearOld)
+        : false,
     }
   },
 
@@ -537,12 +541,12 @@ export const TxComplete = {
       | Iterable<TxComplete | TxComplete[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxComplete.encode(p).finish()]
         }
       } else {
-        yield* [TxComplete.encode(pkt).finish()]
+        yield* [TxComplete.encode(pkt as any).finish()]
       }
     }
   },
@@ -555,12 +559,12 @@ export const TxComplete = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<TxComplete> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [TxComplete.decode(p)]
         }
       } else {
-        yield* [TxComplete.decode(pkt)]
+        yield* [TxComplete.decode(pkt as any)]
       }
     }
   },
@@ -607,8 +611,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }

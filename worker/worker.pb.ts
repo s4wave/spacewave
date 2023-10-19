@@ -1,7 +1,7 @@
 /* eslint-disable */
-import { Keypair } from '@go/github.com/aperturerobotics/identity/identity.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { Keypair } from '../../identity/identity.pb.js'
 
 export const protobufPackage = 'forge.worker'
 
@@ -84,12 +84,12 @@ export const Worker = {
     source: AsyncIterable<Worker | Worker[]> | Iterable<Worker | Worker[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Worker.encode(p).finish()]
         }
       } else {
-        yield* [Worker.encode(pkt).finish()]
+        yield* [Worker.encode(pkt as any).finish()]
       }
     }
   },
@@ -102,18 +102,18 @@ export const Worker = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Worker> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Worker.decode(p)]
         }
       } else {
-        yield* [Worker.decode(pkt)]
+        yield* [Worker.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Worker {
-    return { name: isSet(object.name) ? String(object.name) : '' }
+    return { name: isSet(object.name) ? globalThis.String(object.name) : '' }
   },
 
   toJSON(message: Worker): unknown {
@@ -201,12 +201,12 @@ export const WorkerCreateOp = {
       | Iterable<WorkerCreateOp | WorkerCreateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorkerCreateOp.encode(p).finish()]
         }
       } else {
-        yield* [WorkerCreateOp.encode(pkt).finish()]
+        yield* [WorkerCreateOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -219,21 +219,23 @@ export const WorkerCreateOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<WorkerCreateOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [WorkerCreateOp.decode(p)]
         }
       } else {
-        yield* [WorkerCreateOp.decode(pkt)]
+        yield* [WorkerCreateOp.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): WorkerCreateOp {
     return {
-      objectKey: isSet(object.objectKey) ? String(object.objectKey) : '',
-      name: isSet(object.name) ? String(object.name) : '',
-      keypairs: Array.isArray(object?.keypairs)
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      keypairs: globalThis.Array.isArray(object?.keypairs)
         ? object.keypairs.map((e: any) => Keypair.fromJSON(e))
         : [],
     }
@@ -282,8 +284,8 @@ export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
   ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string }
