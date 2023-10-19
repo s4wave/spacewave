@@ -8,7 +8,7 @@ replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.0.0-2023101221
 require github.com/aperturerobotics/hydra v0.0.0-20231017230021-e6d92834f959
 
 require (
-	github.com/evanw/esbuild v0.19.3 // latest
+	github.com/evanw/esbuild v0.19.5 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 )
