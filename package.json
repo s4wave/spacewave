@@ -80,7 +80,7 @@
     "@libp2p/mplex": "^9.0.8",
     "browser-readablestream-to-it": "^2.0.4",
     "console": "^0.7.2",
-    "electron": "28.0.0-alpha.3",
+    "electron": "28.0.0-alpha.4",
     "event-iterator": "^2.0.0",
     "idb": "^7.1.1",
     "long": "^5.2.1",
