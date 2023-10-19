@@ -120,15 +120,6 @@ func ExecutePlugin(
 	}
 	rels = append(rels, pluginEntryCtrlRel)
 
-	// handle ManifestFetch requests via bus ManifestFetch.
-	pluginFetchViaBus := manifest.NewManifestFetchViaBusController(le, b)
-	pluginFetchViaBusRel, err := b.AddController(ctx, pluginFetchViaBus, nil)
-	if err != nil {
-		rel()
-		return err
-	}
-	rels = append(rels, pluginFetchViaBusRel)
-
 	// handle Fetch requests via bus Fetch
 	webFetchViaBus := web_fetch_service.NewController(le, b, &web_fetch_service.Config{
 		// NotFoundIfIdle: true,
@@ -203,6 +194,10 @@ func ExecutePlugin(
 
 	// construct the rpc mux
 	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
+
+	// handle ManifestFetch requests via bus ManifestFetch.
+	pluginFetchViaBus := manifest.NewManifestFetchViaBus(le, b)
+	_ = manifest.SRPCRegisterManifestFetch(rpcMux, pluginFetchViaBus)
 
 	// handle AccessRpcService requests via bus LookupRpcService.
 	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
