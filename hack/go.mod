@@ -36,17 +36,17 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.18.7 // indirect
-	github.com/aperturerobotics/controllerbus v0.30.6 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231017230021-e6d92834f959 // indirect
+	github.com/aperturerobotics/bifrost v0.18.8 // indirect
+	github.com/aperturerobotics/controllerbus v0.30.7 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231023222233-cf4b2d74896b // indirect
 	github.com/aperturerobotics/identity v0.0.0-20230818200115-3bf5491d950a // indirect
-	github.com/aperturerobotics/timestamp v0.8.0 // indirect
+	github.com/aperturerobotics/timestamp v0.8.2 // indirect
 	github.com/aperturerobotics/util v1.7.6 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.9.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
+	github.com/bits-and-blooms/bitset v1.10.0 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.6.0 // indirect
 	github.com/bkielbasa/cyclop v1.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
@@ -124,7 +124,7 @@ require (
 	github.com/kisielk/errcheck v1.6.2 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.3 // indirect
-	github.com/klauspost/compress v1.17.1 // indirect
+	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.6 // indirect
