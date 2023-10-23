@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.7 // master
+require github.com/aperturerobotics/bifrost v0.18.8 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -34,7 +34,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.6 // latest
+	github.com/aperturerobotics/controllerbus v0.30.7 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
 	github.com/aperturerobotics/starpc v0.21.2 // latest
 )
@@ -61,14 +61,14 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.17.1
+	github.com/klauspost/compress v1.17.2
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.3 // indirect
 	github.com/nats-io/nats.go v1.31.0 // indirect
-	github.com/nats-io/nkeys v0.4.5 // indirect
+	github.com/nats-io/nkeys v0.4.6 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.18
@@ -83,7 +83,7 @@ require (
 	golang.org/x/crypto v0.14.0
 	gonum.org/v1/gonum v0.14.0
 	google.golang.org/protobuf v1.31.0
-	nhooyr.io/websocket v1.8.8-0.20221213223501-14fb98eba64e // indirect
+	nhooyr.io/websocket v1.8.9 // indirect
 	storj.io/drpc v0.0.33 // indirect
 )
 
@@ -92,7 +92,7 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.1.1
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a
-	github.com/aperturerobotics/timestamp v0.8.0
+	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/bits-and-blooms/bitset v1.9.0
 	github.com/bits-and-blooms/bloom/v3 v3.5.0
 	github.com/cayleygraph/quad v1.2.4
@@ -223,7 +223,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/mod v0.13.0 // indirect
-	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
