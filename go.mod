@@ -93,8 +93,8 @@ require (
 	github.com/Workiva/go-datastructures v1.1.1
 	github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a
 	github.com/aperturerobotics/timestamp v0.8.2
-	github.com/bits-and-blooms/bitset v1.9.0
-	github.com/bits-and-blooms/bloom/v3 v3.5.0
+	github.com/bits-and-blooms/bitset v1.10.0
+	github.com/bits-and-blooms/bloom/v3 v3.6.0
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
@@ -118,7 +118,7 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/sync v0.4.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.25.4
+	gorm.io/gorm v1.25.5
 )
 
 require (
