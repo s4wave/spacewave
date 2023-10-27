@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.8 // master
+require github.com/aperturerobotics/bifrost v0.18.9-0.20231026190843-5136fcce133b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -74,7 +74,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.5.0 // indirect
-	github.com/quic-go/quic-go v0.39.1 // indirect
+	github.com/quic-go/quic-go v0.39.2 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -83,7 +83,7 @@ require (
 	golang.org/x/crypto v0.14.0
 	gonum.org/v1/gonum v0.14.0
 	google.golang.org/protobuf v1.31.0
-	nhooyr.io/websocket v1.8.9 // indirect
+	nhooyr.io/websocket v1.8.10 // indirect
 	storj.io/drpc v0.0.33 // indirect
 )
 
@@ -91,7 +91,7 @@ require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.1.1
-	github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a
+	github.com/aperturerobotics/go-kvfile v0.1.0
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/bits-and-blooms/bitset v1.10.0
 	github.com/bits-and-blooms/bloom/v3 v3.6.0
