@@ -3,9 +3,9 @@ module github.com/aperturerobotics/bldr
 go 1.21
 
 // https://github.com/evanw/esbuild/pull/3413
-replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.0.0-20231012211418-2ff0b30f8932 // aperture
+replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231023221810-7161a454988c
+require github.com/aperturerobotics/hydra v0.0.0-20231027003802-72367661cf10
 
 require (
 	github.com/evanw/esbuild v0.19.5 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.8 // master
+require github.com/aperturerobotics/bifrost v0.18.9-0.20231026190843-5136fcce133b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -85,7 +85,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.5.0 // indirect
-	github.com/quic-go/quic-go v0.39.1 // indirect
+	github.com/quic-go/quic-go v0.39.2 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -94,13 +94,13 @@ require (
 	golang.org/x/crypto v0.14.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0
-	nhooyr.io/websocket v1.8.9
+	nhooyr.io/websocket v1.8.10
 	storj.io/drpc v0.0.33 // indirect
 )
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.0.0-20230425001036-7a6edac30a6a
+	github.com/aperturerobotics/go-kvfile v0.1.0
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/cayleygraph/quad v1.2.4
 	github.com/fatih/color v1.15.0
@@ -118,8 +118,8 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.1 // indirect
 	github.com/Workiva/go-datastructures v1.1.1 // indirect
-	github.com/bits-and-blooms/bitset v1.9.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
+	github.com/bits-and-blooms/bitset v1.10.0 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.6.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -228,6 +228,6 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/gorm v1.25.4 // indirect
+	gorm.io/gorm v1.25.5 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
