@@ -77,7 +77,7 @@ func newRemotePeer(c *Controller, localID, remoteID peer.ID) *remotePeer {
 func (p *remotePeer) le() *logrus.Entry {
 	return p.c.le.
 		WithField("protocol-id", string(syncProtocolID)).
-		WithField("remote-peer", p.id.Pretty())
+		WithField("remote-peer", p.id.String())
 }
 
 // triggerSyncSession starts the sync session.

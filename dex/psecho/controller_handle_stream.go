@@ -44,7 +44,7 @@ func (r *mountedStreamResolver) Resolve(
 		return err
 	}
 
-	if cs.peerID.Pretty() == r.dir.HandleMountedStreamLocalPeerID().Pretty() {
+	if cs.peerID.String() == r.dir.HandleMountedStreamLocalPeerID().String() {
 		_, _ = handler.AddValue(r.c)
 	}
 

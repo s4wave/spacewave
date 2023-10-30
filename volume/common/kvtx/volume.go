@@ -70,7 +70,7 @@ func NewVolume(
 
 	v.volumeID = strings.Join([]string{
 		storeID,
-		v.Peer.GetPeerID().Pretty(),
+		v.Peer.GetPeerID().String(),
 	}, "/")
 
 	return v, nil

@@ -52,7 +52,7 @@ func TestFSWatcher(t *testing.T) {
 		&unixfs_world_access.Config{
 			FsId:   unixFsID,
 			FsRef:  &unixfs_world.UnixfsRef{ObjectKey: objKey},
-			PeerId: tb.Volume.GetPeerID().Pretty(),
+			PeerId: tb.Volume.GetPeerID().String(),
 		},
 	)
 	if err != nil {

@@ -133,7 +133,7 @@ func NewEncryptedVolume(
 		var demoKey [32]byte
 		blake3.DeriveKey(
 			"aperture-alpha/toys/session-store/volume.go demo",
-			[]byte(volPeerID.Pretty()),
+			[]byte(volPeerID.String()),
 			demoKey[:],
 		)
 		transformConf, err := block_transform.NewConfig([]config.Config{

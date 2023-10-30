@@ -128,7 +128,7 @@ func (d *lookupVolume) GetName() string {
 func (d *lookupVolume) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if nod := d.LookupVolumePeerIDConstraint(); nod != peer.ID("") {
-		peerID := d.LookupVolumePeerIDConstraint().Pretty()
+		peerID := d.LookupVolumePeerIDConstraint().String()
 		vals["peer-id"] = []string{peerID}
 	}
 	if vid := d.LookupVolumeID(); vid != "" {

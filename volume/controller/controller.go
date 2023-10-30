@@ -93,7 +93,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer v.Close()
 
-	le := c.le.WithField("peer-id", v.GetPeerID().Pretty())
+	le := c.le.WithField("peer-id", v.GetPeerID().String())
 	le.Debug("volume constructed, initializing")
 	errCh := make(chan error, 1)
 	pushErr := func(err error) {

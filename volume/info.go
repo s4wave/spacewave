@@ -12,7 +12,7 @@ import (
 
 // NewVolumeInfo constructs volume info from a volume.
 func NewVolumeInfo(ctx context.Context, ci *controller.Info, vol Volume) (*VolumeInfo, error) {
-	peerID := vol.GetPeerID().Pretty()
+	peerID := vol.GetPeerID().String()
 	peerInfo, err := vol.GetPeer(ctx, false)
 	if err != nil {
 		return nil, err

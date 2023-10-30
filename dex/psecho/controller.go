@@ -113,7 +113,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	pr, _, prRef, err := peer.GetPeerWithID(ctx, c.b, peerID, false, nil)
 	if err != nil {
-		return errors.Wrapf(err, "get peer with id %s", peerID.Pretty())
+		return errors.Wrapf(err, "get peer with id %s", peerID.String())
 	}
 	privKey, err := pr.GetPrivKey(ctx)
 	if err != nil {

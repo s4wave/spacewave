@@ -37,7 +37,7 @@ func (o *Operation) ApplyWorldOp(
 	defer func() {
 		o.le().Debugf(
 			"ApplyWorldOp(%s) => sysErr(%v) err(%v)",
-			sender.Pretty(),
+			sender.String(),
 			sysErr,
 			err,
 		)
@@ -62,7 +62,7 @@ func (o *Operation) ApplyWorldObjectOp(
 	defer func() {
 		o.le().Debugf(
 			"ApplyWorldObjectOp(%s) => sysErr(%v) err(%v)",
-			sender.Pretty(),
+			sender.String(),
 			sysErr,
 			err,
 		)

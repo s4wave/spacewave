@@ -121,7 +121,7 @@ func TestBlockVolume(t *testing.T) {
 	}
 
 	// check volume key
-	t.Log(bvol.GetPeerID().Pretty())
+	t.Log(bvol.GetPeerID().String())
 	bvolPeer, err := bvol.GetPeer(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())

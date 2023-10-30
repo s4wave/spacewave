@@ -26,7 +26,7 @@ func (c *Controller) handleIncomingMessage(
 	var msg PubSubMessage
 	if err := (&msg).UnmarshalBlock(m.GetData()); err != nil {
 		c.le.
-			WithField("remote-peer-id", m.GetFrom().Pretty()).
+			WithField("remote-peer-id", m.GetFrom().String()).
 			WithError(err).
 			Warn("cannot parse message")
 		return
@@ -35,7 +35,7 @@ func (c *Controller) handleIncomingMessage(
 	// TODO
 	from := m.GetFrom()
 	msg.LogFields(c.le).
-		WithField("remote-peer-id", from.Pretty()).
+		WithField("remote-peer-id", from.String()).
 		Debug("received incoming pubsub message")
 	if len(msg.GetWantRefs()) != 0 || msg.GetWantEmpty() {
 		var checkList []*block.BlockRef

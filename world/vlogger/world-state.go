@@ -45,7 +45,7 @@ func (w *WorldState) ApplyWorldOp(
 		w.le.Debugf(
 			"ApplyWorldOp(%s, %s) => seqno(%v) sysErr(%v) err(%v)",
 			op.GetOperationTypeId(),
-			opSender.Pretty(),
+			opSender.String(),
 			seqno, sysErr, err,
 		)
 	}()

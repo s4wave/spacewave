@@ -78,7 +78,7 @@ func (o *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 		le.Debugf(
 			"ApplyObjectOp(%s, %s) => rev(%v) sysErr(%v) err(%v)",
 			op.GetOperationTypeId(),
-			opSender.Pretty(),
+			opSender.String(),
 			rev, sysErr, err,
 		)
 	}()
