@@ -28,8 +28,8 @@ const (
 )
 
 // NewKeypairKey builds a key from a peer id.
-func NewKeypairKey(peerIDPretty string) string {
-	return KeypairPrefix + peerIDPretty
+func NewKeypairKey(peerIDString string) string {
+	return KeypairPrefix + peerIDString
 }
 
 // NewObjectToKeypairQuad creates a quad linking any object to a Keypair.

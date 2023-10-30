@@ -38,8 +38,8 @@ func StoreKeypair(
 		return 0, false, err
 	}
 
-	pidPretty := pid.Pretty()
-	key := NewKeypairKey(pidPretty)
+	pidString := pid.String()
+	key := NewKeypairKey(pidString)
 	seqno, err := w.GetSeqno(ctx)
 	if err != nil {
 		return 0, false, err
@@ -84,7 +84,7 @@ func LookupOrStoreKeypair(
 	authMethodID string,
 	authMethodParams []byte,
 ) (*identity.Keypair, string, error) {
-	keypairPeerStr := keypairPeer.Pretty()
+	keypairPeerStr := keypairPeer.String()
 	if keypairPeer == "" {
 		return nil, "", peer.ErrEmptyPeerID
 	}
@@ -133,10 +133,10 @@ func EnsureKeypairsExist(
 			return nil, errors.Errorf("keypairs[%d]: parse peer id", nki)
 		}
 
-		objKey := NewKeypairKey(pid.Pretty())
+		objKey := NewKeypairKey(pid.String())
 		kpObjectKeys[nki] = objKey
 		if _, dupe := createdKp[objKey]; dupe {
-			return nil, errors.Errorf("keypairs[%d]: duplicate: %s", nki, pid.Pretty())
+			return nil, errors.Errorf("keypairs[%d]: duplicate: %s", nki, pid.String())
 		}
 		createdKp[objKey] = struct{}{}
 	}
@@ -192,8 +192,8 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	pidPretty := pid.Pretty()
-	objKey := NewKeypairKey(pidPretty)
+	pidString := pid.String()
+	objKey := NewKeypairKey(pidString)
 
 	// create the object if it doesn't exist.
 	obj, objFound, err := worldHandle.GetObject(ctx, objKey)

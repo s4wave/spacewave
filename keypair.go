@@ -28,7 +28,7 @@ func NewKeypair(
 		return nil, err
 	}
 	return &Keypair{
-		PeerId:           pid.Pretty(),
+		PeerId:           pid.String(),
 		PubKey:           pkData,
 		AuthMethodId:     authMethodID,
 		AuthMethodParams: authMethodParams,
@@ -78,8 +78,8 @@ func (k *Keypair) Validate() error {
 		}
 		return errors.Errorf(
 			"pub_key id %s does not match peer_id %s",
-			pubKeyPeerID.Pretty(),
-			peerID.Pretty(),
+			pubKeyPeerID.String(),
+			peerID.String(),
 		)
 	}
 	if k.GetAuthMethodId() == "" {

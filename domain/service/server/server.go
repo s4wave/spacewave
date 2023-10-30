@@ -115,7 +115,7 @@ func (s *Server) LookupEntity(
 	}
 
 	le := s.le.
-		WithField("request-peer", reqPeerID.Pretty()).
+		WithField("request-peer", reqPeerID.String()).
 		WithField("entity-id", entityID).
 		WithField("domain-id", domainID)
 

@@ -31,9 +31,9 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 	if err != nil {
 		return err
 	}
-	expectedPeerIDPretty := expectedPeerID.Pretty()
-	if kpPeerID := kp.GetPeerId(); expectedPeerIDPretty != kpPeerID {
-		return errors.Errorf("private key %s does not match keypair %s", expectedPeerIDPretty, kpPeerID)
+	expectedPeerIDString := expectedPeerID.String()
+	if kpPeerID := kp.GetPeerId(); expectedPeerIDString != kpPeerID {
+		return errors.Errorf("private key %s does not match keypair %s", expectedPeerIDString, kpPeerID)
 	}
 
 	// sign the keypair data w/ the private key
@@ -65,8 +65,8 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 		if err != nil {
 			return errors.Wrapf(err, "keypairs[%d]", i)
 		}
-		peerIDPretty := peerID.Pretty()
-		if peerIDPretty == kp.GetPeerId() || peerID.MatchesPublicKey(pubKey) {
+		peerIDString := peerID.String()
+		if peerIDString == kp.GetPeerId() || peerID.MatchesPublicKey(pubKey) {
 			return errors.Wrapf(err, "keypairs[%d] already contains peer %s", i, kp.GetPeerId())
 		}
 	}
@@ -117,7 +117,7 @@ func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypai
 			return nil, errors.Wrapf(err, "keypair_signatures[%d]: peer id:", i)
 		}
 		if !peerID.MatchesPublicKey(pubKey) {
-			return nil, errors.Errorf("keypair_signatures[%d]: public key does not match peer id %s", i, peerID.Pretty())
+			return nil, errors.Errorf("keypair_signatures[%d]: public key does not match peer id %s", i, peerID.String())
 		}
 		ok, err := kpSig.VerifyWithPublic(pubKey, keypairs[i])
 		if err == nil && !ok {

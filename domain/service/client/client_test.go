@@ -90,7 +90,7 @@ func TestDomainClient(t *testing.T) {
 		tb2.Bus,
 		resolver.NewLoadControllerWithConfig(
 			&identity_domain_server.Config{
-				PeerIds: []string{tb2PeerID.Pretty()},
+				PeerIds: []string{tb2PeerID.String()},
 			},
 		),
 		nil,
@@ -111,10 +111,10 @@ func TestDomainClient(t *testing.T) {
 					Name:        "Test Domain",
 					Description: "testing the domain service",
 				},
-				PeerId: tb1PeerID.Pretty(),
+				PeerId: tb1PeerID.String(),
 				ClientOpts: &stream_srpc_client.Config{
 					ServerPeerIds: []string{
-						tb2PeerID.Pretty(),
+						tb2PeerID.String(),
 					},
 				},
 			},
@@ -128,15 +128,15 @@ func TestDomainClient(t *testing.T) {
 
 	// tb1 -> tb2 inproc
 	tp2 := inproc.BuildInprocController(tb2.Logger, tb2.Bus, tb2PeerID, &inproc.Config{
-		TransportPeerId: tb2PeerID.Pretty(),
+		TransportPeerId: tb2PeerID.String(),
 	})
 	tpt2dialer := &dialer.DialerOpts{
 		Address: inproc.NewAddr(tb2PeerID).String(),
 	}
 	tp1 := inproc.BuildInprocController(tb1.Logger, tb1.Bus, tb1PeerID, &inproc.Config{
-		TransportPeerId: tb1PeerID.Pretty(),
+		TransportPeerId: tb1PeerID.String(),
 		Dialers: map[string]*dialer.DialerOpts{
-			tb2PeerID.Pretty(): tpt2dialer,
+			tb2PeerID.String(): tpt2dialer,
 		},
 	})
 
