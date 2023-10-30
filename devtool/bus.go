@@ -505,7 +505,7 @@ func (d *DevtoolBus) StartProjectController(
 			Remotes: map[string]*bldr_project.RemoteConfig{
 				"devtool": {
 					EngineId:       d.worldEngineID,
-					PeerId:         d.peerID.Pretty(),
+					PeerId:         d.peerID.String(),
 					ObjectKey:      d.pluginHostObjectKey,
 					LinkObjectKeys: []string{d.pluginHostObjectKey},
 				},

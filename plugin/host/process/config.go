@@ -29,7 +29,7 @@ func NewConfig(
 		EngineId:            engineID,
 		ObjectKey:           objectKey,
 		VolumeId:            volumeID,
-		PeerId:              peerID.Pretty(),
+		PeerId:              peerID.String(),
 		AlwaysFetchManifest: alwaysFetchManifest,
 		FetchConcurrency:    10,
 

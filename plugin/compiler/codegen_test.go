@@ -198,7 +198,7 @@ func TestCodegen(t *testing.T) {
 		if output != expected {
 			dmp := gdiff.New()
 			diffs := dmp.DiffMain(expected, output, false)
-			t.Fatal(dmp.DiffPrettyText(diffs))
+			t.Fatal(dmp.DiffStringText(diffs))
 		}
 	}
 }

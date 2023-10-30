@@ -105,7 +105,7 @@ func NewController(
 		hostPluginPlatformID: promise.NewPromiseContainer[string](),
 		objKey:               conf.GetObjectKey(),
 		peerID:               peerID,
-		peerIDStr:            peerID.Pretty(),
+		peerIDStr:            peerID.String(),
 		pluginManifests:      make(map[string]pluginManifestSnapshot),
 		worldStateCtr:        ccontainer.NewCContainer[world.WorldState](nil),
 		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
