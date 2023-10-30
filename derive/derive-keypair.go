@@ -153,13 +153,13 @@ KeypairLoop:
 				var derivPeerID peer.ID
 				derivPeerID, err = peer.IDFromPrivateKey(privKey)
 				if err == nil {
-					derivPretty := derivPeerID.Pretty()
-					if derivPretty != expectedPeerID {
+					derivString := derivPeerID.String()
+					if derivString != expectedPeerID {
 						incorrectPw = true
 						err = errors.Errorf(
 							"expected peer %s but got %s",
 							expectedPeerID,
-							derivPretty,
+							derivString,
 						)
 					}
 				}

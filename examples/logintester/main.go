@@ -140,7 +140,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tbServer.Bus,
 		resolver.NewLoadControllerWithConfig(&server.Config{
-			PeerIds: []string{serverPeerID.Pretty()},
+			PeerIds: []string{serverPeerID.String()},
 		}),
 		nil,
 	)
@@ -149,7 +149,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	defer serverRef.Release()
 
-	serverPeerIDs := []string{serverPeerID.Pretty()}
+	serverPeerIDs := []string{serverPeerID.String()}
 
 	// Static auth list (simulating a auth database)
 	_, _, staticRef, err := loader.WaitExecControllerRunning(
@@ -173,7 +173,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tbServer.Bus,
 		resolver.NewLoadControllerWithConfig(&inproc.Config{
-			TransportPeerId: serverPeerID.Pretty(),
+			TransportPeerId: serverPeerID.String(),
 		}),
 		nil,
 	)
@@ -192,9 +192,9 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tb.Bus,
 		resolver.NewLoadControllerWithConfig(&inproc.Config{
-			TransportPeerId: peerID.Pretty(),
+			TransportPeerId: peerID.String(),
 			Dialers: map[string]*dialer.DialerOpts{
-				serverPeerID.Pretty(): {
+				serverPeerID.String(): {
 					Address: tp2.LocalAddr().String(),
 				},
 			},
@@ -220,7 +220,7 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tb.Bus,
 		resolver.NewLoadControllerWithConfig(&client.Config{
-			PeerId: peerID.Pretty(),
+			PeerId: peerID.String(),
 			ClientOpts: &stream_srpc_client.Config{
 				ServerPeerIds: serverPeerIDs,
 			},
@@ -318,7 +318,7 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	derivedPeerIDStr := derivedPeerID.Pretty()
+	derivedPeerIDStr := derivedPeerID.String()
 	if derivedPeerIDStr != selectedKeypair.GetPeerId() {
 		return errors.Errorf(
 			"password incorrect, expected peer id %s but got %s",

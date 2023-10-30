@@ -16,7 +16,7 @@
     }
   ],
   "repository": {
-    "url": "git@github.com:aperturerobotics/hydra.git"
+    "url": "git+ssh://git@github.com/aperturerobotics/hydra.git"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",

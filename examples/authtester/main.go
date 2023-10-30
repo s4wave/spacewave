@@ -72,11 +72,11 @@ func runAuthTester(c *cli.Context) error {
 	}
 	le.Infof("encoded auth parameters: %s", b58.Encode(authParamsDat))
 	le.
-		WithField("peer-id", peerID.Pretty()).
+		WithField("peer-id", peerID.String()).
 		WithField("entity-uuid", entityUUID).
 		Info("authenticated and derived private key")
 
-	dat, err := privKey.Sign([]byte(peerID.Pretty()))
+	dat, err := privKey.Sign([]byte(peerID.String()))
 	if err != nil {
 		return err
 	}

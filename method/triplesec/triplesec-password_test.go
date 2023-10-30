@@ -21,12 +21,12 @@ func TestBasicAuthenticate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	peerIDPretty := peerID.Pretty()
-	t.Log(peerIDPretty)
+	peerIDString := peerID.String()
+	t.Log(peerIDString)
 
 	// determinism check
 	expectedPeerID := "12D3KooWNZcv3LvXM27oom23NN1CxiQHYFMXGC1gAmgcgLwsbocc"
-	if peerIDPretty != expectedPeerID {
+	if peerIDString != expectedPeerID {
 		t.Fatalf("expected peer ID %s", expectedPeerID)
 	}
 }
