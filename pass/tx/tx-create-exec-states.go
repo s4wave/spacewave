@@ -110,7 +110,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 			return errors.Wrapf(err, "exec_specs[%d]", i)
 		}
 
-		execObjKey := forge_pass.BuildPassExecutionObjKey(objKey, specPeerID.Pretty())
+		execObjKey := forge_pass.BuildPassExecutionObjKey(objKey, specPeerID.String())
 		if _, ok := skipExecs[spec.GetPeerId()]; !ok {
 			skipExecs[spec.GetPeerId()] = struct{}{}
 			_, err = forge_pass.CreateExecutionWithPass(

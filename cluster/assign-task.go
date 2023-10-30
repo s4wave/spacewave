@@ -91,13 +91,13 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
-	clusterPeerIDStr := clusterPeerID.Pretty()
+	clusterPeerIDStr := clusterPeerID.String()
 	if clusterPeerIDStr == "" {
 		return false, errors.Wrap(peer.ErrEmptyPeerID, "cluster")
 	}
 
 	// ensure the sender matches the cluster peer id
-	senderPeerIDStr := sender.Pretty()
+	senderPeerIDStr := sender.String()
 	if senderPeerIDStr != clusterPeerIDStr {
 		return false, errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
 	}

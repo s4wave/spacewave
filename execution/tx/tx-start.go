@@ -16,7 +16,7 @@ func NewTxStart(peerID peer.ID) *Tx {
 	return &Tx{
 		TxType: TxType_TxType_START,
 		TxStart: &TxStart{
-			PeerId: peerID.Pretty(),
+			PeerId: peerID.String(),
 		},
 	}
 }
@@ -71,7 +71,7 @@ func (t *TxStart) ExecuteTx(
 		if sender != txPeerID {
 			return errors.Errorf(
 				"tx body peer id %s must match sender %s",
-				txPeerID.Pretty(), sender.Pretty(),
+				txPeerID.String(), sender.String(),
 			)
 		}
 	}

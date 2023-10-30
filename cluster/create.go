@@ -19,7 +19,7 @@ func NewClusterCreateOp(clusterKey, name string, peerID peer.ID) *ClusterCreateO
 	return &ClusterCreateOp{
 		ClusterKey: clusterKey,
 		Name:       name,
-		PeerId:     peerID.Pretty(),
+		PeerId:     peerID.String(),
 	}
 }
 

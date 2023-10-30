@@ -66,7 +66,7 @@ func NewController(
 		conf:      conf,
 		objKey:    conf.GetObjectKey(),
 		peerID:    peerID,
-		peerIDStr: peerID.Pretty(),
+		peerIDStr: peerID.String(),
 	}
 	c.passWatcher = keyed.NewKeyedWithLogger(c.newPassTracker, le)
 	c.inputObjectWatcher = keyed.NewKeyedWithLogger(c.newInputObjectTracker, le)

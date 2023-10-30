@@ -97,7 +97,7 @@ func CreateTaskWithTarget(
 		TaskState: State_TaskState_PENDING,
 		Name:      name,
 		Replicas:  replicas,
-		PeerId:    peerID.Pretty(),
+		PeerId:    peerID.String(),
 		Timestamp: ts,
 	}
 	if err := ntask.Validate(); err != nil {

@@ -69,14 +69,14 @@ func (c *Controller) ProcessState(
 	}
 
 	// if peer id is set, check that it matches any of the worker keypairs
-	var peerIDPretty string
+	var peerIDString string
 	if len(peerID) != 0 {
-		peerIDPretty = peerID.Pretty()
+		peerIDString = peerID.String()
 
 		matched := -1
 		for i, wPeerID := range workerPeerIDs {
-			wPeerIDPretty := wPeerID.Pretty()
-			if peerIDPretty == wPeerIDPretty {
+			wPeerIDString := wPeerID.String()
+			if peerIDString == wPeerIDString {
 				matched = i
 				break
 			}
@@ -86,7 +86,7 @@ func (c *Controller) ProcessState(
 				"worker %q: configured peer id does not match any of %d keypairs: %s",
 				workerName,
 				len(workerPeerIDs),
-				peerIDPretty,
+				peerIDString,
 			)
 			return true, nil
 		}

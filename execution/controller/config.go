@@ -21,7 +21,7 @@ const ConfigID = ControllerID
 func NewConfig(engineID, objectKey string, peerID peer.ID, inpWorld *forge_target.InputWorld) *Config {
 	var peerIDStr string
 	if peerID != "" {
-		peerIDStr = peerID.Pretty()
+		peerIDStr = peerID.String()
 	}
 	return &Config{
 		EngineId:  engineID,

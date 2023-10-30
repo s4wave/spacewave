@@ -19,7 +19,7 @@ var ClusterAssignPeerOpId = ClusterTypeID + "/assign-peer"
 func NewClusterAssignPeerOp(clusterKey string, peerID peer.ID) *ClusterAssignPeerOp {
 	return &ClusterAssignPeerOp{
 		ClusterKey: clusterKey,
-		PeerId:     peerID.Pretty(),
+		PeerId:     peerID.String(),
 	}
 }
 
@@ -74,7 +74,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 	}
 
 	// if the peer id matches the current, return nil
-	peerIDStr := peerID.Pretty()
+	peerIDStr := peerID.String()
 	if o.GetPeerId() == peerIDStr {
 		return false, nil
 	}
@@ -100,13 +100,13 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		if err != nil {
 			return err
 		}
-		clusterPeerIDStr := clusterPeerID.Pretty()
+		clusterPeerIDStr := clusterPeerID.String()
 		if clusterPeerIDStr == "" {
 			return errors.Wrap(peer.ErrEmptyPeerID, "cluster")
 		}
 
 		// ensure the sender matches the cluster peer id
-		senderPeerIDStr := sender.Pretty()
+		senderPeerIDStr := sender.String()
 		if senderPeerIDStr != clusterPeerIDStr {
 			return errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
 		}

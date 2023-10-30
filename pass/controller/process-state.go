@@ -97,7 +97,7 @@ func (c *Controller) ProcessState(
 		if len(execStates)+len(execSpecs) < int(passState.GetReplicas()) {
 			if c.conf.GetAssignSelf() {
 				execSpecs = []*pass_transaction.ExecSpec{{
-					PeerId: c.peerID.Pretty(),
+					PeerId: c.peerID.String(),
 				}}
 			}
 		}

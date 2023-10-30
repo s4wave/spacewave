@@ -59,7 +59,7 @@ func NewController(
 		conf:      conf,
 		objKey:    conf.GetObjectKey(),
 		peerID:    peerID,
-		peerIDStr: peerID.Pretty(),
+		peerIDStr: peerID.String(),
 	}
 	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("object-loop", "cluster-controller"),

@@ -37,7 +37,7 @@ func (tb *Testbed) RunPassWithTarget(
 		tgt,
 		1,
 		replicas,
-		peerID.Pretty(),
+		peerID.String(),
 		ts,
 	)
 	if err != nil {
@@ -75,7 +75,7 @@ func (tb *Testbed) RunPassWithTarget(
 
 	// construct execution controller & attach to the object the pass controller
 	// will create. NOTE: this should eventually be replaced with the worker.
-	execObjKey := forge_pass.BuildPassExecutionObjKey(passObjectKey, peerID.Pretty())
+	execObjKey := forge_pass.BuildPassExecutionObjKey(passObjectKey, peerID.String())
 	execCtrlCfg := exec_controller.NewConfig(
 		tb.EngineID,
 		execObjKey,

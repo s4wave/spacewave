@@ -17,7 +17,7 @@ func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
 	return &Config{
 		EngineId:  engineID,
 		ObjectKey: objectKey,
-		PeerId:    peerID.Pretty(),
+		PeerId:    peerID.String(),
 	}
 }
 

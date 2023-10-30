@@ -36,10 +36,10 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.18.8 // indirect
+	github.com/aperturerobotics/bifrost v0.18.9 // indirect
 	github.com/aperturerobotics/controllerbus v0.30.7 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231023222233-cf4b2d74896b // indirect
-	github.com/aperturerobotics/identity v0.0.0-20230818200115-3bf5491d950a // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231030184105-4c0a71b2f606 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20231030184619-16d497d6b66b // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
 	github.com/aperturerobotics/util v1.7.6 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
@@ -133,7 +133,7 @@ require (
 	github.com/ldez/tagliatelle v0.3.1 // indirect
 	github.com/leonklingele/grouper v1.1.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1-0.20220919134021-a29bd39bcbb7 // indirect
-	github.com/libp2p/go-libp2p v0.31.0 // indirect
+	github.com/libp2p/go-libp2p v0.32.0 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
@@ -143,7 +143,7 @@ require (
 	github.com/markbates/safe v1.0.1 // indirect
 	github.com/matoous/godox v0.0.0-20210227103229-6504466cf951 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect
@@ -225,7 +225,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	gitlab.com/bosi/decorder v0.2.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.25.0 // indirect
+	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect

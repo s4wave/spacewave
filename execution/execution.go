@@ -44,7 +44,7 @@ func CreateExecutionWithTarget(
 		bcs.ClearAllRefs()
 		bcs.SetBlock(&Execution{
 			ExecutionState: State_ExecutionState_PENDING,
-			PeerId:         execPeerID.Pretty(),
+			PeerId:         execPeerID.String(),
 			ValueSet:       valueSet,
 			Timestamp:      ts,
 		}, true)
@@ -127,8 +127,8 @@ func (e *Execution) CheckPeerID(id peer.ID) error {
 	}
 
 	// basic string comparison
-	currPeerIDStr := currPeerID.Pretty()
-	idStr := id.Pretty()
+	currPeerIDStr := currPeerID.String()
+	idStr := id.String()
 	if currPeerIDStr != idStr {
 		return errors.Wrapf(
 			forge_value.ErrUnexpectedPeerID,

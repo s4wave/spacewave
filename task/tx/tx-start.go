@@ -120,7 +120,7 @@ func (t *TxStart) ExecuteTx(
 		taskTarget,
 		nextNonce,
 		root.GetReplicas(),
-		passPeerID.Pretty(),
+		passPeerID.String(),
 		root.GetTimestamp(),
 	)
 	if err != nil {

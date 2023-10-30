@@ -15,7 +15,7 @@ func NewSpec(
 	valueSet *forge_target.ValueSet,
 ) *Spec {
 	return &Spec{
-		PeerId:    peerID.Pretty(),
+		PeerId:    peerID.String(),
 		ValueSet:  valueSet,
 		TargetRef: targetRef,
 	}

@@ -214,7 +214,7 @@ func (c *Controller) ProcessState(
 		c.execRoutine.SetState(nil)
 		le.Debugf(
 			"marking execution as running with peer id: %s",
-			peerID.Pretty(),
+			peerID.String(),
 		)
 		txd := execution_transaction.NewTxStart(peerID)
 		if err != nil {
