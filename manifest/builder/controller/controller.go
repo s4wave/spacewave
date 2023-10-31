@@ -216,12 +216,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		for filePath, v := range nextWatchedFiles {
-			le.Debugf("adding watcher for file: %s", filePath)
 			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
 			watchedFiles[filePath] = v
 			watchedSourcePaths[sourcePath] = v
 			if err := watcher.Add(sourcePath); err != nil {
-				return err
+				le.WithError(err).Warnf("unable to add watcher for file: %s", filePath)
+			} else {
+				le.Debugf("adding watcher for file: %s", filePath)
 			}
 		}
 
