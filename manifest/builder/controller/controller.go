@@ -173,7 +173,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// ignoreWatchPrefixes are prefixes to ignore from watching
-		ignoreWatchPrefixes := []string{"vendor", "node_modules", ".bldr"}
+		ignoreWatchPrefixes := []string{"vendor", "node_modules", ".bldr", "(disabled)"}
 
 		// build file watchlist
 		nextWatchedFiles := make(map[string]*manifest_builder.InputManifest_File)
