@@ -131,7 +131,7 @@ func (c *Controller) BundleElectronHook(
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
-	minify, debugMode := buildType.IsRelease(), buildType.IsDev()
+	minify, devMode := buildType.IsRelease(), buildType.IsDev()
 	workingDir := filepath.Join(builderConf.GetWorkingPath(), "build")
 
 	le := c.GetLogger().
@@ -169,7 +169,7 @@ func (c *Controller) BundleElectronHook(
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, distSrcDir, workingEntrypointDir, minify, debugMode)
+	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, distSrcDir, workingEntrypointDir, minify, devMode)
 	if err != nil {
 		return nil, err
 	}

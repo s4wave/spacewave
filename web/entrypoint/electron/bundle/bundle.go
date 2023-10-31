@@ -21,11 +21,11 @@ import (
 
 // ElectronDefine returns the define mapping for Electron.
 //
-// debug enables debug mode.
-func ElectronDefine(debug bool) map[string]string {
+// devMode enables devMode mode.
+func ElectronDefine(devMode bool) map[string]string {
 	return map[string]string{
 		"BLDR_IS_ELECTRON": "true",
-		"BLDR_DEBUG":       strconv.FormatBool(debug),
+		"BLDR_DEBUG":       strconv.FormatBool(devMode),
 	}
 }
 
@@ -33,9 +33,9 @@ func ElectronDefine(debug bool) map[string]string {
 var EsbuildLogLevel = esbuild.LogLevelInfo
 
 // ElectronBuildOpts are general options for building for Electron.
-func ElectronBuildOpts(bldrDistRoot string, minify, debug bool) esbuild.BuildOptions {
+func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
 	opts := bundle.BrowserBuildOpts(bldrDistRoot, minify)
-	opts.Define = ElectronDefine(debug)
+	opts.Define = ElectronDefine(devMode)
 	opts.External = []string{"electron"}
 	opts.LogLevel = EsbuildLogLevel
 	return opts
@@ -47,10 +47,10 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 }
 
 // BuildPreloadBundle builds the web renderer bundle files.
-func BuildPreloadBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, debug bool) error {
+func BuildPreloadBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
 	le.Debug("generating electron preload bundle")
-	opts := ElectronBuildOpts(bldrDistRoot, minify, debug)
-	opts.Define = ElectronDefine(debug)
+	opts := ElectronBuildOpts(bldrDistRoot, minify, devMode)
+	opts.Define = ElectronDefine(devMode)
 	opts.EntryPointsAdvanced = nil
 	opts.EntryNames = ""
 	opts.EntryPoints = []string{
@@ -72,11 +72,11 @@ func BuildPreloadBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify,
 }
 
 // BuildMainBundle builds the electron Main bundle files.
-func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, debug bool) error {
+func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
 	le.Debug("generating electron main bundle")
 
-	opts := ElectronBuildOpts(bldrDistRoot, minify, debug)
-	opts.Define = ElectronDefine(debug)
+	opts := ElectronBuildOpts(bldrDistRoot, minify, devMode)
+	opts.Define = ElectronDefine(devMode)
 	opts.EntryPointsAdvanced = nil
 	opts.EntryNames = ""
 	opts.EntryPoints = []string{
@@ -100,7 +100,7 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 // BuildWebPkgsBundle builds the web pkg bundle files.
 //
 // TODO: this needs to be included in the browser bundle too and moved to a common place.
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir string, minify, debug bool) error {
+func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir string, minify, devMode bool) error {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
@@ -158,6 +158,12 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
 		Imports:    []string{"index.ts"},
 	}}
+
+	// if we are in development mode: include test-utils to react-dom
+	if devMode {
+		refs[1].Imports = append(refs[1].Imports, "test-utils.js")
+	}
+
 	_, _, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
 		ctx,
 		le,
@@ -180,7 +186,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, debug bool) error {
+func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
 	le.Debug("generating web renderer bundle")
 
 	// index.html
@@ -198,11 +204,11 @@ func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 
 	// entrypoint
 	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
-	opts := ElectronBuildOpts(bldrDistRoot, minify, debug)
+	opts := ElectronBuildOpts(bldrDistRoot, minify, devMode)
 	opts.Outdir = webEntrypointOut
 	opts.EntryPointsAdvanced = nil
 	opts.EntryNames = ""
-	opts.Define = ElectronDefine(debug)
+	opts.Define = ElectronDefine(devMode)
 	opts.EntryPoints = []string{
 		"web/entrypoint/entrypoint.tsx",
 	}
@@ -239,8 +245,8 @@ func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
 // BuildElectronBundle builds and outputs the web & service worker files.
 //
 // minify enables file minification in esbuild
-// debug enables debug extensions in Electron
-func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, debug bool) error {
+// devMode enables devMode extensions in Electron
+func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
 	err := os.MkdirAll(buildDir, 0755)
 	if err != nil {
 		return err
@@ -252,12 +258,12 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	}
 
 	// preload
-	if err := BuildPreloadBundle(le, bldrDistRoot, buildDir, minify, debug); err != nil {
+	if err := BuildPreloadBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 
 	// main
-	if err := BuildMainBundle(le, bldrDistRoot, buildDir, minify, debug); err != nil {
+	if err := BuildMainBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 
@@ -267,12 +273,12 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	if err != nil {
 		return err
 	}
-	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, minify, debug); err != nil {
+	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, minify, debug); err != nil {
+	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 

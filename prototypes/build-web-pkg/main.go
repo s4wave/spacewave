@@ -38,7 +38,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	}, {
 		WebPkgId:   "react-dom",
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react-dom"),
-		Imports:    []string{"index.js", "client.js"},
+		Imports:    []string{"index.js", "client.js", "test-utils.js"},
 	}, {
 		WebPkgId:   "@aptre/bldr",
 		WebPkgRoot: filepath.Join(rootDir, "web", "bldr"),
