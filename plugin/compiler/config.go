@@ -176,13 +176,13 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 		conf := mergeConfigs[len(mergeConfigs)-1]
 
 		buildTypeConfig, ok := conf.GetBuildTypes()[filterBuildType.String()]
+		conf.BuildTypes = nil
 		if ok && !slices.Contains(mergeConfigs, buildTypeConfig) {
 			mergeConfigs = append(mergeConfigs, buildTypeConfig)
 			continue
 		}
 
-		// clear BuildTypes and dequeue
-		conf.BuildTypes = nil
+		// dequeue
 		mergeConfigs[len(mergeConfigs)-1] = nil
 		mergeConfigs = mergeConfigs[:len(mergeConfigs)-1]
 
