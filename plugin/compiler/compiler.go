@@ -193,6 +193,9 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf = &Config{}
 		}
 
+		// apply the per-build-type configs
+		pluginBuildConf.FlattenBuildTypes(buildType)
+
 		// call any pre-build hooks
 		for _, hook := range c.preBuildHooks {
 			res, err := hook(ctx, builderConf, busEngine)

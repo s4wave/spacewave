@@ -71,13 +71,16 @@ manifests:
           demo-1:
             id: bldr/example/demo
             config: {}
-        hostConfigSet:
-          # configure the devtool to fetch demo-* plugins from bldr-demo
-          fetch-plugin-via-bldr-demo:
-            id: bldr/manifest/fetch/plugin
-            config:
-              pluginId: bldr-demo
-              fetchManifestIdRe: demo-.*
+        # example of a per-build-type config
+        buildTypes:
+          release:
+            hostConfigSet:
+              # configure the devtool to fetch demo-* plugins from bldr-demo
+              fetch-plugin-via-bldr-demo:
+                id: bldr/manifest/fetch/plugin
+                config:
+                  pluginId: bldr-demo
+                  fetchManifestIdRe: demo-.*
   dist:
     builder:
       id: bldr/dist/compiler

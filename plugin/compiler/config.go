@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -69,6 +70,14 @@ func (c *Config) Validate() error {
 	}
 	if _, err := c.ParseEsbuildFlags(); err != nil {
 		return errors.Wrap(err, "esbuild_flags")
+	}
+	for buildTypeStr, buildTypeConf := range c.GetBuildTypes() {
+		if err := bldr_manifest.BuildType(buildTypeStr).Validate(false); err != nil {
+			return err
+		}
+		if err := buildTypeConf.Validate(); err != nil {
+			return errors.Wrapf(err, "build_types[%s]", buildTypeStr)
+		}
 	}
 
 	return nil
@@ -155,6 +164,32 @@ func (c *Config) Merge(o *Config) {
 
 	if esbuildFlags := o.GetEsbuildFlags(); len(esbuildFlags) != 0 {
 		c.EsbuildFlags = append(c.EsbuildFlags, esbuildFlags...)
+	}
+}
+
+// FlattenBuildTypes flattens the build_type tree given the current build type.
+//
+// Clears the BuildTypes field and applies all relevant BuildType overrides to c.
+func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
+	mergeConfigs := []*Config{c}
+	for len(mergeConfigs) != 0 {
+		conf := mergeConfigs[len(mergeConfigs)-1]
+
+		buildTypeConfig, ok := conf.GetBuildTypes()[filterBuildType.String()]
+		if ok && !slices.Contains(mergeConfigs, buildTypeConfig) {
+			mergeConfigs = append(mergeConfigs, buildTypeConfig)
+			continue
+		}
+
+		// clear BuildTypes and dequeue
+		conf.BuildTypes = nil
+		mergeConfigs[len(mergeConfigs)-1] = nil
+		mergeConfigs = mergeConfigs[:len(mergeConfigs)-1]
+
+		// merge into base config
+		if conf != c {
+			c.Merge(conf)
+		}
 	}
 }
 

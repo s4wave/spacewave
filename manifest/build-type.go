@@ -62,3 +62,8 @@ func (t BuildType) IsDev() bool {
 func (t BuildType) IsRelease() bool {
 	return ToBuildType(string(t)) == BuildType_RELEASE
 }
+
+// String converts BuildType to string.
+func (t BuildType) String() string {
+	return string(t)
+}

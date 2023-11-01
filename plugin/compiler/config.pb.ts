@@ -152,6 +152,8 @@ export interface Config {
    * - observe-web-view: handle LookupWebView with incoming HandleWebView directives
    */
   webPluginId: string;
+  /** BuildTypes contains a mapping of BuildType to Config override. */
+  buildTypes: { [key: string]: Config };
 }
 
 export interface Config_ConfigSetEntry {
@@ -162,6 +164,11 @@ export interface Config_ConfigSetEntry {
 export interface Config_HostConfigSetEntry {
   key: string;
   value: ControllerConfig | undefined;
+}
+
+export interface Config_BuildTypesEntry {
+  key: string;
+  value: Config | undefined;
 }
 
 /** PreBuildHookResult is the output of a pre-build hook. */
@@ -250,6 +257,7 @@ function createBaseConfig(): Config {
     enableCgo: false,
     esbuildFlags: [],
     webPluginId: "",
+    buildTypes: {},
   };
 }
 
@@ -288,6 +296,9 @@ export const Config = {
     if (message.webPluginId !== "") {
       writer.uint32(90).string(message.webPluginId);
     }
+    Object.entries(message.buildTypes).forEach(([key, value]) => {
+      Config_BuildTypesEntry.encode({ key: key as any, value }, writer.uint32(98).fork()).ldelim();
+    });
     return writer;
   },
 
@@ -381,6 +392,16 @@ export const Config = {
 
           message.webPluginId = reader.string();
           continue;
+        case 12:
+          if (tag !== 98) {
+            break;
+          }
+
+          const entry12 = Config_BuildTypesEntry.decode(reader, reader.uint32());
+          if (entry12.value !== undefined) {
+            message.buildTypes[entry12.key] = entry12.value;
+          }
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -447,6 +468,12 @@ export const Config = {
         ? object.esbuildFlags.map((e: any) => globalThis.String(e))
         : [],
       webPluginId: isSet(object.webPluginId) ? globalThis.String(object.webPluginId) : "",
+      buildTypes: isObject(object.buildTypes)
+        ? Object.entries(object.buildTypes).reduce<{ [key: string]: Config }>((acc, [key, value]) => {
+          acc[key] = Config.fromJSON(value);
+          return acc;
+        }, {})
+        : {},
     };
   },
 
@@ -497,6 +524,15 @@ export const Config = {
     if (message.webPluginId !== "") {
       obj.webPluginId = message.webPluginId;
     }
+    if (message.buildTypes) {
+      const entries = Object.entries(message.buildTypes);
+      if (entries.length > 0) {
+        obj.buildTypes = {};
+        entries.forEach(([k, v]) => {
+          obj.buildTypes[k] = Config.toJSON(v);
+        });
+      }
+    }
     return obj;
   },
 
@@ -532,6 +568,15 @@ export const Config = {
     message.enableCgo = object.enableCgo ?? false;
     message.esbuildFlags = object.esbuildFlags?.map((e) => e) || [];
     message.webPluginId = object.webPluginId ?? "";
+    message.buildTypes = Object.entries(object.buildTypes ?? {}).reduce<{ [key: string]: Config }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = Config.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
     return message;
   },
 };
@@ -751,6 +796,116 @@ export const Config_HostConfigSetEntry = {
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
       ? ControllerConfig.fromPartial(object.value)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseConfig_BuildTypesEntry(): Config_BuildTypesEntry {
+  return { key: "", value: undefined };
+}
+
+export const Config_BuildTypesEntry = {
+  encode(message: Config_BuildTypesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      Config.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Config_BuildTypesEntry {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConfig_BuildTypesEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = Config.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<Config_BuildTypesEntry, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<Config_BuildTypesEntry | Config_BuildTypesEntry[]>
+      | Iterable<Config_BuildTypesEntry | Config_BuildTypesEntry[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [Config_BuildTypesEntry.encode(p).finish()];
+        }
+      } else {
+        yield* [Config_BuildTypesEntry.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, Config_BuildTypesEntry>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<Config_BuildTypesEntry> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [Config_BuildTypesEntry.decode(p)];
+        }
+      } else {
+        yield* [Config_BuildTypesEntry.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): Config_BuildTypesEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? Config.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: Config_BuildTypesEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = Config.toJSON(message.value);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Config_BuildTypesEntry>, I>>(base?: I): Config_BuildTypesEntry {
+    return Config_BuildTypesEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Config_BuildTypesEntry>, I>>(object: I): Config_BuildTypesEntry {
+    const message = createBaseConfig_BuildTypesEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null)
+      ? Config.fromPartial(object.value)
       : undefined;
     return message;
   },

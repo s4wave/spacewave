@@ -83,6 +83,9 @@ message Config {
   // - load-web: loads the web plugin on startup
   // - observe-web-view: handle LookupWebView with incoming HandleWebView directives
   string web_plugin_id = 11;
+
+  // BuildTypes contains a mapping of BuildType to Config override.
+  map<string, Config> build_types = 12;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
