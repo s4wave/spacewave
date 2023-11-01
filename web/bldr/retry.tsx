@@ -36,7 +36,7 @@ export class Retry<T = void> {
   // _errorCb is the error callback.
   private _errorCb?: (err: unknown) => void
   // _abortSignal is the current abort signal (if set).
-  private _abortSignal?: AbortSignal;
+  private _abortSignal?: AbortSignal
 
   // _canceled indicates retrying this has been canceled
   private _canceled?: boolean
