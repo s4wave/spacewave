@@ -14,6 +14,7 @@ import (
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )
@@ -49,6 +50,7 @@ func AnalyzePackages(
 	le *logrus.Entry,
 	workDir string,
 	packagePaths []string,
+	buildTags []string,
 ) (*Analysis, error) {
 	// expect go.mod go.sum in the work dir for base module
 	baseGoModPath := filepath.Join(workDir, "go.mod")
@@ -86,7 +88,12 @@ func AnalyzePackages(
 	}
 
 	builderCtx := build.Default
+
+	// build tags
 	builderCtx.BuildTags = append(builderCtx.BuildTags, "bldr_analyze")
+	builderCtx.BuildTags = append(builderCtx.BuildTags, buildTags...)
+	slices.Sort(builderCtx.BuildTags)
+	builderCtx.BuildTags = slices.Compact(builderCtx.BuildTags)
 
 	var conf packages.Config
 	conf.Context = ctx

@@ -127,16 +127,39 @@ func (m *ModuleCompiler) GenerateModule(
 
 // CompilePlugin compiles the plugin to outFile.
 // The module structure should have been built already.
-func (m *ModuleCompiler) CompilePlugin(ctx context.Context, le *logrus.Entry, outFile string, platform bldr_platform.Platform, enableCgo, isRelease bool) error {
+func (m *ModuleCompiler) CompilePlugin(
+	ctx context.Context,
+	le *logrus.Entry,
+	outFile string,
+	platform bldr_platform.Platform,
+	enableCgo,
+	isRelease bool,
+	buildTags []string,
+) error {
 	workDir := m.pluginCodegenPath
-	return gocompiler.ExecBuildEntrypoint(le, platform, workDir, outFile, enableCgo, isRelease)
+	return gocompiler.ExecBuildEntrypoint(
+		le,
+		platform,
+		workDir,
+		outFile,
+		enableCgo,
+		isRelease,
+		buildTags,
+	)
 }
 
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.
 // The module structure should have been built already.
 // If buildDevWrapper is set, build an entrypoint that runs the plugin.
 // If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
-func (m *ModuleCompiler) CompilePluginDevWrapper(ctx context.Context, le *logrus.Entry, outFile, dlvAddr string, enableCgo bool) error {
+func (m *ModuleCompiler) CompilePluginDevWrapper(
+	ctx context.Context,
+	le *logrus.Entry,
+	outFile,
+	dlvAddr string,
+	enableCgo bool,
+	buildTags []string,
+) error {
 	// write the plugin dev wrapper entrypoint
 	devSrcDir := filepath.Join(m.pluginCodegenPath, "dev")
 	devSrcMain := filepath.Join(devSrcDir, "main.go")

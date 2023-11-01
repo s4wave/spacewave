@@ -653,8 +653,11 @@ func (c *Controller) BuildPlugin(
 	// merge configured config set entries
 	configset_proto.MergeConfigSetMaps(embedConfigSet, configSet)
 
+	// build tags
+	buildTags := []string{"build_type_" + buildType.String()}
+
 	le.Info("analyzing go packages")
-	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs)
+	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTags)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -857,12 +860,12 @@ func (c *Controller) BuildPlugin(
 	// only use dev wrapper if !isRelease && delveAddr != ""
 	if isRelease || delveAddr == "" {
 		le.Info("compiling plugin binary")
-		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo, isRelease); err != nil {
+		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo, isRelease, buildTags); err != nil {
 			return nil, nil, err
 		}
 	} else {
 		le.Info("compiling plugin dev wrapper binary")
-		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, enableCgo); err != nil {
+		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, enableCgo, buildTags); err != nil {
 			return nil, nil, err
 		}
 		copyFiles = append(copyFiles, "plugin.go", "config-set.bin")

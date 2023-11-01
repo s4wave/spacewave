@@ -238,7 +238,18 @@ func BuildDistBundle(
 		return err
 	}
 
+	// build tags
+	buildTags := []string{"build_type_" + buildType.String()}
+
 	outBinPath := filepath.Join(outputPath, outBinName)
 	isRelease := buildType.IsRelease()
-	return gocompiler.ExecBuildEntrypoint(le, buildPlatform, entrypointBuildDir, outBinPath, enableCgo, isRelease)
+	return gocompiler.ExecBuildEntrypoint(
+		le,
+		buildPlatform,
+		entrypointBuildDir,
+		outBinPath,
+		enableCgo,
+		isRelease,
+		buildTags,
+	)
 }

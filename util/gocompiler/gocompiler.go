@@ -71,6 +71,7 @@ func ExecBuildEntrypoint(
 	outBinPath string,
 	enableCgo bool,
 	isRelease bool,
+	buildTags []string,
 ) error {
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
@@ -87,6 +88,10 @@ func ExecBuildEntrypoint(
 	// if release: disable debug info
 	if isRelease {
 		args = append(args, "-gcflags", "-N -l")
+	}
+
+	if len(buildTags) != 0 {
+		args = append(args, "-tags="+strings.Join(buildTags, ","))
 	}
 
 	// module path

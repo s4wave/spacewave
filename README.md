@@ -158,6 +158,14 @@ have a separate bundle, specify a different `--bundle-id=value` in the comment.
 
 Flags can also be specified in the plugin compiler config with "esbuildFlags".
 
+## Build Tags
+
+bldr will set the following build tags:
+
+ - `bldr_analyze`: set while analyzing the code for factories
+ - `build_type_dev`: set during development build
+ - `build_type_release`: set during release build
+
 ## Developing
 
 You need the following tools installed:
