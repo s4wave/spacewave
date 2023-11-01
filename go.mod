@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.9 // master
+require github.com/aperturerobotics/bifrost v0.18.10-0.20231101095614-c3d976efe4e6 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -34,9 +34,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.7 // latest
+	github.com/aperturerobotics/controllerbus v0.30.8 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0
-	github.com/aperturerobotics/starpc v0.21.2 // latest
+	github.com/aperturerobotics/starpc v0.21.3 // latest
 )
 
 // aperture: use compatibility forks
@@ -56,7 +56,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.6 // master
+	github.com/aperturerobotics/util v1.7.7 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -74,7 +74,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.5.0 // indirect
-	github.com/quic-go/quic-go v0.39.3 // indirect
+	github.com/quic-go/quic-go v0.40.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -113,8 +113,8 @@ require (
 	github.com/spf13/afero v1.10.0
 	github.com/spf13/cast v1.5.1
 	github.com/valyala/fastjson v1.6.4
-	github.com/vmihailenco/msgpack/v5 v5.4.0
-	go.etcd.io/bbolt v1.3.7
+	github.com/vmihailenco/msgpack/v5 v5.4.1
+	go.etcd.io/bbolt v1.3.8
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/sync v0.4.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
