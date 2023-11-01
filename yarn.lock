@@ -2805,6 +2805,29 @@ starpc@^0.21.2:
     uint8arraylist "^2.4.3"
     ws "^8.14.2"
 
+starpc@^0.21.3:
+  version "0.21.3"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.21.3.tgz#3c40539521d51962488cf0f0646bf379706879e7"
+  integrity sha512-BOLx/QE6ZFnwYFqE+iIECCY9iw/pYX6k2UVuH6W4NX8QD1mGJc0gUCAsg1l4sLCywIoQwlM9MknBOLNwdQT3qQ==
+  dependencies:
+    "@chainsafe/libp2p-yamux" "^5.0.0"
+    "@libp2p/interface" "^0.1.2"
+    event-iterator "^2.0.0"
+    is-promise "^4.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.3"
+    it-length-prefixed "^9.0.3"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.1"
+    it-stream-types "^2.0.1"
+    it-ws "^6.0.5"
+    long "^5.2.3"
+    memoize-one "^6.0.0"
+    patch-package "^8.0.0"
+    protobufjs "^7.2.5"
+    uint8arraylist "^2.4.3"
+    ws "^8.14.2"
+
 stream-shift@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/stream-shift/-/stream-shift-1.0.1.tgz#d7088281559ab2778424279b0877da3c392d5a3d"
