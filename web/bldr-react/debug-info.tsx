@@ -121,6 +121,7 @@ const DebugInfoDisplay: FC = () => {
     boxShadow: '0 0 0.5rem 0 rgba(0, 0, 0, 0.2)',
     borderRadius: 0,
     position: 'absolute',
+    userSelect: 'none',
     top: 0,
     right: 0,
     zIndex: 1000,
