@@ -194,6 +194,7 @@ func (h *ProcessHost) ExecutePlugin(
 	entrypointProc.Env = append(
 		os.Environ(),
 		"BLDR_PLUGIN_START_INFO="+pluginStartInfoB58,
+		"BLDR_PLUGIN_STATE_PATH="+pluginStateDir,
 	)
 
 	// write start info to a file as well
