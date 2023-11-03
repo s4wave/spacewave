@@ -21,7 +21,8 @@ import {
 const app = electron.app
 
 // immediately configure the data directory to cwd
-const userDataPath = process.env['BLDR_PLUGIN_STATE_PATH'] || path.join(process.cwd(), 'userData')
+const userDataPath =
+  process.env['BLDR_PLUGIN_STATE_PATH'] || path.join(process.cwd(), 'userData')
 app.setPath('userData', userDataPath)
 
 // setup the ipc pipe paths

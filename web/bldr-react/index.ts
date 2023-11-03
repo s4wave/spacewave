@@ -16,5 +16,11 @@ export {
   createReactFunctionComponent,
   createReactProtoFunctionComponent,
 } from './function-component.js'
+export {
+  DebugInfo,
+  DebugInfoContext,
+  DebugInfoDisplay,
+  DebugInfoProvider,
+  useDebugInfo,
+} from './debug-info.js'
 export { BldrDebug } from './bldr-debug.js'
-export { DebugInfo } from './debug-info.js'

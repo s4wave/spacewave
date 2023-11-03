@@ -1,5 +1,13 @@
 import React, { useState } from 'react'
-import { DebugInfo, renderProto, useWebViewHostClient } from '@aptre/bldr-react'
+import {
+  renderProto,
+  useWebViewHostClient,
+  DebugInfo,
+  DebugInfoDisplay,
+  DebugInfoProvider,
+  BldrDebug,
+} from '@aptre/bldr-react'
+
 import { retryWithAbort } from '@aptre/bldr'
 import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 
@@ -29,10 +37,12 @@ const Example: React.FC<ExampleProps> = (props: ExampleProps) => {
   })
 
   return (
-    <>
+    <DebugInfoProvider>
+      <DebugInfoDisplay />
+      <BldrDebug />
       <DebugInfo>TestDebugInfo</DebugInfo>
       <div className="example-message">{message || 'Loading...'}</div>
-    </>
+    </DebugInfoProvider>
   )
 }
 
