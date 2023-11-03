@@ -282,10 +282,10 @@
     p-defer "^4.0.0"
     uint8arraylist "^2.4.3"
 
-"@libp2p/interface@^0.1.4":
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-0.1.4.tgz#fc87a71e5832dfc08a4c96cb17a8d97d7cb0a170"
-  integrity sha512-Pk8mzit/w7PbTh28n77RDLTU1CQBBzLygiNC07MvcEjaIwqXdNPN3Vuzr/5qiF6aDsbM9fA1W5dWoCif9xBdxg==
+"@libp2p/interface@^0.1.5":
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-0.1.5.tgz#98579c2ba0c6a47bf3773e8a07bb8aa4010e92b4"
+  integrity sha512-1sPZ0iZifINtw8RAZ6flML7InRXNkZJF/MpKmAwIFXhEFDtRvbwMSs/kihPxLgsvbBCfJiTqUuy2ki8a4p06Vg==
   dependencies:
     "@multiformats/multiaddr" "^12.1.5"
     abortable-iterator "^5.0.1"
@@ -307,24 +307,24 @@
     interface-datastore "^8.2.0"
     multiformats "^12.0.1"
 
-"@libp2p/logger@^3.0.4":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-3.0.4.tgz#8435482f92abc23ecbfe5f0b5213cba4416912c6"
-  integrity sha512-MF42c7SOJIx5YmHhIsFaSYfaC266YYmMbAJHjjH8Zl5unFsqW82M+Xr7sGVj9/WXrWAd37ts8xJaQrkIXc3OZQ==
+"@libp2p/logger@^3.0.5":
+  version "3.0.5"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-3.0.5.tgz#fd55a7e2261ea51b6aafae216c3f76f5e9675dcd"
+  integrity sha512-fxxG3mXrMQfqhyeM0WAI3HYsufwp4IpEjUIH/CVrG+hCiMeEtxruXgHvlY3L6lKXfBdGQ65VzdTyVXUDoSrGjA==
   dependencies:
-    "@libp2p/interface" "^0.1.4"
+    "@libp2p/interface" "^0.1.5"
     "@multiformats/multiaddr" "^12.1.5"
     debug "^4.3.4"
     interface-datastore "^8.2.0"
     multiformats "^12.0.1"
 
-"@libp2p/mplex@^9.0.9":
-  version "9.0.9"
-  resolved "https://registry.yarnpkg.com/@libp2p/mplex/-/mplex-9.0.9.tgz#f4c7b339a7be88fbacd737a514382887df4a1a57"
-  integrity sha512-/rhJa3wGaYcTFyGQjBRBhvrncu8QXSmaJbDeOf2j/DoySQd/274jj8W35sGzWnNTyVbbPlcpYV0oVIe1hoYaUw==
+"@libp2p/mplex@^9.0.10":
+  version "9.0.10"
+  resolved "https://registry.yarnpkg.com/@libp2p/mplex/-/mplex-9.0.10.tgz#2ae49aadd4df9f9d8857f147cf27cf0b5b33201f"
+  integrity sha512-ToG/kDc+fA1onYKXrifawBgPO2oOUyGsoxMLIpZaAnmHu7RLNjt2Wb4Ges7QVlY3daF8ZYysEjc6/1GPlYzSNA==
   dependencies:
-    "@libp2p/interface" "^0.1.4"
-    "@libp2p/logger" "^3.0.4"
+    "@libp2p/interface" "^0.1.5"
+    "@libp2p/logger" "^3.0.5"
     abortable-iterator "^5.0.1"
     benchmark "^2.1.4"
     it-batched-bytes "^2.0.2"
@@ -512,10 +512,10 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/react@^18.2.33":
-  version "18.2.33"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.33.tgz#055356243dc4350a9ee6c6a2c07c5cae12e38877"
-  integrity sha512-v+I7S+hu3PIBoVkKGpSYYpiBT1ijqEzWpzQD62/jm4K74hPpSP7FF9BnKG6+fg2+62weJYkkBWDJlZt5JO/9hg==
+"@types/react@^18.2.34":
+  version "18.2.34"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.34.tgz#aed20f19473721ba328feb99d1ec3307ebc1a8dd"
+  integrity sha512-U6eW/alrRk37FU/MS2RYMjx0Va2JGIVXELTODaTIYgvWGCV4Y4TfTUzG8DdmpDNIT0Xpj/R7GfyHOJJrDttcvg==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -2965,10 +2965,10 @@ ts-proto-descriptors@1.15.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.162.2:
-  version "1.162.2"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.162.2.tgz#e8c4eb02cb75d882c2650d48ec5c2df5282b7c05"
-  integrity sha512-iVvoXmelsniHFxh9GAkmz3S7yNuddjgv5iWTDr0VUn67IH3RSvvAd8BjN7Snm0+p1yY/diAQoNHXHuNHe8D3rA==
+ts-proto@^1.163.0:
+  version "1.163.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.163.0.tgz#d64a64e6a5f8dd78a32a9b374f92b87c28c8dbbc"
+  integrity sha512-jpC4oA86NkN015R2YHGj9bhOJEYOuop4JddmADixRxBcBBcfCgkh7mhxA10BWrmk3/oyczI3T//UNK4x3P9/Sw==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"

@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231101095910-6c7d172763a3
+require github.com/aperturerobotics/hydra v0.0.0-20231103191803-2ebe106fa1e0
 
 require (
 	github.com/evanw/esbuild v0.19.5 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.10-0.20231101095614-c3d976efe4e6 // master
+require github.com/aperturerobotics/bifrost v0.18.10 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,7 +45,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.8 // latest
+	github.com/aperturerobotics/controllerbus v0.30.9 // latest
 	github.com/aperturerobotics/entitygraph v0.4.0 // indirect
 	github.com/aperturerobotics/starpc v0.21.3 // latest
 )
