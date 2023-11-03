@@ -114,7 +114,7 @@ const DebugInfoDisplay: FC = () => {
     fontSize: '12px',
     padding: '0.5rem',
     margin: '1rem',
-    maxWidth: '25%',
+    maxWidth: '33%',
     minWidth: '10rem',
     overflow: 'auto',
     overflowWrap: 'break-word',
