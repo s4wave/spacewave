@@ -171,7 +171,7 @@ func (c *Controller) BuildManifest(
 		)
 		if err != nil {
 			le.WithError(err).Warn("fast rebuild failed: continuing with normal build")
-			updatedManifestMeta, err = nil, nil
+			updatedManifestMeta = nil
 		} else if updatedManifestMeta != nil {
 			le.Debug("completed fast rebuild")
 		}
