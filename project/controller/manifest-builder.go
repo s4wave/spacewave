@@ -5,6 +5,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -25,6 +26,10 @@ type manifestBuilderTracker struct {
 	c *Controller
 	// conf is the manifest builder config
 	conf *ManifestBuilderConfig
+	// manifestConf is the manifest config
+	manifestConf atomic.Pointer[bldr_project.ManifestConfig]
+	// remoteConf is the remote config
+	remoteConf atomic.Pointer[bldr_project.RemoteConfig]
 	// resultPromiseCtr contains the result of the compilation.
 	resultPromiseCtr *promise.PromiseContainer[*ManifestBuilderResult]
 }
@@ -94,6 +99,11 @@ func (c *Controller) newManifestBuilderTracker(key string) (keyed.Routine, *mani
 	return tr.execute, tr
 }
 
+// failWithError marks the tracker as failed with an error.
+func (t *manifestBuilderTracker) failWithError(err error) {
+	t.resultPromiseCtr.SetResult(nil, err)
+}
+
 // execute executes the tracker.
 func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	t.resultPromiseCtr.SetPromise(nil)
@@ -104,6 +114,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return err
 	}
 	defer remoteRef.Release()
+	t.remoteConf.Store(remoteRef.GetRemoteConfig())
 
 	// set config fields
 	meta := bldr_manifest.NewManifestMeta(
@@ -123,14 +134,23 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return errors.Errorf("invalid platform id: %s", meta.GetPlatformId())
 	}
 
+	// ctrlConf is the current controller config
+	ctrlConf := t.c.GetConfig()
+
 	// build paths
-	buildWorkingPath := filepath.Join(t.c.c.GetWorkingPath(), "build", platformIDPath, manifestID)
-	distSrcPath := filepath.Join(t.c.c.GetWorkingPath(), "src")
+	buildWorkingPath := filepath.Join(ctrlConf.GetWorkingPath(), "build", platformIDPath, manifestID)
+	distSrcPath := filepath.Join(ctrlConf.GetWorkingPath(), "src")
 
 	// load plugin config from project config
-	projectConfig := t.c.c.GetProjectConfig()
+	projectConfig := ctrlConf.GetProjectConfig()
 	manifestConfigs := projectConfig.GetManifests()
-	manifestConfig := manifestConfigs[manifestID]
+	manifestConfig := manifestConfigs[manifestID].CloneVT()
+	if manifestConfig == nil {
+		return bldr_project.ErrManifestConfNotFound
+	}
+
+	// set the manifest conf
+	t.manifestConf.Store(manifestConfig)
 
 	// determine plugin rev from previous version
 	rev := manifestConfig.GetRev()
@@ -188,13 +208,13 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		LinkObjectKeys: storeLinkObjKeys,
 		DistSourcePath: distSrcPath,
 		WorkingPath:    buildWorkingPath,
-		SourcePath:     t.c.c.GetSourcePath(),
+		SourcePath:     ctrlConf.GetSourcePath(),
 	}
 	builderConf := manifest_builder_controller.NewConfig(
 		manifestBuilderConf,
 		manifestConfig.GetBuilder(),
-		t.c.c.GetBuildBackoff(),
-		t.c.c.GetWatch(),
+		ctrlConf.GetBuildBackoff(),
+		ctrlConf.GetWatch(),
 	)
 
 	ctrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(

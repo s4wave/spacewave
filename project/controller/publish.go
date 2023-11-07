@@ -29,7 +29,8 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		return errors.New("publish called with no targets")
 	}
 
-	projConfig := c.c.GetProjectConfig()
+	conf := c.GetConfig()
+	projConfig := conf.GetProjectConfig()
 	publishTargets := projConfig.GetPublish()
 
 	// add a reference to the source remote

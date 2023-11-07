@@ -11,7 +11,8 @@ import (
 //
 // If the targets list is empty, builds all targets.
 func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType) error {
-	projConfig := c.c.GetProjectConfig()
+	conf := c.conf.Load()
+	projConfig := conf.GetProjectConfig()
 	buildTargets := projConfig.GetBuild()
 
 	var manifestBuilderConfs []*ManifestBuilderConfig

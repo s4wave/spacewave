@@ -86,8 +86,8 @@ github.com/aperturerobotics/timestamp v0.8.2 h1:+HA/uI9ZGz8qqim+kkXqz3cijR8kMcQ4
 github.com/aperturerobotics/timestamp v0.8.2/go.mod h1:nrwzlUGvxs244CIBjDWHZ8qRudqk8m/SQ5n5GKXaFVw=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0 h1:OtlIxcXjfRDvgY2OQC6dZSiAAXral6kaZ+kD+JviZo0=
 github.com/aperturerobotics/ts-proto-common-types v0.2.0/go.mod h1:8QXVbEzjPvsaxWQ5RgZtAA9CcOdhWDyMaYdWVKZo8To=
-github.com/aperturerobotics/util v1.7.7 h1:KlUOUPl0ZJA58HrOngc24D+M9wellEjMQXJhL3McDrM=
-github.com/aperturerobotics/util v1.7.7/go.mod h1:idhGuFuAatygqticAnPcSZhef8yV7TYufLUw1Qfj4Cg=
+github.com/aperturerobotics/util v1.7.8 h1:mHGhEvrka5+l5aB44p4FtuejknbkNtR2si86tPokXao=
+github.com/aperturerobotics/util v1.7.8/go.mod h1:idhGuFuAatygqticAnPcSZhef8yV7TYufLUw1Qfj4Cg=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=

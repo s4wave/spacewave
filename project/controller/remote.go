@@ -29,7 +29,7 @@ func (c *Controller) newRemoteTracker(key string) (keyed.Routine, *remoteTracker
 	tr := &remoteTracker{
 		c:             c,
 		remoteID:      key,
-		remote:        c.c.GetProjectConfig().GetRemotes()[key],
+		remote:        c.conf.Load().GetProjectConfig().GetRemotes()[key],
 		resultPromise: promise.NewPromiseContainer[*world.Engine](),
 	}
 	return tr.execute, tr

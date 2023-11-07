@@ -9,7 +9,7 @@ message Config {
   // If the path is empty, starts the project controller with a blank config.
   string config_path = 1;
   // ProjectControllerConfig configures the project controller.
-  // The project config field will be merged with the loaded config.
+  // The loaded project controller config will be merged into this config.
   .bldr.project.controller.Config project_controller_config = 2;
   // DisableWatch disables watching the file (loads once only).
   bool disable_watch = 3;

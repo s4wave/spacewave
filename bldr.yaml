@@ -70,7 +70,9 @@ manifests:
         configSet:
           demo-1:
             id: bldr/example/demo
-            config: {}
+            config:
+              # runs an extended demo of reading/writing to a key/value store
+              runDemo: false
         # example of a per-build-type config
         buildTypes:
           release:

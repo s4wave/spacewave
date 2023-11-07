@@ -1,7 +1,6 @@
 package bldr_project_watcher
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"time"
@@ -14,11 +13,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ccontainer"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
-	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
-	"github.com/zeebo/blake3"
 )
 
 // Version is the version of the controller implementation.
@@ -33,8 +30,6 @@ const ControllerID = "bldr/project/watcher"
 // Controller is the bldr Project Watcher controller.
 type Controller struct {
 	*bus.BusController[*Config]
-	// routine manages the project controller routine
-	routine *routine.RoutineContainer
 	// projCtrlCtr is the project controller container
 	projCtrlCtr *ccontainer.CContainer[*bldr_project_controller.Controller]
 }
@@ -54,10 +49,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			return &Controller{
 				BusController: base,
-				routine: routine.NewRoutineContainer(
-					routine.WithExitLogger(base.GetLogger().WithField("routine", "project-watcher")),
-				),
-				projCtrlCtr: ccontainer.NewCContainer[*bldr_project_controller.Controller](nil),
+				projCtrlCtr:   ccontainer.NewCContainer[*bldr_project_controller.Controller](nil),
 			}, nil
 		},
 	)
@@ -71,23 +63,38 @@ func (c *Controller) GetProjectController() ccontainer.Watchable[*bldr_project_c
 // Execute executes the given controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
-func (c *Controller) Execute(ctx context.Context) error {
-	// determine the initial file hash
-	fileHash, err := c.hashProjectFile()
+func (c *Controller) Execute(rctx context.Context) error {
+	ctx, subCtxCancel := context.WithCancel(rctx)
+	defer subCtxCancel()
+
+	// load the initial config
+	projCtrlConf, err := c.loadProjectControllerConfig(ctx)
 	if err != nil {
 		return err
 	}
 
-	// set the context on the routine container
-	c.routine.SetContext(ctx, true)
+	// start the controller
+	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		c.GetBus(),
+		resolver.NewLoadControllerWithConfig(projCtrlConf),
+		subCtxCancel,
+	)
+	if err != nil {
+		return err
+	}
+	defer ctrlRef.Release()
 
-	// set the routine
-	c.routine.SetRoutine(c.executeProjectController)
-	defer c.routine.SetRoutine(nil)
+	projCtrl, ok := ctrl.(*bldr_project_controller.Controller)
+	if !ok {
+		return errors.New("project controller returned with unknown type")
+	}
+	c.projCtrlCtr.SetValue(projCtrl)
 
 	configPath := c.GetConfig().GetConfigPath()
 	if c.GetConfig().GetDisableWatch() || configPath == "" {
-		return c.routine.WaitExited(ctx, false, nil)
+		<-ctx.Done()
+		return context.Canceled
 	}
 
 	// Watcher
@@ -123,54 +130,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 			continue
 		}
 
-		// check if the file actually changed
-		nextHash, err := c.hashProjectFile()
+		// load the new config
+		updConf, err := c.loadProjectControllerConfig(ctx)
 		if err != nil {
 			return err
 		}
-		if bytes.Equal(nextHash, fileHash) {
-			// ignore, no changes
-			continue
-		}
 
-		fileHash = nextHash
-		c.routine.RestartRoutine()
-	}
-}
-
-// hashProjectFile hashes the contents of the project file.
-func (c *Controller) hashProjectFile() ([]byte, error) {
-	configPath := c.GetConfig().GetConfigPath()
-	if configPath == "" {
-		return nil, nil
-	}
-
-	dat, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	sum := blake3.Sum256(dat)
-	return sum[:], nil
-}
-
-// executeProjectController executes the ProjectController once.
-func (c *Controller) executeProjectController(ctx context.Context) error {
-	projConfig := &bldr_project.ProjectConfig{}
-	configPath := c.GetConfig().GetConfigPath()
-	if configPath != "" {
-		projConfYaml, err := os.ReadFile(configPath)
-		if err != nil {
-			return err
-		}
-		if err := bldr_project.UnmarshalProjectConfig(projConfYaml, projConfig); err != nil {
-			return errors.Wrap(err, "unmarshal project config")
-		}
-		if err := projConfig.Validate(); err != nil {
+		// apply to the controller
+		if err := projCtrl.UpdateProjectConfig(updConf.GetProjectConfig()); err != nil {
 			return err
 		}
 	}
+}
 
+// loadProjectControllerConfig loads a merged copy of the project controller config.
+func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_project_controller.Config, error) {
 	ctrlConfig := c.GetConfig().GetProjectControllerConfig().CloneVT()
 	if ctrlConfig == nil {
 		ctrlConfig = &bldr_project_controller.Config{}
@@ -179,38 +153,27 @@ func (c *Controller) executeProjectController(ctx context.Context) error {
 		ctrlConfig.ProjectConfig = &bldr_project.ProjectConfig{}
 	}
 
-	// merge
-	if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
-		return err
+	configPath := c.GetConfig().GetConfigPath()
+	if configPath != "" {
+		projConfig := &bldr_project.ProjectConfig{}
+		projConfYaml, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, err
+		}
+		if err := bldr_project.UnmarshalProjectConfig(projConfYaml, projConfig); err != nil {
+			return nil, errors.Wrap(err, "unmarshal project config")
+		}
+		if err := projConfig.Validate(); err != nil {
+			return nil, err
+		}
+
+		// merge
+		if err := bldr_project.MergeProjectConfigs(ctrlConfig.ProjectConfig, projConfig); err != nil {
+			return nil, err
+		}
 	}
 
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
-	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
-		subCtx,
-		c.GetBus(),
-		resolver.NewLoadControllerWithConfig(ctrlConfig),
-		subCtxCancel,
-	)
-	if err != nil {
-		return err
-	}
-	projCtrl, ok := ctrl.(*bldr_project_controller.Controller)
-	if !ok {
-		return errors.New("project controller returned with unknown type")
-	}
-	c.projCtrlCtr.SetValue(projCtrl)
-	<-subCtx.Done()
-	c.projCtrlCtr.SwapValue(func(val *bldr_project_controller.Controller) *bldr_project_controller.Controller {
-		if val == projCtrl {
-			return nil
-		}
-		return val
-	})
-	ctrlRef.Release()
-	// wait a moment before restarting
-	<-time.After(time.Millisecond * 100)
-	return context.Canceled
+	return ctrlConfig, nil
 }
 
 // _ is a type assertion

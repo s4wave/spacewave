@@ -39,7 +39,7 @@ require (
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/aperturerobotics/hydra v0.0.0-20231103191803-2ebe106fa1e0 // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
-	github.com/aperturerobotics/util v1.7.7 // indirect
+	github.com/aperturerobotics/util v1.7.8 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

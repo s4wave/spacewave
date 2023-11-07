@@ -16,18 +16,19 @@ func (c *Controller) resolveFetchManifest(
 	manifestMeta := dir.FetchManifestMeta()
 	manifestID := manifestMeta.GetManifestId()
 
-	isStart := c.c.GetStart()
-	if isStart && c.c.GetProjectConfig().GetStart().GetDisableBuild() {
+	conf := c.GetConfig()
+	isStart := conf.GetStart()
+	if isStart && conf.GetProjectConfig().GetStart().GetDisableBuild() {
 		c.le.Infof("not building manifest %s because project.start.disableBuild is set", manifestID)
 		return nil
 	}
 
-	manifestRemoteID := c.c.GetFetchManifestRemote()
+	manifestRemoteID := conf.GetFetchManifestRemote()
 	if manifestRemoteID == "" {
 		return nil
 	}
 
-	manifestSet := c.c.GetProjectConfig().GetManifests()
+	manifestSet := conf.GetProjectConfig().GetManifests()
 	if _, ok := manifestSet[manifestID]; !ok {
 		return nil
 	}
@@ -57,7 +58,8 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	defer remoteRef.Release()
 	defer manifestBuilderRef.Release()
 
-	watch := r.c.c.GetWatch()
+	conf := r.c.GetConfig()
+	watch := conf.GetWatch()
 	for {
 		_ = handler.ClearValues()
 		resultPromiseContainer := manifestBuilderRef.GetResultPromiseContainer()
