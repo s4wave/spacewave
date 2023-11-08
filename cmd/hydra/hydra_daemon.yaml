@@ -15,7 +15,6 @@ mkbucket:
     applyBucketConfigs:
     - config:
         id: example-bucket-1
-        version: 1
       # volumeIdRe: .*
       volumeIdList: ["hydra/volume/default"]
   id: hydra/bucket/setup
