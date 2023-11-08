@@ -12,17 +12,19 @@ type Destructor = () => void
 // is aborted. It also ensures that the AbortController is aborted when the
 // component using the hook unmounts.
 export function useAbortController(deps?: DependencyList): AbortController {
-  const [abortController, setAbortController] = useState<AbortController>(() => new AbortController())
+  const [abortController, setAbortController] = useState<AbortController>(
+    () => new AbortController(),
+  )
 
   // watch the dependencies / component being removed.
   useEffect(() => {
-    let abort = abortController;
+    let abort = abortController
     setAbortController((prevAbortController) => {
       if (!prevAbortController.signal.aborted) {
         return prevAbortController
       }
 
-      return abort = new AbortController();
+      return (abort = new AbortController())
     })
 
     return () => abort.abort()
@@ -62,4 +64,29 @@ export function useWebViewHostClient(
       }
     }
   }, effectDeps)
+}
+
+// useWebViewHostClientImpl builds a client implementation and abort signal for the web view host.
+export function useWebViewHostClientImpl<T>(
+  ctor: (c: Client) => T,
+  effect: (
+    impl: T,
+    abortSignal: AbortSignal,
+    webDocument: BldrWebDocument,
+    webView: BldrWebView,
+    client: Client,
+  ) => void | Destructor,
+  deps?: DependencyList,
+) {
+  useWebViewHostClient(
+    (
+      client: Client,
+      abortSignal: AbortSignal,
+      webDocument: BldrWebDocument,
+      webView: BldrWebView,
+    ) => {
+      return effect(ctor(client), abortSignal, webDocument, webView, client)
+    },
+    deps,
+  )
 }
