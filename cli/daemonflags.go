@@ -16,7 +16,7 @@ import (
 )
 
 // CLIVolumeIDAlias is an alias applied to match the default CLI volume.
-const CLIVolumeIDAlias = "hydra/volume/default"
+const CLIVolumeIDAlias = "default"
 
 // DaemonArgs contains common flags for hydra daemons.
 type DaemonArgs struct {

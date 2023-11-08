@@ -179,7 +179,7 @@ This is an example of configuring a bucket and storing a block:
 
   echo "hello world" | ./hydra client block \
     --bucket-id bucket-basic-1 \
-    --volume-id hydra/volume/default \
+    --volume-id default \
     put -f "-"
 
   # The data hash is printed:
@@ -196,11 +196,11 @@ To store data into the key/value store:
 ```sh
   ./hydra client object \
     --store-id store-basic-1 \
-    --volume-id hydra/volume/default \
+    --volume-id default \
     put --key "test" -f cmd_client.go
   ./hydra client object \
     --store-id store-basic-1 \
-    --volume-id hydra/volume/default \
+    --volume-id default \
     get --key test
 ```
 
@@ -213,7 +213,7 @@ Demonstration of data exchange between two peers:
   # put a block on one peer
   echo "hello world 123" | hydra client block \
     --bucket-id bucket-psecho-1 \
-    --volume-id hydra/volume/default \
+    --volume-id default \
     put -f "-"
 
   # on the other peer
@@ -263,7 +263,7 @@ my-bolt-db-volume:
   config:
     path: data.bbolt
     volumeConfig:
-      volumeIdAlias: ["hydra/volume/default"]
+      volumeIdAlias: ["default"]
     verbose: true
 
 # Starts the floodsub implementation of pub-sub.
@@ -286,7 +286,7 @@ create-mybucket:
   config:
     applyBucketConfigs:
     - volumeIdList:
-      - "hydra/volume/default"
+      - "default"
       config:
         id: example-bucket-1
         version: 1
