@@ -7,32 +7,6 @@ import { WebView as BldrWebView } from '../bldr/web-view.js'
 // Destructor is the destructor type from React.
 export type Destructor = () => void
 
-// useAbortController initializes an AbortController instance and returns it. A
-// new AbortController is created whenever the dependencies change, and the old one
-// is aborted. It also ensures that the AbortController is aborted when the
-// component using the hook unmounts.
-export function useAbortController(deps?: DependencyList): AbortController {
-  const [abortController, setAbortController] = useState<AbortController>(
-    () => new AbortController(),
-  )
-
-  // watch the dependencies / component being removed.
-  useEffect(() => {
-    let abort = abortController
-    setAbortController((prevAbortController) => {
-      if (!prevAbortController.signal.aborted) {
-        return prevAbortController
-      }
-
-      return (abort = new AbortController())
-    })
-
-    return () => abort.abort()
-  }, deps)
-
-  return abortController
-}
-
 // WebViewHostClientEffect is the callback function type for useWebViewHostClientImpl.
 export type WebViewHostClientEffect = (
   client: Client,
@@ -109,4 +83,20 @@ export function createWebViewHostClientImplState<T>(
     }, deps)
     return impl
   }
+}
+
+// useAbortSignal wraps an effect with an abort signal.
+export function useAbortSignal(effect: (signal: AbortSignal) => (void | (() => void)), deps?: DependencyList) {
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const teardown = effect(signal)
+
+    return () => {
+      controller.abort()
+      if (teardown) {
+        teardown()
+      }
+    }
+  }, deps)
 }

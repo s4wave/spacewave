@@ -9,6 +9,7 @@ export {
   useWebViewHostClient,
   useWebViewHostClientImpl,
   createWebViewHostClientImplState,
+  useAbortSignal,
 } from './hooks.js'
 export { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 export { AbortComponent } from './abort-component.js'
