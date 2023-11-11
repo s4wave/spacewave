@@ -91,7 +91,7 @@ require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.1.1
-	github.com/aperturerobotics/go-kvfile v0.1.0
+	github.com/aperturerobotics/go-kvfile v0.2.1
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/bits-and-blooms/bitset v1.10.0
 	github.com/bits-and-blooms/bloom/v3 v3.6.0
