@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231111030517-21ff4329d818 // master
+require github.com/aperturerobotics/hydra v0.0.0-20231111110508-d054f56ff243 // master
 
 require (
 	github.com/evanw/esbuild v0.19.5 // latest
@@ -19,8 +19,8 @@ require github.com/aperturerobotics/bifrost v0.18.12-0.20231111022115-32fe9d70e3
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.15.1-0.20230424215448-944f16b19434 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20230423223447-1f5734a618e1 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.17.1-0.20231111110359-6e4ac609e0d7 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20231111105834-ccf9c4261495 // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
@@ -31,7 +31,7 @@ replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
 	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
-	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025626-8e86ced5bdd7 // aperture
+	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 // aperture
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
@@ -99,11 +99,11 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.1
+	github.com/Microsoft/go-winio v0.6.0
 	github.com/aperturerobotics/go-kvfile v0.1.0
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/cayleygraph/quad v1.2.4
-	github.com/fatih/color v1.15.0
+	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/sergi/go-diff v1.3.1
@@ -129,8 +129,9 @@ require (
 	github.com/dgraph-io/badger/v4 v4.2.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
-	github.com/dolthub/jsonpath v0.0.1 // indirect
-	github.com/dolthub/vitess v0.0.0-20230403222318-aa590a202153 // indirect
+	github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e // indirect
+	github.com/dolthub/jsonpath v0.0.2-0.20230525180605-8dc13778fd72 // indirect
+	github.com/dolthub/vitess v0.0.0-20231109003730-c0fa018b5ef6 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
@@ -167,7 +168,7 @@ require (
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
@@ -201,10 +202,7 @@ require (
 	github.com/templexxx/cpu v0.0.1 // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xorsimd v0.4.1 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
-	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/tetratelabs/wazero v1.1.0 // indirect
 	github.com/tjfoc/gmsm v1.0.1 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
