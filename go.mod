@@ -18,7 +18,7 @@ replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
 	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
-	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.2.1-0.20230526002043-6e494c6ad96b // aperture
+	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.2.1-0.20231111023019-518bdab81b09 // aperture
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
