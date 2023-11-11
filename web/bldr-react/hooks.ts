@@ -3,7 +3,7 @@ import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import { WebView as BldrWebView } from '../bldr/web-view.js'
-import { RetryOpts, retryWithAbort } from 'web/bldr/retry.js'
+import { RetryOpts, retryWithAbort } from '../bldr/retry.js'
 
 // Destructor is the destructor type from React.
 export type Destructor = () => void
