@@ -1,7 +1,14 @@
 export { BldrRoot } from './bldr-root.js'
 export { WebDocument } from './web-document.js'
 export { WebView } from './web-view.js'
-export { useWebViewHostClient, useWebViewHostClientImpl } from './hooks.js'
+export {
+  Destructor,
+  WebViewHostClientEffect,
+  WebViewHostClientImplEffect,
+  createWebViewHostClientImplEffect,
+  useWebViewHostClient,
+  useWebViewHostClientImpl,
+} from './hooks.js'
 export { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 export { AbortComponent } from './abort-component.js'
 export { BldrComponent } from './bldr-component.js'

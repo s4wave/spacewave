@@ -5,7 +5,7 @@ import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import { WebView as BldrWebView } from '../bldr/web-view.js'
 
 // Destructor is the destructor type from React.
-type Destructor = () => void
+export type Destructor = () => void
 
 // useAbortController initializes an AbortController instance and returns it. A
 // new AbortController is created whenever the dependencies change, and the old one
@@ -33,14 +33,17 @@ export function useAbortController(deps?: DependencyList): AbortController {
   return abortController
 }
 
+// WebViewHostClientEffect is the callback function type for useWebViewHostClientImpl.
+export type WebViewHostClientEffect = (
+  client: Client,
+  abortSignal: AbortSignal,
+  webDocument: BldrWebDocument,
+  webView: BldrWebView,
+) => void | Destructor
+
 // useWebViewHostClient builds a client and abort signal for the web view host.
 export function useWebViewHostClient(
-  effect: (
-    client: Client,
-    abortSignal: AbortSignal,
-    webDocument: BldrWebDocument,
-    webView: BldrWebView,
-  ) => void | Destructor,
+  effect: WebViewHostClientEffect,
   deps?: DependencyList,
 ) {
   const bldrContext = useBldrContext()
@@ -66,27 +69,31 @@ export function useWebViewHostClient(
   }, effectDeps)
 }
 
+// WebViewHostClientImplEffect is the callback function type for useWebViewHostClientImpl.
+export type WebViewHostClientImplEffect<T> = (
+  impl: T,
+  abortSignal: AbortSignal,
+  webDocument: BldrWebDocument,
+  webView: BldrWebView,
+  client: Client,
+) => void | Destructor
+
 // useWebViewHostClientImpl builds a client implementation and abort signal for the web view host.
 export function useWebViewHostClientImpl<T>(
   ctor: (c: Client) => T,
-  effect: (
-    impl: T,
-    abortSignal: AbortSignal,
-    webDocument: BldrWebDocument,
-    webView: BldrWebView,
-    client: Client,
-  ) => void | Destructor,
+  effect: WebViewHostClientImplEffect<T>,
   deps?: DependencyList,
 ) {
-  useWebViewHostClient(
-    (
-      client: Client,
-      abortSignal: AbortSignal,
-      webDocument: BldrWebDocument,
-      webView: BldrWebView,
-    ) => {
-      return effect(ctor(client), abortSignal, webDocument, webView, client)
-    },
-    deps,
-  )
+  useWebViewHostClient((client, abortSignal, webDocument, webView) => {
+    return effect(ctor(client), abortSignal, webDocument, webView, client)
+  }, deps)
+}
+
+// createWebViewHostClientImplEffect creates a useEffect function which calls useWebViewHostClientImpl.
+export function createWebViewHostClientImplEffect<T>(
+  ctor: (c: Client) => T,
+): (effect: WebViewHostClientImplEffect<T>, deps?: DependencyList) => void {
+  return (effect: WebViewHostClientImplEffect<T>, deps?: DependencyList) => {
+    useWebViewHostClientImpl<T>(ctor, effect, deps)
+  }
 }
