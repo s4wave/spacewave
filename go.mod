@@ -18,7 +18,7 @@ replace (
 	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
 	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
-	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.2.1-0.20231111023019-518bdab81b09 // aperture
+	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025126-128c9120db47 // aperture
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
@@ -144,12 +144,12 @@ require (
 	github.com/gobuffalo/logger v1.0.6 // indirect
 	github.com/gobuffalo/packd v1.0.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.3 // indirect
-	github.com/golang/glog v1.1.1 // indirect
+	github.com/golang/glog v1.1.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -229,8 +229,8 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
-	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
-	google.golang.org/grpc v1.45.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
+	google.golang.org/grpc v1.59.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
