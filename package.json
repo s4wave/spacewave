@@ -50,6 +50,7 @@
     "eslint-config-prettier": "^9.0.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.0.2",
+    "ts-poet": "6.6.0",
     "ts-proto": "^1.156.7",
     "typescript": "^5.1.6"
   },
@@ -58,7 +59,7 @@
     "bufferutil": "^4.0.7",
     "long": "^5.2.3",
     "protobufjs": "^7.2.4",
-    "starpc": "^0.19.3",
+    "starpc": "^0.21.3",
     "utf-8-validate": "^6.0.3"
   }
 }
