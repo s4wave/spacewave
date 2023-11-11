@@ -8,59 +8,6 @@ import { Config as Config2 } from '../controller/controller.pb.js'
 export const protobufPackage = 'volume.badger'
 
 /**
- * FileLoadingMode specifies how data in LSM table files and value log files
- * should be loaded.
- */
-export enum FileLoadingMode {
-  /** FileLoadingMode_DEFAULT - FileLoadingMode_DEFAULT is the default. */
-  FileLoadingMode_DEFAULT = 0,
-  /** FileLoadingMode_FileIO - FileIO indicates that files must be loaded using standard I/O */
-  FileLoadingMode_FileIO = 1,
-  /** FileLoadingMode_LoadToRAM - LoadToRAM indicates that file must be loaded into RAM */
-  FileLoadingMode_LoadToRAM = 2,
-  /** FileLoadingMode_MemoryMap - MemoryMap indicates that that the file must be memory-mapped */
-  FileLoadingMode_MemoryMap = 3,
-  UNRECOGNIZED = -1,
-}
-
-export function fileLoadingModeFromJSON(object: any): FileLoadingMode {
-  switch (object) {
-    case 0:
-    case 'FileLoadingMode_DEFAULT':
-      return FileLoadingMode.FileLoadingMode_DEFAULT
-    case 1:
-    case 'FileLoadingMode_FileIO':
-      return FileLoadingMode.FileLoadingMode_FileIO
-    case 2:
-    case 'FileLoadingMode_LoadToRAM':
-      return FileLoadingMode.FileLoadingMode_LoadToRAM
-    case 3:
-    case 'FileLoadingMode_MemoryMap':
-      return FileLoadingMode.FileLoadingMode_MemoryMap
-    case -1:
-    case 'UNRECOGNIZED':
-    default:
-      return FileLoadingMode.UNRECOGNIZED
-  }
-}
-
-export function fileLoadingModeToJSON(object: FileLoadingMode): string {
-  switch (object) {
-    case FileLoadingMode.FileLoadingMode_DEFAULT:
-      return 'FileLoadingMode_DEFAULT'
-    case FileLoadingMode.FileLoadingMode_FileIO:
-      return 'FileLoadingMode_FileIO'
-    case FileLoadingMode.FileLoadingMode_LoadToRAM:
-      return 'FileLoadingMode_LoadToRAM'
-    case FileLoadingMode.FileLoadingMode_MemoryMap:
-      return 'FileLoadingMode_MemoryMap'
-    case FileLoadingMode.UNRECOGNIZED:
-    default:
-      return 'UNRECOGNIZED'
-  }
-}
-
-/**
  * Config is the badger volume controller config.
  * Flag Dir is the only mandatory flag.
  */
@@ -103,25 +50,15 @@ export interface Config {
   /** StoreConfig is the store configuration for kvtx. */
   storeConfig: Config3 | undefined
   /**
-   * TableLoadingMode indicates how the LSM tree should be accessed
-   * Defaults to LoadToRAM
-   */
-  tableLoadingMode: FileLoadingMode
-  /**
-   * ValueLogLoadingMode indicates how the value log should be accessed
-   * Defaults to MemoryMap
-   */
-  valueLogLoadingMode: FileLoadingMode
-  /**
    * NumVersionsToKeep indicates how many versions to keep per key.
    * Defaults to 1.
    */
   numVersionsToKeep: number
   /**
-   * MaxTableSize is the max size each table/file can be.
-   * Defaults to  64 << 20
+   * BaseTableSize is the base size for tables.
+   * Defaults to 2 << 20.
    */
-  maxTableSize: Long
+  baseTableSize: Long
   /**
    * LevelSizeMultiplier is SizeOf(Li+1)/SizeOf(Li).
    * Defaults to 10.
@@ -134,9 +71,9 @@ export interface Config {
   maxLevels: number
   /**
    * ValueThreshold if value size >= threshold, only store offsets in tree.
-   * Defaults to 32
+   * Defaults to 1 << 20, 1MB
    */
-  valueThreshold: number
+  valueThreshold: Long
   /**
    * NumMemtables is the Maximum number of tables to keep in memory, before
    * stalling.
@@ -156,10 +93,10 @@ export interface Config {
    */
   numLevelZeroTablesStall: number
   /**
-   * LevelOneSize is the maximum total size for L1.
-   * Defaults to 256 << 20
+   * BaseLevelSize is the base size for levels.
+   * Defaults to 10 << 20.
    */
-  levelOneSize: Long
+  baseLevelSize: Long
   /**
    * ValueLogFileSize is the size of single value log file.
    * (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
@@ -180,11 +117,6 @@ export interface Config {
    */
   numCompactors: number
   /**
-   * Truncate value log to delete corrupt data, if any.
-   * Defaults to false.
-   */
-  truncate: boolean
-  /**
    * NoSyncWrites indicates all writes should not require disk sync before
    * returning. If set, writes will return before the filesystem has confirmed
    * the write is complete. Setting this to false will increase performance but
@@ -204,21 +136,18 @@ function createBaseConfig(): Config {
     badgerDebug: false,
     volumeConfig: undefined,
     storeConfig: undefined,
-    tableLoadingMode: 0,
-    valueLogLoadingMode: 0,
     numVersionsToKeep: 0,
-    maxTableSize: Long.UZERO,
+    baseTableSize: Long.UZERO,
     levelSizeMultiplier: 0,
     maxLevels: 0,
-    valueThreshold: 0,
+    valueThreshold: Long.UZERO,
     numMemtables: 0,
     numLevelZeroTables: 0,
     numLevelZeroTablesStall: 0,
-    levelOneSize: Long.UZERO,
+    baseLevelSize: Long.UZERO,
     valueLogFileSize: Long.UZERO,
     valueLogMaxEntries: 0,
     numCompactors: 0,
-    truncate: false,
     noSyncWrites: false,
   }
 }
@@ -255,17 +184,11 @@ export const Config = {
     if (message.storeConfig !== undefined) {
       Config3.encode(message.storeConfig, writer.uint32(186).fork()).ldelim()
     }
-    if (message.tableLoadingMode !== 0) {
-      writer.uint32(40).int32(message.tableLoadingMode)
-    }
-    if (message.valueLogLoadingMode !== 0) {
-      writer.uint32(48).int32(message.valueLogLoadingMode)
-    }
     if (message.numVersionsToKeep !== 0) {
       writer.uint32(56).uint32(message.numVersionsToKeep)
     }
-    if (!message.maxTableSize.isZero()) {
-      writer.uint32(64).uint64(message.maxTableSize)
+    if (!message.baseTableSize.isZero()) {
+      writer.uint32(208).uint64(message.baseTableSize)
     }
     if (message.levelSizeMultiplier !== 0) {
       writer.uint32(72).uint32(message.levelSizeMultiplier)
@@ -273,8 +196,8 @@ export const Config = {
     if (message.maxLevels !== 0) {
       writer.uint32(80).uint32(message.maxLevels)
     }
-    if (message.valueThreshold !== 0) {
-      writer.uint32(88).uint32(message.valueThreshold)
+    if (!message.valueThreshold.isZero()) {
+      writer.uint32(216).uint64(message.valueThreshold)
     }
     if (message.numMemtables !== 0) {
       writer.uint32(96).uint32(message.numMemtables)
@@ -285,8 +208,8 @@ export const Config = {
     if (message.numLevelZeroTablesStall !== 0) {
       writer.uint32(112).uint32(message.numLevelZeroTablesStall)
     }
-    if (!message.levelOneSize.isZero()) {
-      writer.uint32(120).uint64(message.levelOneSize)
+    if (!message.baseLevelSize.isZero()) {
+      writer.uint32(224).uint64(message.baseLevelSize)
     }
     if (!message.valueLogFileSize.isZero()) {
       writer.uint32(128).uint64(message.valueLogFileSize)
@@ -296,9 +219,6 @@ export const Config = {
     }
     if (message.numCompactors !== 0) {
       writer.uint32(144).uint32(message.numCompactors)
-    }
-    if (message.truncate === true) {
-      writer.uint32(152).bool(message.truncate)
     }
     if (message.noSyncWrites === true) {
       writer.uint32(160).bool(message.noSyncWrites)
@@ -377,20 +297,6 @@ export const Config = {
 
           message.storeConfig = Config3.decode(reader, reader.uint32())
           continue
-        case 5:
-          if (tag !== 40) {
-            break
-          }
-
-          message.tableLoadingMode = reader.int32() as any
-          continue
-        case 6:
-          if (tag !== 48) {
-            break
-          }
-
-          message.valueLogLoadingMode = reader.int32() as any
-          continue
         case 7:
           if (tag !== 56) {
             break
@@ -398,12 +304,12 @@ export const Config = {
 
           message.numVersionsToKeep = reader.uint32()
           continue
-        case 8:
-          if (tag !== 64) {
+        case 26:
+          if (tag !== 208) {
             break
           }
 
-          message.maxTableSize = reader.uint64() as Long
+          message.baseTableSize = reader.uint64() as Long
           continue
         case 9:
           if (tag !== 72) {
@@ -419,12 +325,12 @@ export const Config = {
 
           message.maxLevels = reader.uint32()
           continue
-        case 11:
-          if (tag !== 88) {
+        case 27:
+          if (tag !== 216) {
             break
           }
 
-          message.valueThreshold = reader.uint32()
+          message.valueThreshold = reader.uint64() as Long
           continue
         case 12:
           if (tag !== 96) {
@@ -447,12 +353,12 @@ export const Config = {
 
           message.numLevelZeroTablesStall = reader.uint32()
           continue
-        case 15:
-          if (tag !== 120) {
+        case 28:
+          if (tag !== 224) {
             break
           }
 
-          message.levelOneSize = reader.uint64() as Long
+          message.baseLevelSize = reader.uint64() as Long
           continue
         case 16:
           if (tag !== 128) {
@@ -474,13 +380,6 @@ export const Config = {
           }
 
           message.numCompactors = reader.uint32()
-          continue
-        case 19:
-          if (tag !== 152) {
-            break
-          }
-
-          message.truncate = reader.bool()
           continue
         case 20:
           if (tag !== 160) {
@@ -559,17 +458,11 @@ export const Config = {
       storeConfig: isSet(object.storeConfig)
         ? Config3.fromJSON(object.storeConfig)
         : undefined,
-      tableLoadingMode: isSet(object.tableLoadingMode)
-        ? fileLoadingModeFromJSON(object.tableLoadingMode)
-        : 0,
-      valueLogLoadingMode: isSet(object.valueLogLoadingMode)
-        ? fileLoadingModeFromJSON(object.valueLogLoadingMode)
-        : 0,
       numVersionsToKeep: isSet(object.numVersionsToKeep)
         ? globalThis.Number(object.numVersionsToKeep)
         : 0,
-      maxTableSize: isSet(object.maxTableSize)
-        ? Long.fromValue(object.maxTableSize)
+      baseTableSize: isSet(object.baseTableSize)
+        ? Long.fromValue(object.baseTableSize)
         : Long.UZERO,
       levelSizeMultiplier: isSet(object.levelSizeMultiplier)
         ? globalThis.Number(object.levelSizeMultiplier)
@@ -578,8 +471,8 @@ export const Config = {
         ? globalThis.Number(object.maxLevels)
         : 0,
       valueThreshold: isSet(object.valueThreshold)
-        ? globalThis.Number(object.valueThreshold)
-        : 0,
+        ? Long.fromValue(object.valueThreshold)
+        : Long.UZERO,
       numMemtables: isSet(object.numMemtables)
         ? globalThis.Number(object.numMemtables)
         : 0,
@@ -589,8 +482,8 @@ export const Config = {
       numLevelZeroTablesStall: isSet(object.numLevelZeroTablesStall)
         ? globalThis.Number(object.numLevelZeroTablesStall)
         : 0,
-      levelOneSize: isSet(object.levelOneSize)
-        ? Long.fromValue(object.levelOneSize)
+      baseLevelSize: isSet(object.baseLevelSize)
+        ? Long.fromValue(object.baseLevelSize)
         : Long.UZERO,
       valueLogFileSize: isSet(object.valueLogFileSize)
         ? Long.fromValue(object.valueLogFileSize)
@@ -601,9 +494,6 @@ export const Config = {
       numCompactors: isSet(object.numCompactors)
         ? globalThis.Number(object.numCompactors)
         : 0,
-      truncate: isSet(object.truncate)
-        ? globalThis.Boolean(object.truncate)
-        : false,
       noSyncWrites: isSet(object.noSyncWrites)
         ? globalThis.Boolean(object.noSyncWrites)
         : false,
@@ -639,19 +529,11 @@ export const Config = {
     if (message.storeConfig !== undefined) {
       obj.storeConfig = Config3.toJSON(message.storeConfig)
     }
-    if (message.tableLoadingMode !== 0) {
-      obj.tableLoadingMode = fileLoadingModeToJSON(message.tableLoadingMode)
-    }
-    if (message.valueLogLoadingMode !== 0) {
-      obj.valueLogLoadingMode = fileLoadingModeToJSON(
-        message.valueLogLoadingMode,
-      )
-    }
     if (message.numVersionsToKeep !== 0) {
       obj.numVersionsToKeep = Math.round(message.numVersionsToKeep)
     }
-    if (!message.maxTableSize.isZero()) {
-      obj.maxTableSize = (message.maxTableSize || Long.UZERO).toString()
+    if (!message.baseTableSize.isZero()) {
+      obj.baseTableSize = (message.baseTableSize || Long.UZERO).toString()
     }
     if (message.levelSizeMultiplier !== 0) {
       obj.levelSizeMultiplier = Math.round(message.levelSizeMultiplier)
@@ -659,8 +541,8 @@ export const Config = {
     if (message.maxLevels !== 0) {
       obj.maxLevels = Math.round(message.maxLevels)
     }
-    if (message.valueThreshold !== 0) {
-      obj.valueThreshold = Math.round(message.valueThreshold)
+    if (!message.valueThreshold.isZero()) {
+      obj.valueThreshold = (message.valueThreshold || Long.UZERO).toString()
     }
     if (message.numMemtables !== 0) {
       obj.numMemtables = Math.round(message.numMemtables)
@@ -671,8 +553,8 @@ export const Config = {
     if (message.numLevelZeroTablesStall !== 0) {
       obj.numLevelZeroTablesStall = Math.round(message.numLevelZeroTablesStall)
     }
-    if (!message.levelOneSize.isZero()) {
-      obj.levelOneSize = (message.levelOneSize || Long.UZERO).toString()
+    if (!message.baseLevelSize.isZero()) {
+      obj.baseLevelSize = (message.baseLevelSize || Long.UZERO).toString()
     }
     if (!message.valueLogFileSize.isZero()) {
       obj.valueLogFileSize = (message.valueLogFileSize || Long.UZERO).toString()
@@ -682,9 +564,6 @@ export const Config = {
     }
     if (message.numCompactors !== 0) {
       obj.numCompactors = Math.round(message.numCompactors)
-    }
-    if (message.truncate === true) {
-      obj.truncate = message.truncate
     }
     if (message.noSyncWrites === true) {
       obj.noSyncWrites = message.noSyncWrites
@@ -715,22 +594,23 @@ export const Config = {
       object.storeConfig !== undefined && object.storeConfig !== null
         ? Config3.fromPartial(object.storeConfig)
         : undefined
-    message.tableLoadingMode = object.tableLoadingMode ?? 0
-    message.valueLogLoadingMode = object.valueLogLoadingMode ?? 0
     message.numVersionsToKeep = object.numVersionsToKeep ?? 0
-    message.maxTableSize =
-      object.maxTableSize !== undefined && object.maxTableSize !== null
-        ? Long.fromValue(object.maxTableSize)
+    message.baseTableSize =
+      object.baseTableSize !== undefined && object.baseTableSize !== null
+        ? Long.fromValue(object.baseTableSize)
         : Long.UZERO
     message.levelSizeMultiplier = object.levelSizeMultiplier ?? 0
     message.maxLevels = object.maxLevels ?? 0
-    message.valueThreshold = object.valueThreshold ?? 0
+    message.valueThreshold =
+      object.valueThreshold !== undefined && object.valueThreshold !== null
+        ? Long.fromValue(object.valueThreshold)
+        : Long.UZERO
     message.numMemtables = object.numMemtables ?? 0
     message.numLevelZeroTables = object.numLevelZeroTables ?? 0
     message.numLevelZeroTablesStall = object.numLevelZeroTablesStall ?? 0
-    message.levelOneSize =
-      object.levelOneSize !== undefined && object.levelOneSize !== null
-        ? Long.fromValue(object.levelOneSize)
+    message.baseLevelSize =
+      object.baseLevelSize !== undefined && object.baseLevelSize !== null
+        ? Long.fromValue(object.baseLevelSize)
         : Long.UZERO
     message.valueLogFileSize =
       object.valueLogFileSize !== undefined && object.valueLogFileSize !== null
@@ -738,7 +618,6 @@ export const Config = {
         : Long.UZERO
     message.valueLogMaxEntries = object.valueLogMaxEntries ?? 0
     message.numCompactors = object.numCompactors ?? 0
-    message.truncate = object.truncate ?? false
     message.noSyncWrites = object.noSyncWrites ?? false
     return message
   },

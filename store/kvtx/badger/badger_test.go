@@ -8,7 +8,7 @@ import (
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	store_test "github.com/aperturerobotics/hydra/store/test"
-	bdb "github.com/dgraph-io/badger/v2"
+	bdb "github.com/dgraph-io/badger/v4"
 	"github.com/sirupsen/logrus"
 )
 

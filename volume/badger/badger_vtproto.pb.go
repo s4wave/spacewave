@@ -34,21 +34,18 @@ func (m *Config) CloneVT() *Config {
 		NoWriteKey:              m.NoWriteKey,
 		Verbose:                 m.Verbose,
 		BadgerDebug:             m.BadgerDebug,
-		TableLoadingMode:        m.TableLoadingMode,
-		ValueLogLoadingMode:     m.ValueLogLoadingMode,
 		NumVersionsToKeep:       m.NumVersionsToKeep,
-		MaxTableSize:            m.MaxTableSize,
+		BaseTableSize:           m.BaseTableSize,
 		LevelSizeMultiplier:     m.LevelSizeMultiplier,
 		MaxLevels:               m.MaxLevels,
 		ValueThreshold:          m.ValueThreshold,
 		NumMemtables:            m.NumMemtables,
 		NumLevelZeroTables:      m.NumLevelZeroTables,
 		NumLevelZeroTablesStall: m.NumLevelZeroTablesStall,
-		LevelOneSize:            m.LevelOneSize,
+		BaseLevelSize:           m.BaseLevelSize,
 		ValueLogFileSize:        m.ValueLogFileSize,
 		ValueLogMaxEntries:      m.ValueLogMaxEntries,
 		NumCompactors:           m.NumCompactors,
-		Truncate:                m.Truncate,
 		NoSyncWrites:            m.NoSyncWrites,
 	}
 	if rhs := m.KvKeyOpts; rhs != nil {
@@ -105,25 +102,13 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.NoGenerateKey != that.NoGenerateKey {
 		return false
 	}
-	if this.TableLoadingMode != that.TableLoadingMode {
-		return false
-	}
-	if this.ValueLogLoadingMode != that.ValueLogLoadingMode {
-		return false
-	}
 	if this.NumVersionsToKeep != that.NumVersionsToKeep {
-		return false
-	}
-	if this.MaxTableSize != that.MaxTableSize {
 		return false
 	}
 	if this.LevelSizeMultiplier != that.LevelSizeMultiplier {
 		return false
 	}
 	if this.MaxLevels != that.MaxLevels {
-		return false
-	}
-	if this.ValueThreshold != that.ValueThreshold {
 		return false
 	}
 	if this.NumMemtables != that.NumMemtables {
@@ -135,9 +120,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.NumLevelZeroTablesStall != that.NumLevelZeroTablesStall {
 		return false
 	}
-	if this.LevelOneSize != that.LevelOneSize {
-		return false
-	}
 	if this.ValueLogFileSize != that.ValueLogFileSize {
 		return false
 	}
@@ -145,9 +127,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.NumCompactors != that.NumCompactors {
-		return false
-	}
-	if this.Truncate != that.Truncate {
 		return false
 	}
 	if this.NoSyncWrites != that.NoSyncWrites {
@@ -174,6 +153,15 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.NoWriteKey != that.NoWriteKey {
+		return false
+	}
+	if this.BaseTableSize != that.BaseTableSize {
+		return false
+	}
+	if this.ValueThreshold != that.ValueThreshold {
+		return false
+	}
+	if this.BaseLevelSize != that.BaseLevelSize {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -215,6 +203,27 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BaseLevelSize != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.BaseLevelSize))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe0
+	}
+	if m.ValueThreshold != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.ValueThreshold))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xd8
+	}
+	if m.BaseTableSize != 0 {
+		i = encodeVarint(dAtA, i, uint64(m.BaseTableSize))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xd0
 	}
 	if m.NoWriteKey {
 		i--
@@ -312,18 +321,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0xa0
 	}
-	if m.Truncate {
-		i--
-		if m.Truncate {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x98
-	}
 	if m.NumCompactors != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.NumCompactors))
 		i--
@@ -345,11 +342,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x80
 	}
-	if m.LevelOneSize != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.LevelOneSize))
-		i--
-		dAtA[i] = 0x78
-	}
 	if m.NumLevelZeroTablesStall != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.NumLevelZeroTablesStall))
 		i--
@@ -365,11 +357,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x60
 	}
-	if m.ValueThreshold != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.ValueThreshold))
-		i--
-		dAtA[i] = 0x58
-	}
 	if m.MaxLevels != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.MaxLevels))
 		i--
@@ -380,25 +367,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x48
 	}
-	if m.MaxTableSize != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.MaxTableSize))
-		i--
-		dAtA[i] = 0x40
-	}
 	if m.NumVersionsToKeep != 0 {
 		i = encodeVarint(dAtA, i, uint64(m.NumVersionsToKeep))
 		i--
 		dAtA[i] = 0x38
-	}
-	if m.ValueLogLoadingMode != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.ValueLogLoadingMode))
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.TableLoadingMode != 0 {
-		i = encodeVarint(dAtA, i, uint64(m.TableLoadingMode))
-		i--
-		dAtA[i] = 0x28
 	}
 	if m.NoGenerateKey {
 		i--
@@ -487,26 +459,14 @@ func (m *Config) SizeVT() (n int) {
 	if m.NoGenerateKey {
 		n += 2
 	}
-	if m.TableLoadingMode != 0 {
-		n += 1 + sov(uint64(m.TableLoadingMode))
-	}
-	if m.ValueLogLoadingMode != 0 {
-		n += 1 + sov(uint64(m.ValueLogLoadingMode))
-	}
 	if m.NumVersionsToKeep != 0 {
 		n += 1 + sov(uint64(m.NumVersionsToKeep))
-	}
-	if m.MaxTableSize != 0 {
-		n += 1 + sov(uint64(m.MaxTableSize))
 	}
 	if m.LevelSizeMultiplier != 0 {
 		n += 1 + sov(uint64(m.LevelSizeMultiplier))
 	}
 	if m.MaxLevels != 0 {
 		n += 1 + sov(uint64(m.MaxLevels))
-	}
-	if m.ValueThreshold != 0 {
-		n += 1 + sov(uint64(m.ValueThreshold))
 	}
 	if m.NumMemtables != 0 {
 		n += 1 + sov(uint64(m.NumMemtables))
@@ -517,9 +477,6 @@ func (m *Config) SizeVT() (n int) {
 	if m.NumLevelZeroTablesStall != 0 {
 		n += 1 + sov(uint64(m.NumLevelZeroTablesStall))
 	}
-	if m.LevelOneSize != 0 {
-		n += 1 + sov(uint64(m.LevelOneSize))
-	}
 	if m.ValueLogFileSize != 0 {
 		n += 2 + sov(uint64(m.ValueLogFileSize))
 	}
@@ -528,9 +485,6 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.NumCompactors != 0 {
 		n += 2 + sov(uint64(m.NumCompactors))
-	}
-	if m.Truncate {
-		n += 3
 	}
 	if m.NoSyncWrites {
 		n += 3
@@ -563,6 +517,15 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.NoWriteKey {
 		n += 3
+	}
+	if m.BaseTableSize != 0 {
+		n += 2 + sov(uint64(m.BaseTableSize))
+	}
+	if m.ValueThreshold != 0 {
+		n += 2 + sov(uint64(m.ValueThreshold))
+	}
+	if m.BaseLevelSize != 0 {
+		n += 2 + sov(uint64(m.BaseLevelSize))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -731,44 +694,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.NoGenerateKey = bool(v != 0)
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TableLoadingMode", wireType)
-			}
-			m.TableLoadingMode = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.TableLoadingMode |= FileLoadingMode(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ValueLogLoadingMode", wireType)
-			}
-			m.ValueLogLoadingMode = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ValueLogLoadingMode |= FileLoadingMode(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NumVersionsToKeep", wireType)
@@ -784,25 +709,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.NumVersionsToKeep |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MaxTableSize", wireType)
-			}
-			m.MaxTableSize = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.MaxTableSize |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -841,25 +747,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.MaxLevels |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 11:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ValueThreshold", wireType)
-			}
-			m.ValueThreshold = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ValueThreshold |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -921,25 +808,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 15:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LevelOneSize", wireType)
-			}
-			m.LevelOneSize = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.LevelOneSize |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 16:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ValueLogFileSize", wireType)
@@ -997,26 +865,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 19:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Truncate", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Truncate = bool(v != 0)
 		case 20:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NoSyncWrites", wireType)
@@ -1185,6 +1033,63 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.NoWriteKey = bool(v != 0)
+		case 26:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseTableSize", wireType)
+			}
+			m.BaseTableSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BaseTableSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 27:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValueThreshold", wireType)
+			}
+			m.ValueThreshold = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ValueThreshold |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 28:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseLevelSize", wireType)
+			}
+			m.BaseLevelSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BaseLevelSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

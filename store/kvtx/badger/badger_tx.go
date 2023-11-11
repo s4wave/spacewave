@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	bdb "github.com/dgraph-io/badger/v2"
+	bdb "github.com/dgraph-io/badger/v4"
 )
 
 // Tx is a badger transaction.

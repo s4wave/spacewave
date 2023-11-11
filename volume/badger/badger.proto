@@ -39,22 +39,17 @@ message Config {
   .store.kvtx.Config store_config = 23;
 
   // Frequently modified flags
+  // reserved: 5, 6, 8, 11, 19, 15
 
-  // TableLoadingMode indicates how the LSM tree should be accessed
-  // Defaults to LoadToRAM
-  FileLoadingMode table_loading_mode = 5;
-  // ValueLogLoadingMode indicates how the value log should be accessed
-  // Defaults to MemoryMap
-  FileLoadingMode value_log_loading_mode = 6;
   // NumVersionsToKeep indicates how many versions to keep per key.
   // Defaults to 1.
   uint32 num_versions_to_keep = 7;
 
   // Flags that user might want to review
 
-  // MaxTableSize is the max size each table/file can be.
-  // Defaults to  64 << 20
-  uint64 max_table_size = 8;
+  // BaseTableSize is the base size for tables.
+  // Defaults to 2 << 20.
+  uint64 base_table_size = 26;
   // LevelSizeMultiplier is SizeOf(Li+1)/SizeOf(Li).
   // Defaults to 10.
   uint32 level_size_multiplier = 9;
@@ -62,8 +57,8 @@ message Config {
   // Defaults to 7
   uint32 max_levels = 10;
   // ValueThreshold if value size >= threshold, only store offsets in tree.
-  // Defaults to 32
-  uint32 value_threshold = 11;
+  // Defaults to 1 << 20, 1MB
+  uint64 value_threshold = 27;
   // NumMemtables is the Maximum number of tables to keep in memory, before
   // stalling.
   // Defaults to 5.
@@ -78,9 +73,9 @@ message Config {
   // Defaults to 10.
   uint32 num_level_zero_tables_stall = 14;
 
-  // LevelOneSize is the maximum total size for L1.
-  // Defaults to 256 << 20
-  uint64 level_one_size = 15;
+  // BaseLevelSize is the base size for levels.
+  // Defaults to 10 << 20.
+  uint64 base_level_size = 28;
 
   // ValueLogFileSize is the size of single value log file.
   // (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
@@ -97,26 +92,10 @@ message Config {
   // NumCompactors is the number of compaction workers to run concurrently.
   // Defaults to 3.
   uint32 num_compactors = 18;
-  // Truncate value log to delete corrupt data, if any.
-  // Defaults to false.
-  bool truncate = 19;
 
   // NoSyncWrites indicates all writes should not require disk sync before
   // returning. If set, writes will return before the filesystem has confirmed
   // the write is complete. Setting this to false will increase performance but
   // introduces risk of data loss.
   bool no_sync_writes = 20;
-}
-
-// FileLoadingMode specifies how data in LSM table files and value log files
-// should be loaded.
-enum FileLoadingMode {
-  // FileLoadingMode_DEFAULT is the default.
-  FileLoadingMode_DEFAULT = 0;
-  // FileIO indicates that files must be loaded using standard I/O
-  FileLoadingMode_FileIO = 1;
-  // LoadToRAM indicates that file must be loaded into RAM
-  FileLoadingMode_LoadToRAM = 2;
-  // MemoryMap indicates that that the file must be memory-mapped
-  FileLoadingMode_MemoryMap = 3;
 }

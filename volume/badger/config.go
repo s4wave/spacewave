@@ -2,8 +2,7 @@ package volume_badger
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	bdb "github.com/dgraph-io/badger/v2"
-	bdbopts "github.com/dgraph-io/badger/v2/options"
+	bdb "github.com/dgraph-io/badger/v4"
 	"github.com/pkg/errors"
 )
 
@@ -29,22 +28,11 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 		o.SyncWrites = false
 	}
 
-	var err error
-	o.TableLoadingMode, err = c.GetTableLoadingMode().ToLoadingMode(o.TableLoadingMode)
-	if err != nil {
-		return nil, err
-	}
-
-	o.ValueLogLoadingMode, err = c.GetValueLogLoadingMode().ToLoadingMode(o.ValueLogLoadingMode)
-	if err != nil {
-		return nil, err
-	}
-
 	if nvc := c.GetNumVersionsToKeep(); nvc != 0 {
 		o.NumVersionsToKeep = int(nvc)
 	}
-	if mts := c.GetMaxTableSize(); mts != 0 {
-		o.MaxTableSize = int64(mts)
+	if bts := c.GetBaseTableSize(); bts != 0 {
+		o.BaseTableSize = int64(bts)
 	}
 	if lsm := c.GetLevelSizeMultiplier(); lsm != 0 {
 		o.LevelSizeMultiplier = int(lsm)
@@ -53,7 +41,7 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 		o.MaxLevels = int(ml)
 	}
 	if vt := c.GetValueThreshold(); vt != 0 {
-		o.ValueThreshold = int(vt)
+		o.ValueThreshold = int64(vt)
 	}
 	if nmt := c.GetNumMemtables(); nmt != 0 {
 		o.NumMemtables = int(nmt)
@@ -64,8 +52,8 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 	if nlzts := c.GetNumLevelZeroTablesStall(); nlzts != 0 {
 		o.NumLevelZeroTablesStall = int(nlzts)
 	}
-	if los := c.GetLevelOneSize(); los != 0 {
-		o.LevelOneSize = int64(los)
+	if los := c.GetBaseLevelSize(); los != 0 {
+		o.BaseLevelSize = int64(los)
 	}
 	if vlfs := c.GetValueLogFileSize(); vlfs != 0 {
 		o.ValueLogFileSize = int64(vlfs)
@@ -76,30 +64,8 @@ func (c *Config) BuildBadgerOptions() (*bdb.Options, error) {
 	if nc := c.GetNumCompactors(); nc != 0 {
 		o.NumCompactors = int(nc)
 	}
-	if t := c.GetTruncate(); t {
-		o.Truncate = c.GetTruncate()
-	}
+
 	return &o, nil
-}
-
-// ToLoadingMode interpets the option to a badger file loading mode.
-func (f FileLoadingMode) ToLoadingMode(
-	defMode bdbopts.FileLoadingMode,
-) (bdbopts.FileLoadingMode, error) {
-	switch f {
-	case FileLoadingMode_FileLoadingMode_DEFAULT:
-		return defMode, nil
-	case FileLoadingMode_FileLoadingMode_FileIO:
-		return bdbopts.FileIO, nil
-	case FileLoadingMode_FileLoadingMode_LoadToRAM:
-		return bdbopts.LoadToRAM, nil
-	case FileLoadingMode_FileLoadingMode_MemoryMap:
-		return bdbopts.MemoryMap, nil
-	default:
-	}
-
-	return bdbopts.FileLoadingMode(0),
-		errors.Errorf("unrecognized file loading mode: %s", f.String())
 }
 
 // Validate validates the configuration.

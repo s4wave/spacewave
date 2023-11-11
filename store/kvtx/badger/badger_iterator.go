@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	bdb "github.com/dgraph-io/badger/v2"
+	bdb "github.com/dgraph-io/badger/v4"
 )
 
 // Iterator iterates over a badger bucket.
