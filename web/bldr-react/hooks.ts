@@ -97,3 +97,16 @@ export function createWebViewHostClientImplEffect<T>(
     useWebViewHostClientImpl<T>(ctor, effect, deps)
   }
 }
+
+// createWebViewHostClientImplState creates a useState function for calling a rpc service impl.
+export function createWebViewHostClientImplState<T>(
+  ctor: (c: Client) => T,
+): (deps?: DependencyList) => T | undefined {
+  return (deps?: DependencyList) => {
+    const [impl, setImpl] = useState<T | undefined>(undefined)
+    useWebViewHostClient((client) => {
+      setImpl(ctor(client))
+    }, deps)
+    return impl
+  }
+}

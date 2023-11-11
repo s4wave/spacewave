@@ -14,7 +14,7 @@ export interface Config {
   configPath: string;
   /**
    * ProjectControllerConfig configures the project controller.
-   * The project config field will be merged with the loaded config.
+   * The loaded project controller config will be merged into this config.
    */
   projectControllerConfig:
     | Config1
