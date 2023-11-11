@@ -6,8 +6,8 @@ require github.com/aperturerobotics/bifrost v0.18.12-0.20231111022115-32fe9d70e3
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.15.1-0.20231111104002-b949e45c84b3 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20231111104658-086961671dbe // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.17.1-0.20231111105253-cde46246b831 // ext-engines
+	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20231111105052-128cad709ed5 // ext-engines
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
@@ -99,7 +99,7 @@ require (
 	github.com/cespare/xxhash v1.1.0
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/dolthub/vitess v0.0.0-20230622172940-39f2d1480fcb
+	github.com/dolthub/vitess v0.0.0-20230823204737-4a21a94e90c3
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ghodss/yaml v1.0.0

@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/parse"
+	"github.com/dolthub/go-mysql-server/sql/planbuilder"
 	"github.com/dolthub/go-mysql-server/sql/types"
 	"github.com/pkg/errors"
 )
@@ -103,5 +103,5 @@ func (t *TableSchemaColumn) ParseDefaultValueExpr(ctx *sql.Context) (*sql.Column
 	if ctx == nil {
 		ctx = sql.NewEmptyContext()
 	}
-	return parse.StringToColumnDefaultValue(ctx, defvexp)
+	return planbuilder.StringToColumnDefaultValue(ctx, defvexp)
 }
