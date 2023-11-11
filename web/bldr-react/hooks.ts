@@ -3,6 +3,7 @@ import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import { WebView as BldrWebView } from '../bldr/web-view.js'
+import { RetryOpts, retryWithAbort } from 'web/bldr/retry.js'
 
 // Destructor is the destructor type from React.
 export type Destructor = () => void
@@ -86,10 +87,13 @@ export function createWebViewHostClientImplState<T>(
 }
 
 // useAbortSignal wraps an effect with an abort signal.
-export function useAbortSignal(effect: (signal: AbortSignal) => (void | (() => void)), deps?: DependencyList) {
+export function useAbortSignal(
+  effect: (signal: AbortSignal) => void | (() => void),
+  deps?: DependencyList,
+) {
   useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
+    const controller = new AbortController()
+    const signal = controller.signal
     const teardown = effect(signal)
 
     return () => {
@@ -98,5 +102,18 @@ export function useAbortSignal(effect: (signal: AbortSignal) => (void | (() => v
         teardown()
       }
     }
+  }, deps)
+}
+
+// useRetryWithAbort calls the function with an abort signal and retries on error.
+//
+// will be aborted when the component is unmounted or deps change.
+export function useRetryWithAbort<T = void>(
+  cb: (abortSignal: AbortSignal) => Promise<T>,
+  opts?: RetryOpts,
+  deps?: DependencyList,
+) {
+  useAbortSignal((signal) => {
+    retryWithAbort(signal, cb, opts)
   }, deps)
 }

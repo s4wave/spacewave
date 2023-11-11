@@ -4,7 +4,8 @@ export { WebRuntime } from './web-runtime.js'
 export {
   Retry,
   retryWithAbort,
-  RetryOptions,
+  RetryWithAbortOpts,
+  RetryOpts,
   BackoffFn,
   constantBackoff,
 } from './retry.js'

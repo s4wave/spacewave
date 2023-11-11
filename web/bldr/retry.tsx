@@ -10,8 +10,8 @@ export function constantBackoff(waitMs: number = 500): BackoffFn {
   }
 }
 
-// RetryOptions are options passed to Retry.
-export interface RetryOptions {
+// RetryOpts are options passed to Retry.
+export interface RetryOpts {
   // backoffFn controls backoff timing.
   // defaults to constant wait of 500ms.
   backoffFn?: BackoffFn
@@ -51,7 +51,7 @@ export class Retry<T = void> {
 
   constructor(
     private fn: () => Promise<T>,
-    opts?: RetryOptions,
+    opts?: RetryOpts,
   ) {
     opts?.abortSignal?.addEventListener('abort', this.cancel.bind(this))
     this._abortSignal = opts?.abortSignal
@@ -117,16 +117,19 @@ export class Retry<T = void> {
   }
 }
 
+// RetryWithAbortOpts are options for retryWithAbort.
+export interface RetryWithAbortOpts extends Omit<RetryOpts, 'abortSignal'> {}
+
 // retryWithAbort builds a retry with the given abort signal & abort func.
 // does not return an error (promise is never rejected)
 export async function retryWithAbort<T = void>(
   abortSignal: AbortSignal,
   cb: (abortSignal: AbortSignal) => Promise<T>,
-  opts?: RetryOptions,
+  opts?: RetryWithAbortOpts,
 ) {
   const retry = new Retry(cb.bind(undefined, abortSignal), {
     ...opts,
-    abortSignal: abortSignal,
+    abortSignal,
   })
   return new Promise<void>((resolve) => {
     retry.result
