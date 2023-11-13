@@ -7,6 +7,7 @@ import React, {
   FC,
   useRef,
   useMemo,
+  CSSProperties,
 } from 'react'
 
 type DebugInfoContextType = {
@@ -107,7 +108,7 @@ const DebugInfoDisplay: FC = () => {
     return null
   }
 
-  const debugInfoStyle = {
+  const debugInfoStyle: CSSProperties = {
     fontFamily: 'monospace',
     background: 'rgba(0, 0, 0, 0.8)',
     color: 'white',
