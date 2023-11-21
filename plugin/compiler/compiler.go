@@ -156,19 +156,36 @@ func (c *Controller) BuildManifest(
 	// If no Go files changed, rebuild esbuild assets only (hot reload)
 	prevResult := args.GetPrevBuilderResult()
 	var updatedManifestMeta *manifest_builder.InputManifest
-	if prevResult != nil && !isRelease {
-		// prevManifest := prevResult.GetManifest()
-		updatedManifestMeta, err = c.FastRebuildPlugin(
+	if !prevResult.GetManifestRef().GetEmpty() && !isRelease {
+		// Check out the previous result to disk.
+		prevManifestRef := prevResult.GetManifestRef()
+		_, err = builderConf.CheckoutManifest(
 			ctx,
 			le,
-			pluginID,
-			sourcePath,
+			busEngine.AccessWorldState,
+			prevManifestRef.GetManifestRef(),
 			outDistPath,
 			outAssetsPath,
-			prevResult.GetInputManifest(),
-			args.GetChangedFiles(),
-			devInfoFile,
 		)
+		if err != nil {
+			err = errors.Wrap(err, "failed to check out previous manifest")
+		}
+
+		// Run the fast rebuild.
+		if err == nil {
+			updatedManifestMeta, err = c.FastRebuildPlugin(
+				ctx,
+				le,
+				pluginID,
+				sourcePath,
+				outDistPath,
+				outAssetsPath,
+				prevResult.GetInputManifest(),
+				args.GetChangedFiles(),
+				devInfoFile,
+			)
+		}
+
 		if err != nil {
 			le.WithError(err).Warn("fast rebuild failed: continuing with normal build")
 			updatedManifestMeta = nil
@@ -384,6 +401,7 @@ func (c *Controller) BuildManifest(
 
 // FastRebuildPlugin compiles the plugin once skipping running the Go compiler if possible.
 // Assumes we are in dev mode (not release mode).
+// Assumes the previous result is already checked out to outDistPath and outAssetsPath.
 // Returns nil, nil if fast rebuild is not applicable.
 func (c *Controller) FastRebuildPlugin(
 	ctx context.Context,

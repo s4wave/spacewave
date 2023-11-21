@@ -147,6 +147,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	var prevResult *manifest_builder.BuilderResult
+	var prevErr error
 	var changedFiles []*manifest_builder.InputManifest_File
 	for {
 		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
@@ -161,15 +162,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 		changedFiles = nil
 		result, err := builderCtrl.BuildManifest(ctx, args)
 		resultPromise.SetResult(result, err)
-		prevResult = result
-		if err != nil {
-			return err
+		if err == nil {
+			prevResult = result
+		}
+		prevErr = err
+
+		inputFiles := prevResult.GetInputManifest().GetFiles()
+		if err == nil {
+			le.Debugf("input manifest returned with %d files", len(inputFiles))
+		} else {
+			le.WithError(err).Warn("build failed")
 		}
 
-		inputFiles := result.GetInputManifest().GetFiles()
-		le.Debugf("input manifest returned with %d files", len(inputFiles))
-		if !c.c.GetWatch() {
-			return nil
+		if !c.c.GetWatch() || len(inputFiles) == 0 {
+			return prevErr
 		}
 
 		// ignoreWatchPrefixes are prefixes to ignore from watching

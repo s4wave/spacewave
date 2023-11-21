@@ -10,6 +10,7 @@ import (
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/hydra/bucket"
+	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/pkg/errors"
@@ -77,5 +78,28 @@ func (c *BuilderConfig) CommitManifest(
 		c.GetLinkObjectKeys(),
 		pid,
 		timestamp.Now(),
+	)
+}
+
+// CheckoutManifest is a shortcut for CheckoutManifest.
+//
+// If either of the paths are empty, they will be skipped.
+// If manifestRef is nil, will use the reference defaulted to by accessFunc.
+func (c *BuilderConfig) CheckoutManifest(
+	ctx context.Context,
+	le *logrus.Entry,
+	accessFunc world.AccessWorldStateFunc,
+	manifestRef *bucket.ObjectRef,
+	distFsPath,
+	assetsFsPath string,
+) (*manifest.Manifest, error) {
+	return manifest_world.CheckoutManifest(
+		ctx,
+		le,
+		accessFunc,
+		manifestRef,
+		distFsPath,
+		assetsFsPath,
+		unixfs_sync.DeleteMode_DeleteMode_DURING,
 	)
 }
