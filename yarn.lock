@@ -1185,10 +1185,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@28.0.0-beta.5:
-  version "28.0.0-beta.5"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-28.0.0-beta.5.tgz#8ff63e5e267c701529ad95ad2533c98bd8cd68dd"
-  integrity sha512-Ip5x254m4gd7QtcwC6Dvq3Y6Jk0hkdefLGNCiK0pU/f6STw/s+rl0MyDVvQbStOQpg0capqA1dm/zVc5LoZtig==
+electron@28.0.0-beta.8:
+  version "28.0.0-beta.8"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-28.0.0-beta.8.tgz#ba87c0c58d60614a714873fdb787c2bfe1f5cde1"
+  integrity sha512-8SwL743EG3sIdwqvgq+fteYexRGb0qTg8MUSm77IRnw6tOxbCfgd8QztpYS7z8SNDcpAABXD4I1X9nqBVBLshQ==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"
@@ -2950,7 +2950,7 @@ ts-api-utils@^1.0.1:
   resolved "https://registry.yarnpkg.com/ts-api-utils/-/ts-api-utils-1.0.3.tgz#f12c1c781d04427313dbac808f453f050e54a331"
   integrity sha512-wNMeqtMz5NtwpT/UZGY5alT+VoKdSsOOP/kqHFcUW1P/VRhH2wJ48+DN2WwUliNbQ976ETwDL0Ifd2VVvgonvg==
 
-ts-poet@^6.5.0:
+ts-poet@6.6.0, ts-poet@^6.5.0:
   version "6.6.0"
   resolved "https://registry.yarnpkg.com/ts-poet/-/ts-poet-6.6.0.tgz#cea8a278bcccf7092f4856c46b556a833a119a96"
   integrity sha512-4vEH/wkhcjRPFOdBwIh9ItO6jOoumVLRF4aABDX5JSNEubSqwOulihxQPqai+OkuygJm3WYMInxXQX4QwVNMuw==

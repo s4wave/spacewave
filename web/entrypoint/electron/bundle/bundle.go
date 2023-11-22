@@ -310,7 +310,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 
 	// NOTE: we use electron v28 for ESM support until v28 is released
 	if npmPkg == "" {
-		npmPkg = "electron@28.0.0-beta.5"
+		npmPkg = "electron@28.0.0-beta.8"
 	}
 
 	// trim the version from the name
