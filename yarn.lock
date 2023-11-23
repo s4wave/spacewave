@@ -496,10 +496,10 @@
   resolved "https://registry.yarnpkg.com/@types/random-string/-/random-string-0.0.31.tgz#0f4dd8c04a154bddb630bdf0b607fcd839663c2e"
   integrity sha512-L/N6zJvxeiNRoGicjS93QYgVFHswsX7bXZIzm9GEZ0to3FMUM02PSBQ/PdijwSCaOaiodUwPXXwd5GnWMvBSfA==
 
-"@types/react-dom@^18.2.16":
-  version "18.2.16"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.16.tgz#028f44b08f8cc3401c37dde4c2a5e36ddf9cb5b0"
-  integrity sha512-766c37araZ9vxtYs25gvY2wNdFWsT2ZiUvOd0zMhTaoGj6B911N8CKQWgXXJoPMLF3J82thpRqQA7Rf3rBwyJw==
+"@types/react-dom@^18.2.17":
+  version "18.2.17"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.17.tgz#375c55fab4ae671bd98448dcfa153268d01d6f64"
+  integrity sha512-rvrT/M7Df5eykWFxn6MYt5Pem/Dbyc1N8Y0S9Mrkw2WFCRiqUgw9P7ul2NpwsXCSM1DVdENzdG9J5SreqfAIWg==
   dependencies:
     "@types/react" "*"
 
@@ -1185,10 +1185,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@28.0.0-beta.8:
-  version "28.0.0-beta.8"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-28.0.0-beta.8.tgz#ba87c0c58d60614a714873fdb787c2bfe1f5cde1"
-  integrity sha512-8SwL743EG3sIdwqvgq+fteYexRGb0qTg8MUSm77IRnw6tOxbCfgd8QztpYS7z8SNDcpAABXD4I1X9nqBVBLshQ==
+electron@28.0.0-beta.9:
+  version "28.0.0-beta.9"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-28.0.0-beta.9.tgz#cc847b6dc872f6b00accae4729476f6323cf4ea9"
+  integrity sha512-9e42Qo77EQAhEkzgibhXR7Il6OwE8LCzfS2ELXak/66W9DB+oziXCGux/2Bi2iLkotbB5qJeuLD5/cZYOrHzuA==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"
@@ -1945,6 +1945,13 @@ it-pushable@^3.1.2, it-pushable@^3.2.0, it-pushable@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/it-pushable/-/it-pushable-3.2.1.tgz#72d7ccf7e7c0ccecf8cbaf74064f7be56e775c59"
   integrity sha512-sLFz2Q0oyDCJpTciZog7ipP4vSftfPy3e6JnH6YyztRa1XqkpGQaafK3Jw/JlfEBtCXfnX9uVfcpu3xpSAqCVQ==
+  dependencies:
+    p-defer "^4.0.0"
+
+it-pushable@^3.2.3:
+  version "3.2.3"
+  resolved "https://registry.yarnpkg.com/it-pushable/-/it-pushable-3.2.3.tgz#e2b80aed90cfbcd54b620c0a0785e546d4e5f334"
+  integrity sha512-gzYnXYK8Y5t5b/BnJUr7glfQLO4U5vyb05gPx/TyTw+4Bv1zM9gFk4YsOrnulWefMewlphCjKkakFvj1y99Tcg==
   dependencies:
     p-defer "^4.0.0"
 
@@ -2805,10 +2812,10 @@ starpc@^0.21.2:
     uint8arraylist "^2.4.3"
     ws "^8.14.2"
 
-starpc@^0.21.3:
-  version "0.21.3"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.21.3.tgz#3c40539521d51962488cf0f0646bf379706879e7"
-  integrity sha512-BOLx/QE6ZFnwYFqE+iIECCY9iw/pYX6k2UVuH6W4NX8QD1mGJc0gUCAsg1l4sLCywIoQwlM9MknBOLNwdQT3qQ==
+starpc@^0.21.4:
+  version "0.21.4"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.21.4.tgz#f2eaaa7c9dc84983daf388d492ce2a7ef919b56a"
+  integrity sha512-8b73waxZnI1fTNfIzzU6LlcyQ1NxPErqV6BYuTtIjWSMEBZgnsyr+H7tHebmmo0kL2gYxTlbj0oLw8UPysOWDQ==
   dependencies:
     "@chainsafe/libp2p-yamux" "^5.0.0"
     "@libp2p/interface" "^0.1.2"
@@ -2818,7 +2825,7 @@ starpc@^0.21.3:
     it-first "^3.0.3"
     it-length-prefixed "^9.0.3"
     it-pipe "^3.0.1"
-    it-pushable "^3.2.1"
+    it-pushable "^3.2.3"
     it-stream-types "^2.0.1"
     it-ws "^6.0.5"
     long "^5.2.3"
