@@ -69,7 +69,8 @@ func NewController(
 		runtimeID:      runtimeID,
 		runtimeVersion: runtimeVersion,
 
-		pkgServer: web_pkg_http.NewServer(le, bus, true),
+		// Pass false to wait for missing web pkgs instead of 404
+		pkgServer: web_pkg_http.NewServer(le, bus, false),
 	}
 }
 

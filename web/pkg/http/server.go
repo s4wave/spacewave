@@ -43,7 +43,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 			return err
 		}
 
-		webPkg, _, webPkgRef, err := web_pkg.ExLookupWebPkg(ctx, s.b, true, webPkgID)
+		webPkg, _, webPkgRef, err := web_pkg.ExLookupWebPkg(ctx, s.b, s.returnIfIdle, webPkgID)
 		if err != nil {
 			rw.WriteHeader(500)
 			return err
