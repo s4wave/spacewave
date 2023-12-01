@@ -239,11 +239,11 @@ export const FetchRequest = {
             requestInfo: FetchRequestInfo.fromJSON(object.requestInfo),
           }
         : isSet(object.requestData)
-        ? {
-            $case: 'requestData',
-            requestData: FetchRequestData.fromJSON(object.requestData),
-          }
-        : undefined,
+          ? {
+              $case: 'requestData',
+              requestData: FetchRequestData.fromJSON(object.requestData),
+            }
+          : undefined,
     }
   },
 
@@ -952,11 +952,11 @@ export const FetchResponse = {
             responseInfo: ResponseInfo.fromJSON(object.responseInfo),
           }
         : isSet(object.responseData)
-        ? {
-            $case: 'responseData',
-            responseData: ResponseData.fromJSON(object.responseData),
-          }
-        : undefined,
+          ? {
+              $case: 'responseData',
+              responseData: ResponseData.fromJSON(object.responseData),
+            }
+          : undefined,
     }
   },
 
@@ -1581,18 +1581,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends globalThis.Array<infer U>
-  ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
