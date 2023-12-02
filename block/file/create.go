@@ -3,6 +3,7 @@ package file
 import (
 	"bytes"
 	"context"
+	"io"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
@@ -38,5 +39,32 @@ func BuildFileWithBytes(
 		buildBlobOpts,
 	)
 	fn.RootBlob = rootBlob
+	return fn, err
+}
+
+// BuildFileWithReader builds a file with a reader, building the root blob.
+// The new root will be stored at bcs.
+func BuildFileWithReader(
+	ctx context.Context,
+	bcs *block.Cursor,
+	rdr io.Reader,
+	buildBlobOpts *blob.BuildBlobOpts,
+) (*File, error) {
+	// Create initial file with TotalSize blank
+	fn := &File{}
+	bcs.ClearAllRefs()
+	bcs.SetBlock(fn, true)
+
+	rootBlobCs := bcs.FollowSubBlock(2)
+	rootBlob, err := blob.BuildBlobWithReader(
+		ctx,
+		rdr,
+		rootBlobCs,
+		buildBlobOpts,
+	)
+
+	fn.RootBlob = rootBlob
+	fn.TotalSize = rootBlob.GetTotalSize()
+
 	return fn, err
 }
