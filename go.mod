@@ -103,7 +103,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.5.0
+	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/hidal-go/hidalgo v0.2.1-0.20220428091800-b74c839b2fb0
