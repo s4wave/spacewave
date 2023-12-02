@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package unixfs_mount_fuse
 
 import (

@@ -26,7 +26,7 @@ type BillyFS interface {
 //
 // Attempts to skip files by checking size and modification time.
 // The output path does not have to be empty when starting.
-// TODO: Does not (yet) support symlinks or other non-file and non-dir node types.
+// TODO: Node types other than directory, regular file, and symlink are not supported.
 func SyncToBilly(
 	ctx context.Context,
 	bfs BillyFS,
@@ -70,6 +70,12 @@ func syncToBillyOnce(
 	}
 	if bfs == nil {
 		return nil
+	}
+
+	bfsStat := bfs.Stat
+	bfsSymlink, bfsSymlinkOk := bfs.(billy.Symlink)
+	if bfsSymlinkOk {
+		bfsStat = bfsSymlink.Lstat
 	}
 
 	// stackElem is a element in the fs location stack.
@@ -123,11 +129,12 @@ func syncToBillyOnce(
 
 		// if !doWrite and the destination doesn't exist, skip this node.
 		if !doWrite {
-			_, err := bfs.Stat(outPath)
+			_, err := bfsStat(outPath)
 			if err == unixfs_errors.ErrNotExist || os.IsNotExist(err) {
 				continue
 			}
 			if err != nil {
+				releaseElem(nelem)
 				return &fs.PathError{Op: "stat", Path: outPath, Err: err}
 			}
 		}
@@ -188,6 +195,7 @@ func syncToBillyOnce(
 							srcDelPath := path.Join(srcPath, entryName)
 							cntu, err := filterCb(ctx, srcDelPath, nil)
 							if err != nil {
+								releaseElem(nelem)
 								return err
 							}
 							if !cntu {
@@ -202,6 +210,7 @@ func syncToBillyOnce(
 							}
 							cntu, err := filterCb(ctx, filterPath, nodeType)
 							if err != nil || !cntu {
+								releaseElem(nelem)
 								return err
 							}
 						}
@@ -239,10 +248,33 @@ func syncToBillyOnce(
 		}
 
 		// destination is not a directory, or we are not writing.
-		if !srcFileInfo.Mode().IsRegular() || !doWrite {
-			// skip any non-regular files.
+		if !doWrite {
 			releaseElem(nelem)
 			continue
+		}
+
+		// check file type
+		srcFileMode := srcFileInfo.Mode()
+		srcFileIsSymlink := srcFileMode&fs.ModeSymlink != 0
+		srcFileIsRegular := !srcFileIsSymlink && srcFileMode.IsRegular()
+
+		// all non-regular files other than symlinks are ignored
+		if (!srcFileIsRegular && !srcFileIsSymlink) ||
+			// if the destination doesn't support symlinks, skip it.
+			(srcFileIsSymlink && !bfsSymlinkOk) {
+			releaseElem(nelem)
+			continue
+		}
+
+		// if symlink: read it
+		var srcFileSymlinkPath string
+		if srcFileIsSymlink {
+			linkPath, linkPathIsAbs, err := handle.Readlink(ctx, "")
+			if err != nil {
+				releaseElem(nelem)
+				return &fs.PathError{Op: "readlink", Path: srcPath, Err: err}
+			}
+			srcFileSymlinkPath = unixfs.JoinPath(linkPath, linkPathIsAbs)
 		}
 
 		// if createTruncateFile is set, we will create the file, truncating
@@ -253,30 +285,73 @@ func syncToBillyOnce(
 		// if the modification time is set on both source and destination,
 		// the modification time matches, and the file size matches,
 		// we can conclude the file is /most likely/ the same and skip it.
-		outFileInfo, outStatErr := bfs.Stat(outPath)
-		if outStatErr == unixfs_errors.ErrNotExist || os.IsNotExist(outStatErr) {
+		var outFileInfo fs.FileInfo
+		var outStatErr error
+
+		outFileInfo, outStatErr = bfsStat(outPath)
+
+		if outStatErr != nil {
+			// outStatErr == unixfs_errors.ErrNotExist || os.IsNotExist(outStatErr)
 			createTruncateFile = true
 		}
-		if outStatErr == nil {
+		if !createTruncateFile {
+			// create/truncate the file if the file type is different.
+			createTruncateFile = outFileInfo.Mode().Type() != srcFileMode.Type()
+		}
+
+		var dstIdenticalToSrc bool
+		if !createTruncateFile && srcFileIsRegular {
 			// if dst file exists already, update its permissions if necessary.
-			outPerms := outFileInfo.Mode().Perm()
-			srcPerms := srcFileInfo.Mode().Perm()
+			srcPerms, outPerms := srcFileInfo.Mode().Perm(), outFileInfo.Mode().Perm()
 			if outPerms != srcPerms {
 				// TODO: Chmod does not exist on billy.Filesystem nor osfs!
 				// bfs.Chmod(outPath, srcPerms)
+
 				// try to just fully truncate / overwrite the file instead.
 				createTruncateFile = true
 			}
 
-			srcModTime := srcFileInfo.ModTime()
-			outModTime := outFileInfo.ModTime()
-			dstIdenticalToSrc := outFileInfo.Size() == srcFileInfo.Size() && !outModTime.IsZero() && outModTime.Equal(srcModTime)
-			if dstIdenticalToSrc && !createTruncateFile {
-				// the files look identical by size and mod time.
-				// skip this file.
-				releaseElem(nelem)
-				continue
+			// Skip if the size and modification time are identical
+			srcModTime, outModTime := srcFileInfo.ModTime(), outFileInfo.ModTime()
+			dstIdenticalToSrc = outFileInfo.Size() == srcFileInfo.Size() &&
+				!outModTime.IsZero() && outModTime.Equal(srcModTime)
+		}
+
+		if !createTruncateFile && srcFileIsSymlink {
+			outLink, err := bfsSymlink.Readlink(outPath)
+			if err != nil {
+				createTruncateFile = true
+			} else if outLink == srcFileSymlinkPath {
+				dstIdenticalToSrc = true
 			}
+		}
+
+		if dstIdenticalToSrc && !createTruncateFile {
+			// the files look identical by size and mod time.
+			// skip this file.
+			releaseElem(nelem)
+			continue
+		}
+
+		// create the symlink
+		if srcFileIsSymlink {
+			if outStatErr == nil || !os.IsNotExist(outStatErr) {
+				// delete the existing file first
+				if err := bfs.Remove(outPath); err != nil && !os.IsNotExist(err) {
+					releaseElem(nelem)
+					return &fs.PathError{Op: "remove", Path: outPath, Err: err}
+				}
+			}
+
+			// create the symlink
+			if err := bfsSymlink.Symlink(outPath, srcFileSymlinkPath); err != nil {
+				releaseElem(nelem)
+				return &fs.PathError{Op: "symlink", Path: outPath, Err: err}
+			}
+
+			// done with this entry
+			releaseElem(nelem)
+			continue
 		}
 
 		// if !createTruncFile and destination already exists
@@ -284,6 +359,7 @@ func syncToBillyOnce(
 		if !createTruncateFile {
 			fileOpts = os.O_RDWR
 		}
+
 		of, err := bfs.OpenFile(outPath, fileOpts, srcFileInfo.Mode().Perm())
 		if err != nil {
 			releaseElem(nelem)
