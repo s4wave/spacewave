@@ -3,9 +3,11 @@ package blob
 import (
 	"bytes"
 	"context"
+	"io"
 	"testing"
 
 	"github.com/aperturerobotics/hydra/testbed"
+	"github.com/aperturerobotics/util/prng"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,5 +59,87 @@ func TestBuildBlobWithBytes(t *testing.T) {
 	}
 	if err := b1.ValidateFull(ctx, bcs); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+// TestBuildBlobWithReader tests building a Blob from a reader w/o known size.
+func TestBuildBlobWithReader(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	cs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	buildReader := func() io.Reader {
+		return prng.BuildSeededRand([]byte("test-chunk-blob"))
+	}
+
+	// Test with data less than high water mark
+	btx, bcs := cs.BuildTransactionAtRef(nil, nil)
+	builtBlob, err := BuildBlobWithReader(
+		ctx,
+		io.LimitReader(buildReader(), rawHighWaterMark-2),
+		bcs,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if builtBlob.GetBlobType() != BlobType_BlobType_RAW {
+		t.Fatalf("Expected raw blob but got %v", builtBlob.GetBlobType().String())
+	}
+
+	// Test with data more than high water mark
+	chunkedData := make([]byte, rawHighWaterMark*2)
+	if _, err := io.ReadAtLeast(buildReader(), chunkedData, len(chunkedData)); err != nil {
+		t.Fatal(err.Error())
+	}
+	btx, bcs = cs.BuildTransactionAtRef(nil, nil)
+	builtBlob, err = BuildBlobWithReader(
+		ctx,
+		io.LimitReader(buildReader(), int64(len(chunkedData))),
+		bcs,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if builtBlob.GetBlobType() != BlobType_BlobType_CHUNKED {
+		t.Fatalf("Expected chunked blob but got %v", builtBlob.GetBlobType().String())
+	}
+	ref, _, err := btx.Write(true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	cs.SetRootRef(ref)
+	_, bcs = cs.BuildTransaction(nil)
+	b1, err := UnmarshalBlob(ctx, bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := b1.ValidateFull(ctx, bcs); err != nil {
+		t.Fatal(err.Error())
+	}
+	rdr, err := NewReader(ctx, bcs)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	readData, err := io.ReadAll(rdr)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if !bytes.Equal(readData, chunkedData) {
+		t.Fatal("mismatch of read data from chunked test")
 	}
 }

@@ -56,9 +56,7 @@ func BuildBlob(
 	}
 
 	// build a chunked blob
-	blob := &Blob{
-		BlobType: BlobType_BlobType_CHUNKED,
-	}
+	blob := &Blob{BlobType: BlobType_BlobType_CHUNKED}
 	bcs.SetBlock(blob, true)
 	err := blob.WriteChunkIndex(ctx, bcs, opts, io.LimitReader(rdr, dataLen))
 	if err != nil {
@@ -70,4 +68,45 @@ func BuildBlob(
 // BuildBlobWithBytes is a shortcut to build a blob from a byte slice.
 func BuildBlobWithBytes(ctx context.Context, data []byte, bcs *block.Cursor) (*Blob, error) {
 	return BuildBlob(ctx, int64(len(data)), bytes.NewReader(data), bcs, nil)
+}
+
+// BuildBlobWithReader constructs a blob chunking / sharding it.
+// Blocks will be written to the block transaction.
+// The new root Blob block will become the root of bcs.
+// Constructs a blob with an unknown size.
+// If you know the size ahead of time, use BuildBlob.
+func BuildBlobWithReader(
+	ctx context.Context,
+	rdr io.Reader,
+	bcs *block.Cursor,
+	opts *BuildBlobOpts,
+) (*Blob, error) {
+	hwm := opts.GetRawHighWaterMark()
+	if hwm == 0 {
+		hwm = rawHighWaterMark
+	}
+
+	// Read at least the high water mark from the reader first.
+	var buf bytes.Buffer
+	nn, err := buf.ReadFrom(io.LimitReader(rdr, int64(hwm)))
+	if err != nil {
+		return nil, err
+	}
+
+	// If we read less than high water mark, we can use a single block.
+	if nn < int64(hwm) {
+		rb := NewRawBlob(buf.Bytes())
+		bcs.SetBlock(rb, true)
+		return rb, nil
+	}
+
+	// Otherwise: build a chunked blob
+	// Tee the existing read data with rdr
+	blob := &Blob{BlobType: BlobType_BlobType_CHUNKED}
+	bcs.SetBlock(blob, true)
+	err = blob.WriteChunkIndex(ctx, bcs, opts, io.MultiReader(&buf, rdr))
+	if err != nil {
+		return nil, err
+	}
+	return blob, nil
 }
