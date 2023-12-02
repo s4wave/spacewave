@@ -80,24 +80,12 @@ func CopyFSToFSTree(
 				}
 				_, entName := path.Split(ent.Name())
 				entPath := path.Join(srcPath, entName)
-				entIsDir := ent.IsDir()
-				nodeType := NodeType_NodeType_DIRECTORY
-				if !entIsDir {
-					entType := ent.Type()
-					switch {
-					case entType.IsRegular():
-						nodeType = NodeType_NodeType_FILE
-					case entType&fs.ModeSymlink != 0:
-						nodeType = NodeType_NodeType_SYMLINK
-					default:
-						// Only dirs, files, and symlinks supported.
-						continue
-					}
-				}
+				entType := ent.Type()
+				nodeType := FileModeToNodeType(ent.Type())
 
 				// NOTE: io/fs.FS does not support Symlink yet:
 				// https://github.com/golang/go/issues/49580
-				if nodeType == NodeType_NodeType_SYMLINK {
+				if nodeType == NodeType_NodeType_UNKNOWN || nodeType == NodeType_NodeType_SYMLINK {
 					continue
 				}
 
@@ -107,20 +95,11 @@ func CopyFSToFSTree(
 				if err != nil {
 					return &fs.PathError{}
 				}
-				pushStack(entPath, entNode, entIsDir)
+				pushStack(entPath, entNode, entType.IsDir())
 			}
 
 			continue
 		}
-
-		// NOTE: this can be done more efficiently with a fs writer
-		// ... conditional on file size: it still might be more efficient this way
-		/*
-			srcFile, err := ifs.Open(srcPath)
-			if err != nil {
-				return err
-			}
-		*/
 
 		fileData, err := fs.ReadFile(ifs, srcPath)
 		if err != nil {

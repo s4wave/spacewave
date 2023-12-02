@@ -1,6 +1,8 @@
 package unixfs_block
 
 import (
+	"io/fs"
+
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/pkg/errors"
 )
@@ -34,6 +36,21 @@ func FSCursorNodeTypeToNodeType(nt unixfs.FSCursorNodeType) NodeType {
 		return NodeType_NodeType_FILE
 	}
 	return NodeType_NodeType_UNKNOWN
+}
+
+// FileModeToNodeType converts a file mode to a known node type.
+func FileModeToNodeType(fm fs.FileMode) NodeType {
+	switch {
+	case fm&fs.ModeSymlink != 0:
+		return NodeType_NodeType_SYMLINK
+	case fm.IsDir():
+		return NodeType_NodeType_DIRECTORY
+	case fm.IsRegular():
+		return NodeType_NodeType_FILE
+	default:
+		// Only dirs, files, and symlinks supported.
+		return NodeType_NodeType_UNKNOWN
+	}
 }
 
 // GetIsDirectory returns if the cursor points to a directory.

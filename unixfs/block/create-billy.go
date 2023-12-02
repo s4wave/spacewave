@@ -81,19 +81,11 @@ func CopyBillyFSToFSTree(
 			for _, entInfo := range dirents {
 				_, entName := path.Split(entInfo.Name())
 				entPath := path.Join(srcPath, entName)
-				entIsDir := entInfo.IsDir()
-				nodeType := NodeType_NodeType_DIRECTORY
-				if !entIsDir {
-					entType := entInfo.Mode().Type()
-					switch {
-					case entType.IsRegular():
-						nodeType = NodeType_NodeType_FILE
-					case entType&fs.ModeSymlink != 0:
-						nodeType = NodeType_NodeType_SYMLINK
-					default:
-						// Only dirs, files, and symlinks supported.
-						continue
-					}
+				entType := entInfo.Mode().Type()
+				nodeType := FileModeToNodeType(entType)
+				if nodeType == NodeType_NodeType_UNKNOWN {
+					// Only directory, file, symlink supported.
+					continue
 				}
 
 				if nodeType == NodeType_NodeType_SYMLINK {
@@ -129,7 +121,7 @@ func CopyBillyFSToFSTree(
 					return &fs.PathError{Op: "mknod", Path: entPath, Err: err}
 				}
 
-				pushStack(entPath, entNode, entIsDir)
+				pushStack(entPath, entNode, nodeType.GetIsDirectory())
 			}
 
 			continue
