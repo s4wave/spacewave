@@ -9,33 +9,38 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/timestamp"
+	billy "github.com/go-git/go-billy/v5"
 )
 
-// CreateFromFS creates a unixfs_block FSNode from the iofs.
-func CreateFromFS(
+// CreateFromBillyFS creates a unixfs_block FSNode from the billy FS.
+func CreateFromBillyFS(
 	ctx context.Context,
 	bcs *block.Cursor,
-	iofs fs.FS,
+	bfs billy.Filesystem,
 	ts *timestamp.Timestamp,
 ) error {
 	rootFsNode := NewFSNode(NodeType_NodeType_DIRECTORY, 0, ts)
 	bcs.SetBlock(rootFsNode, true)
+
 	fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
-	if err == nil && iofs != nil {
-		err = CopyFSToFSTree(ctx, iofs, fsTree, nil, ts)
+	if err == nil && bfs != nil {
+		err = CopyBillyFSToFSTree(ctx, bfs, fsTree, nil, ts)
 	}
+
 	return err
 }
 
-// CopyFSToFSTree copies the io/fs to the FSTree.
+// CopyBillyFSToFSTree copies the billy filesystem to the FSTree.
 // Copies the data into the in-memory structures quickly.
-func CopyFSToFSTree(
+func CopyBillyFSToFSTree(
 	ctx context.Context,
-	ifs fs.FS,
+	bfs billy.Filesystem,
 	fsTree *FSTree,
 	buildBlobOpts *blob.BuildBlobOpts,
 	writeTs *timestamp.Timestamp,
 ) error {
+	bfsSymlink, bfsSymlinkOk := bfs.(billy.Symlink)
+
 	// stackElem is a element in the fs location stack.
 	type stackElem struct {
 		// srcPath is the path in the source fs
@@ -69,21 +74,17 @@ func CopyFSToFSTree(
 
 		isDir := nelem.isDir
 		if isDir {
-			dirents, err := fs.ReadDir(ifs, srcPath)
+			dirents, err := bfs.ReadDir(srcPath)
 			if err != nil {
 				return err
 			}
-			for _, ent := range dirents {
-				entInfo, err := ent.Info()
-				if err != nil {
-					return err
-				}
-				_, entName := path.Split(ent.Name())
+			for _, entInfo := range dirents {
+				_, entName := path.Split(entInfo.Name())
 				entPath := path.Join(srcPath, entName)
-				entIsDir := ent.IsDir()
+				entIsDir := entInfo.IsDir()
 				nodeType := NodeType_NodeType_DIRECTORY
 				if !entIsDir {
-					entType := ent.Type()
+					entType := entInfo.Mode().Type()
 					switch {
 					case entType.IsRegular():
 						nodeType = NodeType_NodeType_FILE
@@ -95,9 +96,29 @@ func CopyFSToFSTree(
 					}
 				}
 
-				// NOTE: io/fs.FS does not support Symlink yet:
-				// https://github.com/golang/go/issues/49580
 				if nodeType == NodeType_NodeType_SYMLINK {
+					// Check if the filesystem supports symlinks
+					if !bfsSymlinkOk {
+						continue
+					}
+
+					// Read the symlink
+					srcSymlinkPath, err := bfsSymlink.Readlink(entPath)
+					if err != nil {
+						return &fs.PathError{Op: "readlink", Path: entPath, Err: err}
+					}
+
+					// Write the symlink
+					_, err = destNode.Symlink(
+						false,
+						entName,
+						NewFSSymlink(SplitFSPath(srcSymlinkPath)),
+						writeTs,
+					)
+					if err != nil {
+						return &fs.PathError{Op: "symlink", Path: entPath, Err: err}
+					}
+
 					continue
 				}
 
@@ -105,35 +126,28 @@ func CopyFSToFSTree(
 				entPerm := entInfo.Mode().Perm()
 				entNode, err := destNode.Mknod(entName, nodeType, nil, entPerm, writeTs)
 				if err != nil {
-					return &fs.PathError{}
+					return &fs.PathError{Op: "mknod", Path: entPath, Err: err}
 				}
+
 				pushStack(entPath, entNode, entIsDir)
 			}
 
 			continue
 		}
 
-		// NOTE: this can be done more efficiently with a fs writer
-		// ... conditional on file size: it still might be more efficient this way
-		/*
-			srcFile, err := ifs.Open(srcPath)
-			if err != nil {
-				return err
-			}
-		*/
-
-		fileData, err := fs.ReadFile(ifs, srcPath)
+		bfile, err := bfs.Open(srcPath)
 		if err != nil {
 			return err
 		}
 
 		destFileBcs := destNode.bcs.FollowSubBlock(4)
-		destNode.node.File, err = file.BuildFileWithBytes(
+		destNode.node.File, err = file.BuildFileWithReader(
 			ctx,
 			destFileBcs,
-			fileData,
+			bfile,
 			buildBlobOpts,
 		)
+		_ = bfile.Close()
 		if err != nil {
 			return err
 		}
