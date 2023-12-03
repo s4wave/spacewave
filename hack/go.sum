@@ -79,8 +79,8 @@ github.com/aperturerobotics/starpc v0.21.5 h1:Uv4SGV+E1CF8QWLoIRywj/3KwOJ+oDO+9e
 github.com/aperturerobotics/starpc v0.21.5/go.mod h1:RmlSMCL1RsvwkBymOXJWWq8oqDLwQcN16y8RwVWqj6Q=
 github.com/aperturerobotics/timestamp v0.8.2 h1:+HA/uI9ZGz8qqim+kkXqz3cijR8kMcQ4/ZRTw5fW7yI=
 github.com/aperturerobotics/timestamp v0.8.2/go.mod h1:nrwzlUGvxs244CIBjDWHZ8qRudqk8m/SQ5n5GKXaFVw=
-github.com/aperturerobotics/util v1.7.9-0.20231202221318-c82a9ce944dc h1:vLgbbvssV6qjEynRTjiywo15FwVjxMWC+fz4IVNBCuE=
-github.com/aperturerobotics/util v1.7.9-0.20231202221318-c82a9ce944dc/go.mod h1:idhGuFuAatygqticAnPcSZhef8yV7TYufLUw1Qfj4Cg=
+github.com/aperturerobotics/util v1.8.0 h1:xsptCdCAYVKHblM8f/Zvi0Sj6rdOXeABooY5lePwvzE=
+github.com/aperturerobotics/util v1.8.0/go.mod h1:idhGuFuAatygqticAnPcSZhef8yV7TYufLUw1Qfj4Cg=
 github.com/ashanbrown/forbidigo v1.6.0 h1:D3aewfM37Yb3pxHujIPSpTf6oQk9sc9WZi8gerOIVIY=
 github.com/ashanbrown/forbidigo v1.6.0/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=

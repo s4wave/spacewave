@@ -60,7 +60,7 @@
   "devDependencies": {
     "@aperturerobotics/ts-common": "^0.6.7",
     "@types/random-string": "^0.0.31",
-    "@types/react": "^18.2.40",
+    "@types/react": "^18.2.41",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
