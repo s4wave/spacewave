@@ -13,7 +13,7 @@ import (
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
-	cf "github.com/aperturerobotics/bldr/util/fsutil"
+	cf "github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

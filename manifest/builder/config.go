@@ -2,7 +2,6 @@ package bldr_manifest_builder
 
 import (
 	"context"
-	"io/fs"
 	"path/filepath"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -13,6 +12,8 @@ import (
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -59,7 +60,7 @@ func (c *BuilderConfig) CommitManifest(
 	meta *manifest.ManifestMeta,
 	entrypointFilename string,
 	distFs,
-	assetsFs fs.FS,
+	assetsFs billy.Filesystem,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
 	pid, err := c.ParsePeerID()
 	if err != nil {
@@ -79,6 +80,21 @@ func (c *BuilderConfig) CommitManifest(
 		pid,
 		timestamp.Now(),
 	)
+}
+
+// CommitManifestWithPaths is a shortcut for CommitManifest with on-disk paths.
+func (c *BuilderConfig) CommitManifestWithPaths(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	meta *manifest.ManifestMeta,
+	entrypointFilename string,
+	distFsPath,
+	assetsFsPath string,
+) (*manifest.Manifest, *bucket.ObjectRef, error) {
+	// distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
+	distFs, assetsFs := osfs.New(distFsPath, osfs.WithChrootOS()), osfs.New(assetsFsPath, osfs.WithChrootOS())
+	return c.CommitManifest(ctx, le, ws, meta, entrypointFilename, distFs, assetsFs)
 }
 
 // CheckoutManifest is a shortcut for CheckoutManifest.

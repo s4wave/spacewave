@@ -2,10 +2,12 @@ module github.com/aperturerobotics/bldr
 
 go 1.21
 
+replace github.com/aperturerobotics/util => /Users/cjs/repos/aperture/util
+
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231202103143-f7b60282d78f // master
+require github.com/aperturerobotics/hydra v0.0.0-20231203002924-591755b83c7f // master
 
 require (
 	github.com/evanw/esbuild v0.19.5 // latest
@@ -67,7 +69,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.7.8 // master
+	github.com/aperturerobotics/util v1.7.9-0.20231202221318-c82a9ce944dc // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -106,6 +108,7 @@ require (
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e
 	golang.org/x/mod v0.14.0
@@ -134,7 +137,6 @@ require (
 	github.com/dolthub/vitess v0.0.0-20231109003730-c0fa018b5ef6 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/go-git/go-billy/v5 v5.5.0 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect

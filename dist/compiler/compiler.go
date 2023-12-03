@@ -3,7 +3,6 @@ package bldr_dist_compiler
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"sort"
 
@@ -12,7 +11,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	"github.com/aperturerobotics/bldr/util/fsutil"
+	"github.com/aperturerobotics/util/fsutil"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -313,15 +312,14 @@ func (c *Controller) BuildManifest(
 
 	le.Debug("bundling dist files")
 	// bundle dist and assets fs
-	distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
-	committedManifest, committedManifestRef, err := builderConf.CommitManifest(
+	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
 		le,
 		tx,
 		meta,
 		entrypointFilename,
-		distFs,
-		assetsFs,
+		outDistPath,
+		outAssetsPath,
 	)
 	if err != nil {
 		return nil, err

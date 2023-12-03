@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/aperturerobotics/timestamp"
+	"github.com/go-git/go-billy/v5"
 	"github.com/pkg/errors"
 )
 
@@ -76,8 +77,36 @@ func UnmarshalManifest(ctx context.Context, bcs *block.Cursor) (*Manifest, error
 	return block.UnmarshalBlock[*Manifest](ctx, bcs, NewManifestBlock)
 }
 
-// CreateManifest creates the manifest at the block cursor.
-func CreateManifest(
+// CreateManifestWithBilly creates the manifest at the block cursor with billy filesystem instances.
+// Note: supports symlinks if the fs implements billy.Symlink.
+func CreateManifestWithBilly(
+	ctx context.Context,
+	bcs *block.Cursor,
+	meta *ManifestMeta,
+	entrypoint string,
+	distFs, assetsFs billy.Filesystem,
+	ts *timestamp.Timestamp,
+) (*Manifest, error) {
+	manifest := NewManifest(meta, entrypoint)
+	bcs.SetBlock(manifest, true)
+
+	// setup the distribution filesystem.
+	if err := unixfs_block.CreateFromBillyFS(ctx, bcs.FollowRef(3, nil), distFs, ts); err != nil {
+		return nil, err
+	}
+
+	// setup the assets filesystem.
+	if err := unixfs_block.CreateFromBillyFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts); err != nil {
+		return nil, err
+	}
+
+	// done
+	return manifest, nil
+}
+
+// CreateManifestWithIoFS creates the manifest at the block cursor with io/fs.FS instances.
+// Note: does not yet support symlinks: https://github.com/golang/go/issues/49580
+func CreateManifestWithIoFS(
 	ctx context.Context,
 	bcs *block.Cursor,
 	meta *ManifestMeta,
@@ -92,6 +121,7 @@ func CreateManifest(
 	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(3, nil), distFs, ts); err != nil {
 		return nil, err
 	}
+
 	// setup the assets filesystem.
 	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts); err != nil {
 		return nil, err

@@ -15,7 +15,7 @@ import (
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
-	"github.com/aperturerobotics/bldr/util/fsutil"
+	"github.com/aperturerobotics/util/fsutil"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
@@ -369,15 +369,14 @@ func (c *Controller) BuildManifest(
 
 	le.Debug("bundling plugin files")
 	// bundle dist and assets fs
-	distFs, assetsFs := os.DirFS(outDistPath), os.DirFS(outAssetsPath)
-	committedManifest, committedManifestRef, err := builderConf.CommitManifest(
+	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
 		le,
 		tx,
 		meta,
 		outBinName,
-		distFs,
-		assetsFs,
+		outDistPath,
+		outAssetsPath,
 	)
 	if err != nil {
 		return nil, err

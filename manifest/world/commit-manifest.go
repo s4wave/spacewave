@@ -2,7 +2,6 @@ package bldr_manifest_world
 
 import (
 	"context"
-	"io/fs"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	manifest "github.com/aperturerobotics/bldr/manifest"
@@ -10,6 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
+	"github.com/go-git/go-billy/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +21,7 @@ func CommitManifest(
 	access world.AccessWorldStateFunc,
 	meta *manifest.ManifestMeta,
 	entrypointFilename string,
-	distFs, assetsFs fs.FS,
+	distFs, assetsFs billy.Filesystem,
 	manifestObjKey string,
 	linkObjKeys []string,
 	opPeerID peer.ID,
@@ -29,7 +29,7 @@ func CommitManifest(
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
 	var out *manifest.Manifest
 	manifestRef, err := world.AccessObject(ctx, access, nil, func(bcs *block.Cursor) (err error) {
-		out, err = manifest.CreateManifest(
+		out, err = manifest.CreateManifestWithBilly(
 			ctx,
 			bcs,
 			meta,

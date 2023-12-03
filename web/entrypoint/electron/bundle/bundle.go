@@ -9,7 +9,7 @@ import (
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
-	"github.com/aperturerobotics/bldr/util/fsutil"
+	"github.com/aperturerobotics/util/fsutil"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"

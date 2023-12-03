@@ -10,7 +10,7 @@ import (
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
-	"github.com/aperturerobotics/bldr/util/fsutil"
+	"github.com/aperturerobotics/util/fsutil"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
 	web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	electron "github.com/aperturerobotics/bldr/web/plugin/electron"

@@ -2,6 +2,7 @@ package bldr_manifest_world
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -10,7 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
+	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/sirupsen/logrus"
@@ -49,8 +50,15 @@ func DeepCopyManifest(
 			distFS *unixfs.FSHandle,
 			assetsFS *unixfs.FSHandle,
 		) error {
-			distIoFS := unixfs_iofs.NewFS(ctx, distFS)
-			assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFS)
+			// distIoFS := unixfs_iofs.NewFS(ctx, distFS)
+			// assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFS)
+			writeTs := ts.ToTime()
+			if writeTs.IsZero() {
+				writeTs = time.Now()
+			}
+
+			distBfs := unixfs_billy.NewBillyFilesystem(ctx, distFS, "", writeTs)
+			assetsBfs := unixfs_billy.NewBillyFilesystem(ctx, assetsFS, "", writeTs)
 
 			// note: the transform config and object ref will be based on the
 			// reference contained within the cursor after calling destAccess(nil)
@@ -62,8 +70,8 @@ func DeepCopyManifest(
 				destAccess,
 				manifest.GetMeta(),
 				manifest.GetEntrypoint(),
-				distIoFS,
-				assetsIoFS,
+				distBfs,
+				assetsBfs,
 				destObjectKey,
 				destLinkObjKeys,
 				opPeerID,

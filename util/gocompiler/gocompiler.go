@@ -28,6 +28,8 @@ func GetDefaultEnv() []string {
 	return []string{
 		"GO111MODULE=on",
 		"GOPROXY=direct",
+		// required for -mod=vendor
+		"GOWORK=off",
 	}
 }
 

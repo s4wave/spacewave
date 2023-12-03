@@ -12,6 +12,7 @@ import (
 	"go/types"
 
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -127,7 +128,8 @@ func AnalyzePackages(
 	conf.BuildFlags = append(conf.BuildFlags, "-mod=vendor")
 
 	// for analysis purposes, use a constant GOOS / GOARCH
-	conf.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "GO111MODULE=on")
+	conf.Env = append(os.Environ(), gocompiler.GetDefaultEnv()...)
+	conf.Env = append(conf.Env, "GOOS=linux", "GOARCH=amd64")
 
 	loadedPackages, err := packages.Load(&conf, packagePaths...)
 	if err != nil {
