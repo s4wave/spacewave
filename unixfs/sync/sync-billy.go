@@ -344,7 +344,7 @@ func syncToBillyOnce(
 			}
 
 			// create the symlink
-			if err := bfsSymlink.Symlink(outPath, srcFileSymlinkPath); err != nil {
+			if err := bfsSymlink.Symlink(srcFileSymlinkPath, outPath); err != nil {
 				releaseElem(nelem)
 				// err is already a fs.PathError
 				return err
