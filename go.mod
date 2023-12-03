@@ -2,8 +2,6 @@ module github.com/aperturerobotics/bldr
 
 go 1.21
 
-replace github.com/aperturerobotics/util => /Users/cjs/repos/aperture/util
-
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
 
