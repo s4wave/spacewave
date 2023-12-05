@@ -1,6 +1,7 @@
 import electron, { MessagePortMain, MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
+import os from 'os'
 import { OpenStreamCtr, Conn, buildPushableSink } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
@@ -29,13 +30,17 @@ app.setPath('userData', userDataPath)
 const distPath = app.getAppPath()
 const pipeWorkdir = distPath
 const ipcMain: Electron.IpcMain = electron.ipcMain
+const isMac = os.platform() === "darwin"
 
 function createWindow(urlSuffix?: string): electron.BrowserWindow {
   const preload = path.join(distPath, 'preload.mjs')
   const nwindow = new electron.BrowserWindow({
-    frame: false,
+    // Only show the OS window frame on MacOS.
+    frame: isMac,
+
     height: 680,
     width: 900,
+
     webPreferences: {
       sandbox: true,
       nodeIntegration: false,
