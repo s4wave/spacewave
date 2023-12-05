@@ -37,6 +37,7 @@ function createWindow(urlSuffix?: string): electron.BrowserWindow {
   const nwindow = new electron.BrowserWindow({
     // Only show the OS window frame on MacOS.
     frame: isMac,
+    titleBarStyle: isMac ? 'hidden' : undefined,
 
     height: 680,
     width: 900,
