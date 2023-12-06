@@ -9,12 +9,12 @@ import (
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
-	"github.com/aperturerobotics/util/fsutil"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
@@ -308,9 +308,9 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 		return err
 	}
 
-	// NOTE: we use electron v28 for ESM support until v28 is released
+	// use the latest version if not defined
 	if npmPkg == "" {
-		npmPkg = "electron@28.0.0-beta.10"
+		npmPkg = "electron@latest"
 	}
 
 	// trim the version from the name
