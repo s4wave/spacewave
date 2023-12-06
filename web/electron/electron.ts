@@ -30,6 +30,11 @@ declare const BLDR_ELECTRON: BldrElectron | undefined
 // isElectron indicates this is electron.
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
+// isMac indicates this is a MacOS platform.
+// WICG Spec: https://wicg.github.io/ua-client-hints
+// Only expected to work reliably under Electron (where we test it).
+export const isMac = navigator?.userAgentData?.platform === 'macOS' || false
+
 // openElectronPort connects a MessagePort to the remote Electron main WebRuntime.
 export async function openElectronPort(
   init: Uint8Array,

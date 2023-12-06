@@ -7,12 +7,12 @@ import {
   DebugInfoProvider,
   BldrDebug,
 } from '@aptre/bldr-react'
+import { retryWithAbort, isMac, isElectron } from '@aptre/bldr'
 
-import { retryWithAbort } from '@aptre/bldr'
 import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
+import { ExampleProps } from './example.pb.js'
 
 import './example.css'
-import { ExampleProps } from './example.pb.js'
 
 // Example is an example of a functional react component accessing a host rpc.
 const Example: React.FC<ExampleProps> = (props: ExampleProps) => {
@@ -40,7 +40,11 @@ const Example: React.FC<ExampleProps> = (props: ExampleProps) => {
     <DebugInfoProvider>
       <DebugInfoDisplay />
       <BldrDebug />
-      <DebugInfo>TestDebugInfo</DebugInfo>
+      <DebugInfo>
+        isElectron: {JSON.stringify(isElectron)}
+        <br />
+        isMac: {JSON.stringify(isMac)}
+      </DebugInfo>
       <div className="example-message">{message || 'Loading...'}</div>
     </DebugInfoProvider>
   )
