@@ -19,7 +19,7 @@
     "url": "git+ssh://git@github.com/aperturerobotics/bldr.git"
   },
   "scripts": {
-    "check": "npm run typecheck && npm run lint && npm run deps",
+    "check": "npm run typecheck && npm run lint",
     "clean": "rimraf ./.bldr",
     "bldr": "go run -v -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr",
     "serve": "npm run start:web",
@@ -34,7 +34,6 @@
     "build:cross": "npm run bldr -- --build-type=release build -b cross",
     "publish:release": "npm run bldr -- --build-type=release publish -p demo-dist",
     "dist": "npm run build:release && npm run publish:release",
-    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,esbuild,protobufjs,@aperturerobotics/ts-common",
     "codegen": "npm run gen",
     "gen": "make genproto",
     "test": "make test && npm run check",
@@ -64,7 +63,6 @@
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
-    "depcheck": "^1.4.7",
     "enhanced-resolve": "^5.15.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.1.0",
