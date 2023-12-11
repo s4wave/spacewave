@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.12-0.20231111022115-32fe9d70e366 // master
+require github.com/aperturerobotics/bifrost v0.18.12 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -34,7 +34,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.12-0.20231202103023-ecd4efd31e59 // latest
+	github.com/aperturerobotics/controllerbus v0.30.12-0.20231211012028-cc7ac9496d2d // latest
 	github.com/aperturerobotics/entitygraph v0.5.0
 	github.com/aperturerobotics/starpc v0.21.5 // latest
 )
@@ -55,30 +55,30 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/ts-proto-common-types v0.2.0 // indirect; latest
-	github.com/aperturerobotics/util v1.7.9-0.20231202221318-c82a9ce944dc // master
+	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
+	github.com/aperturerobotics/util v1.8.0 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.17.2
+	github.com/klauspost/compress v1.17.4
 	github.com/libp2p/go-libp2p v0.32.1
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.5 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.7 // indirect
 	github.com/nats-io/nats.go v1.31.0 // indirect
 	github.com/nats-io/nkeys v0.4.6 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/pierrec/lz4/v4 v4.1.18
+	github.com/pierrec/lz4/v4 v4.1.19
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.5.0 // indirect
 	github.com/quic-go/quic-go v0.40.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.26.0
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.16.0
 	gonum.org/v1/gonum v0.14.0
@@ -115,14 +115,14 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.etcd.io/bbolt v1.3.8
-	golang.org/x/exp v0.0.0-20231127185646-65229373498e
+	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
 	golang.org/x/sync v0.5.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.25.5
 )
 
 require (
-	filippo.io/edwards25519 v1.0.1-0.20220803165937-8c58ed0e3550 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
