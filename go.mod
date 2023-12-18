@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231211020301-638d3ec40650 // master
+require github.com/aperturerobotics/hydra v0.0.0-20231214162044-5cded8e8e6fc // master
 
 require (
 	github.com/evanw/esbuild v0.19.5 // latest
@@ -45,7 +45,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.12-0.20231211012028-cc7ac9496d2d // latest
+	github.com/aperturerobotics/controllerbus v0.30.12-0.20231215075015-5afa0a159e2e // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
 	github.com/aperturerobotics/starpc v0.21.6-0.20231211012314-24b032fd9590 // latest
 )
@@ -67,13 +67,13 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.8.0 // master
+	github.com/aperturerobotics/util v1.8.1 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.17.4
-	github.com/libp2p/go-libp2p v0.32.1
+	github.com/libp2p/go-libp2p v0.32.2
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.0 // indirect
@@ -99,19 +99,19 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.0
+	github.com/Microsoft/go-winio v0.6.1
 	github.com/aperturerobotics/go-kvfile v0.2.1
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/cayleygraph/quad v1.2.4
-	github.com/fatih/color v1.12.0
+	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
+	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611
 	golang.org/x/mod v0.14.0
 	golang.org/x/sync v0.5.0
-	golang.org/x/tools v0.16.0
+	golang.org/x/tools v0.16.2-0.20231218205634-ee47fd47e29d
 )
 
 require (
@@ -168,7 +168,7 @@ require (
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
