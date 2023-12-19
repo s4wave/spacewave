@@ -93,7 +93,7 @@ require (
 	github.com/Workiva/go-datastructures v1.1.1
 	github.com/aperturerobotics/go-kvfile v0.2.1
 	github.com/aperturerobotics/timestamp v0.8.2
-	github.com/bits-and-blooms/bitset v1.10.0
+	github.com/bits-and-blooms/bitset v1.12.0
 	github.com/bits-and-blooms/bloom/v3 v3.6.0
 	github.com/cayleygraph/quad v1.2.4
 	github.com/cespare/xxhash v1.1.0
@@ -107,11 +107,11 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/hidal-go/hidalgo v0.2.1-0.20220428091800-b74c839b2fb0
-	github.com/minio/minio-go/v7 v7.0.63
+	github.com/minio/minio-go/v7 v7.0.66
 	github.com/paralin/go-indexeddb v1.1.0
 	github.com/restic/chunker v0.4.0
-	github.com/spf13/afero v1.10.0
-	github.com/spf13/cast v1.5.1
+	github.com/spf13/afero v1.11.0
+	github.com/spf13/cast v1.6.0
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.etcd.io/bbolt v1.3.8
@@ -152,7 +152,7 @@ require (
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -166,7 +166,7 @@ require (
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -228,9 +228,9 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
