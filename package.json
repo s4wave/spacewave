@@ -57,7 +57,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.6.7",
+    "@aperturerobotics/ts-common": "^0.7.0",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
@@ -88,7 +88,7 @@
     "protobufjs": "^7.2.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.21.5",
+    "starpc": "^0.22.0",
     "uint8arraylist": "^2.4.7",
     "workbox-window": "^7.0.0"
   }

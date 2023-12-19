@@ -18,8 +18,8 @@ require (
 require (
 	github.com/aperturerobotics/bldr v0.0.0-20230728003220-9c25eacad913
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.21.6-0.20231211012314-24b032fd9590
-	github.com/evanw/esbuild v0.19.5
+	github.com/aperturerobotics/starpc v0.22.0
+	github.com/evanw/esbuild v0.19.10
 )
 
 require (
@@ -37,9 +37,9 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231214162044-5cded8e8e6fc // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231219225515-bf996307f586 // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
-	github.com/aperturerobotics/util v1.8.1 // indirect
+	github.com/aperturerobotics/util v1.8.2 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -157,8 +157,8 @@ require (
 	github.com/sivchari/tenv v1.7.1 // indirect
 	github.com/sonatard/noctx v0.0.2 // indirect
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
-	github.com/spf13/afero v1.10.0 // indirect
-	github.com/spf13/cast v1.5.1 // indirect
+	github.com/spf13/afero v1.11.0 // indirect
+	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -187,7 +187,7 @@ require (
 	go.tmz.dev/musttag v0.7.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611 // indirect
+	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect

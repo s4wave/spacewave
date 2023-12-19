@@ -7,15 +7,26 @@
   resolved "https://registry.yarnpkg.com/@aashutoshrathi/word-wrap/-/word-wrap-1.2.6.tgz#bd9154aec9983f77b3a034ecaa015c2e4201f6cf"
   integrity sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==
 
-"@aperturerobotics/ts-common@^0.6.7":
-  version "0.6.7"
-  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.6.7.tgz#94ec2e6841fa8d3df1aed0dcf16441bde6b21f0a"
-  integrity sha512-aEP51jXILZquCOZty2w8gNOOO/6Y/ZOQ1TIPqyhsLIDnEmFp+tXA6wyeDMPMbIB378TDB18K4cj9kqLhR2OViQ==
+"@aperturerobotics/ts-common@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.7.0.tgz#ddc8528d6308be7d58caa56bf3e6271d7e830813"
+  integrity sha512-k4T8rBP//wTt1TmViijmRT0FegweOI1KRL8mKjc0TTRxvjuiEZYVvaruh95aaOIENTH6RI5o62i289ijE9XSAA==
   dependencies:
     bufferutil "^4.0.7"
     long "^5.2.3"
-    starpc "^0.21.2"
+    starpc "^0.22.0"
     utf-8-validate "^6.0.3"
+
+"@aptre/it-ws@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@aptre/it-ws/-/it-ws-1.0.0.tgz#dfcdbb654cc66fd8c8695ed8aa62aa9cc40db11c"
+  integrity sha512-QAqbfb2btw7FDTlCWimBDtUSu835S0+6FqG9lx6MfDbwKz6NXUAZTrMscIMgM7wF5ZpHmehvXqZl2KdANL6zSg==
+  dependencies:
+    "@types/ws" "^8.2.2"
+    event-iterator "^2.0.0"
+    it-stream-types "^2.0.1"
+    uint8arrays "^5.0.0"
+    ws "^8.4.0"
 
 "@chainsafe/is-ip@^2.0.1":
   version "2.0.2"
@@ -1501,17 +1512,6 @@ it-stream-types@^2.0.1:
   resolved "https://registry.yarnpkg.com/it-stream-types/-/it-stream-types-2.0.1.tgz#69cb4d7e79e707b8257a8997e02751ccb6c3af32"
   integrity sha512-6DmOs5r7ERDbvS4q8yLKENcj6Yecr7QQTqWApbZdfAUTEC947d+PEha7PCqhm//9oxaLYL7TWRekwhoXl2s6fg==
 
-it-ws@^6.0.5:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/it-ws/-/it-ws-6.1.0.tgz#a2e26b43effd9580f1afe98a77fb281f39517977"
-  integrity sha512-At/Pp6cZQauhTEEHgBGZovg5bL+wJfu8V9oxsPh/ya/U3gBbvfHtLiBzFGo3Io8ua1gr1HualgTQxwPnGSNCyQ==
-  dependencies:
-    "@types/ws" "^8.2.2"
-    event-iterator "^2.0.0"
-    it-stream-types "^2.0.1"
-    uint8arrays "^4.0.2"
-    ws "^8.4.0"
-
 jackspeak@^2.3.5:
   version "2.3.6"
   resolved "https://registry.yarnpkg.com/jackspeak/-/jackspeak-2.3.6.tgz#647ecc472238aee4b06ac0e461acc21a8c505ca8"
@@ -2161,11 +2161,12 @@ sprintf-js@^1.1.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.1.3.tgz#4914b903a2f8b685d17fdf78a70e917e872e444a"
   integrity sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==
 
-starpc@^0.21.2, starpc@^0.21.5:
-  version "0.21.5"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.21.5.tgz#253ff858a484e26758fbf9d50b029a160114428e"
-  integrity sha512-aXTNwnIq2cVUSjLvlfRFQzIo+dTnvY1bU7eo28KVlHUZu39wVEG2jBBmPYd2p1kt9mmXAHmdMmAx3B4DlEEUqQ==
+starpc@^0.22.0:
+  version "0.22.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.22.0.tgz#3743a34babf9e548d8a735cc39e485c34e557c70"
+  integrity sha512-/jyL8mZ1kDK/DUiCNjDgRTvywo7xFpfADZAizc0YGBmMgi5iJpeRSTtpqYRgkU2/kKY0UZOHT6+aNHFWy5Csdg==
   dependencies:
+    "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^5.0.0"
     "@libp2p/interface" "^0.1.2"
     event-iterator "^2.0.0"
@@ -2176,13 +2177,12 @@ starpc@^0.21.2, starpc@^0.21.5:
     it-pipe "^3.0.1"
     it-pushable "^3.2.3"
     it-stream-types "^2.0.1"
-    it-ws "^6.0.5"
     long "^5.2.3"
     memoize-one "^6.0.0"
     patch-package "^8.0.0"
     protobufjs "^7.2.5"
     uint8arraylist "^2.4.7"
-    ws "^8.14.2"
+    ws "^8.15.1"
 
 stream-shift@^1.0.0:
   version "1.0.1"
@@ -2446,7 +2446,12 @@ wrappy@1:
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
 
-ws@^8.14.2, ws@^8.4.0:
+ws@^8.15.1:
+  version "8.15.1"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.15.1.tgz#271ba33a45ca0cc477940f7f200cd7fba7ee1997"
+  integrity sha512-W5OZiCjXEmk0yZ66ZN82beM5Sz7l7coYxpRkzS+p9PP+ToQry8szKh+61eNktr7EA9DOwvFGhfC605jDHbP6QQ==
+
+ws@^8.4.0:
   version "8.15.0"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.15.0.tgz#db080a279260c5f532fc668d461b8346efdfcf86"
   integrity sha512-H/Z3H55mrcrgjFwI+5jKavgXvwQLtfPCUEp6pi35VhoB0pfcHnSoyuTzkBEZpzq49g1193CUEwIvmsjcotenYw==

@@ -3,19 +3,19 @@ module github.com/aperturerobotics/bldr
 go 1.21
 
 // https://github.com/evanw/esbuild/pull/3413
-replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.6-0.20231024055357-26ca337079f1 // aperture
+replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.11-0.20231219225652-92bad5072a85 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231214162044-5cded8e8e6fc // master
+require github.com/aperturerobotics/hydra v0.0.0-20231219225515-bf996307f586 // master
 
 require (
-	github.com/evanw/esbuild v0.19.5 // latest
+	github.com/evanw/esbuild v0.19.10 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.12 // master
+require github.com/aperturerobotics/bifrost v0.18.13 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,9 +45,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.30.12-0.20231215075015-5afa0a159e2e // latest
+	github.com/aperturerobotics/controllerbus v0.30.12 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
-	github.com/aperturerobotics/starpc v0.21.6-0.20231211012314-24b032fd9590 // latest
+	github.com/aperturerobotics/starpc v0.22.0 // latest
 )
 
 // aperture: use compatibility forks
@@ -58,7 +58,7 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.38.1-0.20231004004015-9ea9492e88bd // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.40.1-0.20231219224819-14aac6234606 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
 	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.31.1-0.20231012212426-9cf9f0f94f47 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
@@ -67,7 +67,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.8.1 // master
+	github.com/aperturerobotics/util v1.8.2 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -85,13 +85,13 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.19 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.5.0 // indirect
-	github.com/quic-go/quic-go v0.40.0 // indirect
+	github.com/quic-go/quic-go v0.40.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.26.0
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.16.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0
 	nhooyr.io/websocket v1.8.10
@@ -99,27 +99,27 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.1
+	github.com/Microsoft/go-winio v0.6.0
 	github.com/aperturerobotics/go-kvfile v0.2.1
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/cayleygraph/quad v1.2.4
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611
+	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
 	golang.org/x/mod v0.14.0
 	golang.org/x/sync v0.5.0
-	golang.org/x/tools v0.16.2-0.20231218205634-ee47fd47e29d
+	golang.org/x/tools v0.16.1
 )
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.1 // indirect
 	github.com/Workiva/go-datastructures v1.1.1 // indirect
-	github.com/bits-and-blooms/bitset v1.10.0 // indirect
+	github.com/bits-and-blooms/bitset v1.12.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.6.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -149,7 +149,7 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hidal-go/hidalgo v0.2.1-0.20220428091800-b74c839b2fb0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -161,18 +161,18 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/klauspost/reedsolomon v1.9.2 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.63 // indirect
+	github.com/minio/minio-go/v7 v7.0.66 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -190,7 +190,7 @@ require (
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.3.4 // indirect
+	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
@@ -223,8 +223,8 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
+	golang.org/x/time v0.5.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect

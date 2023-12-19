@@ -1,5 +1,8 @@
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { OpenStreamCtr, Conn } from 'starpc'
+import { pipe } from 'it-pipe'
+import duplex from '@aptre/it-ws/duplex'
+import type WebSocket from '@aptre/it-ws/web-socket'
 
 import {
   WebRuntimeClientInit,
@@ -10,12 +13,6 @@ import {
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
-
-import { duplex } from 'it-ws'
-import WebSocket from 'it-ws/dist/src/web-socket.js'
-
-import { pipe } from 'it-pipe'
-// import { MessagePortIterable } from 'starpc'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
