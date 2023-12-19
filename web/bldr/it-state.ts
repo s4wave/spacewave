@@ -10,8 +10,8 @@ export class ItStateChangedEvent<T> extends Event {
   }
 }
 
-// ItStateOptions are optional settings for ItState.
-export interface ItStateOptions {
+// ItStateOpts are optional settings for ItState.
+export interface ItStateOpts {
   // mostRecentOnly drops all messages but the most recent.
   // messages are only dropped during backpressure.
   // in other words: the queue size will be capped to 1.
@@ -30,7 +30,7 @@ export class ItState<T> extends EventTarget {
 
   constructor(
     getSnapshot?: () => Promise<T | undefined>,
-    private opts?: ItStateOptions,
+    private opts?: ItStateOpts,
   ) {
     super()
     this.getSnapshot = getSnapshot || (async () => undefined)

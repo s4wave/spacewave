@@ -11,5 +11,5 @@ export {
 } from './retry.js'
 export type { WebView, WebViewRegistration } from './web-view.js'
 export { randomId } from './random-id.js'
-export { ItState } from './it-state.js'
+export { ItState, ItStateOpts } from './it-state.js'
 export { isElectron, isMac } from '../electron/electron.js'
