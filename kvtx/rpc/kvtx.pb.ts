@@ -316,10 +316,10 @@ export const KvtxTransactionRequest = {
       body: isSet(object.init)
         ? { $case: 'init', init: KvtxTransactionInit.fromJSON(object.init) }
         : isSet(object.commit)
-        ? { $case: 'commit', commit: globalThis.Boolean(object.commit) }
-        : isSet(object.discard)
-        ? { $case: 'discard', discard: globalThis.Boolean(object.discard) }
-        : undefined,
+          ? { $case: 'commit', commit: globalThis.Boolean(object.commit) }
+          : isSet(object.discard)
+            ? { $case: 'discard', discard: globalThis.Boolean(object.discard) }
+            : undefined,
     }
   },
 
@@ -584,11 +584,11 @@ export const KvtxTransactionResponse = {
       body: isSet(object.ack)
         ? { $case: 'ack', ack: KvtxTransactionAck.fromJSON(object.ack) }
         : isSet(object.complete)
-        ? {
-            $case: 'complete',
-            complete: KvtxTransactionComplete.fromJSON(object.complete),
-          }
-        : undefined,
+          ? {
+              $case: 'complete',
+              complete: KvtxTransactionComplete.fromJSON(object.complete),
+            }
+          : undefined,
     }
   },
 
@@ -2285,22 +2285,22 @@ export const KvtxIterateRequest = {
       body: isSet(object.init)
         ? { $case: 'init', init: KvtxIterateInit.fromJSON(object.init) }
         : isSet(object.lookupValue)
-        ? {
-            $case: 'lookupValue',
-            lookupValue: globalThis.Boolean(object.lookupValue),
-          }
-        : isSet(object.next)
-        ? { $case: 'next', next: globalThis.Boolean(object.next) }
-        : isSet(object.seek)
-        ? { $case: 'seek', seek: bytesFromBase64(object.seek) }
-        : isSet(object.seekBeginning)
-        ? {
-            $case: 'seekBeginning',
-            seekBeginning: globalThis.Boolean(object.seekBeginning),
-          }
-        : isSet(object.close)
-        ? { $case: 'close', close: globalThis.Boolean(object.close) }
-        : undefined,
+          ? {
+              $case: 'lookupValue',
+              lookupValue: globalThis.Boolean(object.lookupValue),
+            }
+          : isSet(object.next)
+            ? { $case: 'next', next: globalThis.Boolean(object.next) }
+            : isSet(object.seek)
+              ? { $case: 'seek', seek: bytesFromBase64(object.seek) }
+              : isSet(object.seekBeginning)
+                ? {
+                    $case: 'seekBeginning',
+                    seekBeginning: globalThis.Boolean(object.seekBeginning),
+                  }
+                : isSet(object.close)
+                  ? { $case: 'close', close: globalThis.Boolean(object.close) }
+                  : undefined,
     }
   },
 
@@ -2656,14 +2656,17 @@ export const KvtxIterateResponse = {
       body: isSet(object.ack)
         ? { $case: 'ack', ack: globalThis.Boolean(object.ack) }
         : isSet(object.reqError)
-        ? { $case: 'reqError', reqError: globalThis.String(object.reqError) }
-        : isSet(object.status)
-        ? { $case: 'status', status: KvtxIterateStatus.fromJSON(object.status) }
-        : isSet(object.value)
-        ? { $case: 'value', value: bytesFromBase64(object.value) }
-        : isSet(object.closed)
-        ? { $case: 'closed', closed: globalThis.Boolean(object.closed) }
-        : undefined,
+          ? { $case: 'reqError', reqError: globalThis.String(object.reqError) }
+          : isSet(object.status)
+            ? {
+                $case: 'status',
+                status: KvtxIterateStatus.fromJSON(object.status),
+              }
+            : isSet(object.value)
+              ? { $case: 'value', value: bytesFromBase64(object.value) }
+              : isSet(object.closed)
+                ? { $case: 'closed', closed: globalThis.Boolean(object.closed) }
+                : undefined,
     }
   },
 
@@ -3284,18 +3287,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends globalThis.Array<infer U>
-  ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
