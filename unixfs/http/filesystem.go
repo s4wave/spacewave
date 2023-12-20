@@ -26,13 +26,18 @@ type FileSystem struct {
 //
 // Prefix is a path prefix to prepend to file paths for HTTP.
 // The prefix is trimmed from the paths when opening files.
-func NewFileSystem(ctx context.Context, fsh *unixfs.FSHandle, prefix string) (*FileSystem, error) {
+func NewFileSystem(
+	ctx context.Context,
+	fsh *unixfs.FSHandle,
+	prefix string,
+	iofsOpts ...unixfs_iofs.FSOption,
+) (*FileSystem, error) {
 	if len(prefix) != 0 {
 		prefix = path.Clean(prefix)
 	}
 	prefix = strings.TrimPrefix(prefix, "/")
 
-	var iofs fs.FS = unixfs_iofs.NewFS(ctx, fsh)
+	var iofs fs.FS = unixfs_iofs.NewFS(ctx, fsh, iofsOpts...)
 	if prefix != "" && prefix != "." {
 		var err error
 		iofs, err = fs.Sub(iofs, prefix)
