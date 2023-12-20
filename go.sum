@@ -61,8 +61,8 @@ github.com/acomagu/bufpipe v1.0.4/go.mod h1:mxdxdup/WdsKVreO5GpW4+M/1CE2sMG4jeGJ
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
-github.com/aperturerobotics/bifrost v0.18.13 h1:7PPjepzcf9VoryCGn9JbGbCm5tHp99hRVh+6h+wsUCk=
-github.com/aperturerobotics/bifrost v0.18.13/go.mod h1:ITX2TTDwjPZAcLdJ8iKUuvWDCDvGyE7MFcdAMWk1N9o=
+github.com/aperturerobotics/bifrost v0.18.14 h1:e+7813VqzmIdYXdEfrjEyPHae0cZ8ey8J9jN3ReI+ew=
+github.com/aperturerobotics/bifrost v0.18.14/go.mod h1:d97M4Uo6Bjxa66ppph6z95lIWWaRmRzyJD1Mv8gDB0I=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -71,8 +71,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 h1:Qowgx
 github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0/go.mod h1:2vMuoynITu0wxbJckb2b4IuFA/IkT5sikZG5FvsPwK8=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 h1:ANiOvmJmykti5luVErG3SQLrM2zEkT928BO3pbWBxwY=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195/go.mod h1:qBLT6/BYoGVoGAbS9XVFoXr5ZKQq3n8cGRXNOeEVn1U=
-github.com/aperturerobotics/controllerbus v0.30.12 h1:1XLlnqoMpgtw/lws0KPJeeOrCr3ZM0Qta2RLfM2koV8=
-github.com/aperturerobotics/controllerbus v0.30.12/go.mod h1:zybMYMmMnExd014wRQFXx7qblt/OIsqKj6ZivPe47fM=
+github.com/aperturerobotics/controllerbus v0.31.0 h1:+yCuoZnwSkDyj8pjyMiwFmlWYbdF+VLvkWtpCbLD4Zw=
+github.com/aperturerobotics/controllerbus v0.31.0/go.mod h1:zybMYMmMnExd014wRQFXx7qblt/OIsqKj6ZivPe47fM=
 github.com/aperturerobotics/entitygraph v0.5.0 h1:MSH6gd6GyVVqpPzbCWnYtSZbSNO7QOHiQEdwgDq8SpQ=
 github.com/aperturerobotics/entitygraph v0.5.0/go.mod h1:xBVU1pzbZu/KQgh6s58TOLytBSSpxj584bq6DNyGVA0=
 github.com/aperturerobotics/go-kvfile v0.2.1 h1:W7g5PR9xIn+A3WqvpcdD5mjNXTKgrkutkgbNNxsH3vM=
