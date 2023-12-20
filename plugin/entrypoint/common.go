@@ -12,6 +12,7 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	plugin_entrypoint_context "github.com/aperturerobotics/bldr/plugin/entrypoint/context"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
@@ -42,7 +43,7 @@ type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) (
 
 // ExecutePlugin builds the bus & starts common controllers.
 func ExecutePlugin(
-	ctx context.Context,
+	rctx context.Context,
 	le *logrus.Entry,
 	meta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
@@ -55,6 +56,16 @@ func ExecutePlugin(
 			rel()
 		}
 	}
+
+	// cancel the root context when exiting
+	ctx, ctxCancel := context.WithCancel(rctx)
+	defer ctxCancel()
+
+	// attach the plugin info to the context
+	ctx = plugin_entrypoint_context.WithPluginContextInfo(
+		ctx,
+		plugin_entrypoint_context.NewPluginContextInfo(meta.CloneVT()),
+	)
 
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
