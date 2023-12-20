@@ -36,6 +36,28 @@ func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *
 
 // execute executes the plugin fetcher.
 func (t *pluginManifestFetcher) execute(ctx context.Context) error {
+	// determine host plugin platform id
+	hostPluginPlatformID, err := t.c.hostPluginPlatformID.Await(ctx)
+	if err != nil {
+		return err
+	}
+
+	meta := &bldr_manifest.ManifestMeta{
+		ManifestId: t.pluginID,
+		PlatformId: hostPluginPlatformID,
+	}
+
+	// If AlwaysFetchManifest is enabled, keep a FetchManifest directive running.
+	// If the manifest is updated, the plugin fetcher will be restarted.
+	alwaysFetchManifest := t.c.conf.GetAlwaysFetchManifest()
+	if alwaysFetchManifest {
+		_, fetchRef, err := t.c.bus.AddDirective(bldr_manifest.NewFetchManifest(meta), nil)
+		if err != nil {
+			return err
+		}
+		defer fetchRef.Release()
+	}
+
 	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
@@ -47,6 +69,7 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
 		backoffConf.Exponential.MaxInterval = 4200
 	}
+
 	bo := backoffConf.Construct()
 	return retry.Retry(
 		ctx,
@@ -54,11 +77,17 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 		func(ctx context.Context, success func()) error {
 			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
 			t.resultPromise.SetPromise(resultProm)
-			resp, err := t.fetchManifest(ctx)
+			resp, err := t.fetchManifest(ctx, meta)
 			if err == nil {
 				success()
-			} else if err != context.Canceled {
+			}
+			if err != context.Canceled {
 				resultProm.SetResult(resp, err)
+			}
+			if err == nil && alwaysFetchManifest {
+				// Keep the FetchManifest directive running until the context is canceled.
+				<-ctx.Done()
+				err = context.Canceled
 			}
 			return err
 		},
@@ -67,15 +96,9 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 }
 
 // fetchManifest attempts to fetch the manifest.
-func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manifest.FetchManifestResponse, error) {
-	pluginID, le := t.pluginID, t.c.le
-	le.Debugf("starting plugin manifest fetcher: %s", pluginID)
-
-	// determine host plugin platform id
-	hostPluginPlatformID, err := t.c.hostPluginPlatformID.Await(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestResponse, error) {
+	le := t.c.le
+	le.Debugf("starting plugin manifest fetcher: %s", meta.GetManifestId())
 
 	// get world state handle
 	ws, err := t.c.getWorldState(ctx)
@@ -85,10 +108,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 
 	// fetch the manifest for this plugin
 	// wait until the plugin has been fetched
-	res, err := bldr_manifest.ExFetchManifest(ctx, t.c.bus, &bldr_manifest.ManifestMeta{
-		ManifestId: pluginID,
-		PlatformId: hostPluginPlatformID,
-	}, false)
+	res, err := bldr_manifest.ExFetchManifest(ctx, t.c.bus, meta, false)
 	if err != nil {
 		return nil, err
 	}
@@ -136,10 +156,10 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context) (*bldr_manife
 		if err != nil {
 			return err
 		}
-		if manifestID := pluginManifest.GetMeta().GetManifestId(); manifestID != pluginID {
+		if manifestID := pluginManifest.GetMeta().GetManifestId(); manifestID != meta.GetManifestId() {
 			return errors.Errorf(
-				"tried to fetch plugin %s but returned manifest %s",
-				pluginID,
+				"tried to fetch manifest %s but returned manifest %s",
+				meta.GetManifestId(),
 				manifestID,
 			)
 		}

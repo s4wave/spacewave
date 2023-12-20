@@ -104,17 +104,17 @@ func (c *Controller) Execute(rctx context.Context) error {
 	}
 	defer watcher.Close()
 
-	// add the config file
-	if err := watcher.Add(configPath); err != nil {
-		return err
-	}
-
 	for {
+		// add the config file (or re-add if watcher was removed)
+		if err := watcher.Add(configPath); err != nil {
+			return err
+		}
 		// wait for a file change
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			ctx,
 			watcher,
 			time.Millisecond*500,
+			nil,
 		)
 		if err != nil {
 			return err

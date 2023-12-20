@@ -134,18 +134,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Watcher
-	var watcher *fsnotify.Watcher
-	var watchedFiles map[string]*manifest_builder.InputManifest_File
-	if c.c.GetWatch() {
-		watcher, err = fsnotify.NewWatcher()
-		if err != nil {
-			return err
-		}
-		defer watcher.Close()
-		watchedFiles = make(map[string]*manifest_builder.InputManifest_File)
-	}
-
 	var prevResult *manifest_builder.BuilderResult
 	var prevErr error
 	var changedFiles []*manifest_builder.InputManifest_File
@@ -182,7 +170,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ignoreWatchPrefixes := []string{"vendor", "node_modules", ".bldr", "(disabled)"}
 
 		// build file watchlist
-		nextWatchedFiles := make(map[string]*manifest_builder.InputManifest_File)
+		watchedFiles := make(map[string]*manifest_builder.InputManifest_File)
 	FilesLoop:
 		for _, inputFile := range inputFiles {
 			filePath := inputFile.GetPath()
@@ -191,54 +179,68 @@ func (c *Controller) Execute(ctx context.Context) error {
 					continue FilesLoop
 				}
 			}
-			if _, ok := nextWatchedFiles[filePath]; !ok {
-				nextWatchedFiles[filePath] = inputFile
+			if _, ok := watchedFiles[filePath]; !ok {
+				watchedFiles[filePath] = inputFile
 			}
 		}
 
-		if len(nextWatchedFiles) == 0 {
+		if len(watchedFiles) == 0 {
 			le.Debug("builder provided no files to watch, returning")
 			return nil
 		}
 
 		// compare list of files with previous list of file
-		watchedSourcePaths := make(map[string]*manifest_builder.InputManifest_File, len(nextWatchedFiles)+len(watchedFiles))
-		for filePath := range watchedFiles {
+		watchedSourcePaths := make(map[string]*manifest_builder.InputManifest_File, len(watchedFiles))
+		watchedSourceDirs := make(map[string]struct{}, len(watchedFiles))
+		for filePath, v := range watchedFiles {
 			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
-			if v, ok := nextWatchedFiles[filePath]; ok {
-				// file was already watched: update the file pointer
-				watchedFiles[filePath] = v
-				watchedSourcePaths[sourcePath] = v
-				delete(nextWatchedFiles, filePath)
-				continue
+			watchedSourcePaths[sourcePath] = v
+			sourceDir := filepath.Dir(sourcePath)
+			if _, ok := watchedSourceDirs[sourceDir]; !ok {
+				watchedSourceDirs[sourceDir] = struct{}{}
 			}
+		}
 
-			le.Debugf("removing watcher for file: %s", filePath)
-			delete(watchedFiles, filePath)
-			delete(watchedSourcePaths, sourcePath)
-			if err := watcher.Remove(filePath); err != nil {
+		// It's best to watch the entire directory tree and filter the events.
+		//
+		// This is both more efficient on the kernel side and avoids nasty quriks
+		// with git and other editors deleting and re-creating files.
+		//
+		// See fsnotify comments:
+		//   Watching individual files (rather than directories) is generally not
+		//   recommended as many programs (especially editors) update files atomically: it
+		//   will write to a temporary file which is then moved to to destination,
+		//   overwriting the original (or some variant thereof). The watcher on the
+		//   original file is now lost, as that no longer exists.
+		//
+		// It's necessary to create one watcher per directory:
+		//   https://github.com/fsnotify/fsnotify/issues/18
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			return err
+		}
+
+		for watchedDirPath := range watchedSourceDirs {
+			le.Infof("watching dir path: %s", watchedDirPath)
+			err = watcher.Add(watchedDirPath)
+			if err != nil {
 				return err
 			}
 		}
 
-		for filePath, v := range nextWatchedFiles {
-			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
-			watchedFiles[filePath] = v
-			watchedSourcePaths[sourcePath] = v
-			if err := watcher.Add(sourcePath); err != nil {
-				le.WithError(err).Warnf("unable to add watcher for file: %s", filePath)
-			} else {
-				le.Debugf("adding watcher for file: %s", filePath)
-			}
-		}
-
-		// wait for a file change
-		le.Debugf("watching for changes in %d files", len(watchedFiles))
+		le.Debugf("watching for changes in %d files and %d directories", len(watchedFiles), len(watchedSourceDirs))
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			ctx,
 			watcher,
 			time.Millisecond*250,
+			func(event fsnotify.Event) (match bool, err error) {
+				if _, ok := watchedSourcePaths[event.Name]; !ok {
+					return false, nil
+				}
+				return true, nil
+			},
 		)
+		_ = watcher.Close()
 		if err != nil {
 			return err
 		}
@@ -248,16 +250,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		seenChangedFiles := make(map[*manifest_builder.InputManifest_File]struct{}, len(happened))
 		for _, event := range happened {
 			inputFile := watchedSourcePaths[event.Name]
-
-			// Shouldn't happen: but log a warning if so.
-			if inputFile == nil {
-				le.
-					WithField("watched-path", event.Name).
-					Warn("filesystem event does not correspond to any watched files")
-				continue
-			}
-
-			if _, ok := seenChangedFiles[inputFile]; !ok {
+			if _, ok := seenChangedFiles[inputFile]; !ok && inputFile != nil {
 				seenChangedFiles[inputFile] = struct{}{}
 				changedFiles = append(changedFiles, inputFile)
 			}
