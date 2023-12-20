@@ -24,16 +24,25 @@ type FS struct {
 	ctx context.Context
 	// handle is the reference to the unixfs
 	handle *unixfs.FSHandle
+	// ignorePath ignores the passed path in Open
+	ignorePath bool
 }
 
 // NewFS constructs a new fs.FS from a FSHandle.
 //
 // Returns nil if handle == nil.
-func NewFS(ctx context.Context, handle *unixfs.FSHandle) IoFS {
+// If ignorePath is set: all ops are applied to handle, ignoring the passed path.
+func NewFS(ctx context.Context, handle *unixfs.FSHandle, opts ...FSOption) IoFS {
 	if handle == nil {
 		return nil
 	}
-	return &FS{ctx: ctx, handle: handle}
+	f := &FS{ctx: ctx, handle: handle}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(f)
+		}
+	}
+	return f
 }
 
 // GetHandle returns the root FSHandle.
@@ -50,12 +59,14 @@ func (f *FS) GetHandle() *unixfs.FSHandle {
 // Open rejects attempts to open names that do not satisfy ValidPath(name),
 // returning a *PathError with Err set to ErrInvalid or ErrNotExist.
 func (f *FS) Open(name string) (fs.File, error) {
-	if err := f.checkFilePath(name); err != nil {
+	if f.ignorePath {
+		name = ""
+	} else if err := f.checkFilePath(name); err != nil {
 		return nil, err
-	}
-	if name == "/" || name == "." {
+	} else if name == "/" || name == "." {
 		name = ""
 	}
+
 	// lookup the path to the file
 	fsHandle, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
@@ -81,12 +92,14 @@ func (f *FS) Open(name string) (fs.File, error) {
 // Stat returns a FileInfo describing the file.
 // If there is an error, it should be of type *PathError.
 func (f *FS) Stat(name string) (fs.FileInfo, error) {
-	if err := f.checkFilePath(name); err != nil {
+	if f.ignorePath {
+		name = ""
+	} else if err := f.checkFilePath(name); err != nil {
 		return nil, err
-	}
-	if name == "/" || name == "." {
+	} else if name == "/" || name == "." {
 		name = ""
 	}
+
 	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if h != nil {
@@ -109,12 +122,14 @@ func (f *FS) Stat(name string) (fs.FileInfo, error) {
 // ReadDir reads the named directory
 // and returns a list of directory entries sorted by filename.
 func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
-	if err := f.checkFilePath(name); err != nil {
+	if f.ignorePath {
+		name = ""
+	} else if err := f.checkFilePath(name); err != nil {
 		return nil, err
-	}
-	if name == "/" || name == "." {
+	} else if name == "/" || name == "." {
 		name = ""
 	}
+
 	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if h != nil {
@@ -135,9 +150,14 @@ func (f *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 // The caller is permitted to modify the returned byte slice.
 // This method should return a copy of the underlying data.
 func (f *FS) ReadFile(name string) ([]byte, error) {
-	if err := f.checkFilePath(name); err != nil {
+	if f.ignorePath {
+		name = ""
+	} else if err := f.checkFilePath(name); err != nil {
 		return nil, err
+	} else if name == "/" || name == "." {
+		name = ""
 	}
+
 	h, _, err := f.handle.LookupPath(f.ctx, name)
 	if err != nil {
 		if h != nil {
