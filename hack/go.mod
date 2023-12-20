@@ -37,7 +37,7 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231219225515-bf996307f586 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231220013813-7380266c9294 // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
 	github.com/aperturerobotics/util v1.8.2 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
