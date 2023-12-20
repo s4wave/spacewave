@@ -2,7 +2,7 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { OpenStreamCtr, Conn } from 'starpc'
 import { pipe } from 'it-pipe'
 import duplex from '@aptre/it-ws/duplex'
-import type WebSocket from '@aptre/it-ws/web-socket'
+import WebSocket from '@aptre/it-ws/web-socket'
 
 import {
   WebRuntimeClientInit,

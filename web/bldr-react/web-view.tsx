@@ -140,7 +140,7 @@ export class WebView
   // setHtmlLinks sets or updates the list of HTML links.
   public async setHtmlLinks(options: SetHtmlLinksRequest): Promise<void> {
     console.log('set html links', options)
-    let links = (!options.clear && this.state.htmlLinks) || []
+    const links = (!options.clear && this.state.htmlLinks) || []
     const removeLink = (id: string) => {
       for (let i = 0; i < links.length; i++) {
         if (links[i].id === id) {

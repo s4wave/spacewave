@@ -136,7 +136,7 @@ export async function retryWithAbort<T = void>(
       .then(() => {
         resolve()
       })
-      .catch((_err) => {
+      .catch(() => {
         resolve()
       })
   })

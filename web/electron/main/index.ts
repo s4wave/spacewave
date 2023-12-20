@@ -30,7 +30,7 @@ app.setPath('userData', userDataPath)
 const distPath = app.getAppPath()
 const pipeWorkdir = distPath
 const ipcMain: Electron.IpcMain = electron.ipcMain
-const isMac = os.platform() === "darwin"
+const isMac = os.platform() === 'darwin'
 
 function createWindow(urlSuffix?: string): electron.BrowserWindow {
   const preload = path.join(distPath, 'preload.mjs')

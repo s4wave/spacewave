@@ -1,4 +1,4 @@
-import { DependencyList, useEffect, useState } from 'react'
+import { DependencyList, useEffect, useMemo, useState } from 'react'
 import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
@@ -86,8 +86,17 @@ export function createWebViewHostClientImplState<T>(
   }
 }
 
-// useAbortSignal wraps an effect with an abort signal.
-export function useAbortSignal(
+// useAbortSignal returns an AbortSignal which is canceled when the deps change.
+export function useAbortSignal(deps: DependencyList = []): AbortSignal {
+  const abortController = useMemo(() => new AbortController(), [...deps])
+  useEffect(() => {
+    return () => abortController.abort()
+  }, [abortController])
+  return abortController.signal
+}
+
+// useAbortSignalEffect wraps an effect with an abort signal.
+export function useAbortSignalEffect(
   effect: (signal: AbortSignal) => void | (() => void),
   deps?: DependencyList,
 ) {
@@ -113,7 +122,7 @@ export function useRetryWithAbort<T = void>(
   opts?: RetryOpts,
   deps?: DependencyList,
 ) {
-  useAbortSignal((signal) => {
+  useAbortSignalEffect((signal) => {
     retryWithAbort(signal, cb, opts)
   }, deps)
 }

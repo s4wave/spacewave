@@ -9,11 +9,13 @@ import {
 } from '../bldr/index.js'
 
 // BldrComponent extends React.PureComponent with the bldr context and an abort controller.
-export class BldrComponent<P = {}, S = {}, SS = any> extends AbortComponent<
-  P,
-  S,
-  SS
-> {
+//
+// NOTE: It is recommended to use React Functional Components instead.
+export class BldrComponent<
+  P = Record<string, never>,
+  S = Record<string, never>,
+  SS = unknown,
+> extends AbortComponent<P, S, SS> {
   // context is the webDocument context
   declare context: React.ContextType<typeof BldrContext>
   static contextType = BldrContext

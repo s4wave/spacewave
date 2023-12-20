@@ -1,16 +1,16 @@
-import React from 'react';
-import { BldrComponent } from './bldr-component.js';
-import { DebugInfo } from './debug-info.js';
+import React from 'react'
+import { BldrComponent } from './bldr-component.js'
+import { DebugInfo } from './debug-info.js'
 
 // BldrDebug renders information about the BldrContext.
 export class BldrDebug extends BldrComponent {
   render() {
-    const { webView, webDocument } = this;
-    const permanent = webView?.getPermanent();
-    const uuid = webView?.getUuid();
-    const parentUUID = webView?.getParentUuid();
-    const webRuntimeId = webDocument?.webRuntimeId;
-    const webDocumentUuid = webDocument?.webDocumentUuid;
+    const { webView, webDocument } = this
+    const permanent = webView?.getPermanent()
+    const uuid = webView?.getUuid()
+    const parentUUID = webView?.getParentUuid()
+    const webRuntimeId = webDocument?.webRuntimeId
+    const webDocumentUuid = webDocument?.webDocumentUuid
 
     const infoElements = [
       webRuntimeId && <>Runtime ID: {webRuntimeId}</>,
@@ -18,7 +18,7 @@ export class BldrDebug extends BldrComponent {
       uuid && <>WebView ID: {uuid}</>,
       permanent && <>WebView Permanent: {permanent}</>,
       parentUUID && <>Parent WebView ID: {parentUUID}</>,
-    ].filter(Boolean);
+    ].filter(Boolean)
 
     return (
       <DebugInfo>
@@ -29,6 +29,6 @@ export class BldrDebug extends BldrComponent {
           </React.Fragment>
         ))}
       </DebugInfo>
-    );
+    )
   }
 }
