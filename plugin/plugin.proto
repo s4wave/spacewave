@@ -82,3 +82,10 @@ message PluginStartInfo {
   // InstanceId is the plugin instance id.
   string instance_id = 1;
 }
+
+// PluginContextInfo contains information about the running plugin attached to
+// the Context tree for access within controllers running on the plugin bus.
+message PluginContextInfo {
+  // PluginMeta is the plugin metadata.
+  PluginMeta plugin_meta = 1;
+}

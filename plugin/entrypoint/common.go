@@ -12,7 +12,6 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
-	plugin_entrypoint_context "github.com/aperturerobotics/bldr/plugin/entrypoint/context"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
@@ -62,9 +61,9 @@ func ExecutePlugin(
 	defer ctxCancel()
 
 	// attach the plugin info to the context
-	ctx = plugin_entrypoint_context.WithPluginContextInfo(
+	ctx = bldr_plugin.WithPluginContextInfo(
 		ctx,
-		plugin_entrypoint_context.NewPluginContextInfo(meta.CloneVT()),
+		bldr_plugin.NewPluginContextInfo(meta.CloneVT()),
 	)
 
 	b, sr, err := core.NewCoreBus(ctx, le)

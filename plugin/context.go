@@ -1,9 +1,7 @@
-package plugin_entrypoint_context
+package bldr_plugin
 
 import (
 	"context"
-
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 )
 
 var pluginContextInfoKey = &struct{ pluginContextInfoKey string }{}
@@ -25,8 +23,16 @@ func GetPluginContextInfo(ctx context.Context, info *PluginContextInfo) *PluginC
 }
 
 // NewPluginContextInfo constructs a new PluginContextInfo object.
-func NewPluginContextInfo(meta *bldr_plugin.PluginMeta) *PluginContextInfo {
+func NewPluginContextInfo(meta *PluginMeta) *PluginContextInfo {
 	return &PluginContextInfo{
 		PluginMeta: meta,
 	}
+}
+
+// Validate validates the context info.
+func (i *PluginContextInfo) Validate() error {
+	if err := i.GetPluginMeta().Validate(); err != nil {
+		return err
+	}
+	return nil
 }
