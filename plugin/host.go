@@ -1,5 +1,10 @@
 package bldr_plugin
 
+import (
+	"context"
+	"strings"
+)
+
 // HostServiceIDPrefix is the prefix used for the plugin-host RPC services. This
 // ID can be prepended to RPC service IDs to indicate the service is located on
 // the plugin host (while running as a plugin).
@@ -66,3 +71,26 @@ const PluginWebPkgHttpPrefix = "/b/pkg/"
 
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"
+
+// PluginHTTPPath adds the plugin http prefix to the given path.
+func PluginHTTPPath(pluginID, httpPath string) string {
+	var sb strings.Builder
+	_, _ = sb.WriteString(PluginHttpPrefix)
+	_, _ = sb.WriteString(pluginID)
+	if !strings.HasPrefix(httpPath, "/") {
+		_, _ = sb.WriteString("/")
+	}
+	_, _ = sb.WriteString(httpPath)
+	return sb.String()
+}
+
+// PluginHTTPPathFromContext detects the current plugin from the context and
+// conditionally adds the plugin http path prefix to the given path.
+func PluginHTTPPathFromContext(ctx context.Context, httpPath string) string {
+	info := GetPluginContextInfo(ctx)
+	pluginID := info.GetPluginMeta().GetPluginId()
+	if pluginID != "" {
+		return PluginHTTPPath(pluginID, httpPath)
+	}
+	return httpPath
+}

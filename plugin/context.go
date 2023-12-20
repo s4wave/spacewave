@@ -13,7 +13,7 @@ func WithPluginContextInfo(ctx context.Context, info *PluginContextInfo) context
 
 // GetPluginContextInfo retrieves plugin information from a context.
 // May return nil.
-func GetPluginContextInfo(ctx context.Context, info *PluginContextInfo) *PluginContextInfo {
+func GetPluginContextInfo(ctx context.Context) *PluginContextInfo {
 	result := ctx.Value(pluginContextInfoKey)
 	info, ok := result.(*PluginContextInfo)
 	if !ok {
