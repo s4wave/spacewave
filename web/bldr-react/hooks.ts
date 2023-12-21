@@ -117,8 +117,8 @@ export function useAbortSignalEffect(
 // useRetryWithAbort calls the function with an abort signal and retries on error.
 //
 // will be aborted when the component is unmounted or deps change.
-export function useRetryWithAbort<T = void>(
-  cb: (abortSignal: AbortSignal) => Promise<T>,
+export function useRetryWithAbort(
+  cb: (abortSignal: AbortSignal) => Promise<void>,
   opts?: RetryOpts,
   deps?: DependencyList,
 ) {

@@ -8,15 +8,16 @@
   integrity sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==
 
 "@aperturerobotics/ts-common@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.8.0.tgz#6ce6eb2eed8ebe67a12111a7745cb667b9c0ffab"
-  integrity sha512-91kpcwDAZo50Skjjfq9AljgQef4fF1rjD5vMYhVVgqDcQXVzm/lCURprj62wwNM/HWhtR6ric3bI7HRxPIo5Gg==
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-common/-/ts-common-0.8.1.tgz#9872beed2984562cff0133d9ab2ef52983ddeb5d"
+  integrity sha512-/4wsAo6FunWf3PpLg3L7zkz9m80x9ZVjYcNthnOuSnzqCYTajLfi5zM32TdOGp+2Hc/EwjqgBnX5EQgJVdZGsQ==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^6.15.0"
     "@typescript-eslint/parser" "^6.15.0"
     bufferutil "^4.0.7"
     eslint "^8.56.0"
     eslint-config-prettier "^9.0.0"
+    eslint-plugin-react-hooks "^4.6.0"
     eslint-plugin-unused-imports "^3.0.0"
     long "^5.2.3"
     starpc "^0.22.0"
@@ -851,6 +852,11 @@ eslint-config-prettier@^9.0.0:
   version "9.1.0"
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-9.1.0.tgz#31af3d94578645966c082fcb71a5846d3c94867f"
   integrity sha512-NSWl5BFQWEPi1j4TjVNItzYV7dZXZ+wP6I6ZhrBGpChQhZRUaElihE9uRRkcbRnNb76UMKDF3r+WTmNcGPKsqw==
+
+eslint-plugin-react-hooks@^4.6.0:
+  version "4.6.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-react-hooks/-/eslint-plugin-react-hooks-4.6.0.tgz#4c3e697ad95b77e93f8646aaa1630c1ba607edd3"
+  integrity sha512-oFc7Itz9Qxh2x4gNHStv3BqJq54ExXmfC+a1NjAta66IAN87Wu0R/QArgIS9qKzX3dXKPI9H5crl9QchNMY9+g==
 
 eslint-plugin-unused-imports@^3.0.0:
   version "3.0.0"
