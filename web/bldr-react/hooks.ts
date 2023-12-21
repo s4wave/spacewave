@@ -39,7 +39,7 @@ export function useWebViewHostClient(
         }
       }
     },
-    [webDocument, webView, effect, ...(deps ?? [])], // eslint-disable-line
+    [webDocument, webView, ...(deps ?? [])], // eslint-disable-line
   )
 }
 
@@ -115,7 +115,7 @@ export function useAbortSignalEffect(
         }
       }
     },
-    [effect, ...(deps ?? [])], // eslint-disable-line
+    [...(deps ?? [])], // eslint-disable-line
   )
 }
 

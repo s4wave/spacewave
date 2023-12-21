@@ -28,12 +28,6 @@ const DebugInfoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const idCounter = useRef(0)
   const subscribers = useRef<((info: ReactNode[]) => void)[]>([])
 
-  const notifySubscribers = useCallback(() => {
-    subscribers.current.forEach((callback) =>
-      callback(debugInfo.map((di) => di.info)),
-    )
-  }, [subscribers, debugInfo])
-
   const addDebugInfo = useCallback(
     (info: ReactNode): string => {
       const id = (idCounter.current++).toString()
@@ -69,8 +63,10 @@ const DebugInfoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   )
 
   useEffect(() => {
-    notifySubscribers()
-  }, [debugInfo, notifySubscribers])
+    subscribers.current.forEach((callback) =>
+      callback(debugInfo.map((di) => di.info)),
+    )
+  }, [subscribers, debugInfo])
 
   return (
     <DebugInfoContext.Provider value={contextValue}>
