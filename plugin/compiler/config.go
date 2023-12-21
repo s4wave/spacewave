@@ -6,6 +6,7 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -53,8 +54,16 @@ func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) []stri
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	if projID := c.GetProjectId(); projID != "" {
+		if err := bldr_project.ValidateProjectID(projID); err != nil {
+			return errors.Wrap(err, "project_id")
+		}
+	}
 	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "config_set")
+	}
+	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
+		return errors.Wrap(err, "host_config_set")
 	}
 	for i, impPath := range c.GetGoPkgs() {
 		// relative paths will be resolved later

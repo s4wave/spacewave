@@ -2,7 +2,7 @@ import React from 'react'
 
 import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
 import { BldrContext, IBldrContext } from './bldr-context.js'
-import { DebugInfo } from './debug-info.js'
+import { DebugInfo } from './DebugInfo.js'
 
 interface IWebDocumentProps {
   // children contains optional child DOM of the app container

@@ -16,7 +16,7 @@ import {
 import { randomId } from '../bldr/random-id.js'
 import { FunctionComponentContainer } from './web-view-function.js'
 import { ReactComponentContainer } from './web-view-react.js'
-import { DebugInfo } from './debug-info.js'
+import { DebugInfo } from './DebugInfo.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: WebView) => void

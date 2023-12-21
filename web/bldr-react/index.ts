@@ -33,5 +33,5 @@ export {
   DebugInfoDisplay,
   DebugInfoProvider,
   useDebugInfo,
-} from './debug-info.js'
+} from './DebugInfo.js'
 export { BldrDebug } from './bldr-debug.js'

@@ -72,26 +72,25 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
 	pluginCompilerConf := plugin_compiler.NewConfig()
+	pluginCompilerConf.ProjectId = c.GetConfig().GetProjectId()
 	pluginCompilerConf.GoPkgs = []string{
 		basePkg + "/web/plugin/controller",
 	}
 	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
 	pluginCompilerConf.DelveAddr = c.GetConfig().GetDelveAddr()
+	pluginCompilerConf.HostConfigSet = c.GetConfig().GetHostConfigSet()
 
 	// configure running the web plugin controller
-	webPluginCtrlConf, err := configset_proto.NewControllerConfig(
-		configset.NewControllerConfig(1, &web_plugin_controller.Config{}),
-		false,
-	)
+	// build config set for the plugin
+	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{}
+	_, err := configset_proto.
+		ConfigSetMap(pluginCompilerConf.ConfigSet).
+		ApplyConfig("web-plugin", &web_plugin_controller.Config{}, 1, false)
 	if err != nil {
 		return nil, err
 	}
-
-	// build config set for the plugin
-	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{
-		"web-plugin": webPluginCtrlConf,
-	}
+	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, c.GetConfig().GetConfigSet())
 
 	pluginCompilerCtrl, err := plugin_compiler.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {

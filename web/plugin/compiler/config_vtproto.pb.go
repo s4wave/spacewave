@@ -26,6 +26,7 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := &Config{
+		ProjectId:   m.ProjectId,
 		DelveAddr:   m.DelveAddr,
 		ElectronPkg: m.ElectronPkg,
 	}
@@ -70,6 +71,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ProjectId != that.ProjectId {
 		return false
 	}
 	if len(this.ConfigSet) != len(that.ConfigSet) {
@@ -124,10 +128,10 @@ func (this *Config) EqualVT(that *Config) bool {
 			}
 		}
 	}
-	if this.DelveAddr != that.DelveAddr {
+	if this.ElectronPkg != that.ElectronPkg {
 		return false
 	}
-	if this.ElectronPkg != that.ElectronPkg {
+	if this.DelveAddr != that.DelveAddr {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -170,19 +174,19 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.DelveAddr) > 0 {
+		i -= len(m.DelveAddr)
+		copy(dAtA[i:], m.DelveAddr)
+		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if len(m.ElectronPkg) > 0 {
 		i -= len(m.ElectronPkg)
 		copy(dAtA[i:], m.ElectronPkg)
 		i = encodeVarint(dAtA, i, uint64(len(m.ElectronPkg)))
 		i--
 		dAtA[i] = 0x22
-	}
-	if len(m.DelveAddr) > 0 {
-		i -= len(m.DelveAddr)
-		copy(dAtA[i:], m.DelveAddr)
-		i = encodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
-		i--
-		dAtA[i] = 0x1a
 	}
 	if len(m.HostConfigSet) > 0 {
 		for k := range m.HostConfigSet {
@@ -215,7 +219,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x12
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.ConfigSet) > 0 {
@@ -249,8 +253,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = encodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = encodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -272,6 +283,10 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + sov(uint64(l))
+	}
 	if len(m.ConfigSet) > 0 {
 		for k, v := range m.ConfigSet {
 			_ = k
@@ -310,11 +325,11 @@ func (m *Config) SizeVT() (n int) {
 			n += mapEntrySize + 1 + sov(uint64(mapEntrySize))
 		}
 	}
-	l = len(m.DelveAddr)
+	l = len(m.ElectronPkg)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
-	l = len(m.ElectronPkg)
+	l = len(m.DelveAddr)
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
@@ -358,6 +373,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSet", wireType)
 			}
@@ -494,7 +541,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)
 			}
@@ -631,38 +678,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.HostConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.DelveAddr = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ElectronPkg", wireType)
@@ -694,6 +709,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ElectronPkg = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelveAddr = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

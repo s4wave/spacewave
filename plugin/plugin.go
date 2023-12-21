@@ -14,7 +14,7 @@ func ValidatePluginID(id string, allowEmpty bool) error {
 		return ErrEmptyPluginID
 	}
 	if err := labels.ValidateDNSLabel(id); err != nil {
-		return errors.Wrap(err, "plugin id")
+		return errors.Wrap(err, "invalid plugin id")
 	}
 	return nil
 }

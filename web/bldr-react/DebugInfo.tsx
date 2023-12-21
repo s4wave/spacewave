@@ -8,6 +8,7 @@ import React, {
   useRef,
   useMemo,
   CSSProperties,
+  useCallback,
 } from 'react'
 
 type DebugInfoContextType = {
@@ -27,30 +28,36 @@ const DebugInfoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const idCounter = useRef(0)
   const subscribers = useRef<((info: ReactNode[]) => void)[]>([])
 
-  const notifySubscribers = () => {
+  const notifySubscribers = useCallback(() => {
     subscribers.current.forEach((callback) =>
       callback(debugInfo.map((di) => di.info)),
     )
-  }
+  }, [subscribers, debugInfo])
 
-  const addDebugInfo = (info: ReactNode): string => {
-    const id = (idCounter.current++).toString()
-    setDebugInfo((prevInfo) => [...prevInfo, { id, info }])
-    return id
-  }
+  const addDebugInfo = useCallback(
+    (info: ReactNode): string => {
+      const id = (idCounter.current++).toString()
+      setDebugInfo((prevInfo) => [...prevInfo, { id, info }])
+      return id
+    },
+    [idCounter],
+  )
 
-  const removeDebugInfo = (id: string) => {
+  const removeDebugInfo = useCallback((id: string) => {
     setDebugInfo((prevInfo) => prevInfo.filter((i) => i.id !== id))
-  }
+  }, [])
 
-  const subscribeDebugInfo = (callback: (info: ReactNode[]) => void) => {
-    subscribers.current.push(callback)
-    return () => {
-      subscribers.current = subscribers.current.filter(
-        (sub) => sub !== callback,
-      )
-    }
-  }
+  const subscribeDebugInfo = useCallback(
+    (callback: (info: ReactNode[]) => void) => {
+      subscribers.current.push(callback)
+      return () => {
+        subscribers.current = subscribers.current.filter(
+          (sub) => sub !== callback,
+        )
+      }
+    },
+    [subscribers],
+  )
 
   const contextValue = useMemo(
     () => ({
@@ -58,12 +65,12 @@ const DebugInfoProvider: FC<{ children: ReactNode }> = ({ children }) => {
       removeDebugInfo,
       subscribeDebugInfo,
     }),
-    [],
+    [addDebugInfo, removeDebugInfo, subscribeDebugInfo],
   )
 
   useEffect(() => {
     notifySubscribers()
-  }, [debugInfo])
+  }, [debugInfo, notifySubscribers])
 
   return (
     <DebugInfoContext.Provider value={contextValue}>

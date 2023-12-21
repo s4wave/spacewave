@@ -24,24 +24,23 @@ export function useWebViewHostClient(
   const bldrContext = useBldrContext()
   const webDocument = bldrContext?.webDocument
   const webView = bldrContext?.webView
-  let effectDeps: DependencyList = [webDocument, webView]
-  if (deps?.length) {
-    effectDeps = [...effectDeps, ...deps]
-  }
-  useEffect(() => {
-    if (!webDocument || !webView) {
-      return
-    }
-    const client = webDocument.buildWebViewHostClient(webView.getUuid())
-    const cancel = new AbortController()
-    const destructor = effect(client, cancel.signal, webDocument, webView)
-    return () => {
-      cancel.abort()
-      if (destructor) {
-        destructor()
+  useEffect(
+    () => {
+      if (!webDocument || !webView) {
+        return
       }
-    }
-  }, effectDeps)
+      const client = webDocument.buildWebViewHostClient(webView.getUuid())
+      const cancel = new AbortController()
+      const destructor = effect(client, cancel.signal, webDocument, webView)
+      return () => {
+        cancel.abort()
+        if (destructor) {
+          destructor()
+        }
+      }
+    },
+    [webDocument, webView, effect, ...(deps ?? [])], // eslint-disable-line
+  )
 }
 
 // WebViewHostClientImplEffect is the callback function type for useWebViewHostClientImpl.
@@ -88,7 +87,10 @@ export function createWebViewHostClientImplState<T>(
 
 // useAbortSignal returns an AbortSignal which is canceled when the deps change.
 export function useAbortSignal(deps: DependencyList = []): AbortSignal {
-  const abortController = useMemo(() => new AbortController(), [...deps])
+  const abortController = useMemo(
+    () => new AbortController(),
+    [...deps], // eslint-disable-line
+  )
   useEffect(() => {
     return () => abortController.abort()
   }, [abortController])
@@ -100,18 +102,21 @@ export function useAbortSignalEffect(
   effect: (signal: AbortSignal) => void | (() => void),
   deps?: DependencyList,
 ) {
-  useEffect(() => {
-    const controller = new AbortController()
-    const signal = controller.signal
-    const teardown = effect(signal)
+  useEffect(
+    () => {
+      const controller = new AbortController()
+      const signal = controller.signal
+      const teardown = effect(signal)
 
-    return () => {
-      controller.abort()
-      if (teardown) {
-        teardown()
+      return () => {
+        controller.abort()
+        if (teardown) {
+          teardown()
+        }
       }
-    }
-  }, deps)
+    },
+    [effect, ...(deps ?? [])], // eslint-disable-line
+  )
 }
 
 // useRetryWithAbort calls the function with an abort signal and retries on error.

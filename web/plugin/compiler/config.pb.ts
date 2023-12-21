@@ -7,6 +7,8 @@ export const protobufPackage = 'bldr.web.plugin.compiler'
 
 /** Config configures the web plugin builder. */
 export interface Config {
+  /** ProjectId overrides the project id set in the project config. */
+  projectId: string
   /**
    * ConfigSet is a ConfigSet to apply on plugin startup.
    * This ConfigSet is applied to the plugin bus.
@@ -45,7 +47,13 @@ export interface Config_HostConfigSetEntry {
 }
 
 function createBaseConfig(): Config {
-  return { configSet: {}, hostConfigSet: {}, delveAddr: '', electronPkg: '' }
+  return {
+    projectId: '',
+    configSet: {},
+    hostConfigSet: {},
+    delveAddr: '',
+    electronPkg: '',
+  }
 }
 
 export const Config = {
@@ -53,20 +61,23 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
+    if (message.projectId !== '') {
+      writer.uint32(10).string(message.projectId)
+    }
     Object.entries(message.configSet).forEach(([key, value]) => {
       Config_ConfigSetEntry.encode(
         { key: key as any, value },
-        writer.uint32(10).fork(),
+        writer.uint32(18).fork(),
       ).ldelim()
     })
     Object.entries(message.hostConfigSet).forEach(([key, value]) => {
       Config_HostConfigSetEntry.encode(
         { key: key as any, value },
-        writer.uint32(18).fork(),
+        writer.uint32(26).fork(),
       ).ldelim()
     })
     if (message.delveAddr !== '') {
-      writer.uint32(26).string(message.delveAddr)
+      writer.uint32(66).string(message.delveAddr)
     }
     if (message.electronPkg !== '') {
       writer.uint32(34).string(message.electronPkg)
@@ -87,26 +98,33 @@ export const Config = {
             break
           }
 
-          const entry1 = Config_ConfigSetEntry.decode(reader, reader.uint32())
-          if (entry1.value !== undefined) {
-            message.configSet[entry1.key] = entry1.value
-          }
+          message.projectId = reader.string()
           continue
         case 2:
           if (tag !== 18) {
             break
           }
 
-          const entry2 = Config_HostConfigSetEntry.decode(
-            reader,
-            reader.uint32(),
-          )
+          const entry2 = Config_ConfigSetEntry.decode(reader, reader.uint32())
           if (entry2.value !== undefined) {
-            message.hostConfigSet[entry2.key] = entry2.value
+            message.configSet[entry2.key] = entry2.value
           }
           continue
         case 3:
           if (tag !== 26) {
+            break
+          }
+
+          const entry3 = Config_HostConfigSetEntry.decode(
+            reader,
+            reader.uint32(),
+          )
+          if (entry3.value !== undefined) {
+            message.hostConfigSet[entry3.key] = entry3.value
+          }
+          continue
+        case 8:
+          if (tag !== 66) {
             break
           }
 
@@ -164,6 +182,9 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : '',
       configSet: isObject(object.configSet)
         ? Object.entries(object.configSet).reduce<{
             [key: string]: ControllerConfig
@@ -191,6 +212,9 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
+    if (message.projectId !== '') {
+      obj.projectId = message.projectId
+    }
     if (message.configSet) {
       const entries = Object.entries(message.configSet)
       if (entries.length > 0) {
@@ -223,6 +247,7 @@ export const Config = {
   },
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
+    message.projectId = object.projectId ?? ''
     message.configSet = Object.entries(object.configSet ?? {}).reduce<{
       [key: string]: ControllerConfig
     }>((acc, [key, value]) => {

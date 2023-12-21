@@ -1,6 +1,6 @@
 import React from 'react'
 import { BldrComponent } from './bldr-component.js'
-import { DebugInfo } from './debug-info.js'
+import { DebugInfo } from './DebugInfo.js'
 
 // BldrDebug renders information about the BldrContext.
 export class BldrDebug extends BldrComponent {

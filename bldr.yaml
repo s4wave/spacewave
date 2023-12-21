@@ -1,10 +1,12 @@
 # Used as an example program while debugging / developing Bldr.
 # type: project.ProjectConfig
 id: bldr-demo
+
 start:
   plugins:
     - bldr-demo
     - web
+
 build:
   dist:
     manifests: ["web", "bldr-demo", "dist"]
@@ -15,6 +17,7 @@ build:
       - native/linux/amd64
       - native/windows/amd64
       - native/darwin/amd64
+
 remotes:
   demo-dist:
     engineId: demo-dist
@@ -35,6 +38,7 @@ remotes:
           objectStoreId: demo-dist
           disableChangelog: true
           verbose: true
+
 publish:
   demo-dist:
     remotes: ["demo-dist"]
@@ -52,6 +56,7 @@ publish:
             # generate with: bifrost util generate-crypto-key
             # after changing: npm run clean
             key: DEn7LStBTb2ZOP1mlLixkmPLg6x773/TQ1mnyyXJu1A=
+
 manifests:
   web:
     builder:

@@ -45,7 +45,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.0 // latest
+	github.com/aperturerobotics/controllerbus v0.31.1-0.20231221023022-aed2c241dd93 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
 	github.com/aperturerobotics/starpc v0.22.0 // latest
 )
