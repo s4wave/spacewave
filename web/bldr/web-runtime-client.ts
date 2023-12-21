@@ -62,7 +62,7 @@ export class WebRuntimeClient {
           this.clientChannel.close()
           this.clientChannel = undefined
         }
-        const msg = 'WebRuntimeClient: timeout opening stream with host'
+        const msg = `WebRuntimeClient: ${this.clientId}: timeout opening stream with host`
         err = new Error(msg)
         console.warn(msg)
         // try again shortly.
@@ -72,6 +72,7 @@ export class WebRuntimeClient {
       return streamConn
     }
 
+    console.log(`WebRuntimeClient: ${this.clientId}: opened stream with host`)
     throw err || new Error('WebRuntimeClient: unable to open stream with host')
   }
 

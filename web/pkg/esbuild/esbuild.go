@@ -338,7 +338,7 @@ func BuildWebPkgsEsbuild(
 
 		buildOpts.EntryPoints = nil
 		buildOpts.EntryPointsAdvanced = buildEntrypoints
-		buildOpts.Sourcemap = esbuild_api.SourceMapNone
+		// buildOpts.Sourcemap = esbuild_api.SourceMapNone - set by isRelease in BuildEsbuildBuildOpts
 		buildOpts.TreeShaking = esbuild_api.TreeShakingFalse
 		buildOpts.OutExtension = map[string]string{".js": ".mjs"}
 		buildOpts.Alias[pkgRootAlias] = webPkgRef.WebPkgRoot
