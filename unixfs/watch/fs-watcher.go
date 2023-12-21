@@ -152,12 +152,23 @@ func (w *FSWatcher) Execute(rctx context.Context, errCh <-chan error) error {
 			var nextHandle *unixfs.FSHandle
 			var nextHandleRel func()
 			nextHandle, nextHandleRel, err = w.access(ctx, func() {
-				w.mtx.Lock()
-				if w.handle == nextHandle {
-					w.handle = nil
-					w.bcast.Broadcast()
+				rel := func(lock bool) {
+					if lock {
+						w.mtx.Lock()
+					}
+					if w.handle == nextHandle {
+						w.handle = nil
+						w.bcast.Broadcast()
+					}
+					w.mtx.Unlock()
 				}
-				w.mtx.Unlock()
+
+				// avoid deadlock
+				if w.mtx.TryLock() {
+					rel(false)
+				} else {
+					go rel(true)
+				}
 			})
 			if err != nil {
 				return err
