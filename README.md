@@ -195,6 +195,17 @@ Note: in Chromium: to view the SharedWorker developer tools:
  - Open chrome://inspect
  - Click "inspect" on the SharedWorker - usually named `bldr:default`
 
+### VSCode Debugging
+
+You can attach to the app using VSCode:
+
+- Press Command + Shift + P
+- Select "Debug: Attach to Node Process"
+- Select the Electron instance.
+
+This is only enabled in Debug builds for Electron, where the plugin compiler
+will automatically configure the web plugin to start Electron with `--inspect=5858`.
+
 ## License
 
 Copyright 2018-2023 Aperture Robotics, LLC.
