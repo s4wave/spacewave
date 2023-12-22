@@ -12,13 +12,13 @@ require (
 	github.com/golangci/golangci-lint v1.54.1
 	github.com/planetscale/vtprotobuf v0.5.0
 	github.com/psampaz/go-mod-outdated v0.9.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
 	github.com/aperturerobotics/bldr v0.0.0-20230728003220-9c25eacad913
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.22.0
+	github.com/aperturerobotics/starpc v0.22.1
 	github.com/evanw/esbuild v0.19.10
 )
 
@@ -37,7 +37,7 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231220015236-c988a6736ce1 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231221220035-0265ef64dd20 // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
 	github.com/aperturerobotics/util v1.8.3 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect

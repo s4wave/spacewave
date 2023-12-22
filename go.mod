@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.11-0.20231219225652-92bad5072a85 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231220015236-c988a6736ce1 // master
+require github.com/aperturerobotics/hydra v0.0.0-20231221220035-0265ef64dd20 // master
 
 require (
 	github.com/evanw/esbuild v0.19.10 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.15-0.20231220013932-895c8b60b3d5 // master
+require github.com/aperturerobotics/bifrost v0.18.15-0.20231220220259-ba27f049023a // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,9 +45,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.1-0.20231221023022-aed2c241dd93 // latest
+	github.com/aperturerobotics/controllerbus v0.31.1-0.20231221220119-ab2a0e47e6e4 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
-	github.com/aperturerobotics/starpc v0.22.0 // latest
+	github.com/aperturerobotics/starpc v0.22.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -93,7 +93,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.17.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	nhooyr.io/websocket v1.8.10
 	storj.io/drpc v0.0.33 // indirect
 )
