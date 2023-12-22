@@ -80,6 +80,7 @@ export function createWebViewHostClientImplState<T>(
     const [impl, setImpl] = useState<T | undefined>(undefined)
     useWebViewHostClient((client) => {
       setImpl(ctor(client))
+      return () => setImpl(undefined)
     }, deps)
     return impl
   }
