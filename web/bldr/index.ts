@@ -13,3 +13,9 @@ export type { WebView, WebViewRegistration } from './web-view.js'
 export { randomId } from './random-id.js'
 export { ItState, ItStateOpts } from './it-state.js'
 export { isElectron, isMac } from '../electron/electron.js'
+export {
+  RenderMode,
+  SetRenderModeRequest,
+  SetHtmlLinksRequest,
+  HtmlLink,
+} from '../view/view.pb.js'

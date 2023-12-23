@@ -5,15 +5,15 @@ import type {
   WebView as BldrWebView,
   WebViewRegistration,
 } from '@aptre/bldr'
-import { randomId } from '@aptre/bldr'
-
-import { BldrContext, IBldrContext } from './bldr-context.js'
 import {
+  randomId,
   RenderMode,
   SetRenderModeRequest,
   SetHtmlLinksRequest,
   HtmlLink,
-} from '../view/view.pb.js'
+} from '@aptre/bldr'
+
+import { BldrContext, IBldrContext } from './bldr-context.js'
 import { FunctionComponentContainer } from './web-view-function.js'
 import { ReactComponentContainer } from './web-view-react.js'
 import { DebugInfo } from './DebugInfo.js'
