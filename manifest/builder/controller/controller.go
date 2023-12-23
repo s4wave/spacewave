@@ -221,7 +221,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		for watchedDirPath := range watchedSourceDirs {
-			le.Infof("watching dir path: %s", watchedDirPath)
 			err = watcher.Add(watchedDirPath)
 			if err != nil {
 				_ = watcher.Close()
