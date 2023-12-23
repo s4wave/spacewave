@@ -70,10 +70,10 @@ github.com/aperturerobotics/bifrost v0.18.14 h1:e+7813VqzmIdYXdEfrjEyPHae0cZ8ey8
 github.com/aperturerobotics/bifrost v0.18.14/go.mod h1:d97M4Uo6Bjxa66ppph6z95lIWWaRmRzyJD1Mv8gDB0I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/starpc v0.22.0 h1:bQUzH8Anyc/DP6fGYWYXUESH6E/RbeAnREWBe80C34s=
-github.com/aperturerobotics/starpc v0.22.0/go.mod h1:qy3w8McK017t9g4VbJ+l5ycl1XTu/TDRY4CprSSwVRM=
-github.com/aperturerobotics/util v1.8.2 h1:FpGPRDhFKv/+yo/BOWkQzCZ4tJnlRnETvZ3ScgNw7kk=
-github.com/aperturerobotics/util v1.8.2/go.mod h1:idhGuFuAatygqticAnPcSZhef8yV7TYufLUw1Qfj4Cg=
+github.com/aperturerobotics/starpc v0.22.5-0.20231223070228-835ffe09e3e7 h1:XvFZRGn/lDilMK4LnSNPLd24Zi12WFONHz0bRZpOtNg=
+github.com/aperturerobotics/starpc v0.22.5-0.20231223070228-835ffe09e3e7/go.mod h1:yR9hgDuSlV5iWg1yLYk2Wqm+owpy5ogWugbmPBvD0pg=
+github.com/aperturerobotics/util v1.9.0 h1:1LtzjsCjbDt+WSs0RqODESvuyQ3HEfmh0VaVuwj8OwU=
+github.com/aperturerobotics/util v1.9.0/go.mod h1:idhGuFuAatygqticAnPcSZhef8yV7TYufLUw1Qfj4Cg=
 github.com/ashanbrown/forbidigo v1.5.3 h1:jfg+fkm/snMx+V9FBwsl1d340BV/99kZGv5jN9hBoXk=
 github.com/ashanbrown/forbidigo v1.5.3/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=

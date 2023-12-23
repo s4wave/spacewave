@@ -1,5 +1,6 @@
 # https://github.com/aperturerobotics/protobuf-project
 
+SHELL:=bash
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc

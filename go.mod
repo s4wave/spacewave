@@ -34,9 +34,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.0 // latest
+	github.com/aperturerobotics/controllerbus v0.31.1 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0
-	github.com/aperturerobotics/starpc v0.22.0 // latest
+	github.com/aperturerobotics/starpc v0.22.5-0.20231223070228-835ffe09e3e7 // latest
 )
 
 // aperture: use compatibility forks
@@ -56,7 +56,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.8.2 // master
+	github.com/aperturerobotics/util v1.9.0 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -82,7 +82,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.17.0
 	gonum.org/v1/gonum v0.14.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	nhooyr.io/websocket v1.8.10 // indirect
 	storj.io/drpc v0.0.33 // indirect
 )

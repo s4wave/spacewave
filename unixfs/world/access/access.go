@@ -150,10 +150,7 @@ func (c *Controller) ResolveAccessUnixFS(
 
 // AccessUnixFS accesses the filesystem.
 func (c *Controller) AccessUnixFS(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
-	valProm, valRef, err := c.fsRc.WaitWithReleased(ctx, released)
-	if err != nil {
-		return nil, nil, err
-	}
+	valProm, valRef := c.fsRc.WaitWithReleased(ctx, released)
 	val, err := valProm.Await(ctx)
 	if err != nil {
 		valRef.Release()
