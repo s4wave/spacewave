@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
+import { WebDocument as BldrWebDocument } from '@aptre/bldr'
 import { BldrContext, IBldrContext } from './bldr-context.js'
 import { DebugInfo } from './DebugInfo.js'
 

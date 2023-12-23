@@ -6,7 +6,7 @@ import { BldrContext } from './bldr-context.js'
 import {
   WebDocument as BldrWebDocument,
   WebView as BldrWebView,
-} from '../bldr/index.js'
+} from '@aptre/bldr'
 
 // BldrComponent extends React.PureComponent with the bldr context and an abort controller.
 //

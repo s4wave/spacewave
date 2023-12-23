@@ -1,6 +1,8 @@
 import React, { useContext } from 'react'
-import type { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
-import type { WebView as BldrWebView } from '../bldr/web-view.js'
+import type {
+  WebDocument as BldrWebDocument,
+  WebView as BldrWebView,
+} from '@aptre/bldr'
 
 // IBldrContext is the context containing the current WebDocument and WebView.
 export interface IBldrContext {

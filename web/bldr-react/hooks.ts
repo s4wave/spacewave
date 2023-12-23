@@ -1,9 +1,13 @@
 import { DependencyList, useEffect, useMemo, useState } from 'react'
 import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
-import { WebDocument as BldrWebDocument } from '../bldr/web-document.js'
-import { WebView as BldrWebView } from '../bldr/web-view.js'
-import { RetryOpts, retryWithAbort } from '../bldr/retry.js'
+
+import {
+  WebDocument as BldrWebDocument,
+  WebView as BldrWebView,
+  RetryOpts,
+  retryWithAbort,
+} from '@aptre/bldr'
 
 // Destructor is the destructor type from React.
 export type Destructor = () => void

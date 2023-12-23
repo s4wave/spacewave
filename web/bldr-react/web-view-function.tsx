@@ -1,6 +1,6 @@
 import React from 'react'
 import { castToError } from 'starpc'
-import { constantBackoff, retryWithAbort } from '../bldr/retry.js'
+import { constantBackoff, retryWithAbort } from '@aptre/bldr'
 import { BldrComponent } from './bldr-component.js'
 import { FunctionComponent } from './function-component.js'
 
