@@ -68,7 +68,8 @@ func (d *lookupWebView) Validate() error {
 // GetValueLookupWebViewOptions returns options relating to value handling.
 func (d *lookupWebView) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
-		UnrefDisposeDur: time.Millisecond * 500,
+		UnrefDisposeDur:            time.Millisecond * 100,
+		UnrefDisposeEmptyImmediate: true,
 	}
 }
 

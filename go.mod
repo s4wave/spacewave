@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.15-0.20231220220259-ba27f049023a // master
+require github.com/aperturerobotics/bifrost v0.18.15 // master
 
 // aperture: use ext-engines forks
 replace (
