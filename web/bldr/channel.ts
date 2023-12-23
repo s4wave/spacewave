@@ -178,11 +178,10 @@ export class ChannelStream<T> implements Stream<T> {
         for await (const msg of source) {
           this.postMessage({ data: msg })
         }
+        this.postMessage({ closed: true })
       } catch (error) {
         this.postMessage({ closed: true, error: error as Error })
       }
-
-      return Promise.resolve()
     }
   }
 
