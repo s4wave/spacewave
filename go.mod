@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.14 // master
+require github.com/aperturerobotics/bifrost v0.18.17 // master
 
 // aperture: use ext-engines forks
 replace (
