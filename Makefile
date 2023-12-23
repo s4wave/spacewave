@@ -1,5 +1,6 @@
 # https://github.com/aperturerobotics/protobuf-project
 
+SHELL:=bash
 BLDR=go run github.com/aperturerobotics/bldr/cmd/bldr --
 PROTOWRAP=hack/bin/protowrap
 ESBUILD=hack/bin/esbuild

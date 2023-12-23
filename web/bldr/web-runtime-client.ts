@@ -69,11 +69,14 @@ export class WebRuntimeClient {
         await timeoutPromise(100)
         continue
       }
+
+      console.log(`WebRuntimeClient: ${this.clientId}: opened stream with host`)
       return streamConn
     }
 
-    console.log(`WebRuntimeClient: ${this.clientId}: opened stream with host`)
-    throw err || new Error('WebRuntimeClient: unable to open stream with host')
+    err = new Error(`WebRuntimeClient: ${this.clientId}: unable to open stream with host${err ? ': ' + err : ''}`)
+    console.warn(err.message)
+    throw err
   }
 
   // close closes the client channel and signals the close to the remote.

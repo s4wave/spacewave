@@ -7,7 +7,6 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
@@ -64,22 +63,13 @@ func NewController(
 // PluginLoadAccessClient adds a reference to the plugin and waits for it to be built.
 func (c *Controller) PluginLoadAccessClient(
 	ctx context.Context,
-	cb func(
-		ctx context.Context,
-		client bifrost_rpc_access.SRPCAccessRpcServiceClient,
-	) error,
-) error {
-	return bldr_plugin.ExPluginLoadAccessClient(
-		ctx,
-		c.bus,
-		c.conf.GetPluginId(),
-		func(ctx context.Context, client srpc.Client) error {
-			return cb(
-				ctx,
-				bifrost_rpc_access.NewSRPCAccessRpcServiceClient(client),
-			)
-		},
-	)
+	released func(),
+) (bifrost_rpc_access.SRPCAccessRpcServiceClient, func(), error) {
+	sclient, sclientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, c.conf.GetPluginId(), released)
+	if err != nil {
+		return nil, nil, err
+	}
+	return bifrost_rpc_access.NewSRPCAccessRpcServiceClient(sclient), sclientRef.Release, nil
 }
 
 // _ is a type assertion

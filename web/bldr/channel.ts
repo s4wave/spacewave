@@ -102,9 +102,11 @@ export class ChannelStream<T> implements Stream<T> {
 
     const onMessage = this.onMessage.bind(this)
     if (channel instanceof MessagePort) {
+      // MessagePort
       channel.onmessage = onMessage
       channel.start()
     } else {
+      // BroadcastChannel
       channel.rx.onmessage = onMessage
     }
     this.postMessage({ ack: true })
@@ -196,12 +198,10 @@ export class ChannelStream<T> implements Stream<T> {
     if (msg.opened) {
       this.onRemoteOpened()
     }
-    const data = msg.data
+    const {data, closed, error: err} = msg
     if (data) {
       this._source.push(data)
     }
-    const closed = msg.closed
-    const err = msg.error
     if (err) {
       this._source.end(err)
     } else if (closed) {

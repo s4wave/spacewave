@@ -390,10 +390,13 @@ export class WebDocument {
     this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(1000)])
     if (!channelStream.isOpen) {
+      const msg = `WebDocument: ${this.webDocumentUuid}: timeout opening stream with WebDocumentHost`
+      console.warn(msg)
       throw new Error(
-        `WebDocument: ${this.webDocumentUuid}: timeout opening stream with WebDocumentHost`,
+        msg,
       )
     }
+    console.log(`WebDocument: ${this.webDocumentUuid}: opened stream with WebDocumentHost`)
     return channelStream
   }
 
