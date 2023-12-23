@@ -53,7 +53,8 @@ func BuildEsbuildBuildOpts(
 		MinifySyntax:      isRelease,
 	}
 	if !isRelease {
-		buildOpts.Sourcemap = esbuild_api.SourceMapInline
+		//	buildOpts.Sourcemap = esbuild_api.SourceMapInline
+		buildOpts.Sourcemap = esbuild_api.SourceMapLinked
 	}
 
 	// add common loader types

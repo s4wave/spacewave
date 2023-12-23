@@ -2,12 +2,18 @@ import electron, { MessagePortMain, MessageChannelMain } from 'electron'
 import net from 'net'
 import path from 'path'
 import os from 'os'
-import { OpenStreamCtr, Conn, buildPushableSink } from 'starpc'
+
+import {
+  Client as SRPCClient,
+  OpenStreamCtr,
+  Conn,
+  buildPushableSink,
+} from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 
 // note: import relative paths so we don't externalize bldr here.
-import { initProtocol, APP_SCHEME } from './protocol.js'
+import { appRequestHandler, APP_SCHEME } from './protocol.js'
 import { debugConsole } from './console.js'
 import debugWhenReady from './debug.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
@@ -18,6 +24,8 @@ import {
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
+import { ServiceWorkerHostClientImpl } from '../../runtime/sw/sw.pb.js'
+import { proxyFetch } from '../../fetch/fetch.js'
 
 const app = electron.app
 
@@ -89,12 +97,26 @@ const openStreamCtr = new OpenStreamCtr(undefined)
 const openStreamFunc = openStreamCtr.openStreamFunc
 
 // create the WebRuntime instance
+const runtimeClientID = `electron:main`
 const workerHost = new WebRuntime(
-  `electron:main`,
+  runtimeClientID,
   openStreamFunc,
   createDocCb,
   removeDocCb,
 )
+
+// swHostClient contacts the service worker host via the workerHost.
+const swHostClient = new SRPCClient(() =>
+  workerHost.openServiceWorkerHostStream(runtimeClientID),
+)
+
+// swHost is the RPC client for the ServiceWorkerHost.
+const swHost = new ServiceWorkerHostClientImpl(swHostClient)
+
+// swFetch performs a request as if it was sent from the ServiceWorker.
+function swFetch(req: GlobalRequest): Promise<GlobalResponse> {
+  return proxyFetch(swHost, req, runtimeClientID)
+}
 
 // connect the WebRuntime to the socket ports
 // setup the ipc socket
@@ -203,6 +225,10 @@ function setupRuntimePort() {
     const clientPort = event.ports[0]
     workerHost.handleClient(initMsg, messagePortMainToMessagePort(clientPort))
   })
+}
+
+function initProtocol() {
+  electron.protocol.handle(APP_SCHEME, (req) => appRequestHandler(swFetch, req))
 }
 
 async function startup() {

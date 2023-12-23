@@ -12,6 +12,7 @@ import {
   WebRuntimeClientType,
 } from '../runtime/runtime.pb.js'
 import { timeoutPromise } from './timeout.js'
+import { BLDR_URI_PREFIXES } from './constants.js'
 
 // Default type of `self` is `WorkerGlobalScope & typeof globalThis`
 // https://github.com/microsoft/TypeScript/issues/14877
@@ -131,6 +132,7 @@ const webRuntimeClient = new WebRuntimeClient(
 const swHostClient = new Client(
   webRuntimeClient.openStream.bind(webRuntimeClient),
 )
+
 // swHost is the RPC client for the ServiceWorkerHost.
 const swHost = new ServiceWorkerHostClientImpl(swHostClient)
 
@@ -173,14 +175,7 @@ function isSwOrigin(origin: string): boolean {
 
 // swFetch is called when the page attempts to fetch a resource.
 async function swFetch(ev: FetchEvent): Promise<Response> {
-  // Ignore any URLs that are outside of /b/ or /p/.
-  const matchPrefixes = [
-    // /b/ is short for bldr
-    '/b/',
-    // /p/ is short for plugin
-    '/p/',
-  ]
-
+  const matchPrefixes = BLDR_URI_PREFIXES
   const request = ev.request
   const requestURL = new URL(request.url)
   const requestOrigin = requestURL.origin
@@ -189,7 +184,7 @@ async function swFetch(ev: FetchEvent): Promise<Response> {
   let useRuntimeFetch = false
   if (isSwOrigin(requestOrigin)) {
     for (const matchPrefix of matchPrefixes) {
-      if (requestPath.indexOf(matchPrefix) === 0) {
+      if (requestPath.startsWith(matchPrefix)) {
         useRuntimeFetch = true
         break
       }

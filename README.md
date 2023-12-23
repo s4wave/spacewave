@@ -193,18 +193,29 @@ yarn start:desktop
 Note: in Chromium: to view the SharedWorker developer tools:
 
  - Open chrome://inspect
- - Click "inspect" on the SharedWorker - usually named `bldr:default`
+ - Click "inspect" on the SharedWorker - usually named `bldr:default**
 
 ### VSCode Debugging
 
-You can attach to the app using VSCode:
+To debug the Electron `main` process:
 
 - Press Command + Shift + P
 - Select "Debug: Attach to Node Process"
 - Select the Electron instance.
 
+To debug the Electron `renderer` process:
+
+- Copy .bldr/src/.vscode/launch.json to `.vscode/launch.json`
+- Select "Run and Debug" in the left bar.
+- Click the green play button for "Debug Electron Renderer Process"
+
 This is only enabled in Debug builds for Electron, where the plugin compiler
-will automatically configure the web plugin to start Electron with `--inspect=5858`.
+will automatically configure the web plugin to start Electron with: 
+
+- `--inspect=5858` for the main process
+- `--remote-debugging-port=9222` for the renderer
+
+This is enabled by the plugin compiler for Electron in debug builds only.
 
 ## License
 

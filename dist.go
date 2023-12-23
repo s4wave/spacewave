@@ -21,7 +21,8 @@ import (
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
 //go:embed dist/deps/deps.go dist/deps/package.json
-//go:embed tsconfig.json go.mod go.sum global.d.ts
+//go:embed .vscode/launch.json
+//go:embed README.md tsconfig.json go.mod go.sum global.d.ts
 var DistSources embed.FS
 
 // BuildDistSourcesFSCursor builds a *fs.Cursor for the DistSources.

@@ -181,7 +181,11 @@ func (c *Controller) BundleElectronHook(
 
 	var extraElectronFlags []string
 	if buildType.IsDev() {
-		extraElectronFlags = append(extraElectronFlags, "--inspect=5858")
+		extraElectronFlags = append(
+			extraElectronFlags,
+			"--inspect=5858",
+			"--remote-debugging-port=9222",
+		)
 	}
 
 	// build config set to start the electron entrypoint on startup

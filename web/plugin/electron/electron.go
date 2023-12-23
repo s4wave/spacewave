@@ -56,6 +56,7 @@ func RunElectron(
 
 	cmd := exec.NewCmd(electronPath, electronArgs...)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
+	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
 
 	le.Debugf("starting electron: %s", cmd.String())
