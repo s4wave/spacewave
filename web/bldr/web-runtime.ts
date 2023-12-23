@@ -63,7 +63,7 @@ class WebRuntimeClientInstance {
     )
     this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
-    await Promise.race([stream.waitRemoteAck, timeoutPromise(3000)])
+    await Promise.race([stream.waitRemoteAck, timeoutPromise(1000)])
     if (!stream.isAcked) {
       stream.close()
       throw new Error('timed out waiting for ack')
