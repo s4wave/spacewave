@@ -16,6 +16,8 @@ export { isElectron, isMac } from '../electron/electron.js'
 export {
   RenderMode,
   SetRenderModeRequest,
+  SetRenderModeResponse,
   SetHtmlLinksRequest,
+  SetHtmlLinksResponse,
   HtmlLink,
 } from '../view/view.pb.js'

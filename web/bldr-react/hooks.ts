@@ -1,4 +1,11 @@
-import { DependencyList, useEffect, useMemo, useState } from 'react'
+import {
+  DependencyList,
+  RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 
@@ -135,4 +142,27 @@ export function useRetryWithAbort(
   useAbortSignalEffect((signal) => {
     retryWithAbort(signal, cb, opts)
   }, deps)
+}
+
+// useLatestRef returns a ref that contains the latest version of the value.
+//
+// changed is called when the value is changed from the initial value.
+export function useLatestRef<T>(
+  value: T,
+  changed?: (value: T) => void,
+): RefObject<T> {
+  const ref = useRef(value)
+  const changedRef = useRef(changed)
+  useEffect(() => {
+    changedRef.current = changed
+  }, [changed])
+  useEffect(() => {
+    if (ref.current !== value) {
+      ref.current = value
+      if (changedRef.current) {
+        changedRef.current(value)
+      }
+    }
+  }, [value])
+  return ref
 }

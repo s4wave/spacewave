@@ -1,7 +1,7 @@
 import React from 'react'
 import type { WebDocument as BldrWebDocument } from '@aptre/bldr'
 import { WebDocument } from './web-document.js'
-import { WebView } from './web-view.js'
+import { WebView } from './WebView.js'
 
 interface IBldrRootProps {
   // webDocument is the external bldr WebDocument handle

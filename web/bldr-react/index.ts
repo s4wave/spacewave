@@ -1,6 +1,6 @@
 export { BldrRoot } from './bldr-root.js'
 export { WebDocument } from './web-document.js'
-export { WebView } from './web-view.js'
+export { WebView } from './WebView.js'
 export {
   Destructor,
   WebViewHostClientEffect,
@@ -12,6 +12,7 @@ export {
   useAbortSignal,
   useAbortSignalEffect,
   useRetryWithAbort,
+  useLatestRef,
 } from './hooks.js'
 export { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 export { AbortComponent } from './abort-component.js'
@@ -35,3 +36,4 @@ export {
   useDebugInfo,
 } from './DebugInfo.js'
 export { BldrDebug } from './bldr-debug.js'
+export type { ValueCallback } from './callback.js'
