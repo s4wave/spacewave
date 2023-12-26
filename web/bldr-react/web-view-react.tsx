@@ -1,9 +1,10 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useMemo } from 'react'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import type {
   LoadedProtoComponent,
   ProtoComponentType,
 } from './react-component.js'
+import { useMemoUint8Array } from './hooks.js'
 
 // IReactComponentContainerProps are props for ReactComponentContainer.
 export interface IReactComponentContainerProps {
@@ -17,15 +18,25 @@ export interface IReactComponentContainerProps {
 
 // ReactComponentContainer imports and initializes a ReactComponent script.
 export function ReactComponentContainer(props: IReactComponentContainerProps) {
-  const LoadedComponent: ProtoComponentType = React.lazy(
-    async (): Promise<{ default: LoadedProtoComponent }> =>
-      import(props.scriptPath),
+  const LoadedComponent: ProtoComponentType = useMemo(
+    () =>
+      React.lazy(
+        async (): Promise<{ default: LoadedProtoComponent }> =>
+          import(props.scriptPath),
+      ),
+    [props.scriptPath],
+  )
+
+  const componentProps = useMemoUint8Array(props.componentProps ?? null)
+  const loadedComponent = useMemo(
+    () => <LoadedComponent componentProps={componentProps ?? undefined} />,
+    [LoadedComponent, componentProps],
   )
 
   return (
     <WebViewErrorBoundary>
       <Suspense fallback={props.renderLoading ?? <div>Loading...</div>}>
-        <LoadedComponent componentProps={props.componentProps} />
+        {loadedComponent}
       </Suspense>
     </WebViewErrorBoundary>
   )

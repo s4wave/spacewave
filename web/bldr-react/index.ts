@@ -13,6 +13,8 @@ export {
   useAbortSignalEffect,
   useRetryWithAbort,
   useLatestRef,
+  isUint8ArrayEqual,
+  useMemoUint8Array,
 } from './hooks.js'
 export { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 export { AbortComponent } from './abort-component.js'
