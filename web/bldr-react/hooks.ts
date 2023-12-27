@@ -1,11 +1,13 @@
 import {
   DependencyList,
   RefObject,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
+import isEqual from 'lodash.isequal'
 import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 
@@ -15,6 +17,7 @@ import {
   RetryOpts,
   retryWithAbort,
 } from '@aptre/bldr'
+import { ValueCallback } from './callback.js'
 
 // Destructor is the destructor type from React.
 export type Destructor = () => void
@@ -216,4 +219,255 @@ export function useMemoUint8Array(value: Uint8Array | null): Uint8Array | null {
     }
   }, [memoEquiv, value])
   return memoEquiv ? memoValue : value
+}
+
+// MouseEvent and other events satisfy this.
+interface DetailCountEvent {
+  // detail is the number of times the event occurred.
+  detail: number
+}
+
+// useDetailCountHandler builds an event handler which correctly resets the
+// event.detail counter when the component is re-mounted.
+//
+// The onClick event.detail contains the number of clicks: double-click has
+// event.detail = 2. When the clicked React component is replaced, the
+// event.detail does not reset.
+//
+// Question: https://stackoverflow.com/q/77719428/431369
+// Issue: https://codesandbox.io/p/sandbox/react-on-click-event-detail-6ndl5v?file=%2Fsrc%2FApp.tsx%3A8%2C23
+// Fix: https://codesandbox.io/p/sandbox/react-on-click-event-detail-possible-fix-4zwk7d?file=%2Fsrc%2FApp.tsx%3A59%2C1
+export function useDetailCountHandler<E extends DetailCountEvent>(
+  cb: (e: E, count: number) => void,
+) {
+  const stateRef = useRef({ prev: 0, sub: 0 })
+  return useCallback(
+    (e: E) => {
+      const state = stateRef.current
+      let count = e.detail
+      if (state.sub >= count) {
+        state.sub = 0
+      }
+      if (state.prev < count - 1) {
+        state.sub = count - state.prev - 1
+      }
+      count -= state.sub
+      state.prev = count
+      cb(e, count)
+    },
+    [stateRef, cb],
+  )
+}
+
+// GetStateFunc should return the latest state object.
+//
+// This should be a useCallback function with the deps of the values that are
+// used within the update func.
+//
+// Returning undefined skips updating the state.
+// Returning a value identical to the previous state skips emitting an update event.
+export type GetStateFunc<T> = () => T | undefined
+
+// useItState builds an AsyncIterable which emits the most recent state.
+//
+// When an iterator attaches to the AsyncIterable, the snapshot function is
+// called to generate an initial message to send with the starting state.
+//
+// The getState function is called every time it changes (the parameter is
+// updated). This function should be a useCallback with the dependency list set
+// to the properties or state values used to build the state object. If it
+// returns undefined or a value identical to the current state, the value will
+// be skipped (do nothing). Otherwise the new value is emitted to any consumers.
+//
+// States are checked for deep equality and identical states are skipped.
+//
+// If skipSnapshot is set, the initial state value will be skipped.
+// If latestValueOnly is set, slow consumers get the most recent state update only.
+export function useItState<T>(
+  getState: GetStateFunc<T>,
+  skipSnapshot?: boolean,
+  latestValueOnly?: boolean,
+): AsyncIterable<T> {
+  const latestValueOnlyRef = useLatestRef(latestValueOnly ?? false)
+  const skipSnapshotRef = useLatestRef(skipSnapshot ?? false)
+
+  const [state, setState] = useState<T | undefined>(undefined)
+
+  const update = useCallback((getNextState: GetStateFunc<T>) => {
+    setState((prev) => {
+      const next = getNextState()
+      if (typeof next === 'undefined' || next === prev || isEqual(next, prev)) {
+        return prev
+      }
+      return next
+    })
+  }, [])
+
+  useLatestRef(getState, update)
+
+  const consumersRef = useRef<Set<ValueCallback<T>>>(new Set([]))
+  const lastState = useRef<T | undefined>(undefined)
+  useEffect(() => {
+    if (lastState.current !== state) {
+      lastState.current = state
+
+      if (typeof state !== 'undefined') {
+        const consumers = consumersRef.current
+        for (const consumer of consumers.values()) {
+          consumer(state)
+        }
+      }
+    }
+  }, [state])
+
+  return useMemo(
+    () => ({
+      [Symbol.asyncIterator]: async function* () {
+        if (
+          !skipSnapshotRef.current &&
+          typeof lastState.current !== 'undefined'
+        ) {
+          yield lastState.current
+        }
+
+        // Keep a send queue of changes to write.
+        const sendQueue: T[] = []
+
+        // Wake wakes the send loop.
+        let wakeResolve: (() => void) | null = null
+
+        // Register the consumer.
+        const consumer: ValueCallback<T> = (value) => {
+          if (latestValueOnlyRef.current) {
+            sendQueue.length = 0
+          }
+          sendQueue.push(value)
+          if (wakeResolve) {
+            wakeResolve()
+            wakeResolve = null
+          }
+        }
+
+        consumersRef.current.add(consumer)
+
+        try {
+          while (true) {
+            const waitWake = new Promise<void>((resolve) => {
+              wakeResolve = resolve
+            })
+
+            const tx = sendQueue.splice(0)
+            for (const out of tx) {
+              yield out
+            }
+
+            await waitWake
+          }
+        } finally {
+          consumersRef.current.delete(consumer)
+        }
+      },
+    }),
+    [latestValueOnlyRef, skipSnapshotRef],
+  )
+}
+
+
+// GetUpdateFunc should return a message to send as an update to the prev state.
+///
+// This should be a useCallback function with the deps set to values that are
+// used within the update func.
+//
+// Returning undefined skips emitting a state update.
+export type GetUpdateFunc<T> = () => T | undefined
+
+// GetSnapshotFunc is a function returning an initial snapshot message emitted
+// when a consumer attaches to the iterable.
+//
+// If the function returns undefined, the initial snapshot message is skipped.
+export type GetSnapshotFunc<T> = () => T | undefined
+
+// useItUpdate builds an AsyncIterable which emits an initial snapshot message
+// followed by update messages.
+//
+// When an iterator attaches to the AsyncIterable, the snapshot function is
+// called to generate an initial message to send with the starting state.
+//
+// The getUpdateUpdate function is called every time it changes (the parameter
+// is updated). This function should be a useCallback with the dependency list
+// set to the properties or state values used to build the state object. If it
+// returns undefined, the value will be skipped (do nothing). Otherwise the new
+// value will be emitted to the listeners of the AsyncIterable.
+//
+// If latestValueOnly is set, slow consumers get the most recent state update only.
+// If any of the deps change the AsyncIterable object will be re-created.
+export function useItUpdate<T>(
+  getSnapshot: GetSnapshotFunc<T>,
+  getUpdate: GetUpdateFunc<T>,
+  latestValueOnly?: boolean,
+  deps?: DependencyList,
+) {
+  const getSnapshotRef = useLatestRef(getSnapshot)
+  const latestValueOnlyRef = useLatestRef(latestValueOnly ?? false)
+
+  const consumersRef = useRef<Set<ValueCallback<T>>>(new Set([]))
+  useLatestRef(getUpdate, (nextGetUpdate) => {
+    const next = nextGetUpdate()
+    if (typeof next !== 'undefined') {
+      for (const consumer of consumersRef.current.values()) {
+        consumer(next)
+      }
+    }
+  })
+
+  return useMemo(
+    () => ({
+      [Symbol.asyncIterator]: async function* () {
+        if (getSnapshotRef.current) {
+          const snapshot = getSnapshotRef.current()
+          if (typeof snapshot !== 'undefined') {
+            yield snapshot
+          }
+        }
+
+        // Keep a send queue of changes to write.
+        const sendQueue: T[] = []
+
+        // Wake wakes the send loop.
+        let wakeResolve: (() => void) | null = null
+
+        // Register the consumer.
+        const consumer: ValueCallback<T> = (value) => {
+          if (latestValueOnlyRef.current) {
+            sendQueue.length = 0
+          }
+          sendQueue.push(value)
+          if (wakeResolve) {
+            wakeResolve()
+            wakeResolve = null
+          }
+        }
+
+        consumersRef.current.add(consumer)
+
+        try {
+          while (true) {
+            const waitWake = new Promise<void>((resolve) => {
+              wakeResolve = resolve
+            })
+
+            const tx = sendQueue.splice(0)
+            for (const out of tx) {
+              yield out
+            }
+
+            await waitWake
+          }
+        } finally {
+          consumersRef.current.delete(consumer)
+        }
+      },
+    }),
+    [...(deps ?? [])], // eslint-disable-line
+  )
 }

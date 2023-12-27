@@ -27,7 +27,8 @@ export async function appRequestHandler(
       // This request should have been intercepted by the ServiceWorker.
       // If it got here: it must be a SourceMap file (.map).
       // See: https://stackoverflow.com/q/77706210/431369
-      // See: https://bugs.chromium.org/p/chromium/issues/detail?id=1513959
+      // See: https://bugs.chromium.org/p/chromium/issues/detail?id=1513959 (merged into ->)
+      // See: https://bugs.chromium.org/p/chromium/issues/detail?id=1206431
       console.log(
         `appRequestHandler: forwarding ServiceWorker request: ${reqPath}`,
       )

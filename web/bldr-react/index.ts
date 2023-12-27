@@ -15,6 +15,12 @@ export {
   useLatestRef,
   isUint8ArrayEqual,
   useMemoUint8Array,
+  useDetailCountHandler,
+  GetSnapshotFunc,
+  GetStateFunc,
+  useItState,
+  GetUpdateFunc,
+  useItUpdate,
 } from './hooks.js'
 export { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 export { AbortComponent } from './abort-component.js'
