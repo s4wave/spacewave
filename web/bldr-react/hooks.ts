@@ -372,7 +372,6 @@ export function useItState<T>(
   )
 }
 
-
 // GetUpdateFunc should return a message to send as an update to the prev state.
 ///
 // This should be a useCallback function with the deps set to values that are
@@ -470,4 +469,43 @@ export function useItUpdate<T>(
     }),
     [...(deps ?? [])], // eslint-disable-line
   )
+}
+
+// useMemoDeepEqual checks if the given value is deep equal to the memoized value
+// and returns the memoized value if so.
+export function useMemoDeepEqual<T>(
+  value: T,
+  checkEqual: (v1: T, v2: T) => boolean = isDeepEqual,
+): T {
+  const [memoValue, setMemoValue] = useState<T>(() => value)
+  const memoEquiv = useMemo(
+    () => value === memoValue || checkEqual(value, memoValue),
+    [memoValue, value, checkEqual],
+  )
+  useEffect(() => {
+    if (!memoEquiv) {
+      setMemoValue(value)
+    }
+  }, [memoEquiv, value])
+  return memoEquiv ? memoValue : value
+}
+
+// useMemoDeepEqualGetter checks if the given value is deep equal to the
+// memoized value and returns the memoized value if so.
+export function useMemoDeepEqualGetter<T>(
+  valueGetter: () => T,
+  checkEqual: (v1: T, v2: T) => boolean = isDeepEqual,
+): T {
+  const value = valueGetter()
+  const [memoValue, setMemoValue] = useState<T>(() => value)
+  const memoEquiv = useMemo(
+    () => value === memoValue || checkEqual(value, memoValue),
+    [memoValue, value, checkEqual],
+  )
+  useEffect(() => {
+    if (!memoEquiv) {
+      setMemoValue(value)
+    }
+  }, [memoEquiv, value])
+  return memoEquiv ? memoValue : value
 }
