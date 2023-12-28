@@ -13,18 +13,17 @@ const PathSeparator = '/'
 // Returns if the path was absolute or relative.
 func SplitPath(tpath string) (out []string, isAbsolute bool) {
 	tpath = path.Clean(tpath)
-	if len(tpath) != 0 && tpath[0] == PathSeparator {
+	if len(tpath) >= 1 && tpath[0] == PathSeparator {
 		isAbsolute = true
 		tpath = tpath[1:]
+	}
+	if len(tpath) >= 2 && tpath[0] == '.' && tpath[1] == PathSeparator {
+		tpath = tpath[2:]
 	}
 	if len(tpath) == 0 {
 		return nil, isAbsolute
 	}
-	out = strings.Split(tpath, string([]rune{PathSeparator}))
-	if len(out) == 1 && out[0] == "." {
-		out = nil
-	}
-	return out, isAbsolute
+	return strings.Split(tpath, string([]rune{PathSeparator})), isAbsolute
 }
 
 // JoinPath joins a list of path components to a path.
