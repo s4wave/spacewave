@@ -489,23 +489,3 @@ export function useMemoDeepEqual<T>(
   }, [memoEquiv, value])
   return memoEquiv ? memoValue : value
 }
-
-// useMemoDeepEqualGetter checks if the given value is deep equal to the
-// memoized value and returns the memoized value if so.
-export function useMemoDeepEqualGetter<T>(
-  valueGetter: () => T,
-  checkEqual: (v1: T, v2: T) => boolean = isDeepEqual,
-): T {
-  const value = valueGetter()
-  const [memoValue, setMemoValue] = useState<T>(() => value)
-  const memoEquiv = useMemo(
-    () => value === memoValue || checkEqual(value, memoValue),
-    [memoValue, value, checkEqual],
-  )
-  useEffect(() => {
-    if (!memoEquiv) {
-      setMemoValue(value)
-    }
-  }, [memoEquiv, value])
-  return memoEquiv ? memoValue : value
-}
