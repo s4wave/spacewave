@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import isEqual from 'lodash.isequal'
+import isDeepEqual from 'lodash.isequal'
 import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 
@@ -296,7 +296,7 @@ export function useItState<T>(
   const update = useCallback((getNextState: GetStateFunc<T>) => {
     setState((prev) => {
       const next = getNextState()
-      if (typeof next === 'undefined' || next === prev || isEqual(next, prev)) {
+      if (typeof next === 'undefined' || next === prev || isDeepEqual(next, prev)) {
         return prev
       }
       return next
@@ -507,7 +507,7 @@ export function useMemoDeepEqualGetter<T, V = T>(
     () => value === memoValue || checkEqual(value, memoValue),
     [value, memoValue, checkEqual],
   )
-  const outValue = memoEquiv ? memoValue : getter(value)
+  const outValue = memoEquiv ? memoState.outValue : getter(value)
   useEffect(() => {
     if (!memoEquiv) {
       setMemoState({ memoValue: value, outValue: outValue })
