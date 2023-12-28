@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/paralin/esbuild v0.19.11-0.20231223145517-0dee275347ed // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231225053648-c7c247467f8f // master
+require github.com/aperturerobotics/hydra v0.0.0-20231228035939-a438e50b7716 // master
 
 require (
 	github.com/evanw/esbuild v0.19.10 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.20 // master
+require github.com/aperturerobotics/bifrost v0.18.22 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -89,7 +89,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
-	github.com/urfave/cli/v2 v2.26.0
+	github.com/urfave/cli/v2 v2.27.0
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.17.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
@@ -108,7 +108,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
 	golang.org/x/mod v0.14.0
 	golang.org/x/sync v0.5.0
 	golang.org/x/tools v0.16.1
@@ -209,7 +209,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/xtaci/smux/v2 v2.1.0 // indirect
+	github.com/xtaci/smux v1.5.24 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.8 // indirect
 	go.opencensus.io v0.24.0 // indirect
