@@ -37,7 +37,7 @@ func JoinPath(pathc []string, isAbsolute bool) string {
 
 // JoinPathPts joins multiple path parts slices.
 // (concats the slices together)
-func JoinPathPts(pts [][]string) []string {
+func JoinPathPts(pts ...[]string) []string {
 	if len(pts) == 0 {
 		return nil
 	}
