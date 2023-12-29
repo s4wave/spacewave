@@ -34,3 +34,18 @@ func JoinPath(pathc []string, isAbsolute bool) string {
 	}
 	return path.Clean(p)
 }
+
+// JoinPathPts joins multiple path parts slices.
+// (concats the slices together)
+func JoinPathPts(pts [][]string) []string {
+	if len(pts) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(pts)*len(pts[0]))
+	for _, pti := range pts {
+		for _, pt := range pti {
+			out = append(out, pt)
+		}
+	}
+	return out
+}
