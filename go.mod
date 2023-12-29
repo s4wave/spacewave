@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.18.22 // master
+require github.com/aperturerobotics/bifrost v0.18.23-0.20231228221002-0ec384a1106d // master
 
 // aperture: use ext-engines forks
 replace (
@@ -68,7 +68,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.12.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.7 // indirect
 	github.com/nats-io/nats.go v1.31.0 // indirect
-	github.com/nats-io/nkeys v0.4.6 // indirect
+	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.19

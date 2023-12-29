@@ -61,8 +61,8 @@ github.com/acomagu/bufpipe v1.0.4/go.mod h1:mxdxdup/WdsKVreO5GpW4+M/1CE2sMG4jeGJ
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
-github.com/aperturerobotics/bifrost v0.18.22 h1:qnmHMjfAE48/nZ4mfo12Wgcq2nyOP9lAz9OaRom6lOY=
-github.com/aperturerobotics/bifrost v0.18.22/go.mod h1:GdzFV0jrlmP9sSVJXTi7Kl/2fwF72ZoXNrr5YAdvdQo=
+github.com/aperturerobotics/bifrost v0.18.23-0.20231228221002-0ec384a1106d h1:+SekQrlp8+Wz1ZSvNtNGhEQPkDmADuw86uK37DYuX4M=
+github.com/aperturerobotics/bifrost v0.18.23-0.20231228221002-0ec384a1106d/go.mod h1:zIfjboe/b/cECWM6or6AvYi3DhTmoN7VmXKRT9p7b+Q=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
