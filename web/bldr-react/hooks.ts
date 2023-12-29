@@ -170,55 +170,9 @@ export function useLatestRef<T>(
   return ref
 }
 
-// isUint8ArrayEqual checks if two Uint8Array are equal.
-export function isUint8ArrayEqual(
-  v1: Uint8Array | null,
-  v2: Uint8Array | null,
-) {
-  // Check if they are equal by js reference.
-  if (v1 === v2) {
-    return true
-  }
-
-  // Check if both arrays are null
-  if (v1 === null && v2 === null) {
-    return true
-  }
-
-  // Check if only one of the arrays is null
-  if (v1 === null || v2 === null) {
-    return false
-  }
-
-  // Check if the arrays are the same length
-  if (v1.length !== v2.length) {
-    return false
-  }
-
-  // Compare each element
-  for (let i = 0; i < v1.length; i++) {
-    if (v1[i] !== v2[i]) {
-      return false
-    }
-  }
-
-  // Arrays are equal
-  return true
-}
-
 // useMemoUint8Array memoizes a uint8array.
 export function useMemoUint8Array(value: Uint8Array | null): Uint8Array | null {
-  const [memoValue, setMemoValue] = useState(() => value)
-  const memoEquiv = useMemo(
-    () => isUint8ArrayEqual(value, memoValue),
-    [value, memoValue],
-  )
-  useEffect(() => {
-    if (!memoEquiv) {
-      setMemoValue(value)
-    }
-  }, [memoEquiv, value])
-  return memoEquiv ? memoValue : value
+  return useMemoDeepEqual(value)
 }
 
 // MouseEvent and other events satisfy this.
