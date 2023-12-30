@@ -282,7 +282,6 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           componentProps={webViewState.props}
         />
       ) : undefined}
-      <br />
     </BldrContext.Provider>
   )
 }
