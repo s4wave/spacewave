@@ -27,6 +27,7 @@ func (m *SetRenderModeRequest) CloneVT() *SetRenderModeRequest {
 	r := &SetRenderModeRequest{
 		RenderMode: m.RenderMode,
 		ScriptPath: m.ScriptPath,
+		Refresh:    m.Refresh,
 	}
 	if rhs := m.Props; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
@@ -172,6 +173,9 @@ func (this *SetRenderModeRequest) EqualVT(that *SetRenderModeRequest) bool {
 		return false
 	}
 	if string(this.Props) != string(that.Props) {
+		return false
+	}
+	if this.Refresh != that.Refresh {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -350,6 +354,16 @@ func (m *SetRenderModeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Refresh {
+		i--
+		if m.Refresh {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.Props) > 0 {
 		i -= len(m.Props)
@@ -664,6 +678,9 @@ func (m *SetRenderModeRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + sov(uint64(l))
 	}
+	if m.Refresh {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -881,6 +898,26 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 				m.Props = []byte{}
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refresh", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Refresh = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skip(dAtA[iNdEx:])

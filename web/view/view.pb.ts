@@ -71,6 +71,8 @@ export interface SetRenderModeRequest {
   scriptPath: string
   /** Props is a protobuf message passed as properties to the renderer/component. */
   props: Uint8Array
+  /** Refresh clears the existing contents of the view fully before loading the new script. */
+  refresh: boolean
 }
 
 /** SetRenderModeResponse is the response to the SetRenderMode request. */
@@ -115,7 +117,12 @@ export interface RemoveWebViewResponse {
 }
 
 function createBaseSetRenderModeRequest(): SetRenderModeRequest {
-  return { renderMode: 0, scriptPath: '', props: new Uint8Array(0) }
+  return {
+    renderMode: 0,
+    scriptPath: '',
+    props: new Uint8Array(0),
+    refresh: false,
+  }
 }
 
 export const SetRenderModeRequest = {
@@ -131,6 +138,9 @@ export const SetRenderModeRequest = {
     }
     if (message.props.length !== 0) {
       writer.uint32(26).bytes(message.props)
+    }
+    if (message.refresh === true) {
+      writer.uint32(32).bool(message.refresh)
     }
     return writer
   },
@@ -166,6 +176,13 @@ export const SetRenderModeRequest = {
           }
 
           message.props = reader.bytes()
+          continue
+        case 4:
+          if (tag !== 32) {
+            break
+          }
+
+          message.refresh = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -223,6 +240,9 @@ export const SetRenderModeRequest = {
       props: isSet(object.props)
         ? bytesFromBase64(object.props)
         : new Uint8Array(0),
+      refresh: isSet(object.refresh)
+        ? globalThis.Boolean(object.refresh)
+        : false,
     }
   },
 
@@ -236,6 +256,9 @@ export const SetRenderModeRequest = {
     }
     if (message.props.length !== 0) {
       obj.props = base64FromBytes(message.props)
+    }
+    if (message.refresh === true) {
+      obj.refresh = message.refresh
     }
     return obj
   },
@@ -252,6 +275,7 @@ export const SetRenderModeRequest = {
     message.renderMode = object.renderMode ?? 0
     message.scriptPath = object.scriptPath ?? ''
     message.props = object.props ?? new Uint8Array(0)
+    message.refresh = object.refresh ?? false
     return message
   },
 }

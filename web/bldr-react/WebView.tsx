@@ -57,6 +57,8 @@ interface IWebViewState {
   // renderMode is the current rendering mode.
   // defaults to NONE.
   renderMode?: RenderMode
+  // refreshNonce is the number of times we have refreshed.
+  refreshNonce: number
   // scriptPath is the script path to lazy load.
   scriptPath?: string
   // props is the binary props field.
@@ -106,6 +108,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const [webViewState, setWebViewState] = useState<IWebViewState>(() => ({
     renderMode: RenderMode.RenderMode_NONE,
     htmlLinks: [],
+    refreshNonce: 0,
   }))
 
   // onRemoveRef is a ref to the latest onRemove callback
@@ -136,6 +139,9 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
+          refreshNonce: options.refresh
+            ? prev.refreshNonce + 1
+            : prev.refreshNonce,
           scriptPath:
             (options.renderMode !== RenderMode.RenderMode_NONE &&
               options.scriptPath?.trim()) ||
@@ -268,7 +274,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
         !!webViewState.scriptPath && (
           <ReactComponentContainer
-            key={webViewState.scriptPath}
+            key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
             scriptPath={webViewState.scriptPath}
             componentProps={webViewState.props}
           />
@@ -277,7 +283,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
       webViewState.scriptPath ? (
         <FunctionComponentContainer
-          key={webViewState.scriptPath}
+          key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
           scriptPath={webViewState.scriptPath}
           componentProps={webViewState.props}
         />

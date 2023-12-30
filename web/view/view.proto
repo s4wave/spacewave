@@ -47,6 +47,9 @@ message SetRenderModeRequest {
 
   // Props is a protobuf message passed as properties to the renderer/component.
   bytes props = 3;
+
+  // Refresh clears the existing contents of the view fully before loading the new script.
+  bool refresh = 4;
 }
 
 // SetRenderModeResponse is the response to the SetRenderMode request.

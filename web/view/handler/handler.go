@@ -51,7 +51,10 @@ func NewViaBusHandler(le *logrus.Entry, b bus.Bus, returnIfErr bool) WebViewHand
 // NewSetRenderMode builds a new handler that sets the render mode.
 //
 // le can be nil
-func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest) WebViewHandler {
+func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest, opts ...func(r *web_view.SetRenderModeRequest)) WebViewHandler {
+	for _, opt := range opts {
+		opt(req)
+	}
 	return func(
 		ctx context.Context,
 		webView web_view.WebView,
@@ -65,20 +68,22 @@ func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest) WebV
 	}
 }
 
+// SetRenderModeWithRefresh is an option to enable Clear on SetRenderMode.
+func SetRenderModeWithRefresh() func(m *web_view.SetRenderModeRequest) {
+	return func(r *web_view.SetRenderModeRequest) {
+		r.Refresh = true
+	}
+}
+
 // NewSetReactComponent builds a handler that sets a react component.
 //
 // le can be empty
 func NewSetReactComponent(le *logrus.Entry, scriptPath string, props []byte, opts ...func(r *web_view.SetRenderModeRequest)) WebViewHandler {
-	req := &web_view.SetRenderModeRequest{
+	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 		ScriptPath: scriptPath,
 		Props:      props,
-		Clear:      true,
-	}
-	for _, opt := range opts {
-		opt(req)
-	}
-	return NewSetRenderMode(le, req)
+	}, opts...)
 }
 
 // NewSetFunctionComponent builds a handler that sets a function callback component.
