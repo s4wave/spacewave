@@ -295,8 +295,7 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 	return h.i().lookup(ctx, name)
 }
 
-// LookupPath recursively traverses the path, returning a handle pointing to the target.
-// Returns the subset of filePath that was traversed.
+// LookupPath looks up a path and returns the last FSHandle that was traversed.
 //
 // Use empty string "" or / for the root.
 // Returns ErrNotExist if the entry was not found.
@@ -304,33 +303,56 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 //
 // ErrNotExist is returned if not found and the FSHandle of the parent of the
 // element, and the subset of pathParts that is the path to the returned node.
+//
 // Check if fsHandle is not nil and release it even if an error is returned.
 func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, []string, error) {
-	filePath = path.Clean(filePath)
-	if filePath == "/" || filePath == "." {
-		filePath = ""
-	}
-	if filePath != "" && filePath[0] == PathSeparator {
-		filePath = filePath[1:]
-	}
-	if filePath != "" && !fs.ValidPath(filePath) {
+	// ignore absolute paths: treat them as relative to ./
+	pathParts, _, err := CleanSplitValidatePath(filePath)
+	if err != nil {
 		return nil, nil, &fs.PathError{
 			Op:   "lookup",
 			Path: filePath,
-			Err:  fs.ErrInvalid,
+			Err:  err,
 		}
 	}
 
-	// ignore absolute paths: treat them as relative to ./
-	pathParts, _ := SplitPath(filePath)
 	return h.LookupPathPts(ctx, pathParts)
 }
 
-// LookupPathPts looks up a path with the path components split into parts.
-// Returns the subset of pathParts that were traversed.
+// LookupPathHandles recursively traverses the path, returning a handle pointing
+// to the target. Returns the subset of filePath that was traversed.
+//
+// Use empty string "" or / for the root.
+// Returns ErrNotExist if the entry was not found.
+// Returns ErrReleased if the handle has been released.
 //
 // ErrNotExist is returned if not found and the FSHandle of the parent of the
 // element, and the subset of pathParts that is the path to the returned node.
+//
+// Check if fsHandle is not nil and release it even if an error is returned.
+func (h *FSHandle) LookupPathHandles(ctx context.Context, filePath string) ([]*FSHandle, []string, error) {
+	// ignore absolute paths: treat them as relative to ./
+	pathParts, _, err := CleanSplitValidatePath(filePath)
+	if err != nil {
+		return nil, nil, &fs.PathError{
+			Op:   "lookup",
+			Path: filePath,
+			Err:  err,
+		}
+	}
+
+	return h.LookupPathPtsHandles(ctx, pathParts)
+}
+
+// LookupPathPts looks up a path and returns the subset of pathParts that were
+// traversed.
+//
+// All handles in the path except for the returned one are released. The caller
+// only needs to release the returned handle, if any.
+//
+// ErrNotExist is returned if not found and the FSHandle of the parent of the
+// element, and the subset of pathParts that is the path to the returned node.
+//
 // Check if fsHandle is not nil and release it even if an error is returned.
 func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHandle, []string, error) {
 	outHandle, err := h.Clone(ctx)
@@ -338,7 +360,8 @@ func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHa
 		return nil, nil, err
 	}
 	for i, pathPart := range pathParts {
-		if pathPart == "." {
+		// these should not be given but handle it anyway
+		if pathPart == "." || pathPart == "" {
 			continue
 		}
 
@@ -350,6 +373,47 @@ func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHa
 		outHandle = nh
 	}
 	return outHandle, pathParts, nil
+}
+
+// LookupPathPtsHandles looks up a path and returns the subset of pathParts that
+// were traversed.
+//
+// Returns the FSHandles for each part of pathParts plus index 0 for a clone of h.
+//
+// Unlike LookupPathPts, the handles in the list are not released, and the
+// caller is therefore responsible for releasing all of the handles when done.
+//
+// ErrNotExist is returned if not found and the FSHandle of the parent of the
+// element, and the subset of pathParts that is the path to the returned node.
+// Check if handles is empty and release them even if an error is returned.
+func (h *FSHandle) LookupPathPtsHandles(ctx context.Context, pathParts []string) ([]*FSHandle, []string, error) {
+	currHandle, err := h.Clone(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	handles := make([]*FSHandle, 1, len(pathParts)+1)
+	handles[0] = currHandle
+
+	for i, pathPart := range pathParts {
+		// these should not be given but handle it anyway
+		if pathPart == "." || pathPart == "" {
+			continue
+		}
+
+		nextHandle, err := currHandle.Lookup(ctx, pathPart)
+		if err != nil {
+			if nextHandle != nil {
+				nextHandle.Release()
+			}
+			return handles, pathParts[:i], err
+		}
+
+		currHandle = nextHandle
+		handles = append(handles, nextHandle)
+	}
+
+	return handles, pathParts, nil
 }
 
 // Mknod creates child entries in a directory.

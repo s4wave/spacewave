@@ -1,6 +1,7 @@
 package unixfs
 
 import (
+	"io/fs"
 	"path"
 	"strings"
 )
@@ -48,4 +49,21 @@ func JoinPathPts(pts ...[]string) []string {
 		}
 	}
 	return out
+}
+
+// CleanSplitValidatePath cleans a path, splits it, and validates it.
+func CleanSplitValidatePath(filePath string) (pathPts []string, isAbsolute bool, err error) {
+	filePath = path.Clean(filePath)
+	if filePath == "/" || filePath == "." {
+		filePath = ""
+	}
+	if filePath != "" && filePath[0] == PathSeparator {
+		filePath = filePath[1:]
+	}
+	if filePath != "" && !fs.ValidPath(filePath) {
+		return nil, false, fs.ErrInvalid
+	}
+
+	pathPts, isAbsolute = SplitPath(filePath)
+	return pathPts, isAbsolute, nil
 }
