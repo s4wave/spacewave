@@ -3,7 +3,6 @@ package unixfs
 import (
 	"context"
 	"io/fs"
-	"path"
 	"sync"
 	"sync/atomic"
 	"time"
