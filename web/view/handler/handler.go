@@ -68,12 +68,17 @@ func NewSetRenderMode(le *logrus.Entry, req *web_view.SetRenderModeRequest) WebV
 // NewSetReactComponent builds a handler that sets a react component.
 //
 // le can be empty
-func NewSetReactComponent(le *logrus.Entry, scriptPath string, props []byte) WebViewHandler {
-	return NewSetRenderMode(le, &web_view.SetRenderModeRequest{
+func NewSetReactComponent(le *logrus.Entry, scriptPath string, props []byte, opts ...func(r *web_view.SetRenderModeRequest)) WebViewHandler {
+	req := &web_view.SetRenderModeRequest{
 		RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
 		ScriptPath: scriptPath,
 		Props:      props,
-	})
+		Clear:      true,
+	}
+	for _, opt := range opts {
+		opt(req)
+	}
+	return NewSetRenderMode(le, req)
 }
 
 // NewSetFunctionComponent builds a handler that sets a function callback component.
