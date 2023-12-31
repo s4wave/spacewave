@@ -12,13 +12,13 @@ require (
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/planetscale/vtprotobuf v0.5.0
 	github.com/psampaz/go-mod-outdated v0.8.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
 	github.com/aperturerobotics/forge v0.0.0-20230323064609-ef33d0da16d1
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.22.0
+	github.com/aperturerobotics/starpc v0.22.5
 	github.com/evanw/esbuild v0.16.16
 )
 
@@ -36,12 +36,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.18.13 // indirect
-	github.com/aperturerobotics/controllerbus v0.30.12 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231219225515-bf996307f586 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20231111111037-501708c5a999 // indirect
+	github.com/aperturerobotics/bifrost v0.19.0 // indirect
+	github.com/aperturerobotics/controllerbus v0.31.2 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231231031610-334cbc250212 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20231231024432-166a2bb9b3db // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
-	github.com/aperturerobotics/util v1.8.2 // indirect
+	github.com/aperturerobotics/util v1.11.1 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -226,7 +226,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
