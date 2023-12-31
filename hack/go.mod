@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 replace github.com/aperturerobotics/bldr => ../
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.31.1-0.20231012212426-9cf9f0f94f47 // aperture
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.54.1
@@ -18,7 +18,7 @@ require (
 require (
 	github.com/aperturerobotics/bldr v0.0.0-20230728003220-9c25eacad913
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.22.5-0.20231223070228-835ffe09e3e7
+	github.com/aperturerobotics/starpc v0.22.5
 	github.com/evanw/esbuild v0.19.10
 )
 
@@ -37,9 +37,9 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231229035310-c17b05e53d4e // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20231231031610-334cbc250212 // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
-	github.com/aperturerobotics/util v1.10.1 // indirect
+	github.com/aperturerobotics/util v1.11.1 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

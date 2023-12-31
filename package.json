@@ -57,7 +57,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.8.0",
+    "@aperturerobotics/ts-common": "^0.8.2",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.46",
@@ -69,12 +69,12 @@
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.5",
     "ts-poet": "6.6.0",
-    "ts-proto": "^1.165.3",
+    "ts-proto": "^1.166.1",
     "typescript": "^5.3.3",
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@libp2p/logger": "^4.0.2",
+    "@libp2p/logger": "^4.0.3",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
     "electron": "^28.1.0",
@@ -85,8 +85,7 @@
     "protobufjs": "^7.2.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.22.4",
-    "uint8arraylist": "^2.4.7",
+    "starpc": "^0.22.5",
     "workbox-window": "^7.0.0"
   }
 }
