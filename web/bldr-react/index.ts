@@ -13,7 +13,6 @@ export {
   useAbortSignalEffect,
   useRetryWithAbort,
   useLatestRef,
-  isUint8ArrayEqual,
   useMemoUint8Array,
   useDetailCountHandler,
   GetSnapshotFunc,
