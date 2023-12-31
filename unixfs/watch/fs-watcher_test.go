@@ -2,6 +2,7 @@ package unixfs_watch
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -73,16 +74,18 @@ func TestFSWatcher(t *testing.T) {
 
 	// the callback is called whenever the fs changes
 	callbackCalled := make(chan error, 1)
+	var callbackCalledTimes atomic.Int32
 	fsWatcherCb := func(
 		ctx context.Context,
 		fsTargetPath []string,
 		fsError error,
 		fsPath []string,
-		fsHandle *unixfs.FSHandle,
+		fsHandles []*unixfs.FSHandle,
 		fsCursor unixfs.FSCursor,
 		fsOps unixfs.FSCursorOps,
 	) error {
-		tb.Logger.Infof("fs-watcher: callback called: %v, %v", fsError, fsPath)
+		times := callbackCalledTimes.Add(1)
+		tb.Logger.Infof("fs-watcher: callback called %d times: %v, %v", times, fsError, fsPath)
 		select {
 		case callbackCalled <- fsError:
 		default:
@@ -108,7 +111,7 @@ func TestFSWatcher(t *testing.T) {
 	assertNotCalled := func() {
 		select {
 		case <-callbackCalled:
-			t.Fail()
+			t.Fatal("callback was called but expected not called")
 		case <-time.After(time.Millisecond * 100):
 		}
 	}
