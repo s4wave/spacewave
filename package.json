@@ -1,5 +1,5 @@
 {
-  "name": "@aperturerobotics/identity",
+  "name": "@aperturerobotics/auth",
   "description": "Peer-to-peer authentication.",
   "version": "0.0.0",
   "private": true,
@@ -16,7 +16,7 @@
     }
   ],
   "repository": {
-    "url": "git+ssh://git@github.com/aperturerobotics/hydra.git"
+    "url": "git+ssh://git@github.com/aperturerobotics/auth.git"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",
@@ -42,24 +42,20 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.6.4",
-    "@typescript-eslint/eslint-plugin": "^6.4.0",
-    "@typescript-eslint/parser": "^6.4.0",
+    "@aperturerobotics/ts-common": "^0.8.1",
     "depcheck": "^1.4.3",
-    "eslint": "^8.47.0",
-    "eslint-config-prettier": "^9.0.0",
     "patch-package": "^8.0.0",
-    "prettier": "^3.0.2",
+    "prettier": "^3.1.1",
     "ts-poet": "6.6.0",
-    "ts-proto": "^1.156.7",
-    "typescript": "^5.1.6"
+    "ts-proto": "^1.166.1",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@aperturerobotics/ts-proto-common-types": "^0.2.0",
+    "@aperturerobotics/ts-proto-common-types": "^0.2.2",
     "bufferutil": "^4.0.7",
     "long": "^5.2.3",
     "protobufjs": "^7.2.4",
-    "starpc": "^0.21.3",
+    "starpc": "^0.22.4",
     "utf-8-validate": "^6.0.3"
   }
 }

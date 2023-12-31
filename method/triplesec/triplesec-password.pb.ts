@@ -78,12 +78,12 @@ export const Parameters = {
       | Iterable<Parameters | Parameters[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Parameters.encode(p).finish()]
         }
       } else {
-        yield* [Parameters.encode(pkt).finish()]
+        yield* [Parameters.encode(pkt as any).finish()]
       }
     }
   },
@@ -96,12 +96,12 @@ export const Parameters = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Parameters> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Parameters.decode(p)]
         }
       } else {
-        yield* [Parameters.decode(pkt)]
+        yield* [Parameters.decode(pkt as any)]
       }
     }
   },
@@ -111,7 +111,7 @@ export const Parameters = {
       salt: isSet(object.salt)
         ? bytesFromBase64(object.salt)
         : new Uint8Array(0),
-      version: isSet(object.version) ? Number(object.version) : 0,
+      version: isSet(object.version) ? globalThis.Number(object.version) : 0,
     }
   },
 
@@ -171,12 +171,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -189,12 +189,12 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
@@ -217,30 +217,11 @@ export const Config = {
   },
 }
 
-declare const self: any | undefined
-declare const window: any | undefined
-declare const global: any | undefined
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') {
-    return globalThis
-  }
-  if (typeof self !== 'undefined') {
-    return self
-  }
-  if (typeof window !== 'undefined') {
-    return window
-  }
-  if (typeof global !== 'undefined') {
-    return global
-  }
-  throw 'Unable to locate global object'
-})()
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, 'base64'))
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
-    const bin = tsProtoGlobalThis.atob(b64)
+    const bin = globalThis.atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i)
@@ -250,14 +231,14 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString('base64')
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte))
+      bin.push(globalThis.String.fromCharCode(byte))
     })
-    return tsProtoGlobalThis.btoa(bin.join(''))
+    return globalThis.btoa(bin.join(''))
   }
 }
 
@@ -273,18 +254,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
