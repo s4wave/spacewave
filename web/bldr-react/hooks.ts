@@ -487,7 +487,7 @@ export function setDeepEqual<S>(next: S): (prevState: S | null) => S {
 // If the rpc function passed is null, returns null for the value.
 // Restarts the RPC if the rpc function changes.
 export function useWatchStateRpc<T>(
-  watchStateRpc: (abortSignal: AbortSignal) => AsyncIterable<T>,
+  watchStateRpc: ((abortSignal: AbortSignal) => AsyncIterable<T>) | null | undefined,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
 ): T | null {
