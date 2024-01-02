@@ -250,7 +250,11 @@ export function useItState<T>(
   const update = useCallback((getNextState: GetStateFunc<T>) => {
     setState((prev) => {
       const next = getNextState()
-      if (typeof next === 'undefined' || next === prev || isDeepEqual(next, prev)) {
+      if (
+        typeof next === 'undefined' ||
+        next === prev ||
+        isDeepEqual(next, prev)
+      ) {
         return prev
       }
       return next
@@ -468,4 +472,45 @@ export function useMemoDeepEqualGetter<T, V = T>(
     }
   }, [memoEquiv, value, outValue])
   return outValue
+}
+
+// setDeepEqual generates a setter which checks if the two values are deep-equal.
+export function setDeepEqual<S>(next: S): (prevState: S | null) => S {
+  return (prev: S | null): S => {
+    if (!prev) return next
+    return prev === next || isDeepEqual(prev, next) ? prev : next
+  }
+}
+
+// useWatchStateRpc uses a RPC function which returns an updated value when the state changes.
+// Returns the latest message returned by the RPC call.
+// If the rpc function passed is null, returns null for the value.
+// Restarts the RPC if the rpc function changes.
+export function useWatchStateRpc<T>(
+  watchStateRpc: (abortSignal: AbortSignal) => AsyncIterable<T>,
+  retryOpts?: RetryOpts,
+  deps?: DependencyList,
+): T | null {
+  const [currValue, setCurrValue] = useState<T | null>(null)
+  const handleValue = useCallback(
+    (nextValue: T) => setCurrValue(setDeepEqual<T | null>(nextValue)),
+    [],
+  )
+
+  useRetryWithAbort(
+    async (signal) => {
+      if (!watchStateRpc) {
+        setCurrValue(null)
+        return
+      }
+      const stream = watchStateRpc(signal)
+      for await (const resp of stream) {
+        handleValue(resp)
+      }
+    },
+    retryOpts,
+    [watchStateRpc, ...(deps ?? [])],
+  )
+
+  return currValue === null || !watchStateRpc ? null : currValue
 }
