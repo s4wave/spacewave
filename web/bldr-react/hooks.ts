@@ -487,7 +487,10 @@ export function setDeepEqual<S>(next: S): (prevState: S | null) => S {
 // If the rpc function passed is null, returns null for the value.
 // Restarts the RPC if the rpc function changes.
 export function useWatchStateRpc<T>(
-  watchStateRpc: ((abortSignal: AbortSignal) => AsyncIterable<T>) | null | undefined,
+  watchStateRpc:
+    | ((abortSignal: AbortSignal) => AsyncIterable<T>)
+    | null
+    | undefined,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
 ): T | null {
@@ -513,4 +516,35 @@ export function useWatchStateRpc<T>(
   )
 
   return currValue === null || !watchStateRpc ? null : currValue
+}
+
+// useSetValueRpc uses a RPC function which sets the given value via an rpc when it changes.
+// If the value, setValueRpc, or deps change the function will be called again.
+// Returns if the state has been set successfully yet.
+export function useSetValueRpc<T>(
+  value: T,
+  setValueRpc:
+    | ((value: T, abortSignal: AbortSignal) => Promise<void>)
+    | null
+    | undefined,
+  retryOpts?: RetryOpts,
+  deps?: DependencyList,
+): boolean {
+  const currValue = useMemoDeepEqual(value)
+  const [wasSet, setWasSet] = useState(false)
+
+  useRetryWithAbort(
+    async (signal) => {
+      if (!setValueRpc) {
+        setWasSet(false)
+        return
+      }
+      await setValueRpc(currValue, signal)
+      setWasSet(true)
+    },
+    retryOpts,
+    [setValueRpc, currValue, ...(deps ?? [])],
+  )
+
+  return wasSet
 }
