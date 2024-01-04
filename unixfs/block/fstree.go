@@ -298,7 +298,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 	var skipBitset bitset.BitSet
 	indexes := make([]int, len(dirs))
 	for i := 0; i < len(dirs); i++ {
-		if err := ValidateDirectoryName(dirs[i]); err != nil {
+		if err := ValidateDirentName(dirs[i]); err != nil {
 			return nil, indexes, err
 		}
 
@@ -426,7 +426,7 @@ func (f *FSTree) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 
 // SetDirent creates or overrides a directory pointing to the node.
 func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) error {
-	if err := ValidateDirectoryName(name); err != nil {
+	if err := ValidateDirentName(name); err != nil {
 		return err
 	}
 

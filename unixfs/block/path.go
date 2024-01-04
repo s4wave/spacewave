@@ -35,7 +35,7 @@ func (p *FSPath) Validate(allowEmpty bool, allowAbsolute bool) error {
 		return unixfs_errors.ErrAbsolutePath
 	}
 	for _, dir := range p.GetNodes() {
-		if err := ValidateDirectoryName(dir); err != nil {
+		if err := ValidateDirentName(dir); err != nil {
 			return err
 		}
 	}

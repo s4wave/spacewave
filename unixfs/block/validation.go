@@ -1,8 +1,10 @@
 package unixfs_block
 
 import (
+	"strings"
 	"unicode/utf8"
 
+	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/pkg/errors"
 )
 
@@ -15,13 +17,13 @@ var (
 	ErrDirectoryNameEmpty = errors.New("directory name cannot be empty")
 )
 
-// ValidateDirectoryName checks if the directory name is valid.
+// ValidateDirentName checks if the directory entry name is valid.
 // Names must be UTF-8 characters.
 // Not allowed: /, \, /, :, *, ", <, >, |
 // Reserved: "..", "."
 //
 // POSIX: a-z, A-Z, 0-9, ., _, -, or space.
-func ValidateDirectoryName(name string) error {
+func ValidateDirentName(name string) error {
 	if name == "" {
 		return ErrDirectoryNameEmpty
 	}
@@ -30,6 +32,9 @@ func ValidateDirectoryName(name string) error {
 	}
 	if name == ".." || name == "." {
 		return ErrDirectoryNameInvalidReserved
+	}
+	if strings.ContainsRune(name, unixfs.PathSeparator) {
+		return errors.Errorf("name cannot contain path separator %s: %s", string([]rune{unixfs.PathSeparator}), name)
 	}
 	return nil
 }
