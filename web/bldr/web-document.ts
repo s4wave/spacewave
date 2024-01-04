@@ -392,11 +392,11 @@ export class WebDocument {
     if (!channelStream.isOpen) {
       const msg = `WebDocument: ${this.webDocumentUuid}: timeout opening stream with WebDocumentHost`
       console.warn(msg)
-      throw new Error(
-        msg,
-      )
+      throw new Error(msg)
     }
-    console.log(`WebDocument: ${this.webDocumentUuid}: opened stream with WebDocumentHost`)
+    console.log(
+      `WebDocument: ${this.webDocumentUuid}: opened stream with WebDocumentHost`,
+    )
     return channelStream
   }
 
@@ -556,7 +556,7 @@ export class WebDocument {
 
     // workaround for ctrl + shift + r disabling service workers
     // https://web.dev/service-worker-lifecycle/#shift-reload
-    if (wbReg && navigator.serviceWorker.controller === null) {
+    if (wbReg && !navigator.serviceWorker.controller) {
       console.error('WebDocument: detected ctrl+shift+r: reloading page')
       location.reload()
       throw new Error('page loaded with cache disabled: ctrl+shift+r')

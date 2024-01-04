@@ -515,14 +515,15 @@ export function useWatchStateRpc<T>(
     [watchStateRpc, ...(deps ?? [])],
   )
 
-  return currValue === null || !watchStateRpc ? null : currValue
+  return currValue == null || !watchStateRpc ? null : currValue
 }
 
 // useSetValueRpc uses a RPC function which sets the given value via an rpc when it changes.
 // If the value, setValueRpc, or deps change the function will be called again.
 // Returns if the state has been set successfully yet.
+// If the value is null or undefined: does nothing.
 export function useSetValueRpc<T>(
-  value: T,
+  value: T | null | undefined,
   setValueRpc:
     | ((value: T, abortSignal: AbortSignal) => Promise<void>)
     | null
@@ -535,7 +536,7 @@ export function useSetValueRpc<T>(
 
   useRetryWithAbort(
     async (signal) => {
-      if (!setValueRpc) {
+      if (!setValueRpc || currValue == null) {
         setWasSet(false)
         return
       }
