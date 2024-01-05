@@ -68,8 +68,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20240105091744-49258bc983f0 h1:YY6Ig0u7yzmXjdJzEq6ii/JQQFg34ERABOOkAJp+mwQ=
-github.com/aperturerobotics/hydra v0.0.0-20240105091744-49258bc983f0/go.mod h1:QvdqGqoGehfA1Fz5VXA5h4XO0WS7mqZCZEzG+792QY0=
+github.com/aperturerobotics/hydra v0.0.0-20240105204357-a80fc2373571 h1:RWvmIP5AguRUrNLsvF0LqXcnEm0Xy/AXBgVRspZfLT8=
+github.com/aperturerobotics/hydra v0.0.0-20240105204357-a80fc2373571/go.mod h1:gieb0Ibnva42gQNJ5LwrWQjpSALTy9AGqiXZ9GSmQ34=
 github.com/aperturerobotics/starpc v0.22.5 h1:/3T5pl9Te5zDM9eo3Rj7OWsUwYpq7M5WoCL00ILLTMY=
 github.com/aperturerobotics/starpc v0.22.5/go.mod h1:H5mynRN+LX7IHEdTvtKykUWD5izb7GuSpwNpIiATg4g=
 github.com/aperturerobotics/timestamp v0.8.2 h1:+HA/uI9ZGz8qqim+kkXqz3cijR8kMcQ4/ZRTw5fW7yI=
@@ -130,8 +130,8 @@ github.com/esimonov/ifshort v1.0.4 h1:6SID4yGWfRae/M7hkVDVVyppy8q/v9OuxNdmjLQStB
 github.com/esimonov/ifshort v1.0.4/go.mod h1:Pe8zjlRrJ80+q2CxHLfEOfTwxCZ4O+MuhcHcfgNWTk0=
 github.com/ettle/strcase v0.1.1 h1:htFueZyVeE1XNnMEfbqp5r67qAN/4r6ya1ysq8Q+Zcw=
 github.com/ettle/strcase v0.1.1/go.mod h1:hzDLsPC7/lwKyBOywSHEP89nt2pDgdy+No1NBA9o9VY=
-github.com/evanw/esbuild v0.19.10 h1:5x990xPJSRtP0xwIz0Wzf4+ObaEWARNA77+PUrPAnwI=
-github.com/evanw/esbuild v0.19.10/go.mod h1:D2vIQZqV/vIf/VRHtViaUtViZmG7o+kKmlBfVQuRi48=
+github.com/evanw/esbuild v0.19.11 h1:mbPO1VJ/df//jjUd+p/nRLYCpizXxXb2w/zZMShxa2k=
+github.com/evanw/esbuild v0.19.11/go.mod h1:D2vIQZqV/vIf/VRHtViaUtViZmG7o+kKmlBfVQuRi48=
 github.com/fatih/color v1.16.0 h1:zmkK9Ngbjj+K0yRhTVONQh1p/HknKYSlNT+vZCzyokM=
 github.com/fatih/color v1.16.0/go.mod h1:fL2Sau1YI5c0pdGEVCbKQbLXB6edEj1ZgiY4NijnWvE=
 github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
