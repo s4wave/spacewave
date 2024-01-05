@@ -66,8 +66,8 @@ github.com/alexkohler/prealloc v1.0.0 h1:Hbq0/3fJPQhNkN0dR95AVrr6R7tou91y0uHG5pO
 github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cvfHR56wJVlKE=
 github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQRnw=
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
-github.com/aperturerobotics/bifrost v0.20.0 h1:PVCtwxs9gpiHQkreekAK2bJuBH0C+rREPL18an2q97Q=
-github.com/aperturerobotics/bifrost v0.20.0/go.mod h1:R4n7+7eZiPCEm4a39j7TYLCjzU8cgxalIiChex8+VGY=
+github.com/aperturerobotics/bifrost v0.20.1 h1:M2/YO63+yABh2BrT5TJBiA5ybxOxUhBjENV7cCXGc1Q=
+github.com/aperturerobotics/bifrost v0.20.1/go.mod h1:Y9xmTUSGJaIOxlhM3+7FZROBcJgfRUGTaOzEH7QlNM0=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
 github.com/aperturerobotics/starpc v0.22.5 h1:/3T5pl9Te5zDM9eo3Rj7OWsUwYpq7M5WoCL00ILLTMY=
