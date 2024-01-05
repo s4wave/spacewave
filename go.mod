@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.19.12-0.20231231034422-d5a1f18a0ce8 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20231231031610-334cbc250212 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240105091744-49258bc983f0 // master
 
 require (
 	github.com/evanw/esbuild v0.19.10 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.19.0 // master
+require github.com/aperturerobotics/bifrost v0.20.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,7 +45,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.2 // latest
+	github.com/aperturerobotics/controllerbus v0.31.4 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
 	github.com/aperturerobotics/starpc v0.22.5 // latest
 )
@@ -67,7 +67,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.11.1 // master
+	github.com/aperturerobotics/util v1.11.3 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -108,7 +108,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	golang.org/x/mod v0.14.0
 	golang.org/x/sync v0.5.0
 	golang.org/x/tools v0.16.1
