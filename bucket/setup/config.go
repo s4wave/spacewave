@@ -26,11 +26,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	ot, ok := other.(*Config)
-	if !ok {
-		return false
-	}
-	return c.EqualVT(ot)
+	return config.EqualsConfig[*Config](c, other)
 }
 
 // _ is a type assertion

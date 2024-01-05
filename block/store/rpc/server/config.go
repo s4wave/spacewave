@@ -51,12 +51,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	ot, ok := other.(*Config)
-	if !ok {
-		return false
-	}
-
-	return ot.EqualVT(c)
+	return config.EqualsConfig[*Config](c, other)
 }
 
 // ParseServerIdRe parses the server id regex if set.

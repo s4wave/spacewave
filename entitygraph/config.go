@@ -13,13 +13,8 @@ func (c *Config) GetConfigID() string {
 }
 
 // EqualsConfig checks equality between two configs.
-func (c *Config) EqualsConfig(c2 config.Config) bool {
-	oc, ok := c2.(*Config)
-	if !ok {
-		return false
-	}
-
-	return c.EqualVT(oc)
+func (c *Config) EqualsConfig(other config.Config) bool {
+	return config.EqualsConfig[*Config](c, other)
 }
 
 // Validate validates the configuration.
