@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.21
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20231231024432-166a2bb9b3db // master
+	github.com/aperturerobotics/identity v0.0.0-20240109040758-204888b61b5b // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20231231023451-b077535cd016 // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240109040706-2acbe3c6dba2 // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.18.23-0.20231230235236-c0c4fa6c231b // master
+require github.com/aperturerobotics/bifrost v0.20.3 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -41,9 +41,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.1 // latest
+	github.com/aperturerobotics/controllerbus v0.31.6-0.20240108234614-dcbb53b669a9 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
-	github.com/aperturerobotics/starpc v0.22.5-0.20231223070228-835ffe09e3e7 // indirect; latest
+	github.com/aperturerobotics/starpc v0.22.5 // indirect; latest
 )
 
 // aperture: use compatibility forks
@@ -54,27 +54,27 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20210907043027-271505668bd0 // aperture
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.40.1-0.20231219224819-14aac6234606 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.40.1-0.20240109035914-688195c3878b // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.31.1-0.20231012212426-9cf9f0f94f47 // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (
-	github.com/aperturerobotics/util v1.11.1-0.20231231001834-6a98c17609c0 // indirect; master
+	github.com/aperturerobotics/util v1.11.3 // indirect; master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/libp2p/go-libp2p v0.32.2
-	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.2-0.20231213140704-4c5812896512 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.40.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0
 	nhooyr.io/websocket v1.8.10 // indirect
@@ -107,7 +107,6 @@ require (
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
@@ -115,10 +114,10 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )

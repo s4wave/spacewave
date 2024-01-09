@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 replace github.com/aperturerobotics/auth => ../
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.31.1-0.20231012212426-9cf9f0f94f47 // aperture
+replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.52.2
@@ -18,7 +18,7 @@ require (
 require (
 	github.com/aperturerobotics/auth v0.0.0-20230412063431-b9252e5d093a
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.22.5-0.20231223070228-835ffe09e3e7
+	github.com/aperturerobotics/starpc v0.22.5
 	github.com/evanw/esbuild v0.17.18
 )
 
@@ -36,12 +36,12 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.18.23-0.20231230235236-c0c4fa6c231b // indirect
-	github.com/aperturerobotics/controllerbus v0.31.1 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20231231023451-b077535cd016 // indirect
-	github.com/aperturerobotics/identity v0.0.0-20231231024432-166a2bb9b3db // indirect
+	github.com/aperturerobotics/bifrost v0.20.3 // indirect
+	github.com/aperturerobotics/controllerbus v0.31.6-0.20240108234614-dcbb53b669a9 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240109040706-2acbe3c6dba2 // indirect
+	github.com/aperturerobotics/identity v0.0.0-20240109040758-204888b61b5b // indirect
 	github.com/aperturerobotics/timestamp v0.8.2 // indirect
-	github.com/aperturerobotics/util v1.11.1-0.20231231001834-6a98c17609c0 // indirect
+	github.com/aperturerobotics/util v1.11.3 // indirect
 	github.com/ashanbrown/forbidigo v1.5.1 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -122,7 +122,7 @@ require (
 	github.com/leonklingele/grouper v1.1.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.32.2 // indirect
-	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.2-0.20231213140704-4c5812896512 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
@@ -210,12 +210,12 @@ require (
 	gitlab.com/bosi/decorder v0.2.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
+	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
