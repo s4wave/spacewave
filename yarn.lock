@@ -162,10 +162,10 @@
     multiformats "^12.1.3"
     uint8arraylist "^2.4.3"
 
-"@libp2p/interface@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.1.0.tgz#ad93c8834ab236da2f48c0656cd7c97cc99db6db"
-  integrity sha512-URIKSFtaliBGA8sIg/MGfyjIo5h4jAdfuZl6dXXXmtdfC3X0rry95YuLNYzXtGMuxG/X+pbVht3fykHvPiXUhg==
+"@libp2p/interface@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.1.1.tgz#f37ea4930bd74e1299fbcafa49fdab39a28abba9"
+  integrity sha512-g6xgF+q38ZDTRkjuJfuOByS4N0zGld+VPRiWPXYX8wA/9vS6lqJwKUoC6V33KUhP/zXHCkJaSD6z94fUbNM8vw==
   dependencies:
     "@multiformats/multiaddr" "^12.1.10"
     it-pushable "^3.2.1"
@@ -185,12 +185,12 @@
     interface-datastore "^8.2.0"
     multiformats "^12.0.1"
 
-"@libp2p/logger@^4.0.3":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.3.tgz#08864bc8c9335ba0d36fee5795051192bce1f63f"
-  integrity sha512-AydOzxLfJtfu7K/kjCRkO15llrr8Pc6BXVSOWVGFBCZ9e5+YHDuj8z5Pyc0YsXElMb/6hClGDJhw7nM8/EVqDA==
+"@libp2p/logger@^4.0.4":
+  version "4.0.4"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.4.tgz#98c5357e8b857d93a506f6818db6abe734d342ee"
+  integrity sha512-lr6/Cmj9VhtET4ZnRhWls4kY4K5moTAIEZtZugmkflT4qJXJywkmn/EpLO3kjgE+PDjrgOr8lUVVJBGvEHL8Jg==
   dependencies:
-    "@libp2p/interface" "^1.1.0"
+    "@libp2p/interface" "^1.1.1"
     "@multiformats/multiaddr" "^12.1.10"
     debug "^4.3.4"
     interface-datastore "^8.2.0"
@@ -379,10 +379,10 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/react@^18.2.46":
-  version "18.2.46"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.46.tgz#f04d6c528f8f136ea66333bc66abcae46e2680df"
-  integrity sha512-nNCvVBcZlvX4NU1nRRNV/mFl1nNRuTuslAJglQsq+8ldXe5Xv0Wd2f7WTE3jOxhLH2BFfiZGC6GCp+kHQbgG+w==
+"@types/react@^18.2.47":
+  version "18.2.47"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.47.tgz#85074b27ab563df01fbc3f68dc64bf7050b0af40"
+  integrity sha512-xquNkkOirwyCgoClNk85BjP+aqnIS+ckAJ8i37gAbDs14jfW/J23f2GItAf33oiUPQnqNMALiFeoM9Y5mbjpVQ==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -828,10 +828,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^28.1.1:
-  version "28.1.1"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-28.1.1.tgz#37254967e32a4a69e18378f3b1aba1475522d08d"
-  integrity sha512-HJSbGHpRl46jWCp5G4OH57KSm2F5u15tB10ixD8iFiz9dhwojqlSQTRAcjSwvga+Vqs1jv7iqwQRrolXP4DgOA==
+electron@^28.1.3:
+  version "28.1.3"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-28.1.3.tgz#38382a177af2fa6026b02eb4e4ebde067fb30154"
+  integrity sha512-NSFyTo6SndTPXzU18XRePv4LnjmuM9rF5GMKta1/kPmi02ISoSRonnD7wUlWXD2x53XyJ6d/TbSVesMW6sXkEQ==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^18.11.18"
@@ -2190,10 +2190,10 @@ starpc@^0.22.4:
     uint8arraylist "^2.4.7"
     ws "^8.15.1"
 
-starpc@^0.22.5:
-  version "0.22.5"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.22.5.tgz#ddfbfa0fe233af263708f0b01c8184d17de1e839"
-  integrity sha512-SJzDU6iNCt81YT33uIOs7J4P07xOPrnsaca91mpFJfIA5I6wzeJi/zc2lsY1tNEX+g8PfNCW5LE/6rb43JzKUQ==
+starpc@^0.22.6:
+  version "0.22.6"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.22.6.tgz#e11af333587073a87a0d2138666198128930a5b1"
+  integrity sha512-nXVd30tX6Ae5XFSH0jGSrY//Vub7PaCFcDIrosHOVH2R9QAbqSFE+a0t+bwDGqjAguZENac/Svuv7sviGR18NQ==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^5.0.0"

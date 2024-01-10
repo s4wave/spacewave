@@ -44,7 +44,7 @@ func TestDistSourcesFSCursor(t *testing.T) {
 		"web/bldr/binary.ts",
 		"web/bldr/web-runtime.ts",
 		"web/electron/main/index.ts",
-		"web/bldr-react/web-view.tsx",
+		"web/bldr-react/WebView.tsx",
 	)
 	if err != nil {
 		t.Fatal(err.Error())
