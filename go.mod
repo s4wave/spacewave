@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.19.12-0.20240108234915-d522b4157a5e // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240110211302-52003ec0bd90 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240115035552-5dc0df144d4b // master
 
 require (
 	github.com/evanw/esbuild v0.19.11 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.20.7 // master
+require github.com/aperturerobotics/bifrost v0.21.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -38,14 +38,14 @@ replace (
 )
 
 require (
-	github.com/cayleygraph/cayley v0.7.7-0.20230726113732-1310f3b07fa0
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215 // indirect
+	github.com/cayleygraph/cayley v0.7.7
+	github.com/dolthub/go-mysql-server v0.17.0 // indirect
 )
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.6-0.20240108234614-dcbb53b669a9 // latest
+	github.com/aperturerobotics/controllerbus v0.31.6 // latest
 	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
 	github.com/aperturerobotics/starpc v0.22.6 // latest
 )
@@ -67,7 +67,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.11.3 // master
+	github.com/aperturerobotics/util v1.12.0 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -77,8 +77,8 @@ require (
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20231213140704-4c5812896512 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.1 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.7 // indirect
-	github.com/nats-io/nats.go v1.31.0 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.9 // indirect
+	github.com/nats-io/nats.go v1.32.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -98,19 +98,19 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.0
-	github.com/aperturerobotics/go-kvfile v0.2.1
+	github.com/Microsoft/go-winio v0.6.1
+	github.com/aperturerobotics/go-kvfile v0.3.0
 	github.com/aperturerobotics/timestamp v0.8.2
-	github.com/cayleygraph/quad v1.2.4
-	github.com/fatih/color v1.12.0
+	github.com/cayleygraph/quad v1.2.5
+	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.5.1-0.20231120210930-d23351b68761
+	github.com/go-git/go-billy/v5 v5.5.1-0.20231211202411-9f60ea941235
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20240110193028-0dcbfd608b1e
+	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3
 	golang.org/x/mod v0.14.0
-	golang.org/x/sync v0.5.0
-	golang.org/x/tools v0.16.1
+	golang.org/x/sync v0.6.0
+	golang.org/x/tools v0.17.0
 )
 
 require (
@@ -118,7 +118,7 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.1 // indirect
 	github.com/Workiva/go-datastructures v1.1.1 // indirect
-	github.com/bits-and-blooms/bitset v1.12.0 // indirect
+	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.6.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -151,7 +151,7 @@ require (
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/hidal-go/hidalgo v0.2.1-0.20220428091800-b74c839b2fb0 // indirect
+	github.com/hidal-go/hidalgo v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
@@ -167,7 +167,7 @@ require (
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
