@@ -5,7 +5,7 @@ go 1.21
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.19.12-0.20240108234915-d522b4157a5e // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240115035552-5dc0df144d4b // master
+require github.com/aperturerobotics/hydra v0.0.0-20240115040714-1e27e8a801d8 // master
 
 require (
 	github.com/evanw/esbuild v0.19.11 // latest
