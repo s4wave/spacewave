@@ -95,7 +95,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/bits-and-blooms/bloom/v3 v3.6.0
 	github.com/cayleygraph/quad v1.2.5
-	github.com/cespare/xxhash v1.1.0
+	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.1
