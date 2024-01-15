@@ -25,9 +25,9 @@ replace (
 )
 
 require (
-	github.com/cayleygraph/cayley v0.7.7
-	github.com/dolthub/go-mysql-server v0.17.0
-	github.com/genjidb/genji v0.16.0
+	github.com/cayleygraph/cayley v0.7.7-0.20230726113732-1310f3b07fa0
+	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
+	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
 	github.com/go-git/go-git/v5 v5.11.0
 )
 
@@ -96,7 +96,6 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.6.0
 	github.com/cayleygraph/quad v1.2.5
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/dolthub/vitess v0.0.0-20231109003730-c0fa018b5ef6
@@ -127,6 +126,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/creack/goselect v0.1.2 // indirect

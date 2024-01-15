@@ -1,6 +1,6 @@
 package store_kvtx_inmem
 
-import "github.com/cespare/xxhash"
+import "github.com/cespare/xxhash/v2"
 
 // valType is the type used for values
 type valType struct {
