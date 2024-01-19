@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.21.1 // master
+require github.com/aperturerobotics/bifrost v0.21.2 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -25,16 +25,16 @@ replace (
 )
 
 require (
-	github.com/cayleygraph/cayley v0.7.7-0.20230726113732-1310f3b07fa0
-	github.com/dolthub/go-mysql-server v0.10.1-0.20210928190002-88a5e4a4a215
-	github.com/genjidb/genji v0.8.1-0.20201112071311-72319d2a2285
+	github.com/cayleygraph/cayley v0.7.7
+	github.com/dolthub/go-mysql-server v0.17.0
+	github.com/genjidb/genji v0.16.0
 	github.com/go-git/go-git/v5 v5.11.0
 )
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.6 // latest
+	github.com/aperturerobotics/controllerbus v0.32.0 // latest
 	github.com/aperturerobotics/entitygraph v0.6.0
 	github.com/aperturerobotics/starpc v0.22.7 // latest
 )
@@ -56,7 +56,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.12.0 // master
+	github.com/aperturerobotics/util v1.12.1 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
