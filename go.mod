@@ -2,13 +2,13 @@ module github.com/aperturerobotics/identity
 
 go 1.21
 
-require github.com/aperturerobotics/hydra v0.0.0-20240110213013-e3782cc0b75b // master
+require github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.20.7 // master
+require github.com/aperturerobotics/bifrost v0.21.2 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -30,14 +30,14 @@ replace (
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 )
 
-require github.com/cayleygraph/cayley v0.7.7-0.20230726113732-1310f3b07fa0
+require github.com/cayleygraph/cayley v0.7.7
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.31.6-0.20240108234614-dcbb53b669a9 // latest
-	github.com/aperturerobotics/entitygraph v0.5.0 // indirect
-	github.com/aperturerobotics/starpc v0.22.6 // latest
+	github.com/aperturerobotics/controllerbus v0.32.0 // latest
+	github.com/aperturerobotics/entitygraph v0.6.0 // indirect
+	github.com/aperturerobotics/starpc v0.22.7 // latest
 )
 
 // aperture: use compatibility forks
@@ -49,14 +49,14 @@ replace (
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20240110212540-c015327ec623 // aperture
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.40.1-0.20240109035914-688195c3878b // aperture
-	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.1-0.20221224130652-ff61cbb763af // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c // aperture
+	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (
-	github.com/aperturerobotics/util v1.11.3 // master
+	github.com/aperturerobotics/util v1.12.1 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.12.1 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.40.1 // indirect
+	github.com/quic-go/quic-go v0.41.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
@@ -76,7 +76,7 @@ require (
 
 require (
 	github.com/aperturerobotics/timestamp v0.8.2
-	github.com/cayleygraph/quad v1.2.4
+	github.com/cayleygraph/quad v1.2.5
 )
 
 require (
@@ -119,13 +119,13 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240110193028-0dcbfd608b1e // indirect
+	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
-	golang.org/x/tools v0.16.1 // indirect
+	golang.org/x/tools v0.17.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
