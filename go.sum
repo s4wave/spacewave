@@ -79,8 +79,6 @@ github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1 h1:KBKC4iBZ
 github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1/go.mod h1:NxuQeHQz7rLNf0WvUdaSJB7Sc0UB4UOhiFxVdk6RWDQ=
 github.com/aperturerobotics/identity v0.0.0-20240110213148-dbde9884d36b h1:dG91VZFwzTAaPEwvb0WVDLx5sDOTfMCm6txkqW0Umuk=
 github.com/aperturerobotics/identity v0.0.0-20240110213148-dbde9884d36b/go.mod h1:qnDhY70FANCAkNS+mgv6pi0vBDMici1jmvf8swVpdyU=
-github.com/aperturerobotics/identity v0.0.0-20240119054158-2da3b1d5ba97 h1:wW30DPofKD28TnAyx8D63D3mD/918SlhLP0fiF5MGuY=
-github.com/aperturerobotics/identity v0.0.0-20240119054158-2da3b1d5ba97/go.mod h1:kuX5VrDMYAcTlPGONA8zTOyNp26POCHxyG4U9UT2tZ4=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f h1:mnmO0JHfvlE/yK2kiKQ/Q2aYhCETkl6FP07rcmvoBKw=
