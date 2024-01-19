@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1
-	github.com/aperturerobotics/identity v0.0.0-20240119054158-2da3b1d5ba97
+	github.com/aperturerobotics/identity v0.0.0-20240110213148-dbde9884d36b
 )
 
 require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
