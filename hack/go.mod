@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 replace github.com/aperturerobotics/hydra => ../
 
-replace google.golang.org/protobuf => github.com/paralin/protobuf-go v1.32.1-0.20231231025138-7d69d9b7299c // aperture
+replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
 
 require (
 	github.com/golangci/golangci-lint v1.53.3
@@ -18,7 +18,7 @@ require (
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/hydra v0.0.0-20230813010420-ebaf779ff24d
-	github.com/aperturerobotics/starpc v0.22.6
+	github.com/aperturerobotics/starpc v0.22.7
 	github.com/evanw/esbuild v0.19.1
 )
 
@@ -37,7 +37,7 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.21.0 // indirect
+	github.com/aperturerobotics/bifrost v0.21.1 // indirect
 	github.com/aperturerobotics/util v1.12.0 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
