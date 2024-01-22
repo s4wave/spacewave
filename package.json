@@ -57,15 +57,15 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.8.2",
+    "@aperturerobotics/ts-common": "^0.8.3",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
-    "@types/react": "^18.2.47",
+    "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "enhanced-resolve": "^5.15.0",
-    "esm-cjs-lexer": "^0.9.1",
+    "esm-cjs-lexer": "^0.10.0",
     "patch-package": "^8.0.0",
-    "prettier": "^3.1.1",
+    "prettier": "^3.2.4",
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.5",
     "ts-poet": "6.6.0",
@@ -74,18 +74,18 @@
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@libp2p/logger": "^4.0.4",
+    "@libp2p/logger": "^4.0.5",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
-    "electron": "^28.1.3",
+    "electron": "^28.1.4",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "lodash.isequal": "^4.5.0",
     "long": "^5.2.1",
-    "protobufjs": "^7.2.5",
+    "protobufjs": "^7.2.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.22.6",
+    "starpc": "^0.22.7",
     "workbox-window": "^7.0.0"
   }
 }
