@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
+	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	"github.com/aperturerobotics/bifrost/transport/inproc"
@@ -14,6 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
+	identity_domain_service "github.com/aperturerobotics/identity/domain/service"
 	identity_domain_server "github.com/aperturerobotics/identity/domain/service/server"
 	identity_static "github.com/aperturerobotics/identity/domain/static"
 	uuid "github.com/satori/go.uuid"
@@ -90,7 +92,10 @@ func TestDomainClient(t *testing.T) {
 		tb2.Bus,
 		resolver.NewLoadControllerWithConfig(
 			&identity_domain_server.Config{
-				PeerIds: []string{tb2PeerID.String()},
+				Server: &stream_srpc_server.Config{
+					PeerIds:     []string{tb2PeerID.String()},
+					ProtocolIds: []string{identity_domain_service.IdentityDomainProtocol.String()},
+				},
 			},
 		),
 		nil,

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
-	"github.com/aperturerobotics/bifrost/protocol"
 	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -47,13 +46,20 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 		b:  b,
 		c:  c,
 	}
+
+	srvConf := c.GetServer().CloneVT()
+	if srvConf == nil {
+		srvConf = &stream_srpc_server.Config{}
+	}
+	if len(srvConf.GetProtocolIds()) == 0 {
+		srvConf.ProtocolIds = append(srvConf.ProtocolIds, identity_domain_service.IdentityDomainProtocol.String())
+	}
+
 	var err error
-	srv.server, err = stream_srpc_server.NewServer(
+	srv.server, err = srvConf.BuildServer(
 		b,
 		le,
 		controller.NewInfo(ControllerID, Version, "identity domain server"),
-		[]protocol.ID{identity_domain_service.IdentityDomainProtocol},
-		c.GetPeerIds(),
 		[]stream_srpc_server.RegisterFn{
 			func(mux srpc.Mux) error {
 				return identity_domain_service.SRPCRegisterIdentityDomain(mux, srv)
@@ -63,6 +69,7 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return srv, nil
 }
 

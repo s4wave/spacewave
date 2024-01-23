@@ -288,12 +288,12 @@ export const Entity = {
     source: AsyncIterable<Entity | Entity[]> | Iterable<Entity | Entity[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Entity.encode(p).finish()];
         }
       } else {
-        yield* [Entity.encode(pkt).finish()];
+        yield* [Entity.encode(pkt as any).finish()];
       }
     }
   },
@@ -304,21 +304,21 @@ export const Entity = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Entity> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Entity.decode(p)];
         }
       } else {
-        yield* [Entity.decode(pkt)];
+        yield* [Entity.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Entity {
     return {
-      entityId: isSet(object.entityId) ? String(object.entityId) : "",
-      entityUuid: isSet(object.entityUuid) ? String(object.entityUuid) : "",
-      domainId: isSet(object.domainId) ? String(object.domainId) : "",
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
+      entityUuid: isSet(object.entityUuid) ? globalThis.String(object.entityUuid) : "",
+      domainId: isSet(object.domainId) ? globalThis.String(object.domainId) : "",
       epoch: isSet(object.epoch) ? Long.fromValue(object.epoch) : Long.UZERO,
       entityKeypairSet: isSet(object.entityKeypairSet) ? EntityKeypairSet.fromJSON(object.entityKeypairSet) : undefined,
     };
@@ -411,12 +411,12 @@ export const EntityKeypairSet = {
     source: AsyncIterable<EntityKeypairSet | EntityKeypairSet[]> | Iterable<EntityKeypairSet | EntityKeypairSet[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [EntityKeypairSet.encode(p).finish()];
         }
       } else {
-        yield* [EntityKeypairSet.encode(pkt).finish()];
+        yield* [EntityKeypairSet.encode(pkt as any).finish()];
       }
     }
   },
@@ -427,22 +427,22 @@ export const EntityKeypairSet = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityKeypairSet> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [EntityKeypairSet.decode(p)];
         }
       } else {
-        yield* [EntityKeypairSet.decode(pkt)];
+        yield* [EntityKeypairSet.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): EntityKeypairSet {
     return {
-      entityKeypairs: Array.isArray(object?.entityKeypairs)
+      entityKeypairs: globalThis.Array.isArray(object?.entityKeypairs)
         ? object.entityKeypairs.map((e: any) => bytesFromBase64(e))
         : [],
-      entityKeypairSignatures: Array.isArray(object?.entityKeypairSignatures)
+      entityKeypairSignatures: globalThis.Array.isArray(object?.entityKeypairSignatures)
         ? object.entityKeypairSignatures.map((e: any) => Signature.fromJSON(e))
         : [],
     };
@@ -531,12 +531,12 @@ export const EntityKeypair = {
     source: AsyncIterable<EntityKeypair | EntityKeypair[]> | Iterable<EntityKeypair | EntityKeypair[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [EntityKeypair.encode(p).finish()];
         }
       } else {
-        yield* [EntityKeypair.encode(pkt).finish()];
+        yield* [EntityKeypair.encode(pkt as any).finish()];
       }
     }
   },
@@ -547,20 +547,20 @@ export const EntityKeypair = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityKeypair> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [EntityKeypair.decode(p)];
         }
       } else {
-        yield* [EntityKeypair.decode(pkt)];
+        yield* [EntityKeypair.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): EntityKeypair {
     return {
-      entityId: isSet(object.entityId) ? String(object.entityId) : "",
-      domainId: isSet(object.domainId) ? String(object.domainId) : "",
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
+      domainId: isSet(object.domainId) ? globalThis.String(object.domainId) : "",
       keypair: isSet(object.keypair) ? Keypair.fromJSON(object.keypair) : undefined,
     };
   },
@@ -644,12 +644,12 @@ export const EntityRef = {
     source: AsyncIterable<EntityRef | EntityRef[]> | Iterable<EntityRef | EntityRef[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [EntityRef.encode(p).finish()];
         }
       } else {
-        yield* [EntityRef.encode(pkt).finish()];
+        yield* [EntityRef.encode(pkt as any).finish()];
       }
     }
   },
@@ -660,20 +660,20 @@ export const EntityRef = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityRef> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [EntityRef.decode(p)];
         }
       } else {
-        yield* [EntityRef.decode(pkt)];
+        yield* [EntityRef.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): EntityRef {
     return {
-      entityId: isSet(object.entityId) ? String(object.entityId) : "",
-      domainId: isSet(object.domainId) ? String(object.domainId) : "",
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
+      domainId: isSet(object.domainId) ? globalThis.String(object.domainId) : "",
     };
   },
 
@@ -770,12 +770,12 @@ export const Keypair = {
     source: AsyncIterable<Keypair | Keypair[]> | Iterable<Keypair | Keypair[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Keypair.encode(p).finish()];
         }
       } else {
-        yield* [Keypair.encode(pkt).finish()];
+        yield* [Keypair.encode(pkt as any).finish()];
       }
     }
   },
@@ -786,21 +786,21 @@ export const Keypair = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Keypair> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [Keypair.decode(p)];
         }
       } else {
-        yield* [Keypair.decode(pkt)];
+        yield* [Keypair.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): Keypair {
     return {
-      peerId: isSet(object.peerId) ? String(object.peerId) : "",
-      pubKey: isSet(object.pubKey) ? String(object.pubKey) : "",
-      authMethodId: isSet(object.authMethodId) ? String(object.authMethodId) : "",
+      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : "",
+      pubKey: isSet(object.pubKey) ? globalThis.String(object.pubKey) : "",
+      authMethodId: isSet(object.authMethodId) ? globalThis.String(object.authMethodId) : "",
       authMethodParams: isSet(object.authMethodParams) ? bytesFromBase64(object.authMethodParams) : new Uint8Array(0),
     };
   },
@@ -918,12 +918,12 @@ export const PendingEntityChange = {
       | Iterable<PendingEntityChange | PendingEntityChange[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PendingEntityChange.encode(p).finish()];
         }
       } else {
-        yield* [PendingEntityChange.encode(pkt).finish()];
+        yield* [PendingEntityChange.encode(pkt as any).finish()];
       }
     }
   },
@@ -934,23 +934,23 @@ export const PendingEntityChange = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<PendingEntityChange> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [PendingEntityChange.decode(p)];
         }
       } else {
-        yield* [PendingEntityChange.decode(pkt)];
+        yield* [PendingEntityChange.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): PendingEntityChange {
     return {
-      changePeerId: isSet(object.changePeerId) ? String(object.changePeerId) : "",
+      changePeerId: isSet(object.changePeerId) ? globalThis.String(object.changePeerId) : "",
       epoch: isSet(object.epoch) ? Long.fromValue(object.epoch) : Long.UZERO,
-      domainIdentifier: isSet(object.domainIdentifier) ? String(object.domainIdentifier) : "",
+      domainIdentifier: isSet(object.domainIdentifier) ? globalThis.String(object.domainIdentifier) : "",
       entityChangeType: isSet(object.entityChangeType) ? entityChangeTypeFromJSON(object.entityChangeType) : 0,
-      entityChangeData: isSet(object.entityChangeData) ? String(object.entityChangeData) : "",
+      entityChangeData: isSet(object.entityChangeData) ? globalThis.String(object.entityChangeData) : "",
     };
   },
 
@@ -1049,12 +1049,12 @@ export const RegisterKeypair = {
     source: AsyncIterable<RegisterKeypair | RegisterKeypair[]> | Iterable<RegisterKeypair | RegisterKeypair[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RegisterKeypair.encode(p).finish()];
         }
       } else {
-        yield* [RegisterKeypair.encode(pkt).finish()];
+        yield* [RegisterKeypair.encode(pkt as any).finish()];
       }
     }
   },
@@ -1065,20 +1065,20 @@ export const RegisterKeypair = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RegisterKeypair> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RegisterKeypair.decode(p)];
         }
       } else {
-        yield* [RegisterKeypair.decode(pkt)];
+        yield* [RegisterKeypair.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): RegisterKeypair {
     return {
-      registerPeerId: isSet(object.registerPeerId) ? String(object.registerPeerId) : "",
-      authMethodId: isSet(object.authMethodId) ? String(object.authMethodId) : "",
+      registerPeerId: isSet(object.registerPeerId) ? globalThis.String(object.registerPeerId) : "",
+      authMethodId: isSet(object.authMethodId) ? globalThis.String(object.authMethodId) : "",
       authMethodState: isSet(object.authMethodState) ? bytesFromBase64(object.authMethodState) : new Uint8Array(0),
     };
   },
@@ -1150,12 +1150,12 @@ export const RemoveKeypair = {
     source: AsyncIterable<RemoveKeypair | RemoveKeypair[]> | Iterable<RemoveKeypair | RemoveKeypair[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RemoveKeypair.encode(p).finish()];
         }
       } else {
-        yield* [RemoveKeypair.encode(pkt).finish()];
+        yield* [RemoveKeypair.encode(pkt as any).finish()];
       }
     }
   },
@@ -1166,18 +1166,18 @@ export const RemoveKeypair = {
     source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<RemoveKeypair> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
           yield* [RemoveKeypair.decode(p)];
         }
       } else {
-        yield* [RemoveKeypair.decode(pkt)];
+        yield* [RemoveKeypair.decode(pkt as any)];
       }
     }
   },
 
   fromJSON(object: any): RemoveKeypair {
-    return { peerId: isSet(object.peerId) ? String(object.peerId) : "" };
+    return { peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : "" };
   },
 
   toJSON(message: RemoveKeypair): unknown {
@@ -1198,30 +1198,11 @@ export const RemoveKeypair = {
   },
 };
 
-declare const self: any | undefined;
-declare const window: any | undefined;
-declare const global: any | undefined;
-const tsProtoGlobalThis: any = (() => {
-  if (typeof globalThis !== "undefined") {
-    return globalThis;
-  }
-  if (typeof self !== "undefined") {
-    return self;
-  }
-  if (typeof window !== "undefined") {
-    return window;
-  }
-  if (typeof global !== "undefined") {
-    return global;
-  }
-  throw "Unable to locate global object";
-})();
-
 function bytesFromBase64(b64: string): Uint8Array {
-  if (tsProtoGlobalThis.Buffer) {
-    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, "base64"));
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
   } else {
-    const bin = tsProtoGlobalThis.atob(b64);
+    const bin = globalThis.atob(b64);
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; ++i) {
       arr[i] = bin.charCodeAt(i);
@@ -1231,21 +1212,21 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (tsProtoGlobalThis.Buffer) {
-    return tsProtoGlobalThis.Buffer.from(arr).toString("base64");
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
   } else {
     const bin: string[] = [];
     arr.forEach((byte) => {
-      bin.push(String.fromCharCode(byte));
+      bin.push(globalThis.String.fromCharCode(byte));
     });
-    return tsProtoGlobalThis.btoa(bin.join(""));
+    return globalThis.btoa(bin.join(""));
   }
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends Array<infer U> ? Array<DeepPartial<U>>
+  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }

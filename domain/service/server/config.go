@@ -3,7 +3,6 @@ package identity_domain_server
 import (
 	"time"
 
-	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/identity"
@@ -32,7 +31,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // Validate checks the config.
 func (c *Config) Validate() error {
-	if _, err := c.ParsePeerIds(); err != nil {
+	if err := c.GetServer().Validate(); err != nil {
 		return err
 	}
 	for i, did := range c.GetDomainIds() {
@@ -41,22 +40,6 @@ func (c *Config) Validate() error {
 		}
 	}
 	return nil
-}
-
-// ParsePeerIds parses the peer ids to listen on.
-func (c *Config) ParsePeerIds() ([]peer.ID, error) {
-	out := make([]peer.ID, len(c.GetPeerIds()))
-	var err error
-	for i, peerIDStr := range c.GetPeerIds() {
-		out[i], err = confparse.ParsePeerID(peerIDStr)
-		if err != nil {
-			return nil, err
-		}
-		if out[i] == "" {
-			return nil, errors.Wrapf(peer.ErrEmptyPeerID, "peer_ids[%d]", i)
-		}
-	}
-	return out, nil
 }
 
 // ParseRequestTimeout parses the request timeout if set.

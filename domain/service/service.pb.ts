@@ -97,12 +97,12 @@ export const EntityLookupIdentifier = {
       | Iterable<EntityLookupIdentifier | EntityLookupIdentifier[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EntityLookupIdentifier.encode(p).finish()]
         }
       } else {
-        yield* [EntityLookupIdentifier.encode(pkt).finish()]
+        yield* [EntityLookupIdentifier.encode(pkt as any).finish()]
       }
     }
   },
@@ -115,20 +115,24 @@ export const EntityLookupIdentifier = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityLookupIdentifier> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EntityLookupIdentifier.decode(p)]
         }
       } else {
-        yield* [EntityLookupIdentifier.decode(pkt)]
+        yield* [EntityLookupIdentifier.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): EntityLookupIdentifier {
     return {
-      domainId: isSet(object.domainId) ? String(object.domainId) : '',
-      entityId: isSet(object.entityId) ? String(object.entityId) : '',
+      domainId: isSet(object.domainId)
+        ? globalThis.String(object.domainId)
+        : '',
+      entityId: isSet(object.entityId)
+        ? globalThis.String(object.entityId)
+        : '',
     }
   },
 
@@ -231,12 +235,12 @@ export const LookupEntityReq = {
       | Iterable<LookupEntityReq | LookupEntityReq[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupEntityReq.encode(p).finish()]
         }
       } else {
-        yield* [LookupEntityReq.encode(pkt).finish()]
+        yield* [LookupEntityReq.encode(pkt as any).finish()]
       }
     }
   },
@@ -249,12 +253,12 @@ export const LookupEntityReq = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupEntityReq> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupEntityReq.decode(p)]
         }
       } else {
-        yield* [LookupEntityReq.decode(pkt)]
+        yield* [LookupEntityReq.decode(pkt as any)]
       }
     }
   },
@@ -398,12 +402,12 @@ export const LookupEntityResp = {
       | Iterable<LookupEntityResp | LookupEntityResp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupEntityResp.encode(p).finish()]
         }
       } else {
-        yield* [LookupEntityResp.encode(pkt).finish()]
+        yield* [LookupEntityResp.encode(pkt as any).finish()]
       }
     }
   },
@@ -416,12 +420,12 @@ export const LookupEntityResp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<LookupEntityResp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [LookupEntityResp.decode(p)]
         }
       } else {
-        yield* [LookupEntityResp.decode(pkt)]
+        yield* [LookupEntityResp.decode(pkt as any)]
       }
     }
   },
@@ -431,8 +435,12 @@ export const LookupEntityResp = {
       identifier: isSet(object.identifier)
         ? EntityLookupIdentifier.fromJSON(object.identifier)
         : undefined,
-      lookupError: isSet(object.lookupError) ? String(object.lookupError) : '',
-      notFound: isSet(object.notFound) ? Boolean(object.notFound) : false,
+      lookupError: isSet(object.lookupError)
+        ? globalThis.String(object.lookupError)
+        : '',
+      notFound: isSet(object.notFound)
+        ? globalThis.Boolean(object.notFound)
+        : false,
       lookupEntity: isSet(object.lookupEntity)
         ? Entity.fromJSON(object.lookupEntity)
         : undefined,
@@ -554,18 +562,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin

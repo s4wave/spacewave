@@ -8,7 +8,7 @@ require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.21.2 // master
+require github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -35,7 +35,7 @@ require github.com/cayleygraph/cayley v0.7.7
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.32.0 // latest
+	github.com/aperturerobotics/controllerbus v0.32.1 // latest
 	github.com/aperturerobotics/entitygraph v0.6.0 // indirect
 	github.com/aperturerobotics/starpc v0.22.7 // latest
 )
@@ -119,7 +119,7 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect

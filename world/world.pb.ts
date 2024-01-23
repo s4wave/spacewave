@@ -76,12 +76,12 @@ export const EntityUpdateOp = {
       | Iterable<EntityUpdateOp | EntityUpdateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EntityUpdateOp.encode(p).finish()]
         }
       } else {
-        yield* [EntityUpdateOp.encode(pkt).finish()]
+        yield* [EntityUpdateOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -94,12 +94,12 @@ export const EntityUpdateOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<EntityUpdateOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [EntityUpdateOp.decode(p)]
         }
       } else {
-        yield* [EntityUpdateOp.decode(pkt)]
+        yield* [EntityUpdateOp.decode(pkt as any)]
       }
     }
   },
@@ -184,12 +184,12 @@ export const KeypairUpdateOp = {
       | Iterable<KeypairUpdateOp | KeypairUpdateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeypairUpdateOp.encode(p).finish()]
         }
       } else {
-        yield* [KeypairUpdateOp.encode(pkt).finish()]
+        yield* [KeypairUpdateOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -202,12 +202,12 @@ export const KeypairUpdateOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<KeypairUpdateOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [KeypairUpdateOp.decode(p)]
         }
       } else {
-        yield* [KeypairUpdateOp.decode(pkt)]
+        yield* [KeypairUpdateOp.decode(pkt as any)]
       }
     }
   },
@@ -292,12 +292,12 @@ export const DomainInfoUpdateOp = {
       | Iterable<DomainInfoUpdateOp | DomainInfoUpdateOp[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DomainInfoUpdateOp.encode(p).finish()]
         }
       } else {
-        yield* [DomainInfoUpdateOp.encode(pkt).finish()]
+        yield* [DomainInfoUpdateOp.encode(pkt as any).finish()]
       }
     }
   },
@@ -310,12 +310,12 @@ export const DomainInfoUpdateOp = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DomainInfoUpdateOp> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DomainInfoUpdateOp.decode(p)]
         }
       } else {
-        yield* [DomainInfoUpdateOp.decode(pkt)]
+        yield* [DomainInfoUpdateOp.decode(pkt as any)]
       }
     }
   },
@@ -365,18 +365,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin

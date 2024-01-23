@@ -84,12 +84,12 @@ export const DomainInfo = {
       | Iterable<DomainInfo | DomainInfo[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DomainInfo.encode(p).finish()]
         }
       } else {
-        yield* [DomainInfo.encode(pkt).finish()]
+        yield* [DomainInfo.encode(pkt as any).finish()]
       }
     }
   },
@@ -102,21 +102,25 @@ export const DomainInfo = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<DomainInfo> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [DomainInfo.decode(p)]
         }
       } else {
-        yield* [DomainInfo.decode(pkt)]
+        yield* [DomainInfo.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): DomainInfo {
     return {
-      domainId: isSet(object.domainId) ? String(object.domainId) : '',
-      name: isSet(object.name) ? String(object.name) : '',
-      description: isSet(object.description) ? String(object.description) : '',
+      domainId: isSet(object.domainId)
+        ? globalThis.String(object.domainId)
+        : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description)
+        ? globalThis.String(object.description)
+        : '',
     }
   },
 
@@ -160,18 +164,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin

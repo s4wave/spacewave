@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Config as Config1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/server/server.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
@@ -10,10 +11,10 @@ export const protobufPackage = 'identity.domain.server'
  */
 export interface Config {
   /**
-   * PeerIds are the list of peer IDs to listen on.
-   * If empty, allows any incoming peer id w/ the protocol id.
+   * Server configures the peer ids and protocol ids to listen on.
+   * If the protocol IDs list is empty, uses the default protocol id.
    */
-  peerIds: string[]
+  server: Config1 | undefined
   /**
    * DomainIds is the list of domain IDs to service.
    * If empty, allows any domain ID.
@@ -24,7 +25,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return { peerIds: [], domainIds: [], requestTimeout: '' }
+  return { server: undefined, domainIds: [], requestTimeout: '' }
 }
 
 export const Config = {
@@ -32,8 +33,8 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    for (const v of message.peerIds) {
-      writer.uint32(10).string(v!)
+    if (message.server !== undefined) {
+      Config1.encode(message.server, writer.uint32(10).fork()).ldelim()
     }
     for (const v of message.domainIds) {
       writer.uint32(18).string(v!)
@@ -57,7 +58,7 @@ export const Config = {
             break
           }
 
-          message.peerIds.push(reader.string())
+          message.server = Config1.decode(reader, reader.uint32())
           continue
         case 2:
           if (tag !== 18) {
@@ -88,12 +89,12 @@ export const Config = {
     source: AsyncIterable<Config | Config[]> | Iterable<Config | Config[]>,
   ): AsyncIterable<Uint8Array> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.encode(p).finish()]
         }
       } else {
-        yield* [Config.encode(pkt).finish()]
+        yield* [Config.encode(pkt as any).finish()]
       }
     }
   },
@@ -106,34 +107,34 @@ export const Config = {
       | Iterable<Uint8Array | Uint8Array[]>,
   ): AsyncIterable<Config> {
     for await (const pkt of source) {
-      if (Array.isArray(pkt)) {
-        for (const p of pkt) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
           yield* [Config.decode(p)]
         }
       } else {
-        yield* [Config.decode(pkt)]
+        yield* [Config.decode(pkt as any)]
       }
     }
   },
 
   fromJSON(object: any): Config {
     return {
-      peerIds: Array.isArray(object?.peerIds)
-        ? object.peerIds.map((e: any) => String(e))
-        : [],
-      domainIds: Array.isArray(object?.domainIds)
-        ? object.domainIds.map((e: any) => String(e))
+      server: isSet(object.server)
+        ? Config1.fromJSON(object.server)
+        : undefined,
+      domainIds: globalThis.Array.isArray(object?.domainIds)
+        ? object.domainIds.map((e: any) => globalThis.String(e))
         : [],
       requestTimeout: isSet(object.requestTimeout)
-        ? String(object.requestTimeout)
+        ? globalThis.String(object.requestTimeout)
         : '',
     }
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.peerIds?.length) {
-      obj.peerIds = message.peerIds
+    if (message.server !== undefined) {
+      obj.server = Config1.toJSON(message.server)
     }
     if (message.domainIds?.length) {
       obj.domainIds = message.domainIds
@@ -149,7 +150,10 @@ export const Config = {
   },
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.peerIds = object.peerIds?.map((e) => e) || []
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? Config1.fromPartial(object.server)
+        : undefined
     message.domainIds = object.domainIds?.map((e) => e) || []
     message.requestTimeout = object.requestTimeout ?? ''
     return message
@@ -168,18 +172,18 @@ type Builtin =
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Long
-  ? string | number | Long
-  : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends { $case: string }
-  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
-      $case: T['$case']
-    }
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends { $case: string }
+          ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & {
+              $case: T['$case']
+            }
+          : T extends {}
+            ? { [K in keyof T]?: DeepPartial<T[K]> }
+            : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
