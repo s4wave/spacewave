@@ -64,8 +64,8 @@ github.com/alexkohler/prealloc v1.0.0 h1:Hbq0/3fJPQhNkN0dR95AVrr6R7tou91y0uHG5pO
 github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cvfHR56wJVlKE=
 github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQRnw=
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
-github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b h1:BH0L7luIpzC4eGsQspG5ZsehW/eTG5C9te6dwCno1H4=
-github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b/go.mod h1:Pvc4cGssKYR+PgbUMx5p1C866aPvwnX6CHjIeBQmeJ0=
+github.com/aperturerobotics/bifrost v0.22.2-0.20240123004940-b149462da747 h1:NEbHEeKdf/kD06cjUJlPfNpSHhNdX+gElSPmMTocaqE=
+github.com/aperturerobotics/bifrost v0.22.2-0.20240123004940-b149462da747/go.mod h1:Pvc4cGssKYR+PgbUMx5p1C866aPvwnX6CHjIeBQmeJ0=
 github.com/aperturerobotics/controllerbus v0.32.1 h1:lnQUZlbP3rrBi/WEXqGcEPUZpCtXoOiAE8rODbf8NxE=
 github.com/aperturerobotics/controllerbus v0.32.1/go.mod h1:Ieg4flua5BTkMHA1zqbjnXcaem4t8qiluTJrOL0ZZ/M=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=

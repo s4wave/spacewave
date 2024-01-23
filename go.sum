@@ -46,8 +46,8 @@ github.com/Jeffail/gabs/v2 v2.7.0/go.mod h1:dp5ocw1FvBBQYssgHsG7I1WYsiLRtkUaB1FE
 github.com/Workiva/go-datastructures v1.1.1 h1:9G5u1UqKt6ABseAffHGNfbNQd7omRlWE5QaxNruzhE0=
 github.com/Workiva/go-datastructures v1.1.1/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
-github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b h1:BH0L7luIpzC4eGsQspG5ZsehW/eTG5C9te6dwCno1H4=
-github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b/go.mod h1:Pvc4cGssKYR+PgbUMx5p1C866aPvwnX6CHjIeBQmeJ0=
+github.com/aperturerobotics/bifrost v0.22.2-0.20240123004940-b149462da747 h1:NEbHEeKdf/kD06cjUJlPfNpSHhNdX+gElSPmMTocaqE=
+github.com/aperturerobotics/bifrost v0.22.2-0.20240123004940-b149462da747/go.mod h1:Pvc4cGssKYR+PgbUMx5p1C866aPvwnX6CHjIeBQmeJ0=
 github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 h1:Qowgx2rS4hODBeR0QM7FcigLUZES1cz/srkP8o+/6lw=
 github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0/go.mod h1:2vMuoynITu0wxbJckb2b4IuFA/IkT5sikZG5FvsPwK8=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 h1:ANiOvmJmykti5luVErG3SQLrM2zEkT928BO3pbWBxwY=

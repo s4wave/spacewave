@@ -8,7 +8,7 @@ require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b // master
+require github.com/aperturerobotics/bifrost v0.22.2-0.20240123004940-b149462da747 // master
 
 // aperture: use ext-engines forks
 replace (

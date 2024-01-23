@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bifrost/protocol"
 	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -47,13 +48,11 @@ func NewServer(le *logrus.Entry, b bus.Bus, c *Config) (*Server, error) {
 		c:  c,
 	}
 
-	srvConf := c.GetServer().CloneVT()
-	if srvConf == nil {
-		srvConf = &stream_srpc_server.Config{}
-	}
-	if len(srvConf.GetProtocolIds()) == 0 {
-		srvConf.ProtocolIds = append(srvConf.ProtocolIds, identity_domain_service.IdentityDomainProtocol.String())
-	}
+	srvConf := c.
+		GetServer().
+		ApplyDefaults([]protocol.ID{
+			identity_domain_service.IdentityDomainProtocol,
+		})
 
 	var err error
 	srv.server, err = srvConf.BuildServer(
