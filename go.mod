@@ -3,15 +3,15 @@ module github.com/aperturerobotics/forge
 go 1.21
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1
-	github.com/aperturerobotics/identity v0.0.0-20240110213148-dbde9884d36b
+	github.com/aperturerobotics/hydra v0.0.0-20240123015940-fb2adf417a01
+	github.com/aperturerobotics/identity v0.0.0-20240123005133-465a7d7166a9
 )
 
 require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.21.2 // master
+require github.com/aperturerobotics/bifrost v0.22.8 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -42,7 +42,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.32.0 // latest
+	github.com/aperturerobotics/controllerbus v0.32.1 // latest
 	github.com/aperturerobotics/entitygraph v0.6.0
 	github.com/aperturerobotics/starpc v0.22.7 // latest
 )
@@ -214,7 +214,7 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
