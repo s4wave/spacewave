@@ -70,8 +70,8 @@ github.com/aperturerobotics/controllerbus v0.32.1 h1:lnQUZlbP3rrBi/WEXqGcEPUZpCt
 github.com/aperturerobotics/controllerbus v0.32.1/go.mod h1:Ieg4flua5BTkMHA1zqbjnXcaem4t8qiluTJrOL0ZZ/M=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1 h1:KBKC4iBZcLCp2tk7jcWCQa1Ujz4NnGzKomKdZxpbGcI=
-github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1/go.mod h1:NxuQeHQz7rLNf0WvUdaSJB7Sc0UB4UOhiFxVdk6RWDQ=
+github.com/aperturerobotics/hydra v0.0.0-20240122011621-ee9ff3e186ac h1:ISnA3XlKgWswkDaMkLna5h5A0Ao/Oc6Mwrr/UTVZj+U=
+github.com/aperturerobotics/hydra v0.0.0-20240122011621-ee9ff3e186ac/go.mod h1:rUHCZ+16uAJvj+vCyntHdPbqs/ZcXIk8pBAmU7LmjBg=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f h1:mnmO0JHfvlE/yK2kiKQ/Q2aYhCETkl6FP07rcmvoBKw=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
 github.com/aperturerobotics/starpc v0.22.7 h1:cwicYj8nv4JwJrlezlOwgsc/LK8DRxtrfuC4wudij+g=
