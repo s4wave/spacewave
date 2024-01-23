@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.21
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240119054158-2da3b1d5ba97 // master
+	github.com/aperturerobotics/identity v0.0.0-20240123004208-e38b35179e6c // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240119051836-b1a1f33534a1 // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240122011621-ee9ff3e186ac // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.21.2 // master
+require github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b // master
 
 // aperture: use ext-engines forks
 replace (
@@ -41,7 +41,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.32.0 // latest
+	github.com/aperturerobotics/controllerbus v0.32.1 // latest
 	github.com/aperturerobotics/entitygraph v0.6.0 // indirect
 	github.com/aperturerobotics/starpc v0.22.7 // indirect; latest
 )
@@ -114,7 +114,7 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
