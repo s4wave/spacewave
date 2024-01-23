@@ -9,6 +9,7 @@ import (
 	auth_method_triplesec_password "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/bifrost/peer"
 	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
+	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
 	"github.com/aperturerobotics/bifrost/testbed"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	transport_controller "github.com/aperturerobotics/bifrost/transport/controller"
@@ -140,7 +141,9 @@ func runAuthTester(c *cli.Context) error {
 		ctx,
 		tbServer.Bus,
 		resolver.NewLoadControllerWithConfig(&server.Config{
-			PeerIds: []string{serverPeerID.String()},
+			Server: &stream_srpc_server.Config{
+				PeerIds: []string{serverPeerID.String()},
+			},
 		}),
 		nil,
 	)
