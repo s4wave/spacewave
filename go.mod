@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.21
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240123004208-e38b35179e6c // master
+	github.com/aperturerobotics/identity v0.0.0-20240125041447-beca280a4f54 // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240122011621-ee9ff3e186ac // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240125041348-4484377e9bfb // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.22.2-0.20240123003038-107b3f751a5b // master
+require github.com/aperturerobotics/bifrost v0.24.3-0.20240125041314-0a4cdd598260 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -41,7 +41,7 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.32.1 // latest
+	github.com/aperturerobotics/controllerbus v0.32.3 // latest
 	github.com/aperturerobotics/entitygraph v0.6.0 // indirect
 	github.com/aperturerobotics/starpc v0.22.7 // indirect; latest
 )
@@ -54,7 +54,7 @@ replace (
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20240110212540-c015327ec623 // aperture
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.40.1-0.20240109035914-688195c3878b // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
@@ -62,7 +62,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/util v1.12.1 // indirect; master
+	github.com/aperturerobotics/util v1.13.1 // indirect; master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
