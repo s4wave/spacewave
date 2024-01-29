@@ -184,7 +184,6 @@ func (c *Controller) BundleElectronHook(
 		extraElectronFlags = append(
 			extraElectronFlags,
 			"--inspect=5858",
-			"--remote-debugging-port=9222",
 		)
 	}
 

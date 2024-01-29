@@ -210,10 +210,8 @@ To debug the Electron `renderer` process:
 - Click the green play button for "Debug Electron Renderer Process"
 
 This is only enabled in Debug builds for Electron, where the plugin compiler
-will automatically configure the web plugin to start Electron with: 
-
-- `--inspect=5858` for the main process
-- `--remote-debugging-port=9222` for the renderer
+will automatically configure the web plugin to start Electron with
+`--inspect=5858` for the main process.
 
 This is enabled by the plugin compiler for Electron in debug builds only.
 

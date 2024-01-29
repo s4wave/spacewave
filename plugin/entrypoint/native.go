@@ -73,6 +73,7 @@ func Main(
 		if err != context.Canceled {
 			return err
 		}
+
 		return nil
 	}(); err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
