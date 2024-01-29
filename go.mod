@@ -8,14 +8,14 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.19.12
 require github.com/aperturerobotics/hydra v0.0.0-20240125041348-4484377e9bfb // master
 
 require (
-	github.com/evanw/esbuild v0.19.11 // latest
+	github.com/evanw/esbuild v0.20.0 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.24.3-0.20240125041314-0a4cdd598260 // master
+require github.com/aperturerobotics/bifrost v0.24.3-0.20240128040320-b513ac567fb9 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -46,7 +46,7 @@ require (
 
 require (
 	github.com/aperturerobotics/controllerbus v0.32.3 // latest
-	github.com/aperturerobotics/entitygraph v0.6.0 // indirect
+	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
 	github.com/aperturerobotics/starpc v0.22.7 // latest
 )
 
@@ -72,11 +72,11 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.17.4
+	github.com/klauspost/compress v1.17.5
 	github.com/libp2p/go-libp2p v0.32.2
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20231213140704-4c5812896512 // indirect
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.12.1 // indirect
+	github.com/multiformats/go-multiaddr v0.12.2 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.9 // indirect
 	github.com/nats-io/nats.go v1.32.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
