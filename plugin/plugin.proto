@@ -75,6 +75,8 @@ message PluginMeta {
   string plugin_id = 2;
   // PlatformId is the destination platform ID.
   string platform_id = 3;
+  // BuildType is the type of build this is.
+  string build_type = 4;
 }
 
 // PluginStartInfo are details passed to the plugin by the plugin host in the environment.

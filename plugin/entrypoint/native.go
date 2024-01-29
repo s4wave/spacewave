@@ -36,6 +36,7 @@ func Main(
 	log.SetLevel(logLevel)
 	le := logrus.NewEntry(log)
 
+	// Handle stop signals by canceling the context.
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
 

@@ -40,7 +40,7 @@ var StaticFS embed.FS
 var PluginStartInfo = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_START_INFO"))
 
 // PluginMeta contains the b58 encoded plugin metadata.
-var PluginMeta = "8j7eujJNz6qYqGbGLPN2CjBPAtpgeC7tBgcj2dMrNafy5U5nPjF8K4e3SBpgNs5Hpg3"
+var PluginMeta = "5FtuR56RRfyGbcqhY8njcbR9RNvLQz6rg7WtdEVi1sBUFEt4qKdW6Ber3E6FT3CpxoyKNG3s7s"
 
 // LogLevel is the default program log level.
 var LogLevel = logrus.DebugLevel
@@ -92,7 +92,7 @@ var StaticFS embed.FS
 var PluginStartInfo = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_START_INFO"))
 
 // PluginMeta contains the b58 encoded plugin metadata.
-var PluginMeta = "8j7eujJNz6qYqGbGLPN2CjBPAtpgeC7tBgcj2dMrNafy5U5nPjF8K4e3SBpgNs5Hpg3"
+var PluginMeta = "5FtuR56RRfyGbcqhY8njcbR9RNvLQz6rg7WtdEVi1sBUFEt4qKdW6Ber3E6FT3CpxoyKNG3s7s"
 
 // LogLevel is the default program log level.
 var LogLevel = logrus.DebugLevel
@@ -140,7 +140,7 @@ func TestCodegen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	pluginMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "native/linux/amd64")
+	pluginMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "native/linux/amd64", "dev")
 	goVarDefs := []*vardef.PluginVar{vardef.NewPluginVar(
 		"github.com/aperturerobotics/bldr/example",
 		"AssetPath",
@@ -193,7 +193,9 @@ func TestCodegen(t *testing.T) {
 		}
 		output := strings.TrimSpace(string(dat))
 		expected := strings.TrimSpace(tcase.result)
+		t.Log("expected:")
 		t.Log(string(expected))
+		t.Log("actual:")
 		t.Log(string(output))
 		if output != expected {
 			dmp := gdiff.New()

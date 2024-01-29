@@ -8,11 +8,12 @@ import (
 )
 
 // NewPluginMeta constructs a new PluginMeta.
-func NewPluginMeta(projectID, pluginID, platformID string) *PluginMeta {
+func NewPluginMeta(projectID, pluginID, platformID, buildType string) *PluginMeta {
 	return &PluginMeta{
 		ProjectId:  projectID,
 		PluginId:   pluginID,
 		PlatformId: platformID,
+		BuildType:  buildType,
 	}
 }
 

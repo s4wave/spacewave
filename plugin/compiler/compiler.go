@@ -253,7 +253,12 @@ func (c *Controller) BuildManifest(
 
 		// Enable cgo only if flag is set (for reproducible builds)
 		enableCgo := pluginBuildConf.GetEnableCgo()
-		pluginMeta := bldr_plugin.NewPluginMeta(projectID, pluginID, buildPlatform.GetPlatformID())
+		pluginMeta := bldr_plugin.NewPluginMeta(
+			projectID,
+			pluginID,
+			buildPlatform.GetPlatformID(),
+			buildType.String(),
+		)
 
 		// applyToConfigSet conditionally applies the config to the config set if not already set.
 		applyToConfigSet := func(id string, conf config.Config) error {

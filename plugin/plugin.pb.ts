@@ -64,6 +64,8 @@ export interface PluginMeta {
   pluginId: string;
   /** PlatformId is the destination platform ID. */
   platformId: string;
+  /** BuildType is the type of build this is. */
+  buildType: string;
 }
 
 /** PluginStartInfo are details passed to the plugin by the plugin host in the environment. */
@@ -574,7 +576,7 @@ export const LoadPluginResponse = {
 };
 
 function createBasePluginMeta(): PluginMeta {
-  return { projectId: "", pluginId: "", platformId: "" };
+  return { projectId: "", pluginId: "", platformId: "", buildType: "" };
 }
 
 export const PluginMeta = {
@@ -587,6 +589,9 @@ export const PluginMeta = {
     }
     if (message.platformId !== "") {
       writer.uint32(26).string(message.platformId);
+    }
+    if (message.buildType !== "") {
+      writer.uint32(34).string(message.buildType);
     }
     return writer;
   },
@@ -618,6 +623,13 @@ export const PluginMeta = {
           }
 
           message.platformId = reader.string();
+          continue;
+        case 4:
+          if (tag !== 34) {
+            break;
+          }
+
+          message.buildType = reader.string();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -665,6 +677,7 @@ export const PluginMeta = {
       projectId: isSet(object.projectId) ? globalThis.String(object.projectId) : "",
       pluginId: isSet(object.pluginId) ? globalThis.String(object.pluginId) : "",
       platformId: isSet(object.platformId) ? globalThis.String(object.platformId) : "",
+      buildType: isSet(object.buildType) ? globalThis.String(object.buildType) : "",
     };
   },
 
@@ -679,6 +692,9 @@ export const PluginMeta = {
     if (message.platformId !== "") {
       obj.platformId = message.platformId;
     }
+    if (message.buildType !== "") {
+      obj.buildType = message.buildType;
+    }
     return obj;
   },
 
@@ -690,6 +706,7 @@ export const PluginMeta = {
     message.projectId = object.projectId ?? "";
     message.pluginId = object.pluginId ?? "";
     message.platformId = object.platformId ?? "";
+    message.buildType = object.buildType ?? "";
     return message;
   },
 };
