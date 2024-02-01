@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.21
 
-require github.com/aperturerobotics/bifrost v0.24.3-0.20240125041314-0a4cdd598260 // master
+require github.com/aperturerobotics/bifrost v0.24.3-0.20240129220516-2294ce1833e0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -35,7 +35,7 @@ require (
 
 require (
 	github.com/aperturerobotics/controllerbus v0.32.3 // latest
-	github.com/aperturerobotics/entitygraph v0.6.0
+	github.com/aperturerobotics/entitygraph v0.6.1
 	github.com/aperturerobotics/starpc v0.22.7 // latest
 )
 
@@ -61,11 +61,11 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.17.4
+	github.com/klauspost/compress v1.17.5
 	github.com/libp2p/go-libp2p v0.32.2
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20231213140704-4c5812896512 // indirect
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.12.1 // indirect
+	github.com/multiformats/go-multiaddr v0.12.2 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.9 // indirect
 	github.com/nats-io/nats.go v1.32.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
@@ -73,7 +73,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pkg/errors v0.9.1
-	github.com/planetscale/vtprotobuf v0.5.0 // indirect
+	github.com/planetscale/vtprotobuf v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.41.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -117,7 +117,7 @@ require (
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/sync v0.6.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.25.5
+	gorm.io/gorm v1.25.6
 )
 
 require (

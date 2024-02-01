@@ -63,6 +63,8 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuW
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/aperturerobotics/bifrost v0.24.3-0.20240125041314-0a4cdd598260 h1:V0fA/VtYkyCTZrbWLfdcYR5qWUTcGjKPnkH+9tmzt2I=
 github.com/aperturerobotics/bifrost v0.24.3-0.20240125041314-0a4cdd598260/go.mod h1:rMlBU4pWkvmbUaq9wWhJMDLgztbHTnnW5viU6q1XpV0=
+github.com/aperturerobotics/bifrost v0.24.3-0.20240129220516-2294ce1833e0 h1:9RHXVrrm+Q1zAhj02d/aeHKv4RNIGzhmv44WOcM1z+I=
+github.com/aperturerobotics/bifrost v0.24.3-0.20240129220516-2294ce1833e0/go.mod h1:RBJpYBZSA+Ubdka2lorsBJNwg7/0SSeLWVItz4ASH8g=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -75,6 +77,8 @@ github.com/aperturerobotics/controllerbus v0.32.3 h1:iB3BSJGC0S9LOK5jzXOnygFHNkn
 github.com/aperturerobotics/controllerbus v0.32.3/go.mod h1:bWNafvzjXfO6KBzU18yA1g+i473zMDeiF3KCmoJRGmE=
 github.com/aperturerobotics/entitygraph v0.6.0 h1:fA7cZ9Gl4A/itO4ATYXrpfOK81q/YSEh6wg1Hp3Oti4=
 github.com/aperturerobotics/entitygraph v0.6.0/go.mod h1:SQbE/YRtEFLPP6n9kIz5YbB/T4ZKa2VY4/71nY9asBQ=
+github.com/aperturerobotics/entitygraph v0.6.1 h1:A+5dYE26dRkitSCE9Zn9vrp6j37Ms4C5VjBYlHFSuFc=
+github.com/aperturerobotics/entitygraph v0.6.1/go.mod h1:/XPtMCHH4VOqdL9VfckQd8lUmJVK1t8qspuPgob4rEo=
 github.com/aperturerobotics/go-kvfile v0.3.0 h1:sk0qySs5K2PE3Xvxlld0XNfBoiATjhBMjNUd2oEUi/U=
 github.com/aperturerobotics/go-kvfile v0.3.0/go.mod h1:QUm6obc/hMXdNUMTd/hpaqoofEg/1e0q+JmnoHjiRqA=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
@@ -371,6 +375,8 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/klauspost/compress v1.10.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.17.4 h1:Ej5ixsIri7BrIjBkRZLTo6ghwrEtHFk7ijlczPW4fZ4=
 github.com/klauspost/compress v1.17.4/go.mod h1:/dCuZOvVtNoHsyb+cuJD3itjs3NbnF6KH9zAO4BDxPM=
+github.com/klauspost/compress v1.17.5 h1:d4vBd+7CHydUqpFBgUEKkSdtSugf9YFmSkvUYPquI5E=
+github.com/klauspost/compress v1.17.5/go.mod h1:/dCuZOvVtNoHsyb+cuJD3itjs3NbnF6KH9zAO4BDxPM=
 github.com/klauspost/cpuid/v2 v2.0.1/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.0.12/go.mod h1:g2LTdtYhdyuGPqyWyv7qRAmj1WBqxuObKfj5c0PQa7c=
 github.com/klauspost/cpuid/v2 v2.2.6 h1:ndNyv040zDGIDh8thGkXYjnFtiN02M1PVVF+JE/48xc=
@@ -563,6 +569,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/sftp v1.10.1/go.mod h1:lYOWFsE0bwd1+KfKJaKeuokY15vzFx25BLbzYYoAxZI=
 github.com/planetscale/vtprotobuf v0.5.0 h1:l8PXm6Colok5z6qQLNhAj2Jq5BfoMTIHxLER5a6nDqM=
 github.com/planetscale/vtprotobuf v0.5.0/go.mod h1:wm1N3qk9G/4+VM1WhpkLbvY/d8+0PbwYYpP5P5VhTks=
+github.com/planetscale/vtprotobuf v0.6.0 h1:nBeETjudeJ5ZgBHUz1fVHvbqUKnYOXNhsIEabROxmNA=
+github.com/planetscale/vtprotobuf v0.6.0/go.mod h1:t/avpk3KcrXxUnYOhZhMXJlSEyie6gQbtLq5NM3loB8=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
@@ -1151,6 +1159,8 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gorm.io/gorm v1.25.5 h1:zR9lOiiYf09VNh5Q1gphfyia1JpiClIWG9hQaxB/mls=
 gorm.io/gorm v1.25.5/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
+gorm.io/gorm v1.25.6 h1:V92+vVda1wEISSOMtodHVRcUIOPYa2tgQtyF+DfFx+A=
+gorm.io/gorm v1.25.6/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190418001031-e561f6794a2a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
