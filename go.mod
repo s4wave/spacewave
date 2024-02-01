@@ -3,7 +3,7 @@ module github.com/aperturerobotics/bldr
 go 1.21
 
 // https://github.com/evanw/esbuild/pull/3413
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.19.12-0.20240108234915-d522b4157a5e // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
 require github.com/aperturerobotics/hydra v0.0.0-20240201230451-cc41903749a8 // master
 
