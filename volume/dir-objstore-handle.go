@@ -52,7 +52,8 @@ func (d *buildObjectStoreAPI) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
 		// references have been released.
-		UnrefDisposeDur: time.Second * 3,
+		UnrefDisposeDur:            time.Millisecond * 500,
+		UnrefDisposeEmptyImmediate: true,
 	}
 }
 

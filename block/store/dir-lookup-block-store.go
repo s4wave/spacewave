@@ -79,7 +79,8 @@ func (d *lookupBlockStore) Validate() error {
 // GetValueLookupBlockStoreOptions returns options relating to value handling.
 func (d *lookupBlockStore) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
-		UnrefDisposeDur: time.Second,
+		UnrefDisposeDur:            time.Millisecond * 500,
+		UnrefDisposeEmptyImmediate: true,
 	}
 }
 
