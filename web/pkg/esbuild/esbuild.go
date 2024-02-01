@@ -406,10 +406,12 @@ func BuildWebPkgsEsbuild(
 		}
 
 		// metaAnalysis contains a graphical view of input files & their sizes
-		metaAnalysis := esbuild_api.AnalyzeMetafile(result.Metafile, esbuild_api.AnalyzeMetafileOptions{
-			Color: true,
-		})
-		os.Stderr.WriteString(metaAnalysis + "\n")
+		/*
+			metaAnalysis := esbuild_api.AnalyzeMetafile(result.Metafile, esbuild_api.AnalyzeMetafileOptions{
+				Color: true,
+			})
+			os.Stderr.WriteString(metaAnalysis + "\n")
+		*/
 
 		metaFile := &bldr_esbuild.EsbuildMetafile{}
 		if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
