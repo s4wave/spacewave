@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"go/ast"
 	"go/token"
-	"os"
 	"path/filepath"
 	"strings"
 
