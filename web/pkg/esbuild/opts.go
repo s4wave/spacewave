@@ -18,14 +18,21 @@ func BuildEsbuildBuildOpts(
 ) *esbuild_api.BuildOptions {
 	entryNames := "[dir]/[name]"
 	if useHashes {
-		entryNames = "[dir]/[name]-[hash]"
+		entryNames += "-[hash]"
+	}
+
+	assetNames := "assets/[ext]/[name]"
+	if useHashes {
+		assetNames += "-[hash]"
 	}
 
 	buildOpts := &esbuild_api.BuildOptions{
 		AbsWorkingDir: codeRootPath,
 		Outdir:        outPath,
 		PublicPath:    publicPath,
-		EntryNames:    entryNames,
+
+		EntryNames: entryNames,
+		AssetNames: assetNames,
 
 		LogLevel:    esbuild_api.LogLevelInfo,
 		Platform:    esbuild_api.PlatformBrowser,
