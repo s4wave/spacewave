@@ -75,14 +75,13 @@ func ExPluginLoadWaitClient(
 	var returned atomic.Bool
 	for {
 		nonce := currNonce.Add(1)
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			if prevRpRef != nil {
 				prevRpRef.Release()
 			}
 			return nil, nil, context.Canceled
-		default:
 		}
+
 		waitCtx, waitCtxCancel := context.WithCancel(ctx)
 		var err error
 		rp, _, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, func() {
@@ -99,6 +98,7 @@ func ExPluginLoadWaitClient(
 			waitCtxCancel()
 			return nil, nil, err
 		}
+
 		// WaitValue waits for a non-nil client value.
 		clientCtr := rp.GetRpcClientCtr()
 		client, err := clientCtr.WaitValue(waitCtx, nil)
@@ -110,6 +110,7 @@ func ExPluginLoadWaitClient(
 			rpRef.Release()
 			return nil, nil, err
 		}
+
 		returned.Store(true)
 		return *client, rpRef, nil
 	}

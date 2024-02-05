@@ -33,20 +33,18 @@ type loadPluginResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	ref, relRef := r.c.AddPluginReference(r.pluginID)
 	handler.ClearValues()
-	if prev := r.relPref.Swap(&relRef); prev != nil {
-		(*prev)()
-	}
 
+	ref, relRef := r.c.AddPluginReference(r.pluginID)
 	var val bldr_plugin.LoadPluginValue = ref
-	if _, added := handler.AddValue(val); !added {
+	valID, added := handler.AddValue(val)
+	if !added {
 		// value rejected
 		relRef()
 		return nil
 	}
+	_ = handler.AddValueRemovedCallback(valID, relRef)
 
-	_ = r.di.AddDisposeCallback(relRef)
 	return nil
 }
 
