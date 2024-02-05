@@ -5,7 +5,6 @@ import "github.com/aperturerobotics/bldr/manifest/manifest.proto";
 import "github.com/aperturerobotics/controllerbus/controller/exec/exec.proto";
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
-import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
 
 // PluginStatus holds basic status for a plugin.
 message PluginStatus {

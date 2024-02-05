@@ -1,6 +1,8 @@
 syntax = "proto3";
 package web.pkg.rpc.server;
 
+import "github.com/aperturerobotics/util/backoff/backoff.proto";
+
 // Config configures the web pkg rpc server.
 // Provides the AccessWebPkg RPC service.
 // Resolves LookupRpcService.
@@ -25,4 +27,7 @@ message Config {
   // ReleaseDelay is a delay duration to wait before releasing a unreferenced web pkg.
   // If empty string, defaults to 1s (1 second).
   string release_delay = 5;
+  // Backoff is the backoff config for resolving web pkgs.
+  // If unset, defaults to reasonable defaults.
+  .backoff.Backoff backoff = 6;
 }

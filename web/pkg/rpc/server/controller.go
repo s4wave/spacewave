@@ -12,8 +12,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
+	cbackoff "github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,7 +82,17 @@ func NewController(
 		c.newWebPkgTracker,
 		keyed.WithExitLogger[string, *webPkgTracker](le),
 		keyed.WithReleaseDelay[string, *webPkgTracker](releaseDelay),
+		keyed.WithBackoff[string, *webPkgTracker](func(k string) cbackoff.BackOff {
+			if cc.GetBackoff().SizeVT() == 0 {
+				return (&backoff.Backoff{Exponential: &backoff.Exponential{
+					InitialInterval: 200,
+					MaxInterval:     1000,
+				}}).Construct()
+			}
+			return cc.GetBackoff().Construct()
+		}),
 	)
+
 	return c, nil
 }
 

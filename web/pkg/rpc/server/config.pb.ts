@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
@@ -40,6 +41,11 @@ export interface Config {
    * If empty string, defaults to 1s (1 second).
    */
   releaseDelay: string
+  /**
+   * Backoff is the backoff config for resolving web pkgs.
+   * If unset, defaults to reasonable defaults.
+   */
+  backoff: Backoff | undefined
 }
 
 function createBaseConfig(): Config {
@@ -49,6 +55,7 @@ function createBaseConfig(): Config {
     webPkgIdPrefixes: [],
     webPkgIdList: [],
     releaseDelay: '',
+    backoff: undefined,
   }
 }
 
@@ -71,6 +78,9 @@ export const Config = {
     }
     if (message.releaseDelay !== '') {
       writer.uint32(42).string(message.releaseDelay)
+    }
+    if (message.backoff !== undefined) {
+      Backoff.encode(message.backoff, writer.uint32(50).fork()).ldelim()
     }
     return writer
   },
@@ -117,6 +127,13 @@ export const Config = {
           }
 
           message.releaseDelay = reader.string()
+          continue
+        case 6:
+          if (tag !== 50) {
+            break
+          }
+
+          message.backoff = Backoff.decode(reader, reader.uint32())
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -178,6 +195,9 @@ export const Config = {
       releaseDelay: isSet(object.releaseDelay)
         ? globalThis.String(object.releaseDelay)
         : '',
+      backoff: isSet(object.backoff)
+        ? Backoff.fromJSON(object.backoff)
+        : undefined,
     }
   },
 
@@ -198,6 +218,9 @@ export const Config = {
     if (message.releaseDelay !== '') {
       obj.releaseDelay = message.releaseDelay
     }
+    if (message.backoff !== undefined) {
+      obj.backoff = Backoff.toJSON(message.backoff)
+    }
     return obj
   },
 
@@ -211,6 +234,10 @@ export const Config = {
     message.webPkgIdPrefixes = object.webPkgIdPrefixes?.map((e) => e) || []
     message.webPkgIdList = object.webPkgIdList?.map((e) => e) || []
     message.releaseDelay = object.releaseDelay ?? ''
+    message.backoff =
+      object.backoff !== undefined && object.backoff !== null
+        ? Backoff.fromPartial(object.backoff)
+        : undefined
     return message
   },
 }
