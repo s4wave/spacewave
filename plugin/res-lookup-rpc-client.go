@@ -124,10 +124,8 @@ func (r *LookupRpcClientResolver) Resolve(rctx context.Context, handler directiv
 		_ = handler.ClearValues()
 		r.rpcClientCtr.SetValue(nil)
 
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return context.Canceled
-		default:
 		}
 
 		pluginID := r.pluginID
