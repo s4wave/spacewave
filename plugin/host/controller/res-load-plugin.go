@@ -29,8 +29,6 @@ type loadPluginResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	_ = handler.ClearValues()
-
 	ref, relRef := r.c.AddPluginReference(r.pluginID)
 	defer relRef()
 
@@ -38,8 +36,8 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 	var currVal bldr_plugin.RunningPlugin
 	for {
 		nextVal, err := rpCtr.WaitValueChange(ctx, currVal, nil)
+		_ = handler.ClearValues()
 		if err != nil {
-			_ = handler.ClearValues()
 			return err
 		}
 
