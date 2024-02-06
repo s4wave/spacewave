@@ -42,8 +42,10 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		}
 
 		currVal = nextVal
-		var val bldr_plugin.LoadPluginValue = nextVal
-		_, _ = handler.AddValue(val)
+		if nextVal != nil {
+			var val bldr_plugin.LoadPluginValue = nextVal
+			_, _ = handler.AddValue(val)
+		}
 	}
 }
 
