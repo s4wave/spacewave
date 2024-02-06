@@ -5,9 +5,12 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	plugin "github.com/aperturerobotics/bldr/plugin"
+	"github.com/aperturerobotics/controllerbus/bus"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 )
 
@@ -65,44 +68,80 @@ func (s *pluginHostServer) LoadPlugin(
 	pluginID := req.GetPluginId()
 	s.c.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
 
-	ctx := strm.Context()
-ValLoop:
-	for {
+	dir := plugin.NewLoadPlugin(pluginID)
+	resp := ccontainer.NewCContainerVT[*plugin.LoadPluginResponse](nil)
+
+	errCh := make(chan error, 1)
+	pushErr := func(err error) {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
+		case errCh <- err:
 		default:
 		}
+	}
 
-		valCtx, valCtxCancel := context.WithCancel(ctx)
-		rp, _, rpRef, err := plugin.ExLoadPlugin(strm.Context(), s.c.bus, false, pluginID, valCtxCancel)
+	ctx := strm.Context()
+	reqCtx, reqCtxCancel := context.WithCancel(ctx)
+	defer reqCtxCancel()
+
+	var vals []directive.AttachedValue
+	updResp := func() {
+		resp.SetValue(&plugin.LoadPluginResponse{
+			PluginStatus: &plugin.PluginStatus{
+				PluginId: pluginID,
+				Running:  len(vals) != 0,
+			},
+		})
+	}
+
+	di, ref, err := s.c.bus.AddDirective(
+		dir,
+		bus.NewCallbackHandler(
+			func(av directive.AttachedValue) {
+				vals = append(vals, av)
+				if len(vals) == 1 {
+					updResp()
+				}
+			},
+			func(av directive.AttachedValue) {
+				for i, val := range vals {
+					if val == av {
+						vals = append(vals[:i], vals[i+1:]...)
+						updResp()
+						break
+					}
+				}
+			},
+			func() {
+				reqCtxCancel()
+			},
+		),
+	)
+	if err != nil {
+		return err
+	}
+	defer ref.Release()
+
+	defer di.AddIdleCallback(func(errs []error) {
+		for _, err := range errs {
+			if err != nil && err != context.Canceled {
+				pushErr(err)
+				return
+			}
+		}
+		updResp()
+	})()
+
+	var prevTx *plugin.LoadPluginResponse
+	for {
+		val, err := resp.WaitValueChange(reqCtx, prevTx, errCh)
 		if err != nil {
 			return err
 		}
 
-		clientCtr := rp.GetRpcClientCtr()
-		val := clientCtr.GetValue()
-		var lastResp *plugin.LoadPluginResponse
-		for {
-			isRunning := val != nil
-			resp := &plugin.LoadPluginResponse{
-				PluginStatus: &plugin.PluginStatus{
-					PluginId: pluginID,
-					Running:  isRunning,
-				},
-			}
-			if !resp.EqualVT(lastResp) {
-				lastResp = resp
-				if err := strm.Send(resp); err != nil {
-					rpRef.Release()
-					return err
-				}
-			}
-			val, err = clientCtr.WaitValueChange(valCtx, val, nil)
-			if err != nil {
-				rpRef.Release()
-				valCtxCancel()
-				continue ValLoop
+		prevTx = val
+		if val != nil {
+			if err := strm.Send(val); err != nil {
+				return err
 			}
 		}
 	}

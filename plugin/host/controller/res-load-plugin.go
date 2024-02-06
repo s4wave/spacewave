@@ -2,7 +2,6 @@ package plugin_host_controller
 
 import (
 	"context"
-	"sync/atomic"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -26,26 +25,28 @@ type loadPluginResolver struct {
 	di directive.Instance
 	// pluginID is the plugin identifier
 	pluginID string
-	// relPrev is the previous release func
-	// this is in case the resolver is restarted
-	relPref atomic.Pointer[func()]
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	handler.ClearValues()
+	_ = handler.ClearValues()
 
 	ref, relRef := r.c.AddPluginReference(r.pluginID)
-	var val bldr_plugin.LoadPluginValue = ref
-	valID, added := handler.AddValue(val)
-	if !added {
-		// value rejected
-		relRef()
-		return nil
-	}
-	_ = handler.AddValueRemovedCallback(valID, relRef)
+	defer relRef()
 
-	return nil
+	rpCtr := ref.GetRunningPluginCtr()
+	var currVal bldr_plugin.RunningPlugin
+	for {
+		nextVal, err := rpCtr.WaitValueChange(ctx, currVal, nil)
+		if err != nil {
+			_ = handler.ClearValues()
+			return err
+		}
+
+		currVal = nextVal
+		var val bldr_plugin.LoadPluginValue = nextVal
+		_, _ = handler.AddValue(val)
+	}
 }
 
 // _ is a type assertion

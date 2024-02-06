@@ -59,7 +59,7 @@ type Controller struct {
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
-	pluginInstances *keyed.KeyedRefCount[string, *runningPlugin]
+	pluginInstances *keyed.KeyedRefCount[string, *pluginTracker]
 	// pluginManifestFetchers manages fetching plugin manifests.
 	// key: plugin ID
 	// controlled by pluginInstances
@@ -262,7 +262,7 @@ func (c *Controller) HandleDirective(
 // handle and a release function.
 //
 // Returns nil, nil, err if any error occurs.
-func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPlugin, func()) {
+func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)

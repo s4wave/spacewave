@@ -2,12 +2,10 @@ package bldr_plugin
 
 import (
 	"context"
-	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 )
 
@@ -24,13 +22,6 @@ type LoadPlugin interface {
 // LoadPluginValue is the result type for LoadPlugin.
 // Multiple results may be pushed to the directive.
 type LoadPluginValue = RunningPlugin
-
-// RunningPlugin is the interface exposed to callers of LoadPlugin.
-type RunningPlugin interface {
-	// GetRpcClientCtr returns the rpc client container.
-	// The plugin RPC client will be set when the plugin becomes ready.
-	GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client]
-}
 
 // loadPlugin implements LoadPlugin
 type loadPlugin struct {
@@ -51,7 +42,7 @@ func ExLoadPlugin(
 	returnIfIdle bool,
 	pluginID string,
 	valDisposeCallback func(),
-) (RunningPlugin, directive.Instance, directive.Reference, error) {
+) (LoadPluginValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecWaitValue[RunningPlugin](
 		ctx,
 		b,
@@ -70,78 +61,36 @@ func ExPluginLoadWaitClient(
 	pluginID string,
 	valDisposeCb func(),
 ) (srpc.Client, directive.Reference, error) {
-	var prevRpRef directive.Reference
-	var currNonce atomic.Uint32
-	var returned atomic.Bool
-	for {
-		nonce := currNonce.Add(1)
-		if ctx.Err() != nil {
-			if prevRpRef != nil {
-				prevRpRef.Release()
-			}
-			return nil, nil, context.Canceled
-		}
-
-		waitCtx, waitCtxCancel := context.WithCancel(ctx)
-		var err error
-		rp, _, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, func() {
-			waitCtxCancel()
-			if valDisposeCb != nil && currNonce.Load() == nonce && returned.Load() {
-				valDisposeCb()
-			}
-		})
-		if prevRpRef != nil {
-			prevRpRef.Release()
-		}
-		prevRpRef = rpRef
-		if err != nil {
-			waitCtxCancel()
-			return nil, nil, err
-		}
-
-		// WaitValue waits for a non-nil client value.
-		clientCtr := rp.GetRpcClientCtr()
-		client, err := clientCtr.WaitValue(waitCtx, nil)
-		waitCtxCancel()
-		if err != nil {
-			if err == context.Canceled {
-				continue
-			}
+	rp, _, rpRef, err := ExLoadPlugin(ctx, b, false, pluginID, valDisposeCb)
+	if err != nil || rp == nil {
+		if rpRef != nil {
 			rpRef.Release()
-			return nil, nil, err
 		}
-
-		returned.Store(true)
-		return *client, rpRef, nil
+		return nil, nil, err
 	}
+
+	return rp.GetRpcClient(), rpRef, nil
 }
 
-// ExLoadPluginAccessClient calls LoadPlugin and returns the rpc client to be set.
+// ExLoadPluginAccess calls LoadPlugin and returns the running plugin handle.
 //
 // the callback will be canceled & restarted if the client becomes invalid.
 // the callback context is canceled when the client value changes.
 // the callback should return context.Canceled in that case.
 //
 // if the callback returns nil, the outer function will also return nil.
-func ExPluginLoadAccessClient(
+func ExPluginLoadAccess(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
-	cb func(ctx context.Context, client srpc.Client) error,
+	cb func(ctx context.Context, rp RunningPlugin) error,
 ) error {
 	routineCtr := routine.NewRoutineContainer()
 	di, dirRef, err := bus.ExecOneOffWatchRoutine(
 		routineCtr,
 		b,
 		NewLoadPlugin(pluginID),
-		func(ctx context.Context, val LoadPluginValue) error {
-			clientCtr := val.GetRpcClientCtr()
-			clientPtr, err := clientCtr.WaitValue(ctx, nil)
-			if err != nil {
-				return err
-			}
-			return cb(ctx, *clientPtr)
-		},
+		cb,
 	)
 	if err != nil {
 		return err
@@ -163,6 +112,24 @@ func ExPluginLoadAccessClient(
 
 	routineCtr.SetContext(ctx, true)
 	return routineCtr.WaitExited(ctx, false, errCh)
+}
+
+// ExLoadPluginAccessClient calls LoadPlugin and returns the rpc client.
+//
+// the callback will be canceled & restarted if the client becomes invalid.
+// the callback context is canceled when the client value changes.
+// the callback should return context.Canceled in that case.
+//
+// if the callback returns nil, the outer function will also return nil.
+func ExPluginLoadAccessClient(
+	ctx context.Context,
+	b bus.Bus,
+	pluginID string,
+	cb func(ctx context.Context, c srpc.Client) error,
+) error {
+	return ExPluginLoadAccess(ctx, b, pluginID, func(ctx context.Context, rp RunningPlugin) error {
+		return cb(ctx, rp.GetRpcClient())
+	})
 }
 
 // Validate validates the directive.

@@ -5,7 +5,6 @@ import (
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/retry"
 	cbackoff "github.com/cenkalti/backoff"
@@ -17,12 +16,11 @@ func (c *Controller) resolveLoadPlugin(
 	di directive.Instance,
 	dir bldr_plugin.LoadPlugin,
 ) (directive.Resolver, error) {
-	pluginID := dir.LoadPluginID()
 	return &loadPluginResolver{
-		c:            c,
-		pluginID:     pluginID,
-		rpcClientCtr: ccontainer.NewCContainer[*srpc.Client](nil),
-		bo:           buildBackoff(),
+		c:                c,
+		pluginID:         dir.LoadPluginID(),
+		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		bo:               buildBackoff(),
 	}, nil
 }
 
@@ -32,8 +30,9 @@ type loadPluginResolver struct {
 	c *Controller
 	// pluginID is the plugin identifier
 	pluginID string
-	// rpcClientCtr is the rpc client container
-	rpcClientCtr *ccontainer.CContainer[*srpc.Client]
+	// runningPluginCtr contains the running plugin when the plugin is running
+	// nil otherwise
+	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
 	// bo is the backoff
 	bo cbackoff.BackOff
 }
@@ -41,14 +40,12 @@ type loadPluginResolver struct {
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	le := r.c.le.WithField("load-plugin-id", r.pluginID)
-	if handler.CountValues(false) == 0 {
-		var resultValue bldr_plugin.LoadPluginValue = r
-		_, _ = handler.AddValue(resultValue)
-	}
-
 	le.Debug("loading plugin via plugin host")
+
 	return retry.Retry(ctx, le, func(ctx context.Context, success func()) error {
-		r.rpcClientCtr.SetValue(nil)
+		r.runningPluginCtr.SetValue(nil)
+		_ = handler.ClearValues()
+
 		strm, err := r.c.srv.LoadPlugin(ctx, &bldr_plugin.LoadPluginRequest{
 			PluginId: r.pluginID,
 		})
@@ -61,10 +58,12 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		for {
 			resp, err := strm.Recv()
 			if err != nil {
+				_ = handler.ClearValues()
 				return err
 			}
 
 			nextRunning := resp.GetPluginStatus().GetRunning()
+			success()
 			if nextRunning == running {
 				continue
 			}
@@ -72,26 +71,29 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 
 			if !running {
 				le.Debug("plugin not yet loaded")
-				r.rpcClientCtr.SetValue(nil)
+				r.runningPluginCtr.SetValue(nil)
+				_ = handler.ClearValues()
 				continue
 			}
 
 			// construct the rpc stream client
 			le.Debug("plugin loaded")
 			rpcClient := r.c.BuildRemotePluginClient(r.pluginID, false)
-			r.rpcClientCtr.SetValue(&rpcClient)
+			var val bldr_plugin.LoadPluginValue = bldr_plugin.NewRunningPlugin(rpcClient)
+			r.runningPluginCtr.SetValue(val)
+			_, _ = handler.AddValue(val)
 		}
 	}, r.bo)
 }
 
-// GetRpcClientCtr returns the rpc client container.
-// The plugin RPC client will be set when the plugin becomes ready.
-func (r *loadPluginResolver) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
-	return r.rpcClientCtr
+// GetRunningPluginCtr returns the current running plugin instance.
+// May be changed (or set to nil) when the instance changes.
+func (r *loadPluginResolver) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.RunningPlugin] {
+	return r.runningPluginCtr
 }
 
 // _ is a type assertion
 var (
-	_ directive.Resolver        = ((*loadPluginResolver)(nil))
-	_ bldr_plugin.RunningPlugin = ((*loadPluginResolver)(nil))
+	_ directive.Resolver           = ((*loadPluginResolver)(nil))
+	_ bldr_plugin.RunningPluginRef = ((*loadPluginResolver)(nil))
 )

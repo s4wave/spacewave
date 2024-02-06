@@ -5,7 +5,7 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -18,36 +18,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// runningPlugin manages a running plugin instance
-type runningPlugin struct {
+// pluginTracker manages a running plugin instance
+type pluginTracker struct {
 	// c is the controller
 	c *Controller
 	// le is the logger
 	le *logrus.Entry
 	// pluginID is the plugin id
 	pluginID string
-	// rpcClientCtr contains the srpc client
-	rpcClientCtr *ccontainer.CContainer[*srpc.Client]
+	// runningPluginCtr contains the running plugin ref
+	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
+}
+
+// GetRunningPluginCtr returns the current running plugin instance.
+// May be changed (or set to nil) when the instance changes.
+func (t *pluginTracker) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.RunningPlugin] {
+	return t.runningPluginCtr
 }
 
 // newRunningPlugin constructs a new running plugin routine.
-func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *runningPlugin) {
-	tr := &runningPlugin{
-		c:            c,
-		le:           c.le.WithField("plugin-id", key),
-		pluginID:     key,
-		rpcClientCtr: ccontainer.NewCContainer[*srpc.Client](nil),
+func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *pluginTracker) {
+	tr := &pluginTracker{
+		c:                c,
+		le:               c.le.WithField("plugin-id", key),
+		pluginID:         key,
+		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 	}
 	return tr.execute, tr
 }
 
-// GetRpcClientCtr returns the rpc client container.
-func (t *runningPlugin) GetRpcClientCtr() *ccontainer.CContainer[*srpc.Client] {
-	return t.rpcClientCtr
-}
-
 // execute executes the routine.
-func (t *runningPlugin) execute(ctx context.Context) error {
+func (t *pluginTracker) execute(ctx context.Context) error {
 	backoffConf := t.c.conf.GetExecBackoff().CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
@@ -75,7 +76,7 @@ func (t *runningPlugin) execute(ctx context.Context) error {
 }
 
 // execPlugin executes the plugin.
-func (t *runningPlugin) execPlugin(ctx context.Context) error {
+func (t *pluginTracker) execPlugin(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le
 
 	// build proxy volume
@@ -151,20 +152,24 @@ func (t *runningPlugin) execPlugin(ctx context.Context) error {
 }
 
 // updateRpcClient is called by the plugin when the RPC client changes.
-func (t *runningPlugin) updateRpcClient(client srpc.Client) {
-	_ = t.rpcClientCtr.SwapValue(func(val *srpc.Client) *srpc.Client {
-		changed := ((client == nil) != (val == nil)) || (val != nil && *val != client)
+func (t *pluginTracker) updateRpcClient(client srpc.Client) {
+	_ = t.runningPluginCtr.SwapValue(func(rp bldr_plugin.RunningPlugin) bldr_plugin.RunningPlugin {
+		var val srpc.Client
+		if rp != nil {
+			val = rp.GetRpcClient()
+		}
+		changed := ((client == nil) != (val == nil)) || (val != nil && val != client)
 		if !changed {
-			return val
+			return rp
 		}
 		if client == nil {
 			t.le.Debug("plugin rpc client is unset")
 			return nil
 		}
 		t.le.Debug("plugin rpc client is ready")
-		return &client
+		return bldr_plugin.NewRunningPlugin(client)
 	})
 }
 
 // _ is a type assertion
-var _ plugin.RunningPlugin = ((*runningPlugin)(nil))
+var _ bldr_plugin.RunningPluginRef = ((*pluginTracker)(nil))
