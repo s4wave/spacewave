@@ -1867,10 +1867,10 @@ prelude-ls@^1.2.1:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
-prettier@^3.1.1:
-  version "3.2.4"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.2.4.tgz#4723cadeac2ce7c9227de758e5ff9b14e075f283"
-  integrity sha512-FWu1oLHKCrtpO1ypU6J0SbK2d9Ckwysq6bHj/uaCP26DxrPpppCLQRGVuqAxSTvhF00AcvDRyYrLNW7ocBhFFQ==
+prettier@^3.2.5:
+  version "3.2.5"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.2.5.tgz#e52bc3090586e824964a8813b09aba6233b28368"
+  integrity sha512-3/GWa9aOC0YeD7LUfvOG2NiDyhOWRvt1k+rcKhOuYnMY24iiCphgneUfJDyFXd6rZCAnuLBv6UeAULtrhT/F4A==
 
 progress-events@^1.0.0:
   version "1.0.0"
@@ -2042,10 +2042,33 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.22.6, starpc@^0.22.7:
+starpc@^0.22.7:
   version "0.22.7"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.22.7.tgz#a087a90911d81c12bfeb4fd58d18cacd7846060e"
   integrity sha512-tRxPOs3Qx+IK6944YlD/XMTErVOoFgcAMTlEPdQ0eJLZWo7ycGZSK1aeR01LVBdbbmvzRwGt27ambUxUa1+z0w==
+  dependencies:
+    "@aptre/it-ws" "^1.0.0"
+    "@chainsafe/libp2p-yamux" "^5.0.0"
+    "@libp2p/interface" "^0.1.2"
+    event-iterator "^2.0.0"
+    is-promise "^4.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.3"
+    it-length-prefixed "^9.0.4"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    long "^5.2.3"
+    memoize-one "^6.0.0"
+    patch-package "^8.0.0"
+    protobufjs "^7.2.6"
+    uint8arraylist "^2.4.7"
+    ws "^8.15.1"
+
+starpc@^0.22.8:
+  version "0.22.8"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.22.8.tgz#74a3647948ef6ae4003108f8d409a874d6418c11"
+  integrity sha512-Yg3yEAWn+faXMnlr+fh1Z2iUBE2D5QNiW2uC1HKrcorm0r5je7ERFOMVpVmcaLeUml6I4jZSzrUkl8vA1t/Tjg==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^5.0.0"
@@ -2149,10 +2172,10 @@ ts-proto-descriptors@1.15.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.167.0:
-  version "1.167.0"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.167.0.tgz#3da5f1cbcdda3a1e339b266b02be40131b278a90"
-  integrity sha512-ATJ9bN0JpPhtWVymKpkf7zUYOLBZVOA7rWRRH/U+ML8A2xjcBgcM3H4Mme8T8Yn6S4rW6ttNjRAtLZmusAjIIA==
+ts-proto@^1.167.3:
+  version "1.167.3"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.167.3.tgz#7c1f603daaf86271a7c2e79496cc10f4f013ac6e"
+  integrity sha512-quBKTeIgqhTGKXl5JN7HHZjLwrdMaNIoQ0+X11PqNLVRqTlnEzfiCUXM6HOW4pZa6PD5+qSyKOEGaTa3kS7Glg==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"

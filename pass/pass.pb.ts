@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
-import { Timestamp } from '@go/github.com/aperturerobotics/timestamp/timestamp.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { BlockRef } from '../../hydra/block/block.pb.js'
+import { Timestamp } from '../../timestamp/timestamp.pb.js'
 import {
   State as State1,
   stateFromJSON as stateFromJSON2,
