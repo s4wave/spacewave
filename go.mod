@@ -45,7 +45,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.33.3 // latest
+	github.com/aperturerobotics/controllerbus v0.33.4-0.20240207031524-312eb47331da // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
 	github.com/aperturerobotics/starpc v0.22.8 // latest
 )
@@ -84,7 +84,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/planetscale/vtprotobuf v0.6.0 // indirect
+	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/quic-go/quic-go v0.41.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -108,7 +108,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.1-0.20231211202411-9f60ea941235
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
-	golang.org/x/mod v0.14.0
+	golang.org/x/mod v0.15.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/tools v0.17.0
 )
