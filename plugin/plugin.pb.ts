@@ -1,12 +1,9 @@
 /* eslint-disable */
-import {
-  ExecControllerRequest,
-  ExecControllerResponse,
-} from "@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js";
-import { VolumeInfo } from "@go/github.com/aperturerobotics/hydra/volume/volume.pb.js";
-import { RpcStreamPacket } from "@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { ExecControllerRequest, ExecControllerResponse } from "../../controllerbus/controller/exec/exec.pb.js";
+import { VolumeInfo } from "../../hydra/volume/volume.pb.js";
+import { RpcStreamPacket } from "../../starpc/rpcstream/rpcstream.pb.js";
 import { ManifestRef } from "../manifest/manifest.pb.js";
 
 export const protobufPackage = "bldr.plugin";

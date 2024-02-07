@@ -60,16 +60,16 @@
     "@aperturerobotics/ts-common": "^0.8.3",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
-    "@types/react": "^18.2.51",
+    "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.18",
     "enhanced-resolve": "^5.15.0",
     "esm-cjs-lexer": "^0.10.0",
     "patch-package": "^8.0.0",
-    "prettier": "^3.2.4",
+    "prettier": "^3.2.5",
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.5",
     "ts-poet": "6.6.0",
-    "ts-proto": "^1.167.2",
+    "ts-proto": "^1.167.3",
     "typescript": "^5.3.3",
     "unzip-crx-3": "^0.2.0"
   },
@@ -85,7 +85,7 @@
     "protobufjs": "^7.2.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.22.7",
+    "starpc": "^0.22.8",
     "workbox-window": "^7.0.0"
   }
 }

@@ -1,8 +1,8 @@
 /* eslint-disable */
-import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
-import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { ControllerConfig } from "../../../../controllerbus/controller/configset/proto/configset.pb.js";
+import { Backoff } from "../../../../util/backoff/backoff.pb.js";
 import { BuilderConfig } from "../builder.pb.js";
 
 export const protobufPackage = "bldr.manifest.builder.controller";
