@@ -2,24 +2,22 @@ module hack
 
 go 1.21
 
-toolchain go1.21.0
-
 replace github.com/aperturerobotics/hydra => ../
 
 replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
 
 require (
+	github.com/aperturerobotics/goprotowrap v0.3.0
+	github.com/aperturerobotics/hydra v0.0.0-20240201230451-cc41903749a8
+	github.com/aperturerobotics/starpc v0.22.8
+)
+
+require (
+	github.com/evanw/esbuild v0.20.0
 	github.com/golangci/golangci-lint v1.53.3
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/psampaz/go-mod-outdated v0.9.0
 	google.golang.org/protobuf v1.32.0
-)
-
-require (
-	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/hydra v0.0.0-20230813010420-ebaf779ff24d
-	github.com/aperturerobotics/starpc v0.22.7
-	github.com/evanw/esbuild v0.19.1
 )
 
 require (
@@ -37,8 +35,8 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.24.4 // indirect
-	github.com/aperturerobotics/util v1.13.2 // indirect
+	github.com/aperturerobotics/bifrost v0.24.5-0.20240207031539-152ff5728f45 // indirect
+	github.com/aperturerobotics/util v1.13.3 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -189,7 +187,7 @@ require (
 	go.tmz.dev/musttag v0.7.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
+	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
