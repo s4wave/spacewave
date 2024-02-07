@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.21
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240125041447-beca280a4f54 // master
+	github.com/aperturerobotics/identity v0.0.0-20240207031954-9d765116aef5 // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240125041348-4484377e9bfb // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240207031723-48bba541b276 // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.24.3-0.20240125041314-0a4cdd598260 // master
+require github.com/aperturerobotics/bifrost v0.24.5-0.20240207031539-152ff5728f45 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -41,9 +41,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.32.3 // latest
-	github.com/aperturerobotics/entitygraph v0.6.0 // indirect
-	github.com/aperturerobotics/starpc v0.22.7 // indirect; latest
+	github.com/aperturerobotics/controllerbus v0.33.3 // latest
+	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
+	github.com/aperturerobotics/starpc v0.22.8 // indirect; latest
 )
 
 // aperture: use compatibility forks
@@ -62,14 +62,14 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/util v1.13.1 // indirect; master
+	github.com/aperturerobotics/util v1.13.3 // indirect; master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/libp2p/go-libp2p v0.32.2
-	github.com/libp2p/go-yamux/v4 v4.0.2-0.20231213140704-4c5812896512 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240206065824-7222fbc3459d // indirect
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.12.1 // indirect
+	github.com/multiformats/go-multiaddr v0.12.2 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.41.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
@@ -107,6 +107,7 @@ require (
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.0 // indirect
+	github.com/planetscale/vtprotobuf v0.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
@@ -114,7 +115,7 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
+	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect

@@ -45,9 +45,9 @@
     "@aperturerobotics/ts-common": "^0.8.3",
     "depcheck": "^1.4.3",
     "patch-package": "^8.0.0",
-    "prettier": "^3.2.4",
+    "prettier": "^3.2.5",
     "ts-poet": "6.6.0",
-    "ts-proto": "^1.167.0",
+    "ts-proto": "^1.167.3",
     "typescript": "^5.3.3"
   },
   "dependencies": {
@@ -55,7 +55,7 @@
     "bufferutil": "^4.0.7",
     "long": "^5.2.3",
     "protobufjs": "^7.2.6",
-    "starpc": "^0.22.7",
+    "starpc": "^0.22.8",
     "utf-8-validate": "^6.0.3"
   }
 }
