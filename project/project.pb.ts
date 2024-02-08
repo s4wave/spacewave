@@ -1,10 +1,10 @@
 /* eslint-disable */
+import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
+import { Config } from "@go/github.com/aperturerobotics/hydra/block/transform/transform.pb.js";
+import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
+import { Timestamp } from "@go/github.com/aperturerobotics/timestamp/timestamp.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { ControllerConfig } from "../../controllerbus/controller/configset/proto/configset.pb.js";
-import { Config } from "../../hydra/block/transform/transform.pb.js";
-import { ObjectRef } from "../../hydra/bucket/bucket.pb.js";
-import { Timestamp } from "../../timestamp/timestamp.pb.js";
 
 export const protobufPackage = "bldr.project";
 

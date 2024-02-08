@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
-import { ControllerConfig } from '../../../../controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'bldr.web.plugin.compiler'
 
@@ -31,7 +31,8 @@ export interface Config {
   delveAddr: string
   /**
    * ElectronPkg is the name and version of the npm package to use for electron.
-   * Defaults to electron@latest.
+   * If unset, defaults to the version in package.json.
+   * If not found, defaults to electron@latest.
    */
   electronPkg: string
 }

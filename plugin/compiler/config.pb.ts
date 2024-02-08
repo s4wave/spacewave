@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { ControllerConfig } from "../../../controllerbus/controller/configset/proto/configset.pb.js";
 import { EsbuildVarType, esbuildVarTypeFromJSON, esbuildVarTypeToJSON } from "../../web/esbuild/esbuild.pb.js";
 import { WebPkgRef } from "../../web/pkg/esbuild/esbuild.pb.js";
 import { PluginDevInfo } from "./vardef/vardef.pb.js";

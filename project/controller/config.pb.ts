@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { Backoff } from "../../../util/backoff/backoff.pb.js";
 import { BuilderConfig, BuilderResult } from "../../manifest/builder/builder.pb.js";
 import { ProjectConfig } from "../project.pb.js";
 

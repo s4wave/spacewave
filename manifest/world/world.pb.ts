@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { ObjectRef } from "../../../hydra/bucket/bucket.pb.js";
 import { ManifestRef } from "../manifest.pb.js";
 
 export const protobufPackage = "bldr.manifest.world";

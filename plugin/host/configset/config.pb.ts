@@ -1,7 +1,7 @@
 /* eslint-disable */
+import { ControllerConfig } from "@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { ControllerConfig } from "../../../../controllerbus/controller/configset/proto/configset.pb.js";
 
 export const protobufPackage = "plugin.host.configset";
 
