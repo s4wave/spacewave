@@ -41,7 +41,10 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 	le := t.c.le.WithField("volume-id", volumeID)
 
 	le.Debug("starting proxy volume")
-	valCh, _, valRef, err := bus.ExecOneOffWatchCh(t.c.bus, volume.NewLookupVolume(volumeID, ""))
+	valCh, _, valRef, err := bus.ExecOneOffWatchCh[volume.LookupVolumeValue](
+		t.c.bus,
+		volume.NewLookupVolume(volumeID, ""),
+	)
 	if err != nil {
 		return err
 	}
@@ -54,8 +57,11 @@ WaitLoop:
 		case <-ctx.Done():
 			return context.Canceled
 		case av := <-valCh:
-			lvv, ok := av.GetValue().(volume.LookupVolumeValue)
-			if !ok || vol == lvv {
+			var lvv volume.LookupVolumeValue
+			if av != nil {
+				lvv = av.GetValue()
+			}
+			if vol == lvv {
 				continue WaitLoop
 			}
 			vol = lvv
