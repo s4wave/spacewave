@@ -1,11 +1,11 @@
 module github.com/aperturerobotics/bldr
 
-go 1.21
+go 1.22
 
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240207031723-48bba541b276 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240208002337-ea450dd3ebdc // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.24.5-0.20240207031539-152ff5728f45 // master
+require github.com/aperturerobotics/bifrost v0.24.6 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,7 +45,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.33.4-0.20240207031524-312eb47331da // latest
+	github.com/aperturerobotics/controllerbus v0.34.0 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
 	github.com/aperturerobotics/starpc v0.22.8 // latest
 )

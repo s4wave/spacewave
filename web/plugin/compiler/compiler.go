@@ -3,6 +3,7 @@ package bldr_web_plugin_compiler
 import (
 	"context"
 	"path/filepath"
+	"strings"
 
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -10,6 +11,7 @@ import (
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	"github.com/aperturerobotics/bldr/util/npm"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
 	web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	electron "github.com/aperturerobotics/bldr/web/plugin/electron"
@@ -146,6 +148,22 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
+	electronPkg := c.GetConfig().GetElectronPkg()
+	if electronPkg == "" {
+		// attempt to load version from package.json
+		packageJsonPath := filepath.Join(builderConf.GetSourcePath(), "package.json")
+		electronVer, err := npm.LoadPackageVersion(packageJsonPath, "electron")
+		if err != nil {
+			le.WithError(err).Warn("unable to load package.json to determine electron version")
+			electronVer = ""
+		}
+		if electronVer == "" {
+			electronVer = "latest"
+		}
+		electronVer = strings.TrimSpace(electronVer)
+		electronPkg = "electron@" + electronVer
+	}
+
 	// download the electron redistributable with npm
 	if err := entrypoint_electron_bundle.DownloadElectronRedist(
 		ctx,
@@ -153,7 +171,7 @@ func (c *Controller) BundleElectronHook(
 		buildPlatform,
 		workingDir,
 		electronDistPath,
-		c.GetConfig().GetElectronPkg(),
+		electronPkg,
 	); err != nil {
 		return nil, err
 	}

@@ -296,7 +296,8 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, buildDir, outPath string) 
 }
 
 // DownloadElectronRedist downloads the electron redistributable to the destination dir.
-// Defaults npmPkg if empty.
+//
+// If npmPkg is empty, defaults to latest.
 func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
 	npmPlat, err := bldr_platform_npm.PlatformToNpm(plat)
 	if err != nil {

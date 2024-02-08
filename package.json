@@ -61,7 +61,7 @@
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.18",
+    "@types/react-dom": "^18.2.19",
     "enhanced-resolve": "^5.15.0",
     "esm-cjs-lexer": "^0.10.0",
     "patch-package": "^8.0.0",
@@ -74,10 +74,10 @@
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@libp2p/logger": "^4.0.5",
+    "@libp2p/logger": "^4.0.6",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
-    "electron": "^28.2.1",
+    "electron": "^28.2.2",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "lodash.isequal": "^4.5.0",
