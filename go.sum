@@ -93,6 +93,8 @@ github.com/aperturerobotics/ts-proto-common-types v0.20.2 h1:xFy3ErasS5PNWV0ABdl
 github.com/aperturerobotics/ts-proto-common-types v0.20.2/go.mod h1:TgjsdPI5YvNF1iewbvCPmEnVkV8WVP1AyZxiOc9SEbo=
 github.com/aperturerobotics/util v1.13.3 h1:N4JXKYql0R/A2hMuV79SZ2vaftf8tiN8DUJ8sGc7Rso=
 github.com/aperturerobotics/util v1.13.3/go.mod h1:JdziNd9tR6lWqc9bSMIe1At8Gagrg986rmtZuPCv6+w=
+github.com/aperturerobotics/util v1.13.4 h1:86HCniLHzDqufj2+2p6mrfGSsP2CCl6srjKmKV46b5A=
+github.com/aperturerobotics/util v1.13.4/go.mod h1:JdziNd9tR6lWqc9bSMIe1At8Gagrg986rmtZuPCv6+w=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
