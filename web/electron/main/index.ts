@@ -8,6 +8,7 @@ import {
   OpenStreamCtr,
   Conn,
   buildPushableSink,
+  combineUint8ArrayListTransform,
 } from 'starpc'
 import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
@@ -145,7 +146,12 @@ function setupSocket(workdir: string, runtimeUuid: string) {
     direction: 'inbound',
   })
   const openStream = socketConn.buildOpenStreamFunc()
-  pipe(socketRx, socketConn, buildPushableSink<Uint8Array>(socketTx))
+  pipe(
+    socketRx,
+    socketConn,
+    combineUint8ArrayListTransform(),
+    buildPushableSink<Uint8Array>(socketTx),
+  )
 
   // sock is the connected socket instance
   const sock = net.connect(ipcPath, async () => {

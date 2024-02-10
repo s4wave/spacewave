@@ -1,5 +1,5 @@
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { OpenStreamCtr, Conn } from 'starpc'
+import { OpenStreamCtr, Conn, combineUint8ArrayListTransform } from 'starpc'
 import { pipe } from 'it-pipe'
 import duplex from '@aptre/it-ws/duplex'
 import WebSocket from '@aptre/it-ws/web-socket'
@@ -13,6 +13,7 @@ import {
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
+import { defaultLogger } from '@libp2p/logger'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
@@ -72,10 +73,10 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
       enableKeepAlive: true,
       keepAliveInterval: 2500,
       maxMessageSize: 32 * 1024,
-    })(),
+    })({ logger: defaultLogger() }),
   })
   const openStream = runtimeConn.buildOpenStreamFunc()
-  pipe(wsDuplex, runtimeConn, wsDuplex)
+  pipe(wsDuplex, runtimeConn, combineUint8ArrayListTransform(), wsDuplex)
   openStreamCtr.set(openStream)
 }
 

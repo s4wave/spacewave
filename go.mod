@@ -5,7 +5,7 @@ go 1.22
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240208002337-ea450dd3ebdc // master
+require github.com/aperturerobotics/hydra v0.0.0-20240210015623-94a6c86702b2 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.24.6 // master
+require github.com/aperturerobotics/bifrost v0.24.7 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,9 +45,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.34.0 // latest
+	github.com/aperturerobotics/controllerbus v0.34.1 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
-	github.com/aperturerobotics/starpc v0.22.8 // latest
+	github.com/aperturerobotics/starpc v0.23.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -90,7 +90,7 @@ require (
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/crypto v0.19.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0
 	nhooyr.io/websocket v1.8.10
@@ -150,7 +150,7 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
-	github.com/google/uuid v1.5.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hidal-go/hidalgo v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -190,22 +190,22 @@ require (
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
-	github.com/pion/dtls/v2 v2.2.7 // indirect
-	github.com/pion/ice/v3 v3.0.2 // indirect
+	github.com/pion/dtls/v2 v2.2.10 // indirect
+	github.com/pion/ice/v3 v3.0.3 // indirect
 	github.com/pion/interceptor v0.1.25 // indirect
 	github.com/pion/logging v0.2.2 // indirect
-	github.com/pion/mdns v0.0.9 // indirect
+	github.com/pion/mdns v0.0.12 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/rtcp v1.2.12 // indirect
+	github.com/pion/rtcp v1.2.13 // indirect
 	github.com/pion/rtp v1.8.3 // indirect
-	github.com/pion/sctp v1.8.9 // indirect
+	github.com/pion/sctp v1.8.11 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.7 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
@@ -237,8 +237,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/term v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
@@ -247,6 +247,6 @@ require (
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.6 // indirect
+	gorm.io/gorm v1.25.7 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
