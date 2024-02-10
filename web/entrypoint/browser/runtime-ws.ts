@@ -69,9 +69,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   const runtimeConn = new Conn(workerHost.getWebRuntimeServer(), {
     direction: 'inbound',
     muxerFactory: yamux({
-      // server side does keep-alive at 5000ms
-      enableKeepAlive: true,
-      keepAliveInterval: 2500,
+      enableKeepAlive: false,
       maxMessageSize: 32 * 1024,
     })({ logger: defaultLogger() }),
   })

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
@@ -148,9 +147,9 @@ func buildWsWebRuntime(le *logrus.Entry, b bus.Bus, runtimeID string, nch *webso
 		) (web_runtime.WebRuntime, error) {
 			// mc must be a MuxedConn
 			yamuxConf := srpc.NewYamuxConfig()
-			yamuxConf.EnableKeepAlive = true
-			yamuxConf.KeepAliveInterval = time.Second * 5
+			yamuxConf.EnableKeepAlive = false
 			yamuxConf.MaxMessageSize = 32 * 1024
+
 			mc, err := srpc.NewWebSocketConn(ctx, nch, false, yamuxConf)
 			if err != nil {
 				return nil, err
