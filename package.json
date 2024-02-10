@@ -42,7 +42,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.8.2",
+    "@aperturerobotics/ts-common": "^0.8.4",
     "depcheck": "^1.4.7",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
@@ -55,7 +55,7 @@
     "bufferutil": "^4.0.8",
     "long": "^5.2.3",
     "protobufjs": "^7.2.5",
-    "starpc": "^0.22.8",
+    "starpc": "^0.23.1",
     "utf-8-validate": "^6.0.3"
   }
 }
