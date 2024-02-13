@@ -76,8 +76,8 @@ github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQ
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
 github.com/aperturerobotics/goprotowrap v0.3.0 h1:JLQ/1zVRdm2qwfeK7bPxWPg5fpTLlzovDUom0vBgcgM=
 github.com/aperturerobotics/goprotowrap v0.3.0/go.mod h1:ehsRFLviAKk5oiZK+i5oL4juhTYaGhaMrURiqY+ttLo=
-github.com/aperturerobotics/hydra v0.0.0-20240210015623-94a6c86702b2 h1:10+gsI/CRbekQe03TNeuzooyfKgO5VWHCxwM8hyqFtU=
-github.com/aperturerobotics/hydra v0.0.0-20240210015623-94a6c86702b2/go.mod h1:DLvZ1Ed1YaUIMT1h7ycPXJKTPNKbwf95E7MNpmKlWUM=
+github.com/aperturerobotics/hydra v0.0.0-20240213093310-34097de8a8cc h1:Z/xD1EqdR96OWio9hKeO58pry7C2pPTFYseG/HLNFlY=
+github.com/aperturerobotics/hydra v0.0.0-20240213093310-34097de8a8cc/go.mod h1:NmWMXVVf/eX4o5c92c7UWSupYrNnDU4PIxlf35HpJz4=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f h1:mnmO0JHfvlE/yK2kiKQ/Q2aYhCETkl6FP07rcmvoBKw=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
 github.com/aperturerobotics/starpc v0.24.0 h1:uDT8/7I6lsyLUsZmAslE2p6Owpoipnva7tG/D8a+Xtc=

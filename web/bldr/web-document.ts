@@ -336,7 +336,7 @@ export class WebDocument {
       }
 
       // setup the Go runtime
-      const workerOptions = <WorkerOptions>{
+      const workerOptions: WorkerOptions = {
         name: 'bldr:' + this.webRuntimeId,
       }
       this.worker = new SharedWorker(

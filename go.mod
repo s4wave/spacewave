@@ -5,7 +5,7 @@ go 1.22
 // https://github.com/evanw/esbuild/pull/3413
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240210015623-94a6c86702b2 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240213093310-34097de8a8cc // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -172,7 +172,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.66 // indirect
+	github.com/minio/minio-go/v7 v7.0.67 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

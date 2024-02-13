@@ -21,6 +21,10 @@ interface ChannelStreamMessage<T> {
 type Channel = MessagePort | { tx: BroadcastChannel; rx: BroadcastChannel }
 
 // ChannelStream implements a Stream over a BroadcastChannel duplex or MessagePort.
+//
+// NOTE: there is no way to tell if a BroadcastChannel or MessagePort is closed.
+// This implementation sends a "closed" message when close() is called.
+// However: if the remote is removed w/o closing cleanly, the stream will be left open!
 export class ChannelStream<T>
   implements Duplex<AsyncGenerator<T>, Source<T>, Promise<void>>
 {
