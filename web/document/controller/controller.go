@@ -113,9 +113,14 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // HandleWebView handles an incoming WebView.
-// Usually called as a separate goroutine.
-func (c *Controller) HandleWebView(wv web_view.WebView) {
-	err := web_view.ExHandleWebView(c.ctx, c.le, c.bus, wv, false)
+func (c *Controller) HandleWebView(ctx context.Context, wv web_view.WebView) {
+	// run in separate goroutine
+	go c.exHandleWebView(ctx, wv)
+}
+
+// exHandleWebView executes handling an incoming web view.
+func (c *Controller) exHandleWebView(ctx context.Context, wv web_view.WebView) {
+	err := web_view.ExHandleWebView(ctx, c.le, c.bus, wv, false)
 	if err != nil && err != context.Canceled {
 		c.le.WithError(err).Warn("error handling web view")
 	}

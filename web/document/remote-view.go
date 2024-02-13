@@ -12,7 +12,8 @@ import (
 // buildRemoteWebView constructs a new remote WebView handle.
 //
 // if permanent, this web view is the primary and cannot be closed
-func (r *Remote) buildRemoteWebView(ctx context.Context, id, parent, document string, permanent bool) *remoteWebView {
+func (r *Remote) buildRemoteWebView(rctx context.Context, id, parent, document string, permanent bool) *remoteWebView {
+	ctx, ctxCancel := context.WithCancel(rctx)
 	client := srpc.NewClient(r.GetWebViewOpenStream(id))
 	view := web_view.NewSRPCWebViewClient(client)
 	v := web_view_client.NewProxyWebView(ctx, id, parent, document, permanent, client, view)
@@ -24,6 +25,8 @@ func (r *Remote) buildRemoteWebView(ctx context.Context, id, parent, document st
 	_ = web_view.SRPCRegisterWebViewHost(webViewHostMux, r)
 
 	return &remoteWebView{
+		ctx:            ctx,
+		cancel:         ctxCancel,
 		proxy:          v,
 		webViewHostMux: webViewHostMux,
 	}

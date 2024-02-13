@@ -24,6 +24,7 @@ var RemoteVersion = semver.MustParse("0.0.1")
 // Communicates with the frontend using bldr/web-document.ts
 type Remote struct {
 	documentID string
+	ctx        context.Context
 	le         *logrus.Entry
 	bus        bus.Bus
 	handler    WebDocumentHandler
@@ -48,6 +49,8 @@ type Remote struct {
 
 // remoteWebView contains remote web view information.
 type remoteWebView struct {
+	ctx            context.Context
+	cancel         context.CancelFunc
 	proxy          *web_view_client.ProxyWebView
 	webViewHostMux srpc.Mux
 }
@@ -57,6 +60,7 @@ type remoteWebView struct {
 // id should be the runtime identifier specified at startup by the js loader.
 // initWebView should be a handle to the WebView which created the Remote.
 func NewRemote(
+	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	handler WebDocumentHandler,
@@ -69,6 +73,7 @@ func NewRemote(
 
 	r := &Remote{
 		documentID: webDocumentId,
+		ctx:        ctx,
 		le:         le,
 		bus:        b,
 		handler:    handler,
@@ -401,7 +406,7 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
 			"view-count":       len(r.remoteWebViews),
 		}).
 		Debug("added remote web view")
-	go r.handler.HandleWebView(rwv.proxy)
+	r.handler.HandleWebView(rwv.ctx, rwv.proxy)
 }
 
 // buildRemoteWebViewsMap builds the mapping of ID to WebDocument.
@@ -425,6 +430,7 @@ func (r *Remote) removeRemoteWebView(id string) *remoteWebView {
 
 	// remove idx from the remoteWebViews slice
 	r.le.WithField("view-id", id).Debug("removed remote web view")
+	rwv.cancel()
 	r.remoteWebViews = r.remoteWebViews[:idx+copy(r.remoteWebViews[idx:], r.remoteWebViews[idx+1:])]
 	return rwv
 }

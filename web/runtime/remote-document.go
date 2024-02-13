@@ -43,6 +43,7 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 		openStream: openStream,
 	}
 	var err error
+	v.ctx, v.ctxCancel = context.WithCancel(ctx)
 	v.ctrl, err = web_document_controller.NewController(
 		r.le,
 		r.bus,
@@ -50,7 +51,7 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 		web_document.RemoteVersion,
 		func(le *logrus.Entry, b bus.Bus, handler web_document.WebDocumentHandler, id string) (web_document.WebDocument, error) {
 			var err error
-			v.remote, err = web_document.NewRemote(le, b, handler, id, openStream)
+			v.remote, err = web_document.NewRemote(v.ctx, le, b, handler, id, openStream)
 			if err != nil {
 				return nil, err
 			}
@@ -60,7 +61,6 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 	if err != nil {
 		return nil, err
 	}
-	v.ctx, v.ctxCancel = context.WithCancel(ctx)
 	go v.Execute()
 	return v, nil
 }

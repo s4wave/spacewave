@@ -145,6 +145,9 @@ class WebRuntimeClientInstance {
 
       const stream = await streamPromise
       pipe(channelStream, stream, channelStream)
+        .catch((err) => channelStream.close(err))
+        .then(() => channelStream.close())
+
     } catch (errAny) {
       const err = castToError(errAny, 'open stream failed')
       channelStream.close(err)
@@ -267,10 +270,9 @@ export class WebRuntime {
     this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethodFunc)
 
     // Setup the status stream.
-    const webStatusStream = new ItState<WebRuntimeStatus>(
+    this.statusStream = new ItState<WebRuntimeStatus>(
       this.buildWebRuntimeStatusSnapshot.bind(this),
     )
-    this.statusStream = webStatusStream
 
     // Setup the runtime client.
     this.runtimeClient = new RPCClient(openStreamFn)

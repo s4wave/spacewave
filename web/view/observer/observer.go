@@ -2,7 +2,6 @@ package bldr_web_view_observer
 
 import (
 	"context"
-	"sync"
 
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -27,9 +26,7 @@ var controllerDescrip = "resolves LookupWebView"
 type Controller struct {
 	*bus.BusController[*Config]
 
-	// mtx guards below fields
-	mtx sync.Mutex
-	// bcast is broadcast when anything changes
+	// bcast guards below fields
 	bcast broadcast.Broadcast
 	// webViews is the set of observed web views
 	webViews map[string]web_view.WebView
@@ -77,12 +74,14 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 func (c *Controller) LookupWebView(ctx context.Context, webViewID string, wait bool) (web_view.WebView, error) {
 	for {
 		var waitCh <-chan struct{}
-		c.mtx.Lock()
-		webView, ok := c.webViews[webViewID]
-		if !ok && wait {
-			waitCh = c.bcast.GetWaitCh()
-		}
-		c.mtx.Unlock()
+		var webView web_view.WebView
+		var ok bool
+		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			webView, ok = c.webViews[webViewID]
+			if !ok && wait {
+				waitCh = getWaitCh()
+			}
+		})
 
 		if ok || !wait {
 			return webView, nil

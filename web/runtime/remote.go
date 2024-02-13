@@ -2,6 +2,7 @@ package web_runtime
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
@@ -161,7 +162,7 @@ func (r *Remote) RemoveWebDocument(ctx context.Context, webDocumentID string) (r
 		if res, err := r.webRuntime.RemoveWebDocument(ctx, req); err != nil || !res.GetRemoved() {
 			return false, err
 		}
-		removedDoc := r.removeRemoteWebDocument(webDocumentID, true)
+		removedDoc := r.removeRemoteWebDocument(webDocumentID)
 		return removedDoc != nil, nil
 	})
 }
@@ -347,7 +348,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 
 		// delete
 		if status.GetDeleted() {
-			if r.removeRemoteWebDocument(webDocumentID, true) != nil {
+			if r.removeRemoteWebDocument(webDocumentID) != nil {
 				dirty = true
 			}
 			continue
@@ -377,7 +378,7 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 	// if this is a snapshot, delete any views we didn't see.
 	if snapshot {
 		for webDocumentID := range notSeenDocs {
-			if r.removeRemoteWebDocument(webDocumentID, true) != nil {
+			if r.removeRemoteWebDocument(webDocumentID) != nil {
 				dirty = true
 			}
 		}
@@ -389,15 +390,13 @@ func (r *Remote) handleWebDocumentStatuses(ctx context.Context, snapshot bool, s
 // insertRemoteWebDocument adds a new remote web document to the set.
 // expects mtx to be locked
 func (r *Remote) insertRemoteWebDocument(insertIdx int, doc *RemoteWebDocument) {
-	r.remoteWebDocuments = append(r.remoteWebDocuments, nil)
-	copy(r.remoteWebDocuments[insertIdx+1:], r.remoteWebDocuments[insertIdx:])
-	r.remoteWebDocuments[insertIdx] = doc
+	r.remoteWebDocuments = slices.Insert(r.remoteWebDocuments, insertIdx, doc)
 	r.le.
 		WithField("document-id", doc.id).
 		WithField("document-permanent", doc.permanent).
 		WithField("document-count", len(r.remoteWebDocuments)).
 		Debug("added remote web document")
-	go r.handler.HandleWebDocument(doc.ctrl.GetWebDocument())
+	r.handler.HandleWebDocument(doc.ctrl.GetWebDocument())
 }
 
 // WaitReady waits for the state to be ready.
@@ -447,7 +446,7 @@ func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (
 // removeRemoteWebDocument removes a remote web document, if found.
 // returns val, error, returns nil, nil if not found
 // expects mtx to be locked
-func (r *Remote) removeRemoteWebDocument(id string, close bool) *RemoteWebDocument {
+func (r *Remote) removeRemoteWebDocument(id string) *RemoteWebDocument {
 	idx, doc := r.lookupRemoteWebDocument(id)
 	if doc == nil {
 		return nil
@@ -455,7 +454,7 @@ func (r *Remote) removeRemoteWebDocument(id string, close bool) *RemoteWebDocume
 
 	// remove idx from the remoteWebDocuments slice
 	rdoc := r.removeRemoteWebDocumentAtIdx(idx)
-	if rdoc != nil && close {
+	if rdoc != nil {
 		rdoc.Close()
 	}
 	return rdoc
@@ -469,10 +468,11 @@ func (r *Remote) removeRemoteWebDocumentAtIdx(idx int) *RemoteWebDocument {
 
 	doc := r.remoteWebDocuments[idx]
 	id := doc.id
+	r.remoteWebDocuments = append(r.remoteWebDocuments[:idx], r.remoteWebDocuments[idx+1:]...)
 	r.le.
 		WithField("document-id", id).
+		WithField("document-count", len(r.remoteWebDocuments)).
 		Debug("removed remote web document")
-	r.remoteWebDocuments = r.remoteWebDocuments[:idx+copy(r.remoteWebDocuments[idx:], r.remoteWebDocuments[idx+1:])]
 	return doc
 }
 

@@ -40,8 +40,8 @@ type WebDocument interface {
 
 // WebDocumentHandler is the handler (usually WebDocumentController) for the document.
 type WebDocumentHandler interface {
-	// HandleWebView handles an incoming WebView on a new Goroutine.
-	HandleWebView(view web_view.WebView)
+	// HandleWebView handles an incoming WebView.
+	HandleWebView(ctx context.Context, view web_view.WebView)
 }
 
 // RuntimeConfig is a configuration for the runtime controller.

@@ -15,7 +15,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.24.7 // master
+require github.com/aperturerobotics/bifrost v0.24.8-0.20240213044518-ba185c86d3c1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -45,9 +45,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.34.1 // latest
+	github.com/aperturerobotics/controllerbus v0.34.2 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
-	github.com/aperturerobotics/starpc v0.23.3-0.20240211070014-86b91ecbf879 // latest
+	github.com/aperturerobotics/starpc v0.24.0 // latest
 )
 
 // aperture: use compatibility forks
@@ -67,7 +67,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.13.3 // master
+	github.com/aperturerobotics/util v1.13.5 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -110,7 +110,7 @@ require (
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	golang.org/x/mod v0.15.0
 	golang.org/x/sync v0.6.0
-	golang.org/x/tools v0.17.0
+	golang.org/x/tools v0.18.0
 )
 
 require (
@@ -198,14 +198,14 @@ require (
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.13 // indirect
 	github.com/pion/rtp v1.8.3 // indirect
-	github.com/pion/sctp v1.8.11 // indirect
+	github.com/pion/sctp v1.8.12 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.8 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
@@ -236,7 +236,7 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

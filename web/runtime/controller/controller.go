@@ -263,7 +263,7 @@ func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, 
 	c.pkgServer.ServeWebModuleHTTP(pkgPath, rw, req)
 }
 
-// HandleWebDocument handles an incoming WebDocument on a new Goroutine.
+// HandleWebDocument handles an incoming WebDocument.
 func (c *Controller) HandleWebDocument(wv web_document.WebDocument) {
 	// no-op
 }

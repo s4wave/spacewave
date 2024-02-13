@@ -39,10 +39,12 @@ func (r *lookupWebViewResolver) Resolve(ctx context.Context, handler directive.R
 	webViewID := r.dir.LookupWebViewID()
 	var currValue web_view.LookupWebViewValue
 	for {
-		r.c.mtx.Lock()
-		waitCh := r.c.bcast.GetWaitCh()
-		webView := r.c.webViews[webViewID]
-		r.c.mtx.Unlock()
+		var waitCh <-chan struct{}
+		var webView web_view.WebView
+		r.c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+			webView = r.c.webViews[webViewID]
+		})
 
 		if currValue != webView {
 			_ = handler.ClearValues()

@@ -18,22 +18,23 @@ func (c *Controller) observeHandleWebView(
 	if webView == nil {
 		return nil
 	}
+
 	webViewID := webView.GetId()
-	c.mtx.Lock()
-	if c.webViews[webViewID] != webView {
-		c.webViews[webViewID] = webView
-		c.bcast.Broadcast()
-	}
-	c.mtx.Unlock()
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if c.webViews[webViewID] != webView {
+			c.webViews[webViewID] = webView
+			broadcast()
+		}
+	})
 
 	// remove the web view when the directive is disposed
 	_ = di.AddReference(bus.NewCallbackHandler(nil, nil, func() {
-		c.mtx.Lock()
-		if c.webViews[webViewID] == webView {
-			delete(c.webViews, webViewID)
-			c.bcast.Broadcast()
-		}
-		c.mtx.Unlock()
+		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if c.webViews[webViewID] == webView {
+				delete(c.webViews, webViewID)
+				broadcast()
+			}
+		})
 	}), true)
 
 	return nil
