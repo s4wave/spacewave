@@ -1,6 +1,5 @@
-import type { Sink, Source } from 'it-stream-types'
+import type { Sink, Source, Duplex } from 'it-stream-types'
 import { pushable, Pushable } from 'it-pushable'
-import { Stream } from 'starpc'
 
 // ChannelStreamMessage is a message sent over the stream.
 interface ChannelStreamMessage<T> {
@@ -22,7 +21,9 @@ interface ChannelStreamMessage<T> {
 type Channel = MessagePort | { tx: BroadcastChannel; rx: BroadcastChannel }
 
 // ChannelStream implements a Stream over a BroadcastChannel duplex or MessagePort.
-export class ChannelStream<T> implements Stream<T> {
+export class ChannelStream<T>
+  implements Duplex<AsyncGenerator<T>, Source<T>, Promise<void>>
+{
   // channel is the read/write channel.
   public readonly channel: Channel
   // sink is the sink for incoming messages.
@@ -198,7 +199,7 @@ export class ChannelStream<T> implements Stream<T> {
     if (msg.opened) {
       this.onRemoteOpened()
     }
-    const {data, closed, error: err} = msg
+    const { data, closed, error: err } = msg
     if (data) {
       this._source.push(data)
     }

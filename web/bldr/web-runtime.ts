@@ -3,7 +3,7 @@ import {
   handleRpcStream,
   RpcStreamGetter,
   RpcStreamHandler,
-  Stream,
+  PacketStream,
   Client as RPCClient,
   Server,
   createHandler,
@@ -127,7 +127,7 @@ class WebRuntimeClientInstance {
       true,
     )
     try {
-      let streamPromise: Promise<Stream>
+      let streamPromise: Promise<PacketStream>
       switch (this.init.clientType) {
         case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
           streamPromise = this.host.openWebDocumentHostStream(
@@ -210,7 +210,7 @@ class WebRuntimeImpl implements WebRuntimeService {
     }
 
     const stream = await client.openStream()
-    return (rpcDataStream: Stream) => {
+    return (rpcDataStream: PacketStream) => {
       pipe(stream, rpcDataStream, stream)
     }
   }
@@ -283,7 +283,9 @@ export class WebRuntime {
   }
 
   // openWebDocumentHostStream opens a stream to the WebDocumentHost service.
-  public openWebDocumentHostStream(webDocumentUuid: string): Promise<Stream> {
+  public openWebDocumentHostStream(
+    webDocumentUuid: string,
+  ): Promise<PacketStream> {
     return openRpcStream(
       webDocumentUuid,
       this.runtimeHost.WebDocumentRpc.bind(this.runtimeHost),
@@ -291,7 +293,9 @@ export class WebRuntime {
   }
 
   // openServiceWorkerHostStream opens a stream to the ServiceWorkerHost service.
-  public openServiceWorkerHostStream(webDocumentUuid: string): Promise<Stream> {
+  public openServiceWorkerHostStream(
+    webDocumentUuid: string,
+  ): Promise<PacketStream> {
     return openRpcStream(
       webDocumentUuid,
       this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost),

@@ -1,4 +1,4 @@
-import { Stream } from 'starpc'
+import { PacketStream } from 'starpc'
 
 import {
   WebRuntimeClientInit,
@@ -15,7 +15,7 @@ type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 // HandleStreamFn handles an incoming RPC stream.
 // Returns as soon as the stream has been passed off to be handled.
 // Throws an error if we can't handle the incoming stream.
-type HandleStreamFn = (ch: Stream) => Promise<void>
+type HandleStreamFn = (ch: PacketStream) => Promise<void>
 
 // WebRuntimeClient opens streams via a remote WebRuntime.
 export class WebRuntimeClient {
@@ -39,7 +39,7 @@ export class WebRuntimeClient {
   // the remote service depends on the WebRuntimeClientType.
   //
   // times out if the client does not ack within 3 seconds.
-  public async openStream(): Promise<Stream> {
+  public async openStream(): Promise<PacketStream> {
     // retry several times
     let err: Error | undefined
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -74,7 +74,9 @@ export class WebRuntimeClient {
       return streamConn
     }
 
-    err = new Error(`WebRuntimeClient: ${this.clientId}: unable to open stream with host${err ? ': ' + err : ''}`)
+    err = new Error(
+      `WebRuntimeClient: ${this.clientId}: unable to open stream with host${err ? ': ' + err : ''}`,
+    )
     console.warn(err.message)
     throw err
   }

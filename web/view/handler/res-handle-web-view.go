@@ -39,7 +39,11 @@ func NewHandleWebViewResolverWithRetry(le *logrus.Entry, dir web_view.HandleWebV
 			MaxInterval:     4200,
 		},
 	}
-	return directive.NewRetryResolver(le, handleResolver, retryBackoff.Construct())
+	return directive.NewRetryResolver(
+		le.WithField("web-view", dir.HandleWebView().GetId()),
+		handleResolver,
+		retryBackoff.Construct(),
+	)
 }
 
 // Resolve resolves the values, emitting them to the handler.

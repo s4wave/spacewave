@@ -1,5 +1,9 @@
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { OpenStreamCtr, Conn, combineUint8ArrayListTransform } from 'starpc'
+import {
+  OpenStreamCtr,
+  StreamConn,
+  combineUint8ArrayListTransform,
+} from 'starpc'
 import { pipe } from 'it-pipe'
 import duplex from '@aptre/it-ws/duplex'
 import WebSocket from '@aptre/it-ws/web-socket'
@@ -66,7 +70,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
 
   // Setup the connection to the Go runtime.
   const wsDuplex = duplex(ws)
-  const runtimeConn = new Conn(workerHost.getWebRuntimeServer(), {
+  const runtimeConn = new StreamConn(workerHost.getWebRuntimeServer(), {
     direction: 'inbound',
     muxerFactory: yamux({
       enableKeepAlive: false,

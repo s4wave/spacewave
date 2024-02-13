@@ -10,7 +10,7 @@ import {
   handleRpcStream,
   buildRpcStreamOpenStream,
   RpcStreamGetter,
-  Stream,
+  PacketStream,
 } from 'starpc'
 import { Workbox } from 'workbox-window'
 
@@ -379,7 +379,7 @@ export class WebDocument {
   }
 
   // openWebDocumentHostStream opens a stream with the WebDocumentHost.
-  public async openWebDocumentHostStream(): Promise<Stream> {
+  public async openWebDocumentHostStream(): Promise<PacketStream> {
     const channel = new MessageChannel()
     const localPort = channel.port1
     const channelStream = new ChannelStream<Uint8Array>(

@@ -6,7 +6,7 @@ import os from 'os'
 import {
   Client as SRPCClient,
   OpenStreamCtr,
-  Conn,
+  StreamConn,
   buildPushableSink,
   combineUint8ArrayListTransform,
 } from 'starpc'
@@ -142,7 +142,7 @@ function setupSocket(workdir: string, runtimeUuid: string) {
   const socketRx = pushable<Uint8Array>({ objectMode: true })
 
   // socketConn reads and writes to the socket.
-  const socketConn = new Conn(workerHost.getWebRuntimeServer(), {
+  const socketConn = new StreamConn(workerHost.getWebRuntimeServer(), {
     direction: 'inbound',
   })
   const openStream = socketConn.buildOpenStreamFunc()
