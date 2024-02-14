@@ -2205,10 +2205,10 @@ starpc@^0.23.0:
     uint8arraylist "^2.4.7"
     ws "^8.15.1"
 
-starpc@^0.25.2:
-  version "0.25.2"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.25.2.tgz#5b40550d0c0bd8e2db3ad29e21b8b153f556edf1"
-  integrity sha512-YSOkTAiuApW63wxwb0yEeX+8z7/Wcu+6ByJOLYM3IPPuz4qEpHFoQABrkK2z3ovO+GHHHgVbp8lfkkGJj4kmxQ==
+starpc@^0.25.3:
+  version "0.25.3"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.25.3.tgz#c41b6aaeb91b1681155a0fd5c1cb5bc4e61d7910"
+  integrity sha512-Zdh5CDB8rj3IQCISxU2SX3TLRCw0CwS/tJ58rMn4WVg4lRfRgXcdOfc/Rci0BZ0b1tEak9P0OG6qCdJQ8DEepg==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^6.0.2"

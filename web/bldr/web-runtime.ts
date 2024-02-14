@@ -220,7 +220,7 @@ class WebRuntimeImpl implements WebRuntimeService {
 
     const stream = await client.openStream()
     return (rpcDataStream: PacketStream) => {
-      pipe(stream, rpcDataStream, stream)
+      return pipe(rpcDataStream, stream, rpcDataStream)
     }
   }
 }

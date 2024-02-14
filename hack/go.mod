@@ -16,7 +16,7 @@ require (
 require (
 	github.com/aperturerobotics/bldr v0.0.0-20240206224505-e8bf10e9b231
 	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.25.2
+	github.com/aperturerobotics/starpc v0.25.3
 	github.com/evanw/esbuild v0.20.0
 )
 

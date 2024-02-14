@@ -166,6 +166,8 @@ export async function proxyFetch(
       const fetchRequestSink =
         buildPushableSink<FetchRequest>(fetchRequestStream)
       pipe(bodyIt, transformRequestData, fetchRequestSink)
+        .catch((err) =>  fetchRequestStream.end(err))
+        .then(() => fetchRequestStream.end())
     }
     // wait for the first packet w/ the response headers
     resultIt = resultIterable[Symbol.asyncIterator]()
