@@ -2,8 +2,6 @@ module github.com/aperturerobotics/forge
 
 go 1.22
 
-toolchain go1.22.0
-
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20240210015623-94a6c86702b2
 	github.com/aperturerobotics/identity v0.0.0-20240207031954-9d765116aef5

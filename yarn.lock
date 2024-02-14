@@ -23,10 +23,10 @@
     starpc "^0.23.0"
     utf-8-validate "^6.0.3"
 
-"@aperturerobotics/ts-proto-common-types@^0.2.2":
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-proto-common-types/-/ts-proto-common-types-0.2.2.tgz#0485288d6a254bb13c0f413b4273c1fa60fb4911"
-  integrity sha512-9urPW28MC4pYTgxB7WkJ8f+N5ulKxbqYAiyWLtD0MbZktITxyazYTjcglLCJw9hf8+VJyWnMcNOnBI4hnL/n0g==
+"@aperturerobotics/ts-proto-common-types@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@aperturerobotics/ts-proto-common-types/-/ts-proto-common-types-0.3.0.tgz#712bc9c6ad3ae4be7053e85209760fe4a1c1a748"
+  integrity sha512-XjPm1dkwL/FIptTEPhwifvpNwEMUdk359edStHnuYQRvlBwCDZ1dwPkX+jl1JZOnbcqQ7gPUvgelZvC9qLSFLQ==
   dependencies:
     long "^5.2.0"
     protobufjs "^7.0.0"
@@ -2073,10 +2073,33 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.23.0, starpc@^0.23.1:
+starpc@^0.23.0:
   version "0.23.1"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.23.1.tgz#0e7f713043ca07d4d8ac623a6759b2c16f80dedb"
   integrity sha512-vfO/E2AIzZhMrKfhxz2zXy3txSjLDSqg698hwgSM0g9En/bFwqzV69ohuyAiUT/NWyTQ4mcyzVrUjc822EpVVQ==
+  dependencies:
+    "@aptre/it-ws" "^1.0.0"
+    "@chainsafe/libp2p-yamux" "^6.0.2"
+    "@libp2p/interface" "^1.1.3"
+    "@libp2p/logger" "^4.0.6"
+    event-iterator "^2.0.0"
+    is-promise "^4.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.3"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    long "^5.2.3"
+    memoize-one "^6.0.0"
+    patch-package "^8.0.0"
+    protobufjs "^7.2.6"
+    uint8arraylist "^2.4.7"
+    ws "^8.15.1"
+
+starpc@^0.24.1:
+  version "0.24.1"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.24.1.tgz#dd98b331185050177dfce0d67faab98ed9189548"
+  integrity sha512-C3AMo2OIfYfz6nibd2cactFoQC3DCKpAhioK/BQrWnv4NKPWIiuo4eQwsvkj5Ub6D5uWjJjO2+wkA95q9MdeXw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^6.0.2"
