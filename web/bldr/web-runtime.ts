@@ -10,6 +10,8 @@ import {
   createMux,
   openRpcStream,
   OpenStreamFunc,
+  ChannelStream,
+  castToError,
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import { Duplex, Source } from 'it-stream-types'
@@ -30,9 +32,7 @@ import {
 } from '../runtime/runtime.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
-import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
-import { castToError } from 'starpc'
 
 // WebRuntimeClientInstance is an attached client instance.
 class WebRuntimeClientInstance {
@@ -147,7 +147,6 @@ class WebRuntimeClientInstance {
       pipe(channelStream, stream, channelStream)
         .catch((err) => channelStream.close(err))
         .then(() => channelStream.close())
-
     } catch (errAny) {
       const err = castToError(errAny, 'open stream failed')
       channelStream.close(err)

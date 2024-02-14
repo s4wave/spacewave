@@ -11,6 +11,7 @@ import {
   buildRpcStreamOpenStream,
   RpcStreamGetter,
   PacketStream,
+  ChannelStream,
 } from 'starpc'
 import { Workbox } from 'workbox-window'
 
@@ -49,7 +50,6 @@ import {
   WebRuntimeToClient,
 } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
-import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 import { randomId } from './random-id.js'
 

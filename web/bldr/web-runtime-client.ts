@@ -1,11 +1,10 @@
-import { PacketStream } from 'starpc'
+import { PacketStream, ChannelStream } from 'starpc'
 
 import {
   WebRuntimeClientInit,
   WebRuntimeClientType,
 } from '../runtime/runtime.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
-import { ChannelStream } from './channel.js'
 import { timeoutPromise } from './timeout.js'
 import { castToError } from 'starpc'
 
