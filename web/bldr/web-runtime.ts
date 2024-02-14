@@ -12,6 +12,7 @@ import {
   OpenStreamFunc,
   ChannelStream,
   castToError,
+  ChannelStreamOpts,
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import { Duplex, Source } from 'it-stream-types'
@@ -33,6 +34,12 @@ import {
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { timeoutPromise } from './timeout.js'
+
+// WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
+export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
+  keepAliveMs: 1000,
+  idleTimeoutMs: 2500,
+} as const
 
 // WebRuntimeClientInstance is an attached client instance.
 class WebRuntimeClientInstance {
@@ -56,10 +63,10 @@ class WebRuntimeClientInstance {
     const localPort = channel.port1
     const remotePort = channel.port2
     // construct the message channel backed stream.
-    const stream = new ChannelStream<Uint8Array>(
+    const stream = new ChannelStream(
       this.host.webRuntimeId,
       localPort,
-      false,
+      WebRuntimeClientChannelStreamOpts,
     )
     this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
@@ -121,10 +128,10 @@ class WebRuntimeClientInstance {
 
   // openWebRuntimeClientInstanceStream opens a stream with the Go runtime on behalf of a client.
   private async openWebRuntimeClientInstanceStream(port: MessagePort) {
-    const channelStream = new ChannelStream<Uint8Array>(
+    const channelStream = new ChannelStream(
       this.host.webRuntimeId,
       port,
-      true,
+      {...WebRuntimeClientChannelStreamOpts, remoteOpen: true}
     )
     try {
       let streamPromise: Promise<PacketStream>

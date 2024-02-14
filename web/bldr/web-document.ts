@@ -52,6 +52,7 @@ import {
 import { ItState } from './it-state.js'
 import { timeoutPromise } from './timeout.js'
 import { randomId } from './random-id.js'
+import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
@@ -382,10 +383,10 @@ export class WebDocument {
   public async openWebDocumentHostStream(): Promise<PacketStream> {
     const channel = new MessageChannel()
     const localPort = channel.port1
-    const channelStream = new ChannelStream<Uint8Array>(
+    const channelStream = new ChannelStream(
       this.webDocumentUuid,
       localPort,
-      false,
+      WebRuntimeClientChannelStreamOpts,
     )
     this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
     await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(1000)])
@@ -635,10 +636,10 @@ export class WebDocument {
 
   // handleWebRuntimeOpenStream handles the WebRuntime attempting to open a stream.
   private handleWebRuntimeOpenStream(port: MessagePort) {
-    const channel = new ChannelStream<Uint8Array>(
+    const channel = new ChannelStream(
       this.webDocumentUuid,
       port,
-      true,
+      {...WebRuntimeClientChannelStreamOpts, remoteOpen: true}
     )
     this.server.handlePacketStream(channel)
   }

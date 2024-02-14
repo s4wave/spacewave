@@ -7,6 +7,7 @@ import {
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { timeoutPromise } from './timeout.js'
 import { castToError } from 'starpc'
+import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
@@ -44,10 +45,10 @@ export class WebRuntimeClient {
     for (let attempt = 0; attempt < 3; attempt++) {
       const clientPort = await this.openClientChannel()
       const streamChannel = new MessageChannel()
-      const streamConn = new ChannelStream<Uint8Array>(
+      const streamConn = new ChannelStream(
         this.clientId,
         streamChannel.port1,
-        false,
+        WebRuntimeClientChannelStreamOpts,
       )
       const msg = <ClientToWebRuntime>{
         from: this.clientId,
@@ -127,10 +128,10 @@ export class WebRuntimeClient {
 
   // handleWebRuntimeOpenStream handles an incoming request to open a stream.
   private async handleWebRuntimeOpenStream(remoteMsgPort: MessagePort) {
-    const channel = new ChannelStream<Uint8Array>(
+    const channel = new ChannelStream(
       this.clientId,
       remoteMsgPort,
-      true,
+      {...WebRuntimeClientChannelStreamOpts, remoteOpen: true}
     )
     let err: Error | undefined
     if (!this.handleIncomingStream) {
