@@ -82,36 +82,34 @@ export function buildResponseStream(
     // note: workaround type mismatch error here (types are fine)
     const enqueue: (data: Uint8Array) => void =
       controller.enqueue.bind(controller)
-    try {
-      while (it) {
-        const next = await it.next()
-        if (next.done) {
-          controller.close()
-          return
-        }
-        const value: FetchResponse = next.value
-        if (value?.body?.$case !== 'responseData') {
-          continue
-        }
-        const responseDataPkt = value.body.responseData
-        const responseData = responseDataPkt?.data
-        if (responseData && responseData.length) {
-          enqueue(responseData as Uint8Array)
-        }
-        if (responseDataPkt?.done) {
-          controller.close()
-          return
-        }
+    while (it) {
+      const next = await it.next()
+      if (next.done) {
+        controller.close()
+        return
       }
-    } catch (err) {
-      const error = castToError(err, 'fetch response data')
-      controller.error(error)
+      const value: FetchResponse = next.value
+      if (value?.body?.$case !== 'responseData') {
+        continue
+      }
+      const responseDataPkt = value.body.responseData
+      const responseData = responseDataPkt?.data
+      if (responseData && responseData.length) {
+        enqueue(responseData as Uint8Array)
+      }
+      if (responseDataPkt?.done) {
+        controller.close()
+        return
+      }
     }
   }
   // bodyInit is the streaming response body.
   return new ReadableStream({
     start(controller) {
-      readResponse(controller)
+      readResponse(controller).catch((err) => {
+        const error = castToError(err, 'fetch response data')
+        controller.error(error)
+      })
     },
     cancel(reason) {
       if (it.return) {
@@ -166,7 +164,7 @@ export async function proxyFetch(
       const fetchRequestSink =
         buildPushableSink<FetchRequest>(fetchRequestStream)
       pipe(bodyIt, transformRequestData, fetchRequestSink)
-        .catch((err) =>  fetchRequestStream.end(err))
+        .catch((err) => fetchRequestStream.end(err))
         .then(() => fetchRequestStream.end())
     }
     // wait for the first packet w/ the response headers
