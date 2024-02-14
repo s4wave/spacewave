@@ -143,6 +143,7 @@ export async function proxyFetch(
 ): Promise<Response> {
   let resultIt: AsyncIterator<FetchResponse> | null = null
   try {
+    // get the request body
     const requestBody = request.body
     const hasBody = !!requestBody
     // build the fetch request.
@@ -156,8 +157,13 @@ export async function proxyFetch(
         requestInfo: fetchRequestInfo,
       },
     })
+
     // start the rpc
-    const resultIterable = svc.Fetch(fetchRequestStream)
+    // TODO: abort controller for Fetch?
+    // https://github.com/w3c/ServiceWorker/issues/1544
+    // It's not clear if this abort signal is actually canceled.
+    const resultIterable = svc.Fetch(fetchRequestStream, request.signal)
+
     // stream the body
     if (hasBody) {
       const bodyIt = toIt(requestBody!)
@@ -167,8 +173,11 @@ export async function proxyFetch(
         .catch((err) => fetchRequestStream.end(err))
         .then(() => fetchRequestStream.end())
     }
+
+
     // wait for the first packet w/ the response headers
     resultIt = resultIterable[Symbol.asyncIterator]()
+
     // firstPkt contains the result headers.
     const firstPkt = await resultIt.next()
     const firstPktResp: FetchResponse = firstPkt?.value
@@ -179,18 +188,17 @@ export async function proxyFetch(
     if (firstPktBody.$case !== 'responseInfo') {
       throw new Error('expected response info as first packet')
     }
+
     // responseInit is the headers and other immediate information.
     const responseInfo = firstPktBody.responseInfo
     const responseInit = buildResponseInit(responseInfo)
     const responseBody = buildResponseStream(resultIt)
+
     // return the streaming response
     return new Response(responseBody, responseInit)
   } catch (err) {
     const error = castToError(err, 'failed to start fetch request')
     console.error('fetch: proxyFetch catch error', error)
-    if (resultIt && resultIt.throw) {
-      resultIt.throw(error)
-    }
     const responseBlob = new Blob([error.message + '\n'], {
       type: 'text/plain',
     })
