@@ -205,10 +205,12 @@ export class BldrElectronApp {
 
       webPreferences: {
         sandbox: true,
-        // backgroundThrottling: false,
         nodeIntegration: false,
         contextIsolation: true,
         preload,
+
+        // TODO Disable background throttling to avoid WebDocument timeout.
+        backgroundThrottling: false,
       },
     })
 
