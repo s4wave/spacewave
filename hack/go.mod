@@ -9,7 +9,7 @@ replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.0
 	github.com/aperturerobotics/hydra v0.0.0-20240201230451-cc41903749a8
-	github.com/aperturerobotics/starpc v0.24.0
+	github.com/aperturerobotics/starpc v0.25.4
 )
 
 require (
@@ -35,8 +35,8 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.24.7 // indirect
-	github.com/aperturerobotics/util v1.13.5 // indirect
+	github.com/aperturerobotics/bifrost v0.24.8 // indirect
+	github.com/aperturerobotics/util v1.13.6 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -187,7 +187,7 @@ require (
 	go.tmz.dev/musttag v0.7.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.15.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect

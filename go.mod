@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.24.7 // master
+require github.com/aperturerobotics/bifrost v0.24.8 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -57,12 +57,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.34.2 // latest
+	github.com/aperturerobotics/controllerbus v0.34.3 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1
-	github.com/aperturerobotics/starpc v0.24.0 // latest
+	github.com/aperturerobotics/starpc v0.25.4 // latest
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.13.5 // master
+	github.com/aperturerobotics/util v1.13.6 // master
 )
 
 // aperture: use compatibility forks
@@ -97,7 +97,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.8
 	golang.org/x/crypto v0.19.0
-	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	golang.org/x/sync v0.6.0
 	gonum.org/v1/gonum v0.14.0
 	google.golang.org/protobuf v1.32.0
@@ -178,7 +178,7 @@ require (
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.10 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.11 // indirect
 	github.com/nats-io/nats.go v1.32.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
@@ -195,14 +195,14 @@ require (
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.13 // indirect
 	github.com/pion/rtp v1.8.3 // indirect
-	github.com/pion/sctp v1.8.11 // indirect
+	github.com/pion/sctp v1.8.12 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.8 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.9 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/quic-go v0.41.0 // indirect
