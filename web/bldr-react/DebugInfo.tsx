@@ -115,7 +115,7 @@ const DebugInfoDisplay: FC = () => {
     fontFamily: 'monospace',
     background: 'rgba(0, 0, 0, 0.8)',
     color: 'white',
-    fontSize: '12px',
+    fontSize: '10px',
     padding: '0.5rem',
     margin: '1rem',
     maxWidth: '33%',

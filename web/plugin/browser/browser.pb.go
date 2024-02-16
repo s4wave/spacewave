@@ -35,7 +35,8 @@ type Config struct {
 	// determined by the webpage that started the worker
 	WebRuntimeId string `protobuf:"bytes,1,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"web_runtime_id,omitempty"`
 	// MessagePort is the global value to lookup for the MessagePort.
-	// usually BLDR_PORT.
+	// This MessagePort is used to pass other MessagePorts to open clients for the WebRuntimeHost.
+	// usually BLDR_WEB_RUNTIME_CLIENT_OPEN.
 	MessagePort string `protobuf:"bytes,2,opt,name=message_port,json=messagePort,proto3" json:"message_port,omitempty"`
 }
 

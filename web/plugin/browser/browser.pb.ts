@@ -19,7 +19,8 @@ export interface Config {
   webRuntimeId: string
   /**
    * MessagePort is the global value to lookup for the MessagePort.
-   * usually BLDR_PORT.
+   * This MessagePort is used to pass other MessagePorts to open clients for the WebRuntimeHost.
+   * usually BLDR_WEB_RUNTIME_CLIENT_OPEN.
    */
   messagePort: string
 }

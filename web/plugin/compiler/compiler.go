@@ -13,7 +13,6 @@ import (
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	"github.com/aperturerobotics/bldr/util/npm"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
-	web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	electron "github.com/aperturerobotics/bldr/web/plugin/electron"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -73,26 +72,10 @@ func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
-	pluginCompilerConf := plugin_compiler.NewConfig()
-	pluginCompilerConf.ProjectId = c.GetConfig().GetProjectId()
-	pluginCompilerConf.GoPkgs = []string{
-		basePkg + "/web/plugin/controller",
-	}
-	pluginCompilerConf.DisableFetchAssets = true
-	pluginCompilerConf.DisableRpcFetch = true
-	pluginCompilerConf.DelveAddr = c.GetConfig().GetDelveAddr()
-	pluginCompilerConf.HostConfigSet = c.GetConfig().GetHostConfigSet()
-
-	// configure running the web plugin controller
-	// build config set for the plugin
-	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{}
-	_, err := configset_proto.
-		ConfigSetMap(pluginCompilerConf.ConfigSet).
-		ApplyConfig("web-plugin", &web_plugin_controller.Config{}, 1, false)
+	pluginCompilerConf, err := c.GetConfig().ToPluginCompilerConf()
 	if err != nil {
 		return nil, err
 	}
-	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, c.GetConfig().GetConfigSet())
 
 	pluginCompilerCtrl, err := plugin_compiler.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {

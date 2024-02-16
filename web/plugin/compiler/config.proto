@@ -29,4 +29,8 @@ message Config {
   // If unset, defaults to the version in package.json.
   // If not found, defaults to electron@latest.
   string electron_pkg = 4;
+
+  // BuildTypes contains a mapping of BuildType to Config override.
+  // NOTE: electronPkg is ignored.
+  map<string, Config> build_types = 5;
 }

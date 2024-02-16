@@ -4,8 +4,9 @@ import (
 	"strings"
 
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
-	bldr_project "github.com/aperturerobotics/bldr/project"
+	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
+	bldr_web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
@@ -26,16 +27,12 @@ func (c *Config) GetConfigID() string {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if projID := c.GetProjectId(); projID != "" {
-		if err := bldr_project.ValidateProjectID(projID); err != nil {
-			return errors.Wrap(err, "project_id")
-		}
+	conf, err := c.ToPluginCompilerConf()
+	if err != nil {
+		return err
 	}
-	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
-		return errors.Wrap(err, "config_set")
-	}
-	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
-		return errors.Wrap(err, "host_config_set")
+	if err := conf.Validate(); err != nil {
+		return err
 	}
 	if electronPkg := c.GetElectronPkg(); electronPkg != "" {
 		// split on version
@@ -58,6 +55,42 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 		return false
 	}
 	return ot.EqualVT(c)
+}
+
+// ToPluginCompilerConf converts the Config to a PluginCompilerConf.
+func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler.Config, error) {
+	pluginCompilerConf := bldr_plugin_compiler.NewConfig()
+	pluginCompilerConf.ProjectId = c.GetProjectId()
+	pluginCompilerConf.GoPkgs = []string{
+		basePkg + "/web/plugin/controller",
+	}
+	pluginCompilerConf.DisableFetchAssets = true
+	pluginCompilerConf.DisableRpcFetch = true
+	pluginCompilerConf.DelveAddr = c.GetDelveAddr()
+	pluginCompilerConf.HostConfigSet = c.GetHostConfigSet()
+
+	// configure running the web plugin controller
+	// build config set for the plugin
+	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{}
+	_, err := configset_proto.
+		ConfigSetMap(pluginCompilerConf.ConfigSet).
+		ApplyConfig("web-plugin", &bldr_web_plugin_controller.Config{}, 1, false)
+	if err != nil {
+		return nil, err
+	}
+	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, c.GetConfigSet())
+
+	pluginCompilerConf.BuildTypes = make(map[string]*bldr_plugin_compiler.Config)
+	for buildType, buildTypeConf := range c.GetBuildTypes() {
+		pluginCompilerConf.BuildTypes[buildType] = &bldr_plugin_compiler.Config{
+			ConfigSet:     buildTypeConf.ConfigSet,
+			HostConfigSet: buildTypeConf.HostConfigSet,
+			ProjectId:     buildTypeConf.ProjectId,
+			DelveAddr:     buildTypeConf.DelveAddr,
+		}
+	}
+
+	return pluginCompilerConf, nil
 }
 
 // _ is a type assertion
