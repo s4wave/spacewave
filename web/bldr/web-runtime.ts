@@ -375,11 +375,14 @@ export class WebRuntime {
   }
 
   // removeConnection removes a connection by clientUuid.
-  public removeConnection(
-    clientUuid: string,
-    clientType: WebRuntimeClientType,
-  ) {
+  public removeConnection(clientUuid: string) {
+    const client = this.clients[clientUuid]
+    if (!client) {
+      return
+    }
     delete this.clients[clientUuid]
+
+    const clientType = client.init.clientType
     if (
       clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
       this.webDocuments[clientUuid]

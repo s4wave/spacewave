@@ -229,6 +229,7 @@ export class BldrElectronApp {
     nwindow.on('closed', () => {
       if (this.browserWindows[req.id] === nwindow) {
         delete this.browserWindows[req.id]
+        this.webRuntime.removeConnection(req.id)
       }
     })
     return { created: true }
@@ -244,7 +245,6 @@ export class BldrElectronApp {
     }
     // NOTE: the close() might not work if !closable or interrupted
     // this behaves the same as if the user clicked the X
-    delete this.browserWindows[req.id]
     doc.close()
     return { removed: true }
   }
