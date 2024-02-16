@@ -189,6 +189,8 @@ export interface WebDocumentOptions {
   // navigator.storage.persist() later after displaying a message to the user
   // explaining why you are requesting the permission & requesting they approve.
   disableStoragePersist?: boolean
+  // closedCallback is a callback to call during close() on WebDocument.
+  closedCallback?: (err?: Error) => void
 }
 
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
@@ -213,6 +215,8 @@ export class WebDocument {
   private disableStoragePersist?: boolean
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback | null
+  // closedCallback is a callback to be called when the web document is closed.
+  private closedCallback?: (err?: Error) => void
 
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebDocumentWebView }
@@ -239,6 +243,14 @@ export class WebDocument {
   // client is the RPC client for the WebDocument.
   private readonly client: Client
 
+  // closed indicates the web document is closed with an optional error
+  private closed?: true | Error
+
+  // isClosed checks if the web document is closed
+  public get isClosed(): boolean | Error {
+    return this.closed ?? false
+  }
+
   constructor(opts?: WebDocumentOptions) {
     this.webRuntimeId = opts?.webRuntimeId || 'default'
     this.webDocumentUuid = randomId()
@@ -248,6 +260,9 @@ export class WebDocument {
     this.webViews = {}
     if (opts?.disableStoragePersist) {
       this.disableStoragePersist = true
+    }
+    if (opts?.closedCallback) {
+      this.closedCallback = opts.closedCallback
     }
 
     // Detect if we can use WebAssembly.
@@ -280,6 +295,7 @@ export class WebDocument {
       WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
       this.openWebRuntimeClient.bind(this),
       this.handleWebRuntimeOpenStream.bind(this),
+      this.handleWebRuntimeClientDisconnected.bind(this),
     )
 
     // add a global shutdown callback to terminate this
@@ -365,8 +381,7 @@ export class WebDocument {
     this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
 
     // trigger starting the connection to the WebRuntime
-    // TODO: handle error here
-    this.webRuntimeClient.waitConn()
+    this.taskEnsureWebRuntimeConn()
   }
 
   // openWebDocumentHostStream opens an RPC stream with the WebDocumentHost.
@@ -450,8 +465,12 @@ export class WebDocument {
     }
   }
 
-  // close shuts down the WebDocument.
-  public close() {
+  // close shuts down the WebDocument with an optional error.
+  public close(err?: Error) {
+    if (this.closed) {
+      return
+    }
+    this.closed = err ?? true
     this.client.setOpenStreamFn(undefined)
     this.webRuntimeClient.close()
     for (const viewId of Object.keys(this.webViews)) {
@@ -473,6 +492,9 @@ export class WebDocument {
     }
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
+    }
+    if (this.closedCallback) {
+      this.closedCallback(err)
     }
   }
 
@@ -645,5 +667,27 @@ export class WebDocument {
       },
       webRuntimePort,
     )
+  }
+
+  // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.
+  private taskEnsureWebRuntimeConn() {
+    queueMicrotask(() => {
+      if (this.closed) {
+        return
+      }
+      this.webRuntimeClient.waitConn().catch((err) => {
+        if (this.closed) return
+        console.warn('WebDocument: failed to connect to WebRuntime', err)
+        setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
+      })
+    })
+  }
+
+  // handleWebRuntimeClientDisconnected handles if the WebRuntimeClient disconnects.
+  private async handleWebRuntimeClientDisconnected() {
+    if (this.closed) {
+      return
+    }
+    this.taskEnsureWebRuntimeConn()
   }
 }

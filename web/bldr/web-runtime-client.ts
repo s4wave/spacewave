@@ -16,6 +16,9 @@ type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 // Throws an error if we can't handle the incoming stream.
 type HandleStreamFn = (ch: PacketStream) => Promise<void>
 
+// HandleDisconnectedFn handles when the web runtime client was disconnected.
+type HandleDisconnectedFn = (err?: Error) => Promise<void>
+
 // WebRuntimeClient opens streams via a remote WebRuntime.
 export class WebRuntimeClient {
   // clientChannel is the active message port to the remote.
@@ -27,6 +30,7 @@ export class WebRuntimeClient {
     public readonly clientType: WebRuntimeClientType,
     private openClientCh: OpenChannelFn,
     private handleIncomingStream: HandleStreamFn | null,
+    private handleDisconnected: HandleDisconnectedFn | null,
   ) {}
 
   // waitConn opens and waits for the connection to be ready.
@@ -57,13 +61,16 @@ export class WebRuntimeClient {
       await Promise.race([streamConn.waitRemoteOpen, timeoutPromise(1500)])
       if (!streamConn.isOpen) {
         streamConn.close()
-        if (this.clientChannel === clientPort) {
-          this.clientChannel.close()
-          this.clientChannel = undefined
-        }
         const msg = `WebRuntimeClient: ${this.clientId}: timeout opening stream with host`
         err = new Error(msg)
         console.warn(msg)
+        if (this.clientChannel === clientPort) {
+          this.clientChannel.close()
+          this.clientChannel = undefined
+          if (this.handleDisconnected) {
+            await this.handleDisconnected(err)
+          }
+        }
         // try again shortly.
         await timeoutPromise(100)
         continue
@@ -84,11 +91,13 @@ export class WebRuntimeClient {
   // note: the client can still be used again after calling close().
   public close() {
     if (this.clientChannel) {
-      this.clientChannel.postMessage(<ClientToWebRuntime>{
-        close: true,
-      })
+      const msg: ClientToWebRuntime = { close: true }
+      this.clientChannel.postMessage(msg)
       this.clientChannel.close()
       this.clientChannel = undefined
+      if (this.handleDisconnected) {
+        this.handleDisconnected().catch(() => {})
+      }
     }
   }
 
@@ -128,11 +137,10 @@ export class WebRuntimeClient {
 
   // handleWebRuntimeOpenStream handles an incoming request to open a stream.
   private async handleWebRuntimeOpenStream(remoteMsgPort: MessagePort) {
-    const channel = new ChannelStream(
-      this.clientId,
-      remoteMsgPort,
-      {...WebRuntimeClientChannelStreamOpts, remoteOpen: true}
-    )
+    const channel = new ChannelStream(this.clientId, remoteMsgPort, {
+      ...WebRuntimeClientChannelStreamOpts,
+      remoteOpen: true,
+    })
     let err: Error | undefined
     if (!this.handleIncomingStream) {
       err = new Error(
