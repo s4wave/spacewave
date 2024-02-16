@@ -14,7 +14,7 @@ import {
 declare let self: SharedWorkerGlobalScope
 interface Global extends SharedWorkerGlobalScope {
   BLDR_INIT?: Uint8Array
-  BLDR_PORT?: MessagePort
+  BLDR_WEB_RUNTIME_CLIENT_OPEN?: MessagePort
 }
 const global: Global = self
 
@@ -80,7 +80,7 @@ async function startWasmRuntime(msg: WebRuntimeHostInit) {
 
       // pass via global, use syscall/js to retrieve
       global.BLDR_INIT = WebRuntimeHostInit.encode(msg).finish()
-      global.BLDR_PORT = runtimePort
+      global.BLDR_WEB_RUNTIME_CLIENT_OPEN = runtimePort
 
       // start the runtime
       run()

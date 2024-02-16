@@ -1,0 +1,249 @@
+import os from 'os'
+import path from 'path'
+import net from 'net'
+import electron, { ipcMain } from 'electron'
+import {
+  Client as SRPCClient,
+  OpenStreamCtr,
+  StreamConn,
+  buildPushableSink,
+  combineUint8ArrayListTransform,
+} from 'starpc'
+import { pushable } from 'it-pushable'
+import { pipe } from 'it-pipe'
+import { WebRuntime } from '../../bldr/web-runtime.js'
+import {
+  CreateWebDocumentRequest,
+  CreateWebDocumentResponse,
+  RemoveWebDocumentRequest,
+  RemoveWebDocumentResponse,
+  WebRuntimeClientInit,
+} from '../../runtime/runtime.pb.js'
+import { APP_SCHEME, appRequestHandler } from './protocol.js'
+import { ServiceWorkerHostClientImpl } from '../../runtime/sw/sw.pb.js'
+import { proxyFetch } from '../../fetch/fetch.js'
+import { messagePortMainToMessagePort } from './ipc.js'
+
+export const isMac = os.platform() === 'darwin'
+// BLDR_DEBUG is set if this is a debug build.
+declare const BLDR_DEBUG: boolean | undefined
+export const isDebug = BLDR_DEBUG ?? false
+
+export class BldrElectronApp {
+  // app contains the reference to the bldr electron app
+  public readonly app: Electron.App
+  // webRuntime is the web runtime instance.
+  public readonly webRuntime: WebRuntime
+  // webRuntimeHostOpenStreamCtr contains the OpenStreamFn for the WebRuntimeHost.
+  // this is the Go runtime that is managing the Bldr Electron instance.
+  public readonly webRuntimeHostOpenStreamCtr: OpenStreamCtr
+  // serviceWorkerHostClient contacts the ServiceWorkerHost via the webRuntime
+  public readonly serviceWorkerHostClient: SRPCClient
+  // serviceWorkerHostClientImpl is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
+  public readonly serviceWorkerHostClientImpl: ServiceWorkerHostClientImpl
+
+  // browserWindows contains the list of created browser windows.
+  private browserWindows: Record<string, electron.BrowserWindow> = {}
+
+  // distPath is the path to the electron app dist files.
+  public get distPath() {
+    return this.app.getAppPath()
+  }
+
+  constructor(app: Electron.App, webRuntimeID: string) {
+    this.app = app
+
+    // openStreamCtr will contain the runtime open stream func.
+    this.webRuntimeHostOpenStreamCtr = new OpenStreamCtr(undefined)
+
+    this.webRuntime = new WebRuntime(
+      webRuntimeID,
+      this.webRuntimeHostOpenStreamCtr.openStreamFunc,
+      this.createWebDocument.bind(this),
+      this.removeWebDocument.bind(this),
+    )
+
+    // swHostClient contacts the ServiceWorkerHost via the webRuntime.
+    this.serviceWorkerHostClient = new SRPCClient(() =>
+      this.webRuntime.openServiceWorkerHostStream(webRuntimeID),
+    )
+
+    // swHost is the RPC client for the ServiceWorkerHost.
+    this.serviceWorkerHostClientImpl = new ServiceWorkerHostClientImpl(
+      this.serviceWorkerHostClient,
+    )
+  }
+
+  // init initializes the app
+  public init() {
+    const app = this.app
+
+    app.on('ready', this.onAppReady.bind(this))
+    /*
+    app.on('window-all-closed', () => {
+      // TODO: notify web runtime that all windows were closed
+      app.quit()
+    })
+    */
+  }
+
+  // serviceWorkerFetch performs a request as if it was sent from the ServiceWorker.
+  public serviceWorkerFetch(
+    req: GlobalRequest,
+    clientId?: string,
+  ): Promise<GlobalResponse> {
+    return proxyFetch(
+      this.serviceWorkerHostClientImpl,
+      req,
+      clientId ?? 'electron:main',
+    )
+  }
+
+  // onAppReady handles when the app becomes ready.
+  private onAppReady() {
+    // init the app protocol for fetching index.html and .js.map files
+    electron.protocol.handle(APP_SCHEME, (req) =>
+      appRequestHandler(this.serviceWorkerFetch.bind(this), req),
+    )
+
+    // setup the IPC socket to the WebRuntimeHost
+    this.setupWebRuntimeHostSocket()
+    // setup the web runtime client port
+    this.setupWebRuntimeClientPort()
+
+    // create the first window
+    this.createWebDocument({ id: 'electron:init' })
+  }
+
+  private setupWebRuntimeClientPort() {
+    ipcMain.on(
+      'BLDR_WEB_RUNTIME_CLIENT_OPEN',
+      async (event, init: Uint8Array) => {
+        const initMsg = WebRuntimeClientInit.decode(init)
+        const clientPort = event.ports[0]
+        this.webRuntime.handleClient(
+          initMsg,
+          messagePortMainToMessagePort(clientPort),
+        )
+      },
+    )
+  }
+
+  // setupWebRuntimeHostSocket sets up the socket to the WebRuntimeHost.
+  private setupWebRuntimeHostSocket() {
+    // workdir is the directory we will look for the socket
+    const runtimeUuid = this.webRuntime.webRuntimeId
+    let workdir = this.distPath
+    if (path.extname(workdir) === '.asar') {
+      workdir = path.dirname(workdir)
+    }
+
+    // see: util/pipesock
+    let ipcPath: string
+    if (process.platform === 'win32') {
+      ipcPath = '\\\\.\\pipe\\bldr\\' + runtimeUuid
+    } else {
+      ipcPath = path.join(workdir, `.pipe-${runtimeUuid}`)
+    }
+
+    // socketTx is data outgoing to the socket.
+    const socketTx = pushable<Uint8Array>({ objectMode: true })
+    // socketRx is data incoming from the socket.
+    const socketRx = pushable<Uint8Array>({ objectMode: true })
+
+    // socketConn reads and writes to the socket.
+    const socketConn = new StreamConn(this.webRuntime.getWebRuntimeServer(), {
+      direction: 'inbound',
+    })
+    pipe(
+      socketRx,
+      socketConn,
+      combineUint8ArrayListTransform(),
+      buildPushableSink<Uint8Array>(socketTx),
+    ).catch((err) => socketConn.close(err))
+
+    // sock is the connected socket instance
+    const sock = net.connect(ipcPath, async () => {
+      this.webRuntimeHostOpenStreamCtr.set(socketConn.buildOpenStreamFunc())
+      try {
+        for await (const data of socketTx) {
+          sock.write(data)
+        }
+        socketConn.close()
+      } catch (err) {
+        socketConn.close(err as Error)
+      }
+    })
+
+    sock.on('data', (data) => {
+      socketRx.push(data)
+    })
+    sock.on('end', () => {
+      socketRx.end()
+      socketConn.close()
+      // assume we are exiting
+      process.exit(0)
+    })
+    sock.on('error', (err) => {
+      socketRx.end(err)
+      socketConn.close(err)
+      // ...but also exit if this happens.
+      process.exit(1)
+    })
+  }
+
+  // createWindow creates a new browser window.
+  private createWindow(urlSuffix?: string) {
+    const preload = path.join(this.distPath, 'preload.mjs')
+    const nwindow = new electron.BrowserWindow({
+      // Only show the OS window frame on MacOS.
+      frame: isMac,
+      titleBarStyle: isMac ? 'hidden' : undefined,
+
+      height: 680,
+      width: 900,
+
+      webPreferences: {
+        sandbox: true,
+        // backgroundThrottling: false,
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload,
+      },
+    })
+
+    nwindow.webContents.openDevTools()
+    nwindow.loadURL(`${APP_SCHEME}://index.html${urlSuffix ?? ''}`)
+
+    return nwindow
+  }
+
+  // runtimeCreateWebDocument is called by the WebRuntimeHost to create a new WebDocument.
+  private async createWebDocument(
+    req: CreateWebDocumentRequest,
+  ): Promise<CreateWebDocumentResponse> {
+    const nwindow = this.createWindow(`#webDocumentUuid=${req.id}`)
+    this.browserWindows[req.id] = nwindow
+    nwindow.on('closed', () => {
+      if (this.browserWindows[req.id] === nwindow) {
+        delete this.browserWindows[req.id]
+      }
+    })
+    return { created: true }
+  }
+
+  // runtimeRemoveWebDocument is called to remove a browser window.
+  private async removeWebDocument(
+    req: RemoveWebDocumentRequest,
+  ): Promise<RemoveWebDocumentResponse> {
+    const doc = this.browserWindows[req.id]
+    if (!doc) {
+      return { removed: false }
+    }
+    // NOTE: the close() might not work if !closable or interrupted
+    // this behaves the same as if the user clicked the X
+    delete this.browserWindows[req.id]
+    doc.close()
+    return { removed: true }
+  }
+}

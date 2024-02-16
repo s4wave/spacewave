@@ -55,7 +55,7 @@ func main() {
 		b,
 		resolver.NewLoadControllerWithConfig(&browser.Config{
 			WebRuntimeId: initm.GetWebRuntimeId(),
-			MessagePort:  "BLDR_PORT",
+			MessagePort:  "BLDR_WEB_RUNTIME_CLIENT_OPEN",
 		}),
 		nil,
 	)

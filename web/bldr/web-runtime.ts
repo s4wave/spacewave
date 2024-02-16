@@ -37,17 +37,33 @@ import { timeoutPromise } from './timeout.js'
 
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
-  keepAliveMs: 1000,
-  idleTimeoutMs: 2500,
+  keepAliveMs: 1420,
+  idleTimeoutMs: 4200,
 } as const
 
 // WebRuntimeClientInstance is an attached client instance.
 class WebRuntimeClientInstance {
+  // waitClosed is resolved when the instance is closed.
+  public readonly waitClosed: Promise<void>
+  // _resolveWaitClosed resolves waitClosed.
+  private _resolveWaitClosed?: () => void
+
+  // closed indicates the instance is closed.
+  private closed?: true
+
+  // isClosed checks if the instance is closed.
+  public get isClosed(): boolean {
+    return this.closed ?? false
+  }
+
   constructor(
     private readonly host: WebRuntime,
     public readonly port: MessagePort,
     public readonly init: WebRuntimeClientInit,
   ) {
+    this.waitClosed = new Promise<void>(
+      (resolve) => (this._resolveWaitClosed = resolve),
+    )
     port.onmessage = this.onClientMessage.bind(this)
     port.start()
   }
@@ -59,9 +75,11 @@ class WebRuntimeClientInstance {
   // note: the stream has message framing (via postMessage)
   // it is not necessary to use length prefixing for packets
   public async openStream(): Promise<Duplex<Source<Uint8Array>>> {
-    const channel = new MessageChannel()
-    const localPort = channel.port1
-    const remotePort = channel.port2
+    if (this.closed) {
+      throw new Error('WebRuntimeClientInstance is closed')
+    }
+
+    const { port1: localPort, port2: remotePort } = new MessageChannel()
     // construct the message channel backed stream.
     const stream = new ChannelStream(
       this.host.webRuntimeId,
@@ -70,7 +88,15 @@ class WebRuntimeClientInstance {
     )
     this.postMessage({ openStream: true }, [remotePort])
     // wait for ack or timeout
-    await Promise.race([stream.waitRemoteAck, timeoutPromise(1000)])
+    await Promise.race([
+      stream.waitRemoteAck,
+      this.waitClosed,
+      timeoutPromise(1420),
+    ])
+    if (this.closed) {
+      stream.close()
+      throw new Error('WebRuntimeClientInstance is closed')
+    }
     if (!stream.isAcked) {
       stream.close()
       throw new Error('timed out waiting for ack')
@@ -83,6 +109,7 @@ class WebRuntimeClientInstance {
 
   // close closes the client.
   public close() {
+    this._resolveWaitClosed!()
     try {
       this.port.close()
     } finally {
@@ -128,11 +155,10 @@ class WebRuntimeClientInstance {
 
   // openWebRuntimeClientInstanceStream opens a stream with the Go runtime on behalf of a client.
   private async openWebRuntimeClientInstanceStream(port: MessagePort) {
-    const channelStream = new ChannelStream(
-      this.host.webRuntimeId,
-      port,
-      {...WebRuntimeClientChannelStreamOpts, remoteOpen: true}
-    )
+    const channelStream = new ChannelStream(this.host.webRuntimeId, port, {
+      ...WebRuntimeClientChannelStreamOpts,
+      remoteOpen: true,
+    })
     try {
       let streamPromise: Promise<PacketStream>
       switch (this.init.clientType) {
@@ -383,12 +409,7 @@ export class WebRuntime {
         webDocuments.push(webDocument)
       }
     }
-    webDocuments.sort((a, b) => {
-      if (a < b) {
-        return -1
-      }
-      return 1
-    })
+    webDocuments.sort((a, b) => (a.id < b.id ? -1 : 1))
     return {
       snapshot: true,
       webDocuments,

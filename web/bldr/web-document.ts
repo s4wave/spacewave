@@ -207,41 +207,37 @@ export class WebDocument {
   // webDocumentUuid is the unique id of this instance & attached worker.
   // this ID identifies this TypeScript WebDocument class object.
   public readonly webDocumentUuid: string
-
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
-
   // disableStoragePersist disables requesting persistent storage permission
   private disableStoragePersist?: boolean
-
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback | null
 
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebDocumentWebView }
-
-  // _webStatusUpdates is a stream of web status updates.
+  // webStatusStream is a stream of web status updates.
   public readonly webStatusStream: ItState<WebDocumentStatus>
 
   // serviceWorker is the loaded runtime service worker
   private serviceWorker?: Workbox
-
-  // worker is the runtime shared worker
-  // electron: not used
-  private worker?: SharedWorker
-  // workerPort is the Port connected to the Shared Worker or Electron Main.
-  private workerPort: MessagePort
   // serviceWorkerPort is the Port connected to the ServiceWorker.
   private serviceWorkerPort?: MessagePort
+
+  // worker is the shared worker containing the WebRuntime.
+  // electron: not used
+  private worker?: SharedWorker
+  // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
+  private webRuntimePort: MessagePort
+  // webRuntimeClient is the client for the WebRuntime.
+  private readonly webRuntimeClient: WebRuntimeClient
+  // webDocumentHost is the RPC interface to the WebDocumentHost via the WebRuntime.
+  private readonly webDocumentHost: WebDocumentHostClientImpl
 
   // server is the RPC server for the WebDocument.
   private readonly server: Server
   // client is the RPC client for the WebDocument.
   private readonly client: Client
-  // webDocumentHost is the RPC interface to the host runtime.
-  private readonly webDocumentHost: WebDocumentHostClientImpl
-  // webRuntimeClient is the client for the WebRuntime.
-  private readonly webRuntimeClient: WebRuntimeClient
 
   constructor(opts?: WebDocumentOptions) {
     this.webRuntimeId = opts?.webRuntimeId || 'default'
@@ -314,7 +310,7 @@ export class WebDocument {
       // eslint-disable-next-line
       console.log('starting electron connection')
       const workerChannel = new MessageChannel()
-      this.workerPort = workerChannel.port2
+      this.webRuntimePort = workerChannel.port2
       const electronChannel = workerChannel.port1
       handleElectronWorkerPort(electronChannel)
     } else {
@@ -349,11 +345,11 @@ export class WebDocument {
         runtimeJsURL,
         workerOptions,
       )
-      this.workerPort = this.worker!.port!
+      this.webRuntimePort = this.worker!.port!
     }
 
     // we don't expect any messages directly from the main worker port.
-    this.workerPort.start()
+    this.webRuntimePort.start()
 
     // setup the service worker
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
@@ -447,19 +443,14 @@ export class WebDocument {
         webViews.push(webView.buildWebViewStatus())
       }
     }
-    webViews.sort((a, b) => {
-      if (a < b) {
-        return -1
-      }
-      return 1
-    })
+    webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
     return {
       snapshot: true,
       webViews,
     }
   }
 
-  // close shuts down the runtime.
+  // close shuts down the WebDocument.
   public close() {
     this.client.setOpenStreamFn(undefined)
     this.webRuntimeClient.close()
@@ -599,9 +590,10 @@ export class WebDocument {
     init: WebRuntimeClientInit,
     remotePort: MessagePort,
   ) {
-    this.workerPort.postMessage(WebRuntimeClientInit.encode(init).finish(), [
-      remotePort,
-    ])
+    this.webRuntimePort.postMessage(
+      WebRuntimeClientInit.encode(init).finish(),
+      [remotePort],
+    )
   }
 
   // handleWebRuntimeOpenStream handles the web runtime opening a rpc stream.

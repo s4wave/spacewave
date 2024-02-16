@@ -17,7 +17,7 @@ async function openClientPort(
   port: MessagePortBridge<WebRuntimeToClient, ClientToWebRuntime>,
 ): Promise<void> {
   const clientPort = messagePortBridgeToMessagePort(port)
-  ipcRenderer.postMessage('BLDR_PORT', init, [clientPort])
+  ipcRenderer.postMessage('BLDR_WEB_RUNTIME_CLIENT_OPEN', init, [clientPort])
 }
 
 contextBridge.exposeInMainWorld('BLDR_ELECTRON', <BldrElectron>{
