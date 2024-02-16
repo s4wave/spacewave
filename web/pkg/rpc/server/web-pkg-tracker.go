@@ -64,7 +64,6 @@ func (t *webPkgTracker) execute(ctx context.Context) error {
 	})
 
 	var val web_pkg.WebPkg
-WaitLoop:
 	for {
 		select {
 		case <-ctx.Done():
@@ -78,11 +77,7 @@ WaitLoop:
 			}
 			continue
 		case av := <-valCh:
-			lvv, ok := av.GetValue().(web_pkg.WebPkg)
-			if !ok || val == lvv {
-				continue WaitLoop
-			}
-			val = lvv
+			val = av.GetValue()
 			if val == nil {
 				t.srvPromise.SetPromise(nil)
 				continue

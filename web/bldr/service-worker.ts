@@ -62,7 +62,7 @@ async function openWebRuntimeClient(
     })
     try {
       console.log(
-        `ServiceWorker: ${serviceWorkerId} connecting via ${webDocumentId}`,
+        `ServiceWorker: ${serviceWorkerId} connecting via WebDocument: ${webDocumentId}`,
       )
       // request that we open the connection to the web runtime.
       // NOTE: this does not necessarily throw an error if the remote WebDocument is closed.

@@ -1,4 +1,4 @@
-import { PacketStream, ChannelStream } from 'starpc'
+import { PacketStream, ChannelStream, castToError } from 'starpc'
 
 import {
   WebRuntimeClientInit,
@@ -6,7 +6,6 @@ import {
 } from '../runtime/runtime.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { timeoutPromise } from './timeout.js'
-import { castToError } from 'starpc'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
@@ -113,6 +112,7 @@ export class WebRuntimeClient {
       this.handleMessage(data, ev.ports)
     }
     this.clientChannel = port
+    port.start()
     return port
   }
 

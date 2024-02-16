@@ -11,7 +11,6 @@ import {
   buildRpcStreamOpenStream,
   RpcStreamGetter,
   PacketStream,
-  ChannelStream,
 } from 'starpc'
 import { Workbox } from 'workbox-window'
 
@@ -43,16 +42,13 @@ import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
-  ClientToWebRuntime,
   ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
   WebDocumentToServiceWorker,
-  WebRuntimeToClient,
 } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
-import { timeoutPromise } from './timeout.js'
 import { randomId } from './random-id.js'
-import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
+import { WebRuntimeClient } from './web-runtime-client.js'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
@@ -235,8 +231,6 @@ export class WebDocument {
   private worker?: SharedWorker
   // workerPort is the Port connected to the Shared Worker or Electron Main.
   private workerPort: MessagePort
-  // clientPort is the Port connected to the WebRuntime.
-  private clientPort: MessagePort
   // serviceWorkerPort is the Port connected to the ServiceWorker.
   private serviceWorkerPort?: MessagePort
 
@@ -246,6 +240,8 @@ export class WebDocument {
   private readonly client: Client
   // webDocumentHost is the RPC interface to the host runtime.
   private readonly webDocumentHost: WebDocumentHostClientImpl
+  // webRuntimeClient is the client for the WebRuntime.
+  private readonly webRuntimeClient: WebRuntimeClient
 
   constructor(opts?: WebDocumentOptions) {
     this.webRuntimeId = opts?.webRuntimeId || 'default'
@@ -281,6 +277,14 @@ export class WebDocument {
     this.server = new Server(mux.lookupMethodFunc)
     this.client = new Client()
     this.webDocumentHost = new WebDocumentHostClientImpl(this.client)
+
+    this.webRuntimeClient = new WebRuntimeClient(
+      this.webRuntimeId,
+      this.webDocumentUuid,
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      this.openWebRuntimeClient.bind(this),
+      this.handleWebRuntimeOpenStream.bind(this),
+    )
 
     // add a global shutdown callback to terminate this
     this.releaseShutdownCallback = addShutdownCallback(this.close.bind(this))
@@ -361,44 +365,17 @@ export class WebDocument {
     this.serviceWorker = wb
     this.initServiceWorker(wb)
 
-    // initialize the conn with the WebRuntime for this WebDocument.
-    const runtimeChannel = new MessageChannel()
-    const localWebDocumentPort = runtimeChannel.port1
-    const remoteWebDocumentPort = runtimeChannel.port2
-    const initMsg = WebRuntimeClientInit.encode({
-      webRuntimeId: this.webRuntimeId,
-      clientUuid: this.webDocumentUuid,
-      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
-    }).finish()
-    this.clientPort = localWebDocumentPort
-    this.clientPort.onmessage = this.onWebRuntimeMessage.bind(this)
-    this.clientPort.start()
-    this.openHostWebDocumentClient(initMsg, remoteWebDocumentPort)
-
-    // set the conn on the client
+    // set the conn on the client to start accepting rpcs
     this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
+
+    // trigger starting the connection to the WebRuntime
+    // TODO: handle error here
+    this.webRuntimeClient.waitConn()
   }
 
-  // openWebDocumentHostStream opens a stream with the WebDocumentHost.
+  // openWebDocumentHostStream opens an RPC stream with the WebDocumentHost.
   public async openWebDocumentHostStream(): Promise<PacketStream> {
-    const channel = new MessageChannel()
-    const localPort = channel.port1
-    const channelStream = new ChannelStream(
-      this.webDocumentUuid,
-      localPort,
-      WebRuntimeClientChannelStreamOpts,
-    )
-    this.postWebRuntimeMessage({ openStream: true }, [channel.port2])
-    await Promise.race([channelStream.waitRemoteOpen, timeoutPromise(1000)])
-    if (!channelStream.isOpen) {
-      const msg = `WebDocument: ${this.webDocumentUuid}: timeout opening stream with WebDocumentHost`
-      console.warn(msg)
-      throw new Error(msg)
-    }
-    console.log(
-      `WebDocument: ${this.webDocumentUuid}: opened stream with WebDocumentHost`,
-    )
-    return channelStream
+    return this.webRuntimeClient.openStream()
   }
 
   // registerWebView registers a web-view with the runtime.
@@ -485,23 +462,12 @@ export class WebDocument {
   // close shuts down the runtime.
   public close() {
     this.client.setOpenStreamFn(undefined)
+    this.webRuntimeClient.close()
     for (const viewId of Object.keys(this.webViews)) {
       delete this.webViews[viewId]
     }
-    if (this.clientPort) {
-      try {
-        this.clientPort.postMessage(<ClientToWebRuntime>{
-          close: true,
-        })
-      } finally {
-        this.clientPort.close()
-      }
-    }
     if (this.worker) {
       this.worker.port.close()
-    }
-    if (this.serviceWorker) {
-      this.serviceWorker = undefined
     }
     if (this.serviceWorkerPort) {
       try {
@@ -510,6 +476,9 @@ export class WebDocument {
         this.serviceWorkerPort.close()
         this.serviceWorkerPort = undefined
       }
+    }
+    if (this.serviceWorker) {
+      this.serviceWorker = undefined
     }
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
@@ -615,33 +584,30 @@ export class WebDocument {
     )
   }
 
-  // openHostWebDocumentClient opens a new Client for the host runtime.
-  // passes a MessagePort for the client to communicate over.
-  // the client should send ClientToWebDocumentHost messages.
-  // initMsg should be a WebRuntimeClientInit
-  private openHostWebDocumentClient(initMsg: Uint8Array, port: MessagePort) {
-    this.workerPort!.postMessage(initMsg, [port])
+  // openWebRuntimeClient attempts to open a message port with the WebRuntime.
+  // this is the function passed to the WebRuntimeClient
+  private async openWebRuntimeClient(
+    init: WebRuntimeClientInit,
+  ): Promise<MessagePort> {
+    const { port1: localPort, port2: remotePort } = new MessageChannel()
+    this.sendWebRuntimeOpenClient(init, remotePort)
+    return localPort
   }
 
-  // onWebRuntimeMessage handles an incoming WebRuntime message.
-  private onWebRuntimeMessage(event: MessageEvent<WebRuntimeToClient>) {
-    const data = event.data
-    if (!data) {
-      return
-    }
-    if (data.openStream && event.ports?.length) {
-      this.handleWebRuntimeOpenStream(event.ports[0])
-    }
+  // sendWebRuntimeOpenClient sends the message to the web runtime to open a client.
+  private sendWebRuntimeOpenClient(
+    init: WebRuntimeClientInit,
+    remotePort: MessagePort,
+  ) {
+    this.workerPort.postMessage(WebRuntimeClientInit.encode(init).finish(), [
+      remotePort,
+    ])
   }
 
-  // handleWebRuntimeOpenStream handles the WebRuntime attempting to open a stream.
-  private handleWebRuntimeOpenStream(port: MessagePort) {
-    const channel = new ChannelStream(
-      this.webDocumentUuid,
-      port,
-      {...WebRuntimeClientChannelStreamOpts, remoteOpen: true}
-    )
-    this.server.handlePacketStream(channel)
+  // handleWebRuntimeOpenStream handles the web runtime opening a rpc stream.
+  // resolves once the stream has been passed off to be handled
+  private async handleWebRuntimeOpenStream(ch: PacketStream) {
+    this.server.handlePacketStream(ch)
   }
 
   // onServiceWorkerMessage handles an incoming service worker message.
@@ -665,38 +631,27 @@ export class WebDocument {
     id: string,
     port: MessagePort,
   ) {
-    const commChannel = new MessageChannel()
     // we don't expect any replies
+    console.log(`WebDocument: connecting ServiceWorker to WebRuntime: ${id}`)
     port.start()
 
-    console.log(`WebDocument: connecting ServiceWorker to WebRuntime: ${id}`)
-    const initMsg = <WebRuntimeClientInit>{
-      webRuntimeId: this.webRuntimeId,
-      clientUuid: id,
-      clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+    // Ack we are opening the channel and pass the MessagePort to use.
+    const { port1: swPort, port2: webRuntimePort } = new MessageChannel()
+    const ack: ConnectWebRuntimeAck = {
+      from: this.webDocumentUuid,
+      webRuntimePort: swPort,
     }
-    port.postMessage(
-      <ConnectWebRuntimeAck>{
-        from: this.webDocumentUuid,
-        webRuntimePort: commChannel.port2,
-      },
-      [commChannel.port2],
-    )
-    this.openHostWebDocumentClient(
-      WebRuntimeClientInit.encode(initMsg).finish(),
-      commChannel.port1,
-    )
-  }
+    port.postMessage(ack, [swPort])
+    port.close()
 
-  // postWebRuntimeMessage posts a message to the WebRuntime client port.
-  private postWebRuntimeMessage(
-    msg: ClientToWebRuntime,
-    xfer?: Transferable[],
-  ) {
-    if (xfer && xfer.length) {
-      this.clientPort.postMessage(msg, xfer)
-    } else {
-      this.clientPort.postMessage(msg)
-    }
+    // Send the MessagePort to the WebRuntime to complete the connection.
+    this.sendWebRuntimeOpenClient(
+      {
+        webRuntimeId: this.webRuntimeId,
+        clientUuid: id,
+        clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      },
+      webRuntimePort,
+    )
   }
 }

@@ -53,6 +53,7 @@ function createWindow(urlSuffix?: string): electron.BrowserWindow {
 
     webPreferences: {
       sandbox: true,
+      // backgroundThrottling: false,
       nodeIntegration: false,
       contextIsolation: true,
       preload,
