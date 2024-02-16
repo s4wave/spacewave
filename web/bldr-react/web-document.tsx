@@ -17,8 +17,8 @@ interface IWebDocumentProps {
 // WebDocument is the root bldr application container.
 // It provides the runtime to child components and adds debug info.
 export class WebDocument extends React.Component<IWebDocumentProps> {
+  public readonly webDocument: BldrWebDocument
   private externalRuntime?: boolean
-  private webDocument: BldrWebDocument
   private childContext: IBldrContext
 
   constructor(props: IWebDocumentProps) {
@@ -39,13 +39,8 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
     )
   }
 
-  // getWebDocument gets and returns the WebDocument instance.
-  public getWebDocument(): BldrWebDocument {
-    return this.webDocument
-  }
-
   public componentWillUnmount() {
-    if (this.webDocument && !this.externalRuntime) {
+    if (!this.externalRuntime) {
       this.webDocument.close()
     }
   }
