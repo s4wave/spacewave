@@ -86,8 +86,10 @@
           new XtermStdio(term),
           new XtermStdio(term),
           new XtermStdio(term),
-          new PreopenDirectory('/tmp', {}),
-          new PreopenDirectory('/example', {
+          new PreopenDirectory('/', {
+            'hello.txt': new File(
+              new TextEncoder('utf-8').encode(`Hello world!\n`),
+            ),
             demo: new Directory(
               await (async function () {
                 let dir = {}
@@ -98,9 +100,12 @@
               })(),
             ),
           }),
-          new PreopenDirectory('/', {
-            'hello.txt': new File(
-              new TextEncoder('utf-8').encode(`Hello world!\n`),
+          new PreopenDirectory('/tmp', {}),
+          new PreopenDirectory('/example', {
+            'world.txt': new File(
+              new TextEncoder('utf-8').encode(
+                `This file is not visible in / because it is in a separate fd\n`,
+              ),
             ),
           }),
         ]
@@ -120,7 +125,6 @@
         term.writeln('\x1B[92mDone\x1B[0m')
 
         console.log(fds)
-        console.log(fds.map((f) => f.dir))
         /*
         document.querySelector('#downloads').innerHTML +=
           "<br><a href='" +
