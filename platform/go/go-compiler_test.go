@@ -16,7 +16,7 @@ func TestGoCompilerEnvVars(t *testing.T) {
 		{"native/windows/armv6", []string{"GOOS=windows", "GOARCH=arm", "GOARM=6"}},
 		{"native/linux/armv5", []string{"GOOS=linux", "GOARCH=arm", "GOARM=5"}},
 		{"native/darwin/arm64", []string{"GOOS=darwin", "GOARCH=arm64"}},
-		{"web", []string{"GOOS=js", "GOARCH=wasm"}},
+		{"web", []string{"GOOS=wasip1", "GOARCH=wasm"}},
 	}
 
 	for _, tc := range testCases {

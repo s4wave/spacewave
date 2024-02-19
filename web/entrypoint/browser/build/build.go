@@ -66,7 +66,7 @@ func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, repoRoot, buildDir 
 	goArgs = append(goArgs, entrypointPkg)
 
 	cmpCmd := gocompiler.NewGoCompilerCmd(goArgs...)
-	cmpCmd.Env = append(cmpCmd.Env, "GOOS=js", "GOARCH=wasm")
+	cmpCmd.Env = append(cmpCmd.Env, "GOOS=wasip1", "GOARCH=wasm")
 	cmpCmd.Dir = entrypointDir
 	if err := exec.StartAndWait(ctx, le, cmpCmd); err != nil {
 		return err
