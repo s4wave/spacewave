@@ -34,6 +34,11 @@
     uint8arrays "^5.0.0"
     ws "^8.4.0"
 
+"@bjorn3/browser_wasi_shim@^0.2.19":
+  version "0.2.19"
+  resolved "https://registry.yarnpkg.com/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.2.19.tgz#24b6dc7417677b641da6f0a24729b6d7766e0c5b"
+  integrity sha512-Zu5KVxRp7MBwwdOtXSmu14NUwPASNE6zK/BSwWKf0Fsc4g5NOqPYto5C0Nc6EixDb0AEXCoLFDMKP9RN7n2yPQ==
+
 "@chainsafe/is-ip@^2.0.1", "@chainsafe/is-ip@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@chainsafe/is-ip/-/is-ip-2.0.2.tgz#7311e7403f11d8c5cfa48111f56fcecaac37c9f6"
@@ -2168,6 +2173,7 @@ stream-shift@^1.0.0:
   integrity sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ==
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==

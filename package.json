@@ -74,6 +74,7 @@
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
+    "@bjorn3/browser_wasi_shim": "^0.2.19",
     "@libp2p/logger": "^4.0.6",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
