@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/experimental/sysfs"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"github.com/tetratelabs/wazero/sys"
 )

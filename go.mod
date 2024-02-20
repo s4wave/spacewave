@@ -11,6 +11,7 @@ require (
 	github.com/evanw/esbuild v0.20.0 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
+	github.com/tetratelabs/wazero v1.6.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
@@ -219,7 +220,6 @@ require (
 	github.com/templexxx/cpu v0.1.0 // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xorsimd v0.4.2 // indirect
-	github.com/tetratelabs/wazero v1.1.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
