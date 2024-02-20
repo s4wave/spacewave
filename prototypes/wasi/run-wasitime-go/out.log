@@ -1,0 +1,20 @@
+Hello wasi!
+Listing all files...
+d---------: .
+----------: .gitignore
+----------: __debug_bin2995724646
+----------: go.mod
+----------: go.sum
+----------: main.go
+----------: out.log
+----------: run-wasitime-go
+d---------: /tmp
+d---------: /tmp/com.apple.launchd.A9ZBDs5Lcc
+S---------: /tmp/com.apple.launchd.A9ZBDs5Lcc/Listeners
+d---------: /tmp/com.apple.launchd.RcQIzUPazF
+S---------: /tmp/com.apple.launchd.RcQIzUPazF/org.xquartz:0
+d---------: /tmp/powerlog
+d---------: /tmp/v8-compile-cache-501
+d---------: /tmp/v8-compile-cache-501/11.8.172.17-node.19
+d---------: /tmp/v8-compile-cache-501/arm64
+d---------: /tmp/v8-compile-cache-501/arm64/11.8.172.17-node.19
