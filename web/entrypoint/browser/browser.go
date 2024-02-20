@@ -63,6 +63,7 @@ func main() {
 		err = errors.Wrap(err, "start runtime controller")
 		le.Fatal(err.Error())
 	}
+	defer rtRef.Release()
+
 	<-ctx.Done()
-	rtRef.Release()
 }

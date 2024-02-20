@@ -18,7 +18,7 @@ func PlatformToGoEnv(plat bldr_platform.Platform) ([]string, error) {
 			vars = append(vars, "GOARM="+strconv.Itoa(goArm))
 		}
 	case *bldr_platform.WebPlatform:
-		vars = append(vars, "GOOS=wasip1", "GOARCH=wasm")
+		vars = append(vars, "GOOS=js", "GOARCH=wasm")
 	default:
 		return nil, errors.Errorf("unrecognized go-compiler platform: %s", plat.GetPlatformID())
 	}

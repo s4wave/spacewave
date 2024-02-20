@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_indexeddb "github.com/aperturerobotics/hydra/volume/js/indexeddb"
 )
 

@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -117,7 +118,18 @@ func (r *Controller) Execute(ctx context.Context) error {
 			le *logrus.Entry,
 			handler web_runtime.WebRuntimeHandler,
 		) (web_runtime.WebRuntime, error) {
-			remote, err := web_runtime.NewRemote(r.le, r.bus, handler, r.runtimeUuid, e.GetIpc())
+			mc := e.GetMuxedConn()
+			srpcClient := srpc.NewClientWithMuxedConn(mc)
+			remote, err := web_runtime.NewRemote(
+				r.le,
+				r.bus,
+				handler,
+				r.runtimeUuid,
+				srpcClient,
+				func(ctx context.Context, r *web_runtime.Remote) error {
+					return r.GetRpcServer().AcceptMuxedConn(ctx, mc)
+				},
+			)
 			if err != nil {
 				return nil, err
 			}

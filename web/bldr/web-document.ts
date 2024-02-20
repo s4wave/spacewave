@@ -477,7 +477,11 @@ export class WebDocument {
       delete this.webViews[viewId]
     }
     if (this.worker) {
-      this.worker.port.close()
+      try {
+        this.worker.port.postMessage('close')
+      } finally {
+        this.worker.port.close()
+      }
     }
     if (this.serviceWorkerPort) {
       try {

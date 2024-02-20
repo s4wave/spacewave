@@ -154,7 +154,17 @@ func buildWsWebRuntime(le *logrus.Entry, b bus.Bus, runtimeID string, nch *webso
 			if err != nil {
 				return nil, err
 			}
-			return web_runtime.NewRemote(le, b, handler, runtimeID, mc)
+			rpcClient := srpc.NewClientWithMuxedConn(mc)
+			return web_runtime.NewRemote(
+				le,
+				b,
+				handler,
+				runtimeID,
+				rpcClient,
+				func(ctx context.Context, r *web_runtime.Remote) error {
+					return r.GetRpcServer().AcceptMuxedConn(ctx, mc)
+				},
+			)
 		},
 		runtimeID,
 		DevtoolWsVersion,

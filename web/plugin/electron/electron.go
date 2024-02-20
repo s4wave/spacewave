@@ -8,8 +8,8 @@ import (
 
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
-	"github.com/aperturerobotics/bldr/web/ipc"
 	"github.com/aperturerobotics/util/exec"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,8 +80,8 @@ func RunElectron(
 	}, nil
 }
 
-// GetIpc returns the ipc.
-func (e *Electron) GetIpc() ipc.IPC {
+// GetMuxedConn returns the muxed conn with the main process.
+func (e *Electron) GetMuxedConn() network.MuxedConn {
 	return e.ipc
 }
 

@@ -96,7 +96,7 @@ func (w *RemoteWebDocument) OpenRpcStream(
 	ctx context.Context,
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
-) (srpc.Writer, error) {
+) (srpc.PacketWriter, error) {
 	return w.openStream(ctx, msgHandler, closeHandler)
 }
 

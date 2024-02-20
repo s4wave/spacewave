@@ -8,7 +8,6 @@ import (
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/cstate"
 	web_document "github.com/aperturerobotics/bldr/web/document"
-	"github.com/aperturerobotics/bldr/web/ipc"
 	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
@@ -25,10 +24,11 @@ type Remote struct {
 	bus       bus.Bus
 	handler   WebRuntimeHandler
 
-	ipc       ipc.IPC
 	rpcMux    srpc.Mux
 	rpcServer *srpc.Server
 	rpcClient srpc.Client
+
+	execListener func(ctx context.Context, r *Remote) error
 
 	// swMux services requests for the ServiceWorker.
 	swMux srpc.Mux
@@ -56,17 +56,19 @@ func NewRemote(
 	b bus.Bus,
 	handler WebRuntimeHandler,
 	runtimeID string,
-	ipc ipc.IPC,
+	rpcClient srpc.Client,
+	execListener func(ctx context.Context, r *Remote) error,
 ) (*Remote, error) {
 	if err := ValidateRuntimeId(runtimeID); err != nil {
 		return nil, err
 	}
 	r := &Remote{
-		runtimeID: runtimeID,
-		le:        le,
-		bus:       b,
-		handler:   handler,
-		ipc:       ipc,
+		runtimeID:    runtimeID,
+		le:           le,
+		bus:          b,
+		handler:      handler,
+		rpcClient:    rpcClient,
+		execListener: execListener,
 	}
 	r.cstate = cstate.NewCState(r)
 
@@ -76,7 +78,6 @@ func NewRemote(
 		return nil, err
 	}
 	r.rpcServer = srpc.NewServer(r.rpcMux)
-	r.rpcClient = srpc.NewClientWithMuxedConn(r.ipc)
 	r.webRuntime = NewSRPCWebRuntimeClient(r.rpcClient)
 
 	// ServiceWorkerHost mux
@@ -96,6 +97,11 @@ func (r *Remote) GetLogger() *logrus.Entry {
 // GetBus returns the root controller bus to use in this process.
 func (r *Remote) GetBus() bus.Bus {
 	return r.bus
+}
+
+// GetRpcServer returns the RPC server.
+func (r *Remote) GetRpcServer() *srpc.Server {
+	return r.rpcServer
 }
 
 // GetWebDocuments returns the current snapshot of active WebDocuments.
@@ -173,12 +179,21 @@ func (r *Remote) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// start stream accept pump
 	le := r.le.WithField("runtime-id", r.runtimeID)
 	errCh := make(chan error, 2)
-	go func() {
-		errCh <- r.acceptIpcStreamPump(ctx)
-	}()
+
+	// start incoming stream listener, if applicable
+	if r.execListener != nil {
+		go func() {
+			err := r.execListener(ctx, r)
+			if err != nil && err != context.Canceled {
+				le.
+					WithError(err).
+					Warn("listen for streams exited with error")
+			}
+			errCh <- err
+		}()
+	}
 
 	// start web document monitoring loop
 	go func() {
@@ -221,7 +236,7 @@ func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (
 //
 // note: when opening the stream, waits for the given web document to exist.
 func (r *Remote) GetWebDocumentOpenStream(webDocumentID string) srpc.OpenStreamFunc {
-	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
+	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.PacketWriter, error) {
 		return r.WebDocumentOpenStream(ctx, msgHandler, closeHandler, webDocumentID)
 	}
 }
@@ -234,8 +249,8 @@ func (r *Remote) WebDocumentOpenStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 	webDocumentID string,
-) (srpc.Writer, error) {
-	var writer srpc.Writer
+) (srpc.PacketWriter, error) {
+	var writer srpc.PacketWriter
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {
 			return false, nil
@@ -265,11 +280,6 @@ func (r *Remote) GetServiceWorkerHost(ctx context.Context, componentID string) (
 	}
 
 	return r.swMux, nil, nil
-}
-
-// acceptIpcStreamPump is started by Execute and manages accepting streams from ipc.
-func (r *Remote) acceptIpcStreamPump(ctx context.Context) error {
-	return r.rpcServer.AcceptMuxedConn(ctx, r.ipc)
 }
 
 // monitorWebDocuments is started by Execute and manages monitoring web documents.

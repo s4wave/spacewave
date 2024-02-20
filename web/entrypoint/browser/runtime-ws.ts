@@ -32,14 +32,14 @@ const openStreamFunc = openStreamCtr.openStreamFunc
 // TODO: create a new tab / window?
 const createDocCb: CreateWebDocumentFunc | null = null
 const removeDocCb: RemoveWebDocumentFunc | null = null
-const workerHost = new WebRuntime(
+const webRuntime = new WebRuntime(
   `shared-worker:${self.location.host}`,
   openStreamFunc,
   createDocCb,
   removeDocCb,
 )
 
-// const runtimePort = workerHost.goRuntimePort
+// const runtimePort = webRuntime.goRuntimePort
 // const runtimePortIterable = new MessagePortIterable<Uint8Array>(runtimePort)
 
 async function connectWebsocket(address: string): Promise<WebSocket> {
@@ -70,7 +70,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
 
   // Setup the connection to the Go runtime.
   const wsDuplex = duplex(ws)
-  const runtimeConn = new StreamConn(workerHost.getWebRuntimeServer(), {
+  const runtimeConn = new StreamConn(webRuntime.getWebRuntimeServer(), {
     direction: 'inbound',
     muxerFactory: yamux({
       enableKeepAlive: false,
@@ -122,7 +122,7 @@ self.addEventListener('connect', (ev) => {
       return
     }
     const connPort = msgEvent.ports[0]
-    workerHost.handleClient(initMsg, connPort)
+    webRuntime.handleClient(initMsg, connPort)
     if (!runtimeStarted) {
       if (!initMsg.webRuntimeId) {
         throw new Error('web runtime id: must be set in init message')

@@ -66,7 +66,7 @@ export class Retry<T = void> {
     // prevent unhandled rejection error in node.js
     this.result.catch(() => {})
     // call _start on next tick
-    setTimeout(this._start.bind(this), 1)
+    queueMicrotask(this._start.bind(this))
   }
 
   // cancel prevents further retrying of the function.

@@ -21,7 +21,7 @@
   "scripts": {
     "check": "npm run typecheck && npm run lint",
     "clean": "rimraf ./.bldr",
-    "bldr": "go run -v -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr",
+    "bldr": "go run -v -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --bldr-version=$(git rev-parse HEAD)",
     "serve": "npm run start:web",
     "start": "npm run start:web",
     "start:native": "npm run bldr -- start native",
@@ -57,10 +57,10 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.8.5",
+    "@aperturerobotics/ts-common": "^0.8.6",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
-    "@types/react": "^18.2.55",
+    "@types/react": "^18.2.57",
     "@types/react-dom": "^18.2.19",
     "enhanced-resolve": "^5.15.0",
     "esm-cjs-lexer": "^0.10.0",
@@ -69,16 +69,15 @@
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.5",
     "ts-poet": "6.7.0",
-    "ts-proto": "^1.167.5",
+    "ts-proto": "^1.167.8",
     "typescript": "^5.3.3",
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@bjorn3/browser_wasi_shim": "^0.2.19",
     "@libp2p/logger": "^4.0.6",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
-    "electron": "^28.2.3",
+    "electron": "^29.0.0",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "lodash.isequal": "^4.5.0",
@@ -86,7 +85,7 @@
     "protobufjs": "^7.2.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.25.5",
+    "starpc": "^0.26.1",
     "workbox-window": "^7.0.0"
   }
 }

@@ -247,7 +247,7 @@ func (r *Remote) GetWebViewHost(ctx context.Context, webViewId string) (srpc.Inv
 //
 // note: when opening the stream, waits for the given web document to exist.
 func (r *Remote) GetWebViewOpenStream(webViewId string) srpc.OpenStreamFunc {
-	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.Writer, error) {
+	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.PacketWriter, error) {
 		return r.WebViewOpenStream(ctx, msgHandler, closeHandler, webViewId)
 	}
 }
@@ -260,8 +260,8 @@ func (r *Remote) WebViewOpenStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 	webViewID string,
-) (srpc.Writer, error) {
-	var writer srpc.Writer
+) (srpc.PacketWriter, error) {
+	var writer srpc.PacketWriter
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {
 			return false, nil

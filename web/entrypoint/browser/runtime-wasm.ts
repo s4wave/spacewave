@@ -1,14 +1,14 @@
-import { MessagePortConn, OpenStreamCtr } from 'starpc'
-
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
 } from '../../runtime/runtime.pb.js'
+import { GoWasmProcess } from '../../wasm/go-process.js'
 import {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
+import { MessagePortDuplex, OpenStreamCtr, PacketStream } from 'starpc'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
@@ -18,113 +18,88 @@ interface Global extends SharedWorkerGlobalScope {
 }
 const global: Global = self
 
-// See wasm_exec.js
-declare class Go {
-  importObject: WebAssembly.Imports
-  env: Record<string, string>
-  argv?: string[]
-  exit?(code: number): void
-  run(inst: WebAssembly.Module): Promise<void>
-}
-
-// openStreamCtr will contain the runtime open stream func.
-const openStreamCtr = new OpenStreamCtr(undefined)
-// openStreamFunc is a function that waits for OpenStreamFunc, then calls it.
-const openStreamFunc = openStreamCtr.openStreamFunc
-
-// TODO: how to create a new tab / window?
+// TODO: add/remove new windows
 const createDocCb: CreateWebDocumentFunc | null = null
 const removeDocCb: RemoveWebDocumentFunc | null = null
-const workerHost = new WebRuntime(
+
+// goOpenStreamCtr contains the function to open a stream with the Go runtime.
+const goOpenStreamCtr = new OpenStreamCtr(undefined)
+// goOpenStream is a function that waits for goOpenStreamCtr & calls it.
+const goOpenStream = goOpenStreamCtr.openStreamFunc
+
+// construct the WebRuntime
+const webRuntime = new WebRuntime(
   // TODO: should this runtime be from the init message instead?
   `shared-worker:${self.location.host}`,
-  openStreamFunc,
+  goOpenStream,
   createDocCb,
   removeDocCb,
 )
 
-async function startWasmRuntime(msg: WebRuntimeHostInit) {
-  // clear any existing open stream func
-  openStreamCtr.set(undefined)
-
-  console.log(`bldr: starting wasm runtime: ${msg.webRuntimeId}`)
-  const go = new Go()
-
-  let mod: WebAssembly.Module
-  let inst: WebAssembly.Instance
-  async function run() {
-    await go.run(inst)
-    inst = await WebAssembly.instantiate(mod, go.importObject) // reset instance
+// construct the go wasm process
+const goProcess = new GoWasmProcess('/runtime/runtime.wasm', {
+  argv: ['runtime.wasm'],
+  retryOpts: {
+    errorCb: (err) => {
+      console.warn('runtime-wasm: error running web runtime', err)
+    },
   }
-  const payload = await fetch('/runtime/runtime.wasm')
-  if (!payload.ok) {
-    throw new Error(payload.statusText)
+})
+
+// the Go process will open streams with the WebRuntime via this channel and vise-versa.
+const goOpenStreamChannel = new MessageChannel()
+global.BLDR_WEB_RUNTIME_CLIENT_OPEN = goOpenStreamChannel.port2
+goOpenStreamChannel.port1.onmessage = (msg) => {
+  const data = msg.data
+  if (data !== 'open-stream') {
+    console.warn('runtime-wasm: unexpected web runtime open msg', data)
+    return
   }
-  WebAssembly.instantiateStreaming(payload, go.importObject)
-    .then((result) => {
-      mod = result.module
-      inst = result.instance
 
-      // Setup the connection to the Go runtime.
-      const workerChannel = new MessageChannel()
-      const workerPort = workerChannel.port1
-      const runtimeConn = new MessagePortConn(
-        workerPort,
-        workerHost.getWebRuntimeServer(),
-        {
-          direction: 'inbound',
-        },
-      )
-      const runtimePort = workerChannel.port2
-      const openStream = runtimeConn.buildOpenStreamFunc()
-
-      // pass via global, use syscall/js to retrieve
-      global.BLDR_INIT = WebRuntimeHostInit.encode(msg).finish()
-      global.BLDR_WEB_RUNTIME_CLIENT_OPEN = runtimePort
-
-      // start the runtime
-      run()
-
-      // start sending rpc requests
-      openStreamCtr.set(openStream)
-    })
-    .catch((err) => {
-      console.error(err)
-    })
+  const port = msg.ports[0]
+  const portDuplex = new MessagePortDuplex<Uint8Array>(port)
+  webRuntime
+    .getWebRuntimeServer()
+    .rpcStreamHandler(portDuplex)
+    .catch(() => {})
 }
-
-async function startWasmRuntimeWithRetry(msg: WebRuntimeHostInit) {
-  startWasmRuntime(msg).catch((e) => {
-    console.error('start runtime failed, will retry', e)
-    // clear any existing open stream func
-    openStreamCtr.set(undefined)
-    setTimeout(() => {
-      startWasmRuntimeWithRetry(msg)
-    }, 1000)
+goOpenStreamChannel.port1.start()
+function startGoRpcStreams() {
+  goOpenStreamCtr.set(async (): Promise<PacketStream> => {
+    const streamChannel = new MessageChannel()
+    goOpenStreamChannel.port1.postMessage('open-stream', [streamChannel.port2])
+    return new MessagePortDuplex<Uint8Array>(streamChannel.port1)
   })
 }
 
 // wait for startup / init command
 let runtimeStarted = false
 self.addEventListener('connect', (ev) => {
+  console.log('SharedWorker on connect', ev)
   const ports = ev.ports
   if (!ports || !ports.length) {
     return
   }
+
   const port = ev.ports[0]
   if (!port) {
     return
   }
+
+  // Handle an incoming client for the WebRuntime and/or start the worker.
   port.onmessage = (msgEvent) => {
+    console.log('SharedWorker port onmessage', msgEvent)
     const msg = msgEvent.data
     if (msg === 'close') {
       port.close()
       return
     }
+
     if (typeof msg !== 'object' || !(msg instanceof Uint8Array)) {
       console.log('runtime-wasm: dropped invalid init message', msg)
       return
     }
+
     const initMsg = WebRuntimeClientInit.decode(msg)
     if (!msgEvent.ports.length) {
       console.error(
@@ -133,16 +108,28 @@ self.addEventListener('connect', (ev) => {
       )
       return
     }
+
+    // Handle the incoming client
     const connPort = msgEvent.ports[0]
-    workerHost.handleClient(initMsg, connPort)
+    webRuntime.handleClient(initMsg, connPort)
+
+    // Start the runtime if needed
     if (!runtimeStarted) {
       if (!initMsg.webRuntimeId) {
         throw new Error('web runtime id: must be set in init message')
       }
       runtimeStarted = true
-      startWasmRuntimeWithRetry({
+
+      // Configure the BLDR_INIT global
+      global.BLDR_INIT = WebRuntimeHostInit.encode({
         webRuntimeId: initMsg.webRuntimeId,
-      })
+      }).finish()
+
+      // Start the Go process
+      goProcess.start()
+
+      // Start the RPC streams
+      startGoRpcStreams()
     }
   }
   port.start()
