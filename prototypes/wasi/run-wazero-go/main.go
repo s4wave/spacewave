@@ -7,14 +7,20 @@ import (
 	"os"
 
 	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/experimental/sysfs"
+	wazero_sys "github.com/tetratelabs/wazero/experimental/sys"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"github.com/tetratelabs/wazero/sys"
 )
 
+// FSConfigWithSysFSMount extends FSConfig to expose the existing WithSysFSMount function.
+// https://github.com/tetratelabs/wazero/issues/2076
+type FSConfigWithSysFSMount interface {
+	WithSysFSMount(fs wazero_sys.FS, guestPath string) wazero.FSConfig
+}
+
 // demoFS is an embedded filesystem
 //
-//go:embed go.mod go.sum
+//go:embed main.go
 var demoFS embed.FS
 
 func main() {
@@ -29,6 +35,13 @@ func main() {
 	fsConf = fsConf.WithReadOnlyDirMount(".", "/")
 	fsConf = fsConf.WithDirMount("/tmp", "/tmp")
 	fsConf = fsConf.WithFSMount(demoFS, "/example")
+
+	// NOTE: We can pass a wazero_sys.FS to enable a custom read/write fs.
+	var writableFS wazero_sys.FS
+	_ = writableFS
+	// type assertion
+	// fsConf.(FSConfigWithSysFSMount).WithSysFSMount(writableFS, "/")
+	_ = fsConf.(FSConfigWithSysFSMount)
 
 	config := wazero.NewModuleConfig().
 		WithStdout(os.Stdout).
