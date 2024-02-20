@@ -2,7 +2,6 @@ Hello wasi!
 Listing all files...
 d---------: .
 ----------: .gitignore
-----------: __debug_bin2995724646
 ----------: go.mod
 ----------: go.sum
 ----------: main.go
@@ -18,3 +17,4 @@ d---------: /tmp/v8-compile-cache-501
 d---------: /tmp/v8-compile-cache-501/11.8.172.17-node.19
 d---------: /tmp/v8-compile-cache-501/arm64
 d---------: /tmp/v8-compile-cache-501/arm64/11.8.172.17-node.19
+test.sock not found, skipping.

@@ -58,15 +58,17 @@ func main() {
 	demoWasm, err := os.ReadFile("../demo.wasm")
 	check(err)
 
+	// args are the command line os.Args
 	args := config.WithArgs("demo.wasm")
 
 	// This is a convenience utility that chains CompileModule with
 	// InstantiateModule. To instantiate the same source multiple times, use
 	// CompileModule as InstantiateModule avoids redundant decoding and/or
 	// compilation.
+	//
+	// Note: Most compilers do not exit the module after running "_start",
+	// unless there was an error. This allows you to call exported functions.
 	if _, err = r.InstantiateWithConfig(ctx, demoWasm, args); err != nil {
-		// Note: Most compilers do not exit the module after running "_start",
-		// unless there was an error. This allows you to call exported functions.
 		if exitErr, ok := err.(*sys.ExitError); ok && exitErr.ExitCode() != 0 {
 			fmt.Fprintf(os.Stderr, "exit_code: %d\n", exitErr.ExitCode())
 		} else if !ok {

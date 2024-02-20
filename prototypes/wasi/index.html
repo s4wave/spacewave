@@ -29,6 +29,7 @@
         PreopenDirectory,
         WASI,
         strace,
+        SyncOPFSFile,
       } from './node_modules/@bjorn3/browser_wasi_shim/dist/index.js'
 
       var term = new Terminal({
@@ -39,6 +40,79 @@
       var fitAddon = new FitAddon.FitAddon()
       term.loadAddon(fitAddon)
       fitAddon.fit()
+
+      // SyncFileHandle is an example of a object implementing the SyncOPFSFile interface
+      class SyncFileHandle {
+        constructor(content) {
+          // Initialize handleContents with the provided content
+          this.handleContents = new TextEncoder().encode(content)
+        }
+
+        close() {
+          // Method to close the handle (not applicable in this mock context)
+        }
+
+        flush() {
+          // Method to flush the handle (not applicable in this mock context)
+        }
+
+        getSize() {
+          // Return the current size of the handleContents
+          return this.handleContents.length
+        }
+
+        read(buffer, options = { at: 0 }) {
+          const { at } = options
+          let readBytes = 0
+
+          // Ensure the buffer is an instance of ArrayBufferView
+          if (!(buffer instanceof Uint8Array)) {
+            buffer = new Uint8Array(buffer)
+          }
+
+          for (
+            let i = 0;
+            i < buffer.length && at + i < this.handleContents.length;
+            i++
+          ) {
+            buffer[i] = this.handleContents[at + i]
+            readBytes++
+          }
+
+          return readBytes
+        }
+
+        truncate(to) {
+          if (to < this.handleContents.length) {
+            this.handleContents = this.handleContents.slice(0, to)
+          } else {
+            // If truncating to a larger size, extend the buffer with zeros.
+            let extendedBuffer = new Uint8Array(to)
+            extendedBuffer.set(this.handleContents, 0)
+            this.handleContents = extendedBuffer
+          }
+        }
+
+        write(buffer, options = { at: 0 }) {
+          const { at } = options
+          if (!(buffer instanceof Uint8Array)) {
+            buffer = new Uint8Array(buffer)
+          }
+
+          if (at + buffer.length > this.handleContents.length) {
+            // Extend handleContents if necessary
+            let newContents = new Uint8Array(at + buffer.length)
+            newContents.set(this.handleContents, 0) // Copy existing content
+            this.handleContents = newContents
+          }
+
+          for (let i = 0; i < buffer.length; i++) {
+            this.handleContents[at + i] = buffer[i]
+          }
+
+          return buffer.length
+        }
+      }
 
       class XtermStdio extends Fd {
         /*:: term: Terminal*/
@@ -80,6 +154,7 @@
           )
         }
 
+        // FileSystemSyncAccessHandle
         let args = ['demo.wasm']
         let env = []
         let fds = [
@@ -87,6 +162,9 @@
           new XtermStdio(term),
           new XtermStdio(term),
           new PreopenDirectory('/', {
+            'test.sock': new SyncOPFSFile(
+              new SyncFileHandle('hello world from sync file handle'),
+            ),
             'hello.txt': new File(
               new TextEncoder('utf-8').encode(`Hello world!\n`),
             ),
