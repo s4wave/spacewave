@@ -116,7 +116,7 @@ class WebRuntimeClientInstance {
       console.log(
         `WebRuntime: client connection removed: ${this.init.clientUuid}`,
       )
-      this.host.removeConnection(this.init.clientUuid, this.init.clientType)
+      this.host.removeConnection(this.init.clientUuid)
     }
   }
 

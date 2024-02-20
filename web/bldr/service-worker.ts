@@ -126,6 +126,7 @@ const webRuntimeClient = new WebRuntimeClient(
   WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
   openWebRuntimeClient,
   null,
+  null,
 )
 
 // swHostClient attempts to contact the WebRuntime over any of the WebDocument relays.
