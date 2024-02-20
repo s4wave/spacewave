@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Shared Worker Demo</title>
+  </head>
+  <body>
+    <script>
+      const worker1 = new SharedWorker('worker.js#id=worker1')
+      const channel1 = new MessageChannel()
+      worker1.port.postMessage('worker1 at ' + Date.now(), [channel1.port2])
+
+      const worker2 = new SharedWorker('worker.js#id=worker2')
+      const channel2 = new MessageChannel()
+      worker2.port.postMessage('worker2 at ' + Date.now(), [channel2.port2])
+
+      const inter = new MessageChannel()
+      channel1.port1.postMessage('sending a port to worker1', [inter.port1])
+      channel2.port1.postMessage('sending a port to worker2', [inter.port2])
+    </script>
+  </body>
+</html>
