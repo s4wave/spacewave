@@ -30,7 +30,7 @@ func ElectronDefine(devMode bool) map[string]string {
 }
 
 // EsbuildLogLevel is the log level when bundling the electron bundle.
-var EsbuildLogLevel = esbuild.LogLevelInfo
+var EsbuildLogLevel = esbuild.LogLevelWarning
 
 // ElectronBuildOpts are general options for building for Electron.
 func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {

@@ -2,7 +2,7 @@ import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
 } from '../../runtime/runtime.pb.js'
-import { GoWasmProcess } from '../../wasm/go-process.js'
+import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
 import {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,

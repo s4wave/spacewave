@@ -1,4 +1,4 @@
-import { Retry, RetryOpts } from '../bldr/retry.js'
+import { Retry, RetryOpts } from '../../bldr/retry.js'
 
 // GoWasmProcessOpts are optional parameters for GoWasmProcess.
 export interface GoWasmProcessOpts {

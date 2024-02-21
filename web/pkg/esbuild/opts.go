@@ -34,7 +34,7 @@ func BuildEsbuildBuildOpts(
 		EntryNames: entryNames,
 		AssetNames: assetNames,
 
-		LogLevel:    esbuild_api.LogLevelInfo,
+		LogLevel:    esbuild_api.LogLevelWarning,
 		Platform:    esbuild_api.PlatformBrowser,
 		Format:      esbuild_api.FormatESModule,
 		Target:      esbuild_api.ES2022,
