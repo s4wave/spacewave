@@ -14,12 +14,12 @@ import (
 // Note that ristretto does not support the tx semantics.
 type Tx struct {
 	rel atomic.Bool
-	db  *ristretto.Cache
+	db  *ristretto.Cache[[]byte, []byte]
 	ttl time.Duration
 }
 
 // NewTx constructs a new tx.
-func NewTx(db *ristretto.Cache, ttl time.Duration) *Tx {
+func NewTx(db *ristretto.Cache[[]byte, []byte], ttl time.Duration) *Tx {
 	return &Tx{db: db, ttl: ttl}
 }
 
@@ -39,10 +39,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err 
 	if t.rel.Load() {
 		return nil, false, kvtx.ErrDiscarded
 	}
-	value, found := t.db.Get(key)
-	if found {
-		data, found = value.([]byte)
-	}
+	data, found = t.db.Get(key)
 	return data, found, nil
 }
 
@@ -51,10 +48,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if t.rel.Load() {
 		return false, kvtx.ErrDiscarded
 	}
-	value, found := t.db.Get(key)
-	if found {
-		_, found = value.([]byte)
-	}
+	_, found := t.db.Get(key)
 	return found, nil
 }
 

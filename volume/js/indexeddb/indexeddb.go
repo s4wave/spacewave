@@ -55,5 +55,6 @@ func NewIndexedDB(
 		store,
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
+		conf.GetNoWriteKey(),
 	)
 }

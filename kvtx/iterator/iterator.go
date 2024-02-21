@@ -59,7 +59,7 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 	}
 
 	// Primary issue: Hydra Scan does not produce sorted results
-	// Workaround here: scan all keys in advance to build a sorted set (slow).
+	// Workaround here: scan all keys in advance to build a sorted set (slow, but works).
 	keys := treeset.NewWith(func(a, b interface{}) int {
 		b1 := a.([]byte)
 		b2 := b.([]byte)

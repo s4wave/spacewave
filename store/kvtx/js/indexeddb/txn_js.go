@@ -28,18 +28,18 @@ func newKvtxTx(txn *indexeddb.DurableTransaction) (*kvtxTx, error) {
 }
 
 // Size returns the number of keys in the store.
-func (t *kvtxTx) Size() (uint64, error) {
+func (t *kvtxTx) Size(ctx context.Context) (uint64, error) {
 	return t.tx.Size()
 }
 
 // Get returns values for a key.
-func (t *kvtxTx) Get(key []byte) (data []byte, found bool, err error) {
+func (t *kvtxTx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	return t.tx.Get(key)
 }
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *kvtxTx) Set(key, value []byte) error {
+func (t *kvtxTx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -49,7 +49,7 @@ func (t *kvtxTx) Set(key, value []byte) error {
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *kvtxTx) Delete(key []byte) error {
+func (t *kvtxTx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -57,12 +57,12 @@ func (t *kvtxTx) Delete(key []byte) error {
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
-func (t *kvtxTx) ScanPrefixKeys(prefix []byte, cb func(key []byte) error) error {
+func (t *kvtxTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	return t.tx.ScanPrefixKeys(prefix, cb)
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error {
+func (t *kvtxTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val []byte) error) error {
 	return t.tx.ScanPrefix(prefix, cb)
 }
 
@@ -73,12 +73,12 @@ func (t *kvtxTx) ScanPrefix(prefix []byte, cb func(key, val []byte) error) error
 // The prefix is NOT clipped from the output keys.
 // If !sort, reverse has no effect.
 // Must call Next() or Seek() before valid.
-func (t *kvtxTx) Iterate(prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return kvtx_iterator.NewIterator(t, prefix, sort, reverse)
+func (t *kvtxTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return kvtx_iterator.NewIterator(ctx, t, prefix, sort, reverse)
 }
 
 // Exists checks if a key exists.
-func (t *kvtxTx) Exists(key []byte) (bool, error) {
+func (t *kvtxTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}

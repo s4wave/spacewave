@@ -10,12 +10,12 @@ import (
 
 // Store is a ristretto cache backed kvtx store.
 type Store struct {
-	db  *ristretto.Cache
+	db  *ristretto.Cache[[]byte, []byte]
 	ttl time.Duration
 }
 
 // NewStoreWithCache constructs a new key-value store from a cache.
-func NewStoreWithCache(db *ristretto.Cache, ttl time.Duration) *Store {
+func NewStoreWithCache(db *ristretto.Cache[[]byte, []byte], ttl time.Duration) *Store {
 	return &Store{db: db}
 }
 
@@ -43,16 +43,12 @@ func NewStore(conf *Config) (*Store, error) {
 		return nil, err
 	}
 
-	db, err := ristretto.NewCache(&ristretto.Config{
+	db, err := ristretto.NewCache(&ristretto.Config[[]byte, []byte]{
 		NumCounters: numCounters,
 		MaxCost:     maxCost,
 		BufferItems: bufferItems,
-		Cost: func(value interface{}) int64 {
-			val, ok := value.([]byte)
-			if !ok {
-				return 1
-			}
-			return int64(len(val))
+		Cost: func(value []byte) int64 {
+			return int64(len(value))
 		},
 	})
 	if err != nil {
@@ -63,7 +59,7 @@ func NewStore(conf *Config) (*Store, error) {
 }
 
 // GetCache returns the ristretto cache.
-func (s *Store) GetCache() *ristretto.Cache {
+func (s *Store) GetCache() *ristretto.Cache[[]byte, []byte] {
 	return s.db
 }
 
