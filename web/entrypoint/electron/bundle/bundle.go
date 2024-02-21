@@ -11,8 +11,8 @@ import (
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
+	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -95,94 +95,6 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 
 	res := esbuild.Build(opts)
 	return util_esbuild.BuildResultToErr(res)
-}
-
-// BuildWebPkgsBundle builds the web pkg bundle files.
-//
-// TODO: this needs to be included in the browser bundle too and moved to a common place.
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir string, minify, devMode bool) error {
-	// build to pkgs/
-	outDir := filepath.Join(buildDir, "pkgs")
-
-	// make temporary dir to build web pkgs
-	buildPkgsDir := filepath.Join(buildDir, "build-web-pkgs")
-	if err := fsutil.CleanCreateDir(buildPkgsDir); err != nil {
-		return err
-	}
-
-	// copy package.json into it
-	if err := fsutil.CopyFile(
-		filepath.Join(buildPkgsDir, "package.json"),
-		filepath.Join(bldrDistRoot, "dist/deps/package.json"),
-		0644,
-	); err != nil {
-		return err
-	}
-
-	// npm install
-	npmPlat, err := bldr_platform_npm.PlatformToNpm(plat)
-	if err != nil {
-		return err
-	}
-
-	le.
-		WithField("npm-platform", npmPlat.Platform).
-		WithField("npm-arch", npmPlat.Arch).
-		WithField("npm-pkg", []string{"react", "react-dom"}).
-		Debug("downloading dist deps with npm")
-	archFlags := npmPlat.ToNpmFlags()
-	args := []string{"install"}
-	args = append(args, npm.NpmFlags...)
-	args = append(args, "--prefix", buildPkgsDir)
-	args = append(args, archFlags...)
-	cmd := exec.NewCmd("npm", args...)
-	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
-		return err
-	}
-
-	// web pkgs we distribute with bldr
-	refs := []*web_pkg_esbuild.WebPkgRef{{
-		WebPkgId:   "react",
-		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
-		Imports:    []string{"index.js", "jsx-runtime.js"},
-	}, {
-		WebPkgId:   "react-dom",
-		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
-		Imports:    []string{"index.js", "client.js"},
-	}, {
-		WebPkgId:   "@aptre/bldr",
-		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
-		Imports:    []string{"index.ts"},
-	}, {
-		WebPkgId:   "@aptre/bldr-react",
-		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
-		Imports:    []string{"index.ts"},
-	}}
-
-	// if we are in development mode: include test-utils to react-dom
-	if devMode {
-		refs[1].Imports = append(refs[1].Imports, "test-utils.js")
-	}
-
-	_, _, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
-		ctx,
-		le,
-		buildDir,
-		refs,
-		outDir,
-		// "./pkgs/",
-		"/pkgs/",
-		false,
-	)
-	if err != nil {
-		return err
-	}
-
-	if err := fsutil.CleanDir(buildPkgsDir); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
@@ -273,7 +185,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	if err != nil {
 		return err
 	}
-	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, minify, devMode); err != nil {
+	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 

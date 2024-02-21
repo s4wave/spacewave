@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -31,9 +32,11 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	_ = repoRoot
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
+	buildType := bldr_manifest.BuildType(a.BuildType)
 	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch, true)
 	if err != nil {
 		return err
@@ -57,14 +60,14 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return b.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, a.WebListenAddr)
+	return b.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr)
 }
 
 // ExecuteWebWs starts the application in the browser with a websocket.
 func (b *DevtoolBus) ExecuteWebWs(
 	ctx context.Context,
 	repoRoot string,
-	minifyEntrypoint bool,
+	minifyEntrypoint, devMode bool,
 	listenAddr string,
 ) error {
 	le := b.GetLogger()
@@ -77,11 +80,13 @@ func (b *DevtoolBus) ExecuteWebWs(
 	le.Info("building websocket entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	err := entrypoint_browser_bundle.BuildBrowserBundle(
+		ctx,
 		le,
 		distSrcDir,
 		entrypointDir,
 		"/runtime/runtime-ws.js",
 		minifyEntrypoint,
+		devMode,
 	)
 	if err != nil {
 		return err
@@ -92,7 +97,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir); err != nil {
+	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint); err != nil {
 		return err
 	}
 

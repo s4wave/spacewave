@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -47,14 +48,16 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return b.ExecuteWebWasm(ctx, repoRoot, a.MinifyEntrypoint, a.WebListenAddr)
+	buildType := bldr_manifest.BuildType(a.BuildType)
+	return b.ExecuteWebWasm(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr)
 }
 
 // ExecuteWebWasm starts the application in the browser with wasm.
 func (b *DevtoolBus) ExecuteWebWasm(
 	ctx context.Context,
 	repoRoot string,
-	minifyEntrypoint bool,
+	minifyEntrypoint,
+	devMode bool,
 	listenAddr string,
 ) error {
 	le := b.GetLogger()
@@ -67,11 +70,13 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	le.Info("building web wasm entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	err := entrypoint_browser_bundle.BuildBrowserBundle(
+		ctx,
 		le,
 		distSrcDir,
 		entrypointDir,
 		"/runtime/runtime-wasm.js",
 		minifyEntrypoint,
+		devMode,
 	)
 	if err != nil {
 		return err
@@ -82,7 +87,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWasmRuntime(ctx, le, distSrcDir, wasmRuntimeDir); err != nil {
+	if err := entrypoint_browser_build.BuildWasmRuntime(ctx, le, distSrcDir, wasmRuntimeDir, minifyEntrypoint); err != nil {
 		return err
 	}
 
