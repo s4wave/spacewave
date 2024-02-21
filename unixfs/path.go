@@ -44,9 +44,7 @@ func JoinPathPts(pts ...[]string) []string {
 	}
 	out := make([]string, 0, len(pts)*len(pts[0]))
 	for _, pti := range pts {
-		for _, pt := range pti {
-			out = append(out, pt)
-		}
+		out = append(out, pti...)
 	}
 	return out
 }

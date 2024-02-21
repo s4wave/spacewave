@@ -1730,7 +1730,7 @@ interface Rpc {
 }
 
 function bytesFromBase64(b64: string): Uint8Array {
-  if (globalThis.Buffer) {
+  if ((globalThis as any).Buffer) {
     return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
   } else {
     const bin = globalThis.atob(b64)
@@ -1743,7 +1743,7 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (globalThis.Buffer) {
+  if ((globalThis as any).Buffer) {
     return globalThis.Buffer.from(arr).toString('base64')
   } else {
     const bin: string[] = []

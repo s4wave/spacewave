@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.24.8 // master
+require github.com/aperturerobotics/bifrost v0.24.9 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -57,12 +57,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.34.3 // latest
+	github.com/aperturerobotics/controllerbus v0.34.4 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1
-	github.com/aperturerobotics/starpc v0.25.4 // latest
+	github.com/aperturerobotics/starpc v0.26.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.2
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.13.6 // master
+	github.com/aperturerobotics/util v1.13.7 // master
 )
 
 // aperture: use compatibility forks
@@ -179,7 +179,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.11 // indirect
-	github.com/nats-io/nats.go v1.32.0 // indirect
+	github.com/nats-io/nats.go v1.33.1 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.0 // indirect
@@ -227,7 +227,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.24 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
-	go.bug.st/serial v1.6.1 // indirect
+	go.bug.st/serial v1.6.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect

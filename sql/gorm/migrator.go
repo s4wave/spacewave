@@ -99,12 +99,16 @@ func (m Migrator) DropTable(values ...interface{}) error {
 
 func (m Migrator) DropConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		constraint, chk, table := m.GuessConstraintAndTable(stmt, name)
+		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
+		chk, chkOk := constraint.(*schema.CheckConstraint)
+		if chkOk {
+			constraint = nil
+		}
 		if chk != nil {
 			return m.DB.Exec("ALTER TABLE ? DROP CHECK ?", clause.Table{Name: stmt.Table}, clause.Column{Name: chk.Name}).Error
 		}
 		if constraint != nil {
-			name = constraint.Name
+			name = constraint.GetName()
 		}
 
 		return m.DB.Exec(
