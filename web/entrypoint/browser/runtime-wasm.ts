@@ -75,7 +75,6 @@ function startGoRpcStreams() {
 // wait for startup / init command
 let runtimeStarted = false
 self.addEventListener('connect', (ev) => {
-  console.log('SharedWorker on connect', ev)
   const ports = ev.ports
   if (!ports || !ports.length) {
     return
@@ -88,7 +87,6 @@ self.addEventListener('connect', (ev) => {
 
   // Handle an incoming client for the WebRuntime and/or start the worker.
   port.onmessage = (msgEvent) => {
-    console.log('SharedWorker port onmessage', msgEvent)
     const msg = msgEvent.data
     if (msg === 'close') {
       port.close()

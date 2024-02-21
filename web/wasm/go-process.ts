@@ -111,10 +111,8 @@ export class GoWasmProcess {
     // TODO: Find a way to kill the module if abortSignal is aborted.
     abortSignal: AbortSignal,
   ) {
-    console.log('loading wasm', this.wasmSource)
     const wasmModule = await loadWebAssemblyModule(this.wasmSource)
 
-    console.log('constructing Go')
     const go = new Go()
     if (this.opts?.argv) {
       go.argv = this.opts.argv
@@ -123,11 +121,9 @@ export class GoWasmProcess {
       go.env = { ...this.opts.env }
     }
 
-    console.log('creating wasm instance')
     const instance = await WebAssembly.instantiate(wasmModule, go.importObject)
     abortSignal.throwIfAborted()
 
-    console.log('starting wasm instance')
     await go.run(instance)
   }
 
