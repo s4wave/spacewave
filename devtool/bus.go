@@ -14,7 +14,7 @@ import (
 	core_devtool "github.com/aperturerobotics/bldr/core/devtool"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
@@ -267,27 +267,23 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	// build the plugin host controller
 	var pluginHostCtrl *plugin_host_controller.Controller
 	if startPluginHost {
-		pluginHostProcessConf := host_process.NewConfig(
+		var relPluginHost func()
+		pluginHostCtrl, relPluginHost, err = plugin_host_default.StartBusPluginHost(
+			ctx,
+			b,
 			engineID,
 			pluginHostObjectKey,
 			vol.GetID(),
-			vol.GetPeerID(),
-			true, // always run FetchManifest on devtool bus
+			vol.GetPeerID().String(),
 			pluginsStateRoot,
 			pluginsDistRoot,
 		)
-		pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			b,
-			resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
-			ctxCancel,
-		)
 		if err != nil {
-			rel()
 			return nil, err
 		}
-		rels = append(rels, pluginHostRef.Release)
-		pluginHostCtrl = pluginHostCtrlObj.(*plugin_host_controller.Controller)
+		if relPluginHost != nil {
+			defer relPluginHost()
+		}
 	}
 
 	// distSrcDir is the path to the dist sources dir

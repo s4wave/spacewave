@@ -46,11 +46,6 @@ func Main(
 			return err
 		}
 
-		pluginMeta, err := bldr_plugin.UnmarshalPluginMetaB58(pluginMetaB58)
-		if err != nil {
-			return err
-		}
-
 		// If the environment variable with the startup info was empty, try to load
 		// it from the .plugin-start-info file in the current working dir.
 		if pluginStartInfoB58 == "" {
@@ -64,7 +59,7 @@ func Main(
 			pluginStartInfoB58 = string(startInfoBin)
 		}
 
-		pluginStartInfo, err := bldr_plugin.UnmarshalPluginStartInfoB58(pluginStartInfoB58)
+		pluginStartInfo, pluginMeta, err := UnmarshalPluginStartInfo(pluginStartInfoB58, pluginMetaB58)
 		if err != nil {
 			return err
 		}

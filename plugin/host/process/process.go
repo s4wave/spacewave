@@ -1,3 +1,5 @@
+//go:build !js
+
 package plugin_host_process
 
 import (
@@ -5,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/util/randstring"
@@ -25,9 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// ControllerID is the process host controller ID.
-const ControllerID = "bldr/plugin/host/process"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")
@@ -80,7 +77,7 @@ func NewProcessHostController(
 	hctrl := host_controller.NewController(
 		le,
 		b,
-		c.ToControllerConfig(),
+		c.GetHostConfig(),
 		controller.NewInfo(ControllerID, Version, "plugin host with native processes"),
 		processHost,
 	)
@@ -231,28 +228,13 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
-	// close muxed conns when returning to ensure all rpcs fully close
-	var relIdCtr atomic.Uint32
-	var relFns sync.Map
-	relAll := func() {
-		relFns.Range(func(key, value any) bool {
-			fn, fnOk := value.(func())
-			if fnOk && fn != nil {
-				fn()
-			}
-			return true
-		})
-	}
-
 	// execute ipc channel
 	errCh := make(chan error, 5)
 	go func() {
 		// wait for sub-process to connect
 		for {
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil {
 				return
-			default:
 			}
 
 			conn, err := pipeListener.Accept()
@@ -276,14 +258,12 @@ func (h *ProcessHost) ExecutePlugin(
 				_ = conn.Close()
 				continue
 			}
-			connID := relIdCtr.Add(1)
-			relFns.Store(connID, func() { _ = muxedConn.Close() })
-			defer relFns.Delete(connID)
 			err = h.execPluginIPC(ctx, muxedConn, hostMux, rpcInit)
+			_ = rpcInit(nil)
 			if err != nil && err != context.Canceled {
 				le.WithError(err).Warn("plugin ipc exited with error")
 			}
-			_ = rpcInit(nil)
+			_ = muxedConn.Close()
 		}
 	}()
 
@@ -298,7 +278,6 @@ func (h *ProcessHost) ExecutePlugin(
 	defer func() {
 		ctxCancel()
 		_ = pipeListener.Close()
-		relAll()
 
 		_ = shutdownCmd(entrypointProc, preStartObj, startObj)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	web_view "github.com/aperturerobotics/bldr/web/view"
+	web_worker "github.com/aperturerobotics/bldr/web/worker"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/sirupsen/logrus"
@@ -22,6 +23,14 @@ type WebDocument interface {
 	// Otherwise, returns nil, nil if not found.
 	GetWebView(ctx context.Context, webViewID string, wait bool) (web_view.WebView, error)
 
+	// GetWebWorkers returns the current snapshot of active WebWorkers.
+	GetWebWorkers(ctx context.Context) (map[string]web_worker.WebWorker, error)
+
+	// GetWebWorker waits for the remote to be ready & returns the given WebWorker.
+	// If wait is set, waits for the web worker ID to exist.
+	// Otherwise, returns nil, nil if not found.
+	GetWebWorker(ctx context.Context, webWorkerID string, wait bool) (web_worker.WebWorker, error)
+
 	// WaitReady waits for the state to be ready.
 	WaitReady(ctx context.Context) error
 
@@ -32,6 +41,14 @@ type WebDocument interface {
 	//
 	// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
 	CreateWebView(ctx context.Context, webViewID string) (bool, error)
+
+	// CreateWebWorker creates a new web worker.
+	//
+	// Returns ErrWebWorkerUnavailable if WebWorker is not available or cannot be created.
+	// If shared is set, attempts to create a SharedWorker (but might not if not supported).
+	// Returns nil, nil if the worker was not created.
+	// If the worker already existed it will be deleted and recreated.
+	CreateWebWorker(ctx context.Context, webWorkerID string, shared bool, url string) (web_worker.WebWorker, error)
 
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.

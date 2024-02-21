@@ -82,12 +82,22 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
+	// get the bldr go mod
+	entrypointPkg := "devtool/entrypoint/browser"
+
 	// compile the entrypoint wasm
 	wasmRuntimeDir := filepath.Join(entrypointDir, "runtime")
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWasmRuntime(ctx, le, distSrcDir, wasmRuntimeDir, minifyEntrypoint); err != nil {
+	if err := entrypoint_browser_build.BuildWasmRuntime(
+		ctx,
+		le,
+		distSrcDir,
+		wasmRuntimeDir,
+		entrypointPkg,
+		minifyEntrypoint,
+	); err != nil {
 		return err
 	}
 

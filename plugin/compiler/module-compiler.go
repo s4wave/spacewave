@@ -152,6 +152,7 @@ func (m *ModuleCompiler) CompilePlugin(
 // The module structure should have been built already.
 // If buildDevWrapper is set, build an entrypoint that runs the plugin.
 // If buildDevWrapper is set, assumes paths: .bldr/build/myplugin/ and .bldr/dist/myplugin/
+// NOTE: This wrapper is intended to be run on the build machine in native mode.
 func (m *ModuleCompiler) CompilePluginDevWrapper(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -173,8 +174,11 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 
 	// add build flags for the target plugin binary
 	goArgs := gocompiler.GetDefaultArgs()
+
 	// note: no -trimpath here
+	// disables inlining and optimizations for debugging purposes
 	goArgs = append(goArgs, "-gcflags", "-N -l")
+
 	goEnv := gocompiler.GetDefaultEnv()
 	goEnv = append(goEnv, "GOOS=", "GOARCH=")
 	if enableCgo {
@@ -182,6 +186,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	} else {
 		goEnv = append(goEnv, "CGO_ENABLED=0")
 	}
+
 	devWrapperSrc = fmt.Sprintf(
 		"%s\nfunc init() {\n\tBuildFlags = %#v\n\tBuildEnv = %#v\n}\n",
 		devWrapperSrc,

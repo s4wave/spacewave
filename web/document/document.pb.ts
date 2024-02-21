@@ -12,15 +12,13 @@ export interface WatchWebDocumentStatusRequest {}
 export interface WebDocumentStatus {
   /** Snapshot indicates this is a full snapshot of the lists. */
   snapshot: boolean
-  /** WebViews contains the list of web views. */
+  /** WebViews contains the list of web view statuses. */
   webViews: WebViewStatus[]
+  /** WebWorkers contains the list of web worker statuses. */
+  webWorkers: WebWorkerStatus[]
 }
 
-/**
- * WebViewStatus contains status for a web view.
- *
- * WebToRuntimeType_WEB_VIEW_STATUS
- */
+/** WebViewStatus contains status for a web view. */
 export interface WebViewStatus {
   /** Id is the unique identifier for the webview. */
   id: string
@@ -38,6 +36,19 @@ export interface WebViewStatus {
   permanent: boolean
 }
 
+/** WebWorkerStatus contains status for a web worker. */
+export interface WebWorkerStatus {
+  /** Id is the unique identifier for the worker. */
+  id: string
+  /**
+   * Deleted indicates the web worker was just removed.
+   * If set, all below fields are ignored.
+   */
+  deleted: boolean
+  /** Shared indicates that the worker is a SharedWorker. */
+  shared: boolean
+}
+
 /** CreateWebViewRequest is a request to create a new web view. */
 export interface CreateWebViewRequest {
   /** id is the identifier for the new WebView. */
@@ -51,6 +62,45 @@ export interface CreateWebViewResponse {
    * If this is not set, assumes we cannot create WebViews.
    */
   created: boolean
+}
+
+/** CreateWebWorkerRequest is a request to create a new web worker. */
+export interface CreateWebWorkerRequest {
+  /** Id is the identifier for the new WebWorker. */
+  id: string
+  /** Url is the url to the source to load into the worker. */
+  url: string
+  /** Shared indicates this should be a worker shared between all WebDocument (if possible) */
+  shared: boolean
+}
+
+/** CreateWebWorkerResponse is the response to the CreateWebWorker request. */
+export interface CreateWebWorkerResponse {
+  /**
+   * Created indicates the WebWorker was created.
+   * If this is not set, assumes we cannot create WebWorkers.
+   */
+  created: boolean
+  /**
+   * Shared indicates that SharedWorker was supported & used
+   * Should only be set if shared was also set in the request
+   */
+  shared: boolean
+}
+
+/** RemoveWebWorkerRequest is a request to terminate a web worker. */
+export interface RemoveWebWorkerRequest {
+  /** Id is the identifier for the removed WebWorker. */
+  id: string
+}
+
+/** RemoveWebWorkerResponse is the response to the RemoveWebWorker request. */
+export interface RemoveWebWorkerResponse {
+  /**
+   * Removed indicates the WebWorker was removed.
+   * If false, the worker was not found or not running.
+   */
+  removed: boolean
 }
 
 function createBaseWatchWebDocumentStatusRequest(): WatchWebDocumentStatusRequest {
@@ -148,7 +198,7 @@ export const WatchWebDocumentStatusRequest = {
 }
 
 function createBaseWebDocumentStatus(): WebDocumentStatus {
-  return { snapshot: false, webViews: [] }
+  return { snapshot: false, webViews: [], webWorkers: [] }
 }
 
 export const WebDocumentStatus = {
@@ -161,6 +211,9 @@ export const WebDocumentStatus = {
     }
     for (const v of message.webViews) {
       WebViewStatus.encode(v!, writer.uint32(18).fork()).ldelim()
+    }
+    for (const v of message.webWorkers) {
+      WebWorkerStatus.encode(v!, writer.uint32(26).fork()).ldelim()
     }
     return writer
   },
@@ -186,6 +239,15 @@ export const WebDocumentStatus = {
           }
 
           message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
+          continue
+        case 3:
+          if (tag !== 26) {
+            break
+          }
+
+          message.webWorkers.push(
+            WebWorkerStatus.decode(reader, reader.uint32()),
+          )
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -240,6 +302,9 @@ export const WebDocumentStatus = {
       webViews: globalThis.Array.isArray(object?.webViews)
         ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
         : [],
+      webWorkers: globalThis.Array.isArray(object?.webWorkers)
+        ? object.webWorkers.map((e: any) => WebWorkerStatus.fromJSON(e))
+        : [],
     }
   },
 
@@ -250,6 +315,9 @@ export const WebDocumentStatus = {
     }
     if (message.webViews?.length) {
       obj.webViews = message.webViews.map((e) => WebViewStatus.toJSON(e))
+    }
+    if (message.webWorkers?.length) {
+      obj.webWorkers = message.webWorkers.map((e) => WebWorkerStatus.toJSON(e))
     }
     return obj
   },
@@ -266,6 +334,8 @@ export const WebDocumentStatus = {
     message.snapshot = object.snapshot ?? false
     message.webViews =
       object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
+    message.webWorkers =
+      object.webWorkers?.map((e) => WebWorkerStatus.fromPartial(e)) || []
     return message
   },
 }
@@ -420,6 +490,141 @@ export const WebViewStatus = {
     message.deleted = object.deleted ?? false
     message.parentId = object.parentId ?? ''
     message.permanent = object.permanent ?? false
+    return message
+  },
+}
+
+function createBaseWebWorkerStatus(): WebWorkerStatus {
+  return { id: '', deleted: false, shared: false }
+}
+
+export const WebWorkerStatus = {
+  encode(
+    message: WebWorkerStatus,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    if (message.deleted === true) {
+      writer.uint32(16).bool(message.deleted)
+    }
+    if (message.shared === true) {
+      writer.uint32(24).bool(message.shared)
+    }
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): WebWorkerStatus {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseWebWorkerStatus()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break
+          }
+
+          message.id = reader.string()
+          continue
+        case 2:
+          if (tag !== 16) {
+            break
+          }
+
+          message.deleted = reader.bool()
+          continue
+        case 3:
+          if (tag !== 24) {
+            break
+          }
+
+          message.shared = reader.bool()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<WebWorkerStatus, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<WebWorkerStatus | WebWorkerStatus[]>
+      | Iterable<WebWorkerStatus | WebWorkerStatus[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [WebWorkerStatus.encode(p).finish()]
+        }
+      } else {
+        yield* [WebWorkerStatus.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, WebWorkerStatus>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<WebWorkerStatus> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [WebWorkerStatus.decode(p)]
+        }
+      } else {
+        yield* [WebWorkerStatus.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(object: any): WebWorkerStatus {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      deleted: isSet(object.deleted)
+        ? globalThis.Boolean(object.deleted)
+        : false,
+      shared: isSet(object.shared) ? globalThis.Boolean(object.shared) : false,
+    }
+  },
+
+  toJSON(message: WebWorkerStatus): unknown {
+    const obj: any = {}
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.deleted === true) {
+      obj.deleted = message.deleted
+    }
+    if (message.shared === true) {
+      obj.shared = message.shared
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<WebWorkerStatus>, I>>(
+    base?: I,
+  ): WebWorkerStatus {
+    return WebWorkerStatus.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<WebWorkerStatus>, I>>(
+    object: I,
+  ): WebWorkerStatus {
+    const message = createBaseWebWorkerStatus()
+    message.id = object.id ?? ''
+    message.deleted = object.deleted ?? false
+    message.shared = object.shared ?? false
     return message
   },
 }
@@ -636,6 +841,477 @@ export const CreateWebViewResponse = {
   },
 }
 
+function createBaseCreateWebWorkerRequest(): CreateWebWorkerRequest {
+  return { id: '', url: '', shared: false }
+}
+
+export const CreateWebWorkerRequest = {
+  encode(
+    message: CreateWebWorkerRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    if (message.url !== '') {
+      writer.uint32(18).string(message.url)
+    }
+    if (message.shared === true) {
+      writer.uint32(24).bool(message.shared)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): CreateWebWorkerRequest {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCreateWebWorkerRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break
+          }
+
+          message.id = reader.string()
+          continue
+        case 2:
+          if (tag !== 18) {
+            break
+          }
+
+          message.url = reader.string()
+          continue
+        case 3:
+          if (tag !== 24) {
+            break
+          }
+
+          message.shared = reader.bool()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<CreateWebWorkerRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<CreateWebWorkerRequest | CreateWebWorkerRequest[]>
+      | Iterable<CreateWebWorkerRequest | CreateWebWorkerRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [CreateWebWorkerRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [CreateWebWorkerRequest.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, CreateWebWorkerRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<CreateWebWorkerRequest> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [CreateWebWorkerRequest.decode(p)]
+        }
+      } else {
+        yield* [CreateWebWorkerRequest.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(object: any): CreateWebWorkerRequest {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
+      shared: isSet(object.shared) ? globalThis.Boolean(object.shared) : false,
+    }
+  },
+
+  toJSON(message: CreateWebWorkerRequest): unknown {
+    const obj: any = {}
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    if (message.url !== '') {
+      obj.url = message.url
+    }
+    if (message.shared === true) {
+      obj.shared = message.shared
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<CreateWebWorkerRequest>, I>>(
+    base?: I,
+  ): CreateWebWorkerRequest {
+    return CreateWebWorkerRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateWebWorkerRequest>, I>>(
+    object: I,
+  ): CreateWebWorkerRequest {
+    const message = createBaseCreateWebWorkerRequest()
+    message.id = object.id ?? ''
+    message.url = object.url ?? ''
+    message.shared = object.shared ?? false
+    return message
+  },
+}
+
+function createBaseCreateWebWorkerResponse(): CreateWebWorkerResponse {
+  return { created: false, shared: false }
+}
+
+export const CreateWebWorkerResponse = {
+  encode(
+    message: CreateWebWorkerResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.created === true) {
+      writer.uint32(8).bool(message.created)
+    }
+    if (message.shared === true) {
+      writer.uint32(16).bool(message.shared)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): CreateWebWorkerResponse {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCreateWebWorkerResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 8) {
+            break
+          }
+
+          message.created = reader.bool()
+          continue
+        case 2:
+          if (tag !== 16) {
+            break
+          }
+
+          message.shared = reader.bool()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<CreateWebWorkerResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<CreateWebWorkerResponse | CreateWebWorkerResponse[]>
+      | Iterable<CreateWebWorkerResponse | CreateWebWorkerResponse[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [CreateWebWorkerResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [CreateWebWorkerResponse.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, CreateWebWorkerResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<CreateWebWorkerResponse> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [CreateWebWorkerResponse.decode(p)]
+        }
+      } else {
+        yield* [CreateWebWorkerResponse.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(object: any): CreateWebWorkerResponse {
+    return {
+      created: isSet(object.created)
+        ? globalThis.Boolean(object.created)
+        : false,
+      shared: isSet(object.shared) ? globalThis.Boolean(object.shared) : false,
+    }
+  },
+
+  toJSON(message: CreateWebWorkerResponse): unknown {
+    const obj: any = {}
+    if (message.created === true) {
+      obj.created = message.created
+    }
+    if (message.shared === true) {
+      obj.shared = message.shared
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<CreateWebWorkerResponse>, I>>(
+    base?: I,
+  ): CreateWebWorkerResponse {
+    return CreateWebWorkerResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateWebWorkerResponse>, I>>(
+    object: I,
+  ): CreateWebWorkerResponse {
+    const message = createBaseCreateWebWorkerResponse()
+    message.created = object.created ?? false
+    message.shared = object.shared ?? false
+    return message
+  },
+}
+
+function createBaseRemoveWebWorkerRequest(): RemoveWebWorkerRequest {
+  return { id: '' }
+}
+
+export const RemoveWebWorkerRequest = {
+  encode(
+    message: RemoveWebWorkerRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): RemoveWebWorkerRequest {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveWebWorkerRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break
+          }
+
+          message.id = reader.string()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<RemoveWebWorkerRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<RemoveWebWorkerRequest | RemoveWebWorkerRequest[]>
+      | Iterable<RemoveWebWorkerRequest | RemoveWebWorkerRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [RemoveWebWorkerRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [RemoveWebWorkerRequest.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, RemoveWebWorkerRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<RemoveWebWorkerRequest> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [RemoveWebWorkerRequest.decode(p)]
+        }
+      } else {
+        yield* [RemoveWebWorkerRequest.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(object: any): RemoveWebWorkerRequest {
+    return { id: isSet(object.id) ? globalThis.String(object.id) : '' }
+  },
+
+  toJSON(message: RemoveWebWorkerRequest): unknown {
+    const obj: any = {}
+    if (message.id !== '') {
+      obj.id = message.id
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<RemoveWebWorkerRequest>, I>>(
+    base?: I,
+  ): RemoveWebWorkerRequest {
+    return RemoveWebWorkerRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<RemoveWebWorkerRequest>, I>>(
+    object: I,
+  ): RemoveWebWorkerRequest {
+    const message = createBaseRemoveWebWorkerRequest()
+    message.id = object.id ?? ''
+    return message
+  },
+}
+
+function createBaseRemoveWebWorkerResponse(): RemoveWebWorkerResponse {
+  return { removed: false }
+}
+
+export const RemoveWebWorkerResponse = {
+  encode(
+    message: RemoveWebWorkerResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.removed === true) {
+      writer.uint32(8).bool(message.removed)
+    }
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): RemoveWebWorkerResponse {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseRemoveWebWorkerResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 8) {
+            break
+          }
+
+          message.removed = reader.bool()
+          continue
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<RemoveWebWorkerResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<RemoveWebWorkerResponse | RemoveWebWorkerResponse[]>
+      | Iterable<RemoveWebWorkerResponse | RemoveWebWorkerResponse[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [RemoveWebWorkerResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [RemoveWebWorkerResponse.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, RemoveWebWorkerResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<RemoveWebWorkerResponse> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [RemoveWebWorkerResponse.decode(p)]
+        }
+      } else {
+        yield* [RemoveWebWorkerResponse.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(object: any): RemoveWebWorkerResponse {
+    return {
+      removed: isSet(object.removed)
+        ? globalThis.Boolean(object.removed)
+        : false,
+    }
+  },
+
+  toJSON(message: RemoveWebWorkerResponse): unknown {
+    const obj: any = {}
+    if (message.removed === true) {
+      obj.removed = message.removed
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<RemoveWebWorkerResponse>, I>>(
+    base?: I,
+  ): RemoveWebWorkerResponse {
+    return RemoveWebWorkerResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<RemoveWebWorkerResponse>, I>>(
+    object: I,
+  ): RemoveWebWorkerResponse {
+    const message = createBaseRemoveWebWorkerResponse()
+    message.removed = object.removed ?? false
+    return message
+  },
+}
+
 /**
  * WebDocumentHost is the API exposed by the Go runtime for WebDocument.
  *
@@ -729,6 +1405,23 @@ export interface WebDocument {
     request: AsyncIterable<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
+  /**
+   * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
+   * If a worker already exists with that ID, it will be terminated before starting the new.
+   * Returns created: false if unable to create WebWorkers.
+   * This usually creates a new SharedWorker.
+   * The worker is expected to close itself if it becomes disconnected or broken.
+   * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
+   */
+  CreateWebWorker(
+    request: CreateWebWorkerRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateWebWorkerResponse>
+  /** RemoveWebWorker requests to terminate a WebWorker with an instance identifier. */
+  RemoveWebWorker(
+    request: RemoveWebWorkerRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveWebWorkerResponse>
 }
 
 export const WebDocumentServiceName = 'web.document.WebDocument'
@@ -741,6 +1434,8 @@ export class WebDocumentClientImpl implements WebDocument {
     this.WatchWebDocumentStatus = this.WatchWebDocumentStatus.bind(this)
     this.CreateWebView = this.CreateWebView.bind(this)
     this.WebViewRpc = this.WebViewRpc.bind(this)
+    this.CreateWebWorker = this.CreateWebWorker.bind(this)
+    this.RemoveWebWorker = this.RemoveWebWorker.bind(this)
   }
   WatchWebDocumentStatus(
     request: WatchWebDocumentStatusRequest,
@@ -785,6 +1480,38 @@ export class WebDocumentClientImpl implements WebDocument {
     )
     return RpcStreamPacket.decodeTransform(result)
   }
+
+  CreateWebWorker(
+    request: CreateWebWorkerRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateWebWorkerResponse> {
+    const data = CreateWebWorkerRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      this.service,
+      'CreateWebWorker',
+      data,
+      abortSignal || undefined,
+    )
+    return promise.then((data) =>
+      CreateWebWorkerResponse.decode(_m0.Reader.create(data)),
+    )
+  }
+
+  RemoveWebWorker(
+    request: RemoveWebWorkerRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveWebWorkerResponse> {
+    const data = RemoveWebWorkerRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      this.service,
+      'RemoveWebWorker',
+      data,
+      abortSignal || undefined,
+    )
+    return promise.then((data) =>
+      RemoveWebWorkerResponse.decode(_m0.Reader.create(data)),
+    )
+  }
 }
 
 /**
@@ -827,6 +1554,31 @@ export const WebDocumentDefinition = {
       requestStream: true,
       responseType: RpcStreamPacket,
       responseStream: true,
+      options: {},
+    },
+    /**
+     * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
+     * If a worker already exists with that ID, it will be terminated before starting the new.
+     * Returns created: false if unable to create WebWorkers.
+     * This usually creates a new SharedWorker.
+     * The worker is expected to close itself if it becomes disconnected or broken.
+     * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
+     */
+    createWebWorker: {
+      name: 'CreateWebWorker',
+      requestType: CreateWebWorkerRequest,
+      requestStream: false,
+      responseType: CreateWebWorkerResponse,
+      responseStream: false,
+      options: {},
+    },
+    /** RemoveWebWorker requests to terminate a WebWorker with an instance identifier. */
+    removeWebWorker: {
+      name: 'RemoveWebWorker',
+      requestType: RemoveWebWorkerRequest,
+      requestStream: false,
+      responseType: RemoveWebWorkerResponse,
+      responseStream: false,
       options: {},
     },
   },

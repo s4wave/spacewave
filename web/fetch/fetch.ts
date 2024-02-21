@@ -174,7 +174,6 @@ export async function proxyFetch(
         .then(() => fetchRequestStream.end())
     }
 
-
     // wait for the first packet w/ the response headers
     resultIt = resultIterable[Symbol.asyncIterator]()
 

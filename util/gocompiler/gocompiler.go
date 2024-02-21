@@ -87,11 +87,7 @@ func ExecBuildEntrypoint(
 		outBinPath,
 	}, GetDefaultArgs()...)
 
-	// if release: disable debug info
-	if isRelease {
-		args = append(args, "-gcflags", "-N -l")
-	}
-
+	// build tags
 	if len(buildTags) != 0 {
 		args = append(args, "-tags="+strings.Join(buildTags, ","))
 	}

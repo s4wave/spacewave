@@ -8,7 +8,7 @@ import (
 	fmt "fmt"
 	io "io"
 
-	backoff "github.com/aperturerobotics/util/backoff"
+	controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -26,20 +26,13 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
-	r.EngineId = m.EngineId
-	r.ObjectKey = m.ObjectKey
-	r.PeerId = m.PeerId
-	r.VolumeId = m.VolumeId
-	r.AlwaysFetchManifest = m.AlwaysFetchManifest
-	r.DisableStoreManifest = m.DisableStoreManifest
-	r.FetchConcurrency = m.FetchConcurrency
 	r.StateDir = m.StateDir
 	r.DistDir = m.DistDir
-	if rhs := m.FetchBackoff; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
-			r.FetchBackoff = vtpb.CloneVT()
+	if rhs := m.HostConfig; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *controller.Config }); ok {
+			r.HostConfig = vtpb.CloneVT()
 		} else {
-			r.FetchBackoff = proto.Clone(rhs).(*backoff.Backoff)
+			r.HostConfig = proto.Clone(rhs).(*controller.Config)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -59,32 +52,11 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.EngineId != that.EngineId {
-		return false
-	}
-	if this.ObjectKey != that.ObjectKey {
-		return false
-	}
-	if this.PeerId != that.PeerId {
-		return false
-	}
-	if this.VolumeId != that.VolumeId {
-		return false
-	}
-	if this.AlwaysFetchManifest != that.AlwaysFetchManifest {
-		return false
-	}
-	if this.DisableStoreManifest != that.DisableStoreManifest {
-		return false
-	}
-	if this.FetchConcurrency != that.FetchConcurrency {
-		return false
-	}
-	if equal, ok := interface{}(this.FetchBackoff).(interface{ EqualVT(*backoff.Backoff) bool }); ok {
-		if !equal.EqualVT(that.FetchBackoff) {
+	if equal, ok := interface{}(this.HostConfig).(interface{ EqualVT(*controller.Config) bool }); ok {
+		if !equal.EqualVT(that.HostConfig) {
 			return false
 		}
-	} else if !proto.Equal(this.FetchBackoff, that.FetchBackoff) {
+	} else if !proto.Equal(this.HostConfig, that.HostConfig) {
 		return false
 	}
 	if this.StateDir != that.StateDir {
@@ -138,17 +110,17 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.DistDir)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DistDir)))
 		i--
-		dAtA[i] = 0x52
+		dAtA[i] = 0x1a
 	}
 	if len(m.StateDir) > 0 {
 		i -= len(m.StateDir)
 		copy(dAtA[i:], m.StateDir)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.StateDir)))
 		i--
-		dAtA[i] = 0x4a
+		dAtA[i] = 0x12
 	}
-	if m.FetchBackoff != nil {
-		if vtmsg, ok := interface{}(m.FetchBackoff).(interface {
+	if m.HostConfig != nil {
+		if vtmsg, ok := interface{}(m.HostConfig).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -158,7 +130,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.FetchBackoff)
+			encoded, err := proto.Marshal(m.HostConfig)
 			if err != nil {
 				return 0, err
 			}
@@ -166,59 +138,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], encoded)
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
 		}
-		i--
-		dAtA[i] = 0x42
-	}
-	if m.FetchConcurrency != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FetchConcurrency))
-		i--
-		dAtA[i] = 0x38
-	}
-	if m.DisableStoreManifest {
-		i--
-		if m.DisableStoreManifest {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.AlwaysFetchManifest {
-		i--
-		if m.AlwaysFetchManifest {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x28
-	}
-	if len(m.VolumeId) > 0 {
-		i -= len(m.VolumeId)
-		copy(dAtA[i:], m.VolumeId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.VolumeId)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.PeerId) > 0 {
-		i -= len(m.PeerId)
-		copy(dAtA[i:], m.PeerId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PeerId)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.ObjectKey) > 0 {
-		i -= len(m.ObjectKey)
-		copy(dAtA[i:], m.ObjectKey)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.EngineId) > 0 {
-		i -= len(m.EngineId)
-		copy(dAtA[i:], m.EngineId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.EngineId)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -231,38 +150,13 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.EngineId)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.ObjectKey)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.VolumeId)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.AlwaysFetchManifest {
-		n += 2
-	}
-	if m.DisableStoreManifest {
-		n += 2
-	}
-	if m.FetchConcurrency != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.FetchConcurrency))
-	}
-	if m.FetchBackoff != nil {
-		if size, ok := interface{}(m.FetchBackoff).(interface {
+	if m.HostConfig != nil {
+		if size, ok := interface{}(m.HostConfig).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.FetchBackoff)
+			l = proto.Size(m.HostConfig)
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -309,194 +203,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EngineId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EngineId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ObjectKey = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.VolumeId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AlwaysFetchManifest", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.AlwaysFetchManifest = bool(v != 0)
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableStoreManifest", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.DisableStoreManifest = bool(v != 0)
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FetchConcurrency", wireType)
-			}
-			m.FetchConcurrency = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.FetchConcurrency |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FetchBackoff", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostConfig", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -523,22 +230,22 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.FetchBackoff == nil {
-				m.FetchBackoff = &backoff.Backoff{}
+			if m.HostConfig == nil {
+				m.HostConfig = &controller.Config{}
 			}
-			if unmarshal, ok := interface{}(m.FetchBackoff).(interface {
+			if unmarshal, ok := interface{}(m.HostConfig).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
 				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.FetchBackoff); err != nil {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.HostConfig); err != nil {
 					return err
 				}
 			}
 			iNdEx = postIndex
-		case 9:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StateDir", wireType)
 			}
@@ -570,7 +277,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StateDir = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 10:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DistDir", wireType)
 			}

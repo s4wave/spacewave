@@ -21,8 +21,9 @@ service WebRuntimeHost {
 //
 // Usually accessed by the WebRuntimeHost.
 service WebRuntime {
-  // WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates.
+  // WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates.
   rpc WatchWebRuntimeStatus(WatchWebRuntimeStatusRequest) returns (stream WebRuntimeStatus);
+
   // CreateWebDocument requests to create a new WebDocument.
   // Returns created: false if unable to create WebDocuments.
   // This usually creates a new Tab or Window.
@@ -77,14 +78,14 @@ message CreateWebDocumentRequest {
 
 // CreateWebDocumentResponse is the response to the CreateWebDocument request.
 message CreateWebDocumentResponse {
-  // Removed indicates the WebDocument was created.
+  // Created indicates the WebDocument was created.
   // If this is not set, assumes we cannot create WebDocuments.
   bool created = 1;
 }
 
 // RemoveWebDocumentRequest is a request to remove a WebDocument.
 message RemoveWebDocumentRequest {
-  // id is the identifier for the WebDocument.
+  // Id is the identifier for the WebDocument.
   string id = 1;
 }
 
@@ -103,6 +104,8 @@ enum WebRuntimeClientType {
   WebRuntimeClientType_WEB_DOCUMENT = 1;
   // WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type.
   WebRuntimeClientType_SERVICE_WORKER = 2;
+  // WebRuntimeClientType_WEB_WORKER is the WebWorker type.
+  WebRuntimeClientType_WEB_WORKER = 3;
 }
 
 // WebRuntimeClientInit is a message sent by a client of a WebRuntime.

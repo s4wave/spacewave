@@ -24,6 +24,16 @@ service WebDocument {
   // WebViewRpc opens a stream for a RPC call to a WebView.
   // ID is the webViewId.
   rpc WebViewRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // CreateWebWorker requests to spawn a WebWorker with an instance identifier.
+  // If a worker already exists with that ID, it will be terminated before starting the new.
+  // Returns created: false if unable to create WebWorkers.
+  // This usually creates a new SharedWorker.
+  // The worker is expected to close itself if it becomes disconnected or broken.
+  // The worker is passed a MessagePort that can be used to open WebRuntimeClient.
+  rpc CreateWebWorker(CreateWebWorkerRequest) returns (CreateWebWorkerResponse);
+  // RemoveWebWorker requests to terminate a WebWorker with an instance identifier.
+  rpc RemoveWebWorker(RemoveWebWorkerRequest) returns (RemoveWebWorkerResponse);
 }
 
 // WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
@@ -33,13 +43,13 @@ message WatchWebDocumentStatusRequest {}
 message WebDocumentStatus {
   // Snapshot indicates this is a full snapshot of the lists.
   bool snapshot = 1;
-  // WebViews contains the list of web views.
+  // WebViews contains the list of web view statuses.
   repeated WebViewStatus web_views = 2;
+  // WebWorkers contains the list of web worker statuses.
+  repeated WebWorkerStatus web_workers = 3;
 }
 
 // WebViewStatus contains status for a web view.
-//
-// WebToRuntimeType_WEB_VIEW_STATUS
 message WebViewStatus {
   // Id is the unique identifier for the webview.
   string id = 1;
@@ -53,6 +63,17 @@ message WebViewStatus {
   bool permanent = 4;
 }
 
+// WebWorkerStatus contains status for a web worker.
+message WebWorkerStatus {
+  // Id is the unique identifier for the worker.
+  string id = 1;
+  // Deleted indicates the web worker was just removed.
+  // If set, all below fields are ignored.
+  bool deleted = 2;
+  // Shared indicates that the worker is a SharedWorker.
+  bool shared = 3;
+}
+
 // CreateWebViewRequest is a request to create a new web view.
 message CreateWebViewRequest {
   // id is the identifier for the new WebView.
@@ -64,4 +85,37 @@ message CreateWebViewResponse {
   // Created indicates the web view was created.
   // If this is not set, assumes we cannot create WebViews.
   bool created = 1;
+}
+
+// CreateWebWorkerRequest is a request to create a new web worker.
+message CreateWebWorkerRequest {
+  // Id is the identifier for the new WebWorker.
+  string id = 1;
+  // Url is the url to the source to load into the worker.
+  string url = 2;
+  // Shared indicates this should be a worker shared between all WebDocument (if possible)
+  bool shared = 3;
+}
+
+// CreateWebWorkerResponse is the response to the CreateWebWorker request.
+message CreateWebWorkerResponse {
+  // Created indicates the WebWorker was created.
+  // If this is not set, assumes we cannot create WebWorkers.
+  bool created = 1;
+  // Shared indicates that SharedWorker was supported & used
+  // Should only be set if shared was also set in the request
+  bool shared = 2;
+}
+
+// RemoveWebWorkerRequest is a request to terminate a web worker.
+message RemoveWebWorkerRequest {
+  // Id is the identifier for the removed WebWorker.
+  string id = 1;
+}
+
+// RemoveWebWorkerResponse is the response to the RemoveWebWorker request.
+message RemoveWebWorkerResponse {
+  // Removed indicates the WebWorker was removed.
+  // If false, the worker was not found or not running.
+  bool removed = 1;
 }

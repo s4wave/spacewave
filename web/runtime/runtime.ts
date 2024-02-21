@@ -41,3 +41,23 @@ export interface WebDocumentToServiceWorker {
   // sends ServiceWorkerToWebDocument
   initPort?: MessagePort
 }
+
+// WebDocumentToWebWorker is a message sent from the WebDocument to the WebWorker.
+export interface WebDocumentToWebWorker {
+  // from is the identifier of the WebDocument.
+  from: string
+  // to is the identifier of the WebWorker
+  to: string
+  // initPort initializes the port to communicate with the WebDocument.
+  // sends WebWorkerToWebDocument
+  initPort?: MessagePort
+}
+
+// WebWorkerToWebDocument is a message sent from ServiceWorker to WebDocument.
+export interface WebWorkerToWebDocument {
+  // from is the identifier of the web worker.
+  from: string
+  // connectWebRuntime contains a request to connect as a client of WebRuntime.
+  // the WebDocument should write a ConnectWebRuntimeAck message.
+  connectWebRuntime?: MessagePort
+}

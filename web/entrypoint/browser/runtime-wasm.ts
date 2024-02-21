@@ -43,7 +43,7 @@ const goProcess = new GoWasmProcess('/runtime/runtime.wasm', {
     errorCb: (err) => {
       console.warn('runtime-wasm: error running web runtime', err)
     },
-  }
+  },
 })
 
 // the Go process will open streams with the WebRuntime via this channel and vise-versa.

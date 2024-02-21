@@ -9,6 +9,14 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
+// remoteWebView contains remote web view information.
+type remoteWebView struct {
+	ctx            context.Context
+	cancel         context.CancelFunc
+	proxy          *web_view_client.ProxyWebView
+	webViewHostMux srpc.Mux
+}
+
 // buildRemoteWebView constructs a new remote WebView handle.
 //
 // if permanent, this web view is the primary and cannot be closed

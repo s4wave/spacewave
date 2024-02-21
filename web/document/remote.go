@@ -8,7 +8,7 @@ import (
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/cstate"
 	web_view "github.com/aperturerobotics/bldr/web/view"
-	web_view_client "github.com/aperturerobotics/bldr/web/view/client"
+	web_worker "github.com/aperturerobotics/bldr/web/worker"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -45,14 +45,10 @@ type Remote struct {
 	// sorted by ID
 	// do not retain this slice without holding mtx
 	remoteWebViews []*remoteWebView
-}
-
-// remoteWebView contains remote web view information.
-type remoteWebView struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	proxy          *web_view_client.ProxyWebView
-	webViewHostMux srpc.Mux
+	// remoteWebWorkers is the current snapshot of web workers.
+	// sorted by ID
+	// do not retain this slice without holding mtx
+	remoteWebWorkers []*remoteWebWorker
 }
 
 // NewRemote constructs a new browser runtime.
@@ -169,6 +165,41 @@ func (r *Remote) WaitFirstWebView(ctx context.Context) (web_view.WebView, error)
 	return webView, err
 }
 
+// GetWebWorkers returns the current snapshot of active WebWorkers.
+func (r *Remote) GetWebWorkers(ctx context.Context) (map[string]web_worker.WebWorker, error) {
+	var out map[string]web_worker.WebWorker
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !val.ready {
+			return false, nil
+		}
+
+		out = r.buildRemoteWebWorkersMap()
+		return true, nil
+	})
+	return out, err
+}
+
+// GetWebWorker waits for the worker to be started.
+// Returns the WebWorker object or returns nil, nil if not found.
+// If wait is set, waits for the web worker ID to exist.
+// Otherwise, returns nil, nil if not found.
+func (r *Remote) GetWebWorker(ctx context.Context, webWorkerID string, wait bool) (web_worker.WebWorker, error) {
+	var out web_worker.WebWorker
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !val.ready {
+			return false, nil
+		}
+
+		_, rdoc := r.lookupRemoteWebWorker(webWorkerID)
+		if rdoc == nil {
+			return !wait, nil
+		}
+		out = rdoc
+		return true, nil
+	})
+	return out, err
+}
+
 // CreateWebView creates a new web view and waits for it to become active.
 //
 // Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
@@ -177,16 +208,57 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, err
 		// generate random id
 		webViewID = random_id.RandomIdentifier(8)
 	}
-	return r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+	var created bool
+	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		_, rwv := r.lookupRemoteWebView(webViewID)
 		if rwv != nil {
+			created = true
 			return false, nil
 		}
-		_, err = r.webDocument.CreateWebView(ctx, &CreateWebViewRequest{
+		resp, err := r.webDocument.CreateWebView(ctx, &CreateWebViewRequest{
 			Id: webViewID,
 		})
-		return err == nil, err
+		if err == nil {
+			created = resp.GetCreated()
+		}
+		return false, err
 	})
+	return created, err
+}
+
+// CreateWebWorker creates a new web worker.
+//
+// Returns ErrWebWorkerUnavailable if WebWorker is not available or cannot be created.
+// If shared is set, attempts to create a SharedWorker (but might not if not supported).
+// Returns nil, nil if the worker was not created.
+// If the worker already existed it will be deleted and recreated.
+func (r *Remote) CreateWebWorker(ctx context.Context, webWorkerID string, shared bool, url string) (web_worker.WebWorker, error) {
+	if webWorkerID == "" {
+		return nil, web_worker.ErrEmptyWebWorkerID
+	}
+	var out web_worker.WebWorker
+	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+		_, rwv := r.lookupRemoteWebWorker(webWorkerID)
+		if rwv != nil {
+			out = rwv
+			return false, nil
+		}
+		resp, err := r.webDocument.CreateWebWorker(ctx, &CreateWebWorkerRequest{
+			Id:     webWorkerID,
+			Url:    url,
+			Shared: shared,
+		})
+		if err != nil {
+			return false, err
+		}
+		if resp.GetCreated() {
+			dirty, err = r.handleWebWorkerStatuses(ctx, false, []*WebWorkerStatus{{Id: webWorkerID, Shared: resp.GetShared()}})
+			if err != nil {
+			}
+		}
+		return false, nil
+	})
+	return out, err
 }
 
 // Execute executes the runtime.
@@ -328,7 +400,19 @@ func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) e
 // expects mtx to be locked
 // returns dirty, err
 func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bool, error) {
-	return r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
+	dirty1, err := r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
+	if err != nil {
+		return false, err
+	}
+
+	dirty2, err := r.handleWebWorkerStatuses(ctx, ws.GetSnapshot(), ws.GetWebWorkers())
+	if err != nil {
+		return dirty1, err
+	}
+
+	// we got a snapshot or initial list of statuses: mark as ready
+	r.ready = true
+	return dirty1 || dirty2, nil
 }
 
 // handleWebViewStatuses handles a list of web view statuses.
@@ -340,9 +424,6 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
-
-	// we got a snapshot or initial list of statuses: mark as ready
-	r.ready = true
 
 	// notSeenViews contains web views /not/ seen in the status list.
 	var dirty bool
@@ -391,6 +472,54 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 	return dirty, nil
 }
 
+// handleWebWorkerStatuses handles a list of web worker statuses.
+// snapshot: if set, removes any views that don't appear in the list.
+// note: ctx is used as the context for the new remote web worker.
+// returns dirty, err
+// expects mtx to be locked
+func (r *Remote) handleWebWorkerStatuses(ctx context.Context, snapshot bool, statuses []*WebWorkerStatus) (bool, error) {
+	if !snapshot && len(statuses) == 0 {
+		return false, nil
+	}
+
+	// notSeenWorkers contains web workers /not/ seen in the status list.
+	var dirty bool
+	notSeenWorkers := r.buildRemoteWebWorkersMap()
+	for _, status := range statuses {
+		webWorkerID := status.GetId()
+		if webWorkerID == "" {
+			continue
+		}
+
+		// web view seen: remove from beforeState.
+		delete(notSeenWorkers, webWorkerID)
+
+		// delete
+		if status.GetDeleted() {
+			if r.removeRemoteWebWorker(webWorkerID) != nil {
+				dirty = true
+			}
+			continue
+		}
+
+		_, _, inserted := r.upsertRemoteWebWorker(webWorkerID, status.GetShared())
+		if inserted {
+			dirty = true
+		}
+	}
+
+	// if this is a snapshot, delete any workers we didn't see.
+	if snapshot {
+		for webWorkerID := range notSeenWorkers {
+			if r.removeRemoteWebWorker(webWorkerID) != nil {
+				dirty = true
+			}
+		}
+	}
+
+	return dirty, nil
+}
+
 // insertRemoteWebView adds a new remote web view to the set.
 // expects mtx to be locked
 func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
@@ -409,7 +538,7 @@ func (r *Remote) insertRemoteWebView(insertIdx int, rwv *remoteWebView) {
 	r.handler.HandleWebView(rwv.ctx, rwv.proxy)
 }
 
-// buildRemoteWebViewsMap builds the mapping of ID to WebDocument.
+// buildRemoteWebViewsMap builds the mapping of ID to WebView.
 // expects mtx to be locked.
 func (r *Remote) buildRemoteWebViewsMap() map[string]web_view.WebView {
 	out := make(map[string]web_view.WebView, len(r.remoteWebViews))
@@ -444,6 +573,78 @@ func (r *Remote) lookupRemoteWebView(id string) (i int, rwv *remoteWebView) {
 	})
 	if i < len(r.remoteWebViews) && r.remoteWebViews[i].proxy.GetId() == id {
 		rwv = r.remoteWebViews[i]
+	}
+	return i, rwv
+}
+
+// upsertRemoteWebWorker adds a new remote web worker if not exists.
+// returns the index of the web worker and if it was inserted
+func (r *Remote) upsertRemoteWebWorker(webWorkerID string, shared bool) (*remoteWebWorker, int, bool) {
+	// insert if not exists
+	var dirty bool
+	insertIdx, rwv := r.lookupRemoteWebWorker(webWorkerID)
+	if rwv == nil {
+		rwv = r.buildRemoteWebWorker(
+			webWorkerID,
+			r.documentID,
+			shared,
+		)
+		r.insertRemoteWebWorker(insertIdx, rwv)
+		dirty = true
+	}
+	return rwv, insertIdx, dirty
+}
+
+// insertRemoteWebWorker adds a new remote web worker to the set.
+// expects mtx to be locked
+func (r *Remote) insertRemoteWebWorker(insertIdx int, rwv *remoteWebWorker) {
+	r.remoteWebWorkers = append(r.remoteWebWorkers, nil)
+	copy(r.remoteWebWorkers[insertIdx+1:], r.remoteWebWorkers[insertIdx:])
+	r.remoteWebWorkers[insertIdx] = rwv
+	r.le.
+		WithFields(logrus.Fields{
+			"worker-id":          rwv.id,
+			"worker-document-id": rwv.document,
+			"worker-shared":      rwv.shared,
+			"worker-count":       len(r.remoteWebWorkers),
+		}).
+		Debug("added remote web worker")
+}
+
+// buildRemoteWebWorkersMap builds the mapping of ID to running WebWorker.
+// expects mtx to be locked.
+func (r *Remote) buildRemoteWebWorkersMap() map[string]web_worker.WebWorker {
+	out := make(map[string]web_worker.WebWorker, len(r.remoteWebWorkers))
+	for _, webWorker := range r.remoteWebWorkers {
+		out[webWorker.id] = webWorker
+	}
+	return out
+}
+
+// removeRemoteWebWorker removes a remote web worker and returns its final status, if found.
+// returns val, error, returns nil, nil if not found
+// expects mtx to be locked
+func (r *Remote) removeRemoteWebWorker(id string) *remoteWebWorker {
+	idx, rwv := r.lookupRemoteWebWorker(id)
+	if rwv == nil {
+		return nil
+	}
+
+	// remove idx from the remoteWebWorkers slice
+	r.le.WithField("worker-id", id).Debug("removed remote web worker")
+	r.remoteWebWorkers = r.remoteWebWorkers[:idx+copy(r.remoteWebWorkers[idx:], r.remoteWebWorkers[idx+1:])]
+	return rwv
+}
+
+// lookupRemoteWebWorker searches the remoteWebWorkers field for a web worker.
+// returns insertion index if not found
+// expects mtx to be locked
+func (r *Remote) lookupRemoteWebWorker(id string) (i int, rwv *remoteWebWorker) {
+	i = sort.Search(len(r.remoteWebWorkers), func(i int) bool {
+		return r.remoteWebWorkers[i].id >= id
+	})
+	if i < len(r.remoteWebWorkers) && r.remoteWebWorkers[i].id == id {
+		rwv = r.remoteWebWorkers[i]
 	}
 	return i, rwv
 }

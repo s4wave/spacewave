@@ -6,7 +6,6 @@ import {
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import duplex from '@aptre/it-ws/duplex'
-import WebSocket from '@aptre/it-ws/web-socket'
 
 import {
   WebRuntimeClientInit,
@@ -39,9 +38,6 @@ const webRuntime = new WebRuntime(
   removeDocCb,
 )
 
-// const runtimePort = webRuntime.goRuntimePort
-// const runtimePortIterable = new MessagePortIterable<Uint8Array>(runtimePort)
-
 async function connectWebsocket(address: string): Promise<WebSocket> {
   const ws = new WebSocket(address)
   return new Promise<WebSocket>((resolve, reject) => {
@@ -69,7 +65,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   }
 
   // Setup the connection to the Go runtime.
-  const wsDuplex = duplex(ws)
+  const wsDuplex = duplex(ws as any)
   const runtimeConn = new StreamConn(webRuntime.getWebRuntimeServer(), {
     direction: 'inbound',
     muxerFactory: yamux({

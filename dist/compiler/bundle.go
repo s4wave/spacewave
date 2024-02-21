@@ -12,6 +12,7 @@ import (
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -22,7 +23,7 @@ import (
 	hydra_core "github.com/aperturerobotics/hydra/core"
 	kvtx_kvfile "github.com/aperturerobotics/hydra/kvtx/kvfile"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
-	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
+	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -89,8 +90,18 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
-	workSr.AddFactory(volume_bolt.NewFactory(workBus))
 	workSr.AddFactory(world_block_engine.NewFactory(workBus))
+
+	workingDbDir := filepath.Join(workingPath, "dist-vol")
+	if err := os.MkdirAll(workingDbDir, 0755); err != nil {
+		return err
+	}
+	storageOpts := default_storage.BuildStorage(workBus, workingDbDir)
+	if len(storageOpts) == 0 {
+		return errors.New("no available storage types for build system")
+	}
+	storage := storageOpts[0]
+	storage.AddFactories(workBus, workSr)
 
 	// run the node controller
 	_, _, nref, err := loader.WaitExecControllerRunning(
@@ -111,21 +122,16 @@ func BuildDistBundle(
 	// may be replaced with something w/ more randomness later
 	workingID := strings.Join([]string{ControllerID, meta.GetProjectId(), buildPlatform.GetPlatformID()}, "/")
 
-	// start with a boltdb on-disk in the working dir
-	workingDb := filepath.Join(workingPath, "assets.db")
+	// start with a working db on-disk in the working dir
 	workingDbVolID := "dist-working-vol"
-	workingDbConf := &volume_bolt.Config{
-		Path:       workingDb,
-		NoWriteKey: true,
-		VolumeConfig: &volume_controller.Config{
-			VolumeIdAlias:           []string{workingDbVolID},
-			DisableReconcilerQueues: true,
-		},
-	}
+	workingDbVolConf := storage.BuildVolumeConfig("dist-working-vol", &volume_controller.Config{
+		VolumeIdAlias:           []string{workingDbVolID},
+		DisableReconcilerQueues: true,
+	})
 	workingVolCtrli, _, workingVolRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		workBus,
-		resolver.NewLoadControllerWithConfig(workingDbConf),
+		resolver.NewLoadControllerWithConfig(workingDbVolConf),
 		nil,
 	)
 	if err != nil {
@@ -141,8 +147,7 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
-	// We know that it's a bolt volume.
-	boltVol, ok := workingVol.(*volume_bolt.Bolt)
+	boltVol, ok := workingVol.(common_kvtx.KvtxVolume)
 	if !ok {
 		return errors.New("unexpected type for volume")
 	}

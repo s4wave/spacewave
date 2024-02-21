@@ -1,19 +1,19 @@
 //go:build js
 // +build js
 
-package main
+package web_entrypoint_browser
 
 import (
+	"errors"
 	"syscall/js"
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
-	"github.com/pkg/errors"
 )
 
-// readInitMessage reads the bldr init message from the global.
+// ReadInitMessage reads the bldr init message from the global.
 //
-// configured by bldr/runtime-wasm.ts
-func readInitMessage() (*web_runtime.WebRuntimeHostInit, error) {
+// configured by runtime-wasm.ts
+func ReadInitMessage() (*web_runtime.WebRuntimeHostInit, error) {
 	wasmInit := js.Global().Get("BLDR_INIT")
 	if wasmInit.IsUndefined() {
 		return nil, errors.New("init information was not defined")

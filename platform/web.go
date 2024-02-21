@@ -15,6 +15,11 @@ type WebPlatform struct {
 	InputPlatformID string
 }
 
+// NewWebPlatform constructs a new default WebPlatform.
+func NewWebPlatform() *WebPlatform {
+	return &WebPlatform{InputPlatformID: PlatformID_WEB}
+}
+
 // ParseWebPlatform parses web platform based platform ID.
 func ParseWebPlatform(str string) (*WebPlatform, error) {
 	components := strings.Split(str, "/")

@@ -47,6 +47,9 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 		return err
 	}
 
+	// write the banner
+	writeBanner()
+
 	// execute the project controller
 	_, projCtrlRef, err := b.StartProjectController(
 		ctx,
@@ -100,9 +103,6 @@ func (b *DevtoolBus) ExecuteWebWs(
 	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint); err != nil {
 		return err
 	}
-
-	// write the banner
-	writeBanner()
 
 	// serve the entrypoint
 	entryFs := http.Dir(entrypointDir)

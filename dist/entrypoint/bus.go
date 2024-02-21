@@ -7,8 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -49,7 +48,7 @@ type DistBus struct {
 	// pluginHostObjectKey is the object key used for the PluginHost
 	pluginHostObjectKey string
 	// pluginHostCtrl is the plugin host controller
-	pluginHostCtrl *plugin_host_controller.Controller
+	pluginHostCtrl *plugin_host_default.PluginHostController
 	// st contains the storage method
 	st storage.Storage
 	// stConf is the storage config
@@ -213,26 +212,20 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 	}
 
 	// build the plugin host controller
-	pluginHostProcessConf := host_process.NewConfig(
+	pluginHostCtrl, pluginHostRel, err := plugin_host_default.StartBusPluginHost(
+		ctx,
+		b,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
-		vol.GetPeerID(),
-		true, // always run FetchManifest so we know to check for updates
+		vol.GetPeerID().String(),
 		pluginsStateRoot,
 		pluginsDistRoot,
-	)
-	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
-		ctxCancel,
 	)
 	if err != nil {
 		ctxCancel()
 		return nil, err
 	}
-	pluginHostCtrl := pluginHostCtrlObj.(*plugin_host_controller.Controller)
 
 	return &DistBus{
 		ctx:                 ctx,
@@ -253,7 +246,7 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels: []func(){
-			pluginHostRef.Release,
+			pluginHostRel,
 			worldCtrlRef.Release,
 			nodeCtrlRef.Release,
 			relLookupCtrl,

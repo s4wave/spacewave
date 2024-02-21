@@ -22,6 +22,11 @@ import {
   CreateWebViewRequest,
   CreateWebViewResponse,
   WebDocumentHostClientImpl,
+  CreateWebWorkerRequest,
+  CreateWebWorkerResponse,
+  RemoveWebWorkerRequest,
+  RemoveWebWorkerResponse,
+  WebWorkerStatus,
 } from '../document/document.pb.js'
 import {
   WebRuntimeClientInit,
@@ -45,6 +50,8 @@ import {
   ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
   WebDocumentToServiceWorker,
+  WebDocumentToWebWorker,
+  WebWorkerToWebDocument,
 } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
@@ -71,6 +78,59 @@ const runtimeJsURL = new URL(
     '/runtime/runtime-wasm.js',
   baseURL,
 )
+
+// WebDocumentWebWorker tracks a WebWorker associated with a WebDocument.
+class WebDocumentWebWorker {
+  // worker is the instance of the worker if !shared
+  public readonly worker?: Worker
+  // sharedWorker is the instance of the worker if shared
+  public readonly sharedWorker?: SharedWorker
+  // port is the MessagePort passed to the Worker on startup
+  public readonly port: MessagePort
+
+  public get isShared() {
+    return !!this.sharedWorker
+  }
+
+  constructor(
+    public readonly id: string,
+    public readonly url: string,
+    public readonly webDocumentUuid: string,
+    onWebWorkerMessage: (e: MessageEvent<WebWorkerToWebDocument>) => void,
+  ) {
+    if (!id) {
+      throw new Error('empty web worker id')
+    }
+    if (!url) {
+      throw new Error('web worker url must be set')
+    }
+
+    const { port1: localPort, port2: workerPort } = new MessageChannel()
+    const init: WebDocumentToWebWorker = {
+      to: id,
+      from: webDocumentUuid,
+      initPort: workerPort,
+    }
+    if (typeof SharedWorker !== 'undefined') {
+      this.sharedWorker = new SharedWorker(url, { name: id })
+      this.sharedWorker.port.postMessage(init, [workerPort])
+    } else {
+      this.worker = new Worker(url, { name: id })
+      this.worker.postMessage(init, [workerPort])
+    }
+
+    this.port = localPort
+    this.port.addEventListener('message', onWebWorkerMessage)
+    this.port.start()
+  }
+
+  // close closes our connection to the worker.
+  public close() {
+    // send a message to the worker to shutdown cleanly.
+    this.port.postMessage('close')
+    this.port.close()
+  }
+}
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
 class WebDocumentWebView implements WebViewService {
@@ -160,6 +220,20 @@ class WebDocumentImpl implements WebDocumentService {
     return await createWebView(request)
   }
 
+  // CreateWebWorker creates a new WebWorker.
+  public async CreateWebWorker(
+    request: CreateWebWorkerRequest,
+  ): Promise<CreateWebWorkerResponse> {
+    return this.webDocument.createWebWorker(request)
+  }
+
+  // RemoveWebWorker removes the WebWorker.
+  public async RemoveWebWorker(
+    request: RemoveWebWorkerRequest,
+  ): Promise<RemoveWebWorkerResponse> {
+    return this.webDocument.removeWebWorker(request)
+  }
+
   // WatchWebDocumentStatus returns an initial snapshot of web views followed by updates.
   public WatchWebDocumentStatus(): AsyncIterable<WebDocumentStatus> {
     return this.webDocument.webStatusStream.getIterable()
@@ -220,6 +294,8 @@ export class WebDocument {
 
   // webViews contains the list of associated web views by ID.
   private webViews: { [id: string]: WebDocumentWebView }
+  // webWorkers contains the list of running web workers by id.
+  private webWorkers: { [id: string]: WebDocumentWebWorker }
   // webStatusStream is a stream of web status updates.
   public readonly webStatusStream: ItState<WebDocumentStatus>
 
@@ -258,6 +334,7 @@ export class WebDocument {
       this.isElectron = true
     }
     this.webViews = {}
+    this.webWorkers = {}
     if (opts?.disableStoragePersist) {
       this.disableStoragePersist = true
     }
@@ -282,7 +359,7 @@ export class WebDocument {
     const webDocument: WebDocumentService = new WebDocumentImpl(
       this.webRuntimeId,
       this,
-      opts?.createWebViewCb || null,
+      opts?.createWebViewCb ?? null,
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
     this.server = new Server(mux.lookupMethodFunc)
@@ -448,8 +525,6 @@ export class WebDocument {
   }
 
   // buildWebDocumentStatusSnapshot builds a snapshot of the status.
-  // if allWorkers is set, includes web views from other active workers.
-  // prevents duplicate web view entries
   public async buildWebDocumentStatusSnapshot(): Promise<WebDocumentStatus> {
     const webViews: WebViewStatus[] = []
     for (const webViewId of Object.keys(this.webViews)) {
@@ -459,10 +534,55 @@ export class WebDocument {
       }
     }
     webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
+
+    const webWorkers: WebWorkerStatus[] = Object.keys(this.webWorkers).map(
+      (id) => ({
+        id,
+        deleted: false,
+        shared: this.webWorkers[id].isShared,
+      }),
+    )
+
     return {
       snapshot: true,
       webViews,
+      webWorkers,
     }
+  }
+
+  // createWebWorker spawns a web worker per request of the web runtime.
+  public createWebWorker(
+    request: CreateWebWorkerRequest,
+  ): CreateWebWorkerResponse {
+    const old = this.webWorkers[request.id]
+    if (old) {
+      old.close()
+    }
+
+    const worker = new WebDocumentWebWorker(
+      request.id,
+      request.url,
+      this.webDocumentUuid,
+      this.onWebWorkerMessage.bind(this, request.id),
+    )
+    this.webWorkers[request.id] = worker
+
+    const shared = worker.isShared
+    this.notifyWebWorkerUpdated(request.id, false, shared)
+    return { created: true, shared }
+  }
+
+  // removeWebWorker removes a web worker per request of the web runtime.
+  public removeWebWorker(
+    request: RemoveWebWorkerRequest,
+  ): RemoveWebWorkerResponse {
+    const old = this.webWorkers[request.id]
+    if (old) {
+      old.close()
+      delete this.webWorkers[request.id]
+      this.notifyWebWorkerUpdated(request.id, true, old.isShared)
+    }
+    return { removed: !!old }
   }
 
   // close shuts down the WebDocument with an optional error.
@@ -566,7 +686,28 @@ export class WebDocument {
 
     const webStatus: WebDocumentStatus = {
       snapshot: false,
+      webWorkers: [],
       webViews: [buildWebViewStatus(webViewId, webView)],
+    }
+    this.webStatusStream.pushChangeEvent(webStatus)
+  }
+
+  // notifyWebWorkerUpdated notifies all subscribers that the web worker was updated.
+  private notifyWebWorkerUpdated(
+    webWorkerId: string,
+    deleted: boolean,
+    shared: boolean,
+  ) {
+    const webStatus: WebDocumentStatus = {
+      snapshot: false,
+      webViews: [],
+      webWorkers: [
+        {
+          id: webWorkerId,
+          deleted,
+          shared,
+        },
+      ],
     }
     this.webStatusStream.pushChangeEvent(webStatus)
   }
@@ -637,20 +778,40 @@ export class WebDocument {
       return
     }
     if (data.connectWebRuntime && event.ports?.length) {
-      this.handleServiceWorkerConnectWebRuntime(
+      this.handleClientConnectWebRuntime(
         data.from,
+        WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
         data.connectWebRuntime,
       )
     }
   }
 
-  // handleServiceWorkerConnectWebRuntime handles a ServiceWorker requesting a connection with the WebRuntime.
-  private async handleServiceWorkerConnectWebRuntime(
-    id: string,
+  // onWebWorkerMessage handles an incoming web worker message.
+  private onWebWorkerMessage(
+    workerID: string,
+    event: MessageEvent<WebWorkerToWebDocument>,
+  ) {
+    const data = event.data
+    if (!data) {
+      return
+    }
+    if (data.connectWebRuntime && event.ports?.length) {
+      this.handleClientConnectWebRuntime(
+        workerID,
+        WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+        data.connectWebRuntime,
+      )
+    }
+  }
+
+  // handleClientConnectWebRuntime handles a request to connect with the WebRuntime.
+  private async handleClientConnectWebRuntime(
+    clientUuid: string,
+    clientType: WebRuntimeClientType,
     port: MessagePort,
   ) {
     // we don't expect any replies
-    console.log(`WebDocument: connecting ServiceWorker to WebRuntime: ${id}`)
+    console.log(`WebDocument: connecting client to WebRuntime: ${clientUuid}`)
     port.start()
 
     // Ack we are opening the channel and pass the MessagePort to use.
@@ -666,8 +827,8 @@ export class WebDocument {
     this.sendWebRuntimeOpenClient(
       {
         webRuntimeId: this.webRuntimeId,
-        clientUuid: id,
-        clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+        clientUuid,
+        clientType,
       },
       webRuntimePort,
     )

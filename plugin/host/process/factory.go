@@ -1,3 +1,5 @@
+//go:build !js
+
 package plugin_host_process
 
 import (

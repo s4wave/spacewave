@@ -13,6 +13,8 @@ export enum WebRuntimeClientType {
   WebRuntimeClientType_WEB_DOCUMENT = 1,
   /** WebRuntimeClientType_SERVICE_WORKER - WebRuntimeClientType_SERVICE_WORKER is the ServiceWorker type. */
   WebRuntimeClientType_SERVICE_WORKER = 2,
+  /** WebRuntimeClientType_WEB_WORKER - WebRuntimeClientType_WEB_WORKER is the WebWorker type. */
+  WebRuntimeClientType_WEB_WORKER = 3,
   UNRECOGNIZED = -1,
 }
 
@@ -29,6 +31,9 @@ export function webRuntimeClientTypeFromJSON(
     case 2:
     case 'WebRuntimeClientType_SERVICE_WORKER':
       return WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER
+    case 3:
+    case 'WebRuntimeClientType_WEB_WORKER':
+      return WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -46,6 +51,8 @@ export function webRuntimeClientTypeToJSON(
       return 'WebRuntimeClientType_WEB_DOCUMENT'
     case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
       return 'WebRuntimeClientType_SERVICE_WORKER'
+    case WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER:
+      return 'WebRuntimeClientType_WEB_WORKER'
     case WebRuntimeClientType.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'
@@ -99,7 +106,7 @@ export interface CreateWebDocumentRequest {
 /** CreateWebDocumentResponse is the response to the CreateWebDocument request. */
 export interface CreateWebDocumentResponse {
   /**
-   * Removed indicates the WebDocument was created.
+   * Created indicates the WebDocument was created.
    * If this is not set, assumes we cannot create WebDocuments.
    */
   created: boolean
@@ -107,7 +114,7 @@ export interface CreateWebDocumentResponse {
 
 /** RemoveWebDocumentRequest is a request to remove a WebDocument. */
 export interface RemoveWebDocumentRequest {
-  /** id is the identifier for the WebDocument. */
+  /** Id is the identifier for the WebDocument. */
   id: string
 }
 
@@ -1275,7 +1282,7 @@ export const WebRuntimeHostDefinition = {
  * Usually accessed by the WebRuntimeHost.
  */
 export interface WebRuntime {
-  /** WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates. */
+  /** WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates. */
   WatchWebRuntimeStatus(
     request: WatchWebRuntimeStatusRequest,
     abortSignal?: AbortSignal,
@@ -1392,7 +1399,7 @@ export const WebRuntimeDefinition = {
   name: 'WebRuntime',
   fullName: 'web.runtime.WebRuntime',
   methods: {
-    /** WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates. */
+    /** WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates. */
     watchWebRuntimeStatus: {
       name: 'WatchWebRuntimeStatus',
       requestType: WatchWebRuntimeStatusRequest,

@@ -190,7 +190,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		return
 	}
 
-	// TODO: /b/dist/ is for Web plugin distribution files
+	// TODO: /b/pd/ is for Web plugin distribution files
 	if strings.HasPrefix(rpath, "/b/") {
 		// Return a 501 for now.
 		// rw.WriteHeader(200)

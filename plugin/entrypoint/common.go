@@ -328,3 +328,26 @@ func PluginDevInfoFromFile(filePath string) (*vardef.PluginDevInfo, error) {
 	}
 	return info, nil
 }
+
+// UnmarshalPluginStartInfo unmarshals the plugin start information.
+func UnmarshalPluginStartInfo(
+	pluginStartInfoB58,
+	pluginMetaB58 string,
+) (
+	*bldr_plugin.PluginStartInfo,
+	*bldr_plugin.PluginMeta,
+	error,
+) {
+	pluginMeta, err := bldr_plugin.UnmarshalPluginMetaB58(pluginMetaB58)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pluginStartInfo, err := bldr_plugin.UnmarshalPluginStartInfoB58(pluginStartInfoB58)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return pluginStartInfo, pluginMeta, nil
+
+}

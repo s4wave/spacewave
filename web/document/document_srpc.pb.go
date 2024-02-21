@@ -177,6 +177,8 @@ type SRPCWebDocumentClient interface {
 	WatchWebDocumentStatus(ctx context.Context, in *WatchWebDocumentStatusRequest) (SRPCWebDocument_WatchWebDocumentStatusClient, error)
 	CreateWebView(ctx context.Context, in *CreateWebViewRequest) (*CreateWebViewResponse, error)
 	WebViewRpc(ctx context.Context) (SRPCWebDocument_WebViewRpcClient, error)
+	CreateWebWorker(ctx context.Context, in *CreateWebWorkerRequest) (*CreateWebWorkerResponse, error)
+	RemoveWebWorker(ctx context.Context, in *RemoveWebWorkerRequest) (*RemoveWebWorkerResponse, error)
 }
 
 type srpcWebDocumentClient struct {
@@ -279,10 +281,30 @@ func (x *srpcWebDocument_WebViewRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) 
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWebDocumentClient) CreateWebWorker(ctx context.Context, in *CreateWebWorkerRequest) (*CreateWebWorkerResponse, error) {
+	out := new(CreateWebWorkerResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CreateWebWorker", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWebDocumentClient) RemoveWebWorker(ctx context.Context, in *RemoveWebWorkerRequest) (*RemoveWebWorkerResponse, error) {
+	out := new(RemoveWebWorkerResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveWebWorker", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCWebDocumentServer interface {
 	WatchWebDocumentStatus(*WatchWebDocumentStatusRequest, SRPCWebDocument_WatchWebDocumentStatusStream) error
 	CreateWebView(context.Context, *CreateWebViewRequest) (*CreateWebViewResponse, error)
 	WebViewRpc(SRPCWebDocument_WebViewRpcStream) error
+	CreateWebWorker(context.Context, *CreateWebWorkerRequest) (*CreateWebWorkerResponse, error)
+	RemoveWebWorker(context.Context, *RemoveWebWorkerRequest) (*RemoveWebWorkerResponse, error)
 }
 
 type SRPCWebDocumentUnimplementedServer struct{}
@@ -297,6 +319,14 @@ func (s *SRPCWebDocumentUnimplementedServer) CreateWebView(context.Context, *Cre
 
 func (s *SRPCWebDocumentUnimplementedServer) WebViewRpc(SRPCWebDocument_WebViewRpcStream) error {
 	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebDocumentUnimplementedServer) CreateWebWorker(context.Context, *CreateWebWorkerRequest) (*CreateWebWorkerResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebDocumentUnimplementedServer) RemoveWebWorker(context.Context, *RemoveWebWorkerRequest) (*RemoveWebWorkerResponse, error) {
+	return nil, srpc.ErrUnimplemented
 }
 
 const SRPCWebDocumentServiceID = "web.document.WebDocument"
@@ -328,6 +358,8 @@ func (SRPCWebDocumentHandler) GetMethodIDs() []string {
 		"WatchWebDocumentStatus",
 		"CreateWebView",
 		"WebViewRpc",
+		"CreateWebWorker",
+		"RemoveWebWorker",
 	}
 }
 
@@ -346,6 +378,10 @@ func (d *SRPCWebDocumentHandler) InvokeMethod(
 		return true, d.InvokeMethod_CreateWebView(d.impl, strm)
 	case "WebViewRpc":
 		return true, d.InvokeMethod_WebViewRpc(d.impl, strm)
+	case "CreateWebWorker":
+		return true, d.InvokeMethod_CreateWebWorker(d.impl, strm)
+	case "RemoveWebWorker":
+		return true, d.InvokeMethod_RemoveWebWorker(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -375,6 +411,30 @@ func (SRPCWebDocumentHandler) InvokeMethod_CreateWebView(impl SRPCWebDocumentSer
 func (SRPCWebDocumentHandler) InvokeMethod_WebViewRpc(impl SRPCWebDocumentServer, strm srpc.Stream) error {
 	clientStrm := &srpcWebDocument_WebViewRpcStream{strm}
 	return impl.WebViewRpc(clientStrm)
+}
+
+func (SRPCWebDocumentHandler) InvokeMethod_CreateWebWorker(impl SRPCWebDocumentServer, strm srpc.Stream) error {
+	req := new(CreateWebWorkerRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CreateWebWorker(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWebDocumentHandler) InvokeMethod_RemoveWebWorker(impl SRPCWebDocumentServer, strm srpc.Stream) error {
+	req := new(RemoveWebWorkerRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveWebWorker(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 type SRPCWebDocument_WatchWebDocumentStatusStream interface {
@@ -442,4 +502,20 @@ func (x *srpcWebDocument_WebViewRpcStream) Recv() (*rpcstream.RpcStreamPacket, e
 
 func (x *srpcWebDocument_WebViewRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgRecv(m)
+}
+
+type SRPCWebDocument_CreateWebWorkerStream interface {
+	srpc.Stream
+}
+
+type srpcWebDocument_CreateWebWorkerStream struct {
+	srpc.Stream
+}
+
+type SRPCWebDocument_RemoveWebWorkerStream interface {
+	srpc.Stream
+}
+
+type srpcWebDocument_RemoveWebWorkerStream struct {
+	srpc.Stream
 }

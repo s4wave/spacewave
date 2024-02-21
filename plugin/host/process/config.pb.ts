@@ -1,53 +1,15 @@
 /* eslint-disable */
-import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
+import { Config as Config1 } from "../controller/config.pb.js";
 
 export const protobufPackage = "plugin.host.process";
 
 /** Config is the Process PluginHost controller configuration. */
 export interface Config {
-  /** EngineId is the world engine id to attach to. */
-  engineId: string;
-  /**
-   * ObjectKey is the root object to attach to.
-   * If not exists, waits for it to exist.
-   *
-   * Searches for <manifest> links from this object.
-   */
-  objectKey: string;
-  /** PeerId is the peer ID to use for world transactions. */
-  peerId: string;
-  /**
-   * VolumeId is the identifier of the volume on the plugin host bus.
-   * This volume is available for the plugin to use via the volume proxy.
-   */
-  volumeId: string;
-  /**
-   * AlwaysFetchManifest will always create a FetchManifest directive even if
-   * the manifest already exists. Used in dev mode.
-   */
-  alwaysFetchManifest: boolean;
-  /**
-   * DisableStoreManifest disables storing manifests fetched with FetchManifest.
-   * This is used if we are watching the same world as the manifest compiler.
-   */
-  disableStoreManifest: boolean;
-  /**
-   * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
-   * If zero, uses no limit to the number of concurrent fetches.
-   *
-   * Note: the concurrency is limited by the number of blocks that we have seen
-   * so far. Fetches blocks, then the references those blocks reference. We only
-   * know about the blocks on the frontier of the blocks fetched so far.
-   */
-  fetchConcurrency: number;
-  /**
-   * FetchBackoff is the backoff config for fetching plugin manifests.
-   * If unset, defaults to reasonable defaults.
-   */
-  fetchBackoff:
-    | Backoff
+  /** HostConfig configures the plugin host controller. */
+  hostConfig:
+    | Config1
     | undefined;
   /** StateDir is the directory to use for state. */
   stateDir: string;
@@ -56,51 +18,19 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return {
-    engineId: "",
-    objectKey: "",
-    peerId: "",
-    volumeId: "",
-    alwaysFetchManifest: false,
-    disableStoreManifest: false,
-    fetchConcurrency: 0,
-    fetchBackoff: undefined,
-    stateDir: "",
-    distDir: "",
-  };
+  return { hostConfig: undefined, stateDir: "", distDir: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.engineId !== "") {
-      writer.uint32(10).string(message.engineId);
-    }
-    if (message.objectKey !== "") {
-      writer.uint32(18).string(message.objectKey);
-    }
-    if (message.peerId !== "") {
-      writer.uint32(26).string(message.peerId);
-    }
-    if (message.volumeId !== "") {
-      writer.uint32(34).string(message.volumeId);
-    }
-    if (message.alwaysFetchManifest === true) {
-      writer.uint32(40).bool(message.alwaysFetchManifest);
-    }
-    if (message.disableStoreManifest === true) {
-      writer.uint32(48).bool(message.disableStoreManifest);
-    }
-    if (message.fetchConcurrency !== 0) {
-      writer.uint32(56).uint32(message.fetchConcurrency);
-    }
-    if (message.fetchBackoff !== undefined) {
-      Backoff.encode(message.fetchBackoff, writer.uint32(66).fork()).ldelim();
+    if (message.hostConfig !== undefined) {
+      Config1.encode(message.hostConfig, writer.uint32(10).fork()).ldelim();
     }
     if (message.stateDir !== "") {
-      writer.uint32(74).string(message.stateDir);
+      writer.uint32(18).string(message.stateDir);
     }
     if (message.distDir !== "") {
-      writer.uint32(82).string(message.distDir);
+      writer.uint32(26).string(message.distDir);
     }
     return writer;
   },
@@ -117,66 +47,17 @@ export const Config = {
             break;
           }
 
-          message.engineId = reader.string();
+          message.hostConfig = Config1.decode(reader, reader.uint32());
           continue;
         case 2:
           if (tag !== 18) {
             break;
           }
 
-          message.objectKey = reader.string();
+          message.stateDir = reader.string();
           continue;
         case 3:
           if (tag !== 26) {
-            break;
-          }
-
-          message.peerId = reader.string();
-          continue;
-        case 4:
-          if (tag !== 34) {
-            break;
-          }
-
-          message.volumeId = reader.string();
-          continue;
-        case 5:
-          if (tag !== 40) {
-            break;
-          }
-
-          message.alwaysFetchManifest = reader.bool();
-          continue;
-        case 6:
-          if (tag !== 48) {
-            break;
-          }
-
-          message.disableStoreManifest = reader.bool();
-          continue;
-        case 7:
-          if (tag !== 56) {
-            break;
-          }
-
-          message.fetchConcurrency = reader.uint32();
-          continue;
-        case 8:
-          if (tag !== 66) {
-            break;
-          }
-
-          message.fetchBackoff = Backoff.decode(reader, reader.uint32());
-          continue;
-        case 9:
-          if (tag !== 74) {
-            break;
-          }
-
-          message.stateDir = reader.string();
-          continue;
-        case 10:
-          if (tag !== 82) {
             break;
           }
 
@@ -225,16 +106,7 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      engineId: isSet(object.engineId) ? globalThis.String(object.engineId) : "",
-      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
-      peerId: isSet(object.peerId) ? globalThis.String(object.peerId) : "",
-      volumeId: isSet(object.volumeId) ? globalThis.String(object.volumeId) : "",
-      alwaysFetchManifest: isSet(object.alwaysFetchManifest) ? globalThis.Boolean(object.alwaysFetchManifest) : false,
-      disableStoreManifest: isSet(object.disableStoreManifest)
-        ? globalThis.Boolean(object.disableStoreManifest)
-        : false,
-      fetchConcurrency: isSet(object.fetchConcurrency) ? globalThis.Number(object.fetchConcurrency) : 0,
-      fetchBackoff: isSet(object.fetchBackoff) ? Backoff.fromJSON(object.fetchBackoff) : undefined,
+      hostConfig: isSet(object.hostConfig) ? Config1.fromJSON(object.hostConfig) : undefined,
       stateDir: isSet(object.stateDir) ? globalThis.String(object.stateDir) : "",
       distDir: isSet(object.distDir) ? globalThis.String(object.distDir) : "",
     };
@@ -242,29 +114,8 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    if (message.engineId !== "") {
-      obj.engineId = message.engineId;
-    }
-    if (message.objectKey !== "") {
-      obj.objectKey = message.objectKey;
-    }
-    if (message.peerId !== "") {
-      obj.peerId = message.peerId;
-    }
-    if (message.volumeId !== "") {
-      obj.volumeId = message.volumeId;
-    }
-    if (message.alwaysFetchManifest === true) {
-      obj.alwaysFetchManifest = message.alwaysFetchManifest;
-    }
-    if (message.disableStoreManifest === true) {
-      obj.disableStoreManifest = message.disableStoreManifest;
-    }
-    if (message.fetchConcurrency !== 0) {
-      obj.fetchConcurrency = Math.round(message.fetchConcurrency);
-    }
-    if (message.fetchBackoff !== undefined) {
-      obj.fetchBackoff = Backoff.toJSON(message.fetchBackoff);
+    if (message.hostConfig !== undefined) {
+      obj.hostConfig = Config1.toJSON(message.hostConfig);
     }
     if (message.stateDir !== "") {
       obj.stateDir = message.stateDir;
@@ -280,15 +131,8 @@ export const Config = {
   },
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.engineId = object.engineId ?? "";
-    message.objectKey = object.objectKey ?? "";
-    message.peerId = object.peerId ?? "";
-    message.volumeId = object.volumeId ?? "";
-    message.alwaysFetchManifest = object.alwaysFetchManifest ?? false;
-    message.disableStoreManifest = object.disableStoreManifest ?? false;
-    message.fetchConcurrency = object.fetchConcurrency ?? 0;
-    message.fetchBackoff = (object.fetchBackoff !== undefined && object.fetchBackoff !== null)
-      ? Backoff.fromPartial(object.fetchBackoff)
+    message.hostConfig = (object.hostConfig !== undefined && object.hostConfig !== null)
+      ? Config1.fromPartial(object.hostConfig)
       : undefined;
     message.stateDir = object.stateDir ?? "";
     message.distDir = object.distDir ?? "";

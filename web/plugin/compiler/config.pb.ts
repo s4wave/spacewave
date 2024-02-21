@@ -35,7 +35,10 @@ export interface Config {
    * If not found, defaults to electron@latest.
    */
   electronPkg: string
-  /** BuildTypes contains a mapping of BuildType to Config override. */
+  /**
+   * BuildTypes contains a mapping of BuildType to Config override.
+   * NOTE: electronPkg is ignored.
+   */
   buildTypes: { [key: string]: Config }
 }
 
