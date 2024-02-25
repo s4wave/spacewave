@@ -21,6 +21,7 @@ replace (
 	github.com/dgraph-io/badger/v4 => github.com/paralin/badger/v4 v4.2.1-0.20240221040732-078580f8a58a // fix-wasm
 	// https://github.com/dgraph-io/ristretto/pull/375
 	github.com/dgraph-io/ristretto => github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8 // fix-wasm
+	github.com/go-git/go-billy/v5 => github.com/paralin/go-billy/v5 v5.5.1-0.20240225054224-3fbf975de769 // js
 	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
 	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 // aperture
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
@@ -64,10 +65,10 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.34.4 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1
-	github.com/aperturerobotics/starpc v0.26.0 // latest
-	github.com/aperturerobotics/timestamp v0.8.2
+	github.com/aperturerobotics/starpc v0.26.1 // latest
+	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.13.7 // master
+	github.com/aperturerobotics/util v1.13.8 // master
 )
 
 // aperture: use compatibility forks

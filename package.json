@@ -46,7 +46,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
     "depcheck": "^1.4.7",
-    "eslint": "^8.56.0",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
@@ -59,7 +59,7 @@
     "bufferutil": "^4.0.8",
     "long": "^5.2.3",
     "protobufjs": "^7.2.5",
-    "starpc": "^0.26.0",
+    "starpc": "^0.26.1",
     "utf-8-validate": "^6.0.3"
   }
 }
