@@ -25,6 +25,12 @@ type Volume struct {
 	kvtxStore kvtx.Store
 }
 
+// KvtxVolume is an interface for a volume with a kvtx store.
+type KvtxVolume interface {
+	// GetKvtxStore returns the underlying kvtx store.
+	GetKvtxStore() kvtx.Store
+}
+
 // NewVolume builds a new key/value volume.
 //
 // store /may/ optionally also be a store_kvtx.Store.
@@ -107,4 +113,7 @@ func (v *Volume) Close() error {
 }
 
 // _ is a type assertion
-var _ volume.Volume = ((*Volume)(nil))
+var (
+	_ volume.Volume = ((*Volume)(nil))
+	_ KvtxVolume    = ((*Volume)(nil))
+)

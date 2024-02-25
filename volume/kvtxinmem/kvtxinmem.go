@@ -7,6 +7,7 @@ import (
 	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 	sinmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
+	"github.com/aperturerobotics/hydra/volume"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -47,3 +48,9 @@ func NewKVTxInmem(
 		conf.GetNoWriteKey(),
 	)
 }
+
+// _ is a type assertion
+var (
+	_ volume.Volume          = ((*KVTxInmem)(nil))
+	_ common_kvtx.KvtxVolume = ((*KVTxInmem)(nil))
+)
