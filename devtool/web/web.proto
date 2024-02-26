@@ -1,0 +1,10 @@
+syntax = "proto3";
+package devtool.web;
+
+// DevtoolInitBrowser is the message initializing the browser from the devtool.
+message DevtoolInitBrowser {
+  // AppId is the application id for browser storage.
+  string app_id = 1;
+  // DevtoolPeerId is the peer id to use for the devtool link.
+  string devtool_peer_id = 2;
+}

@@ -22,7 +22,14 @@ var webEntrypointBrowserDir = "web/entrypoint/browser"
 // BuildWasmRuntime builds the Wasm runtime entrypoint.
 //
 // builds to buildDir/runtime-wasm.js
-func BuildWasmRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, entrypointPkg string, minify bool) error {
+func BuildWasmRuntime(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot string,
+	buildDir string,
+	entrypointPkg string,
+	minify bool,
+) error {
 	le.Info("building runtime-wasm.js")
 	goRootDir := runtime.GOROOT()
 	wasmExecFile := filepath.Join(goRootDir, "misc/wasm/wasm_exec.js")

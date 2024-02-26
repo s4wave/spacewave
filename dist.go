@@ -21,7 +21,7 @@ import (
 //go:embed web/runtime/wasm/go-process.ts
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
-//go:embed devtool/entrypoint/deps.go devtool/entrypoint/browser/browser.go
+//go:embed devtool/deps.go devtool/web/entrypoint/web.go
 //go:embed dist/deps/deps.go dist/deps/package.json
 //go:embed .vscode/launch.json
 //go:embed README.md tsconfig.json go.mod go.sum global.d.ts
