@@ -1,4 +1,4 @@
-package manifest_fetch_plugin
+package manifest_fetch_rpc
 
 import (
 	"context"
@@ -13,12 +13,12 @@ import (
 )
 
 // ControllerID is the controller ID.
-const ControllerID = "bldr/manifest/fetch/plugin"
+const ControllerID = "bldr/manifest/fetch/rpc"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")
 
-// Controller fetches Manifests via the ManifestFetch service on a loaded plugin.
+// Controller fetches Manifests via the ManifestFetch service.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -52,7 +52,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"fetches manifests via plugin: "+c.conf.GetPluginId(),
+		"fetches manifests via rpc",
 	)
 }
 
@@ -72,6 +72,28 @@ func (c *Controller) HandleDirective(
 		return directive.R(c.resolveFetchManifest(ctx, inst, d))
 	}
 	return nil, nil
+}
+
+// FetchManifest fetches a manifest, yielding the FetchManifestResponse.
+// Loads the configured plugin and uses its RPC service to fetch.
+// if returnIfIdle is set, returns an error if the directive becomes idle (not found)
+// Returns if context is canceled.
+func (c *Controller) FetchManifest(
+	ctx context.Context,
+	dir manifest.FetchManifest,
+	hnd directive.ResolverHandler,
+	returnOnIdle bool,
+) error {
+	return manifest.FetchManifestViaRpcLookupClientSet(
+		ctx,
+		c.bus,
+		dir,
+		c.conf.GetServiceId(),
+		c.conf.GetClientId(),
+		true,
+		hnd,
+		returnOnIdle,
+	)
 }
 
 // Close releases any resources used by the controller.

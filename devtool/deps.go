@@ -7,6 +7,8 @@ package devtool
 import (
 	// _ imports the browser entrypoint
 	_ "github.com/aperturerobotics/bldr/devtool/web/entrypoint"
+	// _ imports the browser entrypoint controller
+	_ "github.com/aperturerobotics/bldr/devtool/web/entrypoint/controller"
 	// _ imports the browser init msgs
 	_ "github.com/aperturerobotics/bldr/devtool/web"
 )

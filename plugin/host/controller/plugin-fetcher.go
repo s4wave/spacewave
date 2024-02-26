@@ -21,7 +21,7 @@ type pluginManifestFetcher struct {
 	// pluginID is the plugin id
 	pluginID string
 	// resultPromise contains the result of the fetcher
-	resultPromise *promise.PromiseContainer[*bldr_manifest.FetchManifestResponse]
+	resultPromise *promise.PromiseContainer[*bldr_manifest.FetchManifestValue]
 }
 
 // newPluginManifestFetcher constructs a new plugin manifest fetcher routine.
@@ -29,7 +29,7 @@ func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *
 	tr := &pluginManifestFetcher{
 		c:             c,
 		pluginID:      pluginID,
-		resultPromise: promise.NewPromiseContainer[*bldr_manifest.FetchManifestResponse](),
+		resultPromise: promise.NewPromiseContainer[*bldr_manifest.FetchManifestValue](),
 	}
 	return tr.execute, tr
 }
@@ -75,7 +75,7 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 		ctx,
 		t.c.le.WithField("plugin-id", t.pluginID),
 		func(ctx context.Context, success func()) error {
-			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestResponse]()
+			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestValue]()
 			t.resultPromise.SetPromise(resultProm)
 			resp, err := t.fetchManifest(ctx, meta)
 			if err == nil {
@@ -96,7 +96,7 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 }
 
 // fetchManifest attempts to fetch the manifest.
-func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestResponse, error) {
+func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestValue, error) {
 	le := t.c.le
 	le.Debugf("starting plugin manifest fetcher: %s", meta.GetManifestId())
 
@@ -123,7 +123,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 
 	if t.c.conf.GetDisableStoreManifest() {
 		pluginManifestRef.Meta.Logger(le).Debug("skipping storing fetched manifest")
-		return &bldr_manifest.FetchManifestResponse{ManifestRef: pluginManifestRef}, nil
+		return bldr_manifest.NewFetchManifestValue(pluginManifestRef), nil
 	}
 
 	// use an empty volume ID to allow cross-volume lookup of manifest contents
@@ -242,5 +242,5 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 	}
 
 	le.Infof("successfully fetched manifest for plugin: %s", t.pluginID)
-	return &bldr_manifest.FetchManifestResponse{ManifestRef: storedManifestRef}, nil
+	return bldr_manifest.NewFetchManifestValue(storedManifestRef), nil
 }

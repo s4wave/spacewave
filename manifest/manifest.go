@@ -37,6 +37,16 @@ func (f *FetchManifestRequest) Validate(allowEmptyID bool) error {
 
 // Validate validates the FetchManifest response.
 func (r *FetchManifestResponse) Validate() error {
+	if !r.GetRemoved() && r.GetValueId() != 0 {
+		if err := r.GetValue().Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Validate validates the FetchManifestValue.
+func (r *FetchManifestValue) Validate() error {
 	if r.GetManifestRef().GetEmpty() {
 		return errors.New("manifest_ref: cannot be empty")
 	}

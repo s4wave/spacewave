@@ -76,7 +76,7 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
-// FetchManifest fetches a manifest, yielding the FetchManifestResponse.
+// FetchManifest fetches a manifest, yielding the FetchManifestValue.
 // if returnIfIdle is set, returns an error if the directive becomes idle (not found)
 // Returns nil, nil if not found.
 // Returns if context is canceled.
@@ -84,7 +84,7 @@ func (c *Controller) FetchManifest(
 	rctx context.Context,
 	manifestMeta *manifest.ManifestMeta,
 	returnIfIdle bool,
-) (*manifest.FetchManifestResponse, error) {
+) (*manifest.FetchManifestValue, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
@@ -120,9 +120,9 @@ func (c *Controller) FetchManifest(
 	// take the first manifest only
 	if len(manifests) != 0 {
 		selManifest := manifests[0]
-		return &manifest.FetchManifestResponse{
-			ManifestRef: manifest.NewManifestRef(selManifest.Manifest.Meta, selManifest.ManifestRef),
-		}, nil
+		return manifest.NewFetchManifestValue(
+			manifest.NewManifestRef(selManifest.Manifest.Meta, selManifest.ManifestRef),
+		), nil
 	}
 
 	return nil, nil

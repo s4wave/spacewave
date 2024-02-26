@@ -349,8 +349,8 @@ func (x *FetchManifestRequest) GetManifestMeta() *ManifestMeta {
 	return nil
 }
 
-// FetchManifestResponse is a response to a FetchManifest request.
-type FetchManifestResponse struct {
+// FetchManifestValue is the result of the FetchManifest directive.
+type FetchManifestValue struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -359,10 +359,65 @@ type FetchManifestResponse struct {
 	ManifestRef *ManifestRef `protobuf:"bytes,1,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifest_ref,omitempty"`
 }
 
+func (x *FetchManifestValue) Reset() {
+	*x = FetchManifestValue{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchManifestValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchManifestValue) ProtoMessage() {}
+
+func (x *FetchManifestValue) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchManifestValue.ProtoReflect.Descriptor instead.
+func (*FetchManifestValue) Descriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *FetchManifestValue) GetManifestRef() *ManifestRef {
+	if x != nil {
+		return x.ManifestRef
+	}
+	return nil
+}
+
+// FetchManifestResponse is a response to a FetchManifest request.
+type FetchManifestResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// ValueId is set to a non-zero integer w/ the value ID.
+	ValueId uint32 `protobuf:"varint,1,opt,name=value_id,json=valueId,proto3" json:"value_id,omitempty"`
+	// Value is the value if we are adding a value.
+	Value *FetchManifestValue `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	// Removed indicates removal of the value with value_id.
+	Removed bool `protobuf:"varint,3,opt,name=removed,proto3" json:"removed,omitempty"`
+	// Idle indicates the directive is now idle (no resolvers are running).
+	Idle bool `protobuf:"varint,4,opt,name=idle,proto3" json:"idle,omitempty"`
+}
+
 func (x *FetchManifestResponse) Reset() {
 	*x = FetchManifestResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[5]
+		mi := &file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -375,7 +430,7 @@ func (x *FetchManifestResponse) String() string {
 func (*FetchManifestResponse) ProtoMessage() {}
 
 func (x *FetchManifestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[5]
+	mi := &file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -388,14 +443,35 @@ func (x *FetchManifestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchManifestResponse.ProtoReflect.Descriptor instead.
 func (*FetchManifestResponse) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDescGZIP(), []int{5}
+	return file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *FetchManifestResponse) GetManifestRef() *ManifestRef {
+func (x *FetchManifestResponse) GetValueId() uint32 {
 	if x != nil {
-		return x.ManifestRef
+		return x.ValueId
+	}
+	return 0
+}
+
+func (x *FetchManifestResponse) GetValue() *FetchManifestValue {
+	if x != nil {
+		return x.Value
 	}
 	return nil
+}
+
+func (x *FetchManifestResponse) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
+}
+
+func (x *FetchManifestResponse) GetIdle() bool {
+	if x != nil {
+		return x.Idle
+	}
+	return false
 }
 
 var File_github_com_aperturerobotics_bldr_manifest_manifest_proto protoreflect.FileDescriptor
@@ -457,20 +533,30 @@ var file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDesc = []by
 	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x5f, 0x6d, 0x65, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x0b, 0x32, 0x1b, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
 	0x74, 0x2e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x4d, 0x65, 0x74, 0x61, 0x52, 0x0c,
-	0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x4d, 0x65, 0x74, 0x61, 0x22, 0x56, 0x0a, 0x15,
-	0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3d, 0x0a, 0x0c, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
-	0x74, 0x5f, 0x72, 0x65, 0x66, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x62, 0x6c,
-	0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x4d, 0x61, 0x6e, 0x69,
-	0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x66, 0x52, 0x0b, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
-	0x74, 0x52, 0x65, 0x66, 0x32, 0x6d, 0x0a, 0x0d, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74,
-	0x46, 0x65, 0x74, 0x63, 0x68, 0x12, 0x5c, 0x0a, 0x0d, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61,
-	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x12, 0x23, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61,
-	0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69,
-	0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x62, 0x6c,
-	0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x65, 0x74, 0x63,
-	0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x4d, 0x65, 0x74, 0x61, 0x22, 0x53, 0x0a, 0x12,
+	0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x56, 0x61, 0x6c,
+	0x75, 0x65, 0x12, 0x3d, 0x0a, 0x0c, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x5f, 0x72,
+	0x65, 0x66, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e,
+	0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73,
+	0x74, 0x52, 0x65, 0x66, 0x52, 0x0b, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x65,
+	0x66, 0x22, 0x99, 0x01, 0x0a, 0x15, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66,
+	0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x19, 0x0a, 0x08, 0x76,
+	0x61, 0x6c, 0x75, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x07, 0x76,
+	0x61, 0x6c, 0x75, 0x65, 0x49, 0x64, 0x12, 0x37, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e,
+	0x69, 0x66, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66,
+	0x65, 0x73, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x12,
+	0x18, 0x0a, 0x07, 0x72, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08,
+	0x52, 0x07, 0x72, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x69, 0x64, 0x6c,
+	0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x08, 0x52, 0x04, 0x69, 0x64, 0x6c, 0x65, 0x32, 0x6f, 0x0a,
+	0x0d, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x46, 0x65, 0x74, 0x63, 0x68, 0x12, 0x5e,
+	0x0a, 0x0d, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x12,
+	0x23, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x2e,
+	0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x62, 0x6c, 0x64, 0x72, 0x2e, 0x6d, 0x61, 0x6e, 0x69,
+	0x66, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65,
+	0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x30, 0x01, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -485,35 +571,37 @@ func file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDescGZIP()
 	return file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDescData
 }
 
-var file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_github_com_aperturerobotics_bldr_manifest_manifest_proto_goTypes = []interface{}{
 	(*ManifestMeta)(nil),          // 0: bldr.manifest.ManifestMeta
 	(*Manifest)(nil),              // 1: bldr.manifest.Manifest
 	(*ManifestRef)(nil),           // 2: bldr.manifest.ManifestRef
 	(*ManifestBundle)(nil),        // 3: bldr.manifest.ManifestBundle
 	(*FetchManifestRequest)(nil),  // 4: bldr.manifest.FetchManifestRequest
-	(*FetchManifestResponse)(nil), // 5: bldr.manifest.FetchManifestResponse
-	(*block.BlockRef)(nil),        // 6: block.BlockRef
-	(*bucket.ObjectRef)(nil),      // 7: bucket.ObjectRef
-	(*timestamp.Timestamp)(nil),   // 8: timestamp.Timestamp
+	(*FetchManifestValue)(nil),    // 5: bldr.manifest.FetchManifestValue
+	(*FetchManifestResponse)(nil), // 6: bldr.manifest.FetchManifestResponse
+	(*block.BlockRef)(nil),        // 7: block.BlockRef
+	(*bucket.ObjectRef)(nil),      // 8: bucket.ObjectRef
+	(*timestamp.Timestamp)(nil),   // 9: timestamp.Timestamp
 }
 var file_github_com_aperturerobotics_bldr_manifest_manifest_proto_depIdxs = []int32{
 	0,  // 0: bldr.manifest.Manifest.meta:type_name -> bldr.manifest.ManifestMeta
-	6,  // 1: bldr.manifest.Manifest.dist_fs_ref:type_name -> block.BlockRef
-	6,  // 2: bldr.manifest.Manifest.assets_fs_ref:type_name -> block.BlockRef
+	7,  // 1: bldr.manifest.Manifest.dist_fs_ref:type_name -> block.BlockRef
+	7,  // 2: bldr.manifest.Manifest.assets_fs_ref:type_name -> block.BlockRef
 	0,  // 3: bldr.manifest.ManifestRef.meta:type_name -> bldr.manifest.ManifestMeta
-	7,  // 4: bldr.manifest.ManifestRef.manifest_ref:type_name -> bucket.ObjectRef
+	8,  // 4: bldr.manifest.ManifestRef.manifest_ref:type_name -> bucket.ObjectRef
 	2,  // 5: bldr.manifest.ManifestBundle.manifest_refs:type_name -> bldr.manifest.ManifestRef
-	8,  // 6: bldr.manifest.ManifestBundle.timestamp:type_name -> timestamp.Timestamp
+	9,  // 6: bldr.manifest.ManifestBundle.timestamp:type_name -> timestamp.Timestamp
 	0,  // 7: bldr.manifest.FetchManifestRequest.manifest_meta:type_name -> bldr.manifest.ManifestMeta
-	2,  // 8: bldr.manifest.FetchManifestResponse.manifest_ref:type_name -> bldr.manifest.ManifestRef
-	4,  // 9: bldr.manifest.ManifestFetch.FetchManifest:input_type -> bldr.manifest.FetchManifestRequest
-	5,  // 10: bldr.manifest.ManifestFetch.FetchManifest:output_type -> bldr.manifest.FetchManifestResponse
-	10, // [10:11] is the sub-list for method output_type
-	9,  // [9:10] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	2,  // 8: bldr.manifest.FetchManifestValue.manifest_ref:type_name -> bldr.manifest.ManifestRef
+	5,  // 9: bldr.manifest.FetchManifestResponse.value:type_name -> bldr.manifest.FetchManifestValue
+	4,  // 10: bldr.manifest.ManifestFetch.FetchManifest:input_type -> bldr.manifest.FetchManifestRequest
+	6,  // 11: bldr.manifest.ManifestFetch.FetchManifest:output_type -> bldr.manifest.FetchManifestResponse
+	11, // [11:12] is the sub-list for method output_type
+	10, // [10:11] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_github_com_aperturerobotics_bldr_manifest_manifest_proto_init() }
@@ -583,6 +671,18 @@ func file_github_com_aperturerobotics_bldr_manifest_manifest_proto_init() {
 			}
 		}
 		file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchManifestValue); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_aperturerobotics_bldr_manifest_manifest_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FetchManifestResponse); i {
 			case 0:
 				return &v.state
@@ -601,7 +701,7 @@ func file_github_com_aperturerobotics_bldr_manifest_manifest_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_aperturerobotics_bldr_manifest_manifest_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

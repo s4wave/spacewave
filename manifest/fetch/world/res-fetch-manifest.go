@@ -19,10 +19,15 @@ func (c *Controller) resolveFetchManifest(
 			return nil, nil
 		}
 	}
-	return &fetchManifestResolver{c: c, manifestMeta: manifestMeta}, nil
+
+	if c.conf.GetDisableWatch() {
+		return &fetchManifestResolver{c: c, manifestMeta: manifestMeta}, nil
+	}
+
+	return &fetchManifestWatchResolver{c: c, manifestMeta: manifestMeta}, nil
 }
 
-// fetchManifestResolver resolves FetchManifest with the controller.
+// fetchManifestResolver resolves FetchManifest once with the controller.
 type fetchManifestResolver struct {
 	// c is the controller
 	c *Controller
@@ -31,8 +36,6 @@ type fetchManifestResolver struct {
 }
 
 // Resolve resolves the values, emitting them to the handler.
-//
-// TODO: watch for changes?
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	_ = handler.ClearValues()
 	res, err := r.c.FetchManifest(ctx, r.manifestMeta, false)
@@ -56,7 +59,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	}
 
 	res.ManifestRef.Meta.Logger(r.c.le).Debug("fetched manifest")
-	var val manifest.FetchManifestValue = res
+	var val *manifest.FetchManifestValue = res
 	_, _ = handler.AddValue(val)
 	return nil
 }

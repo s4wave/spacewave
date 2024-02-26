@@ -81,10 +81,24 @@ export interface FetchManifestRequest {
   manifestMeta: ManifestMeta | undefined;
 }
 
-/** FetchManifestResponse is a response to a FetchManifest request. */
-export interface FetchManifestResponse {
+/** FetchManifestValue is the result of the FetchManifest directive. */
+export interface FetchManifestValue {
   /** ManifestRef is the reference to the Manifest. */
   manifestRef: ManifestRef | undefined;
+}
+
+/** FetchManifestResponse is a response to a FetchManifest request. */
+export interface FetchManifestResponse {
+  /** ValueId is set to a non-zero integer w/ the value ID. */
+  valueId: number;
+  /** Value is the value if we are adding a value. */
+  value:
+    | FetchManifestValue
+    | undefined;
+  /** Removed indicates removal of the value with value_id. */
+  removed: boolean;
+  /** Idle indicates the directive is now idle (no resolvers are running). */
+  idle: boolean;
 }
 
 function createBaseManifestMeta(): ManifestMeta {
@@ -678,14 +692,116 @@ export const FetchManifestRequest = {
   },
 };
 
-function createBaseFetchManifestResponse(): FetchManifestResponse {
+function createBaseFetchManifestValue(): FetchManifestValue {
   return { manifestRef: undefined };
+}
+
+export const FetchManifestValue = {
+  encode(message: FetchManifestValue, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.manifestRef !== undefined) {
+      ManifestRef.encode(message.manifestRef, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): FetchManifestValue {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFetchManifestValue();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.manifestRef = ManifestRef.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<FetchManifestValue, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<FetchManifestValue | FetchManifestValue[]>
+      | Iterable<FetchManifestValue | FetchManifestValue[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [FetchManifestValue.encode(p).finish()];
+        }
+      } else {
+        yield* [FetchManifestValue.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, FetchManifestValue>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<FetchManifestValue> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [FetchManifestValue.decode(p)];
+        }
+      } else {
+        yield* [FetchManifestValue.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): FetchManifestValue {
+    return { manifestRef: isSet(object.manifestRef) ? ManifestRef.fromJSON(object.manifestRef) : undefined };
+  },
+
+  toJSON(message: FetchManifestValue): unknown {
+    const obj: any = {};
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ManifestRef.toJSON(message.manifestRef);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<FetchManifestValue>, I>>(base?: I): FetchManifestValue {
+    return FetchManifestValue.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<FetchManifestValue>, I>>(object: I): FetchManifestValue {
+    const message = createBaseFetchManifestValue();
+    message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)
+      ? ManifestRef.fromPartial(object.manifestRef)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseFetchManifestResponse(): FetchManifestResponse {
+  return { valueId: 0, value: undefined, removed: false, idle: false };
 }
 
 export const FetchManifestResponse = {
   encode(message: FetchManifestResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.manifestRef !== undefined) {
-      ManifestRef.encode(message.manifestRef, writer.uint32(10).fork()).ldelim();
+    if (message.valueId !== 0) {
+      writer.uint32(8).uint32(message.valueId);
+    }
+    if (message.value !== undefined) {
+      FetchManifestValue.encode(message.value, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.removed === true) {
+      writer.uint32(24).bool(message.removed);
+    }
+    if (message.idle === true) {
+      writer.uint32(32).bool(message.idle);
     }
     return writer;
   },
@@ -698,11 +814,32 @@ export const FetchManifestResponse = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag !== 10) {
+          if (tag !== 8) {
             break;
           }
 
-          message.manifestRef = ManifestRef.decode(reader, reader.uint32());
+          message.valueId = reader.uint32();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = FetchManifestValue.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag !== 24) {
+            break;
+          }
+
+          message.removed = reader.bool();
+          continue;
+        case 4:
+          if (tag !== 32) {
+            break;
+          }
+
+          message.idle = reader.bool();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -748,13 +885,27 @@ export const FetchManifestResponse = {
   },
 
   fromJSON(object: any): FetchManifestResponse {
-    return { manifestRef: isSet(object.manifestRef) ? ManifestRef.fromJSON(object.manifestRef) : undefined };
+    return {
+      valueId: isSet(object.valueId) ? globalThis.Number(object.valueId) : 0,
+      value: isSet(object.value) ? FetchManifestValue.fromJSON(object.value) : undefined,
+      removed: isSet(object.removed) ? globalThis.Boolean(object.removed) : false,
+      idle: isSet(object.idle) ? globalThis.Boolean(object.idle) : false,
+    };
   },
 
   toJSON(message: FetchManifestResponse): unknown {
     const obj: any = {};
-    if (message.manifestRef !== undefined) {
-      obj.manifestRef = ManifestRef.toJSON(message.manifestRef);
+    if (message.valueId !== 0) {
+      obj.valueId = Math.round(message.valueId);
+    }
+    if (message.value !== undefined) {
+      obj.value = FetchManifestValue.toJSON(message.value);
+    }
+    if (message.removed === true) {
+      obj.removed = message.removed;
+    }
+    if (message.idle === true) {
+      obj.idle = message.idle;
     }
     return obj;
   },
@@ -764,9 +915,12 @@ export const FetchManifestResponse = {
   },
   fromPartial<I extends Exact<DeepPartial<FetchManifestResponse>, I>>(object: I): FetchManifestResponse {
     const message = createBaseFetchManifestResponse();
-    message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)
-      ? ManifestRef.fromPartial(object.manifestRef)
+    message.valueId = object.valueId ?? 0;
+    message.value = (object.value !== undefined && object.value !== null)
+      ? FetchManifestValue.fromPartial(object.value)
       : undefined;
+    message.removed = object.removed ?? false;
+    message.idle = object.idle ?? false;
     return message;
   },
 };
@@ -776,8 +930,9 @@ export interface ManifestFetch {
   /**
    * FetchManifest requests the manifest for the given metadata.
    * The metadata may not be an exact match.
+   * Returns the stream of values from the FetchManifest directive.
    */
-  FetchManifest(request: FetchManifestRequest, abortSignal?: AbortSignal): Promise<FetchManifestResponse>;
+  FetchManifest(request: FetchManifestRequest, abortSignal?: AbortSignal): AsyncIterable<FetchManifestResponse>;
 }
 
 export const ManifestFetchServiceName = "bldr.manifest.ManifestFetch";
@@ -789,10 +944,10 @@ export class ManifestFetchClientImpl implements ManifestFetch {
     this.rpc = rpc;
     this.FetchManifest = this.FetchManifest.bind(this);
   }
-  FetchManifest(request: FetchManifestRequest, abortSignal?: AbortSignal): Promise<FetchManifestResponse> {
+  FetchManifest(request: FetchManifestRequest, abortSignal?: AbortSignal): AsyncIterable<FetchManifestResponse> {
     const data = FetchManifestRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "FetchManifest", data, abortSignal || undefined);
-    return promise.then((data) => FetchManifestResponse.decode(_m0.Reader.create(data)));
+    const result = this.rpc.serverStreamingRequest(this.service, "FetchManifest", data, abortSignal || undefined);
+    return FetchManifestResponse.decodeTransform(result);
   }
 }
 
@@ -805,13 +960,14 @@ export const ManifestFetchDefinition = {
     /**
      * FetchManifest requests the manifest for the given metadata.
      * The metadata may not be an exact match.
+     * Returns the stream of values from the FetchManifest directive.
      */
     fetchManifest: {
       name: "FetchManifest",
       requestType: FetchManifestRequest,
       requestStream: false,
       responseType: FetchManifestResponse,
-      responseStream: false,
+      responseStream: true,
       options: {},
     },
   },
@@ -819,6 +975,24 @@ export const ManifestFetchDefinition = {
 
 interface Rpc {
   request(service: string, method: string, data: Uint8Array, abortSignal?: AbortSignal): Promise<Uint8Array>;
+  clientStreamingRequest(
+    service: string,
+    method: string,
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal,
+  ): Promise<Uint8Array>;
+  serverStreamingRequest(
+    service: string,
+    method: string,
+    data: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<Uint8Array>;
+  bidirectionalStreamingRequest(
+    service: string,
+    method: string,
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<Uint8Array>;
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;

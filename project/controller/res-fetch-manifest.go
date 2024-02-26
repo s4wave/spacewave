@@ -77,10 +77,9 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 				continue
 			} else {
 				// result != nil
-				var dirResult bldr_manifest.FetchManifestValue = &bldr_manifest.FetchManifestResponse{
-					ManifestRef: result.GetBuilderResult().GetManifestRef().CloneVT(),
-				}
-				_, _ = handler.AddValue(dirResult)
+				_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
+					result.GetBuilderResult().GetManifestRef().CloneVT(),
+				))
 				if !watch {
 					return nil
 				}

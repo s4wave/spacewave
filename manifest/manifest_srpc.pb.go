@@ -13,7 +13,7 @@ import (
 type SRPCManifestFetchClient interface {
 	SRPCClient() srpc.Client
 
-	FetchManifest(ctx context.Context, in *FetchManifestRequest) (*FetchManifestResponse, error)
+	FetchManifest(ctx context.Context, in *FetchManifestRequest) (SRPCManifestFetch_FetchManifestClient, error)
 }
 
 type srpcManifestFetchClient struct {
@@ -34,23 +34,48 @@ func NewSRPCManifestFetchClientWithServiceID(cc srpc.Client, serviceID string) S
 
 func (c *srpcManifestFetchClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcManifestFetchClient) FetchManifest(ctx context.Context, in *FetchManifestRequest) (*FetchManifestResponse, error) {
-	out := new(FetchManifestResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "FetchManifest", in, out)
+func (c *srpcManifestFetchClient) FetchManifest(ctx context.Context, in *FetchManifestRequest) (SRPCManifestFetch_FetchManifestClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "FetchManifest", in)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	strm := &srpcManifestFetch_FetchManifestClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCManifestFetch_FetchManifestClient interface {
+	srpc.Stream
+	Recv() (*FetchManifestResponse, error)
+	RecvTo(*FetchManifestResponse) error
+}
+
+type srpcManifestFetch_FetchManifestClient struct {
+	srpc.Stream
+}
+
+func (x *srpcManifestFetch_FetchManifestClient) Recv() (*FetchManifestResponse, error) {
+	m := new(FetchManifestResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcManifestFetch_FetchManifestClient) RecvTo(m *FetchManifestResponse) error {
+	return x.MsgRecv(m)
 }
 
 type SRPCManifestFetchServer interface {
-	FetchManifest(context.Context, *FetchManifestRequest) (*FetchManifestResponse, error)
+	FetchManifest(*FetchManifestRequest, SRPCManifestFetch_FetchManifestStream) error
 }
 
 type SRPCManifestFetchUnimplementedServer struct{}
 
-func (s *SRPCManifestFetchUnimplementedServer) FetchManifest(context.Context, *FetchManifestRequest) (*FetchManifestResponse, error) {
-	return nil, srpc.ErrUnimplemented
+func (s *SRPCManifestFetchUnimplementedServer) FetchManifest(*FetchManifestRequest, SRPCManifestFetch_FetchManifestStream) error {
+	return srpc.ErrUnimplemented
 }
 
 const SRPCManifestFetchServiceID = "bldr.manifest.ManifestFetch"
@@ -104,17 +129,29 @@ func (SRPCManifestFetchHandler) InvokeMethod_FetchManifest(impl SRPCManifestFetc
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.FetchManifest(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
+	serverStrm := &srpcManifestFetch_FetchManifestStream{strm}
+	return impl.FetchManifest(req, serverStrm)
 }
 
 type SRPCManifestFetch_FetchManifestStream interface {
 	srpc.Stream
+	Send(*FetchManifestResponse) error
+	SendAndClose(*FetchManifestResponse) error
 }
 
 type srpcManifestFetch_FetchManifestStream struct {
 	srpc.Stream
+}
+
+func (x *srpcManifestFetch_FetchManifestStream) Send(m *FetchManifestResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcManifestFetch_FetchManifestStream) SendAndClose(m *FetchManifestResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }

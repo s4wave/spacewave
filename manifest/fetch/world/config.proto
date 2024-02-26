@@ -13,4 +13,6 @@ message Config {
   // FetchManifestIdRe is the regex of manifest IDs to fetch with this controller.
   // If empty, will lookup for any FetchManifest directive.
   string fetch_manifest_id_re = 3;
+  // DisableWatch disables watching the world for changes for FetchManifest.
+  bool disable_watch = 4;
 }

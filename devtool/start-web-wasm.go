@@ -8,17 +8,19 @@ import (
 	"strconv"
 
 	link_holdopen_controller "github.com/aperturerobotics/bifrost/link/hold-open"
-	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	"github.com/aperturerobotics/bifrost/protocol"
+	stream_srpc_server "github.com/aperturerobotics/bifrost/stream/srpc/server"
 	transport_controller "github.com/aperturerobotics/bifrost/transport/controller"
 	transport_websocket "github.com/aperturerobotics/bifrost/transport/websocket"
 	devtool_web "github.com/aperturerobotics/bldr/devtool/web"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
@@ -164,12 +166,36 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	}
 	defer holdOpenRef.Release()
 
-	// construct the rpc mux
-	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b.GetBus(), bldr_plugin.HostServerIDPrefix+"default", true))
+	// handle incoming srpc requests
+	rpcServer, err := stream_srpc_server.NewServer(
+		b.GetBus(),
+		le,
+		controller.NewInfo(
+			"devtool/web/rpc-server",
+			semver.MustParse("0.0.1"),
+			"listens for incoming requests from the web frontend",
+		),
+		[]stream_srpc_server.RegisterFn{
+			// handle ManifestFetch requests via bus ManifestFetch.
+			func(mux srpc.Mux) error {
+				pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, b.GetBus())
+				return bldr_manifest.SRPCRegisterManifestFetch(mux, pluginFetchViaBus)
+			},
+		},
+		[]protocol.ID{devtool_web.HostProtocolID},
+		[]string{wsPeerID},
+		false,
+	)
+	if err != nil {
+		return err
+	}
 
-	// handle ManifestFetch requests via bus ManifestFetch.
-	pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, b.GetBus())
-	_ = bldr_manifest.SRPCRegisterManifestFetch(rpcMux, pluginFetchViaBus)
+	// start handling incoming srpc requests
+	relRpcServer, err := b.GetBus().AddController(ctx, rpcServer, nil)
+	if err != nil {
+		return err
+	}
+	defer relRpcServer()
 
 	// encode the init info for the browser devtool entrypoint
 	browserInitBin, err := (&devtool_web.DevtoolInitBrowser{

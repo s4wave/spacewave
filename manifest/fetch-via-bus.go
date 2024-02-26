@@ -1,9 +1,8 @@
 package bldr_manifest
 
 import (
-	"context"
-
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	"github.com/aperturerobotics/bldr/util/valuelist"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -34,6 +33,7 @@ func NewManifestFetchViaBusController(le *logrus.Entry, b bus.Bus) *bifrost_rpc.
 	mux := srpc.NewMux()
 	f := NewManifestFetchViaBus(le, b)
 	_ = SRPCRegisterManifestFetch(mux, f)
+
 	return bifrost_rpc.NewInvokerController(
 		le,
 		b,
@@ -49,18 +49,25 @@ func NewManifestFetchViaBusController(le *logrus.Entry, b bus.Bus) *bifrost_rpc.
 
 // FetchManifest fetches a manifest by metadata.
 func (f *ManifestFetchViaBus) FetchManifest(
-	ctx context.Context,
 	req *FetchManifestRequest,
-) (*FetchManifestResponse, error) {
+	strm SRPCManifestFetch_FetchManifestStream,
+) error {
 	if err := req.Validate(false); err != nil {
-		return nil, err
+		return err
 	}
 
 	meta := req.GetManifestMeta()
 	manifestID := meta.GetManifestId()
 	f.le.Infof("host requests fetching manifest: %s", manifestID)
 
-	return ExFetchManifest(ctx, f.b, meta, false)
+	return valuelist.WatchDirective[*FetchManifestValue, *FetchManifestResponse](
+		strm.Context(),
+		f.b,
+		req.ToDirective(),
+		func() *FetchManifestResponse { return &FetchManifestResponse{} },
+		strm.Send,
+		nil,
+	)
 }
 
 // _ is a type assertion

@@ -1,0 +1,17 @@
+syntax = "proto3";
+package manifest.fetch.rpc;
+
+import "github.com/aperturerobotics/bifrost/stream/srpc/client/client.proto";
+
+// Config configures a controller to fetch via the ManifestFetch service.
+// Loads a plugin with LoadPlugin and uses its RPC client.
+// Resolves the FetchManifest directive.
+message Config {
+  // ServiceId is the service id to contact with LookupRpcClient.
+  string service_id = 1;
+  // ClientId is the client identifier to use to contact the rpc service.
+  string client_id = 2;
+  // FetchManifestIdRe is the regex of manifest IDs to fetch with this controller.
+  // If empty, will forward any FetchManifest directive to the service.
+  string fetch_manifest_id_re = 3;
+}

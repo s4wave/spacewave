@@ -10,6 +10,8 @@ import (
 )
 
 // FetchManifest is a directive to fetch a manifest to storage.
+//
+// Value type: *FetchManifestValue
 type FetchManifest interface {
 	// Directive indicates FetchManifest is a directive.
 	directive.Directive
@@ -18,10 +20,6 @@ type FetchManifest interface {
 	// Cannot be empty.
 	FetchManifestMeta() *ManifestMeta
 }
-
-// FetchManifestValue is the result type for FetchManifest.
-// Multiple results may be pushed to the directive.
-type FetchManifestValue = *FetchManifestResponse
 
 // fetchManifest implements FetchManifest
 type fetchManifest struct {
@@ -33,13 +31,20 @@ func NewFetchManifest(manifestMeta *ManifestMeta) FetchManifest {
 	return &fetchManifest{manifestMeta: manifestMeta}
 }
 
-// ExFetchManifest executes the FetchManifest directive.
+// NewFetchManifestValue constructs a new FetchManifest result value.
+func NewFetchManifestValue(manifestRef *ManifestRef) *FetchManifestValue {
+	return &FetchManifestValue{
+		ManifestRef: manifestRef,
+	}
+}
+
+// ExFetchManifest executes the FetchManifest directive waiting for a single result.
 func ExFetchManifest(
 	ctx context.Context,
 	b bus.Bus,
 	manifestMeta *ManifestMeta,
 	returnIfIdle bool,
-) (FetchManifestValue, error) {
+) (*FetchManifestValue, error) {
 	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewFetchManifest(manifestMeta), bus.ReturnIfIdle(returnIfIdle), nil)
 	if err != nil {
 		return nil, err
@@ -48,7 +53,7 @@ func ExFetchManifest(
 		return nil, errors.New("fetch manifest returned empty result")
 	}
 	avRef.Release()
-	val, ok := av.GetValue().(FetchManifestValue)
+	val, ok := av.GetValue().(*FetchManifestValue)
 	if !ok {
 		return nil, errors.New("fetch manifest directive returned invalid result type")
 	}

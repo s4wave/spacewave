@@ -56,7 +56,8 @@ message ManifestBundle {
 service ManifestFetch {
   // FetchManifest requests the manifest for the given metadata.
   // The metadata may not be an exact match.
-  rpc FetchManifest(FetchManifestRequest) returns (FetchManifestResponse) {};
+  // Returns the stream of values from the FetchManifest directive.
+  rpc FetchManifest(FetchManifestRequest) returns (stream FetchManifestResponse) {};
 }
 
 // FetchManifestRequest is a request to fetch a manifest binary.
@@ -66,8 +67,20 @@ message FetchManifestRequest {
   ManifestMeta manifest_meta = 1;
 }
 
-// FetchManifestResponse is a response to a FetchManifest request.
-message FetchManifestResponse {
+// FetchManifestValue is the result of the FetchManifest directive.
+message FetchManifestValue {
   // ManifestRef is the reference to the Manifest.
   ManifestRef manifest_ref = 1;
+}
+
+// FetchManifestResponse is a response to a FetchManifest request.
+message FetchManifestResponse {
+  // ValueId is set to a non-zero integer w/ the value ID.
+  uint32 value_id = 1;
+  // Value is the value if we are adding a value.
+  FetchManifestValue value = 2;
+  // Removed indicates removal of the value with value_id.
+  bool removed = 3;
+  // Idle indicates the directive is now idle (no resolvers are running).
+  bool idle = 4;
 }

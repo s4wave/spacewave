@@ -2,47 +2,39 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
-export const protobufPackage = "manifest.fetch.world";
+export const protobufPackage = "manifest.fetch.rpc";
 
 /**
- * Config configures a controller to fetch manifests via a world engine.
- * Searches for <manifest> linked manifests to the object key.
+ * Config configures a controller to fetch via the ManifestFetch service.
+ * Loads a plugin with LoadPlugin and uses its RPC client.
  * Resolves the FetchManifest directive.
  */
 export interface Config {
-  /** EngineId is the world engine id to attach to. */
-  engineId: string;
-  /**
-   * ObjectKeys is the list of object keys to search from for manifests.
-   * Searches for <manifest> linked manifests.
-   */
-  objectKeys: string[];
+  /** ServiceId is the service id to contact with LookupRpcClient. */
+  serviceId: string;
+  /** ClientId is the client identifier to use to contact the rpc service. */
+  clientId: string;
   /**
    * FetchManifestIdRe is the regex of manifest IDs to fetch with this controller.
-   * If empty, will lookup for any FetchManifest directive.
+   * If empty, will forward any FetchManifest directive to the service.
    */
   fetchManifestIdRe: string;
-  /** DisableWatch disables watching the world for changes for FetchManifest. */
-  disableWatch: boolean;
 }
 
 function createBaseConfig(): Config {
-  return { engineId: "", objectKeys: [], fetchManifestIdRe: "", disableWatch: false };
+  return { serviceId: "", clientId: "", fetchManifestIdRe: "" };
 }
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.engineId !== "") {
-      writer.uint32(10).string(message.engineId);
+    if (message.serviceId !== "") {
+      writer.uint32(10).string(message.serviceId);
     }
-    for (const v of message.objectKeys) {
-      writer.uint32(18).string(v!);
+    if (message.clientId !== "") {
+      writer.uint32(18).string(message.clientId);
     }
     if (message.fetchManifestIdRe !== "") {
       writer.uint32(26).string(message.fetchManifestIdRe);
-    }
-    if (message.disableWatch === true) {
-      writer.uint32(32).bool(message.disableWatch);
     }
     return writer;
   },
@@ -59,14 +51,14 @@ export const Config = {
             break;
           }
 
-          message.engineId = reader.string();
+          message.serviceId = reader.string();
           continue;
         case 2:
           if (tag !== 18) {
             break;
           }
 
-          message.objectKeys.push(reader.string());
+          message.clientId = reader.string();
           continue;
         case 3:
           if (tag !== 26) {
@@ -74,13 +66,6 @@ export const Config = {
           }
 
           message.fetchManifestIdRe = reader.string();
-          continue;
-        case 4:
-          if (tag !== 32) {
-            break;
-          }
-
-          message.disableWatch = reader.bool();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -125,28 +110,22 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      engineId: isSet(object.engineId) ? globalThis.String(object.engineId) : "",
-      objectKeys: globalThis.Array.isArray(object?.objectKeys)
-        ? object.objectKeys.map((e: any) => globalThis.String(e))
-        : [],
+      serviceId: isSet(object.serviceId) ? globalThis.String(object.serviceId) : "",
+      clientId: isSet(object.clientId) ? globalThis.String(object.clientId) : "",
       fetchManifestIdRe: isSet(object.fetchManifestIdRe) ? globalThis.String(object.fetchManifestIdRe) : "",
-      disableWatch: isSet(object.disableWatch) ? globalThis.Boolean(object.disableWatch) : false,
     };
   },
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    if (message.engineId !== "") {
-      obj.engineId = message.engineId;
+    if (message.serviceId !== "") {
+      obj.serviceId = message.serviceId;
     }
-    if (message.objectKeys?.length) {
-      obj.objectKeys = message.objectKeys;
+    if (message.clientId !== "") {
+      obj.clientId = message.clientId;
     }
     if (message.fetchManifestIdRe !== "") {
       obj.fetchManifestIdRe = message.fetchManifestIdRe;
-    }
-    if (message.disableWatch === true) {
-      obj.disableWatch = message.disableWatch;
     }
     return obj;
   },
@@ -156,10 +135,9 @@ export const Config = {
   },
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig();
-    message.engineId = object.engineId ?? "";
-    message.objectKeys = object.objectKeys?.map((e) => e) || [];
+    message.serviceId = object.serviceId ?? "";
+    message.clientId = object.clientId ?? "";
     message.fetchManifestIdRe = object.fetchManifestIdRe ?? "";
-    message.disableWatch = object.disableWatch ?? false;
     return message;
   },
 };
