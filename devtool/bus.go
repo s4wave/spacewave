@@ -282,7 +282,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 			return nil, err
 		}
 		if relPluginHost != nil {
-			defer relPluginHost()
+			rels = append(rels, relPluginHost)
 		}
 	}
 

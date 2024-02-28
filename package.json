@@ -21,7 +21,8 @@
   "scripts": {
     "check": "npm run typecheck && npm run lint",
     "clean": "rimraf ./.bldr",
-    "bldr": "go run -v -mod=readonly github.com/aperturerobotics/bldr/cmd/bldr --bldr-version=$(git rev-parse HEAD)",
+    "go:run": "cross-env GOOS= GOARCH= go run -v -mod=readonly",
+    "bldr": "npm run go:run -- github.com/aperturerobotics/bldr/cmd/bldr --bldr-version=$(git rev-parse HEAD)",
     "serve": "npm run start:web",
     "start": "npm run start:web",
     "start:native": "npm run bldr -- start native",
@@ -62,6 +63,7 @@
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.59",
     "@types/react-dom": "^18.2.19",
+    "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.15.0",
     "esm-cjs-lexer": "^0.10.0",
     "patch-package": "^8.0.0",
