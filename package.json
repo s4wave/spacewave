@@ -43,15 +43,15 @@
   },
   "devDependencies": {
     "@aperturerobotics/ts-common": "^0.8.6",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
     "depcheck": "^1.4.7",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "ts-poet": "6.7.0",
-    "ts-proto": "^1.167.8",
+    "ts-proto": "^1.167.9",
     "typescript": "^5.3.3"
   },
   "dependencies": {
@@ -59,7 +59,7 @@
     "bufferutil": "^4.0.8",
     "long": "^5.2.3",
     "protobufjs": "^7.2.5",
-    "starpc": "^0.26.1",
+    "starpc": "^0.27.2",
     "utf-8-validate": "^6.0.3"
   }
 }

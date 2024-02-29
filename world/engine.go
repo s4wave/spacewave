@@ -1,6 +1,10 @@
 package world
 
-import "context"
+import (
+	"context"
+
+	"github.com/aperturerobotics/util/refcount"
+)
 
 // Engine implements a transactional world state container.
 type Engine interface {
@@ -18,4 +22,4 @@ type Engine interface {
 }
 
 // EngineResolver is a function which resolves an engine for a ref count.
-type EngineResolver func(ctx context.Context, released func()) (*Engine, func(), error)
+type EngineResolver = refcount.RefCountResolver[*Engine]

@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_vlogger "github.com/aperturerobotics/hydra/block/store/vlogger"
+	"github.com/aperturerobotics/util/refcount"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,7 +14,7 @@ import (
 //
 // returns the store and an optional release function
 // can return nil to indicate not found.
-type BlockStoreBuilder func(ctx context.Context, released func()) (*block_store.Store, func(), error)
+type BlockStoreBuilder = refcount.RefCountResolver[*block_store.Store]
 
 // NewBlockStoreBuilder creates a new BlockStoreBuilder with a static block store.
 func NewBlockStoreBuilder(store block_store.Store) BlockStoreBuilder {
