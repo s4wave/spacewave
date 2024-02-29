@@ -10,6 +10,7 @@ import (
 	"syscall/js"
 
 	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
+	stream_srpc_client_controller "github.com/aperturerobotics/bifrost/stream/srpc/client/controller"
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	"github.com/aperturerobotics/bldr/banner"
 	"github.com/aperturerobotics/bldr/core"
@@ -82,8 +83,16 @@ func main() {
 		sr.AddFactory(websocket.NewFactory(b))
 		sr.AddFactory(link_establish_controller.NewFactory(b))
 		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
+		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 
-		ctrl := devtool_web_entrypoint_controller.NewController(le, b, devtoolInfo, initm, linkUrl)
+		ctrl := devtool_web_entrypoint_controller.NewController(
+			le,
+			b,
+			devtoolInfo,
+			initm,
+			linkUrl,
+		)
+		defer b.RemoveController(ctrl)
 		return b.ExecuteController(ctx, ctrl)
 	}, retry.NewBackOff(devtoolBackoff))
 	if err != nil {

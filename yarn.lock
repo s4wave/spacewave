@@ -149,6 +149,18 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
+"@libp2p/interface@^1.1.4":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.1.4.tgz#21c7bbbe7628419d1e4902f0c953db1423b0f40f"
+  integrity sha512-gJXQycTF50tI02X/IlReAav4XoGPs3Yr917vNXsTUsZQRzQaPjbvKfXqA5hkLFpZ1lnxQ8wto/EVw4ca4XaL1A==
+  dependencies:
+    "@multiformats/multiaddr" "^12.1.14"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    multiformats "^13.1.0"
+    progress-events "^1.0.0"
+    uint8arraylist "^2.4.8"
+
 "@libp2p/logger@^4.0.6":
   version "4.0.6"
   resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.6.tgz#bcc2169b09f0f7056f68de813727fcdcfe0ac4a1"
@@ -159,6 +171,17 @@
     debug "^4.3.4"
     interface-datastore "^8.2.10"
     multiformats "^13.0.1"
+
+"@libp2p/logger@^4.0.7":
+  version "4.0.7"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.7.tgz#b5e82135f5c8a6f275c1b2e183333db956f3ed90"
+  integrity sha512-oyICns7G18S4eDhbFHUwZ7gLQnZTBVQtUMmMgEmrs8LnQu2GvXADxmQAPPkKtLNSCvRudg4hN3hP04Y+vNvlBQ==
+  dependencies:
+    "@libp2p/interface" "^1.1.4"
+    "@multiformats/multiaddr" "^12.1.14"
+    debug "^4.3.4"
+    interface-datastore "^8.2.11"
+    multiformats "^13.1.0"
 
 "@libp2p/utils@^5.2.5":
   version "5.2.5"
@@ -366,10 +389,10 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/react@^18.2.59":
-  version "18.2.59"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.59.tgz#14c7bcab22e2ce71d9eaa02f78d3d55067724d7f"
-  integrity sha512-DE+F6BYEC8VtajY85Qr7mmhTd/79rJKIHCg99MU9SWPB4xvLb6D1za2vYflgZfmPqQVEr6UqJTnLXEwzpVPuOg==
+"@types/react@^18.2.60":
+  version "18.2.60"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.60.tgz#df026eaef1100b6dafe420f36fecb1d209a8cee1"
+  integrity sha512-dfiPj9+k20jJrLGOu9Nf6eqxm2EyJRrq2NvwOFsfbb7sFExZ9WELPs67UImHj3Ayxg8ruTtKtNnbjaF8olPq0A==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -821,10 +844,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^29.0.1:
-  version "29.0.1"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-29.0.1.tgz#936c0623a1bbf272dea423305f074de6ac016967"
-  integrity sha512-hsQr9clm8NCAMv4uhHlXThHn52UAgrHgyz3ubBAxZIPuUcpKVDtg4HPmx4hbmHIbYICI5OyLN3Ztp7rS+Dn4Lw==
+electron@^29.1.0:
+  version "29.1.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-29.1.0.tgz#37f0e4915226db3c87bc54b187795272bf61fc39"
+  integrity sha512-giJVIm0sWVp+8V1GXrKqKTb+h7no0P3ooYqEd34AD9wMJzGnAeL+usj+R0155/0pdvvP1mgydnA7lcaFA2M9lw==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -847,10 +870,10 @@ end-of-stream@^1.1.0, end-of-stream@^1.4.1:
   dependencies:
     once "^1.4.0"
 
-enhanced-resolve@^5.15.0:
-  version "5.15.0"
-  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.15.0.tgz#1af946c7d93603eb88e9896cee4904dc012e9c35"
-  integrity sha512-LXYT42KJ7lpIKECr2mAXIaMldcNCh/7E0KBKOu4KSfkHmP+mZmSs+8V5gBAqisWBy0OO4W5Oyys0GO1Y8KtdKg==
+enhanced-resolve@^5.15.1:
+  version "5.15.1"
+  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.15.1.tgz#384391e025f099e67b4b00bfd7f0906a408214e1"
+  integrity sha512-3d3JRbwsCLJsYgvb6NuWEG44jjPSOMuS73L/6+7BZuoKm3W+qXnSoIYVHi8dG7Qcg4inAY4jbzkZ7MnskePeDg==
   dependencies:
     graceful-fs "^4.2.4"
     tapable "^2.2.0"
@@ -1350,7 +1373,7 @@ inherits@2, inherits@^2.0.3, inherits@~2.0.3:
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.4.tgz#0fa2c64f932917c3433a0ded55363aae37416b7c"
   integrity sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==
 
-interface-datastore@^8.2.10:
+interface-datastore@^8.2.10, interface-datastore@^8.2.11:
   version "8.2.11"
   resolved "https://registry.yarnpkg.com/interface-datastore/-/interface-datastore-8.2.11.tgz#1d555ce6218ab6cba6291fc361debe9713590207"
   integrity sha512-9E0iXehfp/j0UbZ2mvlYB4K9pP7uQBCppfuy8WHs1EHF6wLQrM9+zwyX+8Qt6HnH4GKZRyXX/CNXm6oD4+QYgA==
@@ -1710,7 +1733,7 @@ ms@^2.1.1:
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
 
-multiformats@^13.0.0, multiformats@^13.0.1:
+multiformats@^13.0.0, multiformats@^13.0.1, multiformats@^13.1.0:
   version "13.1.0"
   resolved "https://registry.yarnpkg.com/multiformats/-/multiformats-13.1.0.tgz#5aa9d2175108a448fc3bdb54ba8a3d0b6cab3ac3"
   integrity sha512-HzdtdBwxsIkzpeXzhQ5mAhhuxcHbjEHH+JQoxt7hG/2HGFjjwyolLo7hbaexcnhoEuV4e0TNJ8kkpMjiEYY4VQ==
@@ -2171,10 +2194,10 @@ starpc@^0.26.0:
     uint8arraylist "^2.4.7"
     ws "^8.15.1"
 
-starpc@^0.27.0:
-  version "0.27.0"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.27.0.tgz#a308fdc6cd5ea6c468c74a1cc5876aec010587e0"
-  integrity sha512-yQJAk0KTV52ZAucoRBDNWpsZyD6gjRqE2hgR7YGzOtJfz4yVl72mMEd6OJ4sjTokaevPGkpvm8WXDMAlPUafog==
+starpc@^0.27.2:
+  version "0.27.2"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.27.2.tgz#03d57831d59cf904662731955540f63d9ed8b87d"
+  integrity sha512-YEHKJQvzjRKE5bFa665eFEsOoNo2XG2wzMuWqGUShs4RL3Zbr7X0rEXu5biZS85d+SNhPhRYErj/eGjmfXBdqw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^6.0.2"
@@ -2309,10 +2332,10 @@ ts-proto-descriptors@1.15.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.167.8:
-  version "1.167.8"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.167.8.tgz#32a9f39d667b6b9789a4889c1abb86497be23120"
-  integrity sha512-HHfwCN7MZgnQ7BhFfeLbg6mZIheqOZ3kGy6/BmBNVVzrk19bCoO6Wkzb5Gb5O7+NmiSd/CBrFh/MnZIoNXEvUw==
+ts-proto@^1.167.9:
+  version "1.167.9"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.167.9.tgz#b91df6a1db8f689efcac6a2e20d71cdd5c2af8ab"
+  integrity sha512-zqZ15CzqvupSpoTl/fzOs5gG7SFvj1ENmWeKMgD4Yl2BSx8I5F+qgYkr9EZYMu7Ho7u+QtwzfudROo+/jwM2pg==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"

@@ -4,6 +4,8 @@ import (
 	"context"
 
 	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
+	stream_srpc_client "github.com/aperturerobotics/bifrost/stream/srpc/client"
+	stream_srpc_client_controller "github.com/aperturerobotics/bifrost/stream/srpc/client/controller"
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	devtool_web "github.com/aperturerobotics/bldr/devtool/web"
@@ -49,7 +51,13 @@ func NewController(
 	initm *web_runtime.WebRuntimeHostInit,
 	linkUrl string,
 ) *Controller {
-	return &Controller{le: le, b: b, devtoolInfo: devtoolInfo, initm: initm, linkUrl: linkUrl}
+	return &Controller{
+		le:          le,
+		b:           b,
+		devtoolInfo: devtoolInfo,
+		initm:       initm,
+		linkUrl:     linkUrl,
+	}
 }
 
 // GetControllerInfo returns information about the controller.
@@ -116,6 +124,20 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// forward RPC service ids with the HostServiceID to the devtool
 	// this will forward LookupRpcClient<devtool/*>
+	_, _, fwdDevtoolRpcRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&stream_srpc_client_controller.Config{
+		Client: &stream_srpc_client.Config{
+			ServerPeerIds:    []string{devtoolInfo.GetDevtoolPeerId()},
+			PerServerBackoff: devtoolBackoff,
+			TimeoutDur:       "4s",
+		},
+		ServiceIdPrefixes: []string{devtool_web.HostServiceIDPrefix},
+		ProtocolId:        devtool_web.HostProtocolID.String(),
+	}), nil)
+	if err != nil {
+		err = errors.Wrap(err, "start fetch manifest via rpc controller")
+		le.Fatal(err.Error())
+	}
+	defer fwdDevtoolRpcRef.Release()
 
 	// forward FetchManifest directives via RPC to the devtool
 	_, _, fwdFmRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&manifest_fetch_rpc.Config{
@@ -148,15 +170,28 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 
 	// TODO
-	demoManifest, err := bldr_manifest.ExFetchManifest(ctx, b, &bldr_manifest.ManifestMeta{
+	/*
+		demoManifest, err := bldr_manifest.ExFetchManifest(ctx, b, &bldr_manifest.ManifestMeta{
+			ManifestId: "bldr-demo",
+			PlatformId: "web",
+		}, false)
+		if err != nil {
+			le.Fatal(err.Error())
+		}
+		le.Infof("got demo manifest from devtool: %v", demoManifest.String())
+	*/
+	_, fetchRef, err := b.AddDirective(bldr_manifest.NewFetchManifest(&bldr_manifest.ManifestMeta{
 		ManifestId: "bldr-demo",
 		PlatformId: "web",
-	}, false)
-	if err != nil {
-		le.Fatal(err.Error())
-	}
+	}), bus.NewCallbackHandler(func(v directive.AttachedValue) {
+		demoManifest := v.GetValue().(*bldr_manifest.FetchManifestValue)
+		le.Infof("got demo manifest from devtool: %v", demoManifest.String())
 
-	le.Infof("successfully got demo manifest from devtool: %v", demoManifest.String())
+	}, nil, nil))
+	if err != nil {
+		le.Error(err.Error())
+	}
+	defer fetchRef.Release()
 
 	<-ctx.Done()
 	return nil

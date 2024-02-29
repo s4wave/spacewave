@@ -5,7 +5,7 @@ go 1.22
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240225063554-888145ec577f // master
+require github.com/aperturerobotics/hydra v0.0.0-20240229072523-f0d82aca8f87 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -16,7 +16,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.24.10-0.20240225074054-4ff30257ffbe // master
+require github.com/aperturerobotics/bifrost v0.25.1-0.20240229072205-8030c49fb9d4 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -52,9 +52,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.35.4-0.20240228200041-2ad44e32159f // latest
+	github.com/aperturerobotics/controllerbus v0.36.0 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
-	github.com/aperturerobotics/starpc v0.27.0 // latest
+	github.com/aperturerobotics/starpc v0.27.2 // latest
 )
 
 // aperture: use compatibility forks
@@ -74,12 +74,12 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.14.2 // master
+	github.com/aperturerobotics/util v1.14.3 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.17.6
+	github.com/klauspost/compress v1.17.7
 	github.com/libp2p/go-libp2p v0.33.0
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240206065824-7222fbc3459d // indirect
 	github.com/mr-tron/base58 v1.2.0
@@ -97,7 +97,7 @@ require (
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.19.0 // indirect
+	golang.org/x/crypto v0.20.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0
 	nhooyr.io/websocket v1.8.10
@@ -211,7 +211,7 @@ require (
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.9 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.11 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect

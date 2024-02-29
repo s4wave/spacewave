@@ -32,6 +32,7 @@ func (c *Controller) resolveFetchManifest(
 	if _, ok := manifestSet[manifestID]; !ok {
 		return nil
 	}
+
 	return &fetchManifestResolver{
 		c:            c,
 		di:           di,
@@ -85,6 +86,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 				}
 			}
 		}
+
 		select {
 		case <-ctx.Done():
 			return context.Canceled

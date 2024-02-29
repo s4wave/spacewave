@@ -29,7 +29,8 @@
         "--disable-cleanup",
         "--bldr-version-sum=",
         "start",
-        "web"
+        "web",
+        "--wasm"
       ],
       "env": {
         "GOOS": "",
@@ -37,7 +38,26 @@
       }
     },
     {
-      "name": "Debug Bldr Start Native",
+      "name": "Debug Bldr Start WebAssembly",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/bldr",
+      "cwd": "${workspaceFolder}/",
+      "preLaunchTask": "clean",
+      "args": [
+        "--disable-cleanup",
+        "--bldr-version-sum=",
+        "start",
+        "native"
+      ],
+      "env": {
+        "GOOS": "",
+        "GOARCH": ""
+      }
+    },
+    {
+      "name": "Debug Bldr Start Electron",
       "type": "go",
       "request": "launch",
       "mode": "debug",

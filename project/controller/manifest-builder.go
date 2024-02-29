@@ -236,19 +236,29 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return err
 	}
 
-	resultPromise := builderCtrl.GetResultPromise()
-	result, err := resultPromise.Await(ctx)
-	if err != nil {
-		t.resultPromiseCtr.SetResult(nil, err)
-		return err
+	for {
+		resultPromiseCtr := builderCtrl.GetResultPromise()
+		resultPromise, resultPromiseChanged := resultPromiseCtr.GetPromise()
+
+		if resultPromise != nil {
+			result, err := resultPromise.Await(ctx)
+			if err != nil {
+				t.resultPromiseCtr.SetResult(nil, err)
+				return err
+			}
+			t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
+		} else {
+			// No result yet.
+			t.resultPromiseCtr.SetPromise(nil)
+		}
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-resultPromiseChanged:
+			// re-check (manifest was rebuilt)
+		}
 	}
 
-	t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
-
 	// TODO: cleanup the working dir?
-
-	// wait for ctx to be canceled
-	// this allows the builder controller to resolve FetchManifest
-	<-ctx.Done()
-	return nil
 }

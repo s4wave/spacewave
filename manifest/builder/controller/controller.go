@@ -65,7 +65,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // GetResultPromise returns the result promise.
-func (c *Controller) GetResultPromise() promise.PromiseLike[*manifest_builder.BuilderResult] {
+func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_builder.BuilderResult] {
 	return c.resultPromise
 }
 
