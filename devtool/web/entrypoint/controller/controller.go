@@ -1,3 +1,6 @@
+//go:build js
+// +build js
+
 package devtool_web_entrypoint_controller
 
 import (
@@ -186,7 +189,6 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}), bus.NewCallbackHandler(func(v directive.AttachedValue) {
 		demoManifest := v.GetValue().(*bldr_manifest.FetchManifestValue)
 		le.Infof("got demo manifest from devtool: %v", demoManifest.String())
-
 	}, nil, nil))
 	if err != nil {
 		le.Error(err.Error())

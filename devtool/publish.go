@@ -30,12 +30,6 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	}
 	defer b.Release()
 
-	/*
-		if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
-			return err
-		}
-	*/
-
 	// write the banner
 	writeBanner()
 

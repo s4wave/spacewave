@@ -41,7 +41,7 @@ replace (
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
-	go.bug.st/serial => github.com/paralin/go-serial v0.0.0-20240220235126-6223594b0314 // fix-wasm
+	go.bug.st/serial => github.com/paralin/go-serial v0.0.0-20240301222658-42bc112d18a5 // fix-wasm
 )
 
 require (

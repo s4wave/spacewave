@@ -315,7 +315,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 // SyncDistSources syncs the bldr sources and runs npm i and go mod vendor.
 //
 // bldrSum can be empty
-func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
+// bldrSrcPath can be empty
+func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) error {
 	// mount the entrypoint web sources fsHandle
 	ctx, le := d.ctx, d.le
 	distSourcesHandle := bldr.BuildDistSourcesFSHandle(ctx, le)
@@ -359,12 +360,24 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum string) error {
 	}
 	bldrModPath := bldrModFile.Module.Mod.Path
 	bldrModFile.Module.Mod.Path = distGoMod
+
+	// change the mod to bldr-dist
 	if err := bldrModFile.AddModuleStmt(distGoMod); err != nil {
 		return err
 	}
-	if err := bldrModFile.AddRequire(bldrModPath, bldrVersion); err != nil {
-		return err
+
+	if bldrSrcPath != "" {
+		// apply the relative path
+		if err := bldrModFile.AddReplace(bldrModPath, "", bldrSrcPath, ""); err != nil {
+			return err
+		}
+	} else {
+		// add a require for bldr if using bldrVersion
+		if err := bldrModFile.AddRequire(bldrModPath, bldrVersion); err != nil {
+			return err
+		}
 	}
+
 	bldrModFile.Cleanup()
 	updatedBldrGoMod, err := bldrModFile.Format()
 	if err != nil {

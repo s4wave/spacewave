@@ -54,6 +54,19 @@ const HostVolumeServiceIDPrefix = "host-volume/"
 // PluginAssetsFsId is the identifier to use for the plugin assets fs.
 const PluginAssetsFsId = "plugin-assets"
 
+// BldrHttpPrefix is the route prefix for bldr-controlled URL space.
+// /b/
+const BldrHttpPrefix = "/b/"
+
+// PluginDistHttpPrefix is the route prefix to use for plugin dist.
+// This is only available when the web plugin host is running.
+// /b/d/
+const PluginDistHttpPrefix = BldrHttpPrefix + "d/"
+
+// PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
+// /b/pkg/
+const PluginWebPkgHttpPrefix = BldrHttpPrefix + "pkg/"
+
 // PluginHttpPrefix is the route prefix for plugin-controlled URL space.
 // /p/{pluginId}/
 const PluginHttpPrefix = "/p/"
@@ -65,9 +78,6 @@ const PluginAssetsHttpPrefix = "/a/"
 
 // PluginAssetsWebPkgsDir is the directory within assets fs for web pkgs.
 const PluginAssetsWebPkgsDir = "bldr-web-pkgs"
-
-// PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
-const PluginWebPkgHttpPrefix = "/b/pkg/"
 
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"

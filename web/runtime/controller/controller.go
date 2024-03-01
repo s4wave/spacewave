@@ -194,6 +194,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	if strings.HasPrefix(rpath, "/b/") {
 		// Return a 501 for now.
 		// rw.WriteHeader(200)
+		c.le.Warnf("TODO serve /b/ path: %s", rpath)
 		rw.WriteHeader(501)
 		_, _ = rw.Write([]byte("TODO serve /b/ path: " + rpath))
 		return

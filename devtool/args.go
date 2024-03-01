@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 
 	"github.com/aperturerobotics/bldr"
 	"github.com/aperturerobotics/bldr/util/gitroot"
@@ -21,6 +22,11 @@ type DevtoolArgs struct {
 	BldrVersion string
 	// BldrVersionSum is the version sum to require in go.sum
 	BldrVersionSum string
+	// BldrSrcPath is the path to bldr to replace in go.mod
+	// Use for a local path to a development checkout of the bldr sources.
+	// Must be a path relative to the dist sources.
+	// Should be unset unless using a dev checkout of bldr.
+	BldrSrcPath string
 
 	// StatePath is the directory to use for working state.
 	StatePath string
@@ -181,6 +187,14 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			Destination: &a.BldrVersionSum,
 			Hidden:      true,
 		},
+		&cli.StringFlag{
+			Name:        "bldr-src-path",
+			Usage:       "bldr local replacement go sources path",
+			EnvVars:     []string{"BLDR_SRC_PATH"},
+			Value:       a.BldrSrcPath,
+			Destination: &a.BldrSrcPath,
+			Hidden:      true,
+		},
 		&cli.BoolFlag{
 			Name:        "disable-cleanup",
 			Usage:       "disables cleaning up intermediate build files",
@@ -299,6 +313,11 @@ func (a *DevtoolArgs) Validate() error {
 	}
 	if a.StatePath == "" {
 		return errors.New("state path must be set")
+	}
+	if a.BldrSrcPath != "" {
+		if !strings.HasPrefix(a.BldrSrcPath, ".") {
+			return errors.New("bldr-src-path must be a relative path")
+		}
 	}
 	// more?
 	return nil

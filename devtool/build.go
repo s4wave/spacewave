@@ -26,7 +26,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) error {
 		return err
 	}
 
-	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
+	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
 		return err
 	}
 	defer b.Release()

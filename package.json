@@ -22,7 +22,7 @@
     "check": "npm run typecheck && npm run lint",
     "clean": "rimraf ./.bldr",
     "go:run": "cross-env GOOS= GOARCH= go run -v -mod=readonly",
-    "bldr": "npm run go:run -- github.com/aperturerobotics/bldr/cmd/bldr --bldr-version=$(git rev-parse HEAD)",
+    "bldr": "npm run go:run -- github.com/aperturerobotics/bldr/cmd/bldr --bldr-src-path=../../",
     "serve": "npm run start:web",
     "start": "npm run start:web",
     "start:native": "npm run bldr -- start native",

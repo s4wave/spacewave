@@ -29,10 +29,6 @@ var Version = semver.MustParse("0.0.1")
 type WebHost struct {
 	// le is the logger
 	le *logrus.Entry
-	// stateDir is the directory to use for state
-	stateDir string
-	// binsDir is the directory to use for binaries
-	distDir string
 	// pluginPlatformID is the plugin platform to use
 	pluginPlatformID string
 }
@@ -105,17 +101,20 @@ func (h *WebHost) ExecutePlugin(
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
+
 	entrypointFi, err := entrypointHandle.GetFileInfo(ctx)
 	entrypointHandle.Release()
 	if err != nil {
 		return errors.Wrap(err, "entrypoint")
 	}
+
 	entrypointFiMode := entrypointFi.Mode()
 	if !entrypointFiMode.IsRegular() {
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
 	}
 
-	// TODO mount the plugin dist unixfs to handle http requests
+	// mount the plugin dist unixfs to handle dist http requests
+
 	/*
 		if err := unixfs_sync.Sync(
 			ctx,

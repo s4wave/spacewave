@@ -19,5 +19,5 @@ func (a *DevtoolArgs) ExecuteSetup(ctx context.Context) error {
 	}
 	defer b.Release()
 
-	return b.SyncDistSources(a.BldrVersion, a.BldrVersionSum)
+	return b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
 }

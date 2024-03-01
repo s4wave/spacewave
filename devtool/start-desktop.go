@@ -22,7 +22,7 @@ func (a *DevtoolArgs) ExecuteDesktopProject(ctx context.Context) error {
 	defer b.Release()
 
 	// sync dist sources
-	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum); err != nil {
+	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
 		return err
 	}
 
