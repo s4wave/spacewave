@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.25.1-0.20240229072205-8030c49fb9d4 // master
+require github.com/aperturerobotics/bifrost v0.25.1-0.20240302074246-d3cf5dc8ea35 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -27,7 +27,7 @@ replace (
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
-	go.bug.st/serial => github.com/paralin/go-serial v0.0.0-20240220235126-6223594b0314 // fix-wasm
+	go.bug.st/serial => github.com/paralin/go-serial v0.0.0-20240301222658-42bc112d18a5 // fix-wasm
 )
 
 require (
@@ -63,7 +63,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.0 // latest
+	github.com/aperturerobotics/controllerbus v0.36.1 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1
 	github.com/aperturerobotics/starpc v0.27.2 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302

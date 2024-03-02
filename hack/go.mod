@@ -35,7 +35,7 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.25.1-0.20240229072205-8030c49fb9d4 // indirect
+	github.com/aperturerobotics/bifrost v0.25.1-0.20240302074246-d3cf5dc8ea35 // indirect
 	github.com/aperturerobotics/util v1.14.3 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
