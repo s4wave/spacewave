@@ -35,7 +35,7 @@ type Controller struct {
 	proxyVolumes *keyed.KeyedRefCount[string, *proxyVolumeTracker]
 }
 
-// NewController constructs a new rpc volume server.
+// NewController constructs a new rpc volume client.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,

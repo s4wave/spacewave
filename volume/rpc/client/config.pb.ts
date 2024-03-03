@@ -13,7 +13,7 @@ export interface Config {
   /**
    * ServiceId is the service id to use.
    * Must resolve to the AccessVolumes service.
-   * Usually: plugin-host/rpc.volume.AccessVolumes
+   * Usually: rpc.volume.AccessVolumes
    * Cannot be empty.
    */
   serviceId: string

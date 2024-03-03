@@ -31,7 +31,7 @@ type Config struct {
 
 	// ServiceId is the service id to use.
 	// Must resolve to the AccessVolumes service.
-	// Usually: plugin-host/rpc.volume.AccessVolumes
+	// Usually: rpc.volume.AccessVolumes
 	// Cannot be empty.
 	ServiceId string `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	// VolumeIdRe is a regex string to match volume IDs.
