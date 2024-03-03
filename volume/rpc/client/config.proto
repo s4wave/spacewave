@@ -8,7 +8,7 @@ import "github.com/aperturerobotics/util/backoff/backoff.proto";
 message Config {
   // ServiceId is the service id to use.
   // Must resolve to the AccessVolumes service.
-  // Usually: plugin-host/rpc.volume.AccessVolumes
+  // Usually: rpc.volume.AccessVolumes
   // Cannot be empty.
   string service_id = 1;
   // VolumeIdRe is a regex string to match volume IDs.
