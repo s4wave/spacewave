@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.25.1-0.20240303233937-4d1a7a7866d7 // master
+require github.com/aperturerobotics/bifrost v0.25.1-0.20240304195918-f27cfeb51a04 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -63,7 +63,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.1 // latest
+	github.com/aperturerobotics/controllerbus v0.36.4-0.20240305021941-6b425805eba1 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1
 	github.com/aperturerobotics/starpc v0.27.2 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302
@@ -101,7 +101,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.8
-	golang.org/x/crypto v0.20.0
+	golang.org/x/crypto v0.21.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/sync v0.6.0
 	gonum.org/v1/gonum v0.14.0
@@ -238,10 +238,10 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/mod v0.15.0 // indirect
+	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.18.0 // indirect
