@@ -97,17 +97,19 @@ func (t *pluginManifestTracker) processState(
 	}
 	t.prevObjRev, t.prevObjRef = rev, rootRef
 
+	// create the snapshot
+	manifestSnapshot := &bldr_manifest.ManifestSnapshot{
+		ManifestRef: pluginManifestRef,
+		Manifest:    pluginManifest,
+	}
+
 	// update the manifest in the set
 	t.c.rmtx.Lock()
 	existing := t.c.pluginManifests[pluginID]
-	changed := !pluginManifest.EqualVT(existing.manifest)
+	changed := !manifestSnapshot.EqualVT(existing)
 	if changed {
 		le.Infof("plugin manifest updated: %s at %d", t.objKey, rev)
-		t.c.pluginManifests[pluginID] = pluginManifestSnapshot{
-			objKey:      t.objKey,
-			manifest:    pluginManifest,
-			manifestRef: pluginManifestRef,
-		}
+		t.c.pluginManifests[pluginID] = manifestSnapshot
 
 		// restart the plugin, if running
 		if _, reset := t.c.pluginInstances.RestartRoutine(pluginID); reset {

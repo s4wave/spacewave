@@ -251,12 +251,21 @@ func (r *Remote) CreateWebWorker(ctx context.Context, webWorkerID string, shared
 		if err != nil {
 			return false, err
 		}
-		if resp.GetCreated() {
-			dirty, err = r.handleWebWorkerStatuses(ctx, false, []*WebWorkerStatus{{Id: webWorkerID, Shared: resp.GetShared()}})
-			if err != nil {
-			}
+		if !resp.GetCreated() {
+			return false, nil
 		}
-		return false, nil
+
+		dirty, err = r.handleWebWorkerStatuses(ctx, false, []*WebWorkerStatus{{Id: webWorkerID, Shared: resp.GetShared()}})
+		if err != nil {
+			return dirty, err
+		}
+
+		_, remoteWebWorker := r.lookupRemoteWebWorker(webWorkerID)
+		if remoteWebWorker != nil {
+			out = remoteWebWorker
+		}
+
+		return dirty, nil
 	})
 	return out, err
 }

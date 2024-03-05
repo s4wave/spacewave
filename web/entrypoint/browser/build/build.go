@@ -21,7 +21,7 @@ var webEntrypointBrowserDir = "web/entrypoint/browser"
 
 // BuildWasmRuntime builds the Wasm runtime entrypoint.
 //
-// builds to buildDir/runtime-wasm.js
+// builds to buildDir/runtime-wasm.mjs
 func BuildWasmRuntime(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -30,7 +30,7 @@ func BuildWasmRuntime(
 	entrypointPkg string,
 	minify bool,
 ) error {
-	le.Info("building runtime-wasm.js")
+	le.Info("building runtime-wasm.mjs")
 	goRootDir := runtime.GOROOT()
 	wasmExecFile := filepath.Join(goRootDir, "misc/wasm/wasm_exec.js")
 	if _, err := os.Stat(wasmExecFile); err != nil {
@@ -39,7 +39,7 @@ func BuildWasmRuntime(
 
 	// Build runtime wasm entrypoint
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
-	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.js")
+	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
 
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify)
 	opts.EntryPoints = []string{"runtime-wasm.ts"}

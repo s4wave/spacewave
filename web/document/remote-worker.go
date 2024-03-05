@@ -1,9 +1,14 @@
 package web_document
 
-import web_worker "github.com/aperturerobotics/bldr/web/worker"
+import (
+	"context"
+
+	web_worker "github.com/aperturerobotics/bldr/web/worker"
+)
 
 // remoteWebWorker contains remote web worker information.
 type remoteWebWorker struct {
+	r        *Remote
 	id       string
 	document string
 	shared   bool
@@ -12,6 +17,7 @@ type remoteWebWorker struct {
 // buildRemoteWebWorker constructs a new remote WebWorker handle.
 func (r *Remote) buildRemoteWebWorker(id, document string, shared bool) *remoteWebWorker {
 	return &remoteWebWorker{
+		r:        r,
 		id:       id,
 		document: document,
 		shared:   shared,
@@ -32,6 +38,19 @@ func (r *remoteWebWorker) GetDocumentId() string {
 // GetShared indicates this is a shared worker.
 func (r *remoteWebWorker) GetShared() bool {
 	return r.shared
+}
+
+// Remove shuts down the WebWorker and unregisters it from the host.
+// Returns context.Canceled if ctx is canceled
+// Returns nil if the worker was not found.
+func (r *remoteWebWorker) Remove(ctx context.Context) (bool, error) {
+	resp, err := r.r.webDocument.RemoveWebWorker(ctx, &RemoveWebWorkerRequest{
+		Id: r.id,
+	})
+	if err != nil {
+		return false, err
+	}
+	return resp.GetRemoved(), nil
 }
 
 // _ is a type assertion

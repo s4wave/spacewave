@@ -34,11 +34,13 @@ func AccessManifest(
 	// build unixfs_block_fs backed by the distribution fs
 	distBls := bls.Clone()
 	defer distBls.Release()
+
 	distBls.SetRootRef(manifest.GetDistFsRef())
 	distWriter := unixfs_block_fs.NewFSWriter()
 	distFS := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, distBls, distWriter)
 	distWriter.SetFS(distFS)
 	defer distFS.Release()
+
 	distUfs, err := unixfs.NewFSHandle(distFS)
 	if err != nil {
 		return err

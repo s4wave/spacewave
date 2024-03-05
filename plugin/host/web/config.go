@@ -2,6 +2,7 @@ package plugin_host_web
 
 import (
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
@@ -38,6 +39,9 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 func (c *Config) Validate() error {
 	if err := c.GetHostConfig().Validate(); err != nil {
 		return err
+	}
+	if c.GetWebRuntimeId() == "" {
+		return web_runtime.ErrEmptyWebRuntimeID
 	}
 	return nil
 }

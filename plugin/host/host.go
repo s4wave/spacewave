@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/starpc/srpc"
 )
@@ -38,4 +39,13 @@ type PluginHost interface {
 	) error
 	// DeletePlugin clears cached plugin data for the given plugin ID.
 	DeletePlugin(ctx context.Context, pluginID string) error
+}
+
+// PluginHostController manages the PluginHost.
+type PluginHostController interface {
+	// AddPluginReference adds a reference to the plugin, returning the RunningPlugin
+	// handle and a release function.
+	//
+	// Returns nil, nil, err if any error occurs.
+	AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func())
 }

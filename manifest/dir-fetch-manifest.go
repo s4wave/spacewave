@@ -7,6 +7,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	"github.com/aperturerobotics/util/keyed"
 )
 
 // FetchManifest is a directive to fetch a manifest to storage.
@@ -58,6 +60,87 @@ func ExFetchManifest(
 		return nil, errors.New("fetch manifest directive returned invalid result type")
 	}
 	return val, nil
+}
+
+// NewTransformFetchManifestValueToSnapshot transforms *FetchManifestValue to *ManifestSnapshot.
+//
+// followRef should construct a bucket lookup cursor located at the FetchManifestValue.
+func NewTransformFetchManifestValueToSnapshot(
+	followRef func(ctx context.Context, val *FetchManifestValue) (*bucket_lookup.Cursor, error),
+) func(
+	ctx context.Context,
+	val directive.TypedAttachedValue[*FetchManifestValue],
+) (*ManifestSnapshot, bool, error) {
+	return func(ctx context.Context, val directive.TypedAttachedValue[*FetchManifestValue]) (*ManifestSnapshot, bool, error) {
+		manifestVal := val.GetValue()
+		manifestRef := manifestVal.GetManifestRef()
+		if manifestRef.GetEmpty() {
+			return nil, false, nil
+		}
+
+		manifestBls, err := followRef(ctx, manifestVal)
+		if err != nil {
+			return nil, false, err
+		}
+		if manifestBls == nil {
+			return nil, false, nil
+		}
+		defer manifestBls.Release()
+
+		_, bcs := manifestBls.BuildTransaction(nil)
+		manifest, err := UnmarshalManifest(ctx, bcs)
+		if err != nil {
+			return nil, false, err
+		}
+		if manifest == nil {
+			return nil, false, nil
+		}
+
+		manifestObjRef := manifestRef.GetManifestRef()
+		return &ManifestSnapshot{
+			ManifestRef: manifestObjRef,
+			Manifest:    manifest,
+		}, true, nil
+	}
+}
+
+// SelectLatestTransformedManifestSnapshot selects the latest revision from the set of vals.
+func SelectLatestTransformedManifestSnapshot(vals []directive.TransformedAttachedValue[*FetchManifestValue, *ManifestSnapshot]) int {
+	idx := -1
+	var idxRev uint64
+	for i, val := range vals {
+		snapshot := val.GetTransformedValue()
+		rev := snapshot.GetManifest().GetMeta().GetRev()
+		if idx == -1 || rev > idxRev {
+			idx = i
+			idxRev = rev
+		}
+	}
+	return idx
+}
+
+// FetchLatestManifestEffect watches a FetchManifest directive, resolves the
+// Manifest for each result, selects the value with the highest revision, and
+// calls the callback with the selected manifest version when it changes.
+//
+// followRef should construct a bucket lookup cursor located at the FetchManifestValue.
+func FetchLatestManifestEffect(
+	ctx context.Context,
+	b bus.Bus,
+	manifestMeta *ManifestMeta,
+	followRef func(ctx context.Context, val *FetchManifestValue) (*bucket_lookup.Cursor, error),
+	effect func(val directive.TransformedAttachedValue[*FetchManifestValue, *ManifestSnapshot]) func(),
+	keyedOpts ...keyed.Option[uint32, directive.TypedAttachedValue[*FetchManifestValue]],
+) (directive.Instance, directive.Reference, error) {
+	return bus.ExecOneOffWatchTransformEffect[*FetchManifestValue, *ManifestSnapshot](
+		ctx,
+		NewTransformFetchManifestValueToSnapshot(followRef),
+		SelectLatestTransformedManifestSnapshot,
+		effect,
+		b,
+		NewFetchManifest(manifestMeta),
+		keyedOpts...,
+	)
 }
 
 // Validate validates the directive.

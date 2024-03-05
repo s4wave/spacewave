@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -167,6 +168,12 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 // Any exceptional errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	switch dir := di.GetDirective().(type) {
+	case web_runtime.LookupWebRuntime:
+		if dir.LookupWebRuntimeID() == c.runtimeID || dir.LookupWebRuntimeID() == "" {
+			return directive.R(directive.NewGetterResolver[web_runtime.LookupWebRuntimeValue](c.GetWebRuntime), nil)
+		}
+	}
 	return nil, nil
 }
 
@@ -182,41 +189,56 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 	rpath := rurl.Path
 
 	// /b/ is for bldr internals
-	// /b/pkg/ is for Web module distribution files (like react)
-	bPkgPrefix := plugin.PluginWebPkgHttpPrefix
-	if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
-		pkgPath := rpath[len(bPkgPrefix):]
-		c.ServeWebModuleHTTP(pkgPath, rw, req)
-		return
-	}
-
-	// TODO: /b/pd/ is for Web plugin distribution files
 	if strings.HasPrefix(rpath, "/b/") {
-		// Return a 501 for now.
-		// rw.WriteHeader(200)
-		c.le.Warnf("TODO serve /b/ path: %s", rpath)
-		rw.WriteHeader(501)
-		_, _ = rw.Write([]byte("TODO serve /b/ path: " + rpath))
+		// /b/pkg/ is for Web module distribution files (like react)
+		bPkgPrefix := plugin.PluginWebPkgHttpPrefix
+		if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
+			pkgPath := rpath[len(bPkgPrefix):]
+			c.ServeWebModuleHTTP(pkgPath, rw, req)
+			return
+		}
+
+		// /b/pd/ is for Web plugin distribution files
+		c.le.Debugf("serve /b/ path: %s", rpath)
+		bPdPrefix := plugin.PluginDistHttpPrefix
+		if strings.HasPrefix(rpath, bPdPrefix) && len(rpath) > len(bPdPrefix) {
+			pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginDistHttpPrefix):])
+			if err != nil {
+				rw.WriteHeader(404)
+				_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+				return
+			}
+
+			req.URL.Path = suffix
+			c.ServePluginDistFsHTTP(pluginID, rw, req)
+			return
+		}
+
+		// /b/ps/ is for Web plugin entrypoints (plugin start)
+		bPsPrefix := plugin.PluginStartHttpPrefix
+		if strings.HasPrefix(rpath, bPsPrefix) && len(rpath) > len(bPsPrefix) {
+			req.URL.Path = bPsPrefix[len(bPsPrefix):]
+			c.ServePluginStartHTTP(rw, req)
+			return
+		}
+
+		// other /b/ paths are not found
+		rw.WriteHeader(404)
+		_, _ = rw.Write([]byte("404 not found"))
 		return
 	}
 
 	// /p/ is for plugin handlers
 	// /p/{plugin-id}/... will be forwarded to the loaded plugin.
 	if strings.HasPrefix(rpath, plugin.PluginHttpPrefix) {
-		ppath := rpath[3:]
-		slashIdx := strings.IndexRune(ppath, '/')
-		pluginID := ppath
-		if slashIdx != -1 {
-			pluginID = ppath[:slashIdx]
-		}
-
-		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
+		pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginHttpPrefix):])
+		if err != nil {
 			rw.WriteHeader(404)
 			_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
 			return
 		}
 
-		req.URL.Path = ppath[slashIdx:]
+		req.URL.Path = suffix
 		c.ServePluginHTTP(pluginID, rw, req)
 		return
 	}
@@ -253,6 +275,38 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		_, _ = rw.Write([]byte("bldr: request failed: plugin " + pluginID + ": " + err.Error()))
 		return
 	}
+}
+
+// ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
+func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
+	// access the fs with unixfs_access, return not found if the fs is not available
+	ctx, ctxCancel := context.WithCancel(req.Context())
+	defer ctxCancel()
+
+	c.le.
+		WithField("plugin-id", pluginID).
+		WithField("path", req.URL.Path).
+		Debug("accessing plugin dist filesystem")
+	// see: plugin/host/controller/plugin-tracker.go distFsID
+	unixFsID := plugin.PluginDistFsId + "/" + pluginID
+	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
+	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
+	if err != nil {
+		rw.WriteHeader(500)
+		_, _ = rw.Write([]byte("bldr: request failed: " + err.Error()))
+		return
+	}
+	defer relHandler()
+
+	(*handler).ServeHTTP(rw, req)
+}
+
+// ServePluginStartHTTP serves the /b/ps/ filesystem.
+// This contains .js files for plugin startup on the web platform.
+func (c *Controller) ServePluginStartHTTP(rw http.ResponseWriter, req *http.Request) {
+	rw.Header().Set("Content-Type", "text/javascript")
+	rw.WriteHeader(200)
+	_, _ = rw.Write([]byte("console.log('TODO return plugin.js for worker!')\n"))
 }
 
 // ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.

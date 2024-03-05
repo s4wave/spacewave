@@ -50,6 +50,9 @@ func (c *Config) Validate() error {
 	if err := c.GetFetchBackoff().Validate(true); err != nil {
 		return errors.Wrap(err, "fetch_backoff")
 	}
+	if err := c.GetExecBackoff().Validate(true); err != nil {
+		return errors.Wrap(err, "exec_backoff")
+	}
 	return nil
 }
 

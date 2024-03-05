@@ -235,7 +235,6 @@ func BuildDistBundle(
 	}
 
 	// Format and write the main.go file.
-	// TODO: process the kvfile in the dist entrypoint
 	le.Debug("compiling dist entrypoint")
 	entrypointSrc := FormatDistEntrypoint(meta)
 	entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")

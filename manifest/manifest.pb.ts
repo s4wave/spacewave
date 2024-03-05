@@ -72,6 +72,19 @@ export interface ManifestBundle {
   timestamp: Timestamp | undefined;
 }
 
+/** ManifestSnapshot is a manifest reference with the manifest value fetched. */
+export interface ManifestSnapshot {
+  /**
+   * ManifestRef is the reference to the manifest.
+   * Must match the manifest field.
+   */
+  manifestRef:
+    | ObjectRef
+    | undefined;
+  /** Manifest is the fetched manifest object. */
+  manifest: Manifest | undefined;
+}
+
 /** FetchManifestRequest is a request to fetch a manifest binary. */
 export interface FetchManifestRequest {
   /**
@@ -594,6 +607,116 @@ export const ManifestBundle = {
     message.manifestRefs = object.manifestRefs?.map((e) => ManifestRef.fromPartial(e)) || [];
     message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
       ? Timestamp.fromPartial(object.timestamp)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseManifestSnapshot(): ManifestSnapshot {
+  return { manifestRef: undefined, manifest: undefined };
+}
+
+export const ManifestSnapshot = {
+  encode(message: ManifestSnapshot, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.manifestRef !== undefined) {
+      ObjectRef.encode(message.manifestRef, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.manifest !== undefined) {
+      Manifest.encode(message.manifest, writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ManifestSnapshot {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseManifestSnapshot();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.manifestRef = ObjectRef.decode(reader, reader.uint32());
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.manifest = Manifest.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ManifestSnapshot, Uint8Array>
+  async *encodeTransform(
+    source: AsyncIterable<ManifestSnapshot | ManifestSnapshot[]> | Iterable<ManifestSnapshot | ManifestSnapshot[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [ManifestSnapshot.encode(p).finish()];
+        }
+      } else {
+        yield* [ManifestSnapshot.encode(pkt as any).finish()];
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ManifestSnapshot>
+  async *decodeTransform(
+    source: AsyncIterable<Uint8Array | Uint8Array[]> | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ManifestSnapshot> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of (pkt as any)) {
+          yield* [ManifestSnapshot.decode(p)];
+        }
+      } else {
+        yield* [ManifestSnapshot.decode(pkt as any)];
+      }
+    }
+  },
+
+  fromJSON(object: any): ManifestSnapshot {
+    return {
+      manifestRef: isSet(object.manifestRef) ? ObjectRef.fromJSON(object.manifestRef) : undefined,
+      manifest: isSet(object.manifest) ? Manifest.fromJSON(object.manifest) : undefined,
+    };
+  },
+
+  toJSON(message: ManifestSnapshot): unknown {
+    const obj: any = {};
+    if (message.manifestRef !== undefined) {
+      obj.manifestRef = ObjectRef.toJSON(message.manifestRef);
+    }
+    if (message.manifest !== undefined) {
+      obj.manifest = Manifest.toJSON(message.manifest);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ManifestSnapshot>, I>>(base?: I): ManifestSnapshot {
+    return ManifestSnapshot.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ManifestSnapshot>, I>>(object: I): ManifestSnapshot {
+    const message = createBaseManifestSnapshot();
+    message.manifestRef = (object.manifestRef !== undefined && object.manifestRef !== null)
+      ? ObjectRef.fromPartial(object.manifestRef)
+      : undefined;
+    message.manifest = (object.manifest !== undefined && object.manifest !== null)
+      ? Manifest.fromPartial(object.manifest)
       : undefined;
     return message;
   },

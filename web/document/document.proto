@@ -32,7 +32,7 @@ service WebDocument {
   // The worker is expected to close itself if it becomes disconnected or broken.
   // The worker is passed a MessagePort that can be used to open WebRuntimeClient.
   rpc CreateWebWorker(CreateWebWorkerRequest) returns (CreateWebWorkerResponse);
-  // RemoveWebWorker requests to terminate a WebWorker with an instance identifier.
+  // RemoveWebWorker requests to terminate a WebWorker with the given id.
   rpc RemoveWebWorker(RemoveWebWorkerRequest) returns (RemoveWebWorkerResponse);
 }
 

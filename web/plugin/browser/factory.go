@@ -62,17 +62,20 @@ func (t *Factory) Construct(
 		) (web_runtime.WebRuntime, error) {
 			id := cc.GetWebRuntimeId()
 			messagePortName := cc.GetMessagePort()
+
 			global := js.Global()
 			if global.IsUndefined() {
 				return nil, errors.New("js global is undefined")
 			}
+
 			messagePort := global.Get(messagePortName)
 			if messagePort.IsUndefined() {
 				return nil, errors.Errorf("js global is undefined: %s", messagePortName)
 			}
+
 			return NewRuntime(ctx, le, t.bus, handler, id, messagePort)
 		},
-		RuntimeID,
+		cc.GetWebRuntimeId(),
 		Version,
 	), nil
 }

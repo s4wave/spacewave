@@ -36,8 +36,14 @@ const webRuntime = new WebRuntime(
   removeDocCb,
 )
 
+// baseURL is the base URL to use for paths.
+const baseURL = import.meta?.url
+
+// runtimeWasmURL is the path to the bldr runtime wasm that we will use.
+const runtimeWasmURL = new URL('./runtime.wasm', baseURL)
+
 // construct the go wasm process
-const goProcess = new GoWasmProcess('/runtime/runtime.wasm', {
+const goProcess = new GoWasmProcess(runtimeWasmURL.toString(), {
   argv: ['runtime.wasm'],
   retryOpts: {
     errorCb: (err) => {

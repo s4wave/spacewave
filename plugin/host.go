@@ -51,8 +51,11 @@ const PluginServiceIDPrefix = "plugin/"
 // HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
 const HostVolumeServiceIDPrefix = "host-volume/"
 
-// PluginAssetsFsId is the identifier to use for the plugin assets fs.
+// PluginAssetsFsId is the identifier to use for the plugin assets fs on the plugin bus.
 const PluginAssetsFsId = "plugin-assets"
+
+// PluginDistFsId is the identifier to use for the plugin dist fs on the plugin bus.
+const PluginDistFsId = "plugin-dist"
 
 // BldrHttpPrefix is the route prefix for bldr-controlled URL space.
 // /b/
@@ -60,8 +63,13 @@ const BldrHttpPrefix = "/b/"
 
 // PluginDistHttpPrefix is the route prefix to use for plugin dist.
 // This is only available when the web plugin host is running.
-// /b/d/
-const PluginDistHttpPrefix = BldrHttpPrefix + "d/"
+// /b/pd/
+const PluginDistHttpPrefix = BldrHttpPrefix + "pd/"
+
+// PluginStartHttpPrefix is the route prefix to use for plugin start scripts.
+// This is only available when the web plugin host is running.
+// /b/ps/
+const PluginStartHttpPrefix = BldrHttpPrefix + "ps/"
 
 // PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
 // /b/pkg/
@@ -103,4 +111,30 @@ func PluginHTTPPathFromContext(ctx context.Context, httpPath string) string {
 		return PluginHTTPPath(pluginID, httpPath)
 	}
 	return httpPath
+}
+
+// ParseHTTPPathPluginID parses and validates a {plugin-id}/ prefix from a HTTP path.
+func ParseHTTPPathPluginID(httpPath string) (pluginID string, suffix string, err error) {
+	httpPath = strings.TrimPrefix(httpPath, "/")
+	slashIdx := strings.IndexRune(httpPath, '/')
+
+	pluginID = httpPath
+	if slashIdx != -1 {
+		pluginID = httpPath[:slashIdx]
+		suffix = httpPath[slashIdx:]
+	}
+
+	return pluginID, suffix, ValidatePluginID(pluginID, false)
+}
+
+// PluginDistHTTPPath adds the plugin distribution file prefix to the given path.
+func PluginDistHTTPPath(pluginID, httpPath string) string {
+	var sb strings.Builder
+	_, _ = sb.WriteString(PluginDistHttpPrefix)
+	_, _ = sb.WriteString(pluginID)
+	if !strings.HasPrefix(httpPath, "/") {
+		_, _ = sb.WriteString("/")
+	}
+	_, _ = sb.WriteString(httpPath)
+	return sb.String()
 }

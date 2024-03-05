@@ -180,16 +180,22 @@ func ExecutePlugin(
 	rels = append(rels, relHostVolumeController)
 
 	// serve the plugin assets filesystem
-	pluginHostFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef.GetManifestRef())
-	le.
-		WithField("config", pluginHostFsCtrl.GetControllerInfo().GetId()).
-		Debug("starting controller")
-	relPluginHostFsCtrl, err := b.AddController(ctx, pluginHostFsCtrl, handleErr)
+	pluginAssetsFsCtrl := BuildPluginAssetsFSController(le, b, pluginManifestRef.GetManifestRef())
+	relPluginAssetsFsCtrl, err := b.AddController(ctx, pluginAssetsFsCtrl, handleErr)
 	if err != nil {
 		rel()
 		return err
 	}
-	rels = append(rels, relPluginHostFsCtrl)
+	rels = append(rels, relPluginAssetsFsCtrl)
+
+	// serve the plugin dist filesystem
+	pluginDistFsCtrl := BuildPluginDistFSController(le, b, pluginManifestRef.GetManifestRef())
+	relPluginDistFsCtrl, err := b.AddController(ctx, pluginDistFsCtrl, handleErr)
+	if err != nil {
+		rel()
+		return err
+	}
+	rels = append(rels, relPluginDistFsCtrl)
 
 	// apply config sets
 	mergedConfigSet := configset.MergeConfigSets(configSets...)
@@ -250,17 +256,13 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 		le,
 		b,
 		controller.NewInfo(
-			"plugin/entrypoint/client/assets-fs",
+			"plugin/entrypoint/client/fs/assets",
 			Version,
 			"plugin assets filesystem",
 		),
 		bldr_plugin.PluginAssetsFsId,
 		func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
-			sfsAll, err := transform_all.BuildFactorySet()
-			if err != nil {
-				return nil, nil, err
-			}
-
+			sfsAll := transform_all.BuildFactorySet()
 			cursor, err := bucket_lookup.BuildCursor(ctx, b, le, sfsAll, "", pluginManifestRef, nil)
 			if err != nil {
 				return nil, nil, err
@@ -274,6 +276,55 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginManifestRe
 			}
 
 			cursor.SetRootRef(pluginManifest.GetAssetsFsRef())
+			fsCursor := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor, nil)
+			fs, err := unixfs.NewFSHandle(fsCursor)
+			if err != nil {
+				fsCursor.Release()
+				cursor.Release()
+				return nil, nil, err
+			}
+			fs.AddReleaseCallback(released)
+
+			rel := func() {
+				fs.Release()
+				fsCursor.Release()
+				cursor.Release()
+			}
+			if err != nil {
+				rel()
+				return nil, nil, err
+			}
+			return fs, rel, nil
+		},
+	)
+}
+
+// BuildPluginDistFSController builds a unixfs_access controller for the plugin dist fs.
+func BuildPluginDistFSController(le *logrus.Entry, b bus.Bus, pluginManifestRef *bucket.ObjectRef) *unixfs_access.Controller {
+	return unixfs_access.NewController(
+		le,
+		b,
+		controller.NewInfo(
+			"plugin/entrypoint/client/fs/dist",
+			Version,
+			"plugin dist filesystem",
+		),
+		bldr_plugin.PluginDistFsId,
+		func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+			sfsAll := transform_all.BuildFactorySet()
+			cursor, err := bucket_lookup.BuildCursor(ctx, b, le, sfsAll, "", pluginManifestRef, nil)
+			if err != nil {
+				return nil, nil, err
+			}
+			_, bcs := cursor.BuildTransaction(nil)
+
+			pluginManifest, err := manifest.UnmarshalManifest(ctx, bcs)
+			if err != nil {
+				cursor.Release()
+				return nil, nil, err
+			}
+
+			cursor.SetRootRef(pluginManifest.GetDistFsRef())
 			fsCursor := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor, nil)
 			fs, err := unixfs.NewFSHandle(fsCursor)
 			if err != nil {

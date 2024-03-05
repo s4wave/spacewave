@@ -82,6 +82,10 @@ type DevtoolBus struct {
 	distSrcRoot string
 	// vol is the volume used for state
 	vol volume.Volume
+	// volInfo is the volume info for the vol used for state
+	volInfo *volume.VolumeInfo
+	// volCtrl is the volume controller used for state
+	volCtrl volume.Controller
 	// peerID is the peerID to use for operations.
 	peerID peer.ID
 	// worldEngine is the world engine instance.
@@ -169,6 +173,12 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	vol, err := volCtrl.GetVolume(ctx)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+
+	volInfo, err := volume.NewVolumeInfo(ctx, volCtrl.GetControllerInfo(), vol)
 	if err != nil {
 		rel()
 		return nil, err
@@ -305,6 +315,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		stateRoot:           stateRoot,
 		distSrcRoot:         distSrcDir,
 		vol:                 vol,
+		volInfo:             volInfo,
+		volCtrl:             volCtrl,
 		peerID:              vol.GetPeerID(),
 		worldEngine:         eng,
 		worldState:          worldState,
@@ -469,6 +481,16 @@ func (d *DevtoolBus) GetStorageConf() config.Config {
 // GetVolume returns the storage volume in use.
 func (d *DevtoolBus) GetVolume() volume.Volume {
 	return d.vol
+}
+
+// GetVolumeInfo returns the storage volume info.
+func (d *DevtoolBus) GetVolumeInfo() *volume.VolumeInfo {
+	return d.volInfo
+}
+
+// GetVolumeController returns the storage volume controller in use.
+func (d *DevtoolBus) GetVolumeController() volume.Controller {
+	return d.volCtrl
 }
 
 // GetWorldEngineID returns the world engine id.

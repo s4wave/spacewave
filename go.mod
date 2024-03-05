@@ -5,7 +5,7 @@ go 1.22
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240229072523-f0d82aca8f87 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240305034132-0507fbd75ad5 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -16,7 +16,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.1-0.20240229072205-8030c49fb9d4 // master
+require github.com/aperturerobotics/bifrost v0.25.1-0.20240304195918-f27cfeb51a04 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -52,7 +52,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.0 // latest
+	github.com/aperturerobotics/controllerbus v0.36.4 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
 	github.com/aperturerobotics/starpc v0.27.2 // latest
 )
@@ -97,7 +97,7 @@ require (
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.20.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0
 	nhooyr.io/websocket v1.8.10
@@ -115,9 +115,9 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.1-0.20231211202411-9f60ea941235
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
-	golang.org/x/mod v0.15.0
+	golang.org/x/mod v0.16.0
 	golang.org/x/sync v0.6.0
-	golang.org/x/tools v0.18.0
+	golang.org/x/tools v0.19.0
 )
 
 require (
@@ -241,9 +241,9 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect

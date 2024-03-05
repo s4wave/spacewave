@@ -12,9 +12,10 @@ import (
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	devtool_web "github.com/aperturerobotics/bldr/devtool/web"
+	devtool_web_entrypoint_plugin_host "github.com/aperturerobotics/bldr/devtool/web/entrypoint/plugin-host"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_fetch_rpc "github.com/aperturerobotics/bldr/manifest/fetch/rpc"
-	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	"github.com/aperturerobotics/bldr/storage"
 	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
@@ -25,6 +26,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -127,7 +129,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// forward RPC service ids with the HostServiceID to the devtool
 	// this will forward LookupRpcClient<devtool/*>
-	_, _, fwdDevtoolRpcRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&stream_srpc_client_controller.Config{
+	fwdDevtoolCtrlI, _, fwdDevtoolRpcRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&stream_srpc_client_controller.Config{
 		Client: &stream_srpc_client.Config{
 			ServerPeerIds:    []string{devtoolInfo.GetDevtoolPeerId()},
 			PerServerBackoff: devtoolBackoff,
@@ -142,6 +144,30 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer fwdDevtoolRpcRef.Release()
 
+	// get the srpc.Client for the devtool
+	fwdDevtoolCtrl := fwdDevtoolCtrlI.(*stream_srpc_client_controller.Controller)
+	devtoolPrefixClient, devtoolBaseClient := fwdDevtoolCtrl.GetClient(), fwdDevtoolCtrl.GetBaseClient()
+	_ = devtoolPrefixClient
+
+	// forward LookupVolume directives via RPC to the devtool
+	devtoolVolumeInfo := devtoolInfo.GetDevtoolVolumeInfo()
+	devtoolVolumeController := volume_rpc_client.NewProxyVolumeControllerWithClient(
+		b,
+		le,
+		devtoolVolumeInfo,
+		[]string{devtool_web.HostVolumeID},
+		devtoolBaseClient,
+		devtool_web.HostVolumeServiceIDPrefix,
+	)
+	relDevtoolVolumeController, err := b.AddController(ctx, devtoolVolumeController, func(err error) {
+		err = errors.Wrap(err, "devtool volume proxy controller failed")
+		le.Fatal(err.Error())
+	})
+	if err != nil {
+		return err
+	}
+	defer relDevtoolVolumeController()
+
 	// forward FetchManifest directives via RPC to the devtool
 	_, _, fwdFmRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&manifest_fetch_rpc.Config{
 		ServiceId: devtool_web.HostServiceIDPrefix + bldr_manifest.SRPCManifestFetchServiceID,
@@ -154,46 +180,61 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer fwdFmRef.Release()
 
 	// run the browser plugin host controller
-	_, _, phRef, err := loader.WaitExecControllerRunning(
-		ctx,
+	webPluginHost, err := plugin_host_web.NewWebHost(b, le, c.initm.GetWebRuntimeId())
+	if err != nil {
+		err = errors.Wrap(err, "construct web plugin host")
+		le.Fatal(err.Error())
+	}
+	webPluginHostCtrl := devtool_web_entrypoint_plugin_host.NewController(
+		le,
 		b,
-		resolver.NewLoadControllerWithConfig(&plugin_host_web.Config{
-			HostConfig:   &plugin_host_controller.Config{},
-			WebRuntimeId: c.initm.GetWebRuntimeId(),
-		}),
-		nil,
+		&devtool_web_entrypoint_plugin_host.Config{
+			VolumeId: devtool_web.HostVolumeID,
+		},
+		controller.NewInfo(
+			ControllerID+"/plugin-host",
+			Version,
+			"plugin host for dev entrypoint",
+		),
+		webPluginHost,
 	)
 	if err != nil {
 		err = errors.Wrap(err, "start web plugin host")
-		// le.Fatal(err.Error())
-		le.Error(err.Error())
+		le.Fatal(err.Error())
 	}
-	if phRef != nil {
-		defer phRef.Release()
+	webPluginHostRel, err := b.AddController(ctx, webPluginHostCtrl, func(err error) {
+		err = errors.Wrap(err, "plugin host controller failed")
+		le.Fatal(err.Error())
+	})
+	if err != nil {
+		err = errors.Wrap(err, "start web plugin host")
+		le.Fatal(err.Error())
 	}
+	defer webPluginHostRel()
+	le.Info("web plugin host is running")
 
-	// TODO
+	// Load demo plugin
+	_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin("bldr-demo"), nil)
+	if err != nil {
+		err = errors.Wrap(err, "load demo plugin")
+		le.Fatal(err.Error())
+	}
+	defer pluginRef.Release()
+
+	// Load demo manifest
 	/*
-		demoManifest, err := bldr_manifest.ExFetchManifest(ctx, b, &bldr_manifest.ManifestMeta{
+		_, fetchRef, err := b.AddDirective(bldr_manifest.NewFetchManifest(&bldr_manifest.ManifestMeta{
 			ManifestId: "bldr-demo",
 			PlatformId: "web",
-		}, false)
+		}), bus.NewCallbackHandler(func(v directive.AttachedValue) {
+			demoManifest := v.GetValue().(*bldr_manifest.FetchManifestValue)
+			le.Infof("got demo manifest from devtool: %v", demoManifest.String())
+		}, nil, nil))
 		if err != nil {
-			le.Fatal(err.Error())
+			le.Error(err.Error())
 		}
-		le.Infof("got demo manifest from devtool: %v", demoManifest.String())
+		defer fetchRef.Release()
 	*/
-	_, fetchRef, err := b.AddDirective(bldr_manifest.NewFetchManifest(&bldr_manifest.ManifestMeta{
-		ManifestId: "bldr-demo",
-		PlatformId: "web",
-	}), bus.NewCallbackHandler(func(v directive.AttachedValue) {
-		demoManifest := v.GetValue().(*bldr_manifest.FetchManifestValue)
-		le.Infof("got demo manifest from devtool: %v", demoManifest.String())
-	}, nil, nil))
-	if err != nil {
-		le.Error(err.Error())
-	}
-	defer fetchRef.Release()
 
 	<-ctx.Done()
 	return nil

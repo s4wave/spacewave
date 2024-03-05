@@ -136,7 +136,6 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 	var wroteManifestRef *bucket.ObjectRef
 	le.Debug("accessing fetched manifest")
 	err = ws.AccessWorldState(ctx, nil, func(worldCursor *bucket_lookup.Cursor) error {
-		// use empty volume ID to allow cross-volume lookup
 		opArgs := &bucket.BucketOpArgs{}
 		pluginHostBucketID = worldCursor.GetOpArgs().GetBucketId()
 		if refBucketID := manifestRef.GetBucketId(); refBucketID != "" {

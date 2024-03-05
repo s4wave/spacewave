@@ -75,7 +75,7 @@ const baseURL = import.meta?.url || window.location.origin
 // runtimeJsURL is the path to the bldr runtime js that we will use.
 const runtimeJsURL = new URL(
   (typeof BLDR_RUNTIME_JS === 'string' ? BLDR_RUNTIME_JS : false) ||
-    '/runtime/runtime-wasm.js',
+    './runtime-wasm.mjs',
   baseURL,
 )
 
@@ -112,10 +112,10 @@ class WebDocumentWebWorker {
       initPort: workerPort,
     }
     if (typeof SharedWorker !== 'undefined') {
-      this.sharedWorker = new SharedWorker(url, { name: id })
+      this.sharedWorker = new SharedWorker(url, { name: id, type: "module" })
       this.sharedWorker.port.postMessage(init, [workerPort])
     } else {
-      this.worker = new Worker(url, { name: id })
+      this.worker = new Worker(url, { name: id, type: "module" })
       this.worker.postMessage(init, [workerPort])
     }
 
@@ -432,6 +432,7 @@ export class WebDocument {
       // setup the Go runtime
       const workerOptions: WorkerOptions = {
         name: 'bldr:' + this.webRuntimeId,
+        type: "module",
       }
       this.worker = new SharedWorker(
         // eslint-disable-next-line

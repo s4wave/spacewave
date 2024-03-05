@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { VolumeInfo } from "@go/github.com/aperturerobotics/hydra/volume/volume.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -10,10 +11,15 @@ export interface DevtoolInitBrowser {
   appId: string;
   /** DevtoolPeerId is the peer id to use for the devtool link. */
   devtoolPeerId: string;
+  /**
+   * DevtoolVolumeInfo is the information for the devtool Volume.
+   * The volume is exposed with a ProxyVolume.
+   */
+  devtoolVolumeInfo: VolumeInfo | undefined;
 }
 
 function createBaseDevtoolInitBrowser(): DevtoolInitBrowser {
-  return { appId: "", devtoolPeerId: "" };
+  return { appId: "", devtoolPeerId: "", devtoolVolumeInfo: undefined };
 }
 
 export const DevtoolInitBrowser = {
@@ -23,6 +29,9 @@ export const DevtoolInitBrowser = {
     }
     if (message.devtoolPeerId !== "") {
       writer.uint32(18).string(message.devtoolPeerId);
+    }
+    if (message.devtoolVolumeInfo !== undefined) {
+      VolumeInfo.encode(message.devtoolVolumeInfo, writer.uint32(26).fork()).ldelim();
     }
     return writer;
   },
@@ -47,6 +56,13 @@ export const DevtoolInitBrowser = {
           }
 
           message.devtoolPeerId = reader.string();
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.devtoolVolumeInfo = VolumeInfo.decode(reader, reader.uint32());
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -95,6 +111,7 @@ export const DevtoolInitBrowser = {
     return {
       appId: isSet(object.appId) ? globalThis.String(object.appId) : "",
       devtoolPeerId: isSet(object.devtoolPeerId) ? globalThis.String(object.devtoolPeerId) : "",
+      devtoolVolumeInfo: isSet(object.devtoolVolumeInfo) ? VolumeInfo.fromJSON(object.devtoolVolumeInfo) : undefined,
     };
   },
 
@@ -106,6 +123,9 @@ export const DevtoolInitBrowser = {
     if (message.devtoolPeerId !== "") {
       obj.devtoolPeerId = message.devtoolPeerId;
     }
+    if (message.devtoolVolumeInfo !== undefined) {
+      obj.devtoolVolumeInfo = VolumeInfo.toJSON(message.devtoolVolumeInfo);
+    }
     return obj;
   },
 
@@ -116,6 +136,9 @@ export const DevtoolInitBrowser = {
     const message = createBaseDevtoolInitBrowser();
     message.appId = object.appId ?? "";
     message.devtoolPeerId = object.devtoolPeerId ?? "";
+    message.devtoolVolumeInfo = (object.devtoolVolumeInfo !== undefined && object.devtoolVolumeInfo !== null)
+      ? VolumeInfo.fromPartial(object.devtoolVolumeInfo)
+      : undefined;
     return message;
   },
 };

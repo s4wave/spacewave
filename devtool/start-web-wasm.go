@@ -19,6 +19,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -100,7 +101,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		le,
 		distSrcDir,
 		entrypointDir,
-		"/runtime/runtime-wasm.js",
+		"./runtime-wasm.mjs",
 		minifyEntrypoint,
 		devMode,
 	)
@@ -108,11 +109,12 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	// get the bldr go mod
+	// set the path to the entrypoint to use for the wasm main() function
+	// TODO: dist/web/entrypoint for dist bundle
 	entrypointPkg := "devtool/web/entrypoint"
 
 	// compile the entrypoint wasm
-	wasmRuntimeDir := filepath.Join(entrypointDir, "runtime")
+	wasmRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
 	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
 		return err
 	}
@@ -181,6 +183,11 @@ func (b *DevtoolBus) ExecuteWebWasm(
 				pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, b.GetBus())
 				return bldr_manifest.SRPCRegisterManifestFetch(mux, pluginFetchViaBus)
 			},
+			func(mux srpc.Mux) error {
+				// proxy the devtool host volume via RPC
+				proxyVol := volume_rpc_server.NewProxyVolume(ctx, b.GetVolume(), false)
+				return volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyVol, devtool_web.HostVolumeServiceIDPrefix)
+			},
 		},
 		[]protocol.ID{devtool_web.HostProtocolID},
 		[]string{wsPeerID},
@@ -198,10 +205,15 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	defer relRpcServer()
 
 	// encode the init info for the browser devtool entrypoint
-	browserInitBin, err := (&devtool_web.DevtoolInitBrowser{
-		AppId:         appID,
-		DevtoolPeerId: wsPeerID,
-	}).MarshalVT()
+	browserInit := &devtool_web.DevtoolInitBrowser{
+		AppId:             appID,
+		DevtoolPeerId:     wsPeerID,
+		DevtoolVolumeInfo: b.GetVolumeInfo(),
+	}
+	if err := browserInit.Validate(); err != nil {
+		return err
+	}
+	browserInitBin, err := browserInit.MarshalVT()
 	if err != nil {
 		return err
 	}

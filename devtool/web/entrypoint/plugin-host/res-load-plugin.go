@@ -1,4 +1,4 @@
-package plugin_host_controller
+package devtool_web_entrypoint_plugin_host
 
 import (
 	"context"

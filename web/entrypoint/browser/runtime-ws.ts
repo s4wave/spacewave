@@ -65,7 +65,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   }
 
   // Setup the connection to the Go runtime.
-  const wsDuplex = duplex(ws as any)
+  const wsDuplex = duplex(ws as unknown)
   const runtimeConn = new StreamConn(webRuntime.getWebRuntimeServer(), {
     direction: 'inbound',
     muxerFactory: yamux({

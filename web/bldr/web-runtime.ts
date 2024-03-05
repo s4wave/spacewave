@@ -337,8 +337,8 @@ export class WebRuntime {
   }
 
   // lookupClient looks up an ongoing WebRuntime client connection.
-  public lookupClient(webRuntimeUuid: string): WebRuntimeClientInstance | null {
-    return this.clients[webRuntimeUuid] ?? null
+  public lookupClient(webRuntimeId: string): WebRuntimeClientInstance | null {
+    return this.clients[webRuntimeId] ?? null
   }
 
   // handleClient handles an incoming client connection MessagePort.

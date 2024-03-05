@@ -1,13 +1,11 @@
-package plugin_host_controller
+package devtool_web_entrypoint_plugin_host
 
 import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/peer"
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
@@ -15,10 +13,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
-	"github.com/aperturerobotics/hydra/world"
-	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -27,7 +25,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Controller implements the PluginHost controller.
+// Controller implements the web devtool entrypoint PluginHost controller.
+//
+// This is a simplified version of the plugin/host/controller.
+// This version accesses plugins from the devtool without the world management or fetching logic.
+//
+// The implementation could be unified with plugin/host/controller if the world
+// logic was split out into a separate controller. However, it is simpler to
+// just implement the special case of the devtool here for now.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -37,39 +42,27 @@ type Controller struct {
 	conf *Config
 	// info contains the controller info
 	info *controller.Info
+	// sfs is used to decode manifests
+	sfs *block_transform.StepFactorySet
 	// host is the plugin host
 	host bldr_plugin_host.PluginHost
 	// hostClient is a loopback srpc client to the host.
 	hostClient srpc.Client
-	// hostPluginPlatformID is the plugin platform ID to use.
-	hostPluginPlatformID *promise.PromiseContainer[string]
-	// objKey is the PluginHost object key (from the config)
-	objKey string
-	// peerID is the parsed peer id for sending world ops
-	peerID peer.ID
-	// peerIDStr is the parsed peer id string
-	peerIDStr string
-	// objLoop is the object watcher loop
-	// watches the PluginHost object
-	objLoop *world_control.WatchLoop
-	// worldStateCtr contains the world state handle
-	worldStateCtr *ccontainer.CContainer[world.WorldState]
 	// hostVolumeCtr is a container with the host volume.
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
+	// hostPluginPlatformID is the plugin platform ID to use.
+	hostPluginPlatformID *promise.PromiseContainer[string]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[string, *pluginTracker]
-	// pluginManifestFetchers manages fetching plugin manifests.
-	// key: plugin ID
+	// pluginManifestTrackers manages watching manifests for running plugins.
+	// key: pluginID
 	// controlled by pluginInstances
-	pluginManifestFetchers *keyed.KeyedRefCount[string, *pluginManifestFetcher]
-	// pluginManifestWatcher manages watching any matched PluginManifest.
-	// key: objKey of matched PluginManifest
-	// controlled by pluginInstances
-	pluginManifestWatcher *keyed.Keyed[string, *pluginManifestTracker]
-	// rmtx guards below fields
-	rmtx sync.RWMutex
-	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
+	pluginManifestTrackers *keyed.Keyed[string, *pluginManifestTracker]
+	// mtx guards below fields
+	mtx sync.Mutex
+	// pluginManifests contains the latest known manifest for the loaded plugins.
+	// managed by pluginManifestTrackers
 	pluginManifests map[string]*bldr_manifest.ManifestSnapshot
 }
 
@@ -87,30 +80,21 @@ func NewController(
 	info *controller.Info,
 	host bldr_plugin_host.PluginHost,
 ) *Controller {
-	peerID, _ := conf.ParsePeerID()
+	sfs := transform_all.BuildFactorySet()
 	c := &Controller{
 		le:                   le,
 		bus:                  bus,
 		conf:                 conf,
 		info:                 info,
+		sfs:                  sfs,
 		host:                 host,
 		hostPluginPlatformID: promise.NewPromiseContainer[string](),
-		objKey:               conf.GetObjectKey(),
-		peerID:               peerID,
-		peerIDStr:            peerID.String(),
 		pluginManifests:      make(map[string]*bldr_manifest.ManifestSnapshot),
-		worldStateCtr:        ccontainer.NewCContainer[world.WorldState](nil),
-		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
 	}
-	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le.WithField("tracker", "manifest-watcher"))
-	c.pluginManifestFetchers = keyed.NewKeyedRefCountWithLogger(c.newPluginManifestFetcher, le.WithField("tracker", "manifest-fetcher"))
+	c.pluginManifestTrackers = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le.WithField("tracker", "manifest-watcher"))
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "plugin-instances"))
-	c.objLoop = world_control.NewWatchLoop(
-		le.WithField("control-loop", "plugin-host-controller"),
-		c.objKey,
-		c.ProcessState,
-	)
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
+	c.hostVolumeCtr = ccontainer.NewCContainer[*hostVol](nil)
 	return c
 }
 
@@ -128,9 +112,8 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer ctxCancel()
 
 	// shutdown all plugin instances when exiting
-	defer c.pluginManifestWatcher.ClearContext()
+	defer c.pluginManifestTrackers.ClearContext()
 	defer c.pluginInstances.ClearContext()
-	defer c.pluginManifestFetchers.ClearContext()
 	defer c.hostPluginPlatformID.SetPromise(nil)
 
 	// get the platform id
@@ -162,75 +145,12 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	})
 	defer c.hostVolumeCtr.SetValue(nil)
 
-	// construct the world engine handle
-	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
-	ws := world.NewEngineWorldState(busEngine, true)
-	c.worldStateCtr.SetValue(ws)
-	defer c.worldStateCtr.SetValue(ws)
-
-	// run initial cleanup
-	if err := c.cleanupUnknownPlugins(ctx, ws, pluginPlatformID); err != nil {
-		return err
-	}
-
 	// startup manifest watchers & plugin instances
-	c.pluginManifestWatcher.SetContext(ctx, true)
+	c.pluginManifestTrackers.SetContext(ctx, true)
 	c.pluginInstances.SetContext(ctx, true)
-	c.pluginManifestFetchers.SetContext(ctx, true)
 
-	// watch the plugin host for changes
-	return c.objLoop.Execute(ctx, ws)
-}
-
-// buildWorldState builds the world state handle.
-func (c *Controller) getWorldState(ctx context.Context) (world.WorldState, error) {
-	return c.worldStateCtr.WaitValue(ctx, nil)
-}
-
-// cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
-func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string) error {
-	// fetch all known plugin manifests
-	pluginManifests, pluginManifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, filterPlatformID, c.objKey)
-	if err != nil {
-		return err
-	}
-	for _, err := range pluginManifestErrs {
-		c.le.WithError(err).Warn("ignoring invalid plugin manifest")
-	}
-
-	// list ids from the plugin host
-	loadedPlugins, err := c.host.ListPlugins(ctx)
-	if err != nil {
-		return err
-	}
-
-	// delete any unknowns
-	var unknownPlugins []string
-	for _, loadedPlugin := range loadedPlugins {
-		if _, ok := pluginManifests[loadedPlugin]; !ok {
-			unknownPlugins = append(unknownPlugins, loadedPlugin)
-		}
-	}
-	if len(unknownPlugins) == 0 {
-		return nil
-	}
-
-	c.le.Infof("clearing %d unknown / out of date plugins", len(unknownPlugins))
-	for _, unknownPlugin := range unknownPlugins {
-		if err := c.host.DeletePlugin(ctx, unknownPlugin); err != nil {
-			if err == context.Canceled {
-				return err
-			}
-			c.le.WithError(err).Warnf("unable to clear old plugin: %s", unknownPlugin)
-		}
-	}
-
+	<-ctx.Done()
 	return nil
-}
-
-// syncWatchPluginManifests starts/stop routines to watch the plugin manifests.
-func (c *Controller) syncWatchPluginManifests(manifestObjKeys []string) {
-	c.pluginManifestWatcher.SyncKeys(manifestObjKeys, true)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -256,19 +176,10 @@ func (c *Controller) HandleDirective(
 //
 // Returns nil, nil, err if any error occurs.
 func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
-	c.rmtx.Lock()
-	defer c.rmtx.Unlock()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	var fetcherRef *keyed.KeyedRef[string, *pluginManifestFetcher]
-	if c.conf.GetAlwaysFetchManifest() {
-		fetcherRef, _, _ = c.pluginManifestFetchers.AddKeyRef(pluginID)
-	}
-	return plg, func() {
-		ref.Release()
-		if fetcherRef != nil {
-			fetcherRef.Release()
-		}
-	}
+	return plg, ref.Release
 }
 
 // Close releases any resources used by the controller.
@@ -334,7 +245,6 @@ func (c *Controller) WaitPluginClient(ctx context.Context, released func(), plug
 
 // _ is a type assertion
 var (
-	_ controller.Controller                 = ((*Controller)(nil))
-	_ bldr_plugin.LookupRpcClientHandler    = ((*Controller)(nil))
-	_ bldr_plugin_host.PluginHostController = ((*Controller)(nil))
+	_ controller.Controller              = ((*Controller)(nil))
+	_ bldr_plugin.LookupRpcClientHandler = ((*Controller)(nil))
 )

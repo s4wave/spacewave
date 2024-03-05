@@ -52,6 +52,15 @@ message ManifestBundle {
   .timestamp.Timestamp timestamp = 2;
 }
 
+// ManifestSnapshot is a manifest reference with the manifest value fetched.
+message ManifestSnapshot {
+  // ManifestRef is the reference to the manifest.
+  // Must match the manifest field.
+  .bucket.ObjectRef manifest_ref = 1;
+  // Manifest is the fetched manifest object.
+  Manifest manifest = 2;
+}
+
 // ManifestFetch is a service that fetches manifests by metadata.
 service ManifestFetch {
   // FetchManifest requests the manifest for the given metadata.
