@@ -47,11 +47,6 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		return nil, err
-	}
-
 	// Construct the volume controller.
 	return vc.NewController(
 		le,
@@ -70,7 +65,7 @@ func (t *Factory) Construct(
 				ctx,
 				le,
 				t.bus,
-				sfs,
+				transform_all.BuildFactorySet(),
 				cc,
 			)
 		},

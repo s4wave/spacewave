@@ -166,10 +166,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 		}
 	}
 
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		return nil, err
-	}
+	sfs := transform_all.BuildFactorySet()
 
 	return &Testbed{
 		Context: ctx,

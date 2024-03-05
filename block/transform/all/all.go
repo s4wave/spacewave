@@ -21,10 +21,10 @@ func BuildStepFactories() []block_transform.StepFactory {
 }
 
 // BuildFactorySet builds a step factory set.
-func BuildFactorySet() (*block_transform.StepFactorySet, error) {
+func BuildFactorySet() *block_transform.StepFactorySet {
 	sfs := block_transform.NewStepFactorySet()
 	for _, f := range BuildStepFactories() {
 		sfs.AddStepFactory(f)
 	}
-	return sfs, nil
+	return sfs
 }

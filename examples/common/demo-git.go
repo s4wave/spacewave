@@ -69,10 +69,7 @@ func RunDemoGit(
 	inMem := memory.NewStorage()
 	worktree := memfs.New()
 
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		return err
-	}
+	sfs := transform_all.BuildFactorySet()
 	oc, rootRef, err := bucket_lookup.BuildEmptyCursor(ctx, b, le, sfs, bucketID, vol.GetID(), nil, nil)
 	if err != nil {
 		return err

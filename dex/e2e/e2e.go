@@ -52,10 +52,7 @@ func TestMultiNodeDEX(
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	transformSet, err := transform_all.BuildFactorySet()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	transformSet := transform_all.BuildFactorySet()
 	tconf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
 		&transform_snappy.Config{},

@@ -89,10 +89,7 @@ func NewEncryptedVolume(
 	}
 
 	// encryption transform types
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		return nil, err
-	}
+	sfs := transform_all.BuildFactorySet()
 
 	var headRef *bucket.ObjectRef
 	var headCursor *bucket_lookup.Cursor
