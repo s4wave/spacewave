@@ -66,11 +66,6 @@ const BldrHttpPrefix = "/b/"
 // /b/pd/
 const PluginDistHttpPrefix = BldrHttpPrefix + "pd/"
 
-// PluginStartHttpPrefix is the route prefix to use for plugin start scripts.
-// This is only available when the web plugin host is running.
-// /b/ps/
-const PluginStartHttpPrefix = BldrHttpPrefix + "ps/"
-
 // PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
 // /b/pkg/
 const PluginWebPkgHttpPrefix = BldrHttpPrefix + "pkg/"

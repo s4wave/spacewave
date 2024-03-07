@@ -87,7 +87,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 		le,
 		distSrcDir,
 		entrypointDir,
-		"./runtime-ws.js",
+		"./runtime-ws.mjs",
 		minifyEntrypoint,
 		devMode,
 	)

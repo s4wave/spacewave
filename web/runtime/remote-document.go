@@ -3,11 +3,12 @@ package web_runtime
 import (
 	"context"
 
-	"github.com/aperturerobotics/bldr/util/cstate"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	web_document_controller "github.com/aperturerobotics/bldr/web/document/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/retry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -68,22 +69,39 @@ func NewRemoteWebDocument(ctx context.Context, r *Remote, id string, permanent b
 // Execute is the goroutine to execute the controller.
 func (w *RemoteWebDocument) Execute() {
 	ctx := w.ctx
-	err := w.r.bus.ExecuteController(ctx, w.ctrl)
-	if err != context.Canceled && err != nil {
-		w.r.le.
-			WithError(err).
-			WithField("document-id", w.id).
-			Warn("document controller exited with error")
-	}
-	_, _ = w.r.cstate.Apply(context.Background(), func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
-		idx, val := w.r.lookupRemoteWebDocument(w.id)
-		dirty = val == w
-		if dirty {
-			_ = w.r.removeRemoteWebDocumentAtIdx(idx)
+	le := w.r.le.WithField("document-id", w.id)
+	bo := (&backoff.Backoff{
+		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+		Exponential: &backoff.Exponential{
+			InitialInterval: 120,
+			MaxInterval:     1000,
+			Multiplier:      2,
+		},
+	}).Construct()
+	_ = retry.Retry(ctx, le, func(ctx context.Context, success func()) error {
+		err := w.r.bus.ExecuteController(ctx, w.ctrl)
+		if err == nil {
+			w.r.bus.RemoveController(w.ctrl)
 		}
-		return dirty, nil
-	})
-	w.Close()
+		if err != nil && (ctx.Err() == nil || err != context.Canceled) {
+			w.r.le.
+				WithError(err).
+				WithField("document-id", w.id).
+				Warn("document controller exited with error")
+		}
+		return err
+	}, bo)
+	/*
+		_, _ = w.r.cstate.Apply(context.Background(), func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+			idx, val := w.r.lookupRemoteWebDocument(w.id)
+			dirty = val == w
+			if dirty {
+				_ = w.r.removeRemoteWebDocumentAtIdx(idx)
+			}
+			return dirty, nil
+		})
+		w.Close()
+	*/
 }
 
 // GetWebDocumentUuid returns the web document identifier.

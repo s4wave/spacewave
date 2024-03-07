@@ -1180,7 +1180,7 @@ export const WebRuntimeClientInit = {
 export interface WebRuntimeHost {
   /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
-   * Exposes the WebDocument service.
+   * Exposes the WebDocumentHost service.
    * Id is the webDocumentId.
    */
   WebDocumentRpc(
@@ -1196,6 +1196,15 @@ export interface WebRuntimeHost {
     request: AsyncIterable<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
+  /**
+   * WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+   * Exposes the WebWorkerHost service.
+   * Id is the webWorkerId.
+   */
+  WebWorkerRpc(
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<RpcStreamPacket>
 }
 
 export const WebRuntimeHostServiceName = 'web.runtime.WebRuntimeHost'
@@ -1207,6 +1216,7 @@ export class WebRuntimeHostClientImpl implements WebRuntimeHost {
     this.rpc = rpc
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
     this.ServiceWorkerRpc = this.ServiceWorkerRpc.bind(this)
+    this.WebWorkerRpc = this.WebWorkerRpc.bind(this)
   }
   WebDocumentRpc(
     request: AsyncIterable<RpcStreamPacket>,
@@ -1235,6 +1245,20 @@ export class WebRuntimeHostClientImpl implements WebRuntimeHost {
     )
     return RpcStreamPacket.decodeTransform(result)
   }
+
+  WebWorkerRpc(
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      'WebWorkerRpc',
+      data,
+      abortSignal || undefined,
+    )
+    return RpcStreamPacket.decodeTransform(result)
+  }
 }
 
 /**
@@ -1249,7 +1273,7 @@ export const WebRuntimeHostDefinition = {
   methods: {
     /**
      * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
-     * Exposes the WebDocument service.
+     * Exposes the WebDocumentHost service.
      * Id is the webDocumentId.
      */
     webDocumentRpc: {
@@ -1267,6 +1291,19 @@ export const WebRuntimeHostDefinition = {
      */
     serviceWorkerRpc: {
       name: 'ServiceWorkerRpc',
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
+      responseStream: true,
+      options: {},
+    },
+    /**
+     * WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+     * Exposes the WebWorkerHost service.
+     * Id is the webWorkerId.
+     */
+    webWorkerRpc: {
+      name: 'WebWorkerRpc',
       requestType: RpcStreamPacket,
       requestStream: true,
       responseType: RpcStreamPacket,
@@ -1314,6 +1351,17 @@ export interface WebRuntime {
     request: AsyncIterable<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): AsyncIterable<RpcStreamPacket>
+  /**
+   * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+   * Contacts the WebWorker via. the associated WebRuntimeClient.
+   * The WebWorker must have registered with the runtime for this to work.
+   * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+   * Id is the webWorkerId.
+   */
+  WebWorkerRpc(
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<RpcStreamPacket>
 }
 
 export const WebRuntimeServiceName = 'web.runtime.WebRuntime'
@@ -1327,6 +1375,7 @@ export class WebRuntimeClientImpl implements WebRuntime {
     this.CreateWebDocument = this.CreateWebDocument.bind(this)
     this.RemoveWebDocument = this.RemoveWebDocument.bind(this)
     this.WebDocumentRpc = this.WebDocumentRpc.bind(this)
+    this.WebWorkerRpc = this.WebWorkerRpc.bind(this)
   }
   WatchWebRuntimeStatus(
     request: WatchWebRuntimeStatusRequest,
@@ -1387,6 +1436,20 @@ export class WebRuntimeClientImpl implements WebRuntime {
     )
     return RpcStreamPacket.decodeTransform(result)
   }
+
+  WebWorkerRpc(
+    request: AsyncIterable<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<RpcStreamPacket> {
+    const data = RpcStreamPacket.encodeTransform(request)
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      'WebWorkerRpc',
+      data,
+      abortSignal || undefined,
+    )
+    return RpcStreamPacket.decodeTransform(result)
+  }
 }
 
 /**
@@ -1441,6 +1504,21 @@ export const WebRuntimeDefinition = {
      */
     webDocumentRpc: {
       name: 'WebDocumentRpc',
+      requestType: RpcStreamPacket,
+      requestStream: true,
+      responseType: RpcStreamPacket,
+      responseStream: true,
+      options: {},
+    },
+    /**
+     * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+     * Contacts the WebWorker via. the associated WebRuntimeClient.
+     * The WebWorker must have registered with the runtime for this to work.
+     * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+     * Id is the webWorkerId.
+     */
+    webWorkerRpc: {
+      name: 'WebWorkerRpc',
       requestType: RpcStreamPacket,
       requestStream: true,
       responseType: RpcStreamPacket,

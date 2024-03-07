@@ -95,6 +95,10 @@ message CreateWebWorkerRequest {
   string url = 2;
   // Shared indicates this should be a worker shared between all WebDocument (if possible)
   bool shared = 3;
+  // InitData is initialization data to pass to the worker.
+  //
+  // Usually a WebWorkerWasmPluginInit.
+  bytes init_data = 4;
 }
 
 // CreateWebWorkerResponse is the response to the CreateWebWorker request.

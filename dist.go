@@ -18,7 +18,7 @@ import (
 //go:embed web/electron web/entrypoint web/runtime/wasm web/index.html
 //go:embed web/fetch/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
-//go:embed web/runtime/wasm/go-process.ts
+//go:embed web/runtime/wasm/go-process.ts web/runtime/wasm/plugin-wasm.ts
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
 //go:embed devtool/deps.go devtool/web/entrypoint/web.go

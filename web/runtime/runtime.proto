@@ -8,13 +8,17 @@ import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 // Usually accessed by the WebRuntime.
 service WebRuntimeHost {
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
-  // Exposes the WebDocument service.
+  // Exposes the WebDocumentHost service.
   // Id is the webDocumentId.
   rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
   // Exposes the ServiceWorkerHost service.
   // Id is the service worker id.
   rpc ServiceWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+  // WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+  // Exposes the WebWorkerHost service.
+  // Id is the webWorkerId.
+  rpc WebWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
 // WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
@@ -36,6 +40,12 @@ service WebRuntime {
   // Exposes the WebDocument service.
   // Id is the webDocumentId.
   rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+  // WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+  // Contacts the WebWorker via. the associated WebRuntimeClient.
+  // The WebWorker must have registered with the runtime for this to work.
+  // Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+  // Id is the webWorkerId.
+  rpc WebWorkerRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
 // WebRuntimeHostInit initializes the WebRuntimeHost.

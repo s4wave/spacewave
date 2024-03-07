@@ -16,6 +16,7 @@ type SRPCWebRuntimeHostClient interface {
 
 	WebDocumentRpc(ctx context.Context) (SRPCWebRuntimeHost_WebDocumentRpcClient, error)
 	ServiceWorkerRpc(ctx context.Context) (SRPCWebRuntimeHost_ServiceWorkerRpcClient, error)
+	WebWorkerRpc(ctx context.Context) (SRPCWebRuntimeHost_WebWorkerRpcClient, error)
 }
 
 type srpcWebRuntimeHostClient struct {
@@ -114,9 +115,49 @@ func (x *srpcWebRuntimeHost_ServiceWorkerRpcClient) RecvTo(m *rpcstream.RpcStrea
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWebRuntimeHostClient) WebWorkerRpc(ctx context.Context) (SRPCWebRuntimeHost_WebWorkerRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WebWorkerRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWebRuntimeHost_WebWorkerRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCWebRuntimeHost_WebWorkerRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcWebRuntimeHost_WebWorkerRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	if m == nil {
+		return nil
+	}
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCWebRuntimeHostServer interface {
 	WebDocumentRpc(SRPCWebRuntimeHost_WebDocumentRpcStream) error
 	ServiceWorkerRpc(SRPCWebRuntimeHost_ServiceWorkerRpcStream) error
+	WebWorkerRpc(SRPCWebRuntimeHost_WebWorkerRpcStream) error
 }
 
 type SRPCWebRuntimeHostUnimplementedServer struct{}
@@ -126,6 +167,10 @@ func (s *SRPCWebRuntimeHostUnimplementedServer) WebDocumentRpc(SRPCWebRuntimeHos
 }
 
 func (s *SRPCWebRuntimeHostUnimplementedServer) ServiceWorkerRpc(SRPCWebRuntimeHost_ServiceWorkerRpcStream) error {
+	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebRuntimeHostUnimplementedServer) WebWorkerRpc(SRPCWebRuntimeHost_WebWorkerRpcStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -157,6 +202,7 @@ func (SRPCWebRuntimeHostHandler) GetMethodIDs() []string {
 	return []string{
 		"WebDocumentRpc",
 		"ServiceWorkerRpc",
+		"WebWorkerRpc",
 	}
 }
 
@@ -173,6 +219,8 @@ func (d *SRPCWebRuntimeHostHandler) InvokeMethod(
 		return true, d.InvokeMethod_WebDocumentRpc(d.impl, strm)
 	case "ServiceWorkerRpc":
 		return true, d.InvokeMethod_ServiceWorkerRpc(d.impl, strm)
+	case "WebWorkerRpc":
+		return true, d.InvokeMethod_WebWorkerRpc(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -186,6 +234,11 @@ func (SRPCWebRuntimeHostHandler) InvokeMethod_WebDocumentRpc(impl SRPCWebRuntime
 func (SRPCWebRuntimeHostHandler) InvokeMethod_ServiceWorkerRpc(impl SRPCWebRuntimeHostServer, strm srpc.Stream) error {
 	clientStrm := &srpcWebRuntimeHost_ServiceWorkerRpcStream{strm}
 	return impl.ServiceWorkerRpc(clientStrm)
+}
+
+func (SRPCWebRuntimeHostHandler) InvokeMethod_WebWorkerRpc(impl SRPCWebRuntimeHostServer, strm srpc.Stream) error {
+	clientStrm := &srpcWebRuntimeHost_WebWorkerRpcStream{strm}
+	return impl.WebWorkerRpc(clientStrm)
 }
 
 type SRPCWebRuntimeHost_WebDocumentRpcStream interface {
@@ -260,6 +313,42 @@ func (x *srpcWebRuntimeHost_ServiceWorkerRpcStream) RecvTo(m *rpcstream.RpcStrea
 	return x.MsgRecv(m)
 }
 
+type SRPCWebRuntimeHost_WebWorkerRpcStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	SendAndClose(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+}
+
+type srpcWebRuntimeHost_WebWorkerRpcStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebRuntimeHost_WebWorkerRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCWebRuntimeClient interface {
 	SRPCClient() srpc.Client
 
@@ -267,6 +356,7 @@ type SRPCWebRuntimeClient interface {
 	CreateWebDocument(ctx context.Context, in *CreateWebDocumentRequest) (*CreateWebDocumentResponse, error)
 	RemoveWebDocument(ctx context.Context, in *RemoveWebDocumentRequest) (*RemoveWebDocumentResponse, error)
 	WebDocumentRpc(ctx context.Context) (SRPCWebRuntime_WebDocumentRpcClient, error)
+	WebWorkerRpc(ctx context.Context) (SRPCWebRuntime_WebWorkerRpcClient, error)
 }
 
 type srpcWebRuntimeClient struct {
@@ -378,11 +468,51 @@ func (x *srpcWebRuntime_WebDocumentRpcClient) RecvTo(m *rpcstream.RpcStreamPacke
 	return x.MsgRecv(m)
 }
 
+func (c *srpcWebRuntimeClient) WebWorkerRpc(ctx context.Context) (SRPCWebRuntime_WebWorkerRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WebWorkerRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWebRuntime_WebWorkerRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCWebRuntime_WebWorkerRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcWebRuntime_WebWorkerRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	if m == nil {
+		return nil
+	}
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCWebRuntimeServer interface {
 	WatchWebRuntimeStatus(*WatchWebRuntimeStatusRequest, SRPCWebRuntime_WatchWebRuntimeStatusStream) error
 	CreateWebDocument(context.Context, *CreateWebDocumentRequest) (*CreateWebDocumentResponse, error)
 	RemoveWebDocument(context.Context, *RemoveWebDocumentRequest) (*RemoveWebDocumentResponse, error)
 	WebDocumentRpc(SRPCWebRuntime_WebDocumentRpcStream) error
+	WebWorkerRpc(SRPCWebRuntime_WebWorkerRpcStream) error
 }
 
 type SRPCWebRuntimeUnimplementedServer struct{}
@@ -400,6 +530,10 @@ func (s *SRPCWebRuntimeUnimplementedServer) RemoveWebDocument(context.Context, *
 }
 
 func (s *SRPCWebRuntimeUnimplementedServer) WebDocumentRpc(SRPCWebRuntime_WebDocumentRpcStream) error {
+	return srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebRuntimeUnimplementedServer) WebWorkerRpc(SRPCWebRuntime_WebWorkerRpcStream) error {
 	return srpc.ErrUnimplemented
 }
 
@@ -433,6 +567,7 @@ func (SRPCWebRuntimeHandler) GetMethodIDs() []string {
 		"CreateWebDocument",
 		"RemoveWebDocument",
 		"WebDocumentRpc",
+		"WebWorkerRpc",
 	}
 }
 
@@ -453,6 +588,8 @@ func (d *SRPCWebRuntimeHandler) InvokeMethod(
 		return true, d.InvokeMethod_RemoveWebDocument(d.impl, strm)
 	case "WebDocumentRpc":
 		return true, d.InvokeMethod_WebDocumentRpc(d.impl, strm)
+	case "WebWorkerRpc":
+		return true, d.InvokeMethod_WebWorkerRpc(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -494,6 +631,11 @@ func (SRPCWebRuntimeHandler) InvokeMethod_RemoveWebDocument(impl SRPCWebRuntimeS
 func (SRPCWebRuntimeHandler) InvokeMethod_WebDocumentRpc(impl SRPCWebRuntimeServer, strm srpc.Stream) error {
 	clientStrm := &srpcWebRuntime_WebDocumentRpcStream{strm}
 	return impl.WebDocumentRpc(clientStrm)
+}
+
+func (SRPCWebRuntimeHandler) InvokeMethod_WebWorkerRpc(impl SRPCWebRuntimeServer, strm srpc.Stream) error {
+	clientStrm := &srpcWebRuntime_WebWorkerRpcStream{strm}
+	return impl.WebWorkerRpc(clientStrm)
 }
 
 type SRPCWebRuntime_WatchWebRuntimeStatusStream interface {
@@ -568,5 +710,41 @@ func (x *srpcWebRuntime_WebDocumentRpcStream) Recv() (*rpcstream.RpcStreamPacket
 }
 
 func (x *srpcWebRuntime_WebDocumentRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
+type SRPCWebRuntime_WebWorkerRpcStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	SendAndClose(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+}
+
+type srpcWebRuntime_WebWorkerRpcStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebRuntime_WebWorkerRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgRecv(m)
 }

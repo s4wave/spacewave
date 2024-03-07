@@ -38,7 +38,7 @@ import { timeoutPromise } from './timeout.js'
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
   keepAliveMs: 1420,
-  idleTimeoutMs: 4200,
+  idleTimeoutMs: 4300, // 3x keep alive + 100ms grace period
 } as const
 
 // WebRuntimeClientInstance is an attached client instance.
@@ -121,7 +121,7 @@ class WebRuntimeClientInstance {
   }
 
   // postMessage writes a message via the client MessagePort.
-  private postMessage(msg: Partial<WebRuntimeToClient>, xfer?: MessagePort[]) {
+  private postMessage(msg: WebRuntimeToClient, xfer?: MessagePort[]) {
     try {
       if (xfer && xfer.length) {
         this.port.postMessage(msg, xfer)
@@ -129,8 +129,9 @@ class WebRuntimeClientInstance {
         this.port.postMessage(msg)
       }
     } catch (err) {
-      // error: indicates port is closed.
-      console.error('client closed with error', err)
+      console.error(
+        `WebRuntime: client connection error: ${this.init.clientUuid} => ${castToError(err).toString()}`,
+      )
       this.close()
     }
   }
@@ -169,6 +170,11 @@ class WebRuntimeClientInstance {
           break
         case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
           streamPromise = this.host.openServiceWorkerHostStream(
+            this.init.clientUuid,
+          )
+          break
+        case WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER:
+          streamPromise = this.host.openWebWorkerHostStream(
             this.init.clientUuid,
           )
           break
@@ -228,10 +234,27 @@ class WebRuntimeImpl implements WebRuntimeService {
     )
   }
 
+  // WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+  public WebWorkerRpc(
+    request: AsyncIterable<RpcStreamPacket>,
+  ): AsyncIterable<RpcStreamPacket> {
+    return handleRpcStream(
+      request[Symbol.asyncIterator](),
+      this.buildWebWorkerRpcGetter(),
+    )
+  }
+
   // buildWebDocumentRpcGetter builds the RpcGetter for a WebDocument.
   private buildWebDocumentRpcGetter(): RpcStreamGetter {
     return (webDocumentId: string) => {
       return this.getClientRpcHandler(webDocumentId)
+    }
+  }
+
+  // buildWebWorkerRpcGetter builds the RpcGetter for a WebWorker.
+  private buildWebWorkerRpcGetter(): RpcStreamGetter {
+    return (webWorkerId: string) => {
+      return this.getClientRpcHandler(webWorkerId)
     }
   }
 
@@ -326,6 +349,14 @@ export class WebRuntime {
     )
   }
 
+  // openWebWorkerHostStream opens a stream to the WebWorkerHost service.
+  public openWebWorkerHostStream(webWorkerUuid: string): Promise<PacketStream> {
+    return openRpcStream(
+      webWorkerUuid,
+      this.runtimeHost.WebWorkerRpc.bind(this.runtimeHost),
+    )
+  }
+
   // openServiceWorkerHostStream opens a stream to the ServiceWorkerHost service.
   public openServiceWorkerHostStream(
     webDocumentUuid: string,
@@ -348,16 +379,19 @@ export class WebRuntime {
     if (!clientUuid) {
       throw new Error('connect init message: must contain client uuid')
     }
+
     const existing = this.lookupClient(clientUuid)
     if (existing) {
       // userp connection
       existing.close()
     }
+
     const clientTypeStr = webRuntimeClientTypeToJSON(msg.clientType)
     console.log(
-      `WebRuntime: runtime ${msg.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
+      `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
     )
     this.clients[clientUuid] = new WebRuntimeClientInstance(this, port, msg)
+
     if (
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     ) {
@@ -383,6 +417,10 @@ export class WebRuntime {
     delete this.clients[clientUuid]
 
     const clientType = client.init.clientType
+    const clientTypeStr = webRuntimeClientTypeToJSON(clientType)
+    console.log(
+      `WebRuntime: ${this.webRuntimeId}: removed client: ${clientUuid} type ${clientTypeStr}`,
+    )
     if (
       clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
       this.webDocuments[clientUuid]

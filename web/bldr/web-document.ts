@@ -47,11 +47,11 @@ import { addShutdownCallback, DisposeCallback } from './shutdown.js'
 import { detectWasmSupported } from './wasm-detect.js'
 import { WebView, WebViewRegistration, buildWebViewStatus } from './web-view.js'
 import {
+  ClientToWebDocument,
   ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
-  WebDocumentToServiceWorker,
-  WebDocumentToWebWorker,
-  WebWorkerToWebDocument,
+  WebDocumentToWebRuntime,
+  WebDocumentToWorker,
 } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
@@ -96,7 +96,8 @@ class WebDocumentWebWorker {
     public readonly id: string,
     public readonly url: string,
     public readonly webDocumentUuid: string,
-    onWebWorkerMessage: (e: MessageEvent<WebWorkerToWebDocument>) => void,
+    initData: Uint8Array | undefined,
+    onWebWorkerMessage: (e: MessageEvent<ClientToWebDocument>) => void,
   ) {
     if (!id) {
       throw new Error('empty web worker id')
@@ -106,16 +107,21 @@ class WebDocumentWebWorker {
     }
 
     const { port1: localPort, port2: workerPort } = new MessageChannel()
-    const init: WebDocumentToWebWorker = {
-      to: id,
+    const init: WebDocumentToWorker = {
       from: webDocumentUuid,
+      initData,
       initPort: workerPort,
     }
+
+    const workerURL = new URL(url, baseURL).toString()
     if (typeof SharedWorker !== 'undefined') {
-      this.sharedWorker = new SharedWorker(url, { name: id, type: "module" })
+      this.sharedWorker = new SharedWorker(workerURL, {
+        name: id,
+        type: 'module',
+      })
       this.sharedWorker.port.postMessage(init, [workerPort])
     } else {
-      this.worker = new Worker(url, { name: id, type: "module" })
+      this.worker = new Worker(workerURL, { name: id, type: 'module' })
       this.worker.postMessage(init, [workerPort])
     }
 
@@ -389,12 +395,17 @@ export class WebDocument {
     }
 
     if (typeof SharedWorker === 'undefined') {
-      // Note: a workaround can be implemented using a WebWorker.
-      // This is not currently implemented here; all major browsers support SharedWorker.
+      // TODO implement workaround using a WebWorker and leader election.
+      // This is not currently implemented here.
+      // Chrome for Android is the only major browser that does not support this:
+      // https://groups.google.com/a/chromium.org/g/blink-dev/c/H73tticuudc/m/NunrjwcBBwAJ
+      // https://issues.chromium.org/issues/40290702
+      // https://caniuse.com/sharedworkers
       console.error(
-        'Shared worker not supported, bldr cannot start.',
+        'Shared worker not supported, bldr cannot start!',
         'See: https://caniuse.com/sharedworkers',
       )
+      // NOTE: the WebWorker (plugins) in WebRuntime automatically fallback to Worker.
       throw new Error('shared worker not supported')
     }
 
@@ -404,8 +415,7 @@ export class WebDocument {
       console.log('starting electron connection')
       const workerChannel = new MessageChannel()
       this.webRuntimePort = workerChannel.port2
-      const electronChannel = workerChannel.port1
-      handleElectronWorkerPort(electronChannel)
+      handleElectronWorkerPort(workerChannel.port1)
     } else {
       // eslint-disable-next-line
       console.log('starting runtime worker')
@@ -431,15 +441,23 @@ export class WebDocument {
 
       // setup the Go runtime
       const workerOptions: WorkerOptions = {
-        name: 'bldr:' + this.webRuntimeId,
-        type: "module",
+        name: this.webRuntimeId,
+        type: 'module',
       }
       this.worker = new SharedWorker(
         // eslint-disable-next-line
         runtimeJsURL,
         workerOptions,
       )
+
       this.webRuntimePort = this.worker!.port!
+      const msg: WebDocumentToWebRuntime = {
+        from: this.webDocumentUuid,
+        initWebRuntime: {
+          webRuntimeId: this.webRuntimeId,
+        },
+      }
+      this.webRuntimePort.postMessage(msg)
     }
 
     // we don't expect any messages directly from the main worker port.
@@ -564,7 +582,8 @@ export class WebDocument {
       request.id,
       request.url,
       this.webDocumentUuid,
-      this.onWebWorkerMessage.bind(this, request.id),
+      request.initData,
+      this.onWebDocumentClientMessage.bind(this),
     )
     this.webWorkers[request.id] = worker
 
@@ -628,12 +647,13 @@ export class WebDocument {
   private async initServiceWorker(wb: Workbox) {
     const swMessageCallback = (ev: MessageEvent) => {
       console.log('WebDocument: got message from ServiceWorker', ev.data)
-      const data = ev.data
-      if (typeof data === 'object' && data['BLDR_INIT_SW']) {
-        const currSw = navigator.serviceWorker.controller || sw
-        // the service worker needs a new message port for requests
-        this.initServiceWorkerPort(currSw)
+      const data: ServiceWorkerToWebDocument = ev.data
+      if (typeof data !== 'object' || !data.from || !data.init) {
+        return
       }
+      const currSw = navigator.serviceWorker.controller || sw
+      // the service worker wants a new message port for requests
+      this.initServiceWorkerPort(currSw)
     }
     /*
     wb.addEventListener('activated', (ev) => {
@@ -728,40 +748,40 @@ export class WebDocument {
 
   // initServiceWorkerPort initializes & sends the ServiceWorker connection port.
   private initServiceWorkerPort(sw: ServiceWorker) {
-    const swMessageChannel = new MessageChannel()
-    const ourSwPort = swMessageChannel.port1
-    const swPort = swMessageChannel.port2
-    ourSwPort.onmessage = this.onServiceWorkerMessage.bind(this)
-    ourSwPort.start()
-    this.serviceWorkerPort = ourSwPort
-    sw.postMessage(
-      <WebDocumentToServiceWorker>{
-        from: this.webDocumentUuid,
-        initPort: swPort,
-      },
-      [swPort],
-    )
+    const { port1: localPort, port2: clientPort } = new MessageChannel()
+    localPort.onmessage = this.onWebDocumentClientMessage.bind(this)
+    localPort.start()
+    this.serviceWorkerPort = localPort
+    const msg: WebDocumentToWorker = {
+      from: this.webDocumentUuid,
+      initPort: clientPort,
+    }
+    sw.postMessage(msg, [clientPort])
   }
 
   // openWebRuntimeClient attempts to open a message port with the WebRuntime.
-  // this is the function passed to the WebRuntimeClient
+  // this is the function passed to the WebRuntimeClient for the WebDocument
   private async openWebRuntimeClient(
     init: WebRuntimeClientInit,
   ): Promise<MessagePort> {
     const { port1: localPort, port2: remotePort } = new MessageChannel()
-    this.sendWebRuntimeOpenClient(init, remotePort)
+    this.sendWebRuntimeOpenClient(
+      WebRuntimeClientInit.encode(init).finish(),
+      remotePort,
+    )
     return localPort
   }
 
   // sendWebRuntimeOpenClient sends the message to the web runtime to open a client.
-  private sendWebRuntimeOpenClient(
-    init: WebRuntimeClientInit,
-    remotePort: MessagePort,
-  ) {
-    this.webRuntimePort.postMessage(
-      WebRuntimeClientInit.encode(init).finish(),
-      [remotePort],
-    )
+  private sendWebRuntimeOpenClient(init: Uint8Array, remotePort: MessagePort) {
+    const msg: WebDocumentToWebRuntime = {
+      from: this.webDocumentUuid,
+      connectWebRuntime: {
+        init,
+        port: remotePort,
+      },
+    }
+    this.webRuntimePort.postMessage(msg, [remotePort])
   }
 
   // handleWebRuntimeOpenStream handles the web runtime opening a rpc stream.
@@ -770,69 +790,46 @@ export class WebDocument {
     this.server.handlePacketStream(ch)
   }
 
-  // onServiceWorkerMessage handles an incoming service worker message.
-  private onServiceWorkerMessage(
-    event: MessageEvent<ServiceWorkerToWebDocument>,
-  ) {
+  // onWebDocumentClientMessage handles an incoming client message.
+  private onWebDocumentClientMessage(event: MessageEvent<ClientToWebDocument>) {
     const data = event.data
     if (!data || !data.from) {
       return
     }
-    if (data.connectWebRuntime && event.ports?.length) {
+    if (
+      data.connectWebRuntime &&
+      data.connectWebRuntime.init &&
+      data.connectWebRuntime.port &&
+      event.ports?.length
+    ) {
       this.handleClientConnectWebRuntime(
         data.from,
-        WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
-        data.connectWebRuntime,
-      )
-    }
-  }
-
-  // onWebWorkerMessage handles an incoming web worker message.
-  private onWebWorkerMessage(
-    workerID: string,
-    event: MessageEvent<WebWorkerToWebDocument>,
-  ) {
-    const data = event.data
-    if (!data) {
-      return
-    }
-    if (data.connectWebRuntime && event.ports?.length) {
-      this.handleClientConnectWebRuntime(
-        workerID,
-        WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
-        data.connectWebRuntime,
+        data.connectWebRuntime.init,
+        data.connectWebRuntime.port,
       )
     }
   }
 
   // handleClientConnectWebRuntime handles a request to connect with the WebRuntime.
   private async handleClientConnectWebRuntime(
-    clientUuid: string,
-    clientType: WebRuntimeClientType,
+    from: string,
+    init: Uint8Array,
     port: MessagePort,
   ) {
-    // we don't expect any replies
-    console.log(`WebDocument: connecting client to WebRuntime: ${clientUuid}`)
+    console.log(`WebDocument: connecting client to WebRuntime: ${from}`)
     port.start()
 
     // Ack we are opening the channel and pass the MessagePort to use.
-    const { port1: swPort, port2: webRuntimePort } = new MessageChannel()
+    const { port1: clientPort, port2: webRuntimePort } = new MessageChannel()
     const ack: ConnectWebRuntimeAck = {
       from: this.webDocumentUuid,
-      webRuntimePort: swPort,
+      webRuntimePort: clientPort,
     }
-    port.postMessage(ack, [swPort])
+    port.postMessage(ack, [clientPort])
     port.close()
 
     // Send the MessagePort to the WebRuntime to complete the connection.
-    this.sendWebRuntimeOpenClient(
-      {
-        webRuntimeId: this.webRuntimeId,
-        clientUuid,
-        clientType,
-      },
-      webRuntimePort,
-    )
+    this.sendWebRuntimeOpenClient(init, webRuntimePort)
   }
 
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.

@@ -1,14 +1,15 @@
+import { MessagePortDuplex, OpenStreamCtr, PacketStream } from 'starpc'
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
 } from '../../runtime/runtime.pb.js'
-import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
+import { WebDocumentToWebRuntime } from '../../runtime/runtime.js'
 import {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
-import { MessagePortDuplex, OpenStreamCtr, PacketStream } from 'starpc'
+import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
@@ -18,7 +19,7 @@ interface Global extends SharedWorkerGlobalScope {
 }
 const global: Global = self
 
-// TODO: add/remove new windows
+// TODO: add/remove new windows via WebDocumentTracker
 const createDocCb: CreateWebDocumentFunc | null = null
 const removeDocCb: RemoveWebDocumentFunc | null = null
 
@@ -29,8 +30,7 @@ const goOpenStream = goOpenStreamCtr.openStreamFunc
 
 // construct the WebRuntime
 const webRuntime = new WebRuntime(
-  // TODO: should this runtime be from the init message instead?
-  `shared-worker:${self.location.host}`,
+  self.name,
   goOpenStream,
   createDocCb,
   removeDocCb,
@@ -78,6 +78,25 @@ function startGoRpcStreams() {
   })
 }
 
+let goStarted = false
+function startGoRuntime(webRuntimeId: string) {
+  if (goStarted) {
+    return
+  }
+  goStarted = true
+
+  // Configure the BLDR_INIT global
+  global.BLDR_INIT = WebRuntimeHostInit.encode({
+    webRuntimeId,
+  }).finish()
+
+  // Start the Go process
+  goProcess.start()
+
+  // start the RPC streams
+  startGoRpcStreams()
+}
+
 // wait for startup / init command
 let runtimeStarted = false
 self.addEventListener('connect', (ev) => {
@@ -93,48 +112,32 @@ self.addEventListener('connect', (ev) => {
 
   // Handle an incoming client for the WebRuntime and/or start the worker.
   port.onmessage = (msgEvent) => {
-    const msg = msgEvent.data
-    if (msg === 'close') {
+    if (msgEvent.data === 'close') {
       port.close()
       return
     }
 
-    if (typeof msg !== 'object' || !(msg instanceof Uint8Array)) {
-      console.log('runtime-wasm: dropped invalid init message', msg)
-      return
-    }
-
-    const initMsg = WebRuntimeClientInit.decode(msg)
-    if (!msgEvent.ports.length) {
-      console.error(
-        'runtime-wasm: dropped invalid init message without port',
+    const msg: WebDocumentToWebRuntime = msgEvent.data
+    if (typeof msg !== 'object' || !msg.from) {
+      console.log(
+        'runtime-wasm: dropped invalid document to web runtime message',
         msg,
       )
       return
     }
 
-    // Handle the incoming client
-    const connPort = msgEvent.ports[0]
-    webRuntime.handleClient(initMsg, connPort)
+    if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
+      startGoRuntime(msg.initWebRuntime.webRuntimeId)
+    }
 
-    // Start the runtime if needed
-    if (!runtimeStarted) {
-      if (!initMsg.webRuntimeId) {
-        throw new Error('web runtime id: must be set in init message')
-      }
-      runtimeStarted = true
-
-      // Configure the BLDR_INIT global
-      global.BLDR_INIT = WebRuntimeHostInit.encode({
-        webRuntimeId: initMsg.webRuntimeId,
-      }).finish()
-
-      // Start the Go process
-      goProcess.start()
-
-      // Start the RPC streams
-      startGoRpcStreams()
+    if (msg.connectWebRuntime && ev.ports.length) {
+      // handle the incoming client
+      webRuntime.handleClient(
+        WebRuntimeClientInit.decode(msg.connectWebRuntime.init),
+        msg.connectWebRuntime.port ?? ev.ports[0],
+      )
     }
   }
+
   port.start()
 })

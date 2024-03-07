@@ -17,7 +17,7 @@ import (
 )
 
 // webEntrypointBrowserDir is the repo sub-dir for the browser entrypoint.
-var webEntrypointBrowserDir = "web/entrypoint/browser"
+const webEntrypointBrowserDir = "web/entrypoint/browser"
 
 // BuildWasmRuntime builds the Wasm runtime entrypoint.
 //
@@ -77,11 +77,11 @@ func BuildWasmRuntime(
 
 // BuildWsRuntime builds the WebSocket dev runtime entrypoint.
 //
-// builds to buildDir/runtime-ws.js
+// builds to buildDir/runtime-ws.mjs
 func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify bool) error {
-	le.Info("building runtime-ws.js")
+	le.Info("building runtime-ws.mjs")
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
-	runtimeJsOut := filepath.Join(buildDir, "runtime-ws.js")
+	runtimeJsOut := filepath.Join(buildDir, "runtime-ws.mjs")
 
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify)
 	opts.EntryPoints = []string{"runtime-ws.ts"}

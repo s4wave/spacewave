@@ -116,17 +116,14 @@ export class BldrElectronApp {
   }
 
   private setupWebRuntimeClientPort() {
-    ipcMain.on(
-      'BLDR_WEB_RUNTIME_CLIENT_OPEN',
-      async (event, init: Uint8Array) => {
-        const initMsg = WebRuntimeClientInit.decode(init)
-        const clientPort = event.ports[0]
-        this.webRuntime.handleClient(
-          initMsg,
-          messagePortMainToMessagePort(clientPort),
-        )
-      },
-    )
+    ipcMain.on('BLDR_ELECTRON_CLIENT_OPEN', async (event, init: Uint8Array) => {
+      const initMsg = WebRuntimeClientInit.decode(init)
+      const clientPort = event.ports[0]
+      this.webRuntime.handleClient(
+        initMsg,
+        messagePortMainToMessagePort(clientPort),
+      )
+    })
   }
 
   // setupWebRuntimeHostSocket sets up the socket to the WebRuntimeHost.

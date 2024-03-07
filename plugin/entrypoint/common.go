@@ -3,7 +3,6 @@ package plugin_entrypoint
 import (
 	"context"
 	"io/fs"
-	"os"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	bifrost_rpc_access "github.com/aperturerobotics/bifrost/rpc/access"
@@ -30,7 +29,6 @@ import (
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,7 +45,8 @@ func ExecutePlugin(
 	meta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
-	muxedConn network.MuxedConn,
+	pluginHostClient srpc.Client,
+	acceptPluginHostStreams func(ctx context.Context, srv *srpc.Server) error,
 ) error {
 	var rels []func()
 	rel := func() {
@@ -120,7 +119,6 @@ func ExecutePlugin(
 	}
 
 	// start the plugin entrypoint controller
-	pluginHostClient := srpc.NewClientWithMuxedConn(muxedConn)
 	pluginHost := bldr_plugin.NewSRPCPluginHostClient(pluginHostClient)
 	pluginEntryCtrl := plugin_entrypoint_controller.NewController(b, le, meta, pluginHost)
 	pluginEntryCtrlRel, err := b.AddController(ctx, pluginEntryCtrl, nil)
@@ -233,10 +231,14 @@ func ExecutePlugin(
 
 	// construct the rpc client controller
 	// listen for incoming requests
-	go func() {
-		srv := srpc.NewServer(rpcMux)
-		errCh <- srv.AcceptMuxedConn(ctx, muxedConn)
-	}()
+	if acceptPluginHostStreams != nil {
+		go func() {
+			srv := srpc.NewServer(rpcMux)
+			if err := acceptPluginHostStreams(ctx, srv); err != nil {
+				errCh <- err
+			}
+		}()
+	}
 
 	// we have to use a separate goroutine because AcceptMuxedConn might not
 	// notice ctx is canceled until after a connection arrives.
@@ -369,7 +371,7 @@ func ConfigSetFuncFromFS(ifs fs.FS, fileName string) BuildConfigSetFunc {
 
 // PluginDevInfoFromFile loads a PluginDevInfo object from a .bin file.
 func PluginDevInfoFromFile(filePath string) (*vardef.PluginDevInfo, error) {
-	dat, err := os.ReadFile(filePath)
+	dat, err := readFile(filePath)
 	if err != nil {
 		return nil, err
 	}

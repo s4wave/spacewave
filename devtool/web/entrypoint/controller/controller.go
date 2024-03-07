@@ -213,28 +213,15 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer webPluginHostRel()
 	le.Info("web plugin host is running")
 
-	// Load demo plugin
-	_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin("bldr-demo"), nil)
-	if err != nil {
-		err = errors.Wrap(err, "load demo plugin")
-		le.Fatal(err.Error())
-	}
-	defer pluginRef.Release()
-
-	// Load demo manifest
-	/*
-		_, fetchRef, err := b.AddDirective(bldr_manifest.NewFetchManifest(&bldr_manifest.ManifestMeta{
-			ManifestId: "bldr-demo",
-			PlatformId: "web",
-		}), bus.NewCallbackHandler(func(v directive.AttachedValue) {
-			demoManifest := v.GetValue().(*bldr_manifest.FetchManifestValue)
-			le.Infof("got demo manifest from devtool: %v", demoManifest.String())
-		}, nil, nil))
+	// Call LoadPlugin for the list of Start plugins.
+	for _, pluginID := range devtoolInfo.GetStartPlugins() {
+		le.WithField("plugin-id", pluginID).Info("loading startup plugin")
+		_, plugRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
 		if err != nil {
-			le.Error(err.Error())
+			return err
 		}
-		defer fetchRef.Release()
-	*/
+		defer plugRef.Release()
+	}
 
 	<-ctx.Done()
 	return nil

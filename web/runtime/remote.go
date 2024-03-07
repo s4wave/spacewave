@@ -2,9 +2,11 @@ package web_runtime
 
 import (
 	"context"
+	"io"
 	"slices"
 	"sort"
 
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/cstate"
 	web_document "github.com/aperturerobotics/bldr/web/document"
@@ -300,7 +302,10 @@ func (r *Remote) monitorWebDocuments(ctx context.Context, le *logrus.Entry) erro
 		case <-ctx.Done():
 			return context.Canceled
 		case <-stream.Context().Done():
-			return context.Canceled
+			if ctx.Err() != nil {
+				return context.Canceled
+			}
+			return io.EOF
 		default:
 		}
 
@@ -451,6 +456,30 @@ func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (
 		return mux != nil, nil
 	})
 	return mux, nil, err
+}
+
+// GetWebWorkerHost returns the Mux serving requests for the given WebWorker.
+//
+// Waits for the given web worker ID to be available, or ctx to be canceled.
+func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string) (srpc.Invoker, func(), error) {
+	// TODO: Separate mux for each WebWorker?
+	// TODO server ID should be plugin/[plugin-id]
+	/*
+		var mux srpc.Mux
+		err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+			if !r.ready {
+				return false, nil
+			}
+			_, doc := r.lookupRemoteWebDocument(webDocumentID)
+			if doc == nil {
+				return false, nil
+			}
+			mux = doc.remote.GetMux()
+			return mux != nil, nil
+		})
+		return mux, nil, err
+	*/
+	return bifrost_rpc.NewInvoker(r.bus, "web-worker/"+webWorkerID, true), nil, nil
 }
 
 // removeRemoteWebDocument removes a remote web document, if found.

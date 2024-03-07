@@ -4,14 +4,17 @@ import (
 	"context"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	web_document "github.com/aperturerobotics/bldr/web/document"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -105,6 +108,11 @@ func (h *WebHost) ExecutePlugin(
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// restrict to .mjs and .js only
+	if !strings.HasSuffix(entrypoint, ".mjs") && !strings.HasSuffix(entrypoint, ".js") {
+		return errors.Errorf("entrypoint must have a .mjs or .js extension: %s", entrypoint)
+	}
+
 	// double-check the entrypoint exists and is executable
 	entrypoint = filepath.Clean(entrypoint)
 	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
@@ -130,10 +138,12 @@ func (h *WebHost) ExecutePlugin(
 	pluginStartInfo := &plugin.PluginStartInfo{
 		InstanceId: pluginInstanceID,
 	}
+	pluginStartInfoB58 := pluginStartInfo.MarshalB58()
+	pluginStartInfoBin := []byte(pluginStartInfoB58)
 
 	// web worker create request
-	pluginWebWorkerID := "bldr:plugin:" + pluginID
-	pluginWebWorkerURL := pluginStartHttpPath(entrypointHttpPath, pluginStartInfo)
+	pluginWebWorkerID := "plugin/" + pluginID
+	pluginWebWorkerURL := entrypointHttpPath
 	pluginShared := true
 
 	// stderr: contains any logs
@@ -142,22 +152,43 @@ func (h *WebHost) ExecutePlugin(
 	// debugWriter := le.WriterLevel(logrus.DebugLevel)
 	// entrypointProc.Stderr = debugWriter
 
-	h.le.
-		WithField("entrypoint", entrypoint).
-		WithField("web-runtime", h.webRuntimeID).
-		Debugf("executing plugin entrypoint: %s via http at %s", entrypointFi.Name(), pluginWebWorkerURL)
 	webRuntime, _, webRuntimeRef, err := web_runtime.ExLookupWebRuntime(ctx, h.b, false, h.webRuntimeID)
 	if err != nil {
 		return err
 	}
 	defer webRuntimeRef.Release()
 
-	h.le.Info("XXX got webRuntime")
 	docs, err := webRuntime.GetWebDocuments(ctx)
 	if err != nil {
 		return err
 	}
-	h.le.Infof("XXX got webRuntime with %d documents: %v", len(docs), docs)
+
+	h.le.
+		WithField("entrypoint", entrypoint).
+		WithField("web-runtime", h.webRuntimeID).
+		WithField("web-runtime-doc-count", len(docs)).
+		Debugf("executing plugin entrypoint via http: %s", pluginWebWorkerURL)
+
+	// Mount the RPC handler to the bus.
+	baseControllerID := ControllerID + "/" + pluginID
+	rpcServiceControllerID := baseControllerID + "/rpc-host"
+	var hostInvoker srpc.Invoker = hostMux
+	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
+		controller.NewInfo(rpcServiceControllerID, Version, "rpc host for plugin"),
+		func(ctx context.Context, released func()) (*srpc.Invoker, func(), error) {
+			return &hostInvoker, nil, nil
+		},
+		nil,
+		false,
+		nil,
+		nil,
+		regexp.MustCompile("^"+regexp.QuoteMeta("web-worker/"+pluginWebWorkerID)+"$"),
+	)
+	relRpcServiceCtrl, err := h.b.AddController(ctx, rpcServiceCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer relRpcServiceCtrl()
 
 	// Remove any old instances of the web worker.
 	for _, doc := range docs {
@@ -194,7 +225,12 @@ func (h *WebHost) ExecutePlugin(
 				"web-worker":   pluginWebWorkerID,
 			})
 		le.Debug("creating web worker")
-		createdWorker, err := doc.CreateWebWorker(ctx, pluginWebWorkerID, pluginShared, pluginWebWorkerURL)
+		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{
+			Id:       pluginWebWorkerID,
+			Url:      pluginWebWorkerURL,
+			Shared:   pluginShared,
+			InitData: pluginStartInfoBin,
+		})
 		if createdWorker == nil && err == nil {
 			err = errors.New("document did not create the worker")
 		}
@@ -273,17 +309,6 @@ func (h *WebHost) ExecutePlugin(
 func (h *WebHost) DeletePlugin(ctx context.Context, pluginID string) error {
 	// TODO remove caches or local storage?
 	return nil
-}
-
-func pluginStartHttpPath(entrypointHttpPath string, pluginStartInfo *plugin.PluginStartInfo) string {
-	var sb strings.Builder
-	_, _ = sb.WriteString(plugin.PluginStartHttpPrefix)
-	_, _ = sb.WriteString("plugin.mjs#")
-	_, _ = sb.WriteString("e=")
-	_, _ = sb.WriteString(entrypointHttpPath)
-	_, _ = sb.WriteString("&si=")
-	_, _ = sb.WriteString(pluginStartInfo.MarshalB58())
-	return sb.String()
 }
 
 // _ is a type assertion

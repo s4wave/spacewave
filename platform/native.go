@@ -31,6 +31,14 @@ type NativePlatform struct {
 	InputPlatformID string
 }
 
+// ToNativePlatform type-asserts the platform to NativePlatform.
+//
+// Returns nil if type doesn't match
+func ToNativePlatform(p Platform) *NativePlatform {
+	np, _ := p.(*NativePlatform)
+	return np
+}
+
 // ParseNativePlatform parses a Go compiler based platform ID.
 func ParseNativePlatform(str string) (*NativePlatform, error) {
 	components := strings.Split(str, "/")
@@ -164,11 +172,23 @@ func (n *NativePlatform) GetPlatformID() string {
 	return strings.Join(idParts, "/")
 }
 
+// GetBasePlatformID returns the base platform identifier w/o arch specifics.
+// Values: PlatformID_NATIVE and PlatformID_WEB
+func (n *NativePlatform) GetBasePlatformID() string {
+	return PlatformID_NATIVE
+}
+
 // GetExecutableExt returns the extension used for executables.
 func (n *NativePlatform) GetExecutableExt() string {
 	if n.GetGOOS() == "windows" {
 		return ".exe"
 	}
+	return ""
+}
+
+// GetEntrypointExt returns the extension used for the entrypoint. May be empty.
+// if empty, it is assumed that there is no alterative entrypoint file.
+func (n *NativePlatform) GetEntrypointExt() string {
 	return ""
 }
 

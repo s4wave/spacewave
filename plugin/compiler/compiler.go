@@ -23,6 +23,7 @@ import (
 	bldr_web_plugin_handle_rpc "github.com/aperturerobotics/bldr/web/plugin/handle-rpc"
 	bldr_web_plugin_handle_web_pkg "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg"
 	bldr_web_plugin_handle_web_view "github.com/aperturerobotics/bldr/web/plugin/handle-web-view"
+	web_runtime_wasm_build "github.com/aperturerobotics/bldr/web/runtime/wasm/build"
 	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
 	bldr_web_view_observer "github.com/aperturerobotics/bldr/web/view/observer"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -137,6 +138,12 @@ func (c *Controller) BuildManifest(
 	outDistPath := filepath.Join(workingPath, "dist")
 	outAssetsPath := filepath.Join(workingPath, "assets")
 	outBinName := pluginID + buildPlatform.GetExecutableExt()
+
+	// if we have an alternative entrypoint path...
+	outEntrypointName := outBinName
+	if entrypointExt := buildPlatform.GetEntrypointExt(); entrypointExt != "" {
+		outEntrypointName = pluginID + entrypointExt
+	}
 
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
@@ -349,6 +356,7 @@ func (c *Controller) BuildManifest(
 			outBinName,
 			workingPath,
 			sourcePath,
+			builderConf.GetDistSourcePath(),
 			outDistPath,
 			outAssetsPath,
 			goPkgs,
@@ -379,7 +387,7 @@ func (c *Controller) BuildManifest(
 		le,
 		tx,
 		meta,
-		outBinName,
+		outEntrypointName,
 		outDistPath,
 		outAssetsPath,
 	)
@@ -632,6 +640,7 @@ func (c *Controller) BuildPlugin(
 	outBinName,
 	workingPath,
 	sourcePath,
+	distSourcePath,
 	outDistPath,
 	outAssetsPath string,
 	goPkgs, webPkgs []string,
@@ -645,6 +654,10 @@ func (c *Controller) BuildPlugin(
 	// plugin id
 	pluginID := pluginMeta.GetPluginId()
 	isRelease := buildType.IsRelease()
+
+	basePlatformID := buildPlatform.GetBasePlatformID()
+	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
+	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
 
 	baseEsbuildOpts, err := bldr_esbuild.ParseEsbuildFlags(baseEsbuildFlags)
 	if err != nil {
@@ -879,8 +892,9 @@ func (c *Controller) BuildPlugin(
 
 	copyFiles := []string{devInfoFile}
 	outDistBinary := filepath.Join(outDistPath, outBinName)
-	// only use dev wrapper if !isRelease && delveAddr != ""
-	if isRelease || delveAddr == "" {
+
+	// only use dev wrapper if !isRelease && delveAddr != "" && platform == native
+	if isRelease || delveAddr == "" || !isNativeBuildPlatform {
 		le.Info("compiling plugin binary")
 		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo, isRelease, buildTags); err != nil {
 			return nil, nil, err
@@ -891,6 +905,26 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 		copyFiles = append(copyFiles, "plugin.go", "config-set.bin")
+	}
+
+	// build the WebWorker / SharedWorker js entrypoint if applicable
+	if isWebBuildPlatform {
+		// override entrypoint path to point to .mjs instead (for web worker)
+		le.Info("compiling web plugin entrypoint")
+		outScriptPath := filepath.Join(
+			outDistPath,
+			strings.TrimSuffix(outBinName, buildPlatform.GetExecutableExt())+".mjs",
+		)
+		if err := web_runtime_wasm_build.BuildWebWasmPluginScript(
+			ctx,
+			le,
+			distSourcePath,
+			outScriptPath,
+			outBinName,
+			isRelease,
+		); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	copyFile := func(filename string) error {

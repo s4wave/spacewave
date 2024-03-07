@@ -12,4 +12,6 @@ message DevtoolInitBrowser {
   // DevtoolVolumeInfo is the information for the devtool Volume.
   // The volume is exposed with a ProxyVolume.
   .volume.VolumeInfo devtool_volume_info = 3;
+  // StartPlugins is a list of plugins to LoadPlugin at startup.
+  repeated string start_plugins = 4;
 }

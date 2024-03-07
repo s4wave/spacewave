@@ -41,7 +41,7 @@ type Controller struct {
 	webDocumentVersion semver.Version
 }
 
-// NewController constructs a new runtime controller.
+// NewController constructs a new WebDocument controller.
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,

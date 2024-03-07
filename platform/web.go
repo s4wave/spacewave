@@ -47,9 +47,21 @@ func (n *WebPlatform) GetPlatformID() string {
 	return PlatformID_WEB
 }
 
+// GetBasePlatformID returns the base platform identifier w/o arch specifics.
+// Values: PlatformID_NATIVE and PlatformID_WEB
+func (n *WebPlatform) GetBasePlatformID() string {
+	return PlatformID_WEB
+}
+
 // GetExecutableExt returns the extension used for executables.
 func (n *WebPlatform) GetExecutableExt() string {
 	return ".wasm"
+}
+
+// GetEntrypointExt returns the extension used for the entrypoint. May be empty.
+// if empty, it is assumed that there is no alterative entrypoint file.
+func (n *WebPlatform) GetEntrypointExt() string {
+	return ".mjs"
 }
 
 // _ is a type assertion

@@ -112,5 +112,20 @@ func Run(
 	}
 	defer muxedConn.Close()
 
-	return ExecutePlugin(ctx, le, pluginMeta, addFactoryFuncs, configSetFuncs, muxedConn)
+	return ExecutePlugin(
+		ctx,
+		le,
+		pluginMeta,
+		addFactoryFuncs,
+		configSetFuncs,
+		srpc.NewClientWithMuxedConn(muxedConn),
+		func(ctx context.Context, srv *srpc.Server) error {
+			return srv.AcceptMuxedConn(ctx, muxedConn)
+		},
+	)
+}
+
+// readFile reads from a file using os.ReadFile.
+func readFile(filePath string) ([]byte, error) {
+	return os.ReadFile(filePath)
 }

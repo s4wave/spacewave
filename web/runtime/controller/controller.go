@@ -214,14 +214,6 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 			return
 		}
 
-		// /b/ps/ is for Web plugin entrypoints (plugin start)
-		bPsPrefix := plugin.PluginStartHttpPrefix
-		if strings.HasPrefix(rpath, bPsPrefix) && len(rpath) > len(bPsPrefix) {
-			req.URL.Path = bPsPrefix[len(bPsPrefix):]
-			c.ServePluginStartHTTP(rw, req)
-			return
-		}
-
 		// other /b/ paths are not found
 		rw.WriteHeader(404)
 		_, _ = rw.Write([]byte("404 not found"))
@@ -299,14 +291,6 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 	defer relHandler()
 
 	(*handler).ServeHTTP(rw, req)
-}
-
-// ServePluginStartHTTP serves the /b/ps/ filesystem.
-// This contains .js files for plugin startup on the web platform.
-func (c *Controller) ServePluginStartHTTP(rw http.ResponseWriter, req *http.Request) {
-	rw.Header().Set("Content-Type", "text/javascript")
-	rw.WriteHeader(200)
-	_, _ = rw.Write([]byte("console.log('TODO return plugin.js for worker!')\n"))
 }
 
 // ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.

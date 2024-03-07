@@ -1,4 +1,8 @@
-import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
+import {
+  ClientToWebRuntime,
+  WebDocumentToWebRuntime,
+  WebRuntimeToClient,
+} from '../runtime/runtime.js'
 import {
   MessagePortBridge,
   messagePortToMessagePortBridge,
@@ -50,15 +54,30 @@ export async function openElectronPort(
   )
 }
 
-// handleElectronWorkerPort handles a MessagePort as if it was the SharedWorker.
+// handleElectronWorkerPort handles the other end of the WebDocument.webRuntimePort.
 export function handleElectronWorkerPort(port: MessagePort) {
   port.onmessage = (ev) => {
-    // expecting this to be sent from openHostWebDocumentClient.
-    const data: Uint8Array = ev.data
-    if (typeof data !== 'object' || !ev.ports.length) {
+    if (ev.data === 'close') {
+      port.close()
       return
     }
-    openElectronPort(data, ev.ports[0])
+
+    const msg: WebDocumentToWebRuntime = ev.data
+    if (typeof msg !== 'object' || !msg.from) {
+      console.log(
+        'electron: dropped invalid document to web runtime message',
+        msg,
+      )
+      return
+    }
+
+    if (msg.connectWebRuntime && ev.ports.length) {
+      openElectronPort(
+        msg.connectWebRuntime.init,
+        msg.connectWebRuntime.port ?? ev.ports[0],
+      )
+    }
   }
+
   port.start()
 }

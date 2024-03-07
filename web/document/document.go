@@ -48,9 +48,9 @@ type WebDocument interface {
 	// If shared is set, attempts to create a SharedWorker (but might not if not supported).
 	// Returns nil, nil if the worker was not created.
 	// If the worker already existed it will be deleted and recreated.
-	CreateWebWorker(ctx context.Context, webWorkerID string, shared bool, url string) (web_worker.WebWorker, error)
+	CreateWebWorker(ctx context.Context, req *CreateWebWorkerRequest) (web_worker.WebWorker, error)
 
-	// Execute executes the runtime.
+	// Execute executes the web document.
 	// Returns any errors, nil if Execute is not required.
 	Execute(ctx context.Context) error
 }
@@ -85,4 +85,12 @@ type WebDocumentConstructor func(
 // NewWatchWebDocumentStatusRequest constructs a new message to watch for WebDocument status changes.
 func NewWatchWebDocumentStatusRequest() *WatchWebDocumentStatusRequest {
 	return &WatchWebDocumentStatusRequest{}
+}
+
+// Validate validates the request.
+func (r *CreateWebWorkerRequest) Validate() error {
+	if r.GetId() == "" {
+		return web_worker.ErrEmptyWebWorkerID
+	}
+	return nil
 }

@@ -15,11 +15,15 @@ export interface DevtoolInitBrowser {
    * DevtoolVolumeInfo is the information for the devtool Volume.
    * The volume is exposed with a ProxyVolume.
    */
-  devtoolVolumeInfo: VolumeInfo | undefined;
+  devtoolVolumeInfo:
+    | VolumeInfo
+    | undefined;
+  /** StartPlugins is a list of plugins to LoadPlugin at startup. */
+  startPlugins: string[];
 }
 
 function createBaseDevtoolInitBrowser(): DevtoolInitBrowser {
-  return { appId: "", devtoolPeerId: "", devtoolVolumeInfo: undefined };
+  return { appId: "", devtoolPeerId: "", devtoolVolumeInfo: undefined, startPlugins: [] };
 }
 
 export const DevtoolInitBrowser = {
@@ -32,6 +36,9 @@ export const DevtoolInitBrowser = {
     }
     if (message.devtoolVolumeInfo !== undefined) {
       VolumeInfo.encode(message.devtoolVolumeInfo, writer.uint32(26).fork()).ldelim();
+    }
+    for (const v of message.startPlugins) {
+      writer.uint32(34).string(v!);
     }
     return writer;
   },
@@ -63,6 +70,13 @@ export const DevtoolInitBrowser = {
           }
 
           message.devtoolVolumeInfo = VolumeInfo.decode(reader, reader.uint32());
+          continue;
+        case 4:
+          if (tag !== 34) {
+            break;
+          }
+
+          message.startPlugins.push(reader.string());
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -112,6 +126,9 @@ export const DevtoolInitBrowser = {
       appId: isSet(object.appId) ? globalThis.String(object.appId) : "",
       devtoolPeerId: isSet(object.devtoolPeerId) ? globalThis.String(object.devtoolPeerId) : "",
       devtoolVolumeInfo: isSet(object.devtoolVolumeInfo) ? VolumeInfo.fromJSON(object.devtoolVolumeInfo) : undefined,
+      startPlugins: globalThis.Array.isArray(object?.startPlugins)
+        ? object.startPlugins.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -126,6 +143,9 @@ export const DevtoolInitBrowser = {
     if (message.devtoolVolumeInfo !== undefined) {
       obj.devtoolVolumeInfo = VolumeInfo.toJSON(message.devtoolVolumeInfo);
     }
+    if (message.startPlugins?.length) {
+      obj.startPlugins = message.startPlugins;
+    }
     return obj;
   },
 
@@ -139,6 +159,7 @@ export const DevtoolInitBrowser = {
     message.devtoolVolumeInfo = (object.devtoolVolumeInfo !== undefined && object.devtoolVolumeInfo !== null)
       ? VolumeInfo.fromPartial(object.devtoolVolumeInfo)
       : undefined;
+    message.startPlugins = object.startPlugins?.map((e) => e) || [];
     return message;
   },
 };

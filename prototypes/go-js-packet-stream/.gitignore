@@ -1,0 +1,4 @@
+wasm_exec.js
+main.wasm
+main.mjs
+*.map

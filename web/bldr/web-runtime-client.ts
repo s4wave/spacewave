@@ -53,8 +53,7 @@ export class WebRuntimeClient {
         streamChannel.port1,
         WebRuntimeClientChannelStreamOpts,
       )
-      const msg = <ClientToWebRuntime>{
-        from: this.clientId,
+      const msg: ClientToWebRuntime = {
         openStream: true,
       }
       clientPort.postMessage(msg, [streamChannel.port2])

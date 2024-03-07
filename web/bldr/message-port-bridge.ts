@@ -6,6 +6,10 @@ export type MessagePortBridgeCallback<T> = (
 
 // MessagePortBridge is a message port emulated with callback functions.
 // Type parameters are <Incoming, Outgoing>
+//
+// This is a workaround for MessagePort not being transferable over ContextBridge.
+// https://github.com/electron/electron/issues/27024#issuecomment-745553550
+// https://github.com/electron/electron/issues/34905#issuecomment-1855161085
 export interface MessagePortBridge<I, O = I> {
   // start sets the message callback function and starts messages.
   start: (cb: MessagePortBridgeCallback<O>) => void

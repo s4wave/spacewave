@@ -65,7 +65,11 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	appID := currProjCtrl.GetConfig().GetProjectConfig().GetId()
+
+	// TODO: reload these if ProjectController restarts?
+	currProjConf := currProjCtrl.GetConfig().GetProjectConfig()
+	appID := currProjConf.GetId()
+	startupPlugins := currProjConf.GetStart().GetPlugins()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
 	return b.ExecuteWebWasm(
@@ -75,6 +79,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 		buildType.IsDev(),
 		a.WebListenAddr,
 		appID,
+		startupPlugins,
 	)
 }
 
@@ -86,6 +91,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	devMode bool,
 	listenAddr string,
 	appID string,
+	startPlugins []string,
 ) error {
 	le := b.GetLogger()
 	stateDir := b.GetStateRoot()
@@ -209,6 +215,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		AppId:             appID,
 		DevtoolPeerId:     wsPeerID,
 		DevtoolVolumeInfo: b.GetVolumeInfo(),
+		StartPlugins:      startPlugins,
 	}
 	if err := browserInit.Validate(); err != nil {
 		return err

@@ -1,8 +1,6 @@
 syntax = "proto3";
 package manifest.fetch.rpc;
 
-import "github.com/aperturerobotics/bifrost/stream/srpc/client/client.proto";
-
 // Config configures a controller to fetch via the ManifestFetch service.
 // Loads a plugin with LoadPlugin and uses its RPC client.
 // Resolves the FetchManifest directive.

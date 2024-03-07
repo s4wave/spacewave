@@ -8,8 +8,11 @@ import (
 	"os"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	fetch "github.com/aperturerobotics/bldr/util/wasm-fetch"
+	web_runtime_wasm "github.com/aperturerobotics/bldr/web/runtime/wasm"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
-	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,12 +40,17 @@ func Main(
 	defer ctxCancel()
 
 	if err := func() error {
+		pluginIo, err := web_runtime_wasm.GlobalWasmPluginIo()
+		if err != nil {
+			return err
+		}
+
 		pluginStartInfo, pluginMeta, err := UnmarshalPluginStartInfo(pluginStartInfoB58, pluginMetaB58)
 		if err != nil {
 			return err
 		}
 
-		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs)
+		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs, pluginIo)
 		if err != context.Canceled {
 			return err
 		}
@@ -62,19 +70,44 @@ func Run(
 	pluginMeta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
+	pluginIo *web_runtime_wasm.WasmPluginIo,
 ) error {
 	if err := pluginStartInfo.Validate(); err != nil {
 		return err
 	}
 
-	// TODO: construct MessagePort socket
 	instanceID := pluginStartInfo.GetInstanceId()
 	_ = instanceID
-	// conn, err := pipesock.DialPipeListener(ctx, le, wd, instanceID)
-	// if err != nil {
-	//	return err
-	//}
-	var muxedConn network.MuxedConn
 
-	return ExecutePlugin(ctx, le, pluginMeta, addFactoryFuncs, configSetFuncs, muxedConn)
+	// dial outgoing streams and accept incoming streams
+	rpcClient := pluginIo.BuildClient()
+	acceptRpcStreams := func(ctx context.Context, srv *srpc.Server) error {
+		pluginIo.SetAcceptStreams(ctx, srv.GetInvoker())
+		return nil
+	}
+
+	return ExecutePlugin(
+		ctx,
+		le,
+		pluginMeta,
+		addFactoryFuncs,
+		configSetFuncs,
+		rpcClient,
+		acceptRpcStreams,
+	)
+}
+
+// readFile reads from a file using fetch.
+func readFile(filePath string) ([]byte, error) {
+	resp, err := fetch.Fetch(filePath, &fetch.Opts{
+		Method: fetch.MethodGet,
+		Cache:  "no-store",
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp.Status < 200 || resp.Status >= 300 {
+		return nil, errors.Errorf("request returned status %v: %s", resp.Status, filePath)
+	}
+	return resp.Body, nil
 }

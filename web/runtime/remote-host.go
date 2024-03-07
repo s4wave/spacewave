@@ -19,6 +19,11 @@ func (r *remoteWebRuntimeHost) WebDocumentRpc(stream SRPCWebRuntimeHost_WebDocum
 	return rpcstream.HandleRpcStream(stream, r.r.GetWebDocumentHost)
 }
 
+// WebWorkerRpc opens a stream for a RPC call for a WebWorker.
+func (r *remoteWebRuntimeHost) WebWorkerRpc(stream SRPCWebRuntimeHost_WebWorkerRpcStream) error {
+	return rpcstream.HandleRpcStream(stream, r.r.GetWebWorkerHost)
+}
+
 // ServiceWorkerRpc opens a stream for a RPC call for a ServiceWorker.
 func (r *remoteWebRuntimeHost) ServiceWorkerRpc(stream SRPCWebRuntimeHost_ServiceWorkerRpcStream) error {
 	return rpcstream.HandleRpcStream(stream, r.r.GetServiceWorkerHost)

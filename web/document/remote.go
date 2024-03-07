@@ -232,10 +232,12 @@ func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, err
 // If shared is set, attempts to create a SharedWorker (but might not if not supported).
 // Returns nil, nil if the worker was not created.
 // If the worker already existed it will be deleted and recreated.
-func (r *Remote) CreateWebWorker(ctx context.Context, webWorkerID string, shared bool, url string) (web_worker.WebWorker, error) {
-	if webWorkerID == "" {
-		return nil, web_worker.ErrEmptyWebWorkerID
+func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerRequest) (web_worker.WebWorker, error) {
+	webWorkerID := req.GetId()
+	if err := req.Validate(); err != nil {
+		return nil, err
 	}
+
 	var out web_worker.WebWorker
 	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
 		_, rwv := r.lookupRemoteWebWorker(webWorkerID)
@@ -243,11 +245,7 @@ func (r *Remote) CreateWebWorker(ctx context.Context, webWorkerID string, shared
 			out = rwv
 			return false, nil
 		}
-		resp, err := r.webDocument.CreateWebWorker(ctx, &CreateWebWorkerRequest{
-			Id:     webWorkerID,
-			Url:    url,
-			Shared: shared,
-		})
+		resp, err := r.webDocument.CreateWebWorker(ctx, req)
 		if err != nil {
 			return false, err
 		}
@@ -283,10 +281,10 @@ func (r *Remote) Execute(rctx context.Context) error {
 	errCh := make(chan error, 1)
 	go func() {
 		err := r.watchWebDocumentStatus(ctx, le)
-		if err != nil && err != context.Canceled && err != io.EOF {
+		if err != nil && (ctx.Err() == nil || err != context.Canceled) {
 			le.
 				WithError(err).
-				Warn("monitor web views exited with error")
+				Warn("monitor web document status exited with error")
 		}
 		errCh <- err
 	}()
@@ -382,12 +380,18 @@ func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) e
 		case <-ctx.Done():
 			return context.Canceled
 		case <-stream.Context().Done():
-			return context.Canceled
+			if ctx.Err() != nil {
+				return context.Canceled
+			}
+			return io.EOF
 		default:
 		}
 
 		resp, err := stream.Recv()
 		if err != nil {
+			if err == context.Canceled && ctx.Err() == nil {
+				return io.EOF
+			}
 			return err
 		}
 

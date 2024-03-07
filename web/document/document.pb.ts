@@ -72,6 +72,12 @@ export interface CreateWebWorkerRequest {
   url: string
   /** Shared indicates this should be a worker shared between all WebDocument (if possible) */
   shared: boolean
+  /**
+   * InitData is initialization data to pass to the worker.
+   *
+   * Usually a WebWorkerWasmPluginInit.
+   */
+  initData: Uint8Array
 }
 
 /** CreateWebWorkerResponse is the response to the CreateWebWorker request. */
@@ -842,7 +848,7 @@ export const CreateWebViewResponse = {
 }
 
 function createBaseCreateWebWorkerRequest(): CreateWebWorkerRequest {
-  return { id: '', url: '', shared: false }
+  return { id: '', url: '', shared: false, initData: new Uint8Array(0) }
 }
 
 export const CreateWebWorkerRequest = {
@@ -858,6 +864,9 @@ export const CreateWebWorkerRequest = {
     }
     if (message.shared === true) {
       writer.uint32(24).bool(message.shared)
+    }
+    if (message.initData.length !== 0) {
+      writer.uint32(34).bytes(message.initData)
     }
     return writer
   },
@@ -893,6 +902,13 @@ export const CreateWebWorkerRequest = {
           }
 
           message.shared = reader.bool()
+          continue
+        case 4:
+          if (tag !== 34) {
+            break
+          }
+
+          message.initData = reader.bytes()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -944,6 +960,9 @@ export const CreateWebWorkerRequest = {
       id: isSet(object.id) ? globalThis.String(object.id) : '',
       url: isSet(object.url) ? globalThis.String(object.url) : '',
       shared: isSet(object.shared) ? globalThis.Boolean(object.shared) : false,
+      initData: isSet(object.initData)
+        ? bytesFromBase64(object.initData)
+        : new Uint8Array(0),
     }
   },
 
@@ -957,6 +976,9 @@ export const CreateWebWorkerRequest = {
     }
     if (message.shared === true) {
       obj.shared = message.shared
+    }
+    if (message.initData.length !== 0) {
+      obj.initData = base64FromBytes(message.initData)
     }
     return obj
   },
@@ -973,6 +995,7 @@ export const CreateWebWorkerRequest = {
     message.id = object.id ?? ''
     message.url = object.url ?? ''
     message.shared = object.shared ?? false
+    message.initData = object.initData ?? new Uint8Array(0)
     return message
   },
 }
@@ -1417,7 +1440,7 @@ export interface WebDocument {
     request: CreateWebWorkerRequest,
     abortSignal?: AbortSignal,
   ): Promise<CreateWebWorkerResponse>
-  /** RemoveWebWorker requests to terminate a WebWorker with an instance identifier. */
+  /** RemoveWebWorker requests to terminate a WebWorker with the given id. */
   RemoveWebWorker(
     request: RemoveWebWorkerRequest,
     abortSignal?: AbortSignal,
@@ -1572,7 +1595,7 @@ export const WebDocumentDefinition = {
       responseStream: false,
       options: {},
     },
-    /** RemoveWebWorker requests to terminate a WebWorker with an instance identifier. */
+    /** RemoveWebWorker requests to terminate a WebWorker with the given id. */
     removeWebWorker: {
       name: 'RemoveWebWorker',
       requestType: RemoveWebWorkerRequest,
@@ -1609,6 +1632,31 @@ interface Rpc {
     data: AsyncIterable<Uint8Array>,
     abortSignal?: AbortSignal,
   ): AsyncIterable<Uint8Array>
+}
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if ((globalThis as any).Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'))
+  } else {
+    const bin = globalThis.atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i)
+    }
+    return arr
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if ((globalThis as any).Buffer) {
+    return globalThis.Buffer.from(arr).toString('base64')
+  } else {
+    const bin: string[] = []
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte))
+    })
+    return globalThis.btoa(bin.join(''))
+  }
 }
 
 type Builtin =
