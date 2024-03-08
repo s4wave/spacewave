@@ -32,10 +32,7 @@ func TestMysqlDb(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	sfs := transform_all.BuildFactorySet()
 
 	dbID := "test-db"
 	bucketID := dbID

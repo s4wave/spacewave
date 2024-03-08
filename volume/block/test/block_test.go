@@ -75,10 +75,7 @@ func TestBlockVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	sfs, err := transform_all.BuildFactorySet()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	sfs := transform_all.BuildFactorySet()
 
 	bcs, err := bucket_lookup.BuildCursor(ctx, tb.Bus, le, sfs, volumeID, initHeadRef, nil)
 	if err != nil {
