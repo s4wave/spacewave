@@ -126,7 +126,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	if !bytes.Equal(readData, testJsData) {
 		t.Fatalf("read data does not match test data: %#v", string(readData))
 	}
-	if contentType := res.Header.Get("content-type"); !strings.HasPrefix(contentType, "application/javascript") {
+	if contentType := res.Header.Get("content-type"); !strings.HasPrefix(contentType, "text/javascript") {
 		t.Fatalf("incorrect content type: %s", contentType)
 	}
 }

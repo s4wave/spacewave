@@ -95,7 +95,7 @@ func (l *loadedBucketVolume) HandleValueRemoved(_ directive.Instance, av directi
 // This will occur if Close() is called on the directive instance.
 func (l *loadedBucketVolume) HandleInstanceDisposed(_ directive.Instance) {
 	l.b.mtx.Lock()
-	existed, reset := l.b.volumes.ResetRoutine(l.volumeID, func(other *loadedBucketVolume) bool {
+	existed, reset := l.b.volumes.ResetRoutine(l.volumeID, func(_ string, other *loadedBucketVolume) bool {
 		return l == other
 	})
 	if existed && reset && l.bh != nil {
