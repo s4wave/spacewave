@@ -54,8 +54,8 @@ github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/
 github.com/Workiva/go-datastructures v1.1.1 h1:9G5u1UqKt6ABseAffHGNfbNQd7omRlWE5QaxNruzhE0=
 github.com/Workiva/go-datastructures v1.1.1/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
-github.com/aperturerobotics/bifrost v0.25.2 h1:YQiJEDcRkeeUjmF4DENv+uIFBhn3yF6ZHLC/7557aUs=
-github.com/aperturerobotics/bifrost v0.25.2/go.mod h1:nv1KhC7jo7b+8Klcv4bswyIq4DDyr4wk3Sn7Ru7Hl/M=
+github.com/aperturerobotics/bifrost v0.25.3-0.20240311223214-084b9a4fa3f2 h1:WkN4ulVEMVNfZDYgpM9JaAWPxvrVo9a0Hw8+K6aP7/I=
+github.com/aperturerobotics/bifrost v0.25.3-0.20240311223214-084b9a4fa3f2/go.mod h1:8OuunQm4z3zN2skJRx7GZe/gFYwhEpyYHh25FvFseVA=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -64,8 +64,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 h1:Qowgx
 github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0/go.mod h1:2vMuoynITu0wxbJckb2b4IuFA/IkT5sikZG5FvsPwK8=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 h1:ANiOvmJmykti5luVErG3SQLrM2zEkT928BO3pbWBxwY=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195/go.mod h1:qBLT6/BYoGVoGAbS9XVFoXr5ZKQq3n8cGRXNOeEVn1U=
-github.com/aperturerobotics/controllerbus v0.36.5 h1:0fRV1dF/rp1C7EzzhYVUPpDP8I8q4ZahjQ2rTMePh/o=
-github.com/aperturerobotics/controllerbus v0.36.5/go.mod h1:XUilESTEQ6P62Ru+1HfdO51Ua11/8MHw5nDpdSzB2Ck=
+github.com/aperturerobotics/controllerbus v0.36.6 h1:FnA9HxnxLxJJm6GdrzRgYLI4tzv2Cxjz9fHVWXgdMIE=
+github.com/aperturerobotics/controllerbus v0.36.6/go.mod h1:ZrlUhVXAmItUKn7egoelIZUPKNPxmzZ89Y9pApufLoI=
 github.com/aperturerobotics/entitygraph v0.6.1 h1:A+5dYE26dRkitSCE9Zn9vrp6j37Ms4C5VjBYlHFSuFc=
 github.com/aperturerobotics/entitygraph v0.6.1/go.mod h1:/XPtMCHH4VOqdL9VfckQd8lUmJVK1t8qspuPgob4rEo=
 github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 h1:eHq2zHDkzMWwhZzjH4yvw3RgmvvTl6YujZeAynhDjck=
@@ -74,8 +74,8 @@ github.com/aperturerobotics/go-kvfile v0.3.0 h1:sk0qySs5K2PE3Xvxlld0XNfBoiATjhBM
 github.com/aperturerobotics/go-kvfile v0.3.0/go.mod h1:QUm6obc/hMXdNUMTd/hpaqoofEg/1e0q+JmnoHjiRqA=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51/go.mod h1:yZOf9ZPH3PIeAj3q/dvY9nAe+Y1zBBIZIInEguPbbpQ=
-github.com/aperturerobotics/hydra v0.0.0-20240309083231-87dcd1ef8270 h1:2xFm+LsbFCee4a1NkoReqqZXfitEmMCt4SFeRvGL678=
-github.com/aperturerobotics/hydra v0.0.0-20240309083231-87dcd1ef8270/go.mod h1:BfMk+xxTKg+z/gdK3M+ZbBV3pyjJ9V4lwhlPS8ciCm8=
+github.com/aperturerobotics/hydra v0.0.0-20240311223421-ef8588bb8996 h1:0w2xPB1sBDoOW6i+Dka34nzZZUNvio36QSdSZxSsVgE=
+github.com/aperturerobotics/hydra v0.0.0-20240311223421-ef8588bb8996/go.mod h1:kqzPmUNFY+L4Ec/DAU205hk8zB4zX++lBgVViI7McP4=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f h1:mnmO0JHfvlE/yK2kiKQ/Q2aYhCETkl6FP07rcmvoBKw=
@@ -88,8 +88,8 @@ github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302 h1:y+
 github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302/go.mod h1:EjMALRsVBp3XGzCUVbObOlh+2b4a2iB3ev5u0cZZh9k=
 github.com/aperturerobotics/ts-proto-common-types v0.20.2 h1:xFy3ErasS5PNWV0ABdlJxqfUsZGL2OLlc0Kio5aIm2s=
 github.com/aperturerobotics/ts-proto-common-types v0.20.2/go.mod h1:TgjsdPI5YvNF1iewbvCPmEnVkV8WVP1AyZxiOc9SEbo=
-github.com/aperturerobotics/util v1.14.3 h1:tn8eET9vlFwnveFY+rt4VbbMertQW8dcd+V5fK7SyHo=
-github.com/aperturerobotics/util v1.14.3/go.mod h1:1+G2THhT7VCmR7xeRlqDnyEtRFvONWoPft19xTHvbyk=
+github.com/aperturerobotics/util v1.15.1 h1:cCNuxDI+ATnv++e5NHVDXKGaqMiPiwag9xMNQsYOspA=
+github.com/aperturerobotics/util v1.15.1/go.mod h1:NW+A6UUfEv+BsLrfnqwXR9g6CO97Hwe+1En9zGeW1so=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=

@@ -7,13 +7,23 @@ import (
 	web_worker "github.com/aperturerobotics/bldr/web/worker"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
 
 // WebDocument is a tree of WebView managed separately from other WebDocument instances.
 type WebDocument interface {
+	// Execute executes the web document.
+	// Returns any errors, nil if Execute is not required.
+	// This should only be called by the web runtime controller!
+	Execute(ctx context.Context) error
+
 	// GetWebDocumentUuid returns the web document identifier.
 	GetWebDocumentUuid() string
+
+	// GetWebDocumentStatusCtr contains a full snapshot of the web document status.
+	// contains nil until the remote is ready or closed
+	GetWebDocumentStatusCtr() *ccontainer.CContainer[*WebDocumentStatus]
 
 	// GetWebViews returns the current snapshot of active WebViews.
 	GetWebViews(ctx context.Context) (map[string]web_view.WebView, error)
@@ -49,10 +59,6 @@ type WebDocument interface {
 	// Returns nil, nil if the worker was not created.
 	// If the worker already existed it will be deleted and recreated.
 	CreateWebWorker(ctx context.Context, req *CreateWebWorkerRequest) (web_worker.WebWorker, error)
-
-	// Execute executes the web document.
-	// Returns any errors, nil if Execute is not required.
-	Execute(ctx context.Context) error
 }
 
 // WebDocumentHandler is the handler (usually WebDocumentController) for the document.

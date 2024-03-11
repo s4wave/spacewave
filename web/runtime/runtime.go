@@ -7,6 +7,7 @@ import (
 	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,7 +15,11 @@ import (
 type WebRuntime interface {
 	// Execute executes the runtime.
 	// Returns any errors, nil if Execute is not required.
+	// This should only be called by the web runtime controller!
 	Execute(ctx context.Context) error
+
+	// GetWebRuntimeStatusCtr contains a full snapshot of the web runtime status.
+	GetWebRuntimeStatusCtr() *ccontainer.CContainer[*WebRuntimeStatus]
 
 	// GetWebDocuments returns the current snapshot of active WebDocuments.
 	GetWebDocuments(ctx context.Context) (map[string]web_document.WebDocument, error)

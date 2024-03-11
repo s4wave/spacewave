@@ -5,7 +5,7 @@ go 1.22
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
 
-require github.com/aperturerobotics/hydra v0.0.0-20240309083231-87dcd1ef8270 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240311223421-ef8588bb8996 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -16,7 +16,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.2 // master
+require github.com/aperturerobotics/bifrost v0.25.3-0.20240311223214-084b9a4fa3f2 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -52,7 +52,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.5 // latest
+	github.com/aperturerobotics/controllerbus v0.36.6 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
 	github.com/aperturerobotics/starpc v0.27.2 // latest
 )
@@ -74,7 +74,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.14.3 // master
+	github.com/aperturerobotics/util v1.15.1 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect

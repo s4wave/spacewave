@@ -487,6 +487,10 @@ export class WebDocument {
 
   // registerWebView registers a web-view with the runtime.
   public registerWebView(webView: WebView): WebViewRegistration {
+    if (this.closed) {
+      throw new Error('web document is closed')
+    }
+
     const webViewId = webView.getUuid()
     const parentId = webView.getParentUuid()
     const view = new WebDocumentWebView(webView)
@@ -500,13 +504,14 @@ export class WebDocument {
     // openStream opens a stream to the WebViewHost service.
     const rpcClient = this.buildWebViewHostClient(webViewId)
     const webViewHost = new WebViewHostClientImpl(rpcClient)
-    return <WebViewRegistration>{
+    const reg: WebViewRegistration = {
       rpcClient,
       webViewHost,
       release: () => {
         this.unregisterWebView(webView)
       },
     }
+    return reg
   }
 
   // buildWebViewHostOpenStream builds the OpenStreamFunc for a WebViewHost.
@@ -545,6 +550,10 @@ export class WebDocument {
 
   // buildWebDocumentStatusSnapshot builds a snapshot of the status.
   public async buildWebDocumentStatusSnapshot(): Promise<WebDocumentStatus> {
+    if (this.closed) {
+      return { snapshot: true, closed: true, webViews: [], webWorkers: [] }
+    }
+
     const webViews: WebViewStatus[] = []
     for (const webViewId of Object.keys(this.webViews)) {
       const webView = this.webViews[webViewId]
@@ -573,6 +582,10 @@ export class WebDocument {
   public createWebWorker(
     request: CreateWebWorkerRequest,
   ): CreateWebWorkerResponse {
+    if (this.closed) {
+      throw new Error('web document is closed')
+    }
+
     const old = this.webWorkers[request.id]
     if (old) {
       old.close()
@@ -596,6 +609,7 @@ export class WebDocument {
   public removeWebWorker(
     request: RemoveWebWorkerRequest,
   ): RemoveWebWorkerResponse {
+    if (this.closed) return { removed: true }
     const old = this.webWorkers[request.id]
     if (old) {
       old.close()
@@ -613,8 +627,12 @@ export class WebDocument {
     this.closed = err ?? true
     this.client.setOpenStreamFn(undefined)
     this.webRuntimeClient.close()
-    for (const viewId of Object.keys(this.webViews)) {
+    for (const viewId in this.webViews) {
       delete this.webViews[viewId]
+    }
+    for (const workerId in this.webWorkers) {
+      this.webWorkers[workerId].close()
+      delete this.webWorkers[workerId]
     }
     if (this.worker) {
       try {
@@ -634,6 +652,12 @@ export class WebDocument {
     if (this.serviceWorker) {
       this.serviceWorker = undefined
     }
+    this.webStatusStream.pushChangeEvent({
+      snapshot: true,
+      closed: true,
+      webViews: [],
+      webWorkers: [],
+    })
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
     }
@@ -645,6 +669,7 @@ export class WebDocument {
   // initServiceWorker asynchronously initializes the service worker.
   // called in the constructor
   private async initServiceWorker(wb: Workbox) {
+    if (this.closed) return
     const swMessageCallback = (ev: MessageEvent) => {
       console.log('WebDocument: got message from ServiceWorker', ev.data)
       const data: ServiceWorkerToWebDocument = ev.data
@@ -701,12 +726,13 @@ export class WebDocument {
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
   // if the web view is null, sends a message indicating the view was removed.
   private notifyWebViewUpdated(webViewId: string, webView?: WebView) {
-    if (!webViewId) {
+    if (!webViewId || this.closed) {
       return
     }
 
     const webStatus: WebDocumentStatus = {
       snapshot: false,
+      closed: false,
       webWorkers: [],
       webViews: [buildWebViewStatus(webViewId, webView)],
     }
@@ -719,8 +745,12 @@ export class WebDocument {
     deleted: boolean,
     shared: boolean,
   ) {
+    if (this.closed) {
+      return
+    }
     const webStatus: WebDocumentStatus = {
       snapshot: false,
+      closed: false,
       webViews: [],
       webWorkers: [
         {
@@ -735,6 +765,9 @@ export class WebDocument {
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
   private unregisterWebView(webView: WebView) {
+    if (this.closed) {
+      return
+    }
     const webViewId = webView?.getUuid()
     if (!webViewId) {
       return

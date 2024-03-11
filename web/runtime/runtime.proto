@@ -67,6 +67,8 @@ message WebRuntimeStatus {
   bool snapshot = 1;
   // WebDocuments contains the list of web documents.
   repeated WebDocumentStatus web_documents = 2;
+  // Closed indicates the web runtime is closed.
+  bool closed = 3;
 }
 
 // WebDocumentStatus contains status for a WebDocument.

@@ -82,6 +82,8 @@ export interface WebRuntimeStatus {
   snapshot: boolean
   /** WebDocuments contains the list of web documents. */
   webDocuments: WebDocumentStatus[]
+  /** Closed indicates the web runtime is closed. */
+  closed: boolean
 }
 
 /** WebDocumentStatus contains status for a WebDocument. */
@@ -343,7 +345,7 @@ export const WatchWebRuntimeStatusRequest = {
 }
 
 function createBaseWebRuntimeStatus(): WebRuntimeStatus {
-  return { snapshot: false, webDocuments: [] }
+  return { snapshot: false, webDocuments: [], closed: false }
 }
 
 export const WebRuntimeStatus = {
@@ -356,6 +358,9 @@ export const WebRuntimeStatus = {
     }
     for (const v of message.webDocuments) {
       WebDocumentStatus.encode(v!, writer.uint32(18).fork()).ldelim()
+    }
+    if (message.closed === true) {
+      writer.uint32(24).bool(message.closed)
     }
     return writer
   },
@@ -383,6 +388,13 @@ export const WebRuntimeStatus = {
           message.webDocuments.push(
             WebDocumentStatus.decode(reader, reader.uint32()),
           )
+          continue
+        case 3:
+          if (tag !== 24) {
+            break
+          }
+
+          message.closed = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -437,6 +449,7 @@ export const WebRuntimeStatus = {
       webDocuments: globalThis.Array.isArray(object?.webDocuments)
         ? object.webDocuments.map((e: any) => WebDocumentStatus.fromJSON(e))
         : [],
+      closed: isSet(object.closed) ? globalThis.Boolean(object.closed) : false,
     }
   },
 
@@ -449,6 +462,9 @@ export const WebRuntimeStatus = {
       obj.webDocuments = message.webDocuments.map((e) =>
         WebDocumentStatus.toJSON(e),
       )
+    }
+    if (message.closed === true) {
+      obj.closed = message.closed
     }
     return obj
   },
@@ -465,6 +481,7 @@ export const WebRuntimeStatus = {
     message.snapshot = object.snapshot ?? false
     message.webDocuments =
       object.webDocuments?.map((e) => WebDocumentStatus.fromPartial(e)) || []
+    message.closed = object.closed ?? false
     return message
   },
 }

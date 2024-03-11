@@ -98,7 +98,7 @@ function startGoRuntime(webRuntimeId: string) {
 }
 
 // wait for startup / init command
-let runtimeStarted = false
+const runtimeStarted = false
 self.addEventListener('connect', (ev) => {
   const ports = ev.ports
   if (!ports || !ports.length) {

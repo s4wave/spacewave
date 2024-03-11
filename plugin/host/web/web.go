@@ -2,9 +2,9 @@ package plugin_host_web
 
 import (
 	"context"
-	"io"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -20,9 +20,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/semaphore"
 )
 
 // ControllerID is the process host controller ID.
@@ -134,7 +136,7 @@ func (h *WebHost) ExecutePlugin(
 	entrypointHttpPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
 
 	// create unique plugin instance id
-	pluginInstanceID := randstring.RandomIdentifier(0)
+	pluginInstanceID := randstring.RandomIdentifier(4)
 	pluginStartInfo := &plugin.PluginStartInfo{
 		InstanceId: pluginInstanceID,
 	}
@@ -158,15 +160,9 @@ func (h *WebHost) ExecutePlugin(
 	}
 	defer webRuntimeRef.Release()
 
-	docs, err := webRuntime.GetWebDocuments(ctx)
-	if err != nil {
-		return err
-	}
-
 	h.le.
 		WithField("entrypoint", entrypoint).
 		WithField("web-runtime", h.webRuntimeID).
-		WithField("web-runtime-doc-count", len(docs)).
 		Debugf("executing plugin entrypoint via http: %s", pluginWebWorkerURL)
 
 	// Mount the RPC handler to the bus.
@@ -190,37 +186,49 @@ func (h *WebHost) ExecutePlugin(
 	}
 	defer relRpcServiceCtrl()
 
-	// Remove any old instances of the web worker.
-	for _, doc := range docs {
-		docWebWorkers, err := doc.GetWebWorkers(ctx)
-		if err != nil {
-			return err
-		}
-		for _, worker := range docWebWorkers {
-			if worker.GetId() != pluginWebWorkerID {
-				continue
-			}
-			h.le.
-				WithFields(logrus.Fields{
-					"web-document": doc.GetWebDocumentUuid(),
-					"web-runtime":  h.webRuntimeID,
-					"web-worker":   pluginWebWorkerID,
-				}).
-				Debug("removing old instance of web worker")
-			_, err := worker.Remove(ctx)
-			if err != nil {
-				h.le.WithError(err).Warn("unable to remove old web worker instance")
-			}
-		}
+	// There are two operating modes for the below code:
+	// 1. SharedWorker is supported:
+	//    - Watch all of the WebDocument
+	//    - Create a SharedWorker on each web document
+	//    - If unable to create a shared worker (created Worker instead):
+	// 2. Worker is supported but SharedWorker is not:
+	//    - Mark that we do not support SharedWorker and at least 1 instance is running.
+	//    - Skip creating the other worker instances if at least 1 is running
+	//    - When that 1 instance exits, mark not running, then restart all web doc trackers.
+	// If any web documents cannot create shared workers, assume all cannot.
+
+	sema := semaphore.NewWeighted(1)
+	var singletonWorkerDoc string
+
+	// Create the web worker on each document.
+	var webDocumentsKeyed *keyed.Keyed[string, struct{}]
+	wakeOtherWebDocs := func(otherThanDoc string) {
+		_, _ = webDocumentsKeyed.RestartAllRoutines(func(docID string, _ struct{}) bool {
+			return docID != otherThanDoc
+		})
 	}
 
-	// Create the new instance(s) of the web worker.
-	var createdAny, createdShared bool
-	var createErr error
-	for _, doc := range docs {
+	createWorkerWithDoc := func(ctx context.Context, doc web_document.WebDocument) error {
+		if err := sema.Acquire(ctx, 1); err != nil {
+			return err
+		}
+		defer sema.Release(1)
+
+		webDocumentID := doc.GetWebDocumentUuid()
+		if singletonWorkerDoc == webDocumentID {
+			// If the previous singleton worker instance was ours, remove it.
+			singletonWorkerDoc = ""
+
+			// Wake the other WebDocument trackers in case we fail to start a worker.
+			wakeOtherWebDocs(webDocumentID)
+		} else if singletonWorkerDoc != "" {
+			// An instance is already running, exit now.
+			return nil
+		}
+
 		le := h.le.
 			WithFields(logrus.Fields{
-				"web-document": doc.GetWebDocumentUuid(),
+				"web-document": webDocumentID,
 				"web-runtime":  h.webRuntimeID,
 				"web-worker":   pluginWebWorkerID,
 			})
@@ -236,72 +244,162 @@ func (h *WebHost) ExecutePlugin(
 		}
 		if err != nil {
 			le.WithError(err).Warn("unable to create web worker")
-			// try to get the most meaningful error
-			if createErr == nil || createErr == context.Canceled || createErr == io.EOF {
-				createErr = err
-			}
-			continue
+			return err
 		}
 
-		createdAny, createdShared = true, createdWorker.GetShared()
-		le.WithField("shared-worker", createdShared).Debug("successfully created web worker")
+		createdShared := createdWorker.GetShared()
+		le.
+			WithField("web-worker-shared", createdShared).
+			Debug("successfully created web worker")
 
 		// If we cannot create shared workers, create only one Worker to avoid duplicates.
-		// NOTE: This assumes that if shared=true works for one doc it will work for all on the same runtime.
 		if !createdShared {
-			break
+			singletonWorkerDoc = webDocumentID
+		}
+
+		return nil
+	}
+
+	removeWorkerInstances := func(ctx context.Context, doc web_document.WebDocument) error {
+		// Remove any old instances of the web worker.
+		docWebWorkers, err := doc.GetWebWorkers(ctx)
+		if err != nil {
+			return err
+		}
+		for _, worker := range docWebWorkers {
+			if worker.GetId() != pluginWebWorkerID {
+				continue
+			}
+
+			h.le.
+				WithFields(logrus.Fields{
+					"web-document": doc.GetWebDocumentUuid(),
+					"web-runtime":  h.webRuntimeID,
+					"web-worker":   pluginWebWorkerID,
+				}).
+				Debug("removing old instance of web worker")
+			_, err := worker.Remove(ctx)
+			if err != nil {
+				h.le.WithError(err).Warn("unable to remove old web worker instance")
+			}
+		}
+		return nil
+	}
+
+	// Track web document is called for each of the running web documents.
+	trackWebDocument := func(ctx context.Context, webDocumentID string) error {
+		// Get the web document.
+		doc, err := webRuntime.GetWebDocument(ctx, webDocumentID, true)
+		if err != nil {
+			return err
+		}
+
+		// Remove any old instances of the web worker.
+		if err := removeWorkerInstances(ctx, doc); err != nil {
+			return err
+		}
+
+		// Watch the list of web workers to ensure ours is running.
+		docStatusCtr := doc.GetWebDocumentStatusCtr()
+		var docStatus *web_document.WebDocumentStatus
+		var workerInstance *web_document.WebWorkerStatus
+		for {
+			// Create the instance of the worker if it doesn't exist.
+			if workerInstance == nil {
+				if err := createWorkerWithDoc(ctx, doc); err != nil {
+					return err
+				}
+			}
+
+			docStatus, err = docStatusCtr.WaitValueChange(ctx, docStatus, nil)
+			if err != nil {
+				return err
+			}
+			if docStatus.GetClosed() {
+				return nil
+			}
+
+			workers := docStatus.GetWebWorkers()
+			for _, worker := range workers {
+				if worker.GetId() == pluginWebWorkerID {
+					workerInstance = worker
+					break
+				}
+			}
 		}
 	}
-	if !createdAny {
-		h.le.WithError(createErr).Warn("unable to create any web workers")
-		return createErr
-	}
-
-	/* TODO
-	startObj, err := startCmd(entrypointProc, preStartObj)
-	if err != nil {
-		return err
-	}
-	*/
-
-	// wait for a non-nil error
-	errCh := make(chan error, 3)
-	exited := make(chan struct{})
-	go func() {
-		// TODO
-		// errCh <- entrypointProc.Wait()
-		<-ctx.Done()
-		close(exited)
-	}()
 
 	// fully kill & wait for exit to be confirmed when returning
+	cleanupInstances := func() error {
+		ctx, ctxCancel := context.WithTimeout(context.WithoutCancel(rctx), time.Second*3)
+		defer ctxCancel()
+
+		docs, err := webRuntime.GetWebDocuments(ctx)
+		if err != nil {
+			return err
+		}
+		var retErr error
+		for _, doc := range docs {
+			if err := removeWorkerInstances(ctx, doc); err != nil {
+				retErr = err
+			}
+		}
+		return retErr
+	}
 	defer func() {
 		ctxCancel()
-
-		// TODO
-		// _ = shutdownCmd(entrypointProc, preStartObj, startObj)
-
-		// wait graceful shutdown max duration
-		shutdownTimeout := time.NewTimer(time.Second * 3)
-		select {
-		case <-exited:
-			_ = shutdownTimeout.Stop()
-		case <-shutdownTimeout.C:
+		if err := cleanupInstances(); err != nil {
+			h.le.WithError(err).Warn("unable to cleanup old web worker instances")
 		}
-
-		// _ = killCmd(entrypointProc, preStartObj, startObj)
-		// TODO
-
-		// wait for full shutdown
-		<-exited
 	}()
 
-	// wait for context canceled and/or error
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case err := <-errCh:
-		return err
+	// Track the list of web documents.
+	webDocumentsKeyed = keyed.NewKeyedWithLogger[string, struct{}](
+		func(webDocumentId string) (keyed.Routine, struct{}) {
+			return func(ctx context.Context) error {
+				return trackWebDocument(ctx, webDocumentId)
+			}, struct{}{}
+		},
+		h.le,
+	)
+	webDocumentsKeyed.SetContext(ctx, true)
+	defer webDocumentsKeyed.ClearContext()
+
+	// Watch the list of web documents.
+	webRuntimeStatusCtr := webRuntime.GetWebRuntimeStatusCtr()
+	var webRuntimeStatus *web_runtime.WebRuntimeStatus
+	for {
+		webRuntimeStatus, err = webRuntimeStatusCtr.WaitValueChange(ctx, webRuntimeStatus, nil)
+		if err != nil {
+			return err
+		}
+		if webRuntimeStatus.GetClosed() {
+			return errors.New("web runtime is closed")
+		}
+
+		docs := webRuntimeStatus.GetWebDocuments()
+		docIDs := make([]string, len(docs))
+		for i, doc := range docs {
+			docIDs[i] = doc.GetId()
+		}
+
+		_, removed := webDocumentsKeyed.SyncKeys(docIDs, true)
+
+		// Track removed web documents to make sure we have at least one worker.
+		if len(removed) != 0 {
+			if err := sema.Acquire(ctx, 1); err != nil {
+				return err
+			}
+
+			if singletonWorkerDoc != "" && slices.Contains(removed, singletonWorkerDoc) {
+				// This document was holding the singleton WebWorker.
+				// Restart the other trackers.
+				wakeOtherWebDocs(singletonWorkerDoc)
+				singletonWorkerDoc = ""
+			}
+
+			sema.Release(1)
+		}
 	}
 }
 

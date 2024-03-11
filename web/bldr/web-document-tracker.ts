@@ -1,4 +1,3 @@
-import { OpenStreamFunc, PacketStream } from 'starpc'
 import {
   ClientToWebDocument,
   ConnectWebRuntimeAck,

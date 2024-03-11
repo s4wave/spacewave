@@ -308,6 +308,14 @@ export class WebRuntime {
   // keyed by web document ID
   private webDocuments: Record<string, WebDocumentStatus> = {}
 
+  // closed indicates the instance is closed.
+  private closed?: true
+
+  // isClosed checks if the instance is closed.
+  public get isClosed(): boolean {
+    return this.closed ?? false
+  }
+
   constructor(
     webRuntimeId: string,
     openStreamFn: OpenStreamFunc,
@@ -375,6 +383,10 @@ export class WebRuntime {
   // handleClient handles an incoming client connection MessagePort.
   // msg should contain a WebRuntimeClientInit message
   public handleClient(msg: WebRuntimeClientInit, port: MessagePort) {
+    if (this.closed) {
+      throw new Error('web runtime is closed')
+    }
+
     const clientUuid = msg.clientUuid
     if (!clientUuid) {
       throw new Error('connect init message: must contain client uuid')
@@ -403,6 +415,7 @@ export class WebRuntime {
       this.webDocuments[clientUuid] = status
       this.statusStream.pushChangeEvent({
         snapshot: false,
+        closed: false,
         webDocuments: [status],
       })
     }
@@ -422,12 +435,14 @@ export class WebRuntime {
       `WebRuntime: ${this.webRuntimeId}: removed client: ${clientUuid} type ${clientTypeStr}`,
     )
     if (
+      !this.closed &&
       clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
       this.webDocuments[clientUuid]
     ) {
       delete this.webDocuments[clientUuid]
       this.statusStream.pushChangeEvent({
         snapshot: false,
+        closed: false,
         webDocuments: [
           {
             id: clientUuid,
@@ -443,6 +458,10 @@ export class WebRuntime {
   // if allWorkers is set, includes web views from other active workers.
   // prevents duplicate web view entries
   public async buildWebRuntimeStatusSnapshot(): Promise<WebRuntimeStatus> {
+    if (this.closed) {
+      return { snapshot: true, closed: true, webDocuments: [] }
+    }
+
     const webDocuments: WebDocumentStatus[] = []
     for (const webDocumentId of Object.keys(this.webDocuments)) {
       const webDocument = this.webDocuments[webDocumentId]
@@ -453,7 +472,28 @@ export class WebRuntime {
     webDocuments.sort((a, b) => (a.id < b.id ? -1 : 1))
     return {
       snapshot: true,
+      closed: false,
       webDocuments,
     }
+  }
+
+  public close() {
+    if (this.closed) {
+      return
+    }
+    this.closed = true
+
+    this.webDocuments = {}
+    for (const clientID in this.clients) {
+      const client = this.clients[clientID]
+      client.close()
+      delete this.clients[clientID]
+    }
+
+    this.statusStream.pushChangeEvent({
+      snapshot: true,
+      closed: true,
+      webDocuments: [],
+    })
   }
 }

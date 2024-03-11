@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -36,11 +37,18 @@ type Remote struct {
 	// webDocument is the RPC client for the WebDocument.
 	webDocument SRPCWebDocumentClient
 
+	// snapshotCtr contains a snapshot of below state for observers.
+	// it is not a source of truth and is only for GetWebDocumentStatus
+	// contains nil until the remote is ready or closed
+	snapshotCtr *ccontainer.CContainer[*WebDocumentStatus]
+
 	// cstate is the controller state
 	// contains a mutex which guards below fields
 	cstate *cstate.CState[*Remote]
 	// ready indicates the initial snapshot has been received.
 	ready bool
+	// closed indicates the remote document is closed.
+	closed bool
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
 	// do not retain this slice without holding mtx
@@ -74,7 +82,13 @@ func NewRemote(
 		bus:        b,
 		handler:    handler,
 	}
+
 	r.cstate = cstate.NewCState(r)
+	r.snapshotCtr = ccontainer.NewCContainerVT[*WebDocumentStatus](nil)
+	_, _ = r.cstate.AddWatcher(context.Background(), false, func(ctx context.Context, state *Remote) {
+		r.updateStatusSnapshot()
+	})
+
 	r.rpcMux = srpc.NewMux()
 	if err := SRPCRegisterWebDocumentHost(r.rpcMux, newRemoteWebDocumentHost(r)); err != nil {
 		return nil, err
@@ -89,6 +103,11 @@ func NewRemote(
 // GetWebDocumentUuid returns the web document identifier.
 func (r *Remote) GetWebDocumentUuid() string {
 	return r.documentID
+}
+
+// GetWebDocumentStatusCtr contains a full snapshot of the web document status.
+func (r *Remote) GetWebDocumentStatusCtr() *ccontainer.CContainer[*WebDocumentStatus] {
+	return r.snapshotCtr
 }
 
 // GetMux returns the WebDocumentHost service mux.
@@ -245,6 +264,7 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			out = rwv
 			return false, nil
 		}
+
 		resp, err := r.webDocument.CreateWebWorker(ctx, req)
 		if err != nil {
 			return false, err
@@ -420,12 +440,45 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 
 	dirty2, err := r.handleWebWorkerStatuses(ctx, ws.GetSnapshot(), ws.GetWebWorkers())
 	if err != nil {
-		return dirty1, err
+		return dirty1 || dirty2, err
 	}
 
 	// we got a snapshot or initial list of statuses: mark as ready
-	r.ready = true
+	if !r.ready {
+		r.ready = true
+		return true, nil
+	}
+
 	return dirty1 || dirty2, nil
+}
+
+// updateStatusSnapshot generates the status snapshot and sets it in the container.
+// expects mtx to be locked
+func (r *Remote) updateStatusSnapshot() {
+	if !r.ready && !r.closed {
+		return
+	}
+	status := &WebDocumentStatus{
+		Snapshot: true,
+		Closed:   r.closed,
+	}
+	if r.ready && !r.closed {
+		for _, remoteWebView := range r.remoteWebViews {
+			proxy := remoteWebView.proxy
+			status.WebViews = append(status.WebViews, &WebViewStatus{
+				Id:        proxy.GetId(),
+				ParentId:  proxy.GetParentId(),
+				Permanent: proxy.GetPermanent(),
+			})
+		}
+		for _, remoteWebWorker := range r.remoteWebWorkers {
+			status.WebWorkers = append(status.WebWorkers, &WebWorkerStatus{
+				Id:     remoteWebWorker.id,
+				Shared: remoteWebWorker.shared,
+			})
+		}
+	}
+	r.snapshotCtr.SetValue(status)
 }
 
 // handleWebViewStatuses handles a list of web view statuses.

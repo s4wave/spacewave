@@ -47,6 +47,8 @@ message WebDocumentStatus {
   repeated WebViewStatus web_views = 2;
   // WebWorkers contains the list of web worker statuses.
   repeated WebWorkerStatus web_workers = 3;
+  // Closed indicates the web document is closed.
+  bool closed = 4;
 }
 
 // WebViewStatus contains status for a web view.

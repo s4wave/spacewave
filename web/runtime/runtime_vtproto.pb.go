@@ -59,6 +59,7 @@ func (m *WebRuntimeStatus) CloneVT() *WebRuntimeStatus {
 	}
 	r := new(WebRuntimeStatus)
 	r.Snapshot = m.Snapshot
+	r.Closed = m.Closed
 	if rhs := m.WebDocuments; rhs != nil {
 		tmpContainer := make([]*WebDocumentStatus, len(rhs))
 		for k, v := range rhs {
@@ -243,6 +244,9 @@ func (this *WebRuntimeStatus) EqualVT(that *WebRuntimeStatus) bool {
 				return false
 			}
 		}
+	}
+	if this.Closed != that.Closed {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -482,6 +486,16 @@ func (m *WebRuntimeStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Closed {
+		i--
+		if m.Closed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.WebDocuments) > 0 {
 		for iNdEx := len(m.WebDocuments) - 1; iNdEx >= 0; iNdEx-- {
@@ -825,6 +839,9 @@ func (m *WebRuntimeStatus) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.Closed {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1141,6 +1158,26 @@ func (m *WebRuntimeStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Closed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Closed = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

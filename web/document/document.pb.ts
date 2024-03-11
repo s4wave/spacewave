@@ -16,6 +16,8 @@ export interface WebDocumentStatus {
   webViews: WebViewStatus[]
   /** WebWorkers contains the list of web worker statuses. */
   webWorkers: WebWorkerStatus[]
+  /** Closed indicates the web document is closed. */
+  closed: boolean
 }
 
 /** WebViewStatus contains status for a web view. */
@@ -204,7 +206,7 @@ export const WatchWebDocumentStatusRequest = {
 }
 
 function createBaseWebDocumentStatus(): WebDocumentStatus {
-  return { snapshot: false, webViews: [], webWorkers: [] }
+  return { snapshot: false, webViews: [], webWorkers: [], closed: false }
 }
 
 export const WebDocumentStatus = {
@@ -220,6 +222,9 @@ export const WebDocumentStatus = {
     }
     for (const v of message.webWorkers) {
       WebWorkerStatus.encode(v!, writer.uint32(26).fork()).ldelim()
+    }
+    if (message.closed === true) {
+      writer.uint32(32).bool(message.closed)
     }
     return writer
   },
@@ -254,6 +259,13 @@ export const WebDocumentStatus = {
           message.webWorkers.push(
             WebWorkerStatus.decode(reader, reader.uint32()),
           )
+          continue
+        case 4:
+          if (tag !== 32) {
+            break
+          }
+
+          message.closed = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -311,6 +323,7 @@ export const WebDocumentStatus = {
       webWorkers: globalThis.Array.isArray(object?.webWorkers)
         ? object.webWorkers.map((e: any) => WebWorkerStatus.fromJSON(e))
         : [],
+      closed: isSet(object.closed) ? globalThis.Boolean(object.closed) : false,
     }
   },
 
@@ -324,6 +337,9 @@ export const WebDocumentStatus = {
     }
     if (message.webWorkers?.length) {
       obj.webWorkers = message.webWorkers.map((e) => WebWorkerStatus.toJSON(e))
+    }
+    if (message.closed === true) {
+      obj.closed = message.closed
     }
     return obj
   },
@@ -342,6 +358,7 @@ export const WebDocumentStatus = {
       object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
     message.webWorkers =
       object.webWorkers?.map((e) => WebWorkerStatus.fromPartial(e)) || []
+    message.closed = object.closed ?? false
     return message
   },
 }

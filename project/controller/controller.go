@@ -121,7 +121,7 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 			// compare the configs and conditionally restart if different
 			_, wasReset := c.manifestBuilders.RestartRoutine(
 				builder.key,
-				func(trk *manifestBuilderTracker) bool {
+				func(_ string, trk *manifestBuilderTracker) bool {
 					// this includes the case where trkConf is nil (not loaded yet)
 					if !trk.manifestConf.Load().EqualVT(nextManifest) {
 						return true

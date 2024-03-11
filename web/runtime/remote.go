@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,11 +39,18 @@ type Remote struct {
 	// webRuntime is the RPC client for the WebRuntime.
 	webRuntime SRPCWebRuntimeClient
 
+	// snapshotCtr contains a snapshot of below state for observers.
+	// it is not a source of truth and is only for GetWebRuntimeStatus
+	// contains nil until the remote is ready or closed
+	snapshotCtr *ccontainer.CContainer[*WebRuntimeStatus]
+
 	// cstate is the controller state
 	// contains a mutex which guards below fields
 	cstate *cstate.CState[*Remote]
 	// ready indicates the initial snapshot has been received.
 	ready bool
+	// closed indicates the remote runtime is closed.
+	closed bool
 	// remoteWebDocuments is the current snapshot of web documents.
 	// sorted by ID
 	// do not retain this slice without holding mtx
@@ -64,6 +72,7 @@ func NewRemote(
 	if err := ValidateRuntimeId(runtimeID); err != nil {
 		return nil, err
 	}
+
 	r := &Remote{
 		runtimeID:    runtimeID,
 		le:           le,
@@ -72,7 +81,12 @@ func NewRemote(
 		rpcClient:    rpcClient,
 		execListener: execListener,
 	}
+
 	r.cstate = cstate.NewCState(r)
+	r.snapshotCtr = ccontainer.NewCContainerVT[*WebRuntimeStatus](nil)
+	_, _ = r.cstate.AddWatcher(context.Background(), false, func(ctx context.Context, state *Remote) {
+		r.updateStatusSnapshot()
+	})
 
 	// WebRuntimeHost mux
 	r.rpcMux = srpc.NewMux()
@@ -104,6 +118,11 @@ func (r *Remote) GetBus() bus.Bus {
 // GetRpcServer returns the RPC server.
 func (r *Remote) GetRpcServer() *srpc.Server {
 	return r.rpcServer
+}
+
+// GetWebRuntimeStatusCtr contains a full snapshot of the web runtime status.
+func (r *Remote) GetWebRuntimeStatusCtr() *ccontainer.CContainer[*WebRuntimeStatus] {
+	return r.snapshotCtr
 }
 
 // GetWebDocuments returns the current snapshot of active WebDocuments.
@@ -537,6 +556,27 @@ func (r *Remote) lookupRemoteWebDocument(id string) (int, *RemoteWebDocument) {
 		rwv = r.remoteWebDocuments[i]
 	}
 	return i, rwv
+}
+
+// updateStatusSnapshot generates the status snapshot and sets it in the container.
+// expects mtx to be locked
+func (r *Remote) updateStatusSnapshot() {
+	if !r.ready && !r.closed {
+		return
+	}
+	status := &WebRuntimeStatus{
+		Snapshot: true,
+		Closed:   r.closed,
+	}
+	if r.ready && !r.closed {
+		for _, remoteWebDoc := range r.remoteWebDocuments {
+			status.WebDocuments = append(status.WebDocuments, &WebDocumentStatus{
+				Id:        remoteWebDoc.id,
+				Permanent: remoteWebDoc.permanent,
+			})
+		}
+	}
+	r.snapshotCtr.SetValue(status)
 }
 
 // sortRemoteWebDocuments sorts the remoteWebDocuments field.
