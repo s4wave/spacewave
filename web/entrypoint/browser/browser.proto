@@ -1,5 +1,5 @@
 syntax = "proto3";
-package browser;
+package web.entrypoint.browser;
 
 // Config is the configuration for the browser controller.
 // Expects to be running in a WebWorker.

@@ -95,7 +95,6 @@ func Run(
 	// https://go-review.googlesource.com/c/go/+/483235
 	kvfileReaderAt, ok := staticVolFile.(kvfile_compress.ReadSeekerAt)
 	if !ok {
-		// shim ReadAt
 		staticVolFileReadSeeker := staticVolFile.(io.ReadSeeker)
 		kvfileReaderAt = iofs.NewReadSeekerAt(staticVolFileReadSeeker)
 	}

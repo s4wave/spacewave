@@ -50,6 +50,7 @@ import {
   ClientToWebDocument,
   ConnectWebRuntimeAck,
   ServiceWorkerToWebDocument,
+  WebDocumentToClient,
   WebDocumentToWebRuntime,
   WebDocumentToWorker,
 } from '../runtime/runtime.js'
@@ -133,7 +134,11 @@ class WebDocumentWebWorker {
   // close closes our connection to the worker.
   public close() {
     // send a message to the worker to shutdown cleanly.
-    this.port.postMessage('close')
+    const msg: WebDocumentToClient = {
+      from: this.webDocumentUuid,
+      close: true,
+    }
+    this.port.postMessage(msg)
     this.port.close()
   }
 }
@@ -573,6 +578,7 @@ export class WebDocument {
 
     return {
       snapshot: true,
+      closed: false,
       webViews,
       webWorkers,
     }
@@ -596,7 +602,7 @@ export class WebDocument {
       request.url,
       this.webDocumentUuid,
       request.initData,
-      this.onWebDocumentClientMessage.bind(this),
+      this.onWebWorkerMessage.bind(this, request.id),
     )
     this.webWorkers[request.id] = worker
 
@@ -821,6 +827,27 @@ export class WebDocument {
   // resolves once the stream has been passed off to be handled
   private async handleWebRuntimeOpenStream(ch: PacketStream) {
     this.server.handlePacketStream(ch)
+  }
+
+  // onWebWorkerMessage handles an incoming web worker message.
+  private onWebWorkerMessage(workerID: string, event: MessageEvent<ClientToWebDocument>) {
+    const data = event.data
+    if (!data || !data.from) {
+      return
+    }
+      const worker = this.webWorkers[workerID]
+    if (!worker) {
+      return
+    }
+    if (data.close) {
+      // Web worker was closed / removed.
+        worker.close()
+        delete this.webWorkers[workerID]
+        this.notifyWebWorkerUpdated(workerID, true, worker.isShared)
+        return;
+    }
+
+    this.onWebDocumentClientMessage(event)
   }
 
   // onWebDocumentClientMessage handles an incoming client message.

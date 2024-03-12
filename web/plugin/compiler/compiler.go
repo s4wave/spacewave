@@ -77,6 +77,25 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	_, buildPlatform, err := args.GetBuilderConfig().GetManifestMeta().Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	// The web platform has the WebRuntime running on the plugin host. This is
+	// because the web browser is responsible for loading the app and as such
+	// the WebRuntime must already be running before starting plugins.
+	//
+	// Instead of bundling an entire Go program for the plugin in this case, we
+	// can instead include a small .mjs shim which will load the desired config
+	// sets to the host plugin bus via the WebRuntimeClient.
+	/*TODO
+	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
+		return c.buildWebPlatformShimManifest(ctx, args)
+	}
+	*/
+	_ = buildPlatform
+
 	pluginCompilerCtrl, err := plugin_compiler.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {
 		return nil, err
@@ -89,14 +108,7 @@ func (c *Controller) BuildManifest(
 	return pluginCompilerCtrl.BuildManifest(ctx, args)
 }
 
-// GetElectronApplicable returns if electron should be bundled for this platform.
-func GetElectronApplicable(parsedPlatform bldr_platform.Platform) bool {
-	_, ok := parsedPlatform.(*bldr_platform.NativePlatform)
-	return ok
-}
-
-// BundleElectronHook bundles electron for the platform ID, if applicable.
-// If the platform ID is not applicable, returns nil.
+// BundleElectronHook bundles electron.
 func (c *Controller) BundleElectronHook(
 	ctx context.Context,
 	builderConf *manifest_builder.BuilderConfig,
@@ -106,9 +118,9 @@ func (c *Controller) BundleElectronHook(
 	if err != nil {
 		return nil, err
 	}
-	if !GetElectronApplicable(buildPlatform) {
-		// TODO: build web plugin shim for web platform
-		// TODO: return error if unrecognized platform id
+
+	// If this is not the native platform, do not bundle electron.
+	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_NATIVE {
 		return nil, nil
 	}
 
@@ -122,7 +134,7 @@ func (c *Controller) BundleElectronHook(
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
-	le.Debug("building web plugin with plugin compiler")
+	le.Debug("building web plugin")
 
 	// clean / create electron assets dir
 	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
@@ -211,6 +223,24 @@ func (c *Controller) BundleElectronHook(
 			},
 		},
 	}, nil
+}
+
+// buildWebPlatformShimManifest attempts to compile the web platform shim manifest once.
+func (c *Controller) buildWebPlatformShimManifest(
+	ctx context.Context,
+	args *bldr_manifest_builder.BuildManifestArgs,
+) (*bldr_manifest_builder.BuilderResult, error) {
+	conf := c.GetConfig()
+	builderConf := args.GetBuilderConfig()
+	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	_ = meta
+	_ = buildPlatform
+	_ = conf
+	return nil, errors.New("todo build web platform shim manifest")
 }
 
 // _ is a type assertion

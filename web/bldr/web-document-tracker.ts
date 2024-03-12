@@ -9,7 +9,7 @@ import {
   WebRuntimeClientType,
 } from '../runtime/runtime.pb.js'
 import { timeoutPromise } from './timeout.js'
-import { WebRuntimeClient } from './web-runtime-client.js'
+import { HandleStreamFn, WebRuntimeClient } from './web-runtime-client.js'
 
 // WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
 // connect to the remote WebRuntime via these documents, retrying if the remote
@@ -40,10 +40,7 @@ export class WebDocumentTracker {
     clientUuid: string,
     clientType: WebRuntimeClientType,
     private readonly onWebDocumentsExhausted: () => Promise<void>,
-    private readonly handleIncomingChannelStream?: (
-      webDocumentId: string,
-      msgPort: MessagePort,
-    ) => void,
+    handleIncomingStream: HandleStreamFn | null,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType
@@ -52,9 +49,14 @@ export class WebDocumentTracker {
       clientUuid,
       clientType,
       this.openWebRuntimeClient.bind(this),
-      null,
+      handleIncomingStream,
       null,
     )
+  }
+
+  // waitConn opens and waits for the connection to be ready.
+  public async waitConn() {
+    return this.webRuntimeClient.waitConn()
   }
 
   // handleWebDocumentMessage handles an incoming message from the WebDocument.
@@ -73,14 +75,6 @@ export class WebDocumentTracker {
       const data: WebDocumentToClient = ev.data
       if (typeof data !== 'object') {
         return
-      }
-
-      if (
-        data.openStream &&
-        ev.ports.length &&
-        this.handleIncomingChannelStream
-      ) {
-        this.handleIncomingChannelStream(webDocumentId, ev.ports[0])
       }
 
       if (data.close) {
@@ -106,6 +100,20 @@ export class WebDocumentTracker {
     this.webDocumentWaiters.length = 0
 
     port.start()
+  }
+
+  // close tells all connected web documents that this client is closing.
+  public close() {
+    const msg: ClientToWebDocument = {
+      from: this.clientUuid,
+      close: true,
+    }
+    for (const docID in this.webDocuments) {
+      const doc = this.webDocuments[docID]
+      doc.postMessage(msg)
+      delete this.webDocuments[docID]
+    }
+    delete this.lastWebDocumentId
   }
 
   // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
@@ -138,18 +146,18 @@ export class WebDocumentTracker {
         console.log(
           `WebDocumentTracker: ${this.clientUuid}: connecting via WebDocument: ${webDocumentId}`,
         )
+
         // request that we open the connection to the web runtime.
         // NOTE: this does not necessarily throw an error if the remote WebDocument is closed.
-        webDocumentPort.postMessage(
-          <ClientToWebDocument>{
-            from: this.clientUuid,
-            connectWebRuntime: {
-              init,
-              port: ackChannel.port2,
-            },
+        const connectMsg: ClientToWebDocument = {
+          from: this.clientUuid,
+          connectWebRuntime: {
+            init,
+            port: ackChannel.port2,
           },
-          [ackChannel.port2],
-        )
+        }
+        webDocumentPort.postMessage(connectMsg, [ackChannel.port2])
+
         // wait for the ack.
         const result = await Promise.race([ackPromise, timeoutPromise(1000)])
         if (!result) {

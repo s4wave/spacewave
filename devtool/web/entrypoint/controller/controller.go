@@ -19,7 +19,7 @@ import (
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	"github.com/aperturerobotics/bldr/storage"
 	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
-	"github.com/aperturerobotics/bldr/web/plugin/browser"
+	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"

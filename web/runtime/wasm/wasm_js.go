@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall/js"
 
-	message_port "github.com/aperturerobotics/bldr/web/plugin/browser/message-port"
+	message_port "github.com/aperturerobotics/bldr/web/entrypoint/browser/message-port"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 )

@@ -1,7 +1,7 @@
 //go:build js
 // +build js
 
-package browser
+package web_entrypoint_browser
 
 import (
 	"errors"

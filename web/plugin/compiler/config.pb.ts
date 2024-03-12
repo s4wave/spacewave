@@ -25,7 +25,7 @@ export interface Config {
   /**
    * DelveAddr is the address to listen for Delve remote connections.
    * If the build mode is dev and this is set, uses delve to run the plugin.
-   * Ignored if build mode is not dev.
+   * Ignored if build mode is not dev or build platform is not "native".
    * Special value: "wait" - waits for plugin entrypoint to be run manually.
    */
   delveAddr: string
@@ -33,6 +33,7 @@ export interface Config {
    * ElectronPkg is the name and version of the npm package to use for electron.
    * If unset, defaults to the version in package.json.
    * If not found, defaults to electron@latest.
+   * Ignored if build platform is not "native".
    */
   electronPkg: string
   /**

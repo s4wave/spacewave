@@ -2,7 +2,7 @@
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 
-export const protobufPackage = 'browser'
+export const protobufPackage = 'web.entrypoint.browser'
 
 /**
  * Config is the configuration for the browser controller.

@@ -1,13 +1,13 @@
 //go:build js
 // +build js
 
-package browser
+package web_entrypoint_browser
 
 import (
 	"context"
 	"syscall/js"
 
-	message_port "github.com/aperturerobotics/bldr/web/plugin/browser/message-port"
+	message_port "github.com/aperturerobotics/bldr/web/entrypoint/browser/message-port"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"

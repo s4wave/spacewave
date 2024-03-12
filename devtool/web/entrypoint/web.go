@@ -19,7 +19,6 @@ import (
 	manifest_fetch_rpc "github.com/aperturerobotics/bldr/manifest/fetch/rpc"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
-	"github.com/aperturerobotics/bldr/web/plugin/browser"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/util/backoff"
@@ -80,7 +79,7 @@ func main() {
 		if err != nil {
 			le.Fatal(err.Error())
 		}
-		sr.AddFactory(browser.NewFactory(b))
+		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
 		sr.AddFactory(plugin_host_web.NewFactory(b))
 		sr.AddFactory(websocket.NewFactory(b))
 		sr.AddFactory(link_establish_controller.NewFactory(b))

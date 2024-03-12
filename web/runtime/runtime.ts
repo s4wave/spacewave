@@ -48,6 +48,8 @@ export interface ClientToWebDocument {
     init: Uint8Array // WebRuntimeClientInit
     port: MessagePort
   }
+  // close indicates the client is closed.
+  close?: true
 }
 
 // ConnectWebRuntimeAck is the acknowledgment of connectWebRuntime.
@@ -74,11 +76,6 @@ export interface WebDocumentToWorker {
 export interface WebDocumentToClient {
   // from is the identifier of the WebDocument
   from: string
-  // openStream contains a request to open a new stream.
-  // receiver should ack the stream immediately.
-  // the port is passed in the event.ports field
-  // note: this is not supported by all client types (e.x. WebWorker).
-  openStream?: true
   // close indicates the web document is about to close.
   close?: true
 }

@@ -9,15 +9,15 @@ import { timeoutPromise } from './timeout.js'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
-type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
+export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 
 // HandleStreamFn handles an incoming RPC stream.
 // Returns as soon as the stream has been passed off to be handled.
 // Throws an error if we can't handle the incoming stream.
-type HandleStreamFn = (ch: PacketStream) => Promise<void>
+export type HandleStreamFn = (ch: PacketStream) => Promise<void>
 
 // HandleDisconnectedFn handles when the web runtime client was disconnected.
-type HandleDisconnectedFn = (err?: Error) => Promise<void>
+export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 
 // WebRuntimeClient opens streams via a remote WebRuntime.
 export class WebRuntimeClient {

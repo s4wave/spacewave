@@ -8,7 +8,14 @@ import (
 	"syscall/js"
 
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+	"github.com/blang/semver"
 )
+
+// ControllerID is the browser runtime controller ID.
+const ControllerID = "bldr/web/entrypoint/browser"
+
+// Version is the version of the runtime implementation.
+var Version = semver.MustParse("0.0.1")
 
 // ReadInitMessage reads the bldr init message from the global.
 //
