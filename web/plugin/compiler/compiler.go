@@ -89,12 +89,9 @@ func (c *Controller) BuildManifest(
 	// Instead of bundling an entire Go program for the plugin in this case, we
 	// can instead include a small .mjs shim which will load the desired config
 	// sets to the host plugin bus via the WebRuntimeClient.
-	/*TODO
 	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
-		return c.buildWebPlatformShimManifest(ctx, args)
+		return c.buildBrowserShimManifest(ctx, args)
 	}
-	*/
-	_ = buildPlatform
 
 	pluginCompilerCtrl, err := plugin_compiler.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {
@@ -225,8 +222,8 @@ func (c *Controller) BundleElectronHook(
 	}, nil
 }
 
-// buildWebPlatformShimManifest attempts to compile the web platform shim manifest once.
-func (c *Controller) buildWebPlatformShimManifest(
+// buildBrowserShimManifest attempts to compile the web browser shim manifest once.
+func (c *Controller) buildBrowserShimManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
