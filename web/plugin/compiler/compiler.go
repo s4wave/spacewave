@@ -13,6 +13,7 @@ import (
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	"github.com/aperturerobotics/bldr/util/npm"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
+	web_plugin_browser_build "github.com/aperturerobotics/bldr/web/plugin/browser/build"
 	electron "github.com/aperturerobotics/bldr/web/plugin/electron"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -223,21 +224,73 @@ func (c *Controller) BundleElectronHook(
 }
 
 // buildBrowserShimManifest attempts to compile the web browser shim manifest once.
+//
+// TODO: most of the below code can be extracted into a common implementation
 func (c *Controller) buildBrowserShimManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
-	conf := c.GetConfig()
+	le := c.GetLogger()
 	builderConf := args.GetBuilderConfig()
-	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
+	meta, _, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
 
-	_ = meta
-	_ = buildPlatform
-	_ = conf
-	return nil, errors.New("todo build web platform shim manifest")
+	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
+	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
+		return nil, err
+	}
+
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	isRelease := buildType.IsRelease()
+
+	outFilename := "web.mjs"
+	outFile := filepath.Join(outDistPath, outFilename)
+	err = web_plugin_browser_build.BuildWebPluginBrowserEntrypoint(
+		ctx,
+		le,
+		builderConf.GetDistSourcePath(),
+		outFile,
+		isRelease,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
+	tx, err := busEngine.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	le.Debug("bundling plugin files")
+	// bundle dist and assets fs
+	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
+		ctx,
+		le,
+		tx,
+		meta,
+		outFilename,
+		outDistPath,
+		"",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	le.Debug("plugin build complete")
+	result := manifest_builder.NewBuilderResult(
+		committedManifest,
+		committedManifestRef,
+		nil,
+	)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // _ is a type assertion

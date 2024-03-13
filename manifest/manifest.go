@@ -89,6 +89,7 @@ func UnmarshalManifest(ctx context.Context, bcs *block.Cursor) (*Manifest, error
 
 // CreateManifestWithBilly creates the manifest at the block cursor with billy filesystem instances.
 // Note: supports symlinks if the fs implements billy.Symlink.
+// Note: nil fs will leave that portion of the manifest empty.
 func CreateManifestWithBilly(
 	ctx context.Context,
 	bcs *block.Cursor,
