@@ -7,7 +7,7 @@ import (
 	"github.com/blang/semver"
 )
 
-// Factory constructs a plugin fetch controller factory.
+// Factory constructs the controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus

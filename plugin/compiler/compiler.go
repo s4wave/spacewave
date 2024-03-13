@@ -50,6 +50,10 @@ var Version = semver.MustParse("0.0.1")
 // controllerDescrip is the controller description.
 var controllerDescrip = "plugin compiler controller"
 
+// Inline sourcemaps due to Chrome bug
+// https://issues.chromium.org/u/1/issues/41486524#comment4 [curently open 2024/03/13]
+var inlineSourcemaps = true
+
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
@@ -483,6 +487,7 @@ func (c *Controller) FastRebuildPlugin(
 			webPkgs,
 			outAssetsPath,
 			pluginID,
+			inlineSourcemaps,
 			false,
 		)
 		if err != nil {
@@ -774,6 +779,7 @@ func (c *Controller) BuildPlugin(
 				webPkgs,
 				outAssetsPath,
 				pluginID,
+				inlineSourcemaps,
 				isRelease,
 			)
 			if err != nil {

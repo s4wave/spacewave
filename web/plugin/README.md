@@ -5,7 +5,7 @@ other plugins via the Bldr web_runtime interfaces.
 
 It behaves differently depending on the distribution target and config:
 
- - Web: does nothing (the browser provides this already)
+ - Web: forwards requests to the plugin host (the browser provides WebRuntime)
  - Native desktop (windows, mac, linux): includes the Electron redistributable.
 
 ## Enabling the Plugin

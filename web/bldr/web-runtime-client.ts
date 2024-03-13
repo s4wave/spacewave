@@ -1,4 +1,4 @@
-import { PacketStream, ChannelStream, castToError } from 'starpc'
+import { Client, PacketStream, ChannelStream, castToError } from 'starpc'
 
 import {
   WebRuntimeClientInit,
@@ -21,6 +21,8 @@ export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 
 // WebRuntimeClient opens streams via a remote WebRuntime.
 export class WebRuntimeClient {
+  // rpcClient is the rpc client to the web runtime via openStream.
+  public readonly rpcClient: Client
   // clientChannel is the active message port to the remote.
   private clientChannel?: MessagePort
 
@@ -31,7 +33,9 @@ export class WebRuntimeClient {
     private openClientCh: OpenChannelFn,
     private handleIncomingStream: HandleStreamFn | null,
     private handleDisconnected: HandleDisconnectedFn | null,
-  ) {}
+  ) {
+    this.rpcClient = new Client(this.openStream.bind(this))
+  }
 
   // waitConn opens and waits for the connection to be ready.
   public async waitConn() {

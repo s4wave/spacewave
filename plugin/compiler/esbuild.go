@@ -95,6 +95,7 @@ func BuildEsbuildBundle(
 	webPkgs []string,
 	outAssetsPath string,
 	pluginID string,
+	inlineSourcemaps bool,
 	isRelease bool,
 ) ([]*vardef.PluginVar, []*web_pkg_esbuild.WebPkgRef, []*EsbuildOutputMeta, []string, error) {
 	// outputs
@@ -116,6 +117,9 @@ func BuildEsbuildBundle(
 		isRelease,
 		true,
 	)
+	if inlineSourcemaps && !isRelease {
+		buildOpts.Sourcemap = esbuild_api.SourceMapInlineAndExternal
+	}
 
 	// merge options set by baseEsbuildOpts
 	if baseEsbuildOpts != nil {

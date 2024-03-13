@@ -1,4 +1,4 @@
-package manifest_fetch_rpc
+package bldr_web_plugin_browser_controller
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"

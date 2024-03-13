@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
@@ -70,6 +71,7 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 // BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
 func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
 	buildOpts := BrowserBuildOpts(bldrDistRoot, minify)
+	buildOpts.External = slices.Clone(web_pkg_esbuild.BldrExternal)
 	buildOpts.EntryPointsAdvanced = []esbuild.EntryPoint{{
 		InputPath:  "web/entrypoint/entrypoint.tsx",
 		OutputPath: "entrypoint",
@@ -79,7 +81,7 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildO
 
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker
 func ServiceWorkerBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
-	baseConfig := BrowserEntrypointBuildOpts(bldrDistRoot, minify)
+	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
 	baseConfig.EntryPoints = []string{"web/bldr/service-worker.ts"}
 	baseConfig.EntryPointsAdvanced = nil
 	return baseConfig

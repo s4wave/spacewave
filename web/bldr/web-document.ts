@@ -67,18 +67,8 @@ export type CreateWebViewFunc = (
 // Returns if the view was removed.
 export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 
-// BLDR_RUNTIME_JS is an injected variable with the path to the runtime.js
-declare const BLDR_RUNTIME_JS: string | undefined
-
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url || window.location.origin
-
-// runtimeJsURL is the path to the bldr runtime js that we will use.
-const runtimeJsURL = new URL(
-  (typeof BLDR_RUNTIME_JS === 'string' ? BLDR_RUNTIME_JS : false) ||
-    './runtime-wasm.mjs',
-  baseURL,
-)
 
 // WebDocumentWebWorker tracks a WebWorker associated with a WebDocument.
 class WebDocumentWebWorker {
@@ -276,6 +266,9 @@ export interface WebDocumentOptions {
   disableStoragePersist?: boolean
   // closedCallback is a callback to call during close() on WebDocument.
   closedCallback?: (err?: Error) => void
+  // runtimeWorkerPath is the path to the runtime-wasm.mjs
+  // if unset, defaults to ./runtime-wasm.mjs
+  runtimeWorkerPath?: string
 }
 
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
@@ -445,6 +438,7 @@ export class WebDocument {
       }
 
       // setup the Go runtime
+      const runtimeJsURL = opts?.runtimeWorkerPath ?? './runtime-wasm.mjs'
       const workerOptions: WorkerOptions = {
         name: this.webRuntimeId,
         type: 'module',
@@ -830,21 +824,24 @@ export class WebDocument {
   }
 
   // onWebWorkerMessage handles an incoming web worker message.
-  private onWebWorkerMessage(workerID: string, event: MessageEvent<ClientToWebDocument>) {
+  private onWebWorkerMessage(
+    workerID: string,
+    event: MessageEvent<ClientToWebDocument>,
+  ) {
     const data = event.data
     if (!data || !data.from) {
       return
     }
-      const worker = this.webWorkers[workerID]
+    const worker = this.webWorkers[workerID]
     if (!worker) {
       return
     }
     if (data.close) {
       // Web worker was closed / removed.
-        worker.close()
-        delete this.webWorkers[workerID]
-        this.notifyWebWorkerUpdated(workerID, true, worker.isShared)
-        return;
+      worker.close()
+      delete this.webWorkers[workerID]
+      this.notifyWebWorkerUpdated(workerID, true, worker.isShared)
+      return
     }
 
     this.onWebDocumentClientMessage(event)

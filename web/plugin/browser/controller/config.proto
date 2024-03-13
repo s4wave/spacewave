@@ -1,0 +1,10 @@
+syntax = "proto3";
+package bldr.web.plugin.browser.controller;
+
+// Config configures the web plugin browser host controller.
+// Serves the WebPluginBrowserHost service.
+message Config {
+  // ServiceId is the service id to expose the WebPluginBrowserHost service.
+  // If unset, defaults to bldr.web.plugin.browser.WebPluginBrowserHost
+  string service_id = 1;
+}

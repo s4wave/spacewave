@@ -39,16 +39,14 @@ const webDocumentTracker = new WebDocumentTracker(
   WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
   onWebDocumentsExhausted,
   // We don't support calling the ServiceWorker from WebDocument.
-  undefined,
+  null,
 )
 
 // webRuntimeClient manages the connection to the WebRuntime.
 const webRuntimeClient = webDocumentTracker.webRuntimeClient
 
 // swHostClient attempts to contact the WebRuntime over any of the WebDocument relays.
-const swHostClient = new Client(
-  webRuntimeClient.openStream.bind(webRuntimeClient),
-)
+const swHostClient = webRuntimeClient.rpcClient
 
 // swHost is the RPC client for the ServiceWorkerHost.
 const swHost = new ServiceWorkerHostClientImpl(swHostClient)

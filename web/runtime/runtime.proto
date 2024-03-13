@@ -40,6 +40,7 @@ service WebRuntime {
   // Exposes the WebDocument service.
   // Id is the webDocumentId.
   rpc WebDocumentRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
   // WebWorkerRpc opens a stream for a RPC call to a WebWorker.
   // Contacts the WebWorker via. the associated WebRuntimeClient.
   // The WebWorker must have registered with the runtime for this to work.

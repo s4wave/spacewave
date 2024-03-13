@@ -21,7 +21,9 @@ import (
 //go:embed web/runtime/wasm/go-process.ts web/runtime/wasm/plugin-wasm.ts
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
-//go:embed web/plugin/browser/web-plugin-browser.ts
+//go:embed web/plugin/browser/browser.pb.ts web/plugin/browser/web-plugin-browser.ts
+//go:embed web/plugin/plugin.pb.ts
+//go:embed plugin/plugin.pb.ts manifest/manifest.pb.ts
 //go:embed devtool/deps.go devtool/web/entrypoint/web.go
 //go:embed dist/deps/deps.go dist/deps/package.json
 //go:embed .vscode/launch.json

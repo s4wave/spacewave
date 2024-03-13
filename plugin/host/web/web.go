@@ -186,6 +186,12 @@ func (h *WebHost) ExecutePlugin(
 	}
 	defer relRpcServiceCtrl()
 
+	// Initialize the rpc client for calling the plugin.
+	pluginRpcClient := srpc.NewClient(webRuntime.GetWebWorkerOpenStream(pluginWebWorkerID))
+	if err := rpcInit(pluginRpcClient); err != nil {
+		return err
+	}
+
 	// There are two operating modes for the below code:
 	// 1. SharedWorker is supported:
 	//    - Watch all of the WebDocument

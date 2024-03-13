@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.3-0.20240311223214-084b9a4fa3f2 // master
+require github.com/aperturerobotics/bifrost v0.25.3 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -88,7 +88,7 @@ require (
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240206065824-7222fbc3459d // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.2 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.11 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.12 // indirect
 	github.com/nats-io/nats.go v1.33.1 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
@@ -105,7 +105,7 @@ require (
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0
 	nhooyr.io/websocket v1.8.10
-	storj.io/drpc v0.0.33 // indirect
+	storj.io/drpc v0.0.34 // indirect
 )
 
 require (

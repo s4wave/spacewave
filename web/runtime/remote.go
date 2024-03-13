@@ -293,6 +293,41 @@ func (r *Remote) WebDocumentOpenStream(
 	return writer, err
 }
 
+// GetWebWorkerOpenStream returns a OpenStreamFunc for the given WebWorker ID.
+//
+// note: when opening the stream, waits for the given web worker to exist.
+func (r *Remote) GetWebWorkerOpenStream(webWorkerID string) srpc.OpenStreamFunc {
+	return func(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.PacketWriter, error) {
+		return r.WebWorkerOpenStream(ctx, msgHandler, closeHandler, webWorkerID)
+	}
+}
+
+// WebWorkerOpenStream opens a stream with the given WebDocument ID.
+//
+// note: when opening the stream, waits for the given web document to exist.
+func (r *Remote) WebWorkerOpenStream(
+	ctx context.Context,
+	msgHandler srpc.PacketDataHandler,
+	closeHandler srpc.CloseHandler,
+	webWorkerID string,
+) (srpc.PacketWriter, error) {
+	var writer srpc.PacketWriter
+	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
+		if !r.ready {
+			return false, nil
+		}
+		// request a stream with the web worker
+		rw, err := rpcstream.OpenRpcStream(ctx, r.webRuntime.WebWorkerRpc, webWorkerID, false)
+		if err != nil {
+			return false, err
+		}
+		go rpcstream.ReadPump(rw, msgHandler, closeHandler)
+		writer = rpcstream.NewRpcStreamWriter(rw)
+		return true, nil
+	})
+	return writer, err
+}
+
 // GetServiceWorkerHost returns the Invoker serving requests for the ServiceWorker.
 func (r *Remote) GetServiceWorkerHost(ctx context.Context, componentID string) (srpc.Invoker, func(), error) {
 	// wait for Execute() to be ready

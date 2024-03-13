@@ -19,6 +19,8 @@ import (
 	manifest_fetch_rpc "github.com/aperturerobotics/bldr/manifest/fetch/rpc"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
+	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
+	bldr_web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/util/backoff"
@@ -86,6 +88,8 @@ func main() {
 		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
 		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 		sr.AddFactory(lookup_concurrent.NewFactory(b))
+		sr.AddFactory(bldr_web_plugin_controller.NewFactory(b))
+		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
 
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)

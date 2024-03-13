@@ -7,6 +7,7 @@ import (
 	sw "github.com/aperturerobotics/bldr/web/runtime/sw"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +30,11 @@ type WebRuntime interface {
 	// Otherwise, returns nil, nil if not found.
 	GetWebDocument(ctx context.Context, webDocumentID string, wait bool) (web_document.WebDocument, error)
 
+	// GetWebDocumentOpenStream returns a OpenStreamFunc for the given WebDocument ID.
+	//
+	// note: when opening the stream, waits for the given web document to exist.
+	GetWebDocumentOpenStream(webDocumentID string) srpc.OpenStreamFunc
+
 	// WaitReady waits for the state to be ready.
 	WaitReady(ctx context.Context) error
 
@@ -40,6 +46,11 @@ type WebRuntime interface {
 	//
 	// Returns ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
 	CreateWebDocument(ctx context.Context, webViewID string) (bool, error)
+
+	// GetWebWorkerOpenStream returns a OpenStreamFunc for the given WebWorker ID.
+	//
+	// note: when opening the stream, waits for the given web worker to exist.
+	GetWebWorkerOpenStream(webWorkerID string) srpc.OpenStreamFunc
 }
 
 // WebRuntimeHandler is the handler (usually WebRuntimeController) for the document.

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { WebDocument as BldrWebDocument } from '@aptre/bldr'
+import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
 import { BldrContext, IBldrContext } from './bldr-context.js'
 import { DebugInfo } from './DebugInfo.js'
 
@@ -10,6 +10,9 @@ interface IWebDocumentProps {
   // webDocument is the external bldr WebDocument handle.
   // if unset, constructs a default WebDocument.
   webDocument?: BldrWebDocument
+  // webDocumentOpts are options to pass to WebDocument.
+  // ignored if webDocument is set
+  webDocumentOpts?: WebDocumentOptions
   // showDebugInfo shows debug information about the WebDocument.
   showDebugInfo?: boolean
 }
@@ -27,7 +30,7 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
       this.externalRuntime = true
       this.webDocument = props.webDocument
     } else {
-      this.webDocument = new BldrWebDocument()
+      this.webDocument = new BldrWebDocument(props.webDocumentOpts)
     }
     this.state = {}
     this.childContext = { webDocument: this.webDocument }
