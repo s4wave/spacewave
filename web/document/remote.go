@@ -49,6 +49,8 @@ type Remote struct {
 	ready bool
 	// closed indicates the remote document is closed.
 	closed bool
+	// hidden indicates the remote document is hidden and suspended.
+	hidden bool
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
 	// do not retain this slice without holding mtx
@@ -222,6 +224,7 @@ func (r *Remote) GetWebWorker(ctx context.Context, webWorkerID string, wait bool
 // CreateWebView creates a new web view and waits for it to become active.
 //
 // Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
+// Returns false, nil if the document was hidden.
 func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, error) {
 	if webViewID == "" {
 		// generate random id
@@ -273,7 +276,7 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			return false, nil
 		}
 
-		dirty, err = r.handleWebWorkerStatuses(ctx, false, []*WebWorkerStatus{{Id: webWorkerID, Shared: resp.GetShared()}})
+		dirty, err = r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{Id: webWorkerID, Shared: resp.GetShared()}})
 		if err != nil {
 			return dirty, err
 		}
@@ -433,14 +436,37 @@ func (r *Remote) watchWebDocumentStatus(ctx context.Context, le *logrus.Entry) e
 // expects mtx to be locked
 // returns dirty, err
 func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bool, error) {
-	dirty1, err := r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
-	if err != nil {
-		return false, err
+	if r.closed {
+		return false, nil
+	}
+	if ws.GetClosed() {
+		r.closed = true
+		r.ready = true
+		r.hidden = false
+		_ = r.clearRemoteWebViews()
+		_ = r.clearRemoteWebWorkers()
+		return true, nil
 	}
 
-	dirty2, err := r.handleWebWorkerStatuses(ctx, ws.GetSnapshot(), ws.GetWebWorkers())
+	var dirty bool
+	if hidden := ws.GetHidden(); hidden != r.hidden {
+		if hidden {
+			r.le.Debug("document is hidden")
+		} else {
+			r.le.Debug("document is visible")
+		}
+		r.hidden = hidden
+		dirty = true
+	}
+
+	dirty1, err := r.handleWebViewStatuses(ctx, ws.GetSnapshot(), ws.GetWebViews())
 	if err != nil {
-		return dirty1 || dirty2, err
+		return dirty, err
+	}
+
+	dirty2, err := r.handleWebWorkerStatuses(ws.GetSnapshot(), ws.GetWebWorkers())
+	if err != nil {
+		return dirty1 || dirty2 || dirty, err
 	}
 
 	// we got a snapshot or initial list of statuses: mark as ready
@@ -449,7 +475,7 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 		return true, nil
 	}
 
-	return dirty1 || dirty2, nil
+	return dirty1 || dirty2 || dirty, nil
 }
 
 // updateStatusSnapshot generates the status snapshot and sets it in the container.
@@ -460,16 +486,19 @@ func (r *Remote) updateStatusSnapshot() {
 	}
 	status := &WebDocumentStatus{
 		Snapshot: true,
+		Hidden:   !r.closed && r.hidden,
 		Closed:   r.closed,
 	}
 	if r.ready && !r.closed {
-		for _, remoteWebView := range r.remoteWebViews {
-			proxy := remoteWebView.proxy
-			status.WebViews = append(status.WebViews, &WebViewStatus{
-				Id:        proxy.GetId(),
-				ParentId:  proxy.GetParentId(),
-				Permanent: proxy.GetPermanent(),
-			})
+		if !r.hidden {
+			for _, remoteWebView := range r.remoteWebViews {
+				proxy := remoteWebView.proxy
+				status.WebViews = append(status.WebViews, &WebViewStatus{
+					Id:        proxy.GetId(),
+					ParentId:  proxy.GetParentId(),
+					Permanent: proxy.GetPermanent(),
+				})
+			}
 		}
 		for _, remoteWebWorker := range r.remoteWebWorkers {
 			status.WebWorkers = append(status.WebWorkers, &WebWorkerStatus{
@@ -543,7 +572,7 @@ func (r *Remote) handleWebViewStatuses(ctx context.Context, snapshot bool, statu
 // note: ctx is used as the context for the new remote web worker.
 // returns dirty, err
 // expects mtx to be locked
-func (r *Remote) handleWebWorkerStatuses(ctx context.Context, snapshot bool, statuses []*WebWorkerStatus) (bool, error) {
+func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerStatus) (bool, error) {
 	if !snapshot && len(statuses) == 0 {
 		return false, nil
 	}
@@ -630,6 +659,17 @@ func (r *Remote) removeRemoteWebView(id string) *remoteWebView {
 	return rwv
 }
 
+// clearRemoteWebViews removes all remote web views.
+func (r *Remote) clearRemoteWebViews() []*remoteWebView {
+	out := r.remoteWebViews
+	r.remoteWebViews = nil
+	for _, rwv := range out {
+		rwv.cancel()
+		r.le.WithField("view-id", rwv.proxy.GetId()).Debug("removed remote web view")
+	}
+	return out
+}
+
 // lookupRemoteWebView searches the remoteWebViews field for a web view.
 // returns insertion index if not found
 // expects mtx to be locked
@@ -700,6 +740,16 @@ func (r *Remote) removeRemoteWebWorker(id string) *remoteWebWorker {
 	r.le.WithField("worker-id", id).Debug("removed remote web worker")
 	r.remoteWebWorkers = r.remoteWebWorkers[:idx+copy(r.remoteWebWorkers[idx:], r.remoteWebWorkers[idx+1:])]
 	return rwv
+}
+
+// clearRemoteWebWorkers removes all remote web workers.
+func (r *Remote) clearRemoteWebWorkers() []*remoteWebWorker {
+	out := r.remoteWebWorkers
+	r.remoteWebWorkers = nil
+	for _, rww := range out {
+		r.le.WithField("worker-id", rww.id).Debug("removed remote web worker")
+	}
+	return out
 }
 
 // lookupRemoteWebWorker searches the remoteWebWorkers field for a web worker.

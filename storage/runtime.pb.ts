@@ -26,10 +26,10 @@ function createBaseStorageInfo(): StorageInfo {
 
 export const StorageInfo = {
   encode(message: StorageInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.isolated === true) {
+    if (message.isolated !== false) {
       writer.uint32(8).bool(message.isolated);
     }
-    if (message.cache === true) {
+    if (message.cache !== false) {
       writer.uint32(16).bool(message.cache);
     }
     return writer;
@@ -106,10 +106,10 @@ export const StorageInfo = {
 
   toJSON(message: StorageInfo): unknown {
     const obj: any = {};
-    if (message.isolated === true) {
+    if (message.isolated !== false) {
       obj.isolated = message.isolated;
     }
-    if (message.cache === true) {
+    if (message.cache !== false) {
       obj.cache = message.cache;
     }
     return obj;

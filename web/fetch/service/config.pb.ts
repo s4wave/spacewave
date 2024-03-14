@@ -32,7 +32,7 @@ export const Config = {
     if (message.serviceId !== '') {
       writer.uint32(10).string(message.serviceId)
     }
-    if (message.notFoundIfIdle === true) {
+    if (message.notFoundIfIdle !== false) {
       writer.uint32(16).bool(message.notFoundIfIdle)
     }
     return writer
@@ -119,7 +119,7 @@ export const Config = {
     if (message.serviceId !== '') {
       obj.serviceId = message.serviceId
     }
-    if (message.notFoundIfIdle === true) {
+    if (message.notFoundIfIdle !== false) {
       obj.notFoundIfIdle = message.notFoundIfIdle
     }
     return obj

@@ -49,7 +49,7 @@ export const HandleWebViewRequest = {
     if (message.documentId !== '') {
       writer.uint32(26).string(message.documentId)
     }
-    if (message.permanent === true) {
+    if (message.permanent !== false) {
       writer.uint32(32).bool(message.permanent)
     }
     return writer
@@ -165,7 +165,7 @@ export const HandleWebViewRequest = {
     if (message.documentId !== '') {
       obj.documentId = message.documentId
     }
-    if (message.permanent === true) {
+    if (message.permanent !== false) {
       obj.permanent = message.permanent
     }
     return obj

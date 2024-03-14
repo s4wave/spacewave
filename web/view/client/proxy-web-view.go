@@ -111,6 +111,12 @@ func (v *ProxyWebView) SetHtmlLinks(
 	return v.view.SetHtmlLinks(ctx, req)
 }
 
+// ResetWebView resets the web view to the initial state.
+func (v *ProxyWebView) ResetWebView(ctx context.Context) error {
+	_, err := v.view.ResetWebView(ctx, &web_view.ResetWebViewRequest{})
+	return err
+}
+
 // Remove shuts down the WebView and closes the window/tab if possible.
 // Returns ErrWebViewPermanent if the view cannot be closed.
 // Returns context.Canceled if ctx is canceled (but still processes the op)

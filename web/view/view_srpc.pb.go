@@ -85,6 +85,7 @@ type SRPCWebViewClient interface {
 
 	SetRenderMode(ctx context.Context, in *SetRenderModeRequest) (*SetRenderModeResponse, error)
 	SetHtmlLinks(ctx context.Context, in *SetHtmlLinksRequest) (*SetHtmlLinksResponse, error)
+	ResetWebView(ctx context.Context, in *ResetWebViewRequest) (*ResetWebViewResponse, error)
 	RemoveWebView(ctx context.Context, in *RemoveWebViewRequest) (*RemoveWebViewResponse, error)
 }
 
@@ -124,6 +125,15 @@ func (c *srpcWebViewClient) SetHtmlLinks(ctx context.Context, in *SetHtmlLinksRe
 	return out, nil
 }
 
+func (c *srpcWebViewClient) ResetWebView(ctx context.Context, in *ResetWebViewRequest) (*ResetWebViewResponse, error) {
+	out := new(ResetWebViewResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ResetWebView", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcWebViewClient) RemoveWebView(ctx context.Context, in *RemoveWebViewRequest) (*RemoveWebViewResponse, error) {
 	out := new(RemoveWebViewResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveWebView", in, out)
@@ -136,6 +146,7 @@ func (c *srpcWebViewClient) RemoveWebView(ctx context.Context, in *RemoveWebView
 type SRPCWebViewServer interface {
 	SetRenderMode(context.Context, *SetRenderModeRequest) (*SetRenderModeResponse, error)
 	SetHtmlLinks(context.Context, *SetHtmlLinksRequest) (*SetHtmlLinksResponse, error)
+	ResetWebView(context.Context, *ResetWebViewRequest) (*ResetWebViewResponse, error)
 	RemoveWebView(context.Context, *RemoveWebViewRequest) (*RemoveWebViewResponse, error)
 }
 
@@ -146,6 +157,10 @@ func (s *SRPCWebViewUnimplementedServer) SetRenderMode(context.Context, *SetRend
 }
 
 func (s *SRPCWebViewUnimplementedServer) SetHtmlLinks(context.Context, *SetHtmlLinksRequest) (*SetHtmlLinksResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
+
+func (s *SRPCWebViewUnimplementedServer) ResetWebView(context.Context, *ResetWebViewRequest) (*ResetWebViewResponse, error) {
 	return nil, srpc.ErrUnimplemented
 }
 
@@ -181,6 +196,7 @@ func (SRPCWebViewHandler) GetMethodIDs() []string {
 	return []string{
 		"SetRenderMode",
 		"SetHtmlLinks",
+		"ResetWebView",
 		"RemoveWebView",
 	}
 }
@@ -198,6 +214,8 @@ func (d *SRPCWebViewHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetRenderMode(d.impl, strm)
 	case "SetHtmlLinks":
 		return true, d.InvokeMethod_SetHtmlLinks(d.impl, strm)
+	case "ResetWebView":
+		return true, d.InvokeMethod_ResetWebView(d.impl, strm)
 	case "RemoveWebView":
 		return true, d.InvokeMethod_RemoveWebView(d.impl, strm)
 	default:
@@ -229,6 +247,18 @@ func (SRPCWebViewHandler) InvokeMethod_SetHtmlLinks(impl SRPCWebViewServer, strm
 	return strm.MsgSend(out)
 }
 
+func (SRPCWebViewHandler) InvokeMethod_ResetWebView(impl SRPCWebViewServer, strm srpc.Stream) error {
+	req := new(ResetWebViewRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ResetWebView(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCWebViewHandler) InvokeMethod_RemoveWebView(impl SRPCWebViewServer, strm srpc.Stream) error {
 	req := new(RemoveWebViewRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -254,6 +284,14 @@ type SRPCWebView_SetHtmlLinksStream interface {
 }
 
 type srpcWebView_SetHtmlLinksStream struct {
+	srpc.Stream
+}
+
+type SRPCWebView_ResetWebViewStream interface {
+	srpc.Stream
+}
+
+type srpcWebView_ResetWebViewStream struct {
 	srpc.Stream
 }
 

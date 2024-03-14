@@ -911,7 +911,7 @@ export const ManifestConfig = {
     if (message.builder !== undefined) {
       ControllerConfig.encode(message.builder, writer.uint32(10).fork()).ldelim();
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.rev);
     }
     return writer;
@@ -991,7 +991,7 @@ export const ManifestConfig = {
     if (message.builder !== undefined) {
       obj.builder = ControllerConfig.toJSON(message.builder);
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       obj.rev = (message.rev || Long.UZERO).toString();
     }
     return obj;
@@ -1019,7 +1019,7 @@ export const StartConfig = {
     for (const v of message.plugins) {
       writer.uint32(10).string(v!);
     }
-    if (message.disableBuild === true) {
+    if (message.disableBuild !== false) {
       writer.uint32(16).bool(message.disableBuild);
     }
     return writer;
@@ -1099,7 +1099,7 @@ export const StartConfig = {
     if (message.plugins?.length) {
       obj.plugins = message.plugins;
     }
-    if (message.disableBuild === true) {
+    if (message.disableBuild !== false) {
       obj.disableBuild = message.disableBuild;
     }
     return obj;
@@ -1534,7 +1534,7 @@ export const PublishConfig = {
     for (const v of message.manifests) {
       writer.uint32(18).string(v!);
     }
-    if (message.allManifestRevs === true) {
+    if (message.allManifestRevs !== false) {
       writer.uint32(24).bool(message.allManifestRevs);
     }
     for (const v of message.platformIds) {
@@ -1697,7 +1697,7 @@ export const PublishConfig = {
     if (message.manifests?.length) {
       obj.manifests = message.manifests;
     }
-    if (message.allManifestRevs === true) {
+    if (message.allManifestRevs !== false) {
       obj.allManifestRevs = message.allManifestRevs;
     }
     if (message.platformIds?.length) {

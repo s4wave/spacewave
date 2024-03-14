@@ -33,6 +33,9 @@ type WebView interface {
 	// SetHtmlLinks updates the list of HtmlLink on the WebView.
 	SetHtmlLinks(ctx context.Context, req *SetHtmlLinksRequest) (*SetHtmlLinksResponse, error)
 
+	// ResetWebView resets the web view to the initial state.
+	ResetWebView(ctx context.Context) error
+
 	// Remove shuts down the WebView and closes the window/tab if possible.
 	// Returns ErrWebViewPermanent if the view cannot be closed.
 	// Returns context.Canceled if ctx is canceled (but still processes the op)

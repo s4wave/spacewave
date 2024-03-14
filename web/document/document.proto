@@ -43,12 +43,16 @@ message WatchWebDocumentStatusRequest {}
 message WebDocumentStatus {
   // Snapshot indicates this is a full snapshot of the lists.
   bool snapshot = 1;
+  // Hidden indicates that the web document is not visible.
+  // The web document will unload all web views and suspend itself.
+  // Background pages are throttled in web browsers.
+  bool hidden = 2;
   // WebViews contains the list of web view statuses.
-  repeated WebViewStatus web_views = 2;
+  repeated WebViewStatus web_views = 3;
   // WebWorkers contains the list of web worker statuses.
-  repeated WebWorkerStatus web_workers = 3;
+  repeated WebWorkerStatus web_workers = 4;
   // Closed indicates the web document is closed.
-  bool closed = 4;
+  bool closed = 5;
 }
 
 // WebViewStatus contains status for a web view.

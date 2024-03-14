@@ -29,6 +29,8 @@ export interface WebView {
   setHtmlLinks(
     options: SetHtmlLinksRequest,
   ): Promise<SetHtmlLinksResponse | void>
+  // resetView resets the web view to the initial state.
+  resetView(): Promise<void>
   // remove removes the web view, if !permanent.
   // returns if the web view was removed successfully.
   remove(): Promise<boolean>

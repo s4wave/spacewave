@@ -41,6 +41,9 @@ import {
   RemoveWebViewResponse,
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
+  ResetWebViewRequest,
+  ResetWebViewResponse,
+  RenderMode,
 } from '../view/view.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
@@ -186,6 +189,12 @@ class WebDocumentWebView implements WebViewService {
     return resp || {}
   }
 
+  // ResetWebView resets the contents of the web view.
+  public async ResetWebView(): Promise<ResetWebViewResponse> {
+    await this.webView.resetView()
+    return {}
+  }
+
   // RemoveWebView requests to remove a WebView from the root level.
   public async RemoveWebView(): Promise<RemoveWebViewResponse> {
     const removed = await this.webView.remove()
@@ -213,6 +222,9 @@ class WebDocumentImpl implements WebDocumentService {
     const webViewID = request.id
     if (!webViewID) {
       throw new Error('empty web view id')
+    }
+    if (this.webDocument.isHidden) {
+      return { created: false }
     }
     const createWebView = this.createViewCb
     if (!createWebView) {
@@ -269,14 +281,27 @@ export interface WebDocumentOptions {
   // runtimeWorkerPath is the path to the runtime-wasm.mjs
   // if unset, defaults to ./runtime-wasm.mjs
   runtimeWorkerPath?: string
+  // watchVisibility watches the page visibility API.
+  // the callback should be called when the visibility changes.
+  // call the callback with the initial visibility before returning.
+  // return a function to use to unregister the callback.
+  // if unset, defaults to using the document.visibilityState API
+  watchVisibility?: (cb: (hidden: boolean) => void) => DisposeCallback | null
 }
 
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
 //
 // Attaches to or mounts the root WebRuntime and provides an RPC API.
+// It's best to have a single WebDocument per browser tab/window (HTML body).
 //
-// There can be multiple WebDocument in a page, although it best to have one per
-// HTML Document or Window.
+// Web browsers throttle background tabs, and timers / callbacks can be delayed
+// by up to a minute. WebDocument watches the Page Visibility API and marks the
+// document as hidden, unloading the contents of all WebView and clearing the
+// list of web views with the Go runtime. This allows the WebDocument to respond
+// to RPC calls and pings while operating in a low-CPU-usage suspended state. If
+// the WebDocument becomes disconnected from the WebRuntime due to a timeout
+// while suspended, it will wait to reconnect until the page becomes visible
+// again. In Electron, we can disable background throttling in the BrowserWindow.
 //
 // Note: to put libp2p into debugging mode:
 //  - Node: set the environment variable DEBUG="*"
@@ -293,6 +318,8 @@ export class WebDocument {
   private disableStoragePersist?: boolean
   // releaseShutdownCallback removes the callback handler for onunload.
   private releaseShutdownCallback: DisposeCallback | null
+  // releaseVisibilityCallback removes the callback handler for visibility changes.
+  private releaseVisibilityCallback: DisposeCallback | null
   // closedCallback is a callback to be called when the web document is closed.
   private closedCallback?: (err?: Error) => void
 
@@ -323,6 +350,8 @@ export class WebDocument {
   // client is the RPC client for the WebDocument.
   private readonly client: Client
 
+  // hidden indicates the web document is hidden and suspended
+  private hidden: boolean
   // closed indicates the web document is closed with an optional error
   private closed?: true | Error
 
@@ -331,9 +360,15 @@ export class WebDocument {
     return this.closed ?? false
   }
 
+  // isHidden checks if the web document is hidden
+  public get isHidden(): boolean {
+    return this.hidden
+  }
+
   constructor(opts?: WebDocumentOptions) {
     this.webRuntimeId = opts?.webRuntimeId || 'default'
     this.webDocumentUuid = randomId()
+    this.hidden = false
     if (isElectron) {
       this.isElectron = true
     }
@@ -382,6 +417,19 @@ export class WebDocument {
     // add a global shutdown callback to terminate this
     this.releaseShutdownCallback = addShutdownCallback(this.close.bind(this))
 
+    // watch the page visibility api
+    if (opts?.watchVisibility) {
+      this.releaseVisibilityCallback = opts.watchVisibility(
+        this.onVisibilityChange.bind(this),
+      )
+    } else {
+      const listener = () => this.onVisibilityChange(document.hidden)
+      listener()
+      document.addEventListener('visibilitychange', listener)
+      this.releaseVisibilityCallback = () =>
+        document.removeEventListener('visibilitychange', listener)
+    }
+
     // startup
     if (!('serviceWorker' in navigator)) {
       console.error(
@@ -409,15 +457,10 @@ export class WebDocument {
 
     // setup the shared worker
     if (this.isElectron) {
-      // eslint-disable-next-line
-      console.log('starting electron connection')
       const workerChannel = new MessageChannel()
       this.webRuntimePort = workerChannel.port2
       handleElectronWorkerPort(workerChannel.port1)
     } else {
-      // eslint-disable-next-line
-      console.log('starting runtime worker')
-
       // request persistent storage
       if (
         !this.disableStoragePersist &&
@@ -550,17 +593,25 @@ export class WebDocument {
   // buildWebDocumentStatusSnapshot builds a snapshot of the status.
   public async buildWebDocumentStatusSnapshot(): Promise<WebDocumentStatus> {
     if (this.closed) {
-      return { snapshot: true, closed: true, webViews: [], webWorkers: [] }
+      return {
+        snapshot: true,
+        closed: true,
+        hidden: false,
+        webViews: [],
+        webWorkers: [],
+      }
     }
 
     const webViews: WebViewStatus[] = []
-    for (const webViewId of Object.keys(this.webViews)) {
-      const webView = this.webViews[webViewId]
-      if (webViewId && webView) {
-        webViews.push(webView.buildWebViewStatus())
+    if (!this.hidden) {
+      for (const webViewId of Object.keys(this.webViews)) {
+        const webView = this.webViews[webViewId]
+        if (webViewId && webView) {
+          webViews.push(webView.buildWebViewStatus())
+        }
       }
+      webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
     }
-    webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
 
     const webWorkers: WebWorkerStatus[] = Object.keys(this.webWorkers).map(
       (id) => ({
@@ -573,6 +624,7 @@ export class WebDocument {
     return {
       snapshot: true,
       closed: false,
+      hidden: this.hidden,
       webViews,
       webWorkers,
     }
@@ -655,11 +707,15 @@ export class WebDocument {
     this.webStatusStream.pushChangeEvent({
       snapshot: true,
       closed: true,
+      hidden: false,
       webViews: [],
       webWorkers: [],
     })
     if (this.releaseShutdownCallback) {
       this.releaseShutdownCallback()
+    }
+    if (this.releaseVisibilityCallback) {
+      this.releaseVisibilityCallback()
     }
     if (this.closedCallback) {
       this.closedCallback(err)
@@ -726,13 +782,14 @@ export class WebDocument {
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
   // if the web view is null, sends a message indicating the view was removed.
   private notifyWebViewUpdated(webViewId: string, webView?: WebView) {
-    if (!webViewId || this.closed) {
+    if (!webViewId || this.closed || this.hidden) {
       return
     }
 
     const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
+      hidden: false,
       webWorkers: [],
       webViews: [buildWebViewStatus(webViewId, webView)],
     }
@@ -751,6 +808,7 @@ export class WebDocument {
     const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
+      hidden: this.hidden,
       webViews: [],
       webWorkers: [
         {
@@ -821,6 +879,35 @@ export class WebDocument {
   // resolves once the stream has been passed off to be handled
   private async handleWebRuntimeOpenStream(ch: PacketStream) {
     this.server.handlePacketStream(ch)
+  }
+
+  // onVisibilityChange handles page visibility changing
+  private onVisibilityChange(hidden: boolean) {
+    hidden = hidden || false
+    if (hidden === this.hidden) {
+      return
+    }
+
+    this.hidden = hidden
+    if (hidden) {
+      console.log("WebDocument: document is hidden")
+    } else {
+      console.log("WebDocument: document is visible")
+    }
+    if (this.closed) {
+      return
+    }
+
+    // If hidden changed, send a snapshot.
+    this.webStatusStream.pushSnapshot().catch(() => {})
+
+    // If hidden, reset all loaded web views.
+    if (hidden)  {
+      const resetViews = { ...this.webViews }
+      for (const webViewID in resetViews) {
+        resetViews[webViewID].webView.resetView().catch(() => {})
+      }
+    }
   }
 
   // onWebWorkerMessage handles an incoming web worker message.

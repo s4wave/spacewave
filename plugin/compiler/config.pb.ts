@@ -278,16 +278,16 @@ export const Config = {
     for (const v of message.webPkgs) {
       writer.uint32(42).string(v!);
     }
-    if (message.disableRpcFetch === true) {
+    if (message.disableRpcFetch !== false) {
       writer.uint32(48).bool(message.disableRpcFetch);
     }
-    if (message.disableFetchAssets === true) {
+    if (message.disableFetchAssets !== false) {
       writer.uint32(56).bool(message.disableFetchAssets);
     }
     if (message.delveAddr !== "") {
       writer.uint32(66).string(message.delveAddr);
     }
-    if (message.enableCgo === true) {
+    if (message.enableCgo !== false) {
       writer.uint32(72).bool(message.enableCgo);
     }
     for (const v of message.esbuildFlags) {
@@ -506,16 +506,16 @@ export const Config = {
     if (message.webPkgs?.length) {
       obj.webPkgs = message.webPkgs;
     }
-    if (message.disableRpcFetch === true) {
+    if (message.disableRpcFetch !== false) {
       obj.disableRpcFetch = message.disableRpcFetch;
     }
-    if (message.disableFetchAssets === true) {
+    if (message.disableFetchAssets !== false) {
       obj.disableFetchAssets = message.disableFetchAssets;
     }
     if (message.delveAddr !== "") {
       obj.delveAddr = message.delveAddr;
     }
-    if (message.enableCgo === true) {
+    if (message.enableCgo !== false) {
       obj.enableCgo = message.enableCgo;
     }
     if (message.esbuildFlags?.length) {

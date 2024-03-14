@@ -49,7 +49,7 @@ export const Config = {
     if (message.buildBackoff !== undefined) {
       Backoff.encode(message.buildBackoff, writer.uint32(26).fork()).ldelim();
     }
-    if (message.watch === true) {
+    if (message.watch !== false) {
       writer.uint32(32).bool(message.watch);
     }
     return writer;
@@ -151,7 +151,7 @@ export const Config = {
     if (message.buildBackoff !== undefined) {
       obj.buildBackoff = Backoff.toJSON(message.buildBackoff);
     }
-    if (message.watch === true) {
+    if (message.watch !== false) {
       obj.watch = message.watch;
     }
     return obj;

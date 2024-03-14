@@ -107,6 +107,12 @@ export interface HtmlLink {
 /** SetHtmlLinksResponse is the response to the SetHtmlLinks request. */
 export interface SetHtmlLinksResponse {}
 
+/** ResetWebViewRequest is a request to reset the web view. */
+export interface ResetWebViewRequest {}
+
+/** ResetWebViewResponse is a response to reset the web view. */
+export interface ResetWebViewResponse {}
+
 /** RemoveWebViewRequest is a request to remove the web view. */
 export interface RemoveWebViewRequest {}
 
@@ -139,7 +145,7 @@ export const SetRenderModeRequest = {
     if (message.props.length !== 0) {
       writer.uint32(26).bytes(message.props)
     }
-    if (message.refresh === true) {
+    if (message.refresh !== false) {
       writer.uint32(32).bool(message.refresh)
     }
     return writer
@@ -257,7 +263,7 @@ export const SetRenderModeRequest = {
     if (message.props.length !== 0) {
       obj.props = base64FromBytes(message.props)
     }
-    if (message.refresh === true) {
+    if (message.refresh !== false) {
       obj.refresh = message.refresh
     }
     return obj
@@ -379,7 +385,7 @@ export const SetHtmlLinksRequest = {
     message: SetHtmlLinksRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.clear === true) {
+    if (message.clear !== false) {
       writer.uint32(8).bool(message.clear)
     }
     for (const v of message.remove) {
@@ -494,7 +500,7 @@ export const SetHtmlLinksRequest = {
 
   toJSON(message: SetHtmlLinksRequest): unknown {
     const obj: any = {}
-    if (message.clear === true) {
+    if (message.clear !== false) {
       obj.clear = message.clear
     }
     if (message.remove?.length) {
@@ -869,6 +875,183 @@ export const SetHtmlLinksResponse = {
   },
 }
 
+function createBaseResetWebViewRequest(): ResetWebViewRequest {
+  return {}
+}
+
+export const ResetWebViewRequest = {
+  encode(
+    _: ResetWebViewRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    return writer
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ResetWebViewRequest {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseResetWebViewRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ResetWebViewRequest, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ResetWebViewRequest | ResetWebViewRequest[]>
+      | Iterable<ResetWebViewRequest | ResetWebViewRequest[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [ResetWebViewRequest.encode(p).finish()]
+        }
+      } else {
+        yield* [ResetWebViewRequest.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ResetWebViewRequest>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ResetWebViewRequest> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [ResetWebViewRequest.decode(p)]
+        }
+      } else {
+        yield* [ResetWebViewRequest.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(_: any): ResetWebViewRequest {
+    return {}
+  },
+
+  toJSON(_: ResetWebViewRequest): unknown {
+    const obj: any = {}
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<ResetWebViewRequest>, I>>(
+    base?: I,
+  ): ResetWebViewRequest {
+    return ResetWebViewRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetWebViewRequest>, I>>(
+    _: I,
+  ): ResetWebViewRequest {
+    const message = createBaseResetWebViewRequest()
+    return message
+  },
+}
+
+function createBaseResetWebViewResponse(): ResetWebViewResponse {
+  return {}
+}
+
+export const ResetWebViewResponse = {
+  encode(
+    _: ResetWebViewResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    return writer
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): ResetWebViewResponse {
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input)
+    let end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseResetWebViewResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skipType(tag & 7)
+    }
+    return message
+  },
+
+  // encodeTransform encodes a source of message objects.
+  // Transform<ResetWebViewResponse, Uint8Array>
+  async *encodeTransform(
+    source:
+      | AsyncIterable<ResetWebViewResponse | ResetWebViewResponse[]>
+      | Iterable<ResetWebViewResponse | ResetWebViewResponse[]>,
+  ): AsyncIterable<Uint8Array> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [ResetWebViewResponse.encode(p).finish()]
+        }
+      } else {
+        yield* [ResetWebViewResponse.encode(pkt as any).finish()]
+      }
+    }
+  },
+
+  // decodeTransform decodes a source of encoded messages.
+  // Transform<Uint8Array, ResetWebViewResponse>
+  async *decodeTransform(
+    source:
+      | AsyncIterable<Uint8Array | Uint8Array[]>
+      | Iterable<Uint8Array | Uint8Array[]>,
+  ): AsyncIterable<ResetWebViewResponse> {
+    for await (const pkt of source) {
+      if (globalThis.Array.isArray(pkt)) {
+        for (const p of pkt as any) {
+          yield* [ResetWebViewResponse.decode(p)]
+        }
+      } else {
+        yield* [ResetWebViewResponse.decode(pkt as any)]
+      }
+    }
+  },
+
+  fromJSON(_: any): ResetWebViewResponse {
+    return {}
+  },
+
+  toJSON(_: ResetWebViewResponse): unknown {
+    const obj: any = {}
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<ResetWebViewResponse>, I>>(
+    base?: I,
+  ): ResetWebViewResponse {
+    return ResetWebViewResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetWebViewResponse>, I>>(
+    _: I,
+  ): ResetWebViewResponse {
+    const message = createBaseResetWebViewResponse()
+    return message
+  },
+}
+
 function createBaseRemoveWebViewRequest(): RemoveWebViewRequest {
   return {}
 }
@@ -968,7 +1151,7 @@ export const RemoveWebViewResponse = {
     message: RemoveWebViewResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.removed === true) {
+    if (message.removed !== false) {
       writer.uint32(8).bool(message.removed)
     }
     return writer
@@ -1047,7 +1230,7 @@ export const RemoveWebViewResponse = {
 
   toJSON(message: RemoveWebViewResponse): unknown {
     const obj: any = {}
-    if (message.removed === true) {
+    if (message.removed !== false) {
       obj.removed = message.removed
     }
     return obj
@@ -1108,6 +1291,11 @@ export interface WebView {
     request: SetHtmlLinksRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetHtmlLinksResponse>
+  /** ResetWebView clears the render mode, links, and contents of a WebView. */
+  ResetWebView(
+    request: ResetWebViewRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResetWebViewResponse>
   /** RemoveWebView requests to remove a WebView from the root level. */
   RemoveWebView(
     request: RemoveWebViewRequest,
@@ -1124,6 +1312,7 @@ export class WebViewClientImpl implements WebView {
     this.rpc = rpc
     this.SetRenderMode = this.SetRenderMode.bind(this)
     this.SetHtmlLinks = this.SetHtmlLinks.bind(this)
+    this.ResetWebView = this.ResetWebView.bind(this)
     this.RemoveWebView = this.RemoveWebView.bind(this)
   }
   SetRenderMode(
@@ -1155,6 +1344,22 @@ export class WebViewClientImpl implements WebView {
     )
     return promise.then((data) =>
       SetHtmlLinksResponse.decode(_m0.Reader.create(data)),
+    )
+  }
+
+  ResetWebView(
+    request: ResetWebViewRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResetWebViewResponse> {
+    const data = ResetWebViewRequest.encode(request).finish()
+    const promise = this.rpc.request(
+      this.service,
+      'ResetWebView',
+      data,
+      abortSignal || undefined,
+    )
+    return promise.then((data) =>
+      ResetWebViewResponse.decode(_m0.Reader.create(data)),
     )
   }
 
@@ -1196,6 +1401,15 @@ export const WebViewDefinition = {
       requestType: SetHtmlLinksRequest,
       requestStream: false,
       responseType: SetHtmlLinksResponse,
+      responseStream: false,
+      options: {},
+    },
+    /** ResetWebView clears the render mode, links, and contents of a WebView. */
+    resetWebView: {
+      name: 'ResetWebView',
+      requestType: ResetWebViewRequest,
+      requestStream: false,
+      responseType: ResetWebViewResponse,
       responseStream: false,
       options: {},
     },

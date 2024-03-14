@@ -353,13 +353,13 @@ export const WebRuntimeStatus = {
     message: WebRuntimeStatus,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.snapshot === true) {
+    if (message.snapshot !== false) {
       writer.uint32(8).bool(message.snapshot)
     }
     for (const v of message.webDocuments) {
       WebDocumentStatus.encode(v!, writer.uint32(18).fork()).ldelim()
     }
-    if (message.closed === true) {
+    if (message.closed !== false) {
       writer.uint32(24).bool(message.closed)
     }
     return writer
@@ -455,7 +455,7 @@ export const WebRuntimeStatus = {
 
   toJSON(message: WebRuntimeStatus): unknown {
     const obj: any = {}
-    if (message.snapshot === true) {
+    if (message.snapshot !== false) {
       obj.snapshot = message.snapshot
     }
     if (message.webDocuments?.length) {
@@ -463,7 +463,7 @@ export const WebRuntimeStatus = {
         WebDocumentStatus.toJSON(e),
       )
     }
-    if (message.closed === true) {
+    if (message.closed !== false) {
       obj.closed = message.closed
     }
     return obj
@@ -498,10 +498,10 @@ export const WebDocumentStatus = {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
     }
-    if (message.deleted === true) {
+    if (message.deleted !== false) {
       writer.uint32(16).bool(message.deleted)
     }
-    if (message.permanent === true) {
+    if (message.permanent !== false) {
       writer.uint32(24).bool(message.permanent)
     }
     return writer
@@ -598,10 +598,10 @@ export const WebDocumentStatus = {
     if (message.id !== '') {
       obj.id = message.id
     }
-    if (message.deleted === true) {
+    if (message.deleted !== false) {
       obj.deleted = message.deleted
     }
-    if (message.permanent === true) {
+    if (message.permanent !== false) {
       obj.permanent = message.permanent
     }
     return obj
@@ -736,7 +736,7 @@ export const CreateWebDocumentResponse = {
     message: CreateWebDocumentResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.created === true) {
+    if (message.created !== false) {
       writer.uint32(8).bool(message.created)
     }
     return writer
@@ -815,7 +815,7 @@ export const CreateWebDocumentResponse = {
 
   toJSON(message: CreateWebDocumentResponse): unknown {
     const obj: any = {}
-    if (message.created === true) {
+    if (message.created !== false) {
       obj.created = message.created
     }
     return obj
@@ -948,7 +948,7 @@ export const RemoveWebDocumentResponse = {
     message: RemoveWebDocumentResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.removed === true) {
+    if (message.removed !== false) {
       writer.uint32(8).bool(message.removed)
     }
     return writer
@@ -1027,7 +1027,7 @@ export const RemoveWebDocumentResponse = {
 
   toJSON(message: RemoveWebDocumentResponse): unknown {
     const obj: any = {}
-    if (message.removed === true) {
+    if (message.removed !== false) {
       obj.removed = message.removed
     }
     return obj

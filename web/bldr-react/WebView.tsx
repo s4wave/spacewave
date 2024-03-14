@@ -1,5 +1,4 @@
 import React, {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -133,10 +132,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       },
       // setRenderMode sets the render mode of the view.
       // if wait=true, should wait for op to complete before returning.
-      setRenderMode(
+      async setRenderMode(
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
-        console.log('set render mode', options)
+        // console.log('set render mode', options)
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
@@ -149,13 +148,12 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             undefined,
           props: options.props,
         }))
-        return Promise.resolve({})
       },
       // setHtmlLinks sets or updates the list of HTML links.
-      setHtmlLinks(
+      async setHtmlLinks(
         options: SetHtmlLinksRequest,
       ): Promise<SetHtmlLinksResponse | void> {
-        console.log('set html links', options)
+        // console.log('set html links', options)
         setWebViewState((prev) => {
           const links = [...((!options.clear && prev.htmlLinks) || [])]
           const removeLink = (id: string) => {
@@ -178,7 +176,21 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           }
           return { ...prev, htmlLinks: links }
         })
-        return Promise.resolve({})
+      },
+      // resetView resets the web view to the initial state.
+      async resetView(): Promise<void> {
+        setWebViewState((prev) => {
+          const next = { ...prev }
+          next.refreshNonce++
+          if (next.htmlLinks.length) {
+            next.htmlLinks = []
+          }
+          if (next.renderMode != null) {
+            next.renderMode = RenderMode.RenderMode_NONE
+          }
+          delete next.scriptPath
+          return next
+        })
       },
       // remove removes the web view, if !permanent.
       // returns if the web view was removed successfully.

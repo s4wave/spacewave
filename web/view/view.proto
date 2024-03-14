@@ -16,6 +16,9 @@ service WebView {
   // SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
   rpc SetHtmlLinks(SetHtmlLinksRequest) returns (SetHtmlLinksResponse) {}
 
+  // ResetWebView clears the render mode, links, and contents of a WebView.
+  rpc ResetWebView(ResetWebViewRequest) returns (ResetWebViewResponse) {}
+
   // RemoveWebView requests to remove a WebView from the root level.
   rpc RemoveWebView(RemoveWebViewRequest) returns (RemoveWebViewResponse);
 }
@@ -76,6 +79,12 @@ message HtmlLink {
 
 // SetHtmlLinksResponse is the response to the SetHtmlLinks request.
 message SetHtmlLinksResponse {}
+
+// ResetWebViewRequest is a request to reset the web view.
+message ResetWebViewRequest {}
+
+// ResetWebViewResponse is a response to reset the web view.
+message ResetWebViewResponse {}
 
 // RemoveWebViewRequest is a request to remove the web view.
 message RemoveWebViewRequest {}

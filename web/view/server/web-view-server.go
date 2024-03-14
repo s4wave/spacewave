@@ -33,6 +33,18 @@ func (s *WebViewServer) SetHtmlLinks(
 	return s.view.SetHtmlLinks(ctx, req)
 }
 
+// ResetWebView resets the web view.
+func (s *WebViewServer) ResetWebView(
+	ctx context.Context,
+	req *web_view.ResetWebViewRequest,
+) (*web_view.ResetWebViewResponse, error) {
+	err := s.view.ResetWebView(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &web_view.ResetWebViewResponse{}, nil
+}
+
 // RemoveWebView removes the web view.
 func (s *WebViewServer) RemoveWebView(
 	ctx context.Context,

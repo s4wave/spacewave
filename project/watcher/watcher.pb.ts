@@ -35,7 +35,7 @@ export const Config = {
     if (message.projectControllerConfig !== undefined) {
       Config1.encode(message.projectControllerConfig, writer.uint32(18).fork()).ldelim();
     }
-    if (message.disableWatch === true) {
+    if (message.disableWatch !== false) {
       writer.uint32(24).bool(message.disableWatch);
     }
     return writer;
@@ -128,7 +128,7 @@ export const Config = {
     if (message.projectControllerConfig !== undefined) {
       obj.projectControllerConfig = Config1.toJSON(message.projectControllerConfig);
     }
-    if (message.disableWatch === true) {
+    if (message.disableWatch !== false) {
       obj.disableWatch = message.disableWatch;
     }
     return obj;

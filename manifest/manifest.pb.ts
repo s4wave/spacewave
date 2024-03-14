@@ -129,7 +129,7 @@ export const ManifestMeta = {
     if (message.platformId !== "") {
       writer.uint32(26).string(message.platformId);
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       writer.uint32(32).uint64(message.rev);
     }
     return writer;
@@ -231,7 +231,7 @@ export const ManifestMeta = {
     if (message.platformId !== "") {
       obj.platformId = message.platformId;
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       obj.rev = (message.rev || Long.UZERO).toString();
     }
     return obj;
@@ -920,10 +920,10 @@ export const FetchManifestResponse = {
     if (message.value !== undefined) {
       FetchManifestValue.encode(message.value, writer.uint32(18).fork()).ldelim();
     }
-    if (message.removed === true) {
+    if (message.removed !== false) {
       writer.uint32(24).bool(message.removed);
     }
-    if (message.idle === true) {
+    if (message.idle !== false) {
       writer.uint32(32).bool(message.idle);
     }
     return writer;
@@ -1024,10 +1024,10 @@ export const FetchManifestResponse = {
     if (message.value !== undefined) {
       obj.value = FetchManifestValue.toJSON(message.value);
     }
-    if (message.removed === true) {
+    if (message.removed !== false) {
       obj.removed = message.removed;
     }
-    if (message.idle === true) {
+    if (message.idle !== false) {
       obj.idle = message.idle;
     }
     return obj;

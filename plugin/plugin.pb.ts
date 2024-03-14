@@ -92,7 +92,7 @@ export const PluginStatus = {
     if (message.pluginId !== "") {
       writer.uint32(10).string(message.pluginId);
     }
-    if (message.running === true) {
+    if (message.running !== false) {
       writer.uint32(16).bool(message.running);
     }
     return writer;
@@ -172,7 +172,7 @@ export const PluginStatus = {
     if (message.pluginId !== "") {
       obj.pluginId = message.pluginId;
     }
-    if (message.running === true) {
+    if (message.running !== false) {
       obj.running = message.running;
     }
     return obj;

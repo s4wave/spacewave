@@ -53,7 +53,7 @@ export const Config = {
     if (message.unixfsPrefix !== '') {
       writer.uint32(18).string(message.unixfsPrefix)
     }
-    if (message.notFoundIfIdle === true) {
+    if (message.notFoundIfIdle !== false) {
       writer.uint32(24).bool(message.notFoundIfIdle)
     }
     for (const v of message.webPkgIdList) {
@@ -166,7 +166,7 @@ export const Config = {
     if (message.unixfsPrefix !== '') {
       obj.unixfsPrefix = message.unixfsPrefix
     }
-    if (message.notFoundIfIdle === true) {
+    if (message.notFoundIfIdle !== false) {
       obj.notFoundIfIdle = message.notFoundIfIdle
     }
     if (message.webPkgIdList?.length) {

@@ -42,6 +42,7 @@ func (m *WebDocumentStatus) CloneVT() *WebDocumentStatus {
 	}
 	r := new(WebDocumentStatus)
 	r.Snapshot = m.Snapshot
+	r.Hidden = m.Hidden
 	r.Closed = m.Closed
 	if rhs := m.WebViews; rhs != nil {
 		tmpContainer := make([]*WebViewStatus, len(rhs))
@@ -240,6 +241,9 @@ func (this *WebDocumentStatus) EqualVT(that *WebDocumentStatus) bool {
 		return false
 	}
 	if this.Snapshot != that.Snapshot {
+		return false
+	}
+	if this.Hidden != that.Hidden {
 		return false
 	}
 	if len(this.WebViews) != len(that.WebViews) {
@@ -539,7 +543,7 @@ func (m *WebDocumentStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x28
 	}
 	if len(m.WebWorkers) > 0 {
 		for iNdEx := len(m.WebWorkers) - 1; iNdEx >= 0; iNdEx-- {
@@ -550,7 +554,7 @@ func (m *WebDocumentStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x22
 		}
 	}
 	if len(m.WebViews) > 0 {
@@ -562,8 +566,18 @@ func (m *WebDocumentStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x12
+			dAtA[i] = 0x1a
 		}
+	}
+	if m.Hidden {
+		i--
+		if m.Hidden {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Snapshot {
 		i--
@@ -1007,6 +1021,9 @@ func (m *WebDocumentStatus) SizeVT() (n int) {
 	if m.Snapshot {
 		n += 2
 	}
+	if m.Hidden {
+		n += 2
+	}
 	if len(m.WebViews) > 0 {
 		for _, e := range m.WebViews {
 			l = e.SizeVT()
@@ -1266,6 +1283,26 @@ func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Snapshot = bool(v != 0)
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hidden", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Hidden = bool(v != 0)
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebViews", wireType)
 			}
@@ -1299,7 +1336,7 @@ func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebWorkers", wireType)
 			}
@@ -1333,7 +1370,7 @@ func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Closed", wireType)
 			}

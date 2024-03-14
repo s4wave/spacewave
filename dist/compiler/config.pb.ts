@@ -102,7 +102,7 @@ export const Config = {
     if (message.projectId !== "") {
       writer.uint32(34).string(message.projectId);
     }
-    if (message.enableCgo === true) {
+    if (message.enableCgo !== false) {
       writer.uint32(40).bool(message.enableCgo);
     }
     return writer;
@@ -233,7 +233,7 @@ export const Config = {
     if (message.projectId !== "") {
       obj.projectId = message.projectId;
     }
-    if (message.enableCgo === true) {
+    if (message.enableCgo !== false) {
       obj.enableCgo = message.enableCgo;
     }
     return obj;
@@ -389,7 +389,7 @@ export const PreBuildHookResult = {
     if (message.projectId !== "") {
       writer.uint32(34).string(message.projectId);
     }
-    if (message.enableCgo === true) {
+    if (message.enableCgo !== false) {
       writer.uint32(40).bool(message.enableCgo);
     }
     return writer;
@@ -522,7 +522,7 @@ export const PreBuildHookResult = {
     if (message.projectId !== "") {
       obj.projectId = message.projectId;
     }
-    if (message.enableCgo === true) {
+    if (message.enableCgo !== false) {
       obj.enableCgo = message.enableCgo;
     }
     return obj;

@@ -324,7 +324,7 @@ export const FetchRequestInfo = {
         writer.uint32(26).fork(),
       ).ldelim()
     })
-    if (message.hasBody === true) {
+    if (message.hasBody !== false) {
       writer.uint32(32).bool(message.hasBody)
     }
     if (message.clientId !== '') {
@@ -542,7 +542,7 @@ export const FetchRequestInfo = {
         })
       }
     }
-    if (message.hasBody === true) {
+    if (message.hasBody !== false) {
       obj.hasBody = message.hasBody
     }
     if (message.clientId !== '') {
@@ -737,7 +737,7 @@ export const FetchRequestData = {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       writer.uint32(16).bool(message.done)
     }
     return writer
@@ -824,7 +824,7 @@ export const FetchRequestData = {
     if (message.data.length !== 0) {
       obj.data = base64FromBytes(message.data)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       obj.done = message.done
     }
     return obj
@@ -1026,10 +1026,10 @@ export const ResponseInfo = {
         writer.uint32(10).fork(),
       ).ldelim()
     })
-    if (message.ok === true) {
+    if (message.ok !== false) {
       writer.uint32(16).bool(message.ok)
     }
-    if (message.redirected === true) {
+    if (message.redirected !== false) {
       writer.uint32(24).bool(message.redirected)
     }
     if (message.status !== 0) {
@@ -1181,10 +1181,10 @@ export const ResponseInfo = {
         })
       }
     }
-    if (message.ok === true) {
+    if (message.ok !== false) {
       obj.ok = message.ok
     }
-    if (message.redirected === true) {
+    if (message.redirected !== false) {
       obj.redirected = message.redirected
     }
     if (message.status !== 0) {
@@ -1358,7 +1358,7 @@ export const ResponseData = {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       writer.uint32(16).bool(message.done)
     }
     return writer
@@ -1445,7 +1445,7 @@ export const ResponseData = {
     if (message.data.length !== 0) {
       obj.data = base64FromBytes(message.data)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       obj.done = message.done
     }
     return obj

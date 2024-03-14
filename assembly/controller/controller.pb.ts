@@ -18,10 +18,10 @@ function createBaseConfig(): Config {
 
 export const Config = {
   encode(message: Config, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.disableResolver === true) {
+    if (message.disableResolver !== false) {
       writer.uint32(8).bool(message.disableResolver);
     }
-    if (message.disablePartialSuccess === true) {
+    if (message.disablePartialSuccess !== false) {
       writer.uint32(16).bool(message.disablePartialSuccess);
     }
     return writer;
@@ -100,10 +100,10 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {};
-    if (message.disableResolver === true) {
+    if (message.disableResolver !== false) {
       obj.disableResolver = message.disableResolver;
     }
-    if (message.disablePartialSuccess === true) {
+    if (message.disablePartialSuccess !== false) {
       obj.disablePartialSuccess = message.disablePartialSuccess;
     }
     return obj;

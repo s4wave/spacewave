@@ -41,7 +41,7 @@ export const Config = {
     if (message.fetchManifestIdRe !== "") {
       writer.uint32(26).string(message.fetchManifestIdRe);
     }
-    if (message.disableWatch === true) {
+    if (message.disableWatch !== false) {
       writer.uint32(32).bool(message.disableWatch);
     }
     return writer;
@@ -145,7 +145,7 @@ export const Config = {
     if (message.fetchManifestIdRe !== "") {
       obj.fetchManifestIdRe = message.fetchManifestIdRe;
     }
-    if (message.disableWatch === true) {
+    if (message.disableWatch !== false) {
       obj.disableWatch = message.disableWatch;
     }
     return obj;

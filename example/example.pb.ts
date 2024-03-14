@@ -25,7 +25,7 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.runDemo === true) {
+    if (message.runDemo !== false) {
       writer.uint32(8).bool(message.runDemo)
     }
     return writer
@@ -99,7 +99,7 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.runDemo === true) {
+    if (message.runDemo !== false) {
       obj.runDemo = message.runDemo
     }
     return obj

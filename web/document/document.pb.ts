@@ -12,6 +12,12 @@ export interface WatchWebDocumentStatusRequest {}
 export interface WebDocumentStatus {
   /** Snapshot indicates this is a full snapshot of the lists. */
   snapshot: boolean
+  /**
+   * Hidden indicates that the web document is not visible.
+   * The web document will unload all web views and suspend itself.
+   * Background pages are throttled in web browsers.
+   */
+  hidden: boolean
   /** WebViews contains the list of web view statuses. */
   webViews: WebViewStatus[]
   /** WebWorkers contains the list of web worker statuses. */
@@ -206,7 +212,13 @@ export const WatchWebDocumentStatusRequest = {
 }
 
 function createBaseWebDocumentStatus(): WebDocumentStatus {
-  return { snapshot: false, webViews: [], webWorkers: [], closed: false }
+  return {
+    snapshot: false,
+    hidden: false,
+    webViews: [],
+    webWorkers: [],
+    closed: false,
+  }
 }
 
 export const WebDocumentStatus = {
@@ -214,17 +226,20 @@ export const WebDocumentStatus = {
     message: WebDocumentStatus,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.snapshot === true) {
+    if (message.snapshot !== false) {
       writer.uint32(8).bool(message.snapshot)
     }
+    if (message.hidden !== false) {
+      writer.uint32(16).bool(message.hidden)
+    }
     for (const v of message.webViews) {
-      WebViewStatus.encode(v!, writer.uint32(18).fork()).ldelim()
+      WebViewStatus.encode(v!, writer.uint32(26).fork()).ldelim()
     }
     for (const v of message.webWorkers) {
-      WebWorkerStatus.encode(v!, writer.uint32(26).fork()).ldelim()
+      WebWorkerStatus.encode(v!, writer.uint32(34).fork()).ldelim()
     }
-    if (message.closed === true) {
-      writer.uint32(32).bool(message.closed)
+    if (message.closed !== false) {
+      writer.uint32(40).bool(message.closed)
     }
     return writer
   },
@@ -245,14 +260,21 @@ export const WebDocumentStatus = {
           message.snapshot = reader.bool()
           continue
         case 2:
-          if (tag !== 18) {
+          if (tag !== 16) {
+            break
+          }
+
+          message.hidden = reader.bool()
+          continue
+        case 3:
+          if (tag !== 26) {
             break
           }
 
           message.webViews.push(WebViewStatus.decode(reader, reader.uint32()))
           continue
-        case 3:
-          if (tag !== 26) {
+        case 4:
+          if (tag !== 34) {
             break
           }
 
@@ -260,8 +282,8 @@ export const WebDocumentStatus = {
             WebWorkerStatus.decode(reader, reader.uint32()),
           )
           continue
-        case 4:
-          if (tag !== 32) {
+        case 5:
+          if (tag !== 40) {
             break
           }
 
@@ -317,6 +339,7 @@ export const WebDocumentStatus = {
       snapshot: isSet(object.snapshot)
         ? globalThis.Boolean(object.snapshot)
         : false,
+      hidden: isSet(object.hidden) ? globalThis.Boolean(object.hidden) : false,
       webViews: globalThis.Array.isArray(object?.webViews)
         ? object.webViews.map((e: any) => WebViewStatus.fromJSON(e))
         : [],
@@ -329,8 +352,11 @@ export const WebDocumentStatus = {
 
   toJSON(message: WebDocumentStatus): unknown {
     const obj: any = {}
-    if (message.snapshot === true) {
+    if (message.snapshot !== false) {
       obj.snapshot = message.snapshot
+    }
+    if (message.hidden !== false) {
+      obj.hidden = message.hidden
     }
     if (message.webViews?.length) {
       obj.webViews = message.webViews.map((e) => WebViewStatus.toJSON(e))
@@ -338,7 +364,7 @@ export const WebDocumentStatus = {
     if (message.webWorkers?.length) {
       obj.webWorkers = message.webWorkers.map((e) => WebWorkerStatus.toJSON(e))
     }
-    if (message.closed === true) {
+    if (message.closed !== false) {
       obj.closed = message.closed
     }
     return obj
@@ -354,6 +380,7 @@ export const WebDocumentStatus = {
   ): WebDocumentStatus {
     const message = createBaseWebDocumentStatus()
     message.snapshot = object.snapshot ?? false
+    message.hidden = object.hidden ?? false
     message.webViews =
       object.webViews?.map((e) => WebViewStatus.fromPartial(e)) || []
     message.webWorkers =
@@ -375,13 +402,13 @@ export const WebViewStatus = {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
     }
-    if (message.deleted === true) {
+    if (message.deleted !== false) {
       writer.uint32(16).bool(message.deleted)
     }
     if (message.parentId !== '') {
       writer.uint32(26).string(message.parentId)
     }
-    if (message.permanent === true) {
+    if (message.permanent !== false) {
       writer.uint32(32).bool(message.permanent)
     }
     return writer
@@ -488,13 +515,13 @@ export const WebViewStatus = {
     if (message.id !== '') {
       obj.id = message.id
     }
-    if (message.deleted === true) {
+    if (message.deleted !== false) {
       obj.deleted = message.deleted
     }
     if (message.parentId !== '') {
       obj.parentId = message.parentId
     }
-    if (message.permanent === true) {
+    if (message.permanent !== false) {
       obj.permanent = message.permanent
     }
     return obj
@@ -529,10 +556,10 @@ export const WebWorkerStatus = {
     if (message.id !== '') {
       writer.uint32(10).string(message.id)
     }
-    if (message.deleted === true) {
+    if (message.deleted !== false) {
       writer.uint32(16).bool(message.deleted)
     }
-    if (message.shared === true) {
+    if (message.shared !== false) {
       writer.uint32(24).bool(message.shared)
     }
     return writer
@@ -627,10 +654,10 @@ export const WebWorkerStatus = {
     if (message.id !== '') {
       obj.id = message.id
     }
-    if (message.deleted === true) {
+    if (message.deleted !== false) {
       obj.deleted = message.deleted
     }
-    if (message.shared === true) {
+    if (message.shared !== false) {
       obj.shared = message.shared
     }
     return obj
@@ -765,7 +792,7 @@ export const CreateWebViewResponse = {
     message: CreateWebViewResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.created === true) {
+    if (message.created !== false) {
       writer.uint32(8).bool(message.created)
     }
     return writer
@@ -844,7 +871,7 @@ export const CreateWebViewResponse = {
 
   toJSON(message: CreateWebViewResponse): unknown {
     const obj: any = {}
-    if (message.created === true) {
+    if (message.created !== false) {
       obj.created = message.created
     }
     return obj
@@ -879,7 +906,7 @@ export const CreateWebWorkerRequest = {
     if (message.url !== '') {
       writer.uint32(18).string(message.url)
     }
-    if (message.shared === true) {
+    if (message.shared !== false) {
       writer.uint32(24).bool(message.shared)
     }
     if (message.initData.length !== 0) {
@@ -991,7 +1018,7 @@ export const CreateWebWorkerRequest = {
     if (message.url !== '') {
       obj.url = message.url
     }
-    if (message.shared === true) {
+    if (message.shared !== false) {
       obj.shared = message.shared
     }
     if (message.initData.length !== 0) {
@@ -1026,10 +1053,10 @@ export const CreateWebWorkerResponse = {
     message: CreateWebWorkerResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.created === true) {
+    if (message.created !== false) {
       writer.uint32(8).bool(message.created)
     }
-    if (message.shared === true) {
+    if (message.shared !== false) {
       writer.uint32(16).bool(message.shared)
     }
     return writer
@@ -1116,10 +1143,10 @@ export const CreateWebWorkerResponse = {
 
   toJSON(message: CreateWebWorkerResponse): unknown {
     const obj: any = {}
-    if (message.created === true) {
+    if (message.created !== false) {
       obj.created = message.created
     }
-    if (message.shared === true) {
+    if (message.shared !== false) {
       obj.shared = message.shared
     }
     return obj
@@ -1253,7 +1280,7 @@ export const RemoveWebWorkerResponse = {
     message: RemoveWebWorkerResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.removed === true) {
+    if (message.removed !== false) {
       writer.uint32(8).bool(message.removed)
     }
     return writer
@@ -1332,7 +1359,7 @@ export const RemoveWebWorkerResponse = {
 
   toJSON(message: RemoveWebWorkerResponse): unknown {
     const obj: any = {}
-    if (message.removed === true) {
+    if (message.removed !== false) {
       obj.removed = message.removed
     }
     return obj

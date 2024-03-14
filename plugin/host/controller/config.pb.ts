@@ -84,10 +84,10 @@ export const Config = {
     if (message.volumeId !== "") {
       writer.uint32(34).string(message.volumeId);
     }
-    if (message.alwaysFetchManifest === true) {
+    if (message.alwaysFetchManifest !== false) {
       writer.uint32(40).bool(message.alwaysFetchManifest);
     }
-    if (message.disableStoreManifest === true) {
+    if (message.disableStoreManifest !== false) {
       writer.uint32(48).bool(message.disableStoreManifest);
     }
     if (message.fetchConcurrency !== 0) {
@@ -243,10 +243,10 @@ export const Config = {
     if (message.volumeId !== "") {
       obj.volumeId = message.volumeId;
     }
-    if (message.alwaysFetchManifest === true) {
+    if (message.alwaysFetchManifest !== false) {
       obj.alwaysFetchManifest = message.alwaysFetchManifest;
     }
-    if (message.disableStoreManifest === true) {
+    if (message.disableStoreManifest !== false) {
       obj.disableStoreManifest = message.disableStoreManifest;
     }
     if (message.fetchConcurrency !== 0) {

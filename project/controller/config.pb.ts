@@ -88,10 +88,10 @@ export const Config = {
     if (message.buildBackoff !== undefined) {
       Backoff.encode(message.buildBackoff, writer.uint32(34).fork()).ldelim();
     }
-    if (message.watch === true) {
+    if (message.watch !== false) {
       writer.uint32(40).bool(message.watch);
     }
-    if (message.start === true) {
+    if (message.start !== false) {
       writer.uint32(48).bool(message.start);
     }
     if (message.fetchManifestRemote !== "") {
@@ -223,10 +223,10 @@ export const Config = {
     if (message.buildBackoff !== undefined) {
       obj.buildBackoff = Backoff.toJSON(message.buildBackoff);
     }
-    if (message.watch === true) {
+    if (message.watch !== false) {
       obj.watch = message.watch;
     }
-    if (message.start === true) {
+    if (message.start !== false) {
       obj.start = message.start;
     }
     if (message.fetchManifestRemote !== "") {

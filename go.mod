@@ -3,11 +3,11 @@ module github.com/aperturerobotics/bldr
 go 1.22
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.1-0.20240201232059-34205c4172c0 // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240314215540-27d23cbf9cd6 // aperture
 
 // https://github.com/golang/tools/pull/483
 // https://go-review.googlesource.com/c/tools/+/570796
-replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240313202624-7043adbf2fa7 // avoid-cancel-log-spam
+replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
 
 require github.com/aperturerobotics/hydra v0.0.0-20240311223421-ef8588bb8996 // master
 

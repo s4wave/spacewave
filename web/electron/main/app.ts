@@ -206,7 +206,8 @@ export class BldrElectronApp {
         contextIsolation: true,
         preload,
 
-        // TODO Disable background throttling to avoid WebDocument timeout.
+        // Disable background throttling to avoid WebDocument timeouts.
+        // We will still unload the WebViews when the document is hidden.
         backgroundThrottling: false,
       },
     })

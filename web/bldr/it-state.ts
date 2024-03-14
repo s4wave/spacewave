@@ -85,4 +85,12 @@ export class ItState<T> extends EventTarget {
     }
     this.dispatchEvent(new ItStateChangedEvent(changeEvent, this.nonce))
   }
+
+  // pushSnapshot calls the snapshot function and pushes it as a change event.
+  public async pushSnapshot() {
+    const snapshot = await this.getSnapshot()
+    if (snapshot) {
+      this.pushChangeEvent(snapshot)
+    }
+  }
 }

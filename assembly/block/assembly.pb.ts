@@ -324,7 +324,7 @@ export const DirectiveBridge = {
     if (message.controllerConfig !== undefined) {
       ControllerConfig.encode(message.controllerConfig, writer.uint32(10).fork()).ldelim();
     }
-    if (message.bridgeToParent === true) {
+    if (message.bridgeToParent !== false) {
       writer.uint32(16).bool(message.bridgeToParent);
     }
     return writer;
@@ -404,7 +404,7 @@ export const DirectiveBridge = {
     if (message.controllerConfig !== undefined) {
       obj.controllerConfig = ControllerConfig.toJSON(message.controllerConfig);
     }
-    if (message.bridgeToParent === true) {
+    if (message.bridgeToParent !== false) {
       obj.bridgeToParent = message.bridgeToParent;
     }
     return obj;
