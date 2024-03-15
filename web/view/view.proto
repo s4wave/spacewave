@@ -1,4 +1,5 @@
 syntax = "proto3";
+
 package web.view;
 
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";

@@ -223,9 +223,6 @@ class WebDocumentImpl implements WebDocumentService {
     if (!webViewID) {
       throw new Error('empty web view id')
     }
-    if (this.webDocument.isHidden) {
-      return { created: false }
-    }
     const createWebView = this.createViewCb
     if (!createWebView) {
       return { created: false }
@@ -294,14 +291,12 @@ export interface WebDocumentOptions {
 // Attaches to or mounts the root WebRuntime and provides an RPC API.
 // It's best to have a single WebDocument per browser tab/window (HTML body).
 //
-// Web browsers throttle background tabs, and timers / callbacks can be delayed
-// by up to a minute. WebDocument watches the Page Visibility API and marks the
-// document as hidden, unloading the contents of all WebView and clearing the
-// list of web views with the Go runtime. This allows the WebDocument to respond
-// to RPC calls and pings while operating in a low-CPU-usage suspended state. If
-// the WebDocument becomes disconnected from the WebRuntime due to a timeout
-// while suspended, it will wait to reconnect until the page becomes visible
-// again. In Electron, we can disable background throttling in the BrowserWindow.
+// Browsers throttle background tabs, and timers / callbacks can be delayed by
+// up to a minute. WebDocument watches the Page Visibility API and marks the
+// document as hidden, increasing the ping/pong timings and timeouts. This
+// allows the WebDocument to respond to RPC calls and pings while operating in a
+// low-CPU-usage suspended state. In Electron, we can disable background
+// throttling in the BrowserWindow.
 //
 // Note: to put libp2p into debugging mode:
 //  - Node: set the environment variable DEBUG="*"
@@ -350,7 +345,7 @@ export class WebDocument {
   // client is the RPC client for the WebDocument.
   private readonly client: Client
 
-  // hidden indicates the web document is hidden and suspended
+  // hidden indicates the web document is hidden
   private hidden: boolean
   // closed indicates the web document is closed with an optional error
   private closed?: true | Error
@@ -603,7 +598,6 @@ export class WebDocument {
     }
 
     const webViews: WebViewStatus[] = []
-    if (!this.hidden) {
       for (const webViewId of Object.keys(this.webViews)) {
         const webView = this.webViews[webViewId]
         if (webViewId && webView) {
@@ -611,7 +605,6 @@ export class WebDocument {
         }
       }
       webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
-    }
 
     const webWorkers: WebWorkerStatus[] = Object.keys(this.webWorkers).map(
       (id) => ({
@@ -726,6 +719,7 @@ export class WebDocument {
   // called in the constructor
   private async initServiceWorker(wb: Workbox) {
     if (this.closed) return
+
     const swMessageCallback = (ev: MessageEvent) => {
       console.log('WebDocument: got message from ServiceWorker', ev.data)
       const data: ServiceWorkerToWebDocument = ev.data
@@ -736,17 +730,7 @@ export class WebDocument {
       // the service worker wants a new message port for requests
       this.initServiceWorkerPort(currSw)
     }
-    /*
-    wb.addEventListener('activated', (ev) => {
-      console.log('WORKBOX: got activated event', ev)
-    })
-    wb.addEventListener('controlling', (ev) => {
-      console.log('WORKBOX: got controlling event', ev)
-    })
-    wb.addEventListener('redundant', (ev) => {
-      console.log('WORKBOX: got redundant event', ev)
-    })
-    */
+
     navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
       // console.log('WORKBOX: got controllerchange event', ev.target)
       if (!ev.target) {
@@ -782,14 +766,14 @@ export class WebDocument {
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.
   // if the web view is null, sends a message indicating the view was removed.
   private notifyWebViewUpdated(webViewId: string, webView?: WebView) {
-    if (!webViewId || this.closed || this.hidden) {
+    if (!webViewId || this.closed) {
       return
     }
 
     const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
-      hidden: false,
+      hidden: this.hidden,
       webWorkers: [],
       webViews: [buildWebViewStatus(webViewId, webView)],
     }
@@ -898,18 +882,13 @@ export class WebDocument {
       return
     }
 
-    // If hidden changed, send a snapshot.
-    this.webStatusStream.pushSnapshot().catch(() => {})
-
-    // If hidden, reset all loaded web views.
-    if (hidden)  {
-      const resetViews = { ...this.webViews }
-      for (const webViewID in resetViews) {
-        resetViews[webViewID].webView.resetView().catch(() => {})
-      }
-    } else {
-      this.taskEnsureWebRuntimeConn()
-    }
+    this.webStatusStream.pushChangeEvent({
+      snapshot: false,
+      closed: false,
+      hidden,
+      webViews: [],
+      webWorkers: [],
+    })
   }
 
   // onWebWorkerMessage handles an incoming web worker message.
@@ -981,11 +960,11 @@ export class WebDocument {
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.
   private taskEnsureWebRuntimeConn() {
     queueMicrotask(() => {
-      if (this.closed || this.hidden) {
+      if (this.closed) {
         return
       }
       this.webRuntimeClient.waitConn().catch((err) => {
-        if (this.closed || this.hidden) return
+        if (this.closed) return
         console.warn('WebDocument: failed to connect to WebRuntime', err)
         setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
       })

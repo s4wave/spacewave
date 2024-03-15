@@ -49,7 +49,7 @@ type Remote struct {
 	ready bool
 	// closed indicates the remote document is closed.
 	closed bool
-	// hidden indicates the remote document is hidden and suspended.
+	// hidden indicates the remote document is hidden.
 	hidden bool
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
@@ -486,19 +486,17 @@ func (r *Remote) updateStatusSnapshot() {
 	}
 	status := &WebDocumentStatus{
 		Snapshot: true,
-		Hidden:   !r.closed && r.hidden,
+		Hidden:   r.hidden,
 		Closed:   r.closed,
 	}
 	if r.ready && !r.closed {
-		if !r.hidden {
-			for _, remoteWebView := range r.remoteWebViews {
-				proxy := remoteWebView.proxy
-				status.WebViews = append(status.WebViews, &WebViewStatus{
-					Id:        proxy.GetId(),
-					ParentId:  proxy.GetParentId(),
-					Permanent: proxy.GetPermanent(),
-				})
-			}
+		for _, remoteWebView := range r.remoteWebViews {
+			proxy := remoteWebView.proxy
+			status.WebViews = append(status.WebViews, &WebViewStatus{
+				Id:        proxy.GetId(),
+				ParentId:  proxy.GetParentId(),
+				Permanent: proxy.GetPermanent(),
+			})
 		}
 		for _, remoteWebWorker := range r.remoteWebWorkers {
 			status.WebWorkers = append(status.WebWorkers, &WebWorkerStatus{
