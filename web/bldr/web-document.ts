@@ -907,6 +907,8 @@ export class WebDocument {
       for (const webViewID in resetViews) {
         resetViews[webViewID].webView.resetView().catch(() => {})
       }
+    } else {
+      this.taskEnsureWebRuntimeConn()
     }
   }
 
@@ -979,11 +981,11 @@ export class WebDocument {
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.
   private taskEnsureWebRuntimeConn() {
     queueMicrotask(() => {
-      if (this.closed) {
+      if (this.closed || this.hidden) {
         return
       }
       this.webRuntimeClient.waitConn().catch((err) => {
-        if (this.closed) return
+        if (this.closed || this.hidden) return
         console.warn('WebDocument: failed to connect to WebRuntime', err)
         setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
       })
