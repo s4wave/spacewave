@@ -67,8 +67,6 @@ class Plugin implements SRPCPlugin {
 }
 
 const plugin = new Plugin()
-function startPlugin(_startInfoB58: string) {
+function startPlugin() {
   console.log('start web plugin for browser')
-
-  // TODO run the ConfigSet and HostConfigSet on the WebPluginBrowserHost
 }

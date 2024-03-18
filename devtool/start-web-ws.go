@@ -87,7 +87,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 		le,
 		distSrcDir,
 		entrypointDir,
-		"./runtime-ws.mjs",
+		"./entrypoint/runtime-ws.mjs",
 		minifyEntrypoint,
 		devMode,
 	)
@@ -96,8 +96,8 @@ func (b *DevtoolBus) ExecuteWebWs(
 	}
 
 	// compile the entrypoint
-	wsRuntimeDir := filepath.Join(entrypointDir, "runtime")
-	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
+	wsRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
+	if err := os.MkdirAll(wsRuntimeDir, 0755); err != nil {
 		return err
 	}
 	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint); err != nil {

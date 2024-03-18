@@ -1,4 +1,4 @@
-import { Client, castToError } from 'starpc'
+import { castToError } from 'starpc'
 import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'

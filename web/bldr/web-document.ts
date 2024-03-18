@@ -41,9 +41,7 @@ import {
   RemoveWebViewResponse,
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
-  ResetWebViewRequest,
   ResetWebViewResponse,
-  RenderMode,
 } from '../view/view.pb.js'
 import { isElectron, handleElectronWorkerPort } from '../electron/electron.js'
 import { addShutdownCallback, DisposeCallback } from './shutdown.js'
@@ -598,13 +596,13 @@ export class WebDocument {
     }
 
     const webViews: WebViewStatus[] = []
-      for (const webViewId of Object.keys(this.webViews)) {
-        const webView = this.webViews[webViewId]
-        if (webViewId && webView) {
-          webViews.push(webView.buildWebViewStatus())
-        }
+    for (const webViewId of Object.keys(this.webViews)) {
+      const webView = this.webViews[webViewId]
+      if (webViewId && webView) {
+        webViews.push(webView.buildWebViewStatus())
       }
-      webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
+    }
+    webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
 
     const webWorkers: WebWorkerStatus[] = Object.keys(this.webWorkers).map(
       (id) => ({
@@ -874,9 +872,9 @@ export class WebDocument {
 
     this.hidden = hidden
     if (hidden) {
-      console.log("WebDocument: document is hidden")
+      console.log('WebDocument: document is hidden')
     } else {
-      console.log("WebDocument: document is visible")
+      console.log('WebDocument: document is visible')
     }
     if (this.closed) {
       return

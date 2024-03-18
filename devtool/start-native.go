@@ -4,8 +4,8 @@ import (
 	"context"
 )
 
-// ExecuteDesktopProject starts the project as a native app.
-func (a *DevtoolArgs) ExecuteDesktopProject(ctx context.Context) error {
+// ExecuteNativeProject starts the project as a native app.
+func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()

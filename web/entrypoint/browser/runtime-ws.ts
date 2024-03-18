@@ -6,13 +6,13 @@ import {
 } from 'starpc'
 import { pipe } from 'it-pipe'
 
-import duplex from '@aptre/it-ws/duplex'
-import WebSocket from '@aptre/it-ws/web-socket'
+import { duplex } from '@aptre/it-ws'
 
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
 } from '../../runtime/runtime.pb.js'
+import { WebDocumentToWebRuntime } from '../..//runtime/runtime.js'
 import {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,
@@ -67,7 +67,8 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   }
 
   // Setup the connection to the Go runtime.
-  const wsDuplex = duplex(ws as WebSocket)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wsDuplex = duplex(ws as any)
   const runtimeConn = new StreamConn(webRuntime.getWebRuntimeServer(), {
     direction: 'inbound',
     muxerFactory: yamux({
@@ -91,45 +92,46 @@ async function startWsRuntimeWithRetry(msg: WebRuntimeHostInit) {
 }
 
 // wait for startup / init command
-let runtimeStarted = false
+const runtimeStarted = false
 self.addEventListener('connect', (ev) => {
   const ports = ev.ports
   if (!ports || !ports.length) {
     return
   }
+
   const port = ev.ports[0]
   if (!port) {
     return
   }
+
+  // Handle an incoming client for the WebRuntime and/or start the worker.
   port.onmessage = (msgEvent) => {
-    const msg = msgEvent.data
-    if (msg === 'close') {
+    if (msgEvent.data === 'close') {
       port.close()
       return
     }
-    if (typeof msg !== 'object' || !(msg instanceof Uint8Array)) {
-      console.log('runtime-wasm: dropped invalid init message', msg)
-      return
-    }
-    const initMsg = WebRuntimeClientInit.decode(msg)
-    if (!msgEvent.ports.length) {
-      console.error(
-        'runtime-wasm: dropped invalid init message without port',
+
+    const msg: WebDocumentToWebRuntime = msgEvent.data
+    if (typeof msg !== 'object' || !msg.from) {
+      console.log(
+        'runtime-ws: dropped invalid document to web runtime message',
         msg,
       )
       return
     }
-    const connPort = msgEvent.ports[0]
-    webRuntime.handleClient(initMsg, connPort)
-    if (!runtimeStarted) {
-      if (!initMsg.webRuntimeId) {
-        throw new Error('web runtime id: must be set in init message')
-      }
-      runtimeStarted = true
-      startWsRuntimeWithRetry({
-        webRuntimeId: initMsg.webRuntimeId,
-      })
+
+    if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
+      startWsRuntime(msg.initWebRuntime)
+    }
+
+    if (msg.connectWebRuntime && ev.ports.length) {
+      // handle the incoming client
+      webRuntime.handleClient(
+        WebRuntimeClientInit.decode(msg.connectWebRuntime.init),
+        msg.connectWebRuntime.port ?? ev.ports[0],
+      )
     }
   }
+
   port.start()
 })

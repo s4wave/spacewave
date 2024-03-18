@@ -4,7 +4,7 @@
 package storage_default
 
 import (
-	storage "github.com/aperturerobotics/bldr/storage/desktop"
+	storage "github.com/aperturerobotics/bldr/storage/native"
 )
 
 // BuildStorage is the default storage provider.

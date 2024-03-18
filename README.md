@@ -10,7 +10,7 @@ The bundler can deploy to many target environments:
 
 - **CLI**: client interfaces on the command line.
 - **Daemon/Cloud**: running as a native Go process.
-- **Desktop**: supports Electron and/or bundled web views.
+- **Native**: supports Electron and/or OS-provided web views.
 - **Firmware**: embedded devices (using TinyGo).
 - **Mobile**: using the gomobile tool.
 - **Web Browser**: using WebAssembly and WebWorkers.
@@ -85,9 +85,9 @@ It uses the following browser mechanics:
  - **SharedWorker**: parallel background worker shared between all tabs.
  - **ServiceWorker**: intercepts HTTP requests and forwards to Go runtime.
 
-When running as a native application (desktop, electron) the Go process is the
-initial entrypoint to the application, and will start the WebRuntime as a
-sub-process. For example: extracting & starting the Electron redistributable.
+When running as a native application the Go process is the initial entrypoint to
+the application, and will start the WebRuntime as a sub-process. For example:
+extracting & starting the Electron redistributable.
 
 The Web frontend communicates with the Go backend via [RPC streams]. The
 frontend and backend can be located in the same browser, as a native process
@@ -170,8 +170,8 @@ bldr will set the following build tags:
 
 You need the following tools installed:
 
- - [Go](https://golang.org) >= 1.21
- - If using UI: [Node](https://nodejs.org)
+ - [Go](https://golang.org) >= 1.22
+ - [Node](https://nodejs.org)
  - Yarn `npm install -g yarn`
 
 Initial setup (if using web UIs):
@@ -186,8 +186,12 @@ To start the application for development:
 ```
 # start web application
 yarn start:web
-# start desktop application
-yarn start:desktop
+
+# start web application in wasm mode
+yarn start:web:wasm
+
+# start native application
+yarn start:native
 ```
 
 Note: in Chromium: to view the SharedWorker developer tools:

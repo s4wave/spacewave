@@ -1,6 +1,6 @@
 //go:build !js
 
-package electron_storage
+package storage_native
 
 import (
 	"github.com/aperturerobotics/bldr/storage"

@@ -1,6 +1,6 @@
 //go:build !js
 
-package electron_storage
+package storage_native
 
 import (
 	"path/filepath"

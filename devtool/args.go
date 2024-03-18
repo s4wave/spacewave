@@ -232,7 +232,7 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 			Name:  "native",
 			Usage: "Start the application as a native app.",
 			Action: func(c *cli.Context) error {
-				return a.ExecuteDesktopProject(c.Context)
+				return a.ExecuteNativeProject(c.Context)
 			},
 		},
 		{
