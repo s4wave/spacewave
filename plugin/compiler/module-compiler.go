@@ -145,6 +145,7 @@ func (m *ModuleCompiler) CompilePlugin(
 		enableCgo,
 		isRelease,
 		buildTags,
+		nil,
 	)
 }
 

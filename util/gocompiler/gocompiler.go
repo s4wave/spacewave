@@ -5,6 +5,7 @@ import (
 	io "io"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
@@ -74,7 +75,9 @@ func ExecBuildEntrypoint(
 	enableCgo bool,
 	isRelease bool,
 	buildTags []string,
+	ldFlags []string,
 ) error {
+	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_NATIVE
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
 		return err
@@ -90,6 +93,17 @@ func ExecBuildEntrypoint(
 	// build tags
 	if len(buildTags) != 0 {
 		args = append(args, "-tags="+strings.Join(buildTags, ","))
+	}
+
+	// if release or not native platform drop debugging symbols
+	if isRelease || !isNativeBuildPlatform {
+		ldFlags = slices.Clone(ldFlags)
+		ldFlags = append(ldFlags, "-w", "-s")
+	}
+
+	// ldflags
+	if len(ldFlags) != 0 {
+		args = append(args, "-ldflags", strings.Join(ldFlags, " "))
 	}
 
 	// module path

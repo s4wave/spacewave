@@ -255,5 +255,6 @@ func BuildDistBundle(
 		enableCgo,
 		isRelease,
 		buildTags,
+		nil,
 	)
 }

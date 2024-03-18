@@ -696,6 +696,11 @@ func (c *Controller) BuildPlugin(
 	// build tags
 	buildTags := []string{"build_type_" + buildType.String()}
 
+	// use purego on non-native platforms
+	if !isNativeBuildPlatform {
+		buildTags = append(buildTags, "purego")
+	}
+
 	le.Info("analyzing go packages")
 	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTags)
 	if err != nil {

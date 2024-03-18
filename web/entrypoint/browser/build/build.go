@@ -56,7 +56,7 @@ func BuildWasmRuntime(
 	le.Info("building runtime.wasm")
 	buildPlatform := bldr_platform.NewWebPlatform()
 	buildType := bldr_manifest.BuildType_RELEASE
-	buildTags := []string{"build_type_" + buildType.String()}
+	buildTags := []string{"build_type_" + buildType.String(), "purego"}
 	entrypointGoDir := filepath.Join(bldrDistRoot, entrypointPkg)
 	runtimeOut := filepath.Join(buildDir, "runtime.wasm")
 	if err := gocompiler.ExecBuildEntrypoint(
@@ -67,6 +67,7 @@ func BuildWasmRuntime(
 		false, // no cgo
 		minify,
 		buildTags,
+		nil,
 	); err != nil {
 		return err
 	}
