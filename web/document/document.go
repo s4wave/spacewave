@@ -49,7 +49,7 @@ type WebDocument interface {
 
 	// CreateWebView creates a new web view.
 	//
-	// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
+	// Returns false, nil if the document was hidden or view cannot be created.
 	CreateWebView(ctx context.Context, webViewID string) (bool, error)
 
 	// CreateWebWorker creates a new web worker.

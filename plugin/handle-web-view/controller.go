@@ -78,7 +78,7 @@ func (c *Controller) HandleDirective(
 }
 
 // resolveHandleWebView resolves the HandleWebView directive.
-func (c *Controller) resolveHandleWebView(di directive.Instance, dir web_view.HandleWebView) ([]directive.Resolver, error) {
+func (c *Controller) resolveHandleWebView(_ directive.Instance, dir web_view.HandleWebView) ([]directive.Resolver, error) {
 	if webViewIdRe := c.webViewIdRe; webViewIdRe != nil {
 		webViewID := dir.HandleWebView().GetId()
 		if !webViewIdRe.MatchString(webViewID) {

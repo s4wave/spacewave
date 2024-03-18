@@ -9,8 +9,8 @@ import (
 
 // resolveLookupWebView resolves a LookupWebView directive.
 func (c *Controller) resolveLookupWebView(
-	ctx context.Context,
-	di directive.Instance,
+	_ context.Context,
+	_ directive.Instance,
 	dir web_view.LookupWebView,
 ) ([]directive.Resolver, error) {
 	return directive.R(&lookupWebViewResolver{c: c, d: dir}, nil)

@@ -7,14 +7,15 @@ import {
   createMux,
 } from 'starpc'
 import { PluginWorker } from '../../runtime/plugin-worker.js'
-import { PluginDefinition, Plugin as SRPCPlugin } from '../../../plugin/plugin.pb.js'
+import {
+  PluginDefinition,
+  Plugin as SRPCPlugin,
+} from '../../../plugin/plugin.pb.js'
 import { WebPluginBrowserHostClientImpl } from './browser.pb.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope
 const global: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope = self
-
-// TODO set the shim config via global variable (config sets for startup)
 
 // pluginWorker contains the common worker logic.
 const pluginWorker = new PluginWorker(
@@ -34,7 +35,9 @@ const webRuntimeClient = pluginWorker.webRuntimeClient
 const webRuntimeRpcClient = webRuntimeClient.rpcClient
 
 // webPluginBrowserHost is the web plugin browser host controller running on the web runtime host bus.
-const webPluginBrowserHost = new WebPluginBrowserHostClientImpl(webRuntimeRpcClient)
+const webPluginBrowserHost = new WebPluginBrowserHostClientImpl(
+  webRuntimeRpcClient,
+)
 
 // Plugin implements the bldr.plugin.Plugin service.
 class Plugin implements SRPCPlugin {

@@ -162,7 +162,7 @@ func (r *Remote) GetWebDocument(ctx context.Context, webDocumentID string, wait 
 // CreateWebDocument creates a new web document.
 //
 // Returns created, error: returns false for created if already exists.
-// Returns false, ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
+// Returns false, nil if WebDocument cannot be created.
 func (r *Remote) CreateWebDocument(ctx context.Context, webDocumentID string) (bool, error) {
 	if webDocumentID == "" {
 		// generate random id

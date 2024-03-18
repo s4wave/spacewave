@@ -223,8 +223,7 @@ func (r *Remote) GetWebWorker(ctx context.Context, webWorkerID string, wait bool
 
 // CreateWebView creates a new web view and waits for it to become active.
 //
-// Returns ErrWebViewUnavailable if WebView is not available or cannot be created.
-// Returns false, nil if the document was hidden.
+// Returns false, nil if the document was hidden or view cannot be created.
 func (r *Remote) CreateWebView(ctx context.Context, webViewID string) (bool, error) {
 	if webViewID == "" {
 		// generate random id

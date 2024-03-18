@@ -21,7 +21,6 @@ import (
 	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
 	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
-	bldr_web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -181,18 +180,9 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer fwdFmRef.Release()
 
-	// load the web plugin controller
-	// ordinarily this would run in a separate "web" plugin
-	// in this environment the web plugin is configured to forward rpcs to the plugin host
-	_, _, webPluginRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&bldr_web_plugin_controller.Config{}), nil)
-	if err != nil {
-		err = errors.Wrap(err, "start web plugin controller")
-		le.Fatal(err.Error())
-	}
-	defer webPluginRef.Release()
-
 	// load the web plugin browser host controller
 	// services any web plugins forwarding their request to the plugin host
+	// starts the web plugin controller
 	_, _, webPluginBrowserHostRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&bldr_web_plugin_browser_controller.Config{}), nil)
 	if err != nil {
 		err = errors.Wrap(err, "start web plugin browser host controller")

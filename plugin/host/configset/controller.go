@@ -23,7 +23,7 @@ type Controller struct {
 	*bus.BusController[*Config]
 }
 
-// NewFactory constructs the demo controller factory.
+// NewFactory constructs the factory.
 func NewFactory(b bus.Bus) controller.Factory {
 	return bus.NewBusControllerFactory(
 		b,

@@ -73,8 +73,8 @@ type lookupRpcServiceResolver struct {
 
 // resolveLookupRpcService returns a resolver for the LookupRpcService directive.
 func (c *Controller) resolveLookupRpcService(
-	ctx context.Context,
-	di directive.Instance,
+	_ context.Context,
+	_ directive.Instance,
 	dir bifrost_rpc.LookupRpcService,
 ) ([]directive.Resolver, error) {
 	serviceID, serverID := dir.LookupRpcServiceID(), dir.LookupRpcServerID()

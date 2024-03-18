@@ -44,7 +44,7 @@ type WebRuntime interface {
 	// CreateWebDocument creates a new WebDocument.
 	// This usually corresponds to creating a new Tab or Window.
 	//
-	// Returns ErrWebDocumentUnavailable if WebDocument is not available or cannot be created.
+	// Returns false, nil if WebDocument cannot be created.
 	CreateWebDocument(ctx context.Context, webViewID string) (bool, error)
 
 	// GetWebWorkerOpenStream returns a OpenStreamFunc for the given WebWorker ID.

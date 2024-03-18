@@ -32,7 +32,7 @@ type Controller struct {
 	webViews map[string]web_view.WebView
 }
 
-// NewFactory constructs the demo controller factory.
+// NewFactory constructs the factory.
 func NewFactory(b bus.Bus) controller.Factory {
 	return bus.NewBusControllerFactory(
 		b,

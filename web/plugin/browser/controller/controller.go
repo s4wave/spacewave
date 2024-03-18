@@ -4,12 +4,13 @@ import (
 	"context"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_web_plugin_browser "github.com/aperturerobotics/bldr/web/plugin/browser"
+	bldr_web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -32,6 +33,8 @@ type Controller struct {
 	conf *Config
 	// mux is the rpc mux for the WebPluginBrowserHost RPC service.
 	mux srpc.Mux
+	// pluginSrv handles incoming rpcs for the web plugin
+	pluginSrv *bldr_plugin.PluginServer
 }
 
 // NewController constructs a new controller.
@@ -47,6 +50,7 @@ func NewController(
 		conf: conf,
 		mux:  mux,
 	}
+	ctrl.pluginSrv = bldr_plugin.NewPluginServer(bus)
 	_ = mux.Register(bldr_web_plugin_browser.NewSRPCWebPluginBrowserHostHandler(ctrl, ctrl.GetServiceID()))
 	return ctrl
 }
@@ -63,6 +67,16 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Execute executes the controller.
 // Returning nil ends execution.
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
+	// load the web plugin controller
+	// in this environment the web plugin is configured to forward rpcs to the plugin host
+	webPluginCtrl := bldr_web_plugin_controller.NewController(c.le, c.bus, &bldr_web_plugin_controller.Config{})
+	webPluginCtrlRel, err := c.bus.AddController(ctx, webPluginCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer webPluginCtrlRel()
+
+	<-ctx.Done()
 	return nil
 }
 
@@ -99,10 +113,8 @@ func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) 
 
 // PluginRpc handles an incoming RPC request for the web plugin from a remote plugin.
 func (c *Controller) PluginRpc(strm bldr_web_plugin_browser.SRPCWebPluginBrowserHost_PluginRpcStream) error {
-	// Pretend as if the request had come directly from the plugin to the plugin host.
-	return rpcstream.HandleRpcStream(strm, func(ctx context.Context, remotePluginID string) (srpc.Invoker, func(), error) {
-		return bifrost_rpc.NewInvoker(c.bus, "plugin/"+remotePluginID, true), nil, nil
-	})
+	// Forward the RPC to the plugin host bus.
+	return c.pluginSrv.PluginRpc(strm)
 }
 
 // Close releases any resources used by the controller.

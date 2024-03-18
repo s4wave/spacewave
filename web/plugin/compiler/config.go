@@ -67,7 +67,6 @@ func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler.Config, error) {
 	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
 	pluginCompilerConf.DelveAddr = c.GetDelveAddr()
-	pluginCompilerConf.HostConfigSet = c.GetHostConfigSet()
 
 	// configure running the web plugin controller
 	// build config set for the plugin
@@ -77,17 +76,6 @@ func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler.Config, error) {
 		ApplyConfig("web-plugin", &bldr_web_plugin_controller.Config{}, 1, false)
 	if err != nil {
 		return nil, err
-	}
-	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, c.GetConfigSet())
-
-	pluginCompilerConf.BuildTypes = make(map[string]*bldr_plugin_compiler.Config)
-	for buildType, buildTypeConf := range c.GetBuildTypes() {
-		pluginCompilerConf.BuildTypes[buildType] = &bldr_plugin_compiler.Config{
-			ConfigSet:     buildTypeConf.ConfigSet,
-			HostConfigSet: buildTypeConf.HostConfigSet,
-			ProjectId:     buildTypeConf.ProjectId,
-			DelveAddr:     buildTypeConf.DelveAddr,
-		}
 	}
 
 	return pluginCompilerConf, nil
