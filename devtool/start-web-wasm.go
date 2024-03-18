@@ -14,6 +14,7 @@ import (
 	transport_websocket "github.com/aperturerobotics/bifrost/transport/websocket"
 	devtool_web "github.com/aperturerobotics/bldr/devtool/web"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -210,6 +211,29 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 	defer relRpcServer()
+
+	// trigger FetchManifest for the startup plugins in advance
+	// if this is commented out, the plugin build begins once the browser asks for it.
+	if devMode {
+		buildType := bldr_manifest.BuildType_DEV
+		for _, startPluginID := range startPlugins {
+			_, dir, err := b.b.AddDirective(
+				bldr_manifest.NewFetchManifest(
+					bldr_manifest.NewManifestMeta(
+						startPluginID,
+						buildType,
+						bldr_platform.PlatformID_WEB,
+						1,
+					),
+				),
+				nil,
+			)
+			if err != nil {
+				return err
+			}
+			defer dir.Release()
+		}
+	}
 
 	// encode the init info for the browser devtool entrypoint
 	browserInit := &devtool_web.DevtoolInitBrowser{
