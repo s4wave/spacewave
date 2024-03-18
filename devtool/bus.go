@@ -13,8 +13,6 @@ import (
 	"github.com/aperturerobotics/bldr/core"
 	core_devtool "github.com/aperturerobotics/bldr/core/devtool"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
@@ -70,8 +68,6 @@ type DevtoolBus struct {
 	engineObjectStoreID string
 	// pluginHostObjectKey is the object key used for the PluginHost
 	pluginHostObjectKey string
-	// pluginHostCtrl is the plugin host controller
-	pluginHostCtrl *plugin_host_controller.Controller
 	// st contains the storage method
 	st storage.Storage
 	// stConf is the storage config
@@ -80,6 +76,10 @@ type DevtoolBus struct {
 	stateRoot string
 	// distSrcRoot is the path to the web entrypoint sources.
 	distSrcRoot string
+	// pluginsDistRoot is the path to the plugins dist dir.
+	pluginsDistRoot string
+	// pluginsStateRoot is the path to the plugins state dir.
+	pluginsStateRoot string
 	// vol is the volume used for state
 	vol volume.Volume
 	// volInfo is the volume info for the vol used for state
@@ -98,7 +98,7 @@ type DevtoolBus struct {
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
 // Returns a set of functions to call to release the controllers.
-func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, watch, startPluginHost bool) (*DevtoolBus, error) {
+func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, watch bool) (*DevtoolBus, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	rel := func() {
@@ -274,28 +274,6 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
-	// build the plugin host controller
-	var pluginHostCtrl *plugin_host_controller.Controller
-	if startPluginHost {
-		var relPluginHost func()
-		pluginHostCtrl, relPluginHost, err = plugin_host_default.StartBusPluginHost(
-			ctx,
-			b,
-			engineID,
-			pluginHostObjectKey,
-			vol.GetID(),
-			vol.GetPeerID().String(),
-			pluginsStateRoot,
-			pluginsDistRoot,
-		)
-		if err != nil {
-			return nil, err
-		}
-		if relPluginHost != nil {
-			rels = append(rels, relPluginHost)
-		}
-	}
-
 	// distSrcDir is the path to the dist sources dir
 	distSrcDir := filepath.Join(stateRoot, "src")
 
@@ -309,11 +287,12 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
 		pluginHostObjectKey: pluginHostObjectKey,
-		pluginHostCtrl:      pluginHostCtrl,
 		st:                  storageMethod,
 		stConf:              stConf,
 		stateRoot:           stateRoot,
 		distSrcRoot:         distSrcDir,
+		pluginsDistRoot:     pluginsDistRoot,
+		pluginsStateRoot:    pluginsStateRoot,
 		vol:                 vol,
 		volInfo:             volInfo,
 		volCtrl:             volCtrl,
@@ -466,6 +445,16 @@ func (d *DevtoolBus) GetStateRoot() string {
 // GetDistSrcDir returns the path to the redistribute sources checked out under StateRoot.
 func (d *DevtoolBus) GetDistSrcDir() string {
 	return d.distSrcRoot
+}
+
+// GetPluginsDistRoot returns the path to the plugins dist files dir.
+func (d *DevtoolBus) GetPluginsDistRoot() string {
+	return d.pluginsDistRoot
+}
+
+// GetPluginsStateRoot returns the path to the plugins state files dir.
+func (d *DevtoolBus) GetPluginsStateRoot() string {
+	return d.pluginsStateRoot
 }
 
 // GetStorage returns the storage.

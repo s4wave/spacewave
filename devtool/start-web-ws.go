@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -37,7 +38,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 
 	// initialize the storage + bus
 	buildType := bldr_manifest.BuildType(a.BuildType)
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch, true)
+	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}
@@ -49,6 +50,24 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 
 	// write the banner
 	writeBanner()
+
+	// build the plugin host controller
+	_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
+		ctx,
+		b.GetBus(),
+		b.GetWorldEngineID(),
+		b.GetPluginHostObjectKey(),
+		b.GetVolume().GetID(),
+		b.GetVolume().GetPeerID().String(),
+		b.GetPluginsStateRoot(),
+		b.GetPluginsDistRoot(),
+	)
+	if err != nil {
+		return err
+	}
+	if relPluginHost != nil {
+		defer relPluginHost()
+	}
 
 	// execute the project controller
 	_, projCtrlRef, err := b.StartProjectController(

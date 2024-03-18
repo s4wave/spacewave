@@ -2,6 +2,8 @@ package devtool
 
 import (
 	"context"
+
+	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 )
 
 // ExecuteNativeProject starts the project as a native app.
@@ -15,7 +17,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch, true)
+	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}
@@ -28,6 +30,24 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 
 	// write the banner
 	writeBanner()
+
+	// build the plugin host controller
+	_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
+		ctx,
+		b.GetBus(),
+		b.GetWorldEngineID(),
+		b.GetPluginHostObjectKey(),
+		b.GetVolume().GetID(),
+		b.GetVolume().GetPeerID().String(),
+		b.GetPluginsStateRoot(),
+		b.GetPluginsDistRoot(),
+	)
+	if err != nil {
+		return err
+	}
+	if relPluginHost != nil {
+		defer relPluginHost()
+	}
 
 	// execute the project controller
 	_, projCtrlRef, err := b.StartProjectController(
