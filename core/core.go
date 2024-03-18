@@ -3,9 +3,6 @@ package core
 import (
 	"context"
 
-	cresolve "github.com/aperturerobotics/bldr/assembly/bridge/cresolve"
-	cvolume "github.com/aperturerobotics/bldr/assembly/bridge/volume"
-	assembly_controller "github.com/aperturerobotics/bldr/assembly/controller"
 	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/plugin"
 	manifest_fetch_viaworld "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
@@ -61,10 +58,6 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
-	sr.AddFactory(assembly_controller.NewFactory(b))
-
-	sr.AddFactory(cresolve.NewFactory(b))
-	sr.AddFactory(cvolume.NewFactory(b))
 
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))

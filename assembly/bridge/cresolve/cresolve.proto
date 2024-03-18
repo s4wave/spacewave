@@ -1,9 +1,0 @@
-syntax = "proto3";
-package bridge.cresolve;
-
-// Config configures the controller factory resolver directive bridge.
-message Config {
-  // ConfigIdRe filters the controllers resolved using a regex on the config id.
-  // If empty, allows any config to be resolved.
-  string config_id_re = 1;
-}
