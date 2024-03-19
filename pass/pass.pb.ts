@@ -207,7 +207,7 @@ export const Pass = {
     if (message.replicas !== 0) {
       writer.uint32(48).uint32(message.replicas)
     }
-    if (!message.passNonce.isZero()) {
+    if (!message.passNonce.equals(Long.UZERO)) {
       writer.uint32(56).uint64(message.passNonce)
     }
     for (const v of message.execStates) {
@@ -377,7 +377,7 @@ export const Pass = {
     if (message.replicas !== 0) {
       obj.replicas = Math.round(message.replicas)
     }
-    if (!message.passNonce.isZero()) {
+    if (!message.passNonce.equals(Long.UZERO)) {
       obj.passNonce = (message.passNonce || Long.UZERO).toString()
     }
     if (message.execStates?.length) {

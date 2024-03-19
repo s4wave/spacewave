@@ -384,7 +384,7 @@ export const TxSetOutputs = {
     for (const v of message.outputs) {
       Value.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    if (message.clearOld === true) {
+    if (message.clearOld !== false) {
       writer.uint32(16).bool(message.clearOld)
     }
     return writer
@@ -473,7 +473,7 @@ export const TxSetOutputs = {
     if (message.outputs?.length) {
       obj.outputs = message.outputs.map((e) => Value.toJSON(e))
     }
-    if (message.clearOld === true) {
+    if (message.clearOld !== false) {
       obj.clearOld = message.clearOld
     }
     return obj

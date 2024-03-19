@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"os"
 
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
@@ -47,7 +46,7 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) err
 		return err
 	}
 
-	targetData, err := ioutil.ReadFile(targetPath)
+	targetData, err := os.ReadFile(targetPath)
 	if err != nil {
 		return err
 	}

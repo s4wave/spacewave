@@ -391,10 +391,10 @@ export const TxUpdateInputs = {
     message: TxUpdateInputs,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.updateTarget === true) {
+    if (message.updateTarget !== false) {
       writer.uint32(8).bool(message.updateTarget)
     }
-    if (message.resetInputs === true) {
+    if (message.resetInputs !== false) {
       writer.uint32(16).bool(message.resetInputs)
     }
     if (message.valueSet !== undefined) {
@@ -493,10 +493,10 @@ export const TxUpdateInputs = {
 
   toJSON(message: TxUpdateInputs): unknown {
     const obj: any = {}
-    if (message.updateTarget === true) {
+    if (message.updateTarget !== false) {
       obj.updateTarget = message.updateTarget
     }
-    if (message.resetInputs === true) {
+    if (message.resetInputs !== false) {
       obj.resetInputs = message.resetInputs
     }
     if (message.valueSet !== undefined) {
@@ -533,7 +533,7 @@ export const TxStart = {
     message: TxStart,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.assignSelf === true) {
+    if (message.assignSelf !== false) {
       writer.uint32(8).bool(message.assignSelf)
     }
     return writer
@@ -607,7 +607,7 @@ export const TxStart = {
 
   toJSON(message: TxStart): unknown {
     const obj: any = {}
-    if (message.assignSelf === true) {
+    if (message.assignSelf !== false) {
       obj.assignSelf = message.assignSelf
     }
     return obj

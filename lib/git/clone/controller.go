@@ -174,7 +174,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		repoRev = 1
+		// repoRev = 1
 	}
 
 	// set the output

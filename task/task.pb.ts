@@ -183,7 +183,7 @@ export const Task = {
     if (message.replicas !== 0) {
       writer.uint32(40).uint32(message.replicas)
     }
-    if (!message.passNonce.isZero()) {
+    if (!message.passNonce.equals(Long.UZERO)) {
       writer.uint32(48).uint64(message.passNonce)
     }
     if (message.targetRef !== undefined) {
@@ -351,7 +351,7 @@ export const Task = {
     if (message.replicas !== 0) {
       obj.replicas = Math.round(message.replicas)
     }
-    if (!message.passNonce.isZero()) {
+    if (!message.passNonce.equals(Long.UZERO)) {
       obj.passNonce = (message.passNonce || Long.UZERO).toString()
     }
     if (message.targetRef !== undefined) {

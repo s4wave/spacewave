@@ -394,7 +394,7 @@ export const Input = {
     if (message.alias !== '') {
       writer.uint32(26).string(message.alias)
     }
-    if (message.watchChanges === true) {
+    if (message.watchChanges !== false) {
       writer.uint32(56).bool(message.watchChanges)
     }
     if (message.value !== undefined) {
@@ -543,7 +543,7 @@ export const Input = {
     if (message.alias !== '') {
       obj.alias = message.alias
     }
-    if (message.watchChanges === true) {
+    if (message.watchChanges !== false) {
       obj.watchChanges = message.watchChanges
     }
     if (message.value !== undefined) {
@@ -595,7 +595,7 @@ export const InputWorld = {
     if (message.engineId !== '') {
       writer.uint32(10).string(message.engineId)
     }
-    if (message.lookupImmediate === true) {
+    if (message.lookupImmediate !== false) {
       writer.uint32(16).bool(message.lookupImmediate)
     }
     return writer
@@ -684,7 +684,7 @@ export const InputWorld = {
     if (message.engineId !== '') {
       obj.engineId = message.engineId
     }
-    if (message.lookupImmediate === true) {
+    if (message.lookupImmediate !== false) {
       obj.lookupImmediate = message.lookupImmediate
     }
     return obj
@@ -718,7 +718,7 @@ export const InputWorldObject = {
     if (message.objectKey !== '') {
       writer.uint32(18).string(message.objectKey)
     }
-    if (!message.objectRev.isZero()) {
+    if (!message.objectRev.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.objectRev)
     }
     return writer
@@ -818,7 +818,7 @@ export const InputWorldObject = {
     if (message.objectKey !== '') {
       obj.objectKey = message.objectKey
     }
-    if (!message.objectRev.isZero()) {
+    if (!message.objectRev.equals(Long.UZERO)) {
       obj.objectRev = (message.objectRev || Long.UZERO).toString()
     }
     return obj
@@ -998,7 +998,7 @@ function createBaseExec(): Exec {
 
 export const Exec = {
   encode(message: Exec, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.disable === true) {
+    if (message.disable !== false) {
       writer.uint32(8).bool(message.disable)
     }
     if (message.controller !== undefined) {
@@ -1088,7 +1088,7 @@ export const Exec = {
 
   toJSON(message: Exec): unknown {
     const obj: any = {}
-    if (message.disable === true) {
+    if (message.disable !== false) {
       obj.disable = message.disable
     }
     if (message.controller !== undefined) {

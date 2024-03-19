@@ -53,8 +53,8 @@ func (c *Config) Validate() error {
 // BuildUniqueID builds the unique id for the execution instance.
 func (c *Config) BuildUniqueID() string {
 	h := blake3.NewDeriveKey("forge/execution/controller: config: unique id")
-	h.WriteString(c.GetPeerId())
-	h.WriteString(c.GetObjectKey())
+	_, _ = h.WriteString(c.GetPeerId())
+	_, _ = h.WriteString(c.GetObjectKey())
 	hsum := h.Sum(nil)
 	var id uuid.UUID
 	copy(id[:], hsum)

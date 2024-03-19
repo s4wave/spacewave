@@ -611,7 +611,7 @@ export const TxCreateExecSpecs = {
     for (const v of message.execSpecs) {
       ExecSpec.encode(v!, writer.uint32(10).fork()).ldelim()
     }
-    if (message.clearExisting === true) {
+    if (message.clearExisting !== false) {
       writer.uint32(16).bool(message.clearExisting)
     }
     return writer
@@ -700,7 +700,7 @@ export const TxCreateExecSpecs = {
     if (message.execSpecs?.length) {
       obj.execSpecs = message.execSpecs.map((e) => ExecSpec.toJSON(e))
     }
-    if (message.clearExisting === true) {
+    if (message.clearExisting !== false) {
       obj.clearExisting = message.clearExisting
     }
     return obj

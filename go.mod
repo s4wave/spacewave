@@ -3,15 +3,15 @@ module github.com/aperturerobotics/forge
 go 1.22
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240305034132-0507fbd75ad5
-	github.com/aperturerobotics/identity v0.0.0-20240207031954-9d765116aef5
+	github.com/aperturerobotics/hydra v0.0.0-20240319000043-96d3d2070603
+	github.com/aperturerobotics/identity v0.0.0-20240319001051-c9558e43b9ec
 )
 
 require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.1-0.20240304195918-f27cfeb51a04 // master
+require github.com/aperturerobotics/bifrost v0.25.3-0.20240311223214-084b9a4fa3f2 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -67,12 +67,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.4-0.20240305021941-6b425805eba1 // latest
+	github.com/aperturerobotics/controllerbus v0.36.6 // latest
 	github.com/aperturerobotics/entitygraph v0.6.1
 	github.com/aperturerobotics/starpc v0.27.2 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.14.3 // master
+	github.com/aperturerobotics/util v1.15.0 // master
 )
 
 // aperture: use compatibility forks
@@ -102,7 +102,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.21.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
@@ -193,13 +193,13 @@ require (
 	github.com/pion/rtcp v1.2.13 // indirect
 	github.com/pion/rtp v1.8.3 // indirect
 	github.com/pion/sctp v1.8.12 // indirect
-	github.com/pion/sdp/v3 v3.0.6 // indirect
+	github.com/pion/sdp/v3 v3.0.8 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.11 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.13 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/quic-go v0.41.0 // indirect
@@ -212,7 +212,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/templexxx/cpu v0.1.0 // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
@@ -234,13 +234,13 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.18.0 // indirect
+	golang.org/x/tools v0.19.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect

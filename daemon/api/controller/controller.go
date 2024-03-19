@@ -96,7 +96,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// controllerbus api
 	if !c.conf.GetDisableBusApi() {
 		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
-		bapi.RegisterAsSRPCServer(mux)
+		_ = bapi.RegisterAsSRPCServer(mux)
 	}
 
 	lis, err := net.Listen("tcp", c.listenAddr)

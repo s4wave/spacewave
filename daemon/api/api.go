@@ -18,7 +18,7 @@ func NewAPI(bus bus.Bus, conf *Config) (*API, error) {
 
 // RegisterAsSRPCServer registers the API to the SRPC Mux.
 func (a *API) RegisterAsSRPCServer(mux srpc.Mux) {
-	SRPCRegisterForgeDaemonService(mux, a)
+	_ = SRPCRegisterForgeDaemonService(mux, a)
 }
 
 // _ is a type assertion

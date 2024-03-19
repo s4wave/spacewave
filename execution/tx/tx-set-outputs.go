@@ -87,7 +87,7 @@ func (t *TxSetOutputs) ExecuteTx(
 	}
 
 	// remove any outputs with type UNKNOWN (0)
-	outputs = outputs.RemoveUnknown()
+	nextOutputs = nextOutputs.RemoveUnknown()
 
 	if root.ValueSet == nil {
 		root.ValueSet = &forge_target.ValueSet{}

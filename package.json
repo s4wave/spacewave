@@ -42,13 +42,13 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.8.6",
+    "@aperturerobotics/ts-common": "^0.8.7",
     "depcheck": "^1.4.7",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "ts-poet": "6.7.0",
-    "ts-proto": "^1.167.9",
-    "typescript": "^5.3.3"
+    "ts-proto": "^1.169.1",
+    "typescript": "^5.4.2"
   },
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.3.0",

@@ -218,7 +218,7 @@ export const Config = {
     if (message.configInput !== '') {
       writer.uint32(18).string(message.configInput)
     }
-    if (message.ignoreErrors === true) {
+    if (message.ignoreErrors !== false) {
       writer.uint32(24).bool(message.ignoreErrors)
     }
     return writer
@@ -318,7 +318,7 @@ export const Config = {
     if (message.configInput !== '') {
       obj.configInput = message.configInput
     }
-    if (message.ignoreErrors === true) {
+    if (message.ignoreErrors !== false) {
       obj.ignoreErrors = message.ignoreErrors
     }
     return obj

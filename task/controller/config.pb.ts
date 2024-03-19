@@ -42,7 +42,7 @@ export const Config = {
     if (message.peerId !== '') {
       writer.uint32(26).string(message.peerId)
     }
-    if (message.assignSelf === true) {
+    if (message.assignSelf !== false) {
       writer.uint32(32).bool(message.assignSelf)
     }
     return writer
@@ -153,7 +153,7 @@ export const Config = {
     if (message.peerId !== '') {
       obj.peerId = message.peerId
     }
-    if (message.assignSelf === true) {
+    if (message.assignSelf !== false) {
       obj.assignSelf = message.assignSelf
     }
     return obj

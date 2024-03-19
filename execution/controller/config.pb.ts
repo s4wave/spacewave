@@ -71,7 +71,7 @@ export const Config = {
     if (message.resolveControllerConfigTimeout !== '') {
       writer.uint32(34).string(message.resolveControllerConfigTimeout)
     }
-    if (message.allowNonExecController === true) {
+    if (message.allowNonExecController !== false) {
       writer.uint32(40).bool(message.allowNonExecController)
     }
     if (message.inputWorld !== undefined) {
@@ -211,7 +211,7 @@ export const Config = {
       obj.resolveControllerConfigTimeout =
         message.resolveControllerConfigTimeout
     }
-    if (message.allowNonExecController === true) {
+    if (message.allowNonExecController !== false) {
       obj.allowNonExecController = message.allowNonExecController
     }
     if (message.inputWorld !== undefined) {

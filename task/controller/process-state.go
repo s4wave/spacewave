@@ -135,12 +135,8 @@ func (c *Controller) ProcessState(
 		txInner.ResetInputs = len(inputSet) == 0
 		txInner.UpdateTarget = targetDirty
 		txInner.ValueSet = forge_target.NewValueSet()
-		for _, input := range addedInputs {
-			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, input)
-		}
-		for _, input := range changedInputs {
-			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, input)
-		}
+		txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, addedInputs...)
+		txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, changedInputs...)
 		for _, input := range removedInputs {
 			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, &forge_value.Value{
 				Name:      input.GetName(),

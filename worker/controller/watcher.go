@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	"github.com/aperturerobotics/identity"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -92,8 +91,8 @@ func (c *Controller) ProcessState(
 		}
 
 		// override the list of peer ids with the configured
-		workerPeerIDs = []peer.ID{peerID}
-		workerKeypairs = []*identity.Keypair{workerKeypairs[matched]}
+		// workerPeerIDs = []peer.ID{peerID}
+		// workerKeypairs = []*identity.Keypair{workerKeypairs[matched]}
 		workerKeypairKeys = []string{workerKeypairKeys[matched]}
 	}
 

@@ -52,7 +52,7 @@ export const Config = {
     if (message.listenAddr !== '') {
       writer.uint32(10).string(message.listenAddr)
     }
-    if (message.disableBifrostApi === true) {
+    if (message.disableBifrostApi !== false) {
       writer.uint32(16).bool(message.disableBifrostApi)
     }
     if (message.bifrostApiConfig !== undefined) {
@@ -61,19 +61,19 @@ export const Config = {
         writer.uint32(26).fork(),
       ).ldelim()
     }
-    if (message.disableBusApi === true) {
+    if (message.disableBusApi !== false) {
       writer.uint32(32).bool(message.disableBusApi)
     }
     if (message.busApiConfig !== undefined) {
       Config2.encode(message.busApiConfig, writer.uint32(42).fork()).ldelim()
     }
-    if (message.disableHydraApi === true) {
+    if (message.disableHydraApi !== false) {
       writer.uint32(56).bool(message.disableHydraApi)
     }
     if (message.hydraApiConfig !== undefined) {
       Config3.encode(message.hydraApiConfig, writer.uint32(50).fork()).ldelim()
     }
-    if (message.disableForgeApi === true) {
+    if (message.disableForgeApi !== false) {
       writer.uint32(64).bool(message.disableForgeApi)
     }
     if (message.forgeApiConfig !== undefined) {
@@ -233,25 +233,25 @@ export const Config = {
     if (message.listenAddr !== '') {
       obj.listenAddr = message.listenAddr
     }
-    if (message.disableBifrostApi === true) {
+    if (message.disableBifrostApi !== false) {
       obj.disableBifrostApi = message.disableBifrostApi
     }
     if (message.bifrostApiConfig !== undefined) {
       obj.bifrostApiConfig = Config1.toJSON(message.bifrostApiConfig)
     }
-    if (message.disableBusApi === true) {
+    if (message.disableBusApi !== false) {
       obj.disableBusApi = message.disableBusApi
     }
     if (message.busApiConfig !== undefined) {
       obj.busApiConfig = Config2.toJSON(message.busApiConfig)
     }
-    if (message.disableHydraApi === true) {
+    if (message.disableHydraApi !== false) {
       obj.disableHydraApi = message.disableHydraApi
     }
     if (message.hydraApiConfig !== undefined) {
       obj.hydraApiConfig = Config3.toJSON(message.hydraApiConfig)
     }
-    if (message.disableForgeApi === true) {
+    if (message.disableForgeApi !== false) {
       obj.disableForgeApi = message.disableForgeApi
     }
     if (message.forgeApiConfig !== undefined) {

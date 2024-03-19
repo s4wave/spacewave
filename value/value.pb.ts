@@ -319,13 +319,13 @@ export const Result = {
     message: Result,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.success === true) {
+    if (message.success !== false) {
       writer.uint32(8).bool(message.success)
     }
     if (message.failError !== '') {
       writer.uint32(18).string(message.failError)
     }
-    if (message.canceled === true) {
+    if (message.canceled !== false) {
       writer.uint32(24).bool(message.canceled)
     }
     return writer
@@ -419,13 +419,13 @@ export const Result = {
 
   toJSON(message: Result): unknown {
     const obj: any = {}
-    if (message.success === true) {
+    if (message.success !== false) {
       obj.success = message.success
     }
     if (message.failError !== '') {
       obj.failError = message.failError
     }
-    if (message.canceled === true) {
+    if (message.canceled !== false) {
       obj.canceled = message.canceled
     }
     return obj
@@ -464,7 +464,7 @@ export const WorldObjectSnapshot = {
     if (message.rootRef !== undefined) {
       ObjectRef.encode(message.rootRef, writer.uint32(18).fork()).ldelim()
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.rev)
     }
     if (message.objectType !== '') {
@@ -588,7 +588,7 @@ export const WorldObjectSnapshot = {
     if (message.rootRef !== undefined) {
       obj.rootRef = ObjectRef.toJSON(message.rootRef)
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       obj.rev = (message.rev || Long.UZERO).toString()
     }
     if (message.objectType !== '') {

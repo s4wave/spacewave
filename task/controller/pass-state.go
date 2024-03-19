@@ -18,6 +18,7 @@ func newPassState(objKey string, pass *forge_pass.Pass) *passState {
 	}
 }
 
+/*
 // checkChanged checks if the two states are different.
 func (s *passState) checkChanged(ot *passState) bool {
 	switch {
@@ -30,3 +31,4 @@ func (s *passState) checkChanged(ot *passState) bool {
 	}
 	return true
 }
+*/

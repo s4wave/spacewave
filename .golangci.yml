@@ -1,0 +1,5 @@
+linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - '-SA1012' # Allow passing nil contexts.

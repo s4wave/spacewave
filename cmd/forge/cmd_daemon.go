@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -209,7 +208,7 @@ func runDaemon(c *cli.Context) error {
 	// Load config file
 	configLe := le.WithField("config", daemonFlags.ConfigPath)
 	if confPath := daemonFlags.ConfigPath; confPath != "" {
-		confDat, err := ioutil.ReadFile(confPath)
+		confDat, err := os.ReadFile(confPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				if daemonFlags.WriteConfig {
@@ -246,7 +245,7 @@ func runDaemon(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "marshal config")
 		}
-		err = ioutil.WriteFile(daemonFlags.ConfigPath, confDat, 0644)
+		err = os.WriteFile(daemonFlags.ConfigPath, confDat, 0644)
 		if err != nil {
 			return errors.Wrap(err, "write config file")
 		}
