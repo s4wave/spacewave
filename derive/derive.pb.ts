@@ -19,7 +19,7 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.disablePromptPassword === true) {
+    if (message.disablePromptPassword !== false) {
       writer.uint32(8).bool(message.disablePromptPassword)
     }
     return writer
@@ -93,7 +93,7 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.disablePromptPassword === true) {
+    if (message.disablePromptPassword !== false) {
       obj.disablePromptPassword = message.disablePromptPassword
     }
     return obj
