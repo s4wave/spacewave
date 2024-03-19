@@ -239,7 +239,7 @@ func BuildWebPkgsEsbuild(
 		// Create a temporary dir for the entrypoints
 		pkgBuildPath := webPkgRef.WebPkgRoot
 		pkgTmpPath := filepath.Join(pkgOutputPath, bldrEsbuildTmpDir)
-		if err := os.MkdirAll(pkgTmpPath, 0755); err != nil {
+		if err := os.MkdirAll(pkgTmpPath, 0o755); err != nil {
 			return nil, nil, err
 		}
 
@@ -300,11 +300,11 @@ func BuildWebPkgsEsbuild(
 			impOutPath = impOutPath[:len(impOutPath)-len(impOutExt)] // + ".mjs"
 
 			outEntrypointDir := filepath.Dir(outEntrypointPath)
-			if err := os.MkdirAll(outEntrypointDir, 0755); err != nil {
+			if err := os.MkdirAll(outEntrypointDir, 0o755); err != nil {
 				return nil, nil, err
 			}
 
-			err = os.WriteFile(outEntrypointPath, []byte(webPkgEntrypointScript+"\n"), 0644)
+			err = os.WriteFile(outEntrypointPath, []byte(webPkgEntrypointScript+"\n"), 0o644)
 			if err != nil {
 				return nil, nil, err
 			}

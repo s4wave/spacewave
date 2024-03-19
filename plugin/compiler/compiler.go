@@ -622,7 +622,7 @@ func (c *Controller) FastRebuildPlugin(
 			return nil, err
 		}
 		devInfoPath := filepath.Join(outDistPath, devInfoFile)
-		if err := os.WriteFile(devInfoPath, updDevInfo, 0644); err != nil {
+		if err := os.WriteFile(devInfoPath, updDevInfo, 0o644); err != nil {
 			return nil, err
 		}
 		le.Debugf("wrote file: %s", devInfoFile)
@@ -960,7 +960,7 @@ func (c *Controller) BuildPlugin(
 		}
 		le.Debugf("copy %s to %s", relSrcPath, relOutDistPath)
 
-		return fsutil.CopyFileToDir(outDistPath, srcPath, 0644)
+		return fsutil.CopyFileToDir(outDistPath, srcPath, 0o644)
 	}
 
 	// copy some files to dist/ which the entrypoint will need

@@ -2,6 +2,7 @@ package bldr_dist_compiler
 
 import (
 	"fmt"
+	"strings"
 
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 )
@@ -23,19 +24,33 @@ var DistMeta = %q
 // LogLevel is the logging level to use.
 var LogLevel = logrus.DebugLevel
 
-// StaticFS contains embedded static assets.
+// AssetsFS contains embedded static assets.%s
 //
-//go:embed config-set.bin volume.kvfile
-var StaticFS embed.FS
+//%s
+var AssetsFS embed.FS
 
 func main() {
-	dist_entrypoint.Main(DistMeta, LogLevel, StaticFS)
+	dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)
 }
 `
 
 // FormatDistEntrypoint formats the embedded dist entrypoint code.
 func FormatDistEntrypoint(
 	meta *bldr_dist.DistMeta,
+	embedAssetsFS []string,
 ) string {
-	return fmt.Sprintf(distEntrypointFmt, meta.MarshalB58())
+	var goEmbedLine string
+	if len(embedAssetsFS) != 0 {
+		goEmbedLine = "go:embed " + strings.Join(embedAssetsFS, " ")
+	} else {
+		goEmbedLine = " [empty]"
+	}
+
+	return fmt.Sprintf(
+		distEntrypointFmt,
+		// DistMeta
+		meta.MarshalB58(),
+		// AssetsFS contents for go:embed
+		goEmbedLine,
+	)
 }

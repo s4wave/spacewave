@@ -77,7 +77,7 @@ func (m *ModuleCompiler) GenerateModule(
 	if len(configSetBinary) != 0 {
 		configSetBinFilename := "config-set.bin"
 		outConfigSetBinPath := filepath.Join(m.pluginCodegenPath, configSetBinFilename)
-		if err := os.WriteFile(outConfigSetBinPath, configSetBinary, 0644); err != nil {
+		if err := os.WriteFile(outConfigSetBinPath, configSetBinary, 0o644); err != nil {
 			return nil, err
 		}
 		configSetBinFiles = append(configSetBinFiles, configSetBinFilename)
@@ -91,7 +91,7 @@ func (m *ModuleCompiler) GenerateModule(
 		if err != nil {
 			return nil, err
 		}
-		if err := os.WriteFile(outDevInfoFilePath, devInfoBin, 0644); err != nil {
+		if err := os.WriteFile(outDevInfoFilePath, devInfoBin, 0o644); err != nil {
 			return nil, err
 		}
 	}
@@ -118,7 +118,7 @@ func (m *ModuleCompiler) GenerateModule(
 	if err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(outPluginCodeFilePath, pluginCodeData, 0644); err != nil {
+	if err := os.WriteFile(outPluginCodeFilePath, pluginCodeData, 0o644); err != nil {
 		return nil, err
 	}
 
@@ -165,7 +165,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// write the plugin dev wrapper entrypoint
 	devSrcDir := filepath.Join(m.pluginCodegenPath, "dev")
 	devSrcMain := filepath.Join(devSrcDir, "main.go")
-	if err := os.MkdirAll(devSrcDir, 0755); err != nil {
+	if err := os.MkdirAll(devSrcDir, 0o755); err != nil {
 		return err
 	}
 	devWrapperSrc, err := GetDevWrapper()
@@ -194,7 +194,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 		goArgs,
 		goEnv,
 	)
-	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0644); err != nil {
+	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0o644); err != nil {
 		return err
 	}
 

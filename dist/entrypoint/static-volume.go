@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvfile "github.com/aperturerobotics/hydra/volume/kvfile"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -37,6 +38,17 @@ func NewStaticVolumeController(
 	if volConf == nil {
 		volConf = &volume_kvfile.Config{}
 	}
+	if volConf.VolumeConfig == nil {
+		volConf.VolumeConfig = &volume_controller.Config{}
+	}
+
+	// security: disable loading peer from the volume
+	volConf.VolumeConfig.DisablePeer = true
+
+	// performance: disable reconciler queues
+	volConf.VolumeConfig.DisableEventBlockRm = true
+	volConf.VolumeConfig.DisableReconcilerQueues = true
+
 	return &StaticVolumeController{le: le, b: b, file: f, close: close, volConf: volConf}
 }
 

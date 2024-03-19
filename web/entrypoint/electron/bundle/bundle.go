@@ -109,7 +109,7 @@ func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 		return err
 	}
 	rendererHtmlOut := filepath.Join(buildDir, "index.html")
-	err = os.WriteFile(rendererHtmlOut, ihtml, 0644)
+	err = os.WriteFile(rendererHtmlOut, ihtml, 0o644)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
 // minify enables file minification in esbuild
 // devMode enables devMode extensions in Electron
 func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
-	err := os.MkdirAll(buildDir, 0755)
+	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
 	}

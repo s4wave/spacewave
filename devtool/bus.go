@@ -130,12 +130,12 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	pluginHostObjectKey := "devtool"
 	pluginsRoot := filepath.Join(stateRoot, "plugin")
 	pluginsDistRoot := filepath.Join(pluginsRoot, "dist")
-	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
+	if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
 		rel()
 		return nil, err
 	}
 	pluginsStateRoot := filepath.Join(pluginsRoot, "state")
-	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
+	if err := os.MkdirAll(pluginsStateRoot, 0o755); err != nil {
 		rel()
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 	defer distSourcesHandle.Release()
 
 	// sync the entrypoint sources to the path
-	err := os.MkdirAll(d.distSrcRoot, 0755)
+	err := os.MkdirAll(d.distSrcRoot, 0o755)
 	if err != nil {
 		return err
 	}
@@ -374,7 +374,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(bldrGoModPath, updatedBldrGoMod, 0644); err != nil {
+	if err := os.WriteFile(bldrGoModPath, updatedBldrGoMod, 0o644); err != nil {
 		return err
 	}
 	if bldrSum != "" {
@@ -387,7 +387,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
 
 		bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
-		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0644)
+		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0o644)
 		if err != nil {
 			return err
 		}

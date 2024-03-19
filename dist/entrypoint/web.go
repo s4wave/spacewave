@@ -5,6 +5,7 @@ package dist_entrypoint
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 
@@ -41,4 +42,11 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
+}
+
+// openStaticVolume opens the static volume kvfile.
+func openStaticVolume(assetsFS fs.FS) (fs.File, error) {
+	// TODO: mount
+	return nil, errors.New("TODO mount /assets.kvfile as a kvfile_compress.ReadSeekerAt for web platform")
+	// return assetsFS.Open("assets.kvfile")
 }

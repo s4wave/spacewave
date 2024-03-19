@@ -123,7 +123,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 
 	// compile the entrypoint wasm
 	wasmRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
-	if err := os.MkdirAll(wasmRuntimeDir, 0755); err != nil {
+	if err := os.MkdirAll(wasmRuntimeDir, 0o755); err != nil {
 		return err
 	}
 	if err := entrypoint_browser_build.BuildWasmRuntime(

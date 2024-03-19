@@ -42,7 +42,7 @@ func main() {
 		// Write:       true,
 	})
 
-	err := os.WriteFile("app.js", []byte("import("+strconv.Quote(pkgName)+")"), 0644)
+	err := os.WriteFile("app.js", []byte("import("+strconv.Quote(pkgName)+")"), 0o644)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)

@@ -22,7 +22,6 @@ func (r *FetchManifestResponse) SetValueId(id uint32) {
 // SetIdle sets the idle field.
 func (r *FetchManifestResponse) SetIdle(idle bool) {
 	r.Idle = idle
-
 }
 
 // SetRemoved sets the removed field.

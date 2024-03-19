@@ -62,5 +62,4 @@ func FetchManifestViaRpcLookupClientSet(
 
 	srv := NewSRPCManifestFetchClientWithServiceID(clientSet, serviceID)
 	return FetchManifestViaRpc(ctx, dir, srv.FetchManifest, hnd, returnOnIdle)
-
 }

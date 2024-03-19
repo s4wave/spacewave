@@ -27,6 +27,7 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -51,7 +52,7 @@ func BuildDistBundle(
 
 	// Write the bldr license file.
 	bldrLicense := bldr.GetLicense()
-	if err := os.WriteFile(filepath.Join(workingPath, "LICENSE"), []byte(bldrLicense), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(workingPath, "LICENSE"), []byte(bldrLicense), 0o644); err != nil {
 		return err
 	}
 
@@ -74,14 +75,17 @@ func BuildDistBundle(
 
 	// EntrypointBuildDir is the directory we will run "go build"
 	entrypointBuildDir := filepath.Join(workingPath, "entrypoint")
-	if err := os.MkdirAll(entrypointBuildDir, 0755); err != nil {
+	if err := os.MkdirAll(entrypointBuildDir, 0o755); err != nil {
 		return err
 	}
 
 	// Write the configset bin file.
-	outConfigSetPath := filepath.Join(entrypointBuildDir, "config-set.bin")
-	if err := os.WriteFile(outConfigSetPath, hostConfigSetBin, 0644); err != nil {
-		return err
+	outConfigSetFilename := "config-set.bin"
+	if len(hostConfigSetBin) != 0 {
+		outConfigSetPath := filepath.Join(entrypointBuildDir, outConfigSetFilename)
+		if err := os.WriteFile(outConfigSetPath, hostConfigSetBin, 0o644); err != nil {
+			return err
+		}
 	}
 
 	// construct a new bus to hold our working volume
@@ -93,7 +97,7 @@ func BuildDistBundle(
 	workSr.AddFactory(world_block_engine.NewFactory(workBus))
 
 	workingDbDir := filepath.Join(workingPath, "dist-vol")
-	if err := os.MkdirAll(workingDbDir, 0755); err != nil {
+	if err := os.MkdirAll(workingDbDir, 0o755); err != nil {
 		return err
 	}
 	storageOpts := default_storage.BuildStorage(workBus, workingDbDir)
@@ -126,6 +130,8 @@ func BuildDistBundle(
 	workingDbVolID := "dist-working-vol"
 	workingDbVolConf := storage.BuildVolumeConfig("dist-working-vol", &volume_controller.Config{
 		VolumeIdAlias:           []string{workingDbVolID},
+		DisablePeer:             true,
+		DisableEventBlockRm:     true,
 		DisableReconcilerQueues: true,
 	})
 	workingVolCtrli, _, workingVolRef, err := loader.WaitExecControllerRunning(
@@ -200,7 +206,6 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
-	_ = embedEngine
 
 	// Write contents to the embedded world.
 	le.Debug("copying contents to embedded volume")
@@ -213,8 +218,9 @@ func BuildDistBundle(
 
 	// Build a seekable-zstd compressed kvfile with the embedded volume contents.
 	le.Debug("packing embedded volume to seekable-zstd kvfile")
-	embeddedVolumePath := filepath.Join(entrypointBuildDir, "volume.kvfile")
-	embeddedVolFile, err := os.OpenFile(embeddedVolumePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	embeddedVolumeFilename := "assets.kvfile"
+	embeddedVolumePath := filepath.Join(entrypointBuildDir, embeddedVolumeFilename)
+	embeddedVolFile, err := os.OpenFile(embeddedVolumePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
@@ -234,20 +240,39 @@ func BuildDistBundle(
 		return err
 	}
 
+	var embedAssetsFS []string
+	if len(hostConfigSetBin) != 0 {
+		embedAssetsFS = append(embedAssetsFS, outConfigSetFilename)
+	}
+
+	// on the Web platform we distribute the kvfile separately
+	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
+		le.Debugf("copying %v to output directory", embeddedVolumeFilename)
+		if err := fsutil.CopyFile(filepath.Join(outputPath, embeddedVolumeFilename), embeddedVolumePath, 0o644); err != nil {
+			return err
+		}
+	} else {
+		// otherwise we go:embed it
+		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)
+	}
+
 	// Format and write the main.go file.
 	le.Debug("compiling dist entrypoint")
-	entrypointSrc := FormatDistEntrypoint(meta)
+	entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS)
 	entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
-	if err := os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0644); err != nil {
+	if err := os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644); err != nil {
 		return err
 	}
 
 	// build tags
 	buildTags := []string{"build_type_" + buildType.String()}
+	if !enableCgo {
+		buildTags = append(buildTags, "purego")
+	}
 
 	outBinPath := filepath.Join(outputPath, outBinName)
 	isRelease := buildType.IsRelease()
-	return gocompiler.ExecBuildEntrypoint(
+	err = gocompiler.ExecBuildEntrypoint(
 		le,
 		buildPlatform,
 		entrypointBuildDir,
@@ -257,4 +282,9 @@ func BuildDistBundle(
 		buildTags,
 		nil,
 	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -42,3 +42,8 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 		os.Exit(1)
 	}
 }
+
+// openStaticVolume opens the static volume kvfile.
+func openStaticVolume(assetsFS fs.FS) (fs.File, error) {
+	return assetsFS.Open("assets.kvfile")
+}

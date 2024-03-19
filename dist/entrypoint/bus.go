@@ -90,12 +90,12 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 	pluginHostObjectKey := "plugin-host"
 	pluginsRoot := filepath.Join(stateRoot, "p")
 	pluginsDistRoot := filepath.Join(pluginsRoot, "d")
-	if err := os.MkdirAll(pluginsDistRoot, 0755); err != nil {
+	if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
 		ctxCancel()
 		return nil, err
 	}
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
-	if err := os.MkdirAll(pluginsStateRoot, 0755); err != nil {
+	if err := os.MkdirAll(pluginsStateRoot, 0o755); err != nil {
 		ctxCancel()
 		return nil, err
 	}

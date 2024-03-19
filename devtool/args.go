@@ -356,16 +356,16 @@ func (a *DevtoolArgs) InitRepoRoot() (
 	}
 
 	stateRoot = a.GetStateRoot(repoRoot)
-	err = os.MkdirAll(stateRoot, 0755)
+	err = os.MkdirAll(stateRoot, 0o755)
 	if err == nil {
 		licenseFile := filepath.Join(stateRoot, "LICENSE.bldr")
 		licenseBody := "The Bldr sources are covered by this license:\n\n" + bldr.GetLicense()
-		err = os.WriteFile(licenseFile, []byte(licenseBody), 0644)
+		err = os.WriteFile(licenseFile, []byte(licenseBody), 0o644)
 	}
 	if err == nil {
 		gitIgnoreFile := filepath.Join(stateRoot, ".gitignore")
 		gitIgnoreBody := "*\n!LICENSE.bldr\n!.gitignore\n"
-		err = os.WriteFile(gitIgnoreFile, []byte(gitIgnoreBody), 0644)
+		err = os.WriteFile(gitIgnoreFile, []byte(gitIgnoreBody), 0o644)
 	}
 	return repoRoot, stateRoot, err
 }

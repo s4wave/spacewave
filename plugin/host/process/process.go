@@ -148,11 +148,11 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// create the plugin bin and state dir
 	pluginDistDir := filepath.Join(h.distDir, pluginID)
-	if err := os.MkdirAll(pluginDistDir, 0755); err != nil {
+	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
 		return err
 	}
 	pluginStateDir := filepath.Join(h.stateDir, pluginID)
-	if err := os.MkdirAll(pluginStateDir, 0755); err != nil {
+	if err := os.MkdirAll(pluginStateDir, 0o755); err != nil {
 		return err
 	}
 
@@ -170,7 +170,7 @@ func (h *ProcessHost) ExecutePlugin(
 	// the "embed" io/fs will clear the permissions bits
 	// set the executable to chmod +x
 	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
-	if err := os.Chmod(entrypointPath, 0755); err != nil {
+	if err := os.Chmod(entrypointPath, 0o755); err != nil {
 		return err
 	}
 
@@ -196,7 +196,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// write start info to a file as well
 	instanceDetailsPath := filepath.Join(pluginDistDir, ".plugin-start-info")
-	if err := os.WriteFile(instanceDetailsPath, []byte(pluginStartInfoB58), 0600); err != nil {
+	if err := os.WriteFile(instanceDetailsPath, []byte(pluginStartInfoB58), 0o600); err != nil {
 		return err
 	}
 

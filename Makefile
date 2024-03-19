@@ -8,6 +8,7 @@ PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
 GOIMPORTS=hack/bin/goimports
+GOFUMPT=hack/bin/gofumpt
 GOLANGCI_LINT=hack/bin/golangci-lint
 GO_MOD_OUTDATED=hack/bin/go-mod-outdated
 GOLIST=go list -f "{{ .Dir }}" -m
@@ -52,6 +53,12 @@ $(GOIMPORTS):
 	go build -v \
 		-o ./bin/goimports \
 		golang.org/x/tools/cmd/goimports
+
+$(GOFUMPT):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/gofumpt \
+		mvdan.cc/gofumpt
 
 $(PROTOWRAP):
 	cd ./hack; \
@@ -139,17 +146,26 @@ genproto: gents gengo
 .PHONY: gen
 gen: genproto
 
+.PHONY: outdated
 outdated: $(GO_MOD_OUTDATED)
 	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED) -update -direct
 
+.PHONY: list
 list: $(GO_MOD_OUTDATED)
 	go list -mod=mod -u -m -json all | $(GO_MOD_OUTDATED)
 
+.PHONY: lint
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run --timeout=10m
 
+.PHONY: fix
 fix: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run --fix --timeout=10m
+
+.PHONY: format
+format: $(GOFUMPT) $(GOIMPORTS)
+	$(GOIMPORTS) -w ./
+	$(GOFUMPT) -w ./
 
 .PHONY: test
 test:

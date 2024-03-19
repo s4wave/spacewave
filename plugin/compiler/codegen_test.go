@@ -151,19 +151,20 @@ func TestCodegen(t *testing.T) {
 		fn     func() (*ast.File, error)
 		result string
 	}
-	testcases := []*testcase{{
-		fn: func() (*ast.File, error) {
-			return CodegenPluginWrapperFromAnalysis(
-				le,
-				an,
-				pluginMeta,
-				[]string{"config-set.bin"},
-				goVarDefs,
-				"",
-			)
+	testcases := []*testcase{
+		{
+			fn: func() (*ast.File, error) {
+				return CodegenPluginWrapperFromAnalysis(
+					le,
+					an,
+					pluginMeta,
+					[]string{"config-set.bin"},
+					goVarDefs,
+					"",
+				)
+			},
+			result: expectedCodegen,
 		},
-		result: expectedCodegen,
-	},
 		{
 			fn: func() (*ast.File, error) {
 				return CodegenPluginWrapperFromAnalysis(

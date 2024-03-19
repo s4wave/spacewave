@@ -48,7 +48,7 @@ func RunElectron(
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 
-	_ = os.Chmod(electronPath, 0755) // try to chmod
+	_ = os.Chmod(electronPath, 0o755) // try to chmod
 
 	var electronArgs []string
 	electronArgs = append(electronArgs, extraElectronFlags...)

@@ -64,10 +64,15 @@ func Run(
 	errCh := make(chan error, 5)
 
 	// mount the config set
-	configSetData, err := fs.ReadFile(assetsFS, "config-set.bin")
+	configSetBinFilename := "config-set.bin"
+	configSetData, err := fs.ReadFile(assetsFS, configSetBinFilename)
 	if err != nil {
-		return err
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		configSetData = nil
 	}
+
 	set := &configset_proto.ConfigSet{}
 	if err := set.UnmarshalVT(configSetData); err != nil {
 		return err
@@ -85,9 +90,9 @@ func Run(
 	}
 
 	// mount the embedded read-only storage volume
-	staticVolFile, err := assetsFS.Open("volume.kvfile")
+	staticVolFile, err := openStaticVolume(assetsFS)
 	if err != nil {
-		return errors.Wrap(err, "open volume.kvfile")
+		return errors.Wrap(err, "open static assets volume")
 	}
 	defer staticVolFile.Close()
 
@@ -106,7 +111,10 @@ func Run(
 		kvfileReaderAt,
 		&volume_kvfile.Config{
 			VolumeConfig: &volume_controller.Config{
-				VolumeIdAlias: []string{staticVolID},
+				VolumeIdAlias:           []string{staticVolID},
+				DisableEventBlockRm:     true,
+				DisableReconcilerQueues: true,
+				DisablePeer:             true,
 			},
 		},
 		nil,

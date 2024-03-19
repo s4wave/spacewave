@@ -17,6 +17,7 @@ build:
       - native/linux/amd64
       - native/windows/amd64
       - native/darwin/amd64
+
   test-wasm:
     manifests: ["web", "bldr-demo", "dist"]
     platformIds: ["web"]

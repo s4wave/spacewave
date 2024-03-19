@@ -14,5 +14,5 @@ func NewWritableFileInfo(info fs.FileInfo) *WritableFileInfo {
 
 // Mode returns the file info mode.
 func (w *WritableFileInfo) Mode() fs.FileMode {
-	return w.FileInfo.Mode() | 0222
+	return w.FileInfo.Mode() | 0o222
 }

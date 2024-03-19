@@ -41,6 +41,7 @@
     "test:js": "echo No JS tests.",
     "format": "npm run format:changed",
     "format:changed": "git diff --name-only --diff-filter=d HEAD | grep '\\(\\.ts\\|\\.tsx\\|\\.html\\|\\.css\\|\\.scss\\)$' | grep '^\\(web\\|entrypoint\\|example\\)/' | xargs -I {} prettier --write {}",
+    "format:go": "make format",
     "format:config": "prettier --write tsconfig.json package.json",
     "format:all": "prettier --write './{web,entrypoint,example,prototypes}/**/(*.ts|*.tsx|*.html|*.css|*.scss)' && npm run format:config",
     "typecheck": "tsc --project tsconfig.json --noEmit",

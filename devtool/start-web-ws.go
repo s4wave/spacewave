@@ -117,7 +117,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 
 	// compile the entrypoint
 	wsRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
-	if err := os.MkdirAll(wsRuntimeDir, 0755); err != nil {
+	if err := os.MkdirAll(wsRuntimeDir, 0o755); err != nil {
 		return err
 	}
 	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint); err != nil {

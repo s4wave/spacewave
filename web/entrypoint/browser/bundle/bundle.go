@@ -112,7 +112,7 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 		return err
 	}
 	rendererHtmlOut := filepath.Join(buildDir, "index.html")
-	err = os.WriteFile(rendererHtmlOut, ihtml, 0644)
+	err = os.WriteFile(rendererHtmlOut, ihtml, 0o644)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
 func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath string, minify, devMode bool) error {
-	err := os.MkdirAll(buildDir, 0755)
+	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 	if err := fsutil.CopyFile(
 		filepath.Join(buildPkgsDir, "package.json"),
 		filepath.Join(bldrDistRoot, "dist/deps/package.json"),
-		0644,
+		0o644,
 	); err != nil {
 		return err
 	}

@@ -407,5 +407,4 @@ func UnmarshalPluginStartInfo(
 	}
 
 	return pluginStartInfo, pluginMeta, nil
-
 }
