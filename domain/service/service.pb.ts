@@ -180,7 +180,7 @@ export const LookupEntityReq = {
     if (message.timestamp !== undefined) {
       Timestamp.encode(message.timestamp, writer.uint32(18).fork()).ldelim()
     }
-    if (!message.nonce.isZero()) {
+    if (!message.nonce.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.nonce)
     }
     return writer
@@ -283,7 +283,7 @@ export const LookupEntityReq = {
     if (message.timestamp !== undefined) {
       obj.timestamp = Timestamp.toJSON(message.timestamp)
     }
-    if (!message.nonce.isZero()) {
+    if (!message.nonce.equals(Long.UZERO)) {
       obj.nonce = (message.nonce || Long.UZERO).toString()
     }
     return obj
@@ -337,7 +337,7 @@ export const LookupEntityResp = {
     if (message.lookupError !== '') {
       writer.uint32(18).string(message.lookupError)
     }
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       writer.uint32(24).bool(message.notFound)
     }
     if (message.lookupEntity !== undefined) {
@@ -455,7 +455,7 @@ export const LookupEntityResp = {
     if (message.lookupError !== '') {
       obj.lookupError = message.lookupError
     }
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       obj.notFound = message.notFound
     }
     if (message.lookupEntity !== undefined) {

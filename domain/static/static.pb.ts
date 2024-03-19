@@ -45,10 +45,10 @@ export const Config = {
     for (const v of message.entities) {
       Entity.encode(v!, writer.uint32(18).fork()).ldelim()
     }
-    if (message.silentNotFound === true) {
+    if (message.silentNotFound !== false) {
       writer.uint32(24).bool(message.silentNotFound)
     }
-    if (message.resolveSelectIdentityDomain === true) {
+    if (message.resolveSelectIdentityDomain !== false) {
       writer.uint32(32).bool(message.resolveSelectIdentityDomain)
     }
     return writer
@@ -158,10 +158,10 @@ export const Config = {
     if (message.entities?.length) {
       obj.entities = message.entities.map((e) => Entity.toJSON(e))
     }
-    if (message.silentNotFound === true) {
+    if (message.silentNotFound !== false) {
       obj.silentNotFound = message.silentNotFound
     }
-    if (message.resolveSelectIdentityDomain === true) {
+    if (message.resolveSelectIdentityDomain !== false) {
       obj.resolveSelectIdentityDomain = message.resolveSelectIdentityDomain
     }
     return obj

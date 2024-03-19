@@ -47,7 +47,7 @@ export const Config = {
     if (message.peerId !== '') {
       writer.uint32(26).string(message.peerId)
     }
-    if (message.resolveSelectIdentityDomain === true) {
+    if (message.resolveSelectIdentityDomain !== false) {
       writer.uint32(32).bool(message.resolveSelectIdentityDomain)
     }
     return writer
@@ -158,7 +158,7 @@ export const Config = {
     if (message.peerId !== '') {
       obj.peerId = message.peerId
     }
-    if (message.resolveSelectIdentityDomain === true) {
+    if (message.resolveSelectIdentityDomain !== false) {
       obj.resolveSelectIdentityDomain = message.resolveSelectIdentityDomain
     }
     return obj

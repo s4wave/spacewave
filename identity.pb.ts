@@ -222,7 +222,7 @@ export const Entity = {
     if (message.domainId !== "") {
       writer.uint32(26).string(message.domainId);
     }
-    if (!message.epoch.isZero()) {
+    if (!message.epoch.equals(Long.UZERO)) {
       writer.uint32(32).uint64(message.epoch);
     }
     if (message.entityKeypairSet !== undefined) {
@@ -335,7 +335,7 @@ export const Entity = {
     if (message.domainId !== "") {
       obj.domainId = message.domainId;
     }
-    if (!message.epoch.isZero()) {
+    if (!message.epoch.equals(Long.UZERO)) {
       obj.epoch = (message.epoch || Long.UZERO).toString();
     }
     if (message.entityKeypairSet !== undefined) {
@@ -844,7 +844,7 @@ export const PendingEntityChange = {
     if (message.changePeerId !== "") {
       writer.uint32(10).string(message.changePeerId);
     }
-    if (!message.epoch.isZero()) {
+    if (!message.epoch.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.epoch);
     }
     if (message.domainIdentifier !== "") {
@@ -959,7 +959,7 @@ export const PendingEntityChange = {
     if (message.changePeerId !== "") {
       obj.changePeerId = message.changePeerId;
     }
-    if (!message.epoch.isZero()) {
+    if (!message.epoch.equals(Long.UZERO)) {
       obj.epoch = (message.epoch || Long.UZERO).toString();
     }
     if (message.domainIdentifier !== "") {
@@ -1199,7 +1199,7 @@ export const RemoveKeypair = {
 };
 
 function bytesFromBase64(b64: string): Uint8Array {
-  if (globalThis.Buffer) {
+  if ((globalThis as any).Buffer) {
     return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
   } else {
     const bin = globalThis.atob(b64);
@@ -1212,7 +1212,7 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if (globalThis.Buffer) {
+  if ((globalThis as any).Buffer) {
     return globalThis.Buffer.from(arr).toString("base64");
   } else {
     const bin: string[] = [];
