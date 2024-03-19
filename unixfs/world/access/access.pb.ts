@@ -62,10 +62,10 @@ export const Config = {
     if (message.fsRef !== undefined) {
       UnixfsRef.encode(message.fsRef, writer.uint32(34).fork()).ldelim()
     }
-    if (message.mkdirPath === true) {
+    if (message.mkdirPath !== false) {
       writer.uint32(40).bool(message.mkdirPath)
     }
-    if (message.disableWatchChanges === true) {
+    if (message.disableWatchChanges !== false) {
       writer.uint32(48).bool(message.disableWatchChanges)
     }
     if (message.timestamp !== undefined) {
@@ -208,10 +208,10 @@ export const Config = {
     if (message.fsRef !== undefined) {
       obj.fsRef = UnixfsRef.toJSON(message.fsRef)
     }
-    if (message.mkdirPath === true) {
+    if (message.mkdirPath !== false) {
       obj.mkdirPath = message.mkdirPath
     }
-    if (message.disableWatchChanges === true) {
+    if (message.disableWatchChanges !== false) {
       obj.disableWatchChanges = message.disableWatchChanges
     }
     if (message.timestamp !== undefined) {

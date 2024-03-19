@@ -92,10 +92,10 @@ export const Config = {
     if (message.blockSize !== 0) {
       writer.uint32(8).int32(message.blockSize)
     }
-    if (message.blockChecksum === true) {
+    if (message.blockChecksum !== false) {
       writer.uint32(16).bool(message.blockChecksum)
     }
-    if (message.disableChecksum === true) {
+    if (message.disableChecksum !== false) {
       writer.uint32(24).bool(message.disableChecksum)
     }
     if (message.compressionLevel !== 0) {
@@ -205,10 +205,10 @@ export const Config = {
     if (message.blockSize !== 0) {
       obj.blockSize = blockSizeToJSON(message.blockSize)
     }
-    if (message.blockChecksum === true) {
+    if (message.blockChecksum !== false) {
       obj.blockChecksum = message.blockChecksum
     }
-    if (message.disableChecksum === true) {
+    if (message.disableChecksum !== false) {
       obj.disableChecksum = message.disableChecksum
     }
     if (message.compressionLevel !== 0) {

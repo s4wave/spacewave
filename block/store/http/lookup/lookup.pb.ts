@@ -44,10 +44,10 @@ export const Config = {
     if (message.url !== '') {
       writer.uint32(18).string(message.url)
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       writer.uint32(24).bool(message.skipNotFound)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(32).bool(message.verbose)
     }
     return writer
@@ -155,10 +155,10 @@ export const Config = {
     if (message.url !== '') {
       obj.url = message.url
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       obj.skipNotFound = message.skipNotFound
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj

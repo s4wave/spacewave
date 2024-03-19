@@ -62,10 +62,10 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.numCounters.isZero()) {
+    if (!message.numCounters.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.numCounters)
     }
-    if (!message.maxCost.isZero()) {
+    if (!message.maxCost.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.maxCost)
     }
     if (message.bufferItems !== 0) {
@@ -173,10 +173,10 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (!message.numCounters.isZero()) {
+    if (!message.numCounters.equals(Long.UZERO)) {
       obj.numCounters = (message.numCounters || Long.UZERO).toString()
     }
-    if (!message.maxCost.isZero()) {
+    if (!message.maxCost.equals(Long.UZERO)) {
       obj.maxCost = (message.maxCost || Long.UZERO).toString()
     }
     if (message.bufferItems !== 0) {

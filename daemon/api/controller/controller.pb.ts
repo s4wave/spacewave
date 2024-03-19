@@ -42,7 +42,7 @@ export const Config = {
     if (message.listenAddr !== '') {
       writer.uint32(10).string(message.listenAddr)
     }
-    if (message.disableBifrostApi === true) {
+    if (message.disableBifrostApi !== false) {
       writer.uint32(16).bool(message.disableBifrostApi)
     }
     if (message.bifrostApiConfig !== undefined) {
@@ -51,7 +51,7 @@ export const Config = {
         writer.uint32(26).fork(),
       ).ldelim()
     }
-    if (message.disableBusApi === true) {
+    if (message.disableBusApi !== false) {
       writer.uint32(32).bool(message.disableBusApi)
     }
     if (message.busApiConfig !== undefined) {
@@ -184,13 +184,13 @@ export const Config = {
     if (message.listenAddr !== '') {
       obj.listenAddr = message.listenAddr
     }
-    if (message.disableBifrostApi === true) {
+    if (message.disableBifrostApi !== false) {
       obj.disableBifrostApi = message.disableBifrostApi
     }
     if (message.bifrostApiConfig !== undefined) {
       obj.bifrostApiConfig = Config1.toJSON(message.bifrostApiConfig)
     }
-    if (message.disableBusApi === true) {
+    if (message.disableBusApi !== false) {
       obj.disableBusApi = message.disableBusApi
     }
     if (message.busApiConfig !== undefined) {

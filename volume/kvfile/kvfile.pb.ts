@@ -54,7 +54,7 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       Config1.encode(message.kvKeyOpts, writer.uint32(10).fork()).ldelim()
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(16).bool(message.verbose)
     }
     if (message.volumeConfig !== undefined) {
@@ -63,7 +63,7 @@ export const Config = {
     if (message.storeConfig !== undefined) {
       Config3.encode(message.storeConfig, writer.uint32(34).fork()).ldelim()
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       writer.uint32(40).bool(message.noGenerateKey)
     }
     return writer
@@ -193,7 +193,7 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     if (message.volumeConfig !== undefined) {
@@ -202,7 +202,7 @@ export const Config = {
     if (message.storeConfig !== undefined) {
       obj.storeConfig = Config3.toJSON(message.storeConfig)
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       obj.noGenerateKey = message.noGenerateKey
     }
     return obj

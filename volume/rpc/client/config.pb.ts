@@ -91,7 +91,7 @@ export const Config = {
     for (const v of message.volumeIdList) {
       writer.uint32(26).string(v!)
     }
-    if (message.loadOnStartup === true) {
+    if (message.loadOnStartup !== false) {
       writer.uint32(64).bool(message.loadOnStartup)
     }
     if (message.clientId !== '') {
@@ -270,7 +270,7 @@ export const Config = {
     if (message.volumeIdList?.length) {
       obj.volumeIdList = message.volumeIdList
     }
-    if (message.loadOnStartup === true) {
+    if (message.loadOnStartup !== false) {
       obj.loadOnStartup = message.loadOnStartup
     }
     if (message.clientId !== '') {

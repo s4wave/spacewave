@@ -49,7 +49,7 @@ export const Entry = {
     if (message.degree !== 0) {
       writer.uint32(8).int32(message.degree)
     }
-    if (message.marked === true) {
+    if (message.marked !== false) {
       writer.uint32(16).bool(message.marked)
     }
     if (message.next.length !== 0) {
@@ -195,7 +195,7 @@ export const Entry = {
     if (message.degree !== 0) {
       obj.degree = Math.round(message.degree)
     }
-    if (message.marked === true) {
+    if (message.marked !== false) {
       obj.marked = message.marked
     }
     if (message.next.length !== 0) {

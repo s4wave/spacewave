@@ -1288,7 +1288,7 @@ export const TxDeleteObject = {
     if (message.objectKey !== '') {
       writer.uint32(10).string(message.objectKey)
     }
-    if (message.failIfNotFound === true) {
+    if (message.failIfNotFound !== false) {
       writer.uint32(16).bool(message.failIfNotFound)
     }
     return writer
@@ -1377,7 +1377,7 @@ export const TxDeleteObject = {
     if (message.objectKey !== '') {
       obj.objectKey = message.objectKey
     }
-    if (message.failIfNotFound === true) {
+    if (message.failIfNotFound !== false) {
       obj.failIfNotFound = message.failIfNotFound
     }
     return obj

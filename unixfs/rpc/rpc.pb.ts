@@ -471,10 +471,10 @@ export const GetProxyCursorRequest = {
     message: GetProxyCursorRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.cursorHandleId)
     }
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.clientHandleId)
     }
     return writer
@@ -563,10 +563,10 @@ export const GetProxyCursorRequest = {
 
   toJSON(message: GetProxyCursorRequest): unknown {
     const obj: any = {}
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       obj.clientHandleId = (message.clientHandleId || Long.UZERO).toString()
     }
     return obj
@@ -605,7 +605,7 @@ export const GetProxyCursorResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.cursorHandleId)
     }
     return writer
@@ -697,7 +697,7 @@ export const GetProxyCursorResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
     return obj
@@ -738,16 +738,16 @@ export const FSCursorChange = {
     message: FSCursorChange,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.cursorHandleId)
     }
-    if (message.released === true) {
+    if (message.released !== false) {
       writer.uint32(16).bool(message.released)
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.offset)
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       writer.uint32(32).uint64(message.size)
     }
     return writer
@@ -849,16 +849,16 @@ export const FSCursorChange = {
 
   toJSON(message: FSCursorChange): unknown {
     const obj: any = {}
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
-    if (message.released === true) {
+    if (message.released !== false) {
       obj.released = message.released
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.UZERO)) {
       obj.offset = (message.offset || Long.UZERO).toString()
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       obj.size = (message.size || Long.UZERO).toString()
     }
     return obj
@@ -1300,10 +1300,10 @@ export const FSClientInit = {
     message: FSClientInit,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.clientHandleId)
     }
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.cursorHandleId)
     }
     return writer
@@ -1389,10 +1389,10 @@ export const FSClientInit = {
 
   toJSON(message: FSClientInit): unknown {
     const obj: any = {}
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       obj.clientHandleId = (message.clientHandleId || Long.UZERO).toString()
     }
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
     return obj
@@ -1428,7 +1428,7 @@ export const GetCursorOpsRequest = {
     message: GetCursorOpsRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.cursorHandleId)
     }
     return writer
@@ -1504,7 +1504,7 @@ export const GetCursorOpsRequest = {
 
   toJSON(message: GetCursorOpsRequest): unknown {
     const obj: any = {}
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
     return obj
@@ -1544,7 +1544,7 @@ export const GetCursorOpsResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.opsHandleId)
     }
     if (message.name !== '') {
@@ -1658,7 +1658,7 @@ export const GetCursorOpsResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.name !== '') {
@@ -1702,10 +1702,10 @@ export const ReleaseFSCursorRequest = {
     message: ReleaseFSCursorRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.cursorHandleId)
     }
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.clientHandleId)
     }
     return writer
@@ -1794,10 +1794,10 @@ export const ReleaseFSCursorRequest = {
 
   toJSON(message: ReleaseFSCursorRequest): unknown {
     const obj: any = {}
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       obj.clientHandleId = (message.clientHandleId || Long.UZERO).toString()
     }
     return obj
@@ -1923,7 +1923,7 @@ export const OpsGetPermissionsRequest = {
     message: OpsGetPermissionsRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     return writer
@@ -2002,7 +2002,7 @@ export const OpsGetPermissionsRequest = {
 
   toJSON(message: OpsGetPermissionsRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     return obj
@@ -2160,7 +2160,7 @@ export const OpsSetPermissionsRequest = {
     message: OpsSetPermissionsRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     if (message.fileMode !== 0) {
@@ -2263,7 +2263,7 @@ export const OpsSetPermissionsRequest = {
 
   toJSON(message: OpsSetPermissionsRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.fileMode !== 0) {
@@ -2417,7 +2417,7 @@ export const OpsGetSizeRequest = {
     message: OpsGetSizeRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     return writer
@@ -2493,7 +2493,7 @@ export const OpsGetSizeRequest = {
 
   toJSON(message: OpsGetSizeRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     return obj
@@ -2528,7 +2528,7 @@ export const OpsGetSizeResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.size)
     }
     return writer
@@ -2615,7 +2615,7 @@ export const OpsGetSizeResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       obj.size = (message.size || Long.UZERO).toString()
     }
     return obj
@@ -2651,7 +2651,7 @@ export const OpsGetModTimestampRequest = {
     message: OpsGetModTimestampRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     return writer
@@ -2730,7 +2730,7 @@ export const OpsGetModTimestampRequest = {
 
   toJSON(message: OpsGetModTimestampRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     return obj
@@ -2893,7 +2893,7 @@ export const OpsSetModTimestampRequest = {
     message: OpsSetModTimestampRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     if (message.modTimestamp !== undefined) {
@@ -2985,7 +2985,7 @@ export const OpsSetModTimestampRequest = {
 
   toJSON(message: OpsSetModTimestampRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.modTimestamp !== undefined) {
@@ -3135,13 +3135,13 @@ export const OpsReadAtRequest = {
     message: OpsReadAtRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.ZERO)) {
       writer.uint32(16).int64(message.offset)
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.ZERO)) {
       writer.uint32(24).int64(message.size)
     }
     return writer
@@ -3233,13 +3233,13 @@ export const OpsReadAtRequest = {
 
   toJSON(message: OpsReadAtRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.ZERO)) {
       obj.offset = (message.offset || Long.ZERO).toString()
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.ZERO)) {
       obj.size = (message.size || Long.ZERO).toString()
     }
     return obj
@@ -3404,7 +3404,7 @@ export const OpsGetOptimalWriteSizeRequest = {
     message: OpsGetOptimalWriteSizeRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     return writer
@@ -3487,7 +3487,7 @@ export const OpsGetOptimalWriteSizeRequest = {
 
   toJSON(message: OpsGetOptimalWriteSizeRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     return obj
@@ -3522,7 +3522,7 @@ export const OpsGetOptimalWriteSizeResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (!message.optimalWriteSize.isZero()) {
+    if (!message.optimalWriteSize.equals(Long.ZERO)) {
       writer.uint32(16).int64(message.optimalWriteSize)
     }
     return writer
@@ -3618,7 +3618,7 @@ export const OpsGetOptimalWriteSizeResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (!message.optimalWriteSize.isZero()) {
+    if (!message.optimalWriteSize.equals(Long.ZERO)) {
       obj.optimalWriteSize = (message.optimalWriteSize || Long.ZERO).toString()
     }
     return obj
@@ -3659,10 +3659,10 @@ export const OpsWriteAtRequest = {
     message: OpsWriteAtRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.ZERO)) {
       writer.uint32(16).int64(message.offset)
     }
     if (message.data.length !== 0) {
@@ -3772,10 +3772,10 @@ export const OpsWriteAtRequest = {
 
   toJSON(message: OpsWriteAtRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.ZERO)) {
       obj.offset = (message.offset || Long.ZERO).toString()
     }
     if (message.data.length !== 0) {
@@ -3930,10 +3930,10 @@ export const OpsTruncateRequest = {
     message: OpsTruncateRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (!message.nsize.isZero()) {
+    if (!message.nsize.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.nsize)
     }
     if (message.timestamp !== undefined) {
@@ -4030,10 +4030,10 @@ export const OpsTruncateRequest = {
 
   toJSON(message: OpsTruncateRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.nsize.isZero()) {
+    if (!message.nsize.equals(Long.UZERO)) {
       obj.nsize = (message.nsize || Long.UZERO).toString()
     }
     if (message.timestamp !== undefined) {
@@ -4189,13 +4189,13 @@ export const OpsLookupRequest = {
     message: OpsLookupRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.cursorHandleId)
     }
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.opsHandleId)
     }
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.clientHandleId)
     }
     if (message.name !== '') {
@@ -4302,13 +4302,13 @@ export const OpsLookupRequest = {
 
   toJSON(message: OpsLookupRequest): unknown {
     const obj: any = {}
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.clientHandleId.isZero()) {
+    if (!message.clientHandleId.equals(Long.UZERO)) {
       obj.clientHandleId = (message.clientHandleId || Long.UZERO).toString()
     }
     if (message.name !== '') {
@@ -4352,7 +4352,7 @@ export const OpsLookupResponse = {
     message: OpsLookupResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.cursorHandleId)
     }
     if (message.unixfsError !== undefined) {
@@ -4441,7 +4441,7 @@ export const OpsLookupResponse = {
 
   toJSON(message: OpsLookupResponse): unknown {
     const obj: any = {}
-    if (!message.cursorHandleId.isZero()) {
+    if (!message.cursorHandleId.equals(Long.UZERO)) {
       obj.cursorHandleId = (message.cursorHandleId || Long.UZERO).toString()
     }
     if (message.unixfsError !== undefined) {
@@ -4480,10 +4480,10 @@ export const OpsReaddirAllRequest = {
     message: OpsReaddirAllRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (!message.skip.isZero()) {
+    if (!message.skip.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.skip)
     }
     return writer
@@ -4570,10 +4570,10 @@ export const OpsReaddirAllRequest = {
 
   toJSON(message: OpsReaddirAllRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.skip.isZero()) {
+    if (!message.skip.equals(Long.UZERO)) {
       obj.skip = (message.skip || Long.UZERO).toString()
     }
     return obj
@@ -4800,10 +4800,10 @@ export const OpsMknodRequest = {
     message: OpsMknodRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (message.checkExist === true) {
+    if (message.checkExist !== false) {
       writer.uint32(16).bool(message.checkExist)
     }
     for (const v of message.names) {
@@ -4939,10 +4939,10 @@ export const OpsMknodRequest = {
 
   toJSON(message: OpsMknodRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (message.checkExist === true) {
+    if (message.checkExist !== false) {
       obj.checkExist = message.checkExist
     }
     if (message.names?.length) {
@@ -5108,10 +5108,10 @@ export const OpsSymlinkRequest = {
     message: OpsSymlinkRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (message.checkExist === true) {
+    if (message.checkExist !== false) {
       writer.uint32(16).bool(message.checkExist)
     }
     if (message.name !== '') {
@@ -5234,10 +5234,10 @@ export const OpsSymlinkRequest = {
 
   toJSON(message: OpsSymlinkRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (message.checkExist === true) {
+    if (message.checkExist !== false) {
       obj.checkExist = message.checkExist
     }
     if (message.name !== '') {
@@ -5396,7 +5396,7 @@ export const OpsReadlinkRequest = {
     message: OpsReadlinkRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     if (message.name !== '') {
@@ -5483,7 +5483,7 @@ export const OpsReadlinkRequest = {
 
   toJSON(message: OpsReadlinkRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.name !== '') {
@@ -5652,10 +5652,10 @@ export const OpsCopyToRequest = {
     message: OpsCopyToRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (!message.targetDirOpsHandleId.isZero()) {
+    if (!message.targetDirOpsHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.targetDirOpsHandleId)
     }
     if (message.targetName !== '') {
@@ -5767,10 +5767,10 @@ export const OpsCopyToRequest = {
 
   toJSON(message: OpsCopyToRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.targetDirOpsHandleId.isZero()) {
+    if (!message.targetDirOpsHandleId.equals(Long.UZERO)) {
       obj.targetDirOpsHandleId = (
         message.targetDirOpsHandleId || Long.UZERO
       ).toString()
@@ -5823,7 +5823,7 @@ export const OpsCopyToResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       writer.uint32(16).bool(message.done)
     }
     return writer
@@ -5910,7 +5910,7 @@ export const OpsCopyToResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       obj.done = message.done
     }
     return obj
@@ -5948,13 +5948,13 @@ export const OpsCopyFromRequest = {
     message: OpsCopyFromRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     if (message.name !== '') {
       writer.uint32(18).string(message.name)
     }
-    if (!message.srcCursorOpsHandleId.isZero()) {
+    if (!message.srcCursorOpsHandleId.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.srcCursorOpsHandleId)
     }
     if (message.timestamp !== undefined) {
@@ -6061,13 +6061,13 @@ export const OpsCopyFromRequest = {
 
   toJSON(message: OpsCopyFromRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.name !== '') {
       obj.name = message.name
     }
-    if (!message.srcCursorOpsHandleId.isZero()) {
+    if (!message.srcCursorOpsHandleId.equals(Long.UZERO)) {
       obj.srcCursorOpsHandleId = (
         message.srcCursorOpsHandleId || Long.UZERO
       ).toString()
@@ -6117,7 +6117,7 @@ export const OpsCopyFromResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       writer.uint32(16).bool(message.done)
     }
     return writer
@@ -6204,7 +6204,7 @@ export const OpsCopyFromResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       obj.done = message.done
     }
     return obj
@@ -6242,10 +6242,10 @@ export const OpsMoveToRequest = {
     message: OpsMoveToRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
-    if (!message.targetDirOpsHandleId.isZero()) {
+    if (!message.targetDirOpsHandleId.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.targetDirOpsHandleId)
     }
     if (message.targetName !== '') {
@@ -6357,10 +6357,10 @@ export const OpsMoveToRequest = {
 
   toJSON(message: OpsMoveToRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
-    if (!message.targetDirOpsHandleId.isZero()) {
+    if (!message.targetDirOpsHandleId.equals(Long.UZERO)) {
       obj.targetDirOpsHandleId = (
         message.targetDirOpsHandleId || Long.UZERO
       ).toString()
@@ -6413,7 +6413,7 @@ export const OpsMoveToResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       writer.uint32(16).bool(message.done)
     }
     return writer
@@ -6500,7 +6500,7 @@ export const OpsMoveToResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       obj.done = message.done
     }
     return obj
@@ -6538,13 +6538,13 @@ export const OpsMoveFromRequest = {
     message: OpsMoveFromRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     if (message.name !== '') {
       writer.uint32(18).string(message.name)
     }
-    if (!message.srcOpsHandleId.isZero()) {
+    if (!message.srcOpsHandleId.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.srcOpsHandleId)
     }
     if (message.timestamp !== undefined) {
@@ -6651,13 +6651,13 @@ export const OpsMoveFromRequest = {
 
   toJSON(message: OpsMoveFromRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.name !== '') {
       obj.name = message.name
     }
-    if (!message.srcOpsHandleId.isZero()) {
+    if (!message.srcOpsHandleId.equals(Long.UZERO)) {
       obj.srcOpsHandleId = (message.srcOpsHandleId || Long.UZERO).toString()
     }
     if (message.timestamp !== undefined) {
@@ -6704,7 +6704,7 @@ export const OpsMoveFromResponse = {
     if (message.unixfsError !== undefined) {
       UnixFSError.encode(message.unixfsError, writer.uint32(10).fork()).ldelim()
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       writer.uint32(16).bool(message.done)
     }
     return writer
@@ -6791,7 +6791,7 @@ export const OpsMoveFromResponse = {
     if (message.unixfsError !== undefined) {
       obj.unixfsError = UnixFSError.toJSON(message.unixfsError)
     }
-    if (message.done === true) {
+    if (message.done !== false) {
       obj.done = message.done
     }
     return obj
@@ -6824,7 +6824,7 @@ export const OpsRemoveRequest = {
     message: OpsRemoveRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.opsHandleId)
     }
     for (const v of message.names) {
@@ -6926,7 +6926,7 @@ export const OpsRemoveRequest = {
 
   toJSON(message: OpsRemoveRequest): unknown {
     const obj: any = {}
-    if (!message.opsHandleId.isZero()) {
+    if (!message.opsHandleId.equals(Long.UZERO)) {
       obj.opsHandleId = (message.opsHandleId || Long.UZERO).toString()
     }
     if (message.names?.length) {

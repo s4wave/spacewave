@@ -151,7 +151,7 @@ export const Config = {
     if (message.peerId !== '') {
       writer.uint32(26).string(message.peerId)
     }
-    if (!message.transportId.isZero()) {
+    if (!message.transportId.equals(Long.UZERO)) {
       writer.uint32(32).uint64(message.transportId)
     }
     if (message.syncBackoff !== undefined) {
@@ -275,7 +275,7 @@ export const Config = {
     if (message.peerId !== '') {
       obj.peerId = message.peerId
     }
-    if (!message.transportId.isZero()) {
+    if (!message.transportId.equals(Long.UZERO)) {
       obj.transportId = (message.transportId || Long.UZERO).toString()
     }
     if (message.syncBackoff !== undefined) {
@@ -322,7 +322,7 @@ export const PubSubMessage = {
     for (const v of message.clearRefs) {
       BlockRef.encode(v!, writer.uint32(26).fork()).ldelim()
     }
-    if (message.wantEmpty === true) {
+    if (message.wantEmpty !== false) {
       writer.uint32(32).bool(message.wantEmpty)
     }
     return writer
@@ -437,7 +437,7 @@ export const PubSubMessage = {
     if (message.clearRefs?.length) {
       obj.clearRefs = message.clearRefs.map((e) => BlockRef.toJSON(e))
     }
-    if (message.wantEmpty === true) {
+    if (message.wantEmpty !== false) {
       obj.wantEmpty = message.wantEmpty
     }
     return obj
@@ -487,7 +487,7 @@ export const SyncMessage = {
     if (message.chunk.length !== 0) {
       writer.uint32(26).bytes(message.chunk)
     }
-    if (message.complete === true) {
+    if (message.complete !== false) {
       writer.uint32(32).bool(message.complete)
     }
     if (message.blockSize !== 0) {
@@ -613,7 +613,7 @@ export const SyncMessage = {
     if (message.chunk.length !== 0) {
       obj.chunk = base64FromBytes(message.chunk)
     }
-    if (message.complete === true) {
+    if (message.complete !== false) {
       obj.complete = message.complete
     }
     if (message.blockSize !== 0) {

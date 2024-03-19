@@ -59,7 +59,7 @@ export const Config = {
     if (message.volumeId !== '') {
       writer.uint32(18).string(message.volumeId)
     }
-    if (message.write === true) {
+    if (message.write !== false) {
       writer.uint32(24).bool(message.write)
     }
     if (message.pathPrefix !== '') {
@@ -183,7 +183,7 @@ export const Config = {
     if (message.volumeId !== '') {
       obj.volumeId = message.volumeId
     }
-    if (message.write === true) {
+    if (message.write !== false) {
       obj.write = message.write
     }
     if (message.pathPrefix !== '') {

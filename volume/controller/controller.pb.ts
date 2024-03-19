@@ -52,16 +52,16 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.disableEventBlockRm === true) {
+    if (message.disableEventBlockRm !== false) {
       writer.uint32(8).bool(message.disableEventBlockRm)
     }
     for (const v of message.volumeIdAlias) {
       writer.uint32(18).string(v!)
     }
-    if (message.disableReconcilerQueues === true) {
+    if (message.disableReconcilerQueues !== false) {
       writer.uint32(24).bool(message.disableReconcilerQueues)
     }
-    if (message.disablePeer === true) {
+    if (message.disablePeer !== false) {
       writer.uint32(32).bool(message.disablePeer)
     }
     if (message.blockStoreId !== '') {
@@ -191,16 +191,16 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.disableEventBlockRm === true) {
+    if (message.disableEventBlockRm !== false) {
       obj.disableEventBlockRm = message.disableEventBlockRm
     }
     if (message.volumeIdAlias?.length) {
       obj.volumeIdAlias = message.volumeIdAlias
     }
-    if (message.disableReconcilerQueues === true) {
+    if (message.disableReconcilerQueues !== false) {
       obj.disableReconcilerQueues = message.disableReconcilerQueues
     }
-    if (message.disablePeer === true) {
+    if (message.disablePeer !== false) {
       obj.disablePeer = message.disablePeer
     }
     if (message.blockStoreId !== '') {

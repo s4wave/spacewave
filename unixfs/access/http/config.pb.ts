@@ -75,13 +75,13 @@ export const Config = {
     if (message.unixfsHttpPrefix !== '') {
       writer.uint32(26).string(message.unixfsHttpPrefix)
     }
-    if (message.notFoundIfIdle === true) {
+    if (message.notFoundIfIdle !== false) {
       writer.uint32(32).bool(message.notFoundIfIdle)
     }
     for (const v of message.matchPathPrefixes) {
       writer.uint32(42).string(v!)
     }
-    if (message.stripPathPrefix === true) {
+    if (message.stripPathPrefix !== false) {
       writer.uint32(48).bool(message.stripPathPrefix)
     }
     if (message.pathRe !== '') {
@@ -225,13 +225,13 @@ export const Config = {
     if (message.unixfsHttpPrefix !== '') {
       obj.unixfsHttpPrefix = message.unixfsHttpPrefix
     }
-    if (message.notFoundIfIdle === true) {
+    if (message.notFoundIfIdle !== false) {
       obj.notFoundIfIdle = message.notFoundIfIdle
     }
     if (message.matchPathPrefixes?.length) {
       obj.matchPathPrefixes = message.matchPathPrefixes
     }
-    if (message.stripPathPrefix === true) {
+    if (message.stripPathPrefix !== false) {
       obj.stripPathPrefix = message.stripPathPrefix
     }
     if (message.pathRe !== '') {

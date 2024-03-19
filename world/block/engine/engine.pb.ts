@@ -128,19 +128,19 @@ export const Config = {
         writer.uint32(90).fork(),
       ).ldelim()
     }
-    if (message.disableChangelog === true) {
+    if (message.disableChangelog !== false) {
       writer.uint32(104).bool(message.disableChangelog)
     }
-    if (message.disableLookup === true) {
+    if (message.disableLookup !== false) {
       writer.uint32(64).bool(message.disableLookup)
     }
-    if (message.disableApplyWorldOp === true) {
+    if (message.disableApplyWorldOp !== false) {
       writer.uint32(72).bool(message.disableApplyWorldOp)
     }
-    if (message.disableApplyObjectOp === true) {
+    if (message.disableApplyObjectOp !== false) {
       writer.uint32(80).bool(message.disableApplyObjectOp)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(96).bool(message.verbose)
     }
     return writer
@@ -358,19 +358,19 @@ export const Config = {
     if (message.stateTransformConf !== undefined) {
       obj.stateTransformConf = Config1.toJSON(message.stateTransformConf)
     }
-    if (message.disableChangelog === true) {
+    if (message.disableChangelog !== false) {
       obj.disableChangelog = message.disableChangelog
     }
-    if (message.disableLookup === true) {
+    if (message.disableLookup !== false) {
       obj.disableLookup = message.disableLookup
     }
-    if (message.disableApplyWorldOp === true) {
+    if (message.disableApplyWorldOp !== false) {
       obj.disableApplyWorldOp = message.disableApplyWorldOp
     }
-    if (message.disableApplyObjectOp === true) {
+    if (message.disableApplyObjectOp !== false) {
       obj.disableApplyObjectOp = message.disableApplyObjectOp
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj

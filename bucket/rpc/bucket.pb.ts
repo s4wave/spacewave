@@ -178,7 +178,7 @@ export const ApplyBucketConfigResponse = {
     message: ApplyBucketConfigResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.updated === true) {
+    if (message.updated !== false) {
       writer.uint32(8).bool(message.updated)
     }
     if (message.prev !== undefined) {
@@ -279,7 +279,7 @@ export const ApplyBucketConfigResponse = {
 
   toJSON(message: ApplyBucketConfigResponse): unknown {
     const obj: any = {}
-    if (message.updated === true) {
+    if (message.updated !== false) {
       obj.updated = message.updated
     }
     if (message.prev !== undefined) {

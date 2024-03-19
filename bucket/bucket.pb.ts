@@ -412,7 +412,7 @@ export const ReconcilerConfig = {
         writer.uint32(18).fork(),
       ).ldelim()
     }
-    if (message.filterPut === true) {
+    if (message.filterPut !== false) {
       writer.uint32(24).bool(message.filterPut)
     }
     return writer
@@ -512,7 +512,7 @@ export const ReconcilerConfig = {
     if (message.controller !== undefined) {
       obj.controller = ControllerConfig.toJSON(message.controller)
     }
-    if (message.filterPut === true) {
+    if (message.filterPut !== false) {
       obj.filterPut = message.filterPut
     }
     return obj
@@ -546,7 +546,7 @@ export const LookupConfig = {
     message: LookupConfig,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.disable === true) {
+    if (message.disable !== false) {
       writer.uint32(8).bool(message.disable)
     }
     if (message.controller !== undefined) {
@@ -638,7 +638,7 @@ export const LookupConfig = {
 
   toJSON(message: LookupConfig): unknown {
     const obj: any = {}
-    if (message.disable === true) {
+    if (message.disable !== false) {
       obj.disable = message.disable
     }
     if (message.controller !== undefined) {
@@ -697,7 +697,7 @@ export const ApplyBucketConfigResult = {
     if (message.timestamp !== undefined) {
       Timestamp.encode(message.timestamp, writer.uint32(42).fork()).ldelim()
     }
-    if (message.updated === true) {
+    if (message.updated !== false) {
       writer.uint32(48).bool(message.updated)
     }
     if (message.error !== '') {
@@ -852,7 +852,7 @@ export const ApplyBucketConfigResult = {
     if (message.timestamp !== undefined) {
       obj.timestamp = Timestamp.toJSON(message.timestamp)
     }
-    if (message.updated === true) {
+    if (message.updated !== false) {
       obj.updated = message.updated
     }
     if (message.error !== '') {

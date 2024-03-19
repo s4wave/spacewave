@@ -205,7 +205,7 @@ export const PutBlockResponse = {
     if (message.ref !== undefined) {
       BlockRef.encode(message.ref, writer.uint32(10).fork()).ldelim()
     }
-    if (message.existed === true) {
+    if (message.existed !== false) {
       writer.uint32(16).bool(message.existed)
     }
     if (message.error !== '') {
@@ -303,7 +303,7 @@ export const PutBlockResponse = {
     if (message.ref !== undefined) {
       obj.ref = BlockRef.toJSON(message.ref)
     }
-    if (message.existed === true) {
+    if (message.existed !== false) {
       obj.existed = message.existed
     }
     if (message.error !== '') {
@@ -446,7 +446,7 @@ export const GetBlockResponse = {
     message: GetBlockResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.exists === true) {
+    if (message.exists !== false) {
       writer.uint32(8).bool(message.exists)
     }
     if (message.data.length !== 0) {
@@ -544,7 +544,7 @@ export const GetBlockResponse = {
 
   toJSON(message: GetBlockResponse): unknown {
     const obj: any = {}
-    if (message.exists === true) {
+    if (message.exists !== false) {
       obj.exists = message.exists
     }
     if (message.data.length !== 0) {
@@ -690,7 +690,7 @@ export const GetBlockExistsResponse = {
     message: GetBlockExistsResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.exists === true) {
+    if (message.exists !== false) {
       writer.uint32(8).bool(message.exists)
     }
     if (message.error !== '') {
@@ -778,7 +778,7 @@ export const GetBlockExistsResponse = {
 
   toJSON(message: GetBlockExistsResponse): unknown {
     const obj: any = {}
-    if (message.exists === true) {
+    if (message.exists !== false) {
       obj.exists = message.exists
     }
     if (message.error !== '') {

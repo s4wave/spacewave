@@ -383,7 +383,7 @@ export const KvtxTransactionInit = {
     message: KvtxTransactionInit,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.write === true) {
+    if (message.write !== false) {
       writer.uint32(8).bool(message.write)
     }
     return writer
@@ -457,7 +457,7 @@ export const KvtxTransactionInit = {
 
   toJSON(message: KvtxTransactionInit): unknown {
     const obj: any = {}
-    if (message.write === true) {
+    if (message.write !== false) {
       obj.write = message.write
     }
     return obj
@@ -768,10 +768,10 @@ export const KvtxTransactionComplete = {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
     }
-    if (message.committed === true) {
+    if (message.committed !== false) {
       writer.uint32(16).bool(message.committed)
     }
-    if (message.discarded === true) {
+    if (message.discarded !== false) {
       writer.uint32(24).bool(message.discarded)
     }
     return writer
@@ -871,10 +871,10 @@ export const KvtxTransactionComplete = {
     if (message.error !== '') {
       obj.error = message.error
     }
-    if (message.committed === true) {
+    if (message.committed !== false) {
       obj.committed = message.committed
     }
-    if (message.discarded === true) {
+    if (message.discarded !== false) {
       obj.discarded = message.discarded
     }
     return obj
@@ -992,7 +992,7 @@ export const KeyCountResponse = {
     message: KeyCountResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.keyCount.isZero()) {
+    if (!message.keyCount.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.keyCount)
     }
     return writer
@@ -1068,7 +1068,7 @@ export const KeyCountResponse = {
 
   toJSON(message: KeyCountResponse): unknown {
     const obj: any = {}
-    if (!message.keyCount.isZero()) {
+    if (!message.keyCount.equals(Long.UZERO)) {
       obj.keyCount = (message.keyCount || Long.UZERO).toString()
     }
     return obj
@@ -1206,7 +1206,7 @@ export const KvtxKeyDataResponse = {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       writer.uint32(16).bool(message.found)
     }
     if (message.data.length !== 0) {
@@ -1304,7 +1304,7 @@ export const KvtxKeyDataResponse = {
     if (message.error !== '') {
       obj.error = message.error
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       obj.found = message.found
     }
     if (message.data.length !== 0) {
@@ -1341,7 +1341,7 @@ export const KvtxKeyExistsResponse = {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       writer.uint32(16).bool(message.found)
     }
     return writer
@@ -1429,7 +1429,7 @@ export const KvtxKeyExistsResponse = {
     if (message.error !== '') {
       obj.error = message.error
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       obj.found = message.found
     }
     return obj
@@ -1893,7 +1893,7 @@ export const KvtxScanPrefixRequest = {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
     }
-    if (message.onlyKeys === true) {
+    if (message.onlyKeys !== false) {
       writer.uint32(16).bool(message.onlyKeys)
     }
     return writer
@@ -1985,7 +1985,7 @@ export const KvtxScanPrefixRequest = {
     if (message.prefix.length !== 0) {
       obj.prefix = base64FromBytes(message.prefix)
     }
-    if (message.onlyKeys === true) {
+    if (message.onlyKeys !== false) {
       obj.onlyKeys = message.onlyKeys
     }
     return obj
@@ -2403,10 +2403,10 @@ export const KvtxIterateInit = {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
     }
-    if (message.sort === true) {
+    if (message.sort !== false) {
       writer.uint32(16).bool(message.sort)
     }
-    if (message.reverse === true) {
+    if (message.reverse !== false) {
       writer.uint32(24).bool(message.reverse)
     }
     return writer
@@ -2503,10 +2503,10 @@ export const KvtxIterateInit = {
     if (message.prefix.length !== 0) {
       obj.prefix = base64FromBytes(message.prefix)
     }
-    if (message.sort === true) {
+    if (message.sort !== false) {
       obj.sort = message.sort
     }
-    if (message.reverse === true) {
+    if (message.reverse !== false) {
       obj.reverse = message.reverse
     }
     return obj
@@ -2753,7 +2753,7 @@ export const KvtxIterateStatus = {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
     }
-    if (message.valid === true) {
+    if (message.valid !== false) {
       writer.uint32(16).bool(message.valid)
     }
     if (message.key.length !== 0) {
@@ -2849,7 +2849,7 @@ export const KvtxIterateStatus = {
     if (message.error !== '') {
       obj.error = message.error
     }
-    if (message.valid === true) {
+    if (message.valid !== false) {
       obj.valid = message.valid
     }
     if (message.key.length !== 0) {

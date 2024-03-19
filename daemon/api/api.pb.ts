@@ -1086,7 +1086,7 @@ export const BucketOpResponse = {
     if (message.data.length !== 0) {
       writer.uint32(18).bytes(message.data)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       writer.uint32(24).bool(message.found)
     }
     return writer
@@ -1184,7 +1184,7 @@ export const BucketOpResponse = {
     if (message.data.length !== 0) {
       obj.data = base64FromBytes(message.data)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       obj.found = message.found
     }
     return obj
@@ -1399,7 +1399,7 @@ export const ObjectStoreOpResponse = {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       writer.uint32(16).bool(message.found)
     }
     for (const v of message.keys) {
@@ -1502,7 +1502,7 @@ export const ObjectStoreOpResponse = {
     if (message.data.length !== 0) {
       obj.data = base64FromBytes(message.data)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       obj.found = message.found
     }
     if (message.keys?.length) {

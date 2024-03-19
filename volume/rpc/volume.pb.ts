@@ -155,7 +155,7 @@ export const WatchVolumeInfoResponse = {
     message: WatchVolumeInfoResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       writer.uint32(8).bool(message.notFound)
     }
     if (message.volumeInfo !== undefined) {
@@ -247,7 +247,7 @@ export const WatchVolumeInfoResponse = {
 
   toJSON(message: WatchVolumeInfoResponse): unknown {
     const obj: any = {}
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       obj.notFound = message.notFound
     }
     if (message.volumeInfo !== undefined) {

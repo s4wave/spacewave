@@ -36,10 +36,10 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.disableLookup === true) {
+    if (message.disableLookup !== false) {
       writer.uint32(8).bool(message.disableLookup)
     }
-    if (message.disableDefaultLookup === true) {
+    if (message.disableDefaultLookup !== false) {
       writer.uint32(16).bool(message.disableDefaultLookup)
     }
     if (message.defaultLookup !== undefined) {
@@ -142,10 +142,10 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.disableLookup === true) {
+    if (message.disableLookup !== false) {
       obj.disableLookup = message.disableLookup
     }
-    if (message.disableDefaultLookup === true) {
+    if (message.disableDefaultLookup !== false) {
       obj.disableDefaultLookup = message.disableDefaultLookup
     }
     if (message.defaultLookup !== undefined) {

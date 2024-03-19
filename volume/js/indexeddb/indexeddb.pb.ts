@@ -65,13 +65,13 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       Config1.encode(message.kvKeyOpts, writer.uint32(18).fork()).ldelim()
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       writer.uint32(24).bool(message.noGenerateKey)
     }
-    if (message.noWriteKey === true) {
+    if (message.noWriteKey !== false) {
       writer.uint32(56).bool(message.noWriteKey)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(32).bool(message.verbose)
     }
     if (message.volumeConfig !== undefined) {
@@ -217,13 +217,13 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       obj.noGenerateKey = message.noGenerateKey
     }
-    if (message.noWriteKey === true) {
+    if (message.noWriteKey !== false) {
       obj.noWriteKey = message.noWriteKey
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     if (message.volumeConfig !== undefined) {

@@ -45,16 +45,16 @@ export const Config = {
     if (message.mountPath !== '') {
       writer.uint32(10).string(message.mountPath)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(16).bool(message.verbose)
     }
-    if (message.allowOther === true) {
+    if (message.allowOther !== false) {
       writer.uint32(24).bool(message.allowOther)
     }
-    if (message.allowDev === true) {
+    if (message.allowDev !== false) {
       writer.uint32(32).bool(message.allowDev)
     }
-    if (message.allowSuid === true) {
+    if (message.allowSuid !== false) {
       writer.uint32(40).bool(message.allowSuid)
     }
     return writer
@@ -171,16 +171,16 @@ export const Config = {
     if (message.mountPath !== '') {
       obj.mountPath = message.mountPath
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
-    if (message.allowOther === true) {
+    if (message.allowOther !== false) {
       obj.allowOther = message.allowOther
     }
-    if (message.allowDev === true) {
+    if (message.allowDev !== false) {
       obj.allowDev = message.allowDev
     }
-    if (message.allowSuid === true) {
+    if (message.allowSuid !== false) {
       obj.allowSuid = message.allowSuid
     }
     return obj

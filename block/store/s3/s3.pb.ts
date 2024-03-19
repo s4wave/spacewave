@@ -102,7 +102,7 @@ export const Config = {
     if (message.objectPrefix !== '') {
       writer.uint32(34).string(message.objectPrefix)
     }
-    if (message.readOnly === true) {
+    if (message.readOnly !== false) {
       writer.uint32(40).bool(message.readOnly)
     }
     if (message.forceHashType !== 0) {
@@ -111,10 +111,10 @@ export const Config = {
     for (const v of message.bucketIds) {
       writer.uint32(58).string(v!)
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       writer.uint32(64).bool(message.skipNotFound)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(72).bool(message.verbose)
     }
     return writer
@@ -280,7 +280,7 @@ export const Config = {
     if (message.objectPrefix !== '') {
       obj.objectPrefix = message.objectPrefix
     }
-    if (message.readOnly === true) {
+    if (message.readOnly !== false) {
       obj.readOnly = message.readOnly
     }
     if (message.forceHashType !== 0) {
@@ -289,10 +289,10 @@ export const Config = {
     if (message.bucketIds?.length) {
       obj.bucketIds = message.bucketIds
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       obj.skipNotFound = message.skipNotFound
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj
@@ -334,7 +334,7 @@ export const ClientConfig = {
     if (message.credentials !== undefined) {
       Credentials.encode(message.credentials, writer.uint32(18).fork()).ldelim()
     }
-    if (message.disableSsl === true) {
+    if (message.disableSsl !== false) {
       writer.uint32(24).bool(message.disableSsl)
     }
     if (message.region !== '') {
@@ -447,7 +447,7 @@ export const ClientConfig = {
     if (message.credentials !== undefined) {
       obj.credentials = Credentials.toJSON(message.credentials)
     }
-    if (message.disableSsl === true) {
+    if (message.disableSsl !== false) {
       obj.disableSsl = message.disableSsl
     }
     if (message.region !== '') {

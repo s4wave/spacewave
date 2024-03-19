@@ -32,7 +32,7 @@ export const Config = {
     if (message.mountPath !== '') {
       writer.uint32(10).string(message.mountPath)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(16).bool(message.verbose)
     }
     for (const v of message.skipPathPrefixes) {
@@ -132,7 +132,7 @@ export const Config = {
     if (message.mountPath !== '') {
       obj.mountPath = message.mountPath
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     if (message.skipPathPrefixes?.length) {

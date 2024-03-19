@@ -27,10 +27,10 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.better === true) {
+    if (message.better !== false) {
       writer.uint32(8).bool(message.better)
     }
-    if (message.best === true) {
+    if (message.best !== false) {
       writer.uint32(16).bool(message.best)
     }
     return writer
@@ -110,10 +110,10 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.better === true) {
+    if (message.better !== false) {
       obj.better = message.better
     }
-    if (message.best === true) {
+    if (message.best !== false) {
       obj.best = message.best
     }
     return obj

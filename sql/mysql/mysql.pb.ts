@@ -581,7 +581,7 @@ export const TableRoot = {
     for (const v of message.tablePartitions) {
       TablePartitionRoot.encode(v!, writer.uint32(18).fork()).ldelim()
     }
-    if (!message.rowNonce.isZero()) {
+    if (!message.rowNonce.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.rowNonce)
     }
     if (message.autoIncrVal !== undefined) {
@@ -738,7 +738,7 @@ export const TableRoot = {
         TablePartitionRoot.toJSON(e),
       )
     }
-    if (!message.rowNonce.isZero()) {
+    if (!message.rowNonce.equals(Long.UZERO)) {
       obj.rowNonce = (message.rowNonce || Long.UZERO).toString()
     }
     if (message.autoIncrVal !== undefined) {
@@ -1231,16 +1231,16 @@ export const TableSchemaColumn = {
     if (message.defaultValueExpr !== '') {
       writer.uint32(26).string(message.defaultValueExpr)
     }
-    if (message.autoIncrement === true) {
+    if (message.autoIncrement !== false) {
       writer.uint32(32).bool(message.autoIncrement)
     }
-    if (message.nullable === true) {
+    if (message.nullable !== false) {
       writer.uint32(40).bool(message.nullable)
     }
     if (message.source !== '') {
       writer.uint32(50).string(message.source)
     }
-    if (message.primaryKey === true) {
+    if (message.primaryKey !== false) {
       writer.uint32(56).bool(message.primaryKey)
     }
     if (message.comment !== '') {
@@ -1403,16 +1403,16 @@ export const TableSchemaColumn = {
     if (message.defaultValueExpr !== '') {
       obj.defaultValueExpr = message.defaultValueExpr
     }
-    if (message.autoIncrement === true) {
+    if (message.autoIncrement !== false) {
       obj.autoIncrement = message.autoIncrement
     }
-    if (message.nullable === true) {
+    if (message.nullable !== false) {
       obj.nullable = message.nullable
     }
     if (message.source !== '') {
       obj.source = message.source
     }
-    if (message.primaryKey === true) {
+    if (message.primaryKey !== false) {
       obj.primaryKey = message.primaryKey
     }
     if (message.comment !== '') {

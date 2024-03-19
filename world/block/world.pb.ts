@@ -243,7 +243,7 @@ export const World = {
     if (message.lastChange !== undefined) {
       ChangeLogLL.encode(message.lastChange, writer.uint32(26).fork()).ldelim()
     }
-    if (message.lastChangeDisable === true) {
+    if (message.lastChangeDisable !== false) {
       writer.uint32(32).bool(message.lastChangeDisable)
     }
     return writer
@@ -356,7 +356,7 @@ export const World = {
     if (message.lastChange !== undefined) {
       obj.lastChange = ChangeLogLL.toJSON(message.lastChange)
     }
-    if (message.lastChangeDisable === true) {
+    if (message.lastChangeDisable !== false) {
       obj.lastChangeDisable = message.lastChangeDisable
     }
     return obj
@@ -399,7 +399,7 @@ export const Object = {
     if (message.rootRef !== undefined) {
       ObjectRef.encode(message.rootRef, writer.uint32(18).fork()).ldelim()
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.rev)
     }
     return writer
@@ -495,7 +495,7 @@ export const Object = {
     if (message.rootRef !== undefined) {
       obj.rootRef = ObjectRef.toJSON(message.rootRef)
     }
-    if (!message.rev.isZero()) {
+    if (!message.rev.equals(Long.UZERO)) {
       obj.rev = (message.rev || Long.UZERO).toString()
     }
     return obj
@@ -554,7 +554,7 @@ export const WorldChange = {
     if (message.prevObjectRef !== undefined) {
       BlockRef.encode(message.prevObjectRef, writer.uint32(50).fork()).ldelim()
     }
-    if (!message.objectRev.isZero()) {
+    if (!message.objectRev.equals(Long.UZERO)) {
       writer.uint32(56).uint64(message.objectRev)
     }
     return writer
@@ -704,7 +704,7 @@ export const WorldChange = {
     if (message.prevObjectRef !== undefined) {
       obj.prevObjectRef = BlockRef.toJSON(message.prevObjectRef)
     }
-    if (!message.objectRev.isZero()) {
+    if (!message.objectRev.equals(Long.UZERO)) {
       obj.objectRev = (message.objectRev || Long.UZERO).toString()
     }
     return obj
@@ -916,7 +916,7 @@ export const ChangeLogLL = {
     message: ChangeLogLL,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.seqno.isZero()) {
+    if (!message.seqno.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.seqno)
     }
     if (message.prevRef !== undefined) {
@@ -1045,7 +1045,7 @@ export const ChangeLogLL = {
 
   toJSON(message: ChangeLogLL): unknown {
     const obj: any = {}
-    if (!message.seqno.isZero()) {
+    if (!message.seqno.equals(Long.UZERO)) {
       obj.seqno = (message.seqno || Long.UZERO).toString()
     }
     if (message.prevRef !== undefined) {

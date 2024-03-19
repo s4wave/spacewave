@@ -87,7 +87,7 @@ export const Config = {
     if (message.clientId !== '') {
       writer.uint32(34).string(message.clientId)
     }
-    if (message.readOnly === true) {
+    if (message.readOnly !== false) {
       writer.uint32(40).bool(message.readOnly)
     }
     if (message.forceHashType !== 0) {
@@ -96,13 +96,13 @@ export const Config = {
     for (const v of message.bucketIds) {
       writer.uint32(58).string(v!)
     }
-    if (message.lookupOnStart === true) {
+    if (message.lookupOnStart !== false) {
       writer.uint32(64).bool(message.lookupOnStart)
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       writer.uint32(72).bool(message.skipNotFound)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(80).bool(message.verbose)
     }
     return writer
@@ -278,7 +278,7 @@ export const Config = {
     if (message.clientId !== '') {
       obj.clientId = message.clientId
     }
-    if (message.readOnly === true) {
+    if (message.readOnly !== false) {
       obj.readOnly = message.readOnly
     }
     if (message.forceHashType !== 0) {
@@ -287,13 +287,13 @@ export const Config = {
     if (message.bucketIds?.length) {
       obj.bucketIds = message.bucketIds
     }
-    if (message.lookupOnStart === true) {
+    if (message.lookupOnStart !== false) {
       obj.lookupOnStart = message.lookupOnStart
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       obj.skipNotFound = message.skipNotFound
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj

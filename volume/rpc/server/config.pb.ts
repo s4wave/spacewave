@@ -64,7 +64,7 @@ export const Config = {
     for (const v of message.volumeIdList) {
       writer.uint32(26).string(v!)
     }
-    if (message.exposePrivateKey === true) {
+    if (message.exposePrivateKey !== false) {
       writer.uint32(32).bool(message.exposePrivateKey)
     }
     if (message.releaseDelay !== '') {
@@ -190,7 +190,7 @@ export const Config = {
     if (message.volumeIdList?.length) {
       obj.volumeIdList = message.volumeIdList
     }
-    if (message.exposePrivateKey === true) {
+    if (message.exposePrivateKey !== false) {
       obj.exposePrivateKey = message.exposePrivateKey
     }
     if (message.releaseDelay !== '') {

@@ -67,10 +67,10 @@ export const Config = {
     for (const v of message.bucketIds) {
       writer.uint32(42).string(v!)
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       writer.uint32(48).bool(message.skipNotFound)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(56).bool(message.verbose)
     }
     return writer
@@ -219,10 +219,10 @@ export const Config = {
     if (message.bucketIds?.length) {
       obj.bucketIds = message.bucketIds
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       obj.skipNotFound = message.skipNotFound
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj

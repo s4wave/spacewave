@@ -118,7 +118,7 @@ export const Config = {
     if (message.url !== '') {
       writer.uint32(18).string(message.url)
     }
-    if (message.readOnly === true) {
+    if (message.readOnly !== false) {
       writer.uint32(24).bool(message.readOnly)
     }
     if (message.forceHashType !== 0) {
@@ -127,10 +127,10 @@ export const Config = {
     for (const v of message.bucketIds) {
       writer.uint32(42).string(v!)
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       writer.uint32(48).bool(message.skipNotFound)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(56).bool(message.verbose)
     }
     return writer
@@ -268,7 +268,7 @@ export const Config = {
     if (message.url !== '') {
       obj.url = message.url
     }
-    if (message.readOnly === true) {
+    if (message.readOnly !== false) {
       obj.readOnly = message.readOnly
     }
     if (message.forceHashType !== 0) {
@@ -277,10 +277,10 @@ export const Config = {
     if (message.bucketIds?.length) {
       obj.bucketIds = message.bucketIds
     }
-    if (message.skipNotFound === true) {
+    if (message.skipNotFound !== false) {
       obj.skipNotFound = message.skipNotFound
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj
@@ -437,7 +437,7 @@ export const PutResponse = {
     if (message.ref !== undefined) {
       BlockRef.encode(message.ref, writer.uint32(10).fork()).ldelim()
     }
-    if (message.exists === true) {
+    if (message.exists !== false) {
       writer.uint32(16).bool(message.exists)
     }
     if (message.err !== '') {
@@ -533,7 +533,7 @@ export const PutResponse = {
     if (message.ref !== undefined) {
       obj.ref = BlockRef.toJSON(message.ref)
     }
-    if (message.exists === true) {
+    if (message.exists !== false) {
       obj.exists = message.exists
     }
     if (message.err !== '') {
@@ -568,7 +568,7 @@ export const GetResponse = {
     message: GetResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       writer.uint32(8).bool(message.notFound)
     }
     if (message.data.length !== 0) {
@@ -668,7 +668,7 @@ export const GetResponse = {
 
   toJSON(message: GetResponse): unknown {
     const obj: any = {}
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       obj.notFound = message.notFound
     }
     if (message.data.length !== 0) {
@@ -703,10 +703,10 @@ export const ExistsResponse = {
     message: ExistsResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.exists === true) {
+    if (message.exists !== false) {
       writer.uint32(8).bool(message.exists)
     }
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       writer.uint32(16).bool(message.notFound)
     }
     if (message.err !== '') {
@@ -801,10 +801,10 @@ export const ExistsResponse = {
 
   toJSON(message: ExistsResponse): unknown {
     const obj: any = {}
-    if (message.exists === true) {
+    if (message.exists !== false) {
       obj.exists = message.exists
     }
-    if (message.notFound === true) {
+    if (message.notFound !== false) {
       obj.notFound = message.notFound
     }
     if (message.err !== '') {
@@ -838,7 +838,7 @@ export const RmResponse = {
     message: RmResponse,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.removed === true) {
+    if (message.removed !== false) {
       writer.uint32(8).bool(message.removed)
     }
     if (message.err !== '') {
@@ -925,7 +925,7 @@ export const RmResponse = {
 
   toJSON(message: RmResponse): unknown {
     const obj: any = {}
-    if (message.removed === true) {
+    if (message.removed !== false) {
       obj.removed = message.removed
     }
     if (message.err !== '') {

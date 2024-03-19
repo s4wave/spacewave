@@ -146,10 +146,10 @@ export const MQQueueMeta = {
     message: MQQueueMeta,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.head.isZero()) {
+    if (!message.head.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.head)
     }
-    if (!message.tail.isZero()) {
+    if (!message.tail.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.tail)
     }
     Object.entries(message.meta).forEach(([key, value]) => {
@@ -256,10 +256,10 @@ export const MQQueueMeta = {
 
   toJSON(message: MQQueueMeta): unknown {
     const obj: any = {}
-    if (!message.head.isZero()) {
+    if (!message.head.equals(Long.UZERO)) {
       obj.head = (message.head || Long.UZERO).toString()
     }
-    if (!message.tail.isZero()) {
+    if (!message.tail.equals(Long.UZERO)) {
       obj.tail = (message.tail || Long.UZERO).toString()
     }
     if (message.meta) {

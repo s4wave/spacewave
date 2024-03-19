@@ -70,13 +70,13 @@ function createBaseFile(): File {
 
 export const File = {
   encode(message: File, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (!message.totalSize.isZero()) {
+    if (!message.totalSize.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.totalSize)
     }
     if (message.rootBlob !== undefined) {
       Blob.encode(message.rootBlob, writer.uint32(18).fork()).ldelim()
     }
-    if (!message.rangeNonce.isZero()) {
+    if (!message.rangeNonce.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.rangeNonce)
     }
     for (const v of message.ranges) {
@@ -183,13 +183,13 @@ export const File = {
 
   toJSON(message: File): unknown {
     const obj: any = {}
-    if (!message.totalSize.isZero()) {
+    if (!message.totalSize.equals(Long.UZERO)) {
       obj.totalSize = (message.totalSize || Long.UZERO).toString()
     }
     if (message.rootBlob !== undefined) {
       obj.rootBlob = Blob.toJSON(message.rootBlob)
     }
-    if (!message.rangeNonce.isZero()) {
+    if (!message.rangeNonce.equals(Long.UZERO)) {
       obj.rangeNonce = (message.rangeNonce || Long.UZERO).toString()
     }
     if (message.ranges?.length) {
@@ -231,13 +231,13 @@ function createBaseRange(): Range {
 
 export const Range = {
   encode(message: Range, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (!message.nonce.isZero()) {
+    if (!message.nonce.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.nonce)
     }
-    if (!message.start.isZero()) {
+    if (!message.start.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.start)
     }
-    if (!message.length.isZero()) {
+    if (!message.length.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.length)
     }
     if (message.ref !== undefined) {
@@ -336,13 +336,13 @@ export const Range = {
 
   toJSON(message: Range): unknown {
     const obj: any = {}
-    if (!message.nonce.isZero()) {
+    if (!message.nonce.equals(Long.UZERO)) {
       obj.nonce = (message.nonce || Long.UZERO).toString()
     }
-    if (!message.start.isZero()) {
+    if (!message.start.equals(Long.UZERO)) {
       obj.start = (message.start || Long.UZERO).toString()
     }
-    if (!message.length.isZero()) {
+    if (!message.length.equals(Long.UZERO)) {
       obj.length = (message.length || Long.UZERO).toString()
     }
     if (message.ref !== undefined) {

@@ -523,7 +523,7 @@ export const FsInitOp = {
     if (message.fsRefType !== 0) {
       writer.uint32(32).int32(message.fsRefType)
     }
-    if (message.fsOverwrite === true) {
+    if (message.fsOverwrite !== false) {
       writer.uint32(40).bool(message.fsOverwrite)
     }
     if (message.timestamp !== undefined) {
@@ -658,7 +658,7 @@ export const FsInitOp = {
     if (message.fsRefType !== 0) {
       obj.fsRefType = fSTypeToJSON(message.fsRefType)
     }
-    if (message.fsOverwrite === true) {
+    if (message.fsOverwrite !== false) {
       obj.fsOverwrite = message.fsOverwrite
     }
     if (message.timestamp !== undefined) {
@@ -1426,7 +1426,7 @@ export const FsWriteAtOp = {
     if (message.path !== undefined) {
       FSPath.encode(message.path, writer.uint32(26).fork()).ldelim()
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.ZERO)) {
       writer.uint32(32).int64(message.offset)
     }
     if (message.blobRef !== undefined) {
@@ -1561,7 +1561,7 @@ export const FsWriteAtOp = {
     if (message.path !== undefined) {
       obj.path = FSPath.toJSON(message.path)
     }
-    if (!message.offset.isZero()) {
+    if (!message.offset.equals(Long.ZERO)) {
       obj.offset = (message.offset || Long.ZERO).toString()
     }
     if (message.blobRef !== undefined) {
@@ -1626,7 +1626,7 @@ export const FsTruncateOp = {
     if (message.path !== undefined) {
       FSPath.encode(message.path, writer.uint32(26).fork()).ldelim()
     }
-    if (!message.fileSize.isZero()) {
+    if (!message.fileSize.equals(Long.ZERO)) {
       writer.uint32(32).int64(message.fileSize)
     }
     if (message.timestamp !== undefined) {
@@ -1750,7 +1750,7 @@ export const FsTruncateOp = {
     if (message.path !== undefined) {
       obj.path = FSPath.toJSON(message.path)
     }
-    if (!message.fileSize.isZero()) {
+    if (!message.fileSize.equals(Long.ZERO)) {
       obj.fileSize = (message.fileSize || Long.ZERO).toString()
     }
     if (message.timestamp !== undefined) {

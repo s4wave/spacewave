@@ -924,7 +924,7 @@ export const FSConfig = {
     message: FSConfig,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.disableChangelog === true) {
+    if (message.disableChangelog !== false) {
       writer.uint32(8).bool(message.disableChangelog)
     }
     return writer
@@ -1000,7 +1000,7 @@ export const FSConfig = {
 
   toJSON(message: FSConfig): unknown {
     const obj: any = {}
-    if (message.disableChangelog === true) {
+    if (message.disableChangelog !== false) {
       obj.disableChangelog = message.disableChangelog
     }
     return obj
@@ -1028,7 +1028,7 @@ export const FSPath = {
     for (const v of message.nodes) {
       writer.uint32(10).string(v!)
     }
-    if (message.absolute === true) {
+    if (message.absolute !== false) {
       writer.uint32(16).bool(message.absolute)
     }
     return writer
@@ -1115,7 +1115,7 @@ export const FSPath = {
     if (message.nodes?.length) {
       obj.nodes = message.nodes
     }
-    if (message.absolute === true) {
+    if (message.absolute !== false) {
       obj.absolute = message.absolute
     }
     return obj
@@ -1149,7 +1149,7 @@ export const FSChange = {
     message: FSChange,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.seqno.isZero()) {
+    if (!message.seqno.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.seqno)
     }
     if (message.prevRef !== undefined) {
@@ -1299,7 +1299,7 @@ export const FSChange = {
 
   toJSON(message: FSChange): unknown {
     const obj: any = {}
-    if (!message.seqno.isZero()) {
+    if (!message.seqno.equals(Long.UZERO)) {
       obj.seqno = (message.seqno || Long.UZERO).toString()
     }
     if (message.prevRef !== undefined) {

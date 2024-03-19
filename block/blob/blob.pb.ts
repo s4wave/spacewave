@@ -198,7 +198,7 @@ export const Blob = {
     if (message.blobType !== 0) {
       writer.uint32(8).int32(message.blobType)
     }
-    if (!message.totalSize.isZero()) {
+    if (!message.totalSize.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.totalSize)
     }
     if (message.rawData.length !== 0) {
@@ -309,7 +309,7 @@ export const Blob = {
     if (message.blobType !== 0) {
       obj.blobType = blobTypeToJSON(message.blobType)
     }
-    if (!message.totalSize.isZero()) {
+    if (!message.totalSize.equals(Long.UZERO)) {
       obj.totalSize = (message.totalSize || Long.UZERO).toString()
     }
     if (message.rawData.length !== 0) {
@@ -349,7 +349,7 @@ export const BuildBlobOpts = {
     message: BuildBlobOpts,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.rawHighWaterMark.isZero()) {
+    if (!message.rawHighWaterMark.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.rawHighWaterMark)
     }
     if (message.chunkerArgs !== undefined) {
@@ -438,7 +438,7 @@ export const BuildBlobOpts = {
 
   toJSON(message: BuildBlobOpts): unknown {
     const obj: any = {}
-    if (!message.rawHighWaterMark.isZero()) {
+    if (!message.rawHighWaterMark.equals(Long.UZERO)) {
       obj.rawHighWaterMark = (message.rawHighWaterMark || Long.UZERO).toString()
     }
     if (message.chunkerArgs !== undefined) {
@@ -728,16 +728,16 @@ export const RabinArgs = {
     message: RabinArgs,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.pol.isZero()) {
+    if (!message.pol.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.pol)
     }
-    if (message.randomPol === true) {
+    if (message.randomPol !== false) {
       writer.uint32(32).bool(message.randomPol)
     }
-    if (!message.chunkingMinSize.isZero()) {
+    if (!message.chunkingMinSize.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.chunkingMinSize)
     }
-    if (!message.chunkingMaxSize.isZero()) {
+    if (!message.chunkingMaxSize.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.chunkingMaxSize)
     }
     return writer
@@ -841,16 +841,16 @@ export const RabinArgs = {
 
   toJSON(message: RabinArgs): unknown {
     const obj: any = {}
-    if (!message.pol.isZero()) {
+    if (!message.pol.equals(Long.UZERO)) {
       obj.pol = (message.pol || Long.UZERO).toString()
     }
-    if (message.randomPol === true) {
+    if (message.randomPol !== false) {
       obj.randomPol = message.randomPol
     }
-    if (!message.chunkingMinSize.isZero()) {
+    if (!message.chunkingMinSize.equals(Long.UZERO)) {
       obj.chunkingMinSize = (message.chunkingMinSize || Long.UZERO).toString()
     }
-    if (!message.chunkingMaxSize.isZero()) {
+    if (!message.chunkingMaxSize.equals(Long.UZERO)) {
       obj.chunkingMaxSize = (message.chunkingMaxSize || Long.UZERO).toString()
     }
     return obj
@@ -889,10 +889,10 @@ export const Chunk = {
     if (message.dataRef !== undefined) {
       BlockRef.encode(message.dataRef, writer.uint32(10).fork()).ldelim()
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.size)
     }
-    if (!message.start.isZero()) {
+    if (!message.start.equals(Long.UZERO)) {
       writer.uint32(24).uint64(message.start)
     }
     return writer
@@ -985,10 +985,10 @@ export const Chunk = {
     if (message.dataRef !== undefined) {
       obj.dataRef = BlockRef.toJSON(message.dataRef)
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       obj.size = (message.size || Long.UZERO).toString()
     }
-    if (!message.start.isZero()) {
+    if (!message.start.equals(Long.UZERO)) {
       obj.start = (message.start || Long.UZERO).toString()
     }
     return obj

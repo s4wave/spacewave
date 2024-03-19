@@ -349,7 +349,7 @@ export const ListMqueuesRequest = {
     if (message.prefix.length !== 0) {
       writer.uint32(10).bytes(message.prefix)
     }
-    if (message.filled === true) {
+    if (message.filled !== false) {
       writer.uint32(16).bool(message.filled)
     }
     return writer
@@ -436,7 +436,7 @@ export const ListMqueuesRequest = {
     if (message.prefix.length !== 0) {
       obj.prefix = base64FromBytes(message.prefix)
     }
-    if (message.filled === true) {
+    if (message.filled !== false) {
       obj.filled = message.filled
     }
     return obj
@@ -669,7 +669,7 @@ export const PeekResponse = {
     if (message.error !== '') {
       writer.uint32(10).string(message.error)
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       writer.uint32(16).bool(message.found)
     }
     if (message.msg !== undefined) {
@@ -765,7 +765,7 @@ export const PeekResponse = {
     if (message.error !== '') {
       obj.error = message.error
     }
-    if (message.found === true) {
+    if (message.found !== false) {
       obj.found = message.found
     }
     if (message.msg !== undefined) {
@@ -802,7 +802,7 @@ export const AckRequest = {
     message: AckRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.id.isZero()) {
+    if (!message.id.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.id)
     }
     return writer
@@ -874,7 +874,7 @@ export const AckRequest = {
 
   toJSON(message: AckRequest): unknown {
     const obj: any = {}
-    if (!message.id.isZero()) {
+    if (!message.id.equals(Long.UZERO)) {
       obj.id = (message.id || Long.UZERO).toString()
     }
     return obj
@@ -1227,7 +1227,7 @@ export const MqueueMsg = {
     message: MqueueMsg,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (!message.id.isZero()) {
+    if (!message.id.equals(Long.UZERO)) {
       writer.uint32(8).uint64(message.id)
     }
     if (message.timestamp !== undefined) {
@@ -1332,7 +1332,7 @@ export const MqueueMsg = {
 
   toJSON(message: MqueueMsg): unknown {
     const obj: any = {}
-    if (!message.id.isZero()) {
+    if (!message.id.equals(Long.UZERO)) {
       obj.id = (message.id || Long.UZERO).toString()
     }
     if (message.timestamp !== undefined) {
@@ -1370,7 +1370,7 @@ export const WaitRequest = {
     message: WaitRequest,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.ack === true) {
+    if (message.ack !== false) {
       writer.uint32(8).bool(message.ack)
     }
     return writer
@@ -1442,7 +1442,7 @@ export const WaitRequest = {
 
   toJSON(message: WaitRequest): unknown {
     const obj: any = {}
-    if (message.ack === true) {
+    if (message.ack !== false) {
       obj.ack = message.ack
     }
     return obj

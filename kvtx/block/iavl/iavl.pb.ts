@@ -55,7 +55,7 @@ export const Node = {
     if (message.height !== 0) {
       writer.uint32(8).uint32(message.height)
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       writer.uint32(16).uint64(message.size)
     }
     if (message.key.length !== 0) {
@@ -64,7 +64,7 @@ export const Node = {
     if (message.valueRef !== undefined) {
       BlockRef.encode(message.valueRef, writer.uint32(58).fork()).ldelim()
     }
-    if (message.valueRefBlob === true) {
+    if (message.valueRefBlob !== false) {
       writer.uint32(64).bool(message.valueRefBlob)
     }
     if (message.leftChildRef !== undefined) {
@@ -201,7 +201,7 @@ export const Node = {
     if (message.height !== 0) {
       obj.height = Math.round(message.height)
     }
-    if (!message.size.isZero()) {
+    if (!message.size.equals(Long.UZERO)) {
       obj.size = (message.size || Long.UZERO).toString()
     }
     if (message.key.length !== 0) {
@@ -210,7 +210,7 @@ export const Node = {
     if (message.valueRef !== undefined) {
       obj.valueRef = BlockRef.toJSON(message.valueRef)
     }
-    if (message.valueRefBlob === true) {
+    if (message.valueRefBlob !== false) {
       obj.valueRefBlob = message.valueRefBlob
     }
     if (message.leftChildRef !== undefined) {

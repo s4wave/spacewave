@@ -166,16 +166,16 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       Config1.encode(message.kvKeyOpts, writer.uint32(26).fork()).ldelim()
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       writer.uint32(32).bool(message.noGenerateKey)
     }
-    if (message.noWriteKey === true) {
+    if (message.noWriteKey !== false) {
       writer.uint32(200).bool(message.noWriteKey)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(168).bool(message.verbose)
     }
-    if (message.badgerDebug === true) {
+    if (message.badgerDebug !== false) {
       writer.uint32(192).bool(message.badgerDebug)
     }
     if (message.volumeConfig !== undefined) {
@@ -187,7 +187,7 @@ export const Config = {
     if (message.numVersionsToKeep !== 0) {
       writer.uint32(56).uint32(message.numVersionsToKeep)
     }
-    if (!message.baseTableSize.isZero()) {
+    if (!message.baseTableSize.equals(Long.UZERO)) {
       writer.uint32(208).uint64(message.baseTableSize)
     }
     if (message.levelSizeMultiplier !== 0) {
@@ -196,7 +196,7 @@ export const Config = {
     if (message.maxLevels !== 0) {
       writer.uint32(80).uint32(message.maxLevels)
     }
-    if (!message.valueThreshold.isZero()) {
+    if (!message.valueThreshold.equals(Long.UZERO)) {
       writer.uint32(216).uint64(message.valueThreshold)
     }
     if (message.numMemtables !== 0) {
@@ -208,10 +208,10 @@ export const Config = {
     if (message.numLevelZeroTablesStall !== 0) {
       writer.uint32(112).uint32(message.numLevelZeroTablesStall)
     }
-    if (!message.baseLevelSize.isZero()) {
+    if (!message.baseLevelSize.equals(Long.UZERO)) {
       writer.uint32(224).uint64(message.baseLevelSize)
     }
-    if (!message.valueLogFileSize.isZero()) {
+    if (!message.valueLogFileSize.equals(Long.UZERO)) {
       writer.uint32(128).uint64(message.valueLogFileSize)
     }
     if (message.valueLogMaxEntries !== 0) {
@@ -220,7 +220,7 @@ export const Config = {
     if (message.numCompactors !== 0) {
       writer.uint32(144).uint32(message.numCompactors)
     }
-    if (message.noSyncWrites === true) {
+    if (message.noSyncWrites !== false) {
       writer.uint32(160).bool(message.noSyncWrites)
     }
     return writer
@@ -511,16 +511,16 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       obj.noGenerateKey = message.noGenerateKey
     }
-    if (message.noWriteKey === true) {
+    if (message.noWriteKey !== false) {
       obj.noWriteKey = message.noWriteKey
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
-    if (message.badgerDebug === true) {
+    if (message.badgerDebug !== false) {
       obj.badgerDebug = message.badgerDebug
     }
     if (message.volumeConfig !== undefined) {
@@ -532,7 +532,7 @@ export const Config = {
     if (message.numVersionsToKeep !== 0) {
       obj.numVersionsToKeep = Math.round(message.numVersionsToKeep)
     }
-    if (!message.baseTableSize.isZero()) {
+    if (!message.baseTableSize.equals(Long.UZERO)) {
       obj.baseTableSize = (message.baseTableSize || Long.UZERO).toString()
     }
     if (message.levelSizeMultiplier !== 0) {
@@ -541,7 +541,7 @@ export const Config = {
     if (message.maxLevels !== 0) {
       obj.maxLevels = Math.round(message.maxLevels)
     }
-    if (!message.valueThreshold.isZero()) {
+    if (!message.valueThreshold.equals(Long.UZERO)) {
       obj.valueThreshold = (message.valueThreshold || Long.UZERO).toString()
     }
     if (message.numMemtables !== 0) {
@@ -553,10 +553,10 @@ export const Config = {
     if (message.numLevelZeroTablesStall !== 0) {
       obj.numLevelZeroTablesStall = Math.round(message.numLevelZeroTablesStall)
     }
-    if (!message.baseLevelSize.isZero()) {
+    if (!message.baseLevelSize.equals(Long.UZERO)) {
       obj.baseLevelSize = (message.baseLevelSize || Long.UZERO).toString()
     }
-    if (!message.valueLogFileSize.isZero()) {
+    if (!message.valueLogFileSize.equals(Long.UZERO)) {
       obj.valueLogFileSize = (message.valueLogFileSize || Long.UZERO).toString()
     }
     if (message.valueLogMaxEntries !== 0) {
@@ -565,7 +565,7 @@ export const Config = {
     if (message.numCompactors !== 0) {
       obj.numCompactors = Math.round(message.numCompactors)
     }
-    if (message.noSyncWrites === true) {
+    if (message.noSyncWrites !== false) {
       obj.noSyncWrites = message.noSyncWrites
     }
     return obj

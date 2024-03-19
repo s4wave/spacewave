@@ -114,7 +114,7 @@ export const GitInitOp = {
     if (message.repoRef !== undefined) {
       ObjectRef.encode(message.repoRef, writer.uint32(18).fork()).ldelim()
     }
-    if (message.disableCheckout === true) {
+    if (message.disableCheckout !== false) {
       writer.uint32(24).bool(message.disableCheckout)
     }
     if (message.createWorktree !== undefined) {
@@ -235,7 +235,7 @@ export const GitInitOp = {
     if (message.repoRef !== undefined) {
       obj.repoRef = ObjectRef.toJSON(message.repoRef)
     }
-    if (message.disableCheckout === true) {
+    if (message.disableCheckout !== false) {
       obj.disableCheckout = message.disableCheckout
     }
     if (message.createWorktree !== undefined) {
@@ -561,7 +561,7 @@ export const GitCreateWorktreeOp = {
     if (message.workdirRef !== undefined) {
       UnixfsRef.encode(message.workdirRef, writer.uint32(26).fork()).ldelim()
     }
-    if (message.createWorkdir === true) {
+    if (message.createWorkdir !== false) {
       writer.uint32(32).bool(message.createWorkdir)
     }
     if (message.checkoutOpts !== undefined) {
@@ -570,7 +570,7 @@ export const GitCreateWorktreeOp = {
         writer.uint32(42).fork(),
       ).ldelim()
     }
-    if (message.disableCheckout === true) {
+    if (message.disableCheckout !== false) {
       writer.uint32(48).bool(message.disableCheckout)
     }
     if (message.timestamp !== undefined) {
@@ -718,13 +718,13 @@ export const GitCreateWorktreeOp = {
     if (message.workdirRef !== undefined) {
       obj.workdirRef = UnixfsRef.toJSON(message.workdirRef)
     }
-    if (message.createWorkdir === true) {
+    if (message.createWorkdir !== false) {
       obj.createWorkdir = message.createWorkdir
     }
     if (message.checkoutOpts !== undefined) {
       obj.checkoutOpts = CheckoutOpts.toJSON(message.checkoutOpts)
     }
-    if (message.disableCheckout === true) {
+    if (message.disableCheckout !== false) {
       obj.disableCheckout = message.disableCheckout
     }
     if (message.timestamp !== undefined) {

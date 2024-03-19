@@ -2518,10 +2518,10 @@ export const IndexEntry = {
     if (message.stage !== 0) {
       writer.uint32(88).uint32(message.stage)
     }
-    if (message.skipWorktree === true) {
+    if (message.skipWorktree !== false) {
       writer.uint32(96).bool(message.skipWorktree)
     }
-    if (message.intentToAdd === true) {
+    if (message.intentToAdd !== false) {
       writer.uint32(104).bool(message.intentToAdd)
     }
     return writer
@@ -2734,10 +2734,10 @@ export const IndexEntry = {
     if (message.stage !== 0) {
       obj.stage = Math.round(message.stage)
     }
-    if (message.skipWorktree === true) {
+    if (message.skipWorktree !== false) {
       obj.skipWorktree = message.skipWorktree
     }
-    if (message.intentToAdd === true) {
+    if (message.intentToAdd !== false) {
       obj.intentToAdd = message.intentToAdd
     }
     return obj
@@ -2921,22 +2921,22 @@ export const CloneOpts = {
     if (message.ref !== '') {
       writer.uint32(26).string(message.ref)
     }
-    if (message.singleBranch === true) {
+    if (message.singleBranch !== false) {
       writer.uint32(32).bool(message.singleBranch)
     }
-    if (message.disableCheckout === true) {
+    if (message.disableCheckout !== false) {
       writer.uint32(40).bool(message.disableCheckout)
     }
     if (message.depth !== 0) {
       writer.uint32(48).uint32(message.depth)
     }
-    if (message.recursive === true) {
+    if (message.recursive !== false) {
       writer.uint32(56).bool(message.recursive)
     }
     if (message.tagMode !== 0) {
       writer.uint32(64).int32(message.tagMode)
     }
-    if (message.insecure === true) {
+    if (message.insecure !== false) {
       writer.uint32(72).bool(message.insecure)
     }
     if (message.caBundle !== '') {
@@ -3106,22 +3106,22 @@ export const CloneOpts = {
     if (message.ref !== '') {
       obj.ref = message.ref
     }
-    if (message.singleBranch === true) {
+    if (message.singleBranch !== false) {
       obj.singleBranch = message.singleBranch
     }
-    if (message.disableCheckout === true) {
+    if (message.disableCheckout !== false) {
       obj.disableCheckout = message.disableCheckout
     }
     if (message.depth !== 0) {
       obj.depth = Math.round(message.depth)
     }
-    if (message.recursive === true) {
+    if (message.recursive !== false) {
       obj.recursive = message.recursive
     }
     if (message.tagMode !== 0) {
       obj.tagMode = tagModeToJSON(message.tagMode)
     }
-    if (message.insecure === true) {
+    if (message.insecure !== false) {
       obj.insecure = message.insecure
     }
     if (message.caBundle !== '') {
@@ -3172,13 +3172,13 @@ export const CheckoutOpts = {
     if (message.branch !== '') {
       writer.uint32(18).string(message.branch)
     }
-    if (message.create === true) {
+    if (message.create !== false) {
       writer.uint32(24).bool(message.create)
     }
-    if (message.force === true) {
+    if (message.force !== false) {
       writer.uint32(32).bool(message.force)
     }
-    if (message.keep === true) {
+    if (message.keep !== false) {
       writer.uint32(40).bool(message.keep)
     }
     return writer
@@ -3290,13 +3290,13 @@ export const CheckoutOpts = {
     if (message.branch !== '') {
       obj.branch = message.branch
     }
-    if (message.create === true) {
+    if (message.create !== false) {
       obj.create = message.create
     }
-    if (message.force === true) {
+    if (message.force !== false) {
       obj.force = message.force
     }
-    if (message.keep === true) {
+    if (message.keep !== false) {
       obj.keep = message.keep
     }
     return obj

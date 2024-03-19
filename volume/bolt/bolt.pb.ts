@@ -69,7 +69,7 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       Config1.encode(message.kvKeyOpts, writer.uint32(18).fork()).ldelim()
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(24).bool(message.verbose)
     }
     if (message.volumeConfig !== undefined) {
@@ -78,16 +78,16 @@ export const Config = {
     if (message.storeConfig !== undefined) {
       Config3.encode(message.storeConfig, writer.uint32(50).fork()).ldelim()
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       writer.uint32(56).bool(message.noGenerateKey)
     }
-    if (message.noWriteKey === true) {
+    if (message.noWriteKey !== false) {
       writer.uint32(80).bool(message.noWriteKey)
     }
-    if (message.sync === true) {
+    if (message.sync !== false) {
       writer.uint32(64).bool(message.sync)
     }
-    if (message.freelistSync === true) {
+    if (message.freelistSync !== false) {
       writer.uint32(72).bool(message.freelistSync)
     }
     return writer
@@ -243,7 +243,7 @@ export const Config = {
     if (message.kvKeyOpts !== undefined) {
       obj.kvKeyOpts = Config1.toJSON(message.kvKeyOpts)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     if (message.volumeConfig !== undefined) {
@@ -252,16 +252,16 @@ export const Config = {
     if (message.storeConfig !== undefined) {
       obj.storeConfig = Config3.toJSON(message.storeConfig)
     }
-    if (message.noGenerateKey === true) {
+    if (message.noGenerateKey !== false) {
       obj.noGenerateKey = message.noGenerateKey
     }
-    if (message.noWriteKey === true) {
+    if (message.noWriteKey !== false) {
       obj.noWriteKey = message.noWriteKey
     }
-    if (message.sync === true) {
+    if (message.sync !== false) {
       obj.sync = message.sync
     }
-    if (message.freelistSync === true) {
+    if (message.freelistSync !== false) {
       obj.freelistSync = message.freelistSync
     }
     return obj

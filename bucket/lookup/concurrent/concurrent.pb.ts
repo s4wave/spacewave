@@ -179,7 +179,7 @@ export const Config = {
     if (message.lookupTimeoutDur !== '') {
       writer.uint32(50).string(message.lookupTimeoutDur)
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       writer.uint32(40).bool(message.verbose)
     }
     return writer
@@ -318,7 +318,7 @@ export const Config = {
     if (message.lookupTimeoutDur !== '') {
       obj.lookupTimeoutDur = message.lookupTimeoutDur
     }
-    if (message.verbose === true) {
+    if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
     return obj
