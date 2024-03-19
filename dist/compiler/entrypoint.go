@@ -24,7 +24,7 @@ var DistMeta = %q
 // LogLevel is the logging level to use.
 var LogLevel = logrus.DebugLevel
 
-// AssetsFS contains embedded static assets.%s
+// AssetsFS contains embedded static assets.
 //
 //%s
 var AssetsFS embed.FS
