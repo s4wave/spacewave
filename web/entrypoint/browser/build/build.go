@@ -8,7 +8,6 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	"github.com/aperturerobotics/bldr/util/gocompiler"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
@@ -19,16 +18,16 @@ import (
 // webEntrypointBrowserDir is the repo sub-dir for the browser entrypoint.
 const webEntrypointBrowserDir = "web/entrypoint/browser"
 
-// BuildWasmRuntime builds the Wasm runtime entrypoint.
+// BuildWasmRuntimeEntrypoint builds the wasm runtime entrypoint.
 //
 // builds to buildDir/runtime-wasm.mjs
-func BuildWasmRuntime(
+func BuildWasmRuntimeEntrypoint(
 	ctx context.Context,
 	le *logrus.Entry,
 	bldrDistRoot string,
 	buildDir string,
-	entrypointPkg string,
-	minify bool,
+	buildType bldr_manifest.BuildType,
+	buildPlatform bldr_platform.Platform,
 ) error {
 	le.Info("building runtime-wasm.mjs")
 	goRootDir := runtime.GOROOT()
@@ -41,6 +40,7 @@ func BuildWasmRuntime(
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
 
+	minify := buildType.IsRelease()
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify)
 	opts.EntryPoints = []string{"runtime-wasm.ts"}
 	opts.Inject = append(opts.Inject, wasmExecFile)
@@ -49,26 +49,6 @@ func BuildWasmRuntime(
 
 	res := esbuild_api.Build(opts)
 	if err := bldr_esbuild.BuildResultToErr(res); err != nil {
-		return err
-	}
-
-	// Build runtime wasm pkg
-	le.Info("building runtime.wasm")
-	buildPlatform := bldr_platform.NewWebPlatform()
-	buildType := bldr_manifest.BuildType_RELEASE
-	buildTags := []string{"build_type_" + buildType.String(), "purego"}
-	entrypointGoDir := filepath.Join(bldrDistRoot, entrypointPkg)
-	runtimeOut := filepath.Join(buildDir, "runtime.wasm")
-	if err := gocompiler.ExecBuildEntrypoint(
-		le,
-		buildPlatform,
-		entrypointGoDir,
-		runtimeOut,
-		false, // no cgo
-		minify,
-		buildTags,
-		nil,
-	); err != nil {
 		return err
 	}
 

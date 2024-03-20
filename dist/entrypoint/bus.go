@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
@@ -70,7 +71,9 @@ type DistBus struct {
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
 // Returns a set of functions to call to release the controllers.
 func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID, stateRoot string) (*DistBus, error) {
-	le.Info("initializing application and storage...")
+	le.
+		WithFields(logrus.Fields{"project-id": projectID, "platform-id": platformID}).
+		Info("initializing application and storage...")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	b, sr, err := NewCoreBus(ctx, le)
 	if err != nil {
@@ -90,14 +93,19 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 	pluginHostObjectKey := "plugin-host"
 	pluginsRoot := filepath.Join(stateRoot, "p")
 	pluginsDistRoot := filepath.Join(pluginsRoot, "d")
-	if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
-		ctxCancel()
-		return nil, err
-	}
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
-	if err := os.MkdirAll(pluginsStateRoot, 0o755); err != nil {
-		ctxCancel()
-		return nil, err
+
+	// HACK: we cannot create paths on the web platform
+	isWebPlatform := platformID == "web" || strings.HasPrefix(platformID, "web/")
+	if !isWebPlatform {
+		if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
+			ctxCancel()
+			return nil, err
+		}
+		if err := os.MkdirAll(pluginsStateRoot, 0o755); err != nil {
+			ctxCancel()
+			return nil, err
+		}
 	}
 
 	// build storage config

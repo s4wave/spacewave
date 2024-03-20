@@ -290,6 +290,7 @@ func (c *Controller) BuildManifest(
 	err = BuildDistBundle(
 		ctx,
 		le,
+		builderConf.GetDistSourcePath(),
 		workingPath,
 		outDistPath,
 		entrypointFilename,

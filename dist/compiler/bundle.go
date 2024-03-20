@@ -14,6 +14,8 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
+	browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
+	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -28,6 +30,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/fsutil"
+	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -38,7 +41,9 @@ import (
 func BuildDistBundle(
 	rctx context.Context,
 	le *logrus.Entry,
-	workingPath, outputPath string,
+	distSrcPath string,
+	workingPath string,
+	outputPath string,
 	outBinName string,
 	meta *bldr_dist.DistMeta,
 	buildType bldr_manifest.BuildType,
@@ -47,12 +52,13 @@ func BuildDistBundle(
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
 	enableCgo bool,
 ) error {
+	isRelease := buildType.IsRelease()
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
 	// Write the bldr license file.
 	bldrLicense := bldr.GetLicense()
-	if err := os.WriteFile(filepath.Join(workingPath, "LICENSE"), []byte(bldrLicense), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outputPath, "LICENSE.bldr"), []byte(bldrLicense), 0o644); err != nil {
 		return err
 	}
 
@@ -246,9 +252,55 @@ func BuildDistBundle(
 	}
 
 	// on the Web platform we distribute the kvfile separately
+	// we also name the entrypoint file differently
+	outBinPath := filepath.Join(outputPath, outBinName)
 	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
+		// store the wasm file where the entrypoint expects.
+		// TODO: instead name it based on outBinName and add a hash to the name
+		outEntryDir := filepath.Join(outputPath, "entrypoint")
+		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
+
 		le.Debugf("copying %v to output directory", embeddedVolumeFilename)
 		if err := fsutil.CopyFile(filepath.Join(outputPath, embeddedVolumeFilename), embeddedVolumePath, 0o644); err != nil {
+			return err
+		}
+
+		// Write the URL to the kvfile
+		embeddedVolumeURL := "./" + embeddedVolumeFilename
+		outVolumeURLFilename := "assets.url"
+		outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
+		if err := os.WriteFile(outVolumeURLPath, []byte(embeddedVolumeURL), 0o644); err != nil {
+			return err
+		}
+		embedAssetsFS = append(embedAssetsFS, outVolumeURLFilename)
+
+		// Compile the bldr entrypoint (js bundle and index.html)
+		le.Debug("building browser bundle")
+		entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
+		err := entrypoint_browser_bundle.BuildBrowserBundle(
+			ctx,
+			le,
+			distSrcPath,
+			outputPath,
+			// web-document is located under /pkgs/@aptre/bldr
+			"./entrypoint/runtime-wasm.mjs",
+			isRelease,
+			false,
+		)
+		if err != nil {
+			return err
+		}
+
+		le.Info("building web wasm entrypoint")
+		err = browser_build.BuildWasmRuntimeEntrypoint(
+			ctx,
+			le,
+			distSrcPath,
+			outEntryDir,
+			buildType,
+			buildPlatform,
+		)
+		if err != nil {
 			return err
 		}
 	} else {
@@ -264,22 +316,14 @@ func BuildDistBundle(
 		return err
 	}
 
-	// build tags
-	buildTags := []string{"build_type_" + buildType.String()}
-	if !enableCgo {
-		buildTags = append(buildTags, "purego")
-	}
-
-	outBinPath := filepath.Join(outputPath, outBinName)
-	isRelease := buildType.IsRelease()
 	err = gocompiler.ExecBuildEntrypoint(
 		le,
 		buildPlatform,
+		buildType,
 		entrypointBuildDir,
 		outBinPath,
 		enableCgo,
-		isRelease,
-		buildTags,
+		nil,
 		nil,
 	)
 	if err != nil {

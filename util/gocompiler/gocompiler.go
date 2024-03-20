@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
 	uexec "github.com/aperturerobotics/util/exec"
@@ -66,14 +67,25 @@ func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
 	return err
 }
 
+// NewBuildTags constructs build tags for a build type.
+//
+// NOTE: ExecBuildEntrypoint calls this automatically.
+func NewBuildTags(buildPlatform bldr_platform.Platform, buildType bldr_manifest.BuildType, enableCgo bool) []string {
+	buildTags := []string{"build_type_" + buildType.String()}
+	if !enableCgo {
+		buildTags = append(buildTags, "purego")
+	}
+	return buildTags
+}
+
 // ExecBuildEntrypoint executes building an entrypoint main package.
 func ExecBuildEntrypoint(
 	le *logrus.Entry,
 	buildPlatform bldr_platform.Platform,
+	buildType bldr_manifest.BuildType,
 	workingPath,
 	outBinPath string,
 	enableCgo bool,
-	isRelease bool,
 	buildTags []string,
 	ldFlags []string,
 ) error {
@@ -90,12 +102,21 @@ func ExecBuildEntrypoint(
 		outBinPath,
 	}, GetDefaultArgs()...)
 
+	// always disable cgo if not native platform
+	if !isNativeBuildPlatform {
+		enableCgo = false
+	}
+
 	// build tags
+	buildTags = append(buildTags, NewBuildTags(buildPlatform, buildType, enableCgo)...)
+
+	// add build tags to build args
 	if len(buildTags) != 0 {
 		args = append(args, "-tags="+strings.Join(buildTags, ","))
 	}
 
 	// if release or not native platform drop debugging symbols
+	isRelease := buildType.IsRelease()
 	if isRelease || !isNativeBuildPlatform {
 		ldFlags = slices.Clone(ldFlags)
 		ldFlags = append(ldFlags, "-w", "-s")

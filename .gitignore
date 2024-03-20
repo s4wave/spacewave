@@ -24,3 +24,4 @@ output/
 
 __debug_bin*
 debug.test*
+.aider*

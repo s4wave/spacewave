@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
@@ -131,20 +133,19 @@ func (m *ModuleCompiler) CompilePlugin(
 	ctx context.Context,
 	le *logrus.Entry,
 	outFile string,
-	platform bldr_platform.Platform,
-	enableCgo,
-	isRelease bool,
-	buildTags []string,
+	buildPlatform bldr_platform.Platform,
+	buildType bldr_manifest.BuildType,
+	enableCgo bool,
 ) error {
 	workDir := m.pluginCodegenPath
 	return gocompiler.ExecBuildEntrypoint(
 		le,
-		platform,
+		buildPlatform,
+		buildType,
 		workDir,
 		outFile,
 		enableCgo,
-		isRelease,
-		buildTags,
+		nil,
 		nil,
 	)
 }
@@ -159,8 +160,9 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	le *logrus.Entry,
 	outFile,
 	dlvAddr string,
+	buildPlatform bldr_platform.Platform,
+	buildType bldr_manifest.BuildType,
 	enableCgo bool,
-	buildTags []string,
 ) error {
 	// write the plugin dev wrapper entrypoint
 	devSrcDir := filepath.Join(m.pluginCodegenPath, "dev")
@@ -175,6 +177,14 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 
 	// add build flags for the target plugin binary
 	goArgs := gocompiler.GetDefaultArgs()
+
+	// build tags
+	buildTags := gocompiler.NewBuildTags(buildPlatform, buildType, enableCgo)
+
+	// add build tags to build args
+	if len(buildTags) != 0 {
+		goArgs = append(goArgs, "-tags="+strings.Join(buildTags, ","))
+	}
 
 	// note: no -trimpath here
 	// disables inlining and optimizations for debugging purposes
@@ -210,12 +220,6 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 
 	// build path: .
 	args = append(args, ".")
-
-	/*
-		if err := gocompiler.RunGoModTidy(ctx, le, devSrcDir); err != nil {
-			return err
-		}
-	*/
 
 	ecmd := gocompiler.NewGoCompilerCmd(args...)
 	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host, ignore cgo-enabled

@@ -10,6 +10,11 @@ import (
 	"os"
 
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	buffered_reader_at "github.com/aperturerobotics/bldr/util/buffered-reader-at"
+	fetch_range "github.com/aperturerobotics/bldr/util/fetch-range"
+	fetch "github.com/aperturerobotics/bldr/util/wasm-fetch"
+	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
+	"github.com/aperturerobotics/util/ioseek"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,8 +50,25 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 }
 
 // openStaticVolume opens the static volume kvfile.
-func openStaticVolume(assetsFS fs.FS) (fs.File, error) {
-	// TODO: mount
-	return nil, errors.New("TODO mount /assets.kvfile as a kvfile_compress.ReadSeekerAt for web platform")
-	// return assetsFS.Open("assets.kvfile")
+func openStaticVolume(assetsFS fs.FS) (kvfile_compress.ReadSeekerAt, error) {
+	// read the URL to fetch from the assets fs
+	fetchUrlDat, err := fs.ReadFile(assetsFS, "assets.url")
+	if err != nil {
+		return nil, err
+	}
+	fetchUrl := string(fetchUrlDat)
+	if len(fetchUrl) == 0 {
+		return nil, errors.New("empty assets url")
+	}
+
+	// send http requests for at minimum 100Kb
+	fetchReader := fetch_range.NewFetchRangeReader(fetchUrl, &fetch.Opts{Method: "GET"})
+	totalSize, err := fetchReader.Size()
+	if err != nil {
+		return nil, err
+	}
+
+	bufferReader := buffered_reader_at.NewBufferedReaderAt(fetchReader, 102400)
+	seekerReader := ioseek.NewReaderAtSeeker(bufferReader, totalSize)
+	return seekerReader, nil
 }

@@ -15,6 +15,7 @@ import (
 	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
+	"github.com/aperturerobotics/bldr/util/gocompiler"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
@@ -693,16 +694,10 @@ func (c *Controller) BuildPlugin(
 	// merge configured config set entries
 	configset_proto.MergeConfigSetMaps(embedConfigSet, configSet)
 
-	// build tags
-	buildTags := []string{"build_type_" + buildType.String()}
-
-	// use purego on non-native platforms
-	if !isNativeBuildPlatform {
-		buildTags = append(buildTags, "purego")
-	}
-
+	// analyze go packages
 	le.Info("analyzing go packages")
-	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTags)
+	buildTagsForAnalyze := gocompiler.NewBuildTags(buildPlatform, buildType, enableCgo)
+	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTagsForAnalyze)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -907,12 +902,12 @@ func (c *Controller) BuildPlugin(
 	// only use dev wrapper if !isRelease && delveAddr != "" && platform == native
 	if isRelease || delveAddr == "" || !isNativeBuildPlatform {
 		le.Info("compiling plugin binary")
-		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, enableCgo, isRelease, buildTags); err != nil {
+		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, buildType, enableCgo); err != nil {
 			return nil, nil, err
 		}
 	} else {
 		le.Info("compiling plugin dev wrapper binary")
-		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, enableCgo, buildTags); err != nil {
+		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, buildPlatform, buildType, enableCgo); err != nil {
 			return nil, nil, err
 		}
 		copyFiles = append(copyFiles, "plugin.go", "config-set.bin")

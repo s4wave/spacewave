@@ -30,6 +30,8 @@ func DetermineConfigDir() (string, error) {
 			return "", errors.New("$HOME is not defined")
 		}
 		return filepath.Join(dir, ".aperture"), nil
+	case "js":
+		return "/.aperture", nil
 	default:
 		userConfDir, err := os.UserConfigDir()
 		if err != nil {

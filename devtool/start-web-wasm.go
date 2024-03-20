@@ -15,6 +15,7 @@ import (
 	devtool_web "github.com/aperturerobotics/bldr/devtool/web"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	"github.com/aperturerobotics/bldr/util/gocompiler"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -122,17 +123,40 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	entrypointPkg := "devtool/web/entrypoint"
 
 	// compile the entrypoint wasm
+	buildPlatform := bldr_platform.NewWebPlatform()
+	entryBuildType := bldr_manifest.BuildType_DEV
+	if minifyEntrypoint {
+		entryBuildType = bldr_manifest.BuildType_RELEASE
+	}
+
 	wasmRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
 	if err := os.MkdirAll(wasmRuntimeDir, 0o755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWasmRuntime(
+	if err := entrypoint_browser_build.BuildWasmRuntimeEntrypoint(
 		ctx,
 		le,
 		distSrcDir,
 		wasmRuntimeDir,
-		entrypointPkg,
-		minifyEntrypoint,
+		entryBuildType,
+		buildPlatform,
+	); err != nil {
+		return err
+	}
+
+	// Build runtime wasm pkg
+	le.Info("building runtime.wasm")
+	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)
+	runtimeOut := filepath.Join(wasmRuntimeDir, "runtime.wasm")
+	if err := gocompiler.ExecBuildEntrypoint(
+		le,
+		buildPlatform,
+		entryBuildType,
+		entrypointGoDir,
+		runtimeOut,
+		false, // no cgo
+		nil,
+		nil,
 	); err != nil {
 		return err
 	}
@@ -222,7 +246,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 					bldr_manifest.NewManifestMeta(
 						startPluginID,
 						buildType,
-						bldr_platform.PlatformID_WEB,
+						buildPlatform.GetPlatformID(),
 						1,
 					),
 				),

@@ -7,9 +7,11 @@ import (
 	"errors"
 	"io"
 	"syscall/js"
+
+	"golang.org/x/exp/maps"
 )
 
-// Opts are the options you can pass to the fetch call.
+// Opts are the options for Fetch.
 type Opts struct {
 	// Method is the http verb (constants are copied from net/http to avoid import)
 	Method string
@@ -48,7 +50,28 @@ type Opts struct {
 	Signal context.Context
 }
 
-// Response is the response that retursn from the fetch promise.
+// Clone clones the opts, excluding the Body field.
+func (o *Opts) Clone() *Opts {
+	if o == nil {
+		return nil
+	}
+
+	return &Opts{
+		Method:         o.Method,
+		Headers:        maps.Clone(o.Headers),
+		Mode:           o.Mode,
+		Credentials:    o.Credentials,
+		Cache:          o.Cache,
+		Redirect:       o.Redirect,
+		Referrer:       o.Referrer,
+		ReferrerPolicy: o.ReferrerPolicy,
+		Integrity:      o.Integrity,
+		KeepAlive:      o.KeepAlive,
+		Signal:         o.Signal,
+	}
+}
+
+// Response is the response that returns from the fetch promise.
 type Response struct {
 	Headers    Header
 	OK         bool
@@ -61,8 +84,7 @@ type Response struct {
 	BodyUsed   bool
 }
 
-// Fetch uses the JS Fetch API to make requests
-// over WASM.
+// Fetch uses the JS Fetch API to make requests.
 func Fetch(url string, opts *Opts) (*Response, error) {
 	optsMap, err := mapOpts(opts)
 	if err != nil {
@@ -75,18 +97,15 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 		e error
 	}
 	ch := make(chan *fetchResponse)
-	done := make(chan struct{}, 1)
 	if opts.Signal != nil {
 		controller := js.Global().Get("AbortController").New()
 		signal := controller.Get("signal")
 		optsMap["signal"] = signal
-		go func() {
-			select {
-			case <-opts.Signal.Done():
-				controller.Call("abort")
-			case <-done:
-			}
-		}()
+		abort := func() {
+			controller.Call("abort")
+		}
+		defer abort()
+		defer context.AfterFunc(opts.Signal, abort)()
 	}
 
 	success := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -115,11 +134,11 @@ func Fetch(url string, opts *Opts) (*Response, error) {
 		ch <- &fetchResponse{r: r, b: resp}
 		return nil
 	})
+
 	defer success.Release()
 
 	failure := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		msg := args[0].Get("message").String()
-		done <- struct{}{}
 		ch <- &fetchResponse{e: errors.New(msg)}
 		return nil
 	})
