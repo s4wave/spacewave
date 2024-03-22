@@ -51,23 +51,25 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	writeBanner()
 
 	// build the plugin host controller
+	// TODO: re-enable this but make sure web plugin does not start electron
 	/*
-		_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
-			ctx,
-			b.GetBus(),
-			b.GetWorldEngineID(),
-			b.GetPluginHostObjectKey(),
-			b.GetVolume().GetID(),
-			b.GetVolume().GetPeerID().String(),
-			b.GetPluginsStateRoot(),
-			b.GetPluginsDistRoot(),
-		)
-		if err != nil {
-			return err
-		}
-		if relPluginHost != nil {
-			defer relPluginHost()
-		}
+			_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
+				ctx,
+				b.GetBus(),
+				b.GetWorldEngineID(),
+				b.GetPluginHostObjectKey(),
+				b.GetVolume().GetID(),
+				b.GetVolume().GetPeerID().String(),
+				b.GetPluginsStateRoot(),
+				b.GetPluginsDistRoot(),
+		        "",
+			)
+			if err != nil {
+				return err
+			}
+			if relPluginHost != nil {
+				defer relPluginHost()
+			}
 	*/
 
 	// execute the project controller

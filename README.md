@@ -174,14 +174,14 @@ You need the following tools installed:
  - [Node](https://nodejs.org)
  - Yarn `npm install -g yarn`
 
-Initial setup (if using web UIs):
+Initial setup:
 
 ```bash
 # download deps
 yarn
 ```
 
-To start the application for development:
+Here are some of the available ways to start the app:
 
 ```
 # start web application
@@ -192,12 +192,19 @@ yarn start:web:wasm
 
 # start native application
 yarn start:native
+
+# build web (wasm) distribution bundle & serve
+yarn start:web:dist
+
+# build release bundle for all platforms
+yarn build:cross
 ```
 
-Note: in Chromium: to view the SharedWorker developer tools:
+In Chromium: to view the SharedWorker developer tools:
 
  - Open chrome://inspect
- - Click "inspect" on the SharedWorker - usually named `bldr:default**
+ - Select "Shared workers"
+ - Click "inspect" on the SharedWorker
 
 ### VSCode Debugging
 
@@ -221,4 +228,4 @@ This is enabled by the plugin compiler for Electron in debug builds only.
 
 ## License
 
-Copyright 2018-2023 Aperture Robotics, LLC.
+Copyright 2018-2024 Aperture Robotics, LLC.

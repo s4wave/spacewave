@@ -66,7 +66,7 @@ func NewWebHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	processHost, err := NewWebHost(b, le, c.GetWebRuntimeId())
+	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,9 +75,9 @@ func NewWebHostController(
 		b,
 		c.GetHostConfig(),
 		controller.NewInfo(ControllerID, Version, "plugin host with WebWorker processes"),
-		processHost,
+		pluginHost,
 	)
-	return hctrl, processHost, nil
+	return hctrl, pluginHost, nil
 }
 
 // GetPlatformId returns the plugin platform ID for this host.
@@ -360,7 +360,7 @@ func (h *WebHost) ExecutePlugin(
 	}()
 
 	// Track the list of web documents.
-	webDocumentsKeyed = keyed.NewKeyedWithLogger[string, struct{}](
+	webDocumentsKeyed = keyed.NewKeyedWithLogger(
 		func(webDocumentId string) (keyed.Routine, struct{}) {
 			return func(ctx context.Context) error {
 				return trackWebDocument(ctx, webDocumentId)

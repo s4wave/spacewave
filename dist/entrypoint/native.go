@@ -5,11 +5,14 @@ package dist_entrypoint
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"os"
 	"os/signal"
 
+	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	fcolor "github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +35,11 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 			return err
 		}
 
-		err = Run(ctx, le, distMeta, assetsFS)
+		// Print banner
+		red := fcolor.New(fcolor.FgRed)
+		red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
+
+		err = Run(ctx, le, distMeta, assetsFS, "", nil)
 		if err != context.Canceled {
 			return err
 		}
@@ -44,6 +51,16 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 }
 
 // openStaticVolume opens the static volume kvfile.
-func openStaticVolume(assetsFS fs.FS) (fs.File, error) {
-	return assetsFS.Open("assets.kvfile")
+func openStaticVolume(assetsFS fs.FS) (io.ReaderAt, uint64, error) {
+	f, err := assetsFS.Open("assets.kvfile")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return f.(io.ReaderAt), uint64(fi.Size()), nil
 }

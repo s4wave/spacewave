@@ -25,6 +25,9 @@ func StartBusPluginHost(
 	volPeerID,
 	pluginsStateRoot,
 	pluginsDistRoot string,
+	alwaysFetchManifest,
+	disableStoreManifest bool,
+	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
 	pluginHostProcessConf := plugin_host_web.NewConfig(
 		plugin_host_controller.NewConfig(
@@ -32,9 +35,10 @@ func StartBusPluginHost(
 			pluginHostObjectKey,
 			volID,
 			volPeerID,
-			true, // always run FetchManifest
-			true, // DisableStoreManifest since manifests are stored by the plugin compiler.
+			alwaysFetchManifest,
+			disableStoreManifest,
 		),
+		webRuntimeID,
 	)
 	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
 		ctx,

@@ -1,15 +1,24 @@
 package buffered_reader_at
 
 import (
+	"errors"
 	"io"
 	"slices"
 	"sort"
 	"sync"
 )
 
-// TODO: cache eviction, cache budget, time based eviction / access count decay tick
+// SliceReaderAt supports reading data at a larger range than the buffer provided to ReadAt.
+type SliceReaderAt interface {
+	// SliceReadAt reads a slice of data from the requested location.
+	// NOTE: the returned slice may start before or after the requested location and length.
+	// NOTE: this may return a completely different range than what you asked for!
+	SliceReadAt(offset, length int64) (dataOffset int64, data []byte, err error)
+}
 
 // BufferedReaderAt enhances io.ReaderAt with caching, page alignment, and concurrency.
+//
+// TODO: implement time and size based cache eviction, memory budget
 type BufferedReaderAt struct {
 	reader   io.ReaderAt
 	pageSize int64
@@ -66,10 +75,17 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 			return br.cache[i].offset >= startOffset
 		})
 
-		var matchedRange *cacheRange
-		if insertIndex < len(br.cache) && br.cache[insertIndex].offset == startOffset {
+		var matchedRange *cacheRange = nil
+
+		if insertIndex > 0 && br.cache[insertIndex-1].offset+br.cache[insertIndex-1].size > currentOffset {
+			// Case: the previous range before insertIndex encompasses currentOffset.
+			matchedRange = br.cache[insertIndex-1]
+		} else if insertIndex < len(br.cache) && br.cache[insertIndex].offset == startOffset {
+			// Case: the matched insertIndex contains the offset.
 			matchedRange = br.cache[insertIndex]
-		} else {
+		}
+
+		if matchedRange == nil {
 			// Adjust the size of the new range if it overlaps with the next one
 			if insertIndex < len(br.cache) {
 				nextRange := br.cache[insertIndex]
@@ -77,23 +93,59 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 					desiredSize = nextRange.offset - startOffset
 				}
 			}
+
 			matchedRange = &cacheRange{
 				offset: startOffset,
 				size:   desiredSize,
-				data:   make([]byte, desiredSize),
 				done:   make(chan struct{}),
 			}
 			br.cache = slices.Insert(br.cache, insertIndex, matchedRange)
 
 			go func(nr *cacheRange) {
-				readN, readErr := br.reader.ReadAt(nr.data, nr.offset)
-				if readN < len(nr.data) {
-					nr.data = nr.data[:readN]
+				// If this is a DynamicReaderAt we can request the data and keep the entire result.
+				// For HTTP fetchers, this is used to handle status 200 when 206 is expected.
+				var data []byte
+				var readErr error
+				sliceReader, sliceReaderOk := br.reader.(SliceReaderAt)
+				if sliceReaderOk {
+					readDataOffset, readData, err := sliceReader.SliceReadAt(nr.offset, nr.size)
+					if err != nil {
+						readErr = err
+					}
+					if len(readData) != 0 {
+						// Adjust the offset and size according to the returned offset.
+						// The size can be adjusted w/o a mutex lock but the offset requires a sort and mtx lock.
+						if readDataOffset != nr.offset {
+							br.mtx.Lock()
+							nr.offset = readDataOffset
+							slices.SortFunc(br.cache, func(a, b *cacheRange) int {
+								return int(a.offset - b.offset)
+							})
+							br.mtx.Unlock()
+						}
+					}
+					data = readData
 				}
-				nr.size = int64(len(nr.data))
-				nr.err = readErr
+
+				// if !sliceReaderOk or if the slice reader returned len(0) try ReadAt
+				if len(data) == 0 {
+					data = make([]byte, nr.size)
+					var readN int
+					readN, readErr = br.reader.ReadAt(data, nr.offset)
+					data = data[:min(readN, len(data))]
+				}
+
+				if len(data) != 0 { // avoid keeping a reference to the slice capacity
+					nr.size = int64(len(data))
+					nr.data = data
+				}
+				if readErr != nil && (readErr != io.EOF || len(data) == 0) {
+					nr.err = readErr
+				}
 				close(nr.done)
 
+				// If the size was zero, drop the range.
+				// (The calls waiting on the read will still get the readErr).
 				if nr.size == 0 {
 					br.mtx.Lock()
 					idx := slices.Index(br.cache, nr)
@@ -108,28 +160,19 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 
 		<-matchedRange.done // Wait for the read to complete
 
-		if matchedRange.err != nil && (matchedRange.err != io.EOF || matchedRange.size == 0) {
+		if matchedRange.err != nil {
 			return n, matchedRange.err // Return the error if any
 		}
 
-		// Calculate the end of the desired read within the cached range, relative to the start of the file.
-		desiredReadEnd := currentOffset + int64(remaining)
-		// Calculate `copyEnd` relative to the start of `matchedRange.data`
-		copyStart := max(currentOffset, matchedRange.offset) - matchedRange.offset
-		copyEnd := min(desiredReadEnd, matchedRange.offset+matchedRange.size) - matchedRange.offset
-		copied := copy(p[n:], matchedRange.data[copyStart:copyEnd])
+		copyStart := int(currentOffset - matchedRange.offset)
+		if copyStart < 0 {
+			// range returned was after the requested starting point
+			return n, errors.New("incorrect range of data returned")
+		}
+
+		copied := copy(p[n:], matchedRange.data[copyStart:])
 		n += copied
 		remaining -= copied
-
-		if matchedRange.err == io.EOF && copied < remaining {
-			// If EOF is encountered and we copied less than requested, stop reading.
-			break
-		}
-	}
-
-	// successful read
-	if err == io.EOF && n == len(p) {
-		err = nil
 	}
 
 	return n, err

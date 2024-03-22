@@ -29,7 +29,6 @@ func main() {
 }
 
 func run(ctx context.Context, le *logrus.Entry) error {
-	fileUrl := "https://b2-alpha-dist.aperture.app/demo.kvfile"
 	keepAliveHTTP := true
 	rangeReader := fetch_range.NewFetchRangeReader(fileUrl, &fetch.Opts{
 		Method:    "GET",
@@ -57,5 +56,6 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		return errors.New("key was not found")
 	}
 	le.Infof("successfully read %v bytes from %s", len(val), fileUrl)
+
 	return nil
 }

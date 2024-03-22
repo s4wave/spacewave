@@ -8,9 +8,6 @@ start:
     - web
 
 build:
-  dist:
-    manifests: ["web", "bldr-demo", "dist"]
-    platformIds: ["native"]
   cross:
     manifests: ["web", "bldr-demo", "dist"]
     platformIds:
@@ -18,7 +15,11 @@ build:
       - native/windows/amd64
       - native/darwin/amd64
 
-  test-wasm:
+  dist:
+    manifests: ["web", "bldr-demo", "dist"]
+    platformIds: ["native"]
+
+  dist-web:
     manifests: ["web", "bldr-demo", "dist"]
     platformIds: ["web"]
 

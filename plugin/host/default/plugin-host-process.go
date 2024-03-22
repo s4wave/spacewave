@@ -17,6 +17,8 @@ import (
 type PluginHostController = plugin_host_controller.Controller
 
 // StartBusPluginHost starts the plugin host.
+//
+// webRuntimeID is ignored on the native platform as the web runtime is bundled into the web plugin.
 func StartBusPluginHost(
 	ctx context.Context,
 	b bus.Bus,
@@ -26,6 +28,9 @@ func StartBusPluginHost(
 	volPeerID,
 	pluginsStateRoot,
 	pluginsDistRoot string,
+	alwaysFetchManifest,
+	disableStoreManifest bool,
+	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
 	pluginHostProcessConf := host_process.NewConfig(
 		plugin_host_controller.NewConfig(
@@ -33,8 +38,8 @@ func StartBusPluginHost(
 			pluginHostObjectKey,
 			volID,
 			volPeerID,
-			true, // always run FetchManifest
-			true, // DisableStoreManifest since manifests are stored by the plugin compiler.
+			alwaysFetchManifest,
+			disableStoreManifest,
 		),
 		pluginsStateRoot,
 		pluginsDistRoot,

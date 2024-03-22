@@ -13,9 +13,11 @@ const ConfigID = ControllerID
 // Sets the most important fields only.
 func NewConfig(
 	hostConfig *plugin_host_controller.Config,
+	webRuntimeID string,
 ) *Config {
 	return &Config{
-		HostConfig: hostConfig,
+		HostConfig:   hostConfig,
+		WebRuntimeId: webRuntimeID,
 	}
 }
 

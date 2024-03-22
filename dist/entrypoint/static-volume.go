@@ -2,11 +2,12 @@ package dist_entrypoint
 
 import (
 	"context"
+	"io"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
+	"github.com/aperturerobotics/go-kvfile"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvfile "github.com/aperturerobotics/hydra/volume/kvfile"
 	"github.com/blang/semver"
@@ -20,7 +21,8 @@ type StaticVolumeController struct {
 	// b is the bus
 	b bus.Bus
 	// file is the volume.kvfile
-	file kvfile_compress.ReadSeekerAt
+	file     io.ReaderAt
+	fileSize uint64
 	// volConf is the volume config
 	volConf *volume_kvfile.Config
 	// close is the close callback
@@ -31,7 +33,8 @@ type StaticVolumeController struct {
 func NewStaticVolumeController(
 	le *logrus.Entry,
 	b bus.Bus,
-	f kvfile_compress.ReadSeekerAt,
+	f io.ReaderAt,
+	fileSize uint64,
 	volConf *volume_kvfile.Config,
 	close func(),
 ) *StaticVolumeController {
@@ -49,7 +52,7 @@ func NewStaticVolumeController(
 	volConf.VolumeConfig.DisableEventBlockRm = true
 	volConf.VolumeConfig.DisableReconcilerQueues = true
 
-	return &StaticVolumeController{le: le, b: b, file: f, close: close, volConf: volConf}
+	return &StaticVolumeController{le: le, b: b, file: f, fileSize: fileSize, close: close, volConf: volConf}
 }
 
 // GetControllerInfo returns information about the controller.
@@ -64,13 +67,12 @@ func (c *StaticVolumeController) HandleDirective(ctx context.Context, di directi
 
 // Execute executes the controller goroutine.
 func (c *StaticVolumeController) Execute(ctx context.Context) error {
-	compressReader, compressedReaderRel, err := kvfile_compress.BuildCompressReader(c.file)
+	reader, err := kvfile.BuildReader(c.file, c.fileSize)
 	if err != nil {
 		return err
 	}
-	defer compressedReaderRel()
 
-	vc, err := volume_kvfile.NewVolumeController(ctx, c.le, c.b, c.volConf, compressReader)
+	vc, err := volume_kvfile.NewVolumeController(ctx, c.le, c.b, c.volConf, reader)
 	if err != nil {
 		return err
 	}

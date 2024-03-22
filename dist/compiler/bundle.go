@@ -2,7 +2,6 @@ package bldr_dist_compiler
 
 import (
 	"context"
-	io "io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
 	hydra_core "github.com/aperturerobotics/hydra/core"
@@ -222,8 +220,7 @@ func BuildDistBundle(
 	// Close the embedded world controller, no longer needed.
 	embedEngineCtrlRef.Release()
 
-	// Build a seekable-zstd compressed kvfile with the embedded volume contents.
-	le.Debug("packing embedded volume to seekable-zstd kvfile")
+	le.Debug("packing embedded volume to assets.kvfile")
 	embeddedVolumeFilename := "assets.kvfile"
 	embeddedVolumePath := filepath.Join(entrypointBuildDir, embeddedVolumeFilename)
 	embeddedVolFile, err := os.OpenFile(embeddedVolumePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
@@ -235,9 +232,9 @@ func BuildDistBundle(
 	workingVolKvtx := boltVol.GetKvtxStore()
 
 	// Write the kvfile
-	err = kvfile_compress.UseCompressedWriter(embeddedVolFile, func(w io.Writer) error {
-		return kvtx_kvfile.KvfileFromStore(ctx, w, workingVolKvtx)
-	})
+	// NOTE: We don't use compression here since the content is already compressed / not compressable.
+	// In testing, the zstd compression had NO reduction in file-size here.
+	err = kvtx_kvfile.KvfileFromStore(ctx, embeddedVolFile, workingVolKvtx)
 	if err != nil {
 		_ = embeddedVolFile.Close()
 		return err
@@ -251,22 +248,31 @@ func BuildDistBundle(
 		embedAssetsFS = append(embedAssetsFS, outConfigSetFilename)
 	}
 
+	// output directory for the entrypoint
+	outEntryDir := filepath.Join(outputPath, "entrypoint")
+	if err := os.MkdirAll(outEntryDir, 0o755); err != nil {
+		return err
+	}
+
 	// on the Web platform we distribute the kvfile separately
 	// we also name the entrypoint file differently
-	outBinPath := filepath.Join(outputPath, outBinName)
+	var outBinPath string
 	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
 		// store the wasm file where the entrypoint expects.
-		// TODO: instead name it based on outBinName and add a hash to the name
-		outEntryDir := filepath.Join(outputPath, "entrypoint")
+		// TODO: name it based on outBinName and add a hash to the name
 		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
 
 		le.Debugf("copying %v to output directory", embeddedVolumeFilename)
-		if err := fsutil.CopyFile(filepath.Join(outputPath, embeddedVolumeFilename), embeddedVolumePath, 0o644); err != nil {
+		if err := fsutil.CopyFile(
+			filepath.Join(outputPath, embeddedVolumeFilename),
+			embeddedVolumePath,
+			0o644,
+		); err != nil {
 			return err
 		}
 
 		// Write the URL to the kvfile
-		embeddedVolumeURL := "./" + embeddedVolumeFilename
+		embeddedVolumeURL := "../" + embeddedVolumeFilename
 		outVolumeURLFilename := "assets.url"
 		outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
 		if err := os.WriteFile(outVolumeURLPath, []byte(embeddedVolumeURL), 0o644); err != nil {
@@ -306,6 +312,7 @@ func BuildDistBundle(
 	} else {
 		// otherwise we go:embed it
 		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)
+		outBinPath = filepath.Join(outputPath, outBinName)
 	}
 
 	// Format and write the main.go file.

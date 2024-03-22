@@ -70,7 +70,14 @@ type DistBus struct {
 
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
 // Returns a set of functions to call to release the controllers.
-func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID, stateRoot string) (*DistBus, error) {
+func BuildDistBus(
+	rctx context.Context,
+	le *logrus.Entry,
+	projectID,
+	platformID,
+	stateRoot,
+	webRuntimeID string,
+) (*DistBus, error) {
 	le.
 		WithFields(logrus.Fields{"project-id": projectID, "platform-id": platformID}).
 		Info("initializing application and storage...")
@@ -229,6 +236,9 @@ func BuildDistBus(rctx context.Context, le *logrus.Entry, projectID, platformID,
 		vol.GetPeerID().String(),
 		pluginsStateRoot,
 		pluginsDistRoot,
+		true,
+		false,
+		webRuntimeID,
 	)
 	if err != nil {
 		ctxCancel()

@@ -41,6 +41,9 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 		b.GetVolume().GetPeerID().String(),
 		b.GetPluginsStateRoot(),
 		b.GetPluginsDistRoot(),
+		true,
+		true,
+		"",
 	)
 	if err != nil {
 		return err

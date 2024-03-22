@@ -19,7 +19,7 @@ func main() {
 func run() error {
 	// create a random kvfile
 	out := "demo.kvfile"
-	targetSize := 20000 // Target size in bytes
+	targetSize := 5 * 1024 * 512 // Target size in bytes
 
 	of, err := os.OpenFile(out, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {

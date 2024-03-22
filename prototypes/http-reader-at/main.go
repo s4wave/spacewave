@@ -29,7 +29,6 @@ func main() {
 }
 
 func run(ctx context.Context, le *logrus.Entry) error {
-	fileUrl := "https://b2-alpha-dist.aperture.app/demo.kvfile"
 	req, err := http.NewRequest("GET", fileUrl, nil)
 	if err != nil {
 		return err

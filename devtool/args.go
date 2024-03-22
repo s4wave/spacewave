@@ -34,6 +34,8 @@ type DevtoolArgs struct {
 	ConfigPath string
 	// OutputPath is the path to use for build output.
 	OutputPath string
+	// ServeStaticPath is the path to serve with the static http server.
+	ServeStaticPath string
 	// UseGitRoot enables relative paths to the git repo root.
 	UseGitRoot bool
 	// Watch indicates we should watch for changes.
@@ -208,20 +210,58 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 // BuildSubCommands builds the sub-command set.
 func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 	return []*cli.Command{
-		{
-			Name:  "setup",
-			Usage: "checkout the bldr web sources and dependencies",
-			Action: func(c *cli.Context) error {
-				return a.ExecuteSetup(c.Context)
-			},
-		},
-		{
-			Name:        "start",
-			Usage:       "start a bldr application in development mode",
-			Subcommands: a.BuildStartCommands(),
-		},
+		a.BuildSetupCommand(),
+		a.BuildStartCommand(),
+		a.BuildStaticHttpCommand(),
 		a.BuildBuildCommand(),
 		a.BuildPublishCommand(),
+	}
+}
+
+// BuildStartCommand builds the start sub-command.
+func (a *DevtoolArgs) BuildStartCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "start",
+		Usage:       "start a bldr application in development mode",
+		Subcommands: a.BuildStartCommands(),
+	}
+}
+
+// BuildSetupCommand builds the setup sub-command.
+func (a *DevtoolArgs) BuildSetupCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "setup",
+		Usage: "checkout the bldr web sources and dependencies",
+		Action: func(c *cli.Context) error {
+			return a.ExecuteSetup(c.Context)
+		},
+	}
+}
+
+// BuildStaticHttpCommand builds the static http server sub-command.
+func (a *DevtoolArgs) BuildStaticHttpCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "static",
+		Usage: "serve a static directory with a http server",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "listen, l",
+				Usage:       "address to listen on",
+				EnvVars:     []string{"BLDR_WEB_LISTEN"},
+				Destination: &a.WebListenAddr,
+				Value:       a.WebListenAddr,
+			},
+			&cli.StringFlag{
+				Name:        "path, p",
+				Usage:       "path to the directory to serve",
+				EnvVars:     []string{"BLDR_STATIC_PATH"},
+				Destination: &a.ServeStaticPath,
+				Value:       a.ServeStaticPath,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return a.ExecuteStaticHttpServer(c.Context)
+		},
 	}
 }
 

@@ -13,7 +13,6 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	kvfile_compress "github.com/aperturerobotics/go-kvfile/compress"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvfile "github.com/aperturerobotics/hydra/volume/kvfile"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -21,12 +20,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// PostStartHook is a post start function.
+type PostStartHook func(distBus *DistBus) (rels []func(), err error)
+
 // Run builds the bus & starts the dist entrypoint.
 func Run(
 	ctx context.Context,
 	le *logrus.Entry,
 	distMeta *bldr_dist.DistMeta,
 	assetsFS fs.FS,
+	webRuntimeID string,
+	postStartHooks []PostStartHook,
 ) error {
 	if err := distMeta.Validate(); err != nil {
 		return errors.Wrap(err, "dist_meta")
@@ -40,14 +44,12 @@ func Run(
 	}
 
 	platformID := distMeta.GetPlatformId()
-	distBus, err := BuildDistBus(ctx, le, projectID, platformID, storageRoot)
+	distBus, err := BuildDistBus(ctx, le, projectID, platformID, storageRoot, webRuntimeID)
 	if err != nil {
 		return errors.Wrap(err, "unable to initialize")
 	}
 	defer distBus.Release()
 	b := distBus.GetBus()
-
-	writeBanner()
 
 	// Create LoadPlugin directives for the startup plugins.
 	for _, pluginID := range distMeta.GetStartupPlugins() {
@@ -89,8 +91,7 @@ func Run(
 	}
 
 	// mount the embedded read-only storage volume
-	var staticVolFile any
-	staticVolFile, err = openStaticVolume(assetsFS)
+	staticVolFile, staticVolFileSize, err := openStaticVolume(assetsFS)
 	if err != nil {
 		return errors.Wrap(err, "open static assets volume")
 	}
@@ -104,7 +105,8 @@ func Run(
 	staticVolCtrl := NewStaticVolumeController(
 		le,
 		b,
-		staticVolFile.(kvfile_compress.ReadSeekerAt),
+		staticVolFile,
+		staticVolFileSize,
 		&volume_kvfile.Config{
 			VolumeConfig: &volume_controller.Config{
 				VolumeIdAlias:           []string{staticVolID},
@@ -160,6 +162,17 @@ func Run(
 		return errors.Wrap(err, "start static manifest fetcher")
 	}
 	defer relStaticManifestFetcher()
+
+	// run any post-start hooks (starts web runtime on web platform)
+	for _, hook := range postStartHooks {
+		rels, err := hook(distBus)
+		for _, rel := range rels {
+			defer rel()
+		}
+		if err != nil {
+			return err
+		}
+	}
 
 	select {
 	case <-ctx.Done():
