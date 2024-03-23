@@ -4,12 +4,12 @@ go 1.22
 
 replace github.com/aperturerobotics/hydra => ../
 
-replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
+replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 // aperture
 
 require (
-	github.com/aperturerobotics/goprotowrap v0.3.0
+	github.com/aperturerobotics/goprotowrap v0.3.1-0.20240323000257-f8e9a4365606
 	github.com/aperturerobotics/hydra v0.0.0-20240201230451-cc41903749a8
-	github.com/aperturerobotics/starpc v0.27.2
+	github.com/aperturerobotics/starpc v0.27.3
 )
 
 require (
@@ -35,7 +35,7 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.25.4-0.20240319002749-6a71825994f2 // indirect
+	github.com/aperturerobotics/bifrost v0.25.4-0.20240323001004-30a39c627796 // indirect
 	github.com/aperturerobotics/util v1.15.2 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
@@ -72,7 +72,7 @@ require (
 	github.com/go-xmlfmt/xmlfmt v1.1.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golangci/check v0.0.0-20180506172741-cfe4005ccda2 // indirect
 	github.com/golangci/dupl v0.0.0-20180902072040-3e9179ac440a // indirect
 	github.com/golangci/go-misc v0.0.0-20220329215616-d24fe342adfe // indirect
