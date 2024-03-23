@@ -28,4 +28,6 @@ import (
 	_ "golang.org/x/tools/cmd/goimports"
 	// _ imports gofumpt
 	_ "mvdan.cc/gofumpt"
+	// _ imports kvfile
+	_ "github.com/aperturerobotics/go-kvfile/cmd/kvfile"
 )

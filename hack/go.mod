@@ -4,7 +4,7 @@ go 1.22
 
 replace github.com/aperturerobotics/bldr => ../
 
-replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
+replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240322235918-b46c9358eab6 // aperture
 
 replace mvdan.cc/gofumpt => github.com/mvdan/gofumpt v0.6.1-0.20240225232034-52739c56d0ef // master
 
@@ -17,8 +17,9 @@ require (
 
 require (
 	github.com/aperturerobotics/bldr v0.0.0-20240206224505-e8bf10e9b231
-	github.com/aperturerobotics/goprotowrap v0.3.0
-	github.com/aperturerobotics/starpc v0.27.2
+	github.com/aperturerobotics/go-kvfile v0.4.1
+	github.com/aperturerobotics/goprotowrap v0.3.1 // master
+	github.com/aperturerobotics/starpc v0.27.3
 	github.com/evanw/esbuild v0.20.0
 	golang.org/x/tools v0.19.0
 	mvdan.cc/gofumpt v0.5.0
@@ -37,11 +38,12 @@ require (
 	github.com/GaijinEntertainment/go-exhaustruct/v3 v3.1.0 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.1.0 // indirect
+	github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.1 // indirect
 	github.com/alecthomas/go-check-sumtype v0.1.3 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20240319000043-96d3d2070603 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240323001054-037574d44e65 // indirect
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302 // indirect
 	github.com/aperturerobotics/util v1.15.3-0.20240320183303-649409455fa5 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
@@ -59,6 +61,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
 	github.com/daixiang0/gci v0.11.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -82,7 +85,7 @@ require (
 	github.com/go-xmlfmt/xmlfmt v1.1.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golangci/check v0.0.0-20180506172741-cfe4005ccda2 // indirect
 	github.com/golangci/dupl v0.0.0-20180902072040-3e9179ac440a // indirect
 	github.com/golangci/go-misc v0.0.0-20220329215616-d24fe342adfe // indirect
@@ -92,6 +95,7 @@ require (
 	github.com/golangci/misspell v0.4.1 // indirect
 	github.com/golangci/revgrep v0.5.2 // indirect
 	github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20230610083614-0e73809eb601 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
@@ -111,6 +115,7 @@ require (
 	github.com/kisielk/errcheck v1.6.3 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.4 // indirect
+	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.8 // indirect
 	github.com/kyoh86/exportloopref v0.1.11 // indirect
@@ -132,6 +137,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moricho/tparallel v0.3.1 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/nakabonne/nestif v0.3.1 // indirect
 	github.com/nishanths/exhaustive v0.11.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
@@ -151,6 +157,7 @@ require (
 	github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727 // indirect
 	github.com/quasilyte/stdinfo v0.0.0-20220114132959-f7386bf02567 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryancurrah/gomodguard v1.3.0 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.0.7 // indirect
@@ -184,15 +191,18 @@ require (
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
 	github.com/ultraware/funlen v0.1.0 // indirect
 	github.com/ultraware/whitespace v0.0.5 // indirect
+	github.com/urfave/cli/v2 v2.27.1 // indirect
 	github.com/uudashr/gocognit v1.1.2 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/xen0n/gosmopolitan v1.2.2 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.2.0 // indirect
 	github.com/ykadowak/zerologlint v0.1.3 // indirect
 	gitlab.com/bosi/decorder v0.4.1 // indirect
 	go-simpler.org/sloglint v0.1.2 // indirect
 	go.tmz.dev/musttag v0.7.2 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect

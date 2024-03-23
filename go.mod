@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240319000043-96d3d2070603 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240323001054-037574d44e65 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.4-0.20240320034510-99a7138861e3 // master
+require github.com/aperturerobotics/bifrost v0.25.4-0.20240323001004-30a39c627796 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -57,8 +57,8 @@ require (
 
 require (
 	github.com/aperturerobotics/controllerbus v0.36.7 // latest
-	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
-	github.com/aperturerobotics/starpc v0.27.2 // latest
+	github.com/aperturerobotics/entitygraph v0.7.0 // indirect
+	github.com/aperturerobotics/starpc v0.27.3 // latest
 )
 
 // aperture: use compatibility forks
@@ -71,7 +71,7 @@ replace (
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20240110212540-c015327ec623 // aperture
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
@@ -110,7 +110,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.4.0
+	github.com/aperturerobotics/go-kvfile v0.4.1
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
