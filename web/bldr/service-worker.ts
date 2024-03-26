@@ -2,7 +2,7 @@ import { castToError } from 'starpc'
 import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
-import { BLDR_URI_PREFIXES } from './constants.js'
+import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
 
@@ -12,6 +12,9 @@ declare let self: ServiceWorkerGlobalScope
 
 // note: logs don't appear in console in firefox
 const serviceWorkerId = `service-worker:${self.location.host}`
+
+// baseURL is the base URL to use for paths.
+const baseURL = new URL(self.location.toString())
 
 // CACHES is the list of caches.
 const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
@@ -82,6 +85,29 @@ async function swActivate() {
 
   // Claim all clients.
   await self.clients.claim()
+
+  // Fetch index.html to the cache
+  const bldrCache = CACHES['bldr']
+  if (bldrCache) {
+    for (const cachePath of BLDR_CACHE_PATHS) {
+      const fullURL = new URL(cachePath, baseURL)
+      console.log(
+        'ServiceWorker: %s: caching path: %s',
+        serviceWorkerId,
+        cachePath,
+      )
+      bldrCache
+        .add(fullURL)
+        .catch((error) =>
+          console.warn(
+            'ServiceWorker: %s: unable to cache path %s: %s',
+            serviceWorkerId,
+            cachePath,
+            error,
+          ),
+        )
+    }
+  }
 }
 
 // isSwOrigin checks if the given origin matches the local origin.
@@ -90,23 +116,29 @@ function isSwOrigin(origin: string): boolean {
 }
 
 // swFetch is called when the page attempts to fetch a resource.
-async function swFetch(ev: FetchEvent): Promise<Response> {
-  const matchPrefixes = BLDR_URI_PREFIXES
+async function swFetch(
+  ev: FetchEvent,
+  matchPrefixes = BLDR_URI_PREFIXES,
+): Promise<Response> {
   const request = ev.request
   const requestURL = new URL(request.url)
   const requestOrigin = requestURL.origin
   const requestPath = requestURL.pathname
 
-  let useRuntimeFetch = false
-  if (isSwOrigin(requestOrigin)) {
-    for (const matchPrefix of matchPrefixes) {
-      if (requestPath.startsWith(matchPrefix)) {
-        useRuntimeFetch = true
-        break
+  const useRuntimeFetch =
+    isSwOrigin(requestOrigin) &&
+    matchPrefixes.some((matchPrefix) => requestPath.startsWith(matchPrefix))
+
+  if (!useRuntimeFetch) {
+    // Check the cache (for e.x. index.html)
+    const bldrCache = CACHES['bldr']
+    if (bldrCache) {
+      const cacheResp = await bldrCache.match(request)
+      if (cacheResp) {
+        return cacheResp
       }
     }
-  }
-  if (!useRuntimeFetch) {
+
     // Use the built-in browser fetch.
     console.log(
       'ServiceWorker: %s: using native fetch: %s',

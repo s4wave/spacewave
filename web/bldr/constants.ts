@@ -5,3 +5,6 @@ export const BLDR_URI_PREFIXES = [
   // /p/ is short for plugin
   '/p/',
 ] as const
+
+// BLDR_CACHE_PATHS are files to cache on sw startup.
+export const BLDR_CACHE_PATHS = ['/index.html'] as const

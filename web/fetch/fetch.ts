@@ -198,13 +198,22 @@ export async function proxyFetch(
   } catch (err) {
     const error = castToError(err, 'failed to start fetch request')
     console.error('fetch: proxyFetch catch error', error)
-    const responseBlob = new Blob([error.message + '\n'], {
+
+    let responseMessage = error.message
+    let responseStatus = 500
+    if (error.message === 'Failed to fetch') {
+      // return a more descriptive error
+      responseStatus = 503
+      responseMessage = 'Error making the request.'
+    }
+
+    const responseBlob = new Blob([responseMessage + '\n'], {
       type: 'text/plain',
     })
     return new Response(responseBlob, {
       headers: { 'Content-Type': 'text/plain' },
-      status: 500,
-      statusText: error.message,
+      status: responseStatus,
+      // statusText: 'Error: ' + error.message,
     })
   }
 }

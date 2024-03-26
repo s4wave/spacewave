@@ -25,7 +25,7 @@ import (
 //go:embed web/plugin/plugin.pb.ts
 //go:embed plugin/plugin.pb.ts manifest/manifest.pb.ts
 //go:embed devtool/deps.go devtool/web/entrypoint/web.go
-//go:embed dist/deps/deps.go dist/deps/package.json
+//go:embed dist/deps/deps.go dist/deps/package.json dist/deps/package-lock.json
 //go:embed .vscode/launch.json
 //go:embed README.md tsconfig.json go.mod go.sum global.d.ts
 var DistSources embed.FS
