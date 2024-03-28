@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.25.4-0.20240323001004-30a39c627796 // master
+require github.com/aperturerobotics/bifrost v0.25.4-0.20240326075319-f485a4156a47 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -33,15 +33,15 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/Workiva/go-datastructures v1.1.1
-	github.com/aperturerobotics/go-kvfile v0.3.0
+	github.com/Workiva/go-datastructures v1.1.3
+	github.com/aperturerobotics/go-kvfile v0.4.1
 	github.com/bits-and-blooms/bitset v1.13.0
-	github.com/bits-and-blooms/bloom/v3 v3.6.0
+	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cayleygraph/cayley v0.7.7
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.2-0.20240116140435-c67e07994f91
-	github.com/dolthub/go-mysql-server v0.17.0
+	github.com/dolthub/go-mysql-server v0.18.0
 	github.com/dolthub/vitess v0.0.0-20231109003730-c0fa018b5ef6
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
@@ -49,10 +49,10 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/go-git/go-git/v5 v5.11.0
-	github.com/go-sql-driver/mysql v1.7.1
-	github.com/gomodule/redigo v1.8.9
+	github.com/go-sql-driver/mysql v1.8.1
+	github.com/gomodule/redigo v1.9.2
 	github.com/hidal-go/hidalgo v0.3.0
-	github.com/minio/minio-go/v7 v7.0.67
+	github.com/minio/minio-go/v7 v7.0.69
 	github.com/paralin/go-indexeddb v1.1.0
 	github.com/restic/chunker v0.4.0
 	github.com/spf13/afero v1.11.0
@@ -66,7 +66,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.36.7 // latest
 	github.com/aperturerobotics/entitygraph v0.7.0
 	github.com/aperturerobotics/starpc v0.27.3 // latest
-	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302
+	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
 	github.com/aperturerobotics/util v1.15.2 // master
 )
@@ -100,14 +100,14 @@ require (
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/valyala/fastjson v1.6.4
 	github.com/zeebo/blake3 v0.2.3
-	go.etcd.io/bbolt v1.3.8
+	go.etcd.io/bbolt v1.3.9
 	golang.org/x/crypto v0.21.0
-	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81
+	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
 	golang.org/x/sync v0.6.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.25.8
 )
 
 require (
@@ -162,7 +162,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240314112558-188b1fda7dc9 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
 	github.com/markbates/oncer v1.0.0 // indirect
 	github.com/markbates/safe v1.0.1 // indirect
@@ -183,7 +183,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.12 // indirect
-	github.com/nats-io/nats.go v1.33.1 // indirect
+	github.com/nats-io/nats.go v1.34.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
@@ -193,20 +193,20 @@ require (
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
 	github.com/pion/ice/v3 v3.0.3 // indirect
-	github.com/pion/interceptor v0.1.25 // indirect
+	github.com/pion/interceptor v0.1.27 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.12 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/rtcp v1.2.13 // indirect
-	github.com/pion/rtp v1.8.3 // indirect
-	github.com/pion/sctp v1.8.12 // indirect
+	github.com/pion/rtcp v1.2.14 // indirect
+	github.com/pion/rtp v1.8.4 // indirect
+	github.com/pion/sctp v1.8.13 // indirect
 	github.com/pion/sdp/v3 v3.0.8 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.13 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.14 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
