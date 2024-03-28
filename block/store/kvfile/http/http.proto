@@ -1,0 +1,29 @@
+syntax = "proto3";
+package block.store.kvfile.http;
+
+import "github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto";
+
+// Config configures the block store kvfile via http controller.
+//
+// Reads from kvfile at an HTTP URL and exposes a block store.
+// This store controller always runs in read-only mooe.
+message Config {
+  // BlockStoreId is the block store id to use on the bus.
+  string block_store_id = 1;
+  // Url is the url where the kvfile is located.
+  string url = 2;
+  // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
+  repeated string bucket_ids = 3;
+  // SkipNotFound skips returning a value if the block was not found.
+  bool skip_not_found = 4;
+  // Verbose enables verbose logging of the block store.
+  bool verbose = 5;
+  // DisableCache disables the browser cache (if possible).
+  bool disable_cache = 6;
+  // KvKeyOpts are key/value key constants.
+  // Optional.
+  .store.kvkey.Config kv_key_opts = 7;
+  // MinRequestSize sets the minimum size to use for http range requests.
+  // Enables buffering in memory if set.
+  uint64 min_request_size = 8;
+}
