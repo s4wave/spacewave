@@ -10,7 +10,7 @@ import (
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 )
 
-// KVTxBlock is a block store on top of a kvtx.
+// KVTxBlock is a block store on top of a kvtx store.
 type KVTxBlock struct {
 	ctx      context.Context
 	kvkey    *store_kvkey.KVKey

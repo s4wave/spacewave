@@ -89,10 +89,10 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	dir := di.GetDirective()
 	switch d := dir.(type) {
+	case bucket.BuildBucketAPI:
+		return c.resolveLoadProxyVolume(di, d.BuildBucketAPIStoreID())
 	case volume.LookupVolume:
 		return c.resolveLoadProxyVolume(di, d.LookupVolumeID())
-	case volume.BuildBucketAPI:
-		return c.resolveLoadProxyVolume(di, d.BuildBucketAPIVolumeID())
 	case volume.BuildObjectStoreAPI:
 		return c.resolveLoadProxyVolume(di, d.BuildObjectStoreAPIVolumeID())
 	case volume.ListBuckets:

@@ -38,7 +38,7 @@ func StartBucketRWOperation(
 		}
 	}
 	if volID := args.GetVolumeId(); volID != "" {
-		bhv, _, bhvRef, err := volume.ExBuildBucketAPI(ctx, b, false, args.GetBucketId(), volID, nil)
+		bhv, _, bhvRef, err := bucket.ExBuildBucketAPI(ctx, b, false, args.GetBucketId(), volID, nil)
 		if err != nil {
 			return nil, nil, err
 		}

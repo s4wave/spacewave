@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,12 +33,12 @@ func TestBucketHandleFlush(t *testing.T) {
 	vol := tb.Volume
 	volumeID := vol.GetID()
 	// try to BuildBucketAPI
-	vals := make(chan volume.BuildBucketAPIValue)
+	vals := make(chan bucket.BuildBucketAPIValue)
 	_, bapiRef, err := b.AddDirective(
-		volume.NewBuildBucketAPI(bucketID, volumeID),
+		bucket.NewBuildBucketAPI(bucketID, volumeID),
 		bus.NewCallbackHandler(
 			func(av directive.AttachedValue) {
-				vals <- av.GetValue().(volume.BuildBucketAPIValue)
+				vals <- av.GetValue().(bucket.BuildBucketAPIValue)
 			}, nil, nil,
 		),
 	)

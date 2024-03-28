@@ -169,7 +169,7 @@ func (c *LookupController) LookupBlock(
 
 	// fast path: only 0 or 1 bucket handle
 	if len(bh) == 0 {
-		return nil, false, errors.Wrap(bucket.ErrBucketUnknown, c.conf.GetBucketConf().GetId())
+		return nil, false, errors.Wrap(bucket.ErrBucketNotFound, c.conf.GetBucketConf().GetId())
 	}
 	if len(bh) == 1 {
 		d, ok, err := bh[0].GetBucket().GetBlock(reqCtx, ref)

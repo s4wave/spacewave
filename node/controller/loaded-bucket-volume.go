@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
@@ -35,7 +36,7 @@ func (b *loadedBucket) newLoadedBucketVolume(volumeID string) (keyed.Routine, *l
 // execute executes the bucket volume tracker.
 func (l *loadedBucketVolume) execute(ctx context.Context) error {
 	_, diRef, err := l.b.c.b.AddDirective(
-		volume.NewBuildBucketAPI(l.b.bucketID, l.volumeID),
+		bucket.NewBuildBucketAPI(l.b.bucketID, l.volumeID),
 		l,
 	)
 	if err != nil {
@@ -49,7 +50,7 @@ func (l *loadedBucketVolume) execute(ctx context.Context) error {
 // HandleValueAdded is called when a value is added to the directive.
 // Should not block.
 func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive.AttachedValue) {
-	val, ok := av.GetValue().(volume.BuildBucketAPIValue)
+	val, ok := av.GetValue().(bucket.BuildBucketAPIValue)
 	if !ok {
 		return
 	}
@@ -78,7 +79,7 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 // HandleValueRemoved is called when a value is removed from the directive.
 // Should not block.
 func (l *loadedBucketVolume) HandleValueRemoved(_ directive.Instance, av directive.AttachedValue) {
-	val, ok := av.GetValue().(volume.BuildBucketAPIValue)
+	val, ok := av.GetValue().(bucket.BuildBucketAPIValue)
 	if !ok || !val.GetExists() {
 		return
 	}

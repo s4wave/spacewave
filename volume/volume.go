@@ -51,21 +51,7 @@ type Controller interface {
 
 // BucketHandle is a bucket API handle.
 // All calls use the bucket handle context.
-type BucketHandle interface {
-	// GetID returns the bucket ID.
-	GetID() string
-	// GetVolumeId returns the volume ID of the bucket handle.
-	GetVolumeId() string
-	// GetExists returns if the bucket exists. If false, the bucket does not
-	// exist in the volume, and all block calls will not work.
-	GetExists() bool
-	// GetBucketConfig returns the bucket configuration in use.
-	// May be nil if the bucket does not exist in the volume.
-	GetBucketConfig() *bucket.Config
-	// GetBucket returns the bucket object.
-	// May be nil if the bucket does not exist in the volume.
-	GetBucket() bucket.Bucket
-}
+type BucketHandle = bucket.BucketHandle
 
 // ObjectStoreHandle is a object store API handle.
 type ObjectStoreHandle interface {

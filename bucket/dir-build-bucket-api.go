@@ -1,4 +1,4 @@
-package volume
+package bucket
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/bucket"
 )
 
 // BuildBucketAPI is a directive to get an API handle for a storage bucket.
@@ -17,9 +16,10 @@ type BuildBucketAPI interface {
 	// BuildBucketAPIBucketID returns the bucket ID constraint.
 	// Cannot be empty.
 	BuildBucketAPIBucketID() string
-	// BuildBucketAPIVolumeID returns the volume ID constraint.
+	// BuildBucketAPIStoreID returns the store ID constraint.
+	// The ID can be either a bucket store ID or a volume ID.
 	// Cannot be empty.
-	BuildBucketAPIVolumeID() string
+	BuildBucketAPIStoreID() string
 }
 
 // BuildBucketAPIValue is the result type for BuildBucketAPI.
@@ -28,12 +28,12 @@ type BuildBucketAPIValue = BucketHandle
 
 // buildBucketAPI implements BuildBucketAPI
 type buildBucketAPI struct {
-	bucketID, volumeID string
+	bucketID, storeID string
 }
 
 // NewBuildBucketAPI constructs a new BuildBucketAPI directive.
-func NewBuildBucketAPI(bucketID, volumeID string) BuildBucketAPI {
-	return &buildBucketAPI{bucketID: bucketID, volumeID: volumeID}
+func NewBuildBucketAPI(bucketID, storeID string) BuildBucketAPI {
+	return &buildBucketAPI{bucketID: bucketID, storeID: storeID}
 }
 
 // ExBuildBucketAPI executes the BuildBucketAPI directive.
@@ -41,13 +41,13 @@ func ExBuildBucketAPI(
 	ctx context.Context,
 	b bus.Bus,
 	returnIfIdle bool,
-	bucketID, volumeID string,
+	bucketID, bucketStoreID string,
 	valDisposeCb func(),
 ) (BuildBucketAPIValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecWaitValue[BuildBucketAPIValue](
 		ctx,
 		b,
-		NewBuildBucketAPI(bucketID, volumeID),
+		NewBuildBucketAPI(bucketID, bucketStoreID),
 		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCb,
 		nil,
@@ -58,10 +58,10 @@ func ExBuildBucketAPI(
 // This is a cursory validation to see if the values "look correct."
 func (d *buildBucketAPI) Validate() error {
 	if d.bucketID == "" {
-		return bucket.ErrBucketIDEmpty
+		return ErrBucketIDEmpty
 	}
-	if d.volumeID == "" {
-		return ErrVolumeIDEmpty
+	if d.storeID == "" {
+		return ErrStoreIDEmpty
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (d *buildBucketAPI) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
 		// references have been released.
-		UnrefDisposeDur: time.Millisecond * 500,
+		UnrefDisposeDur: time.Millisecond * 250,
 	}
 }
 
@@ -81,9 +81,9 @@ func (d *buildBucketAPI) BuildBucketAPIBucketID() string {
 	return d.bucketID
 }
 
-// BuildBucketAPIVolumeID returns the volume ID constraint.
-func (d *buildBucketAPI) BuildBucketAPIVolumeID() string {
-	return d.volumeID
+// BuildBucketAPIStoreID returns the volume ID constraint.
+func (d *buildBucketAPI) BuildBucketAPIStoreID() string {
+	return d.storeID
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two
@@ -95,7 +95,7 @@ func (d *buildBucketAPI) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	if d.BuildBucketAPIVolumeID() != od.BuildBucketAPIVolumeID() {
+	if d.BuildBucketAPIStoreID() != od.BuildBucketAPIStoreID() {
 		return false
 	}
 
@@ -124,7 +124,7 @@ func (d *buildBucketAPI) GetName() string {
 func (d *buildBucketAPI) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["bucket-id"] = []string{d.BuildBucketAPIBucketID()}
-	vals["volume-id"] = []string{d.BuildBucketAPIVolumeID()}
+	vals["store-id"] = []string{d.BuildBucketAPIStoreID()}
 	return vals
 }
 

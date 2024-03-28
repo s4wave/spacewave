@@ -24,7 +24,6 @@ type bucketHandle struct {
 	t          *bucketHandleTracker
 	err        error
 	v          volume.Volume
-	volID      string
 	bucketConf *bucket.Config
 }
 
@@ -75,7 +74,6 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 	b.handleCtr.SetValue(&bucketHandle{
 		t:          b,
 		v:          vol,
-		volID:      vol.GetID(),
 		bucketConf: bc,
 	})
 
@@ -120,6 +118,11 @@ func (b *bucketHandle) GetID() string {
 	return b.t.bucketID
 }
 
+// GetStoreId returns the volume ID.
+func (b *bucketHandle) GetStoreId() string {
+	return b.v.GetID()
+}
+
 // GetVolumeId returns the volume ID.
 func (b *bucketHandle) GetVolumeId() string {
 	return b.v.GetID()
@@ -156,7 +159,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		return nil, false, b.err
 	}
 	if b.bucketConf == nil {
-		return nil, false, bucket.ErrBucketUnknown
+		return nil, false, bucket.ErrBucketNotFound
 	}
 
 	// set hash type if not set
@@ -232,7 +235,7 @@ func (b *bucketHandle) GetHashType() hash.HashType {
 // The ref should not be modified or retained by GetBlock.
 func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if b.bucketConf == nil {
-		return nil, false, bucket.ErrBucketUnknown
+		return nil, false, bucket.ErrBucketNotFound
 	}
 
 	return b.v.GetBlock(ctx, ref)
@@ -242,7 +245,7 @@ func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 // The ref should not be modified or retained by GetBlockExists.
 func (b *bucketHandle) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	if b.bucketConf == nil {
-		return false, bucket.ErrBucketUnknown
+		return false, bucket.ErrBucketNotFound
 	}
 
 	return b.v.GetBlockExists(ctx, ref)

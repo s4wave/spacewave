@@ -196,10 +196,10 @@ func (c *Controller) HandleDirective(
 		return directive.R(c.resolveLookupVolume(ctx, di, d))
 	case bucket.ApplyBucketConfig:
 		return directive.R(c.resolveApplyBucketConf(ctx, di, d))
+	case bucket.BuildBucketAPI:
+		return directive.R(c.resolveBuildBucketAPI(ctx, di, d))
 	case volume.ListBuckets:
 		return directive.R(c.resolveListBuckets(ctx, di, d))
-	case volume.BuildBucketAPI:
-		return directive.R(c.resolveBuildBucketAPI(ctx, di, d))
 	case volume.BuildObjectStoreAPI:
 		return directive.R(c.resolveBuildObjectStoreAPI(ctx, di, d))
 	}

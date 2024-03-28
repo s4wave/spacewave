@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/volume"
 )
 
@@ -11,7 +12,7 @@ import (
 type buildBucketAPIResolver struct {
 	c   *Controller
 	ctx context.Context
-	dir volume.BuildBucketAPI
+	dir bucket.BuildBucketAPI
 }
 
 // Resolve resolves the values, emitting them to the handler.
@@ -32,7 +33,7 @@ func (o *buildBucketAPIResolver) Resolve(
 		return err
 	}
 	volID := vol.GetID()
-	targetVolumeID := o.dir.BuildBucketAPIVolumeID()
+	targetVolumeID := o.dir.BuildBucketAPIStoreID()
 	if targetVolumeID == "" || !volume.CheckIDMatchesAliases(targetVolumeID, volID, o.c.config.GetVolumeIdAlias()) {
 		return nil
 	}
@@ -61,13 +62,13 @@ func (o *buildBucketAPIResolver) Resolve(
 func (c *Controller) resolveBuildBucketAPI(
 	ctx context.Context,
 	di directive.Instance,
-	dir volume.BuildBucketAPI,
+	dir bucket.BuildBucketAPI,
 ) (directive.Resolver, error) {
 	// check if we can immediately reject this directive.
 	if vb := c.volume.GetValue(); vb != nil {
 		vol := vb.vol
 		volID := vol.GetID()
-		targetVolumeID := dir.BuildBucketAPIVolumeID()
+		targetVolumeID := dir.BuildBucketAPIStoreID()
 		if targetVolumeID == "" || !volume.CheckIDMatchesAliases(targetVolumeID, volID, c.config.GetVolumeIdAlias()) {
 			return nil, nil
 		}

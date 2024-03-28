@@ -29,7 +29,6 @@ import (
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -286,7 +285,7 @@ func TestMultiNodeDEX(
 	{
 		targetVolID := testbeds[2].Volume.GetID()
 		targetBus := testbeds[2].Bus
-		bav, _, avRel, err := volume.ExBuildBucketAPI(subCtx, targetBus, false, bc.GetId(), targetVolID, nil)
+		bav, _, avRel, err := bucket.ExBuildBucketAPI(subCtx, targetBus, false, bc.GetId(), targetVolID, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

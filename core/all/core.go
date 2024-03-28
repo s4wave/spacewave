@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	egc "github.com/aperturerobotics/entitygraph/controller"
+	block_store_bucket "github.com/aperturerobotics/hydra/block/store/bucket"
 	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
 	http_lookup "github.com/aperturerobotics/hydra/block/store/http/lookup"
 	http_server "github.com/aperturerobotics/hydra/block/store/http/server"
@@ -45,6 +46,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(http_lookup.NewFactory(b))
 	sr.AddFactory(http_server.NewFactory(b))
 
+	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(block_store_http.NewFactory(b))
 	sr.AddFactory(block_store_kvfile_http.NewFactory(b))
 	sr.AddFactory(block_store_s3.NewFactory(b))

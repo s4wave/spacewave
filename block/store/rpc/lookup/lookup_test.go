@@ -18,7 +18,6 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -141,7 +140,7 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	}
 
 	// check if write-back worked
-	readBkt, _, readBktRef, err := volume.ExBuildBucketAPI(ctx, clientTb.Bus, false, bucketID, clientTb.Volume.GetID(), nil)
+	readBkt, _, readBktRef, err := bucket.ExBuildBucketAPI(ctx, clientTb.Bus, false, bucketID, clientTb.Volume.GetID(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
