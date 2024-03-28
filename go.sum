@@ -72,8 +72,8 @@ github.com/aperturerobotics/go-kvfile v0.4.1 h1:8hnmtYcJAW1r62MEOSThIgj16FNnRQ56
 github.com/aperturerobotics/go-kvfile v0.4.1/go.mod h1:EztkyEY/x44m1dVz7XwK1hJctilTJZK1Ay3NPSHHAJY=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51/go.mod h1:yZOf9ZPH3PIeAj3q/dvY9nAe+Y1zBBIZIInEguPbbpQ=
-github.com/aperturerobotics/hydra v0.0.0-20240328052204-38069db03310 h1:t1GZyB/74Bmvm5fDSCfETv3njJLjgX0zqQ5n/MO8Xds=
-github.com/aperturerobotics/hydra v0.0.0-20240328052204-38069db03310/go.mod h1:DI9WuPE+4RCcTes0CulmKhByl6OujDL+5ICnS43A/Qo=
+github.com/aperturerobotics/hydra v0.0.0-20240328063735-e14fd3e8c9af h1:3r4NZdWE/05/9ekXRzOqbNTA+kI/TvakTUFbjCZgE8w=
+github.com/aperturerobotics/hydra v0.0.0-20240328063735-e14fd3e8c9af/go.mod h1:DI9WuPE+4RCcTes0CulmKhByl6OujDL+5ICnS43A/Qo=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 h1:ScQPbkbABsFb7e86ArWSRtoOemQGrX4BDKeHj+JAgbQ=
