@@ -7,11 +7,10 @@ import (
 	"encoding/binary"
 	"os"
 
-	// buffered_reader_at "github.com/aperturerobotics/bldr/util/buffered-reader-at"
-	buffered_reader_at "github.com/aperturerobotics/bldr/util/buffered-reader-at"
-	fetch_range "github.com/aperturerobotics/bldr/util/fetch-range"
-	fetch "github.com/aperturerobotics/bldr/util/wasm-fetch"
 	"github.com/aperturerobotics/go-kvfile"
+	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
+	fetch_range "github.com/aperturerobotics/hydra/util/http-range/fetch"
+	fetch "github.com/aperturerobotics/hydra/util/js-fetch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

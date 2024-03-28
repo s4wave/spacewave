@@ -8,8 +8,8 @@ import (
 	"os"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	fetch "github.com/aperturerobotics/bldr/util/wasm-fetch"
 	web_runtime_wasm "github.com/aperturerobotics/bldr/web/runtime/wasm"
+	fetch "github.com/aperturerobotics/hydra/util/js-fetch"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"

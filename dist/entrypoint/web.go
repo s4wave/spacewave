@@ -11,14 +11,14 @@ import (
 
 	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
-	buffered_reader_at "github.com/aperturerobotics/bldr/util/buffered-reader-at"
-	fetch_range "github.com/aperturerobotics/bldr/util/fetch-range"
-	fetch "github.com/aperturerobotics/bldr/util/wasm-fetch"
 	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
+	fetch_range "github.com/aperturerobotics/hydra/util/http-range/fetch"
+	fetch "github.com/aperturerobotics/hydra/util/js-fetch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

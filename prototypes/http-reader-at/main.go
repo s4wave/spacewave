@@ -5,13 +5,11 @@ package main
 import (
 	"context"
 	"encoding/binary"
-	"net/http"
 	"os"
 
-	httplog "github.com/aperturerobotics/bifrost/http/log"
-	buffered_reader_at "github.com/aperturerobotics/bldr/util/buffered-reader-at"
-	http_range "github.com/aperturerobotics/bldr/util/http-range"
 	"github.com/aperturerobotics/go-kvfile"
+	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
+	http_range "github.com/aperturerobotics/hydra/util/http-range"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -29,14 +27,12 @@ func main() {
 }
 
 func run(ctx context.Context, le *logrus.Entry) error {
-	req, err := http.NewRequest("GET", fileUrl, nil)
+	rangeHTTP, err := http_range.NewHTTPRangeReader(ctx, fileUrl, true)
 	if err != nil {
 		return err
 	}
 
-	seekingHTTP := http_range.NewHTTPRangeReader(req, httplog.ClientWithLogger(http.DefaultClient, le, true))
-
-	size, err := seekingHTTP.Size()
+	size, err := rangeHTTP.Size()
 	if err != nil {
 		return err
 	}
@@ -46,7 +42,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 
 	// optimization: cache the ending of the file up front
 	// kvfile does a lot of reads of the end of the file when querying
-	cacheReader := buffered_reader_at.NewBufferedReaderAt(seekingHTTP, 4096)
+	cacheReader := buffered_reader_at.NewBufferedReaderAt(rangeHTTP, 4096)
 	kvReader, err := kvfile.BuildReader(cacheReader, uint64(size))
 	if err != nil {
 		return err
