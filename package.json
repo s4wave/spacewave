@@ -51,7 +51,7 @@
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "ts-poet": "6.7.0",
-    "ts-proto": "^1.169.1",
+    "ts-proto": "^1.171.0",
     "typescript": "^5.4.2"
   },
   "dependencies": {

@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.25.4-0.20240326075319-f485a4156a47 // master
+require github.com/aperturerobotics/bifrost v0.26.1-0.20240331085022-54952f1c06d4 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -63,12 +63,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.7 // latest
+	github.com/aperturerobotics/controllerbus v0.36.8 // latest
 	github.com/aperturerobotics/entitygraph v0.7.0
 	github.com/aperturerobotics/starpc v0.27.3 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.15.2 // master
+	github.com/aperturerobotics/util v1.15.3 // master
 )
 
 // aperture: use compatibility forks
@@ -190,7 +190,7 @@ require (
 	github.com/paralin/kcp-go-lite v1.0.2-0.20240110212540-c015327ec623 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
-	github.com/pion/datachannel v1.5.5 // indirect
+	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
 	github.com/pion/ice/v3 v3.0.3 // indirect
 	github.com/pion/interceptor v0.1.27 // indirect
@@ -200,11 +200,11 @@ require (
 	github.com/pion/rtcp v1.2.14 // indirect
 	github.com/pion/rtp v1.8.4 // indirect
 	github.com/pion/sctp v1.8.13 // indirect
-	github.com/pion/sdp/v3 v3.0.8 // indirect
+	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
-	github.com/pion/transport/v3 v3.0.1 // indirect
+	github.com/pion/transport/v3 v3.0.2 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
 	github.com/pion/webrtc/v4 v4.0.0-beta.14 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
