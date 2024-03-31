@@ -165,7 +165,7 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.
-// Any exceptional errors are returned for logging.
+// Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch dir := di.GetDirective().(type) {
