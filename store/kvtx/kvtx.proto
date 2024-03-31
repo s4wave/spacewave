@@ -12,6 +12,12 @@ message Config {
   // HashType is the hash type to use for block refs.
   // If unset (0 value) will use default for Hydra (BLAKE3).
   .hash.HashType hash_type = 2;
+  // DisableHashGet disables hashing values for Get requests.
+  // This improves performance if the underlying store is trusted & consistent.
+  //
+  // If the store may return invalid data or mismatch the requested block ref,
+  // do not enable this option. It is important to hash the data for each read.
+  bool disable_hash_get = 3;
 }
 
 // MqueueMeta contains message queue metadata.

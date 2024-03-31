@@ -53,7 +53,8 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	var nroot *block.BlockRef
 	if commitErr == nil {
 		nroot = e.writeTx.state.GetRootRef()
-		commitErr = nroot.Validate()
+		// expect a non-nil ref
+		commitErr = nroot.Validate(false)
 	}
 
 	// apply committed changes or rollback

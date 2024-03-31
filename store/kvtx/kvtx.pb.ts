@@ -22,6 +22,14 @@ export interface Config {
    * If unset (0 value) will use default for Hydra (BLAKE3).
    */
   hashType: HashType
+  /**
+   * DisableHashGet disables hashing values for Get requests.
+   * This improves performance if the underlying store is trusted & consistent.
+   *
+   * If the store may return invalid data or mismatch the requested block ref,
+   * do not enable this option. It is important to hash the data for each read.
+   */
+  disableHashGet: boolean
 }
 
 /** MqueueMeta contains message queue metadata. */
@@ -41,7 +49,7 @@ export interface BucketReconcilerMqueueId {
 }
 
 function createBaseConfig(): Config {
-  return { mqueueConfig: undefined, hashType: 0 }
+  return { mqueueConfig: undefined, hashType: 0, disableHashGet: false }
 }
 
 export const Config = {
@@ -54,6 +62,9 @@ export const Config = {
     }
     if (message.hashType !== 0) {
       writer.uint32(16).int32(message.hashType)
+    }
+    if (message.disableHashGet !== false) {
+      writer.uint32(24).bool(message.disableHashGet)
     }
     return writer
   },
@@ -79,6 +90,13 @@ export const Config = {
           }
 
           message.hashType = reader.int32() as any
+          continue
+        case 3:
+          if (tag !== 24) {
+            break
+          }
+
+          message.disableHashGet = reader.bool()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -129,6 +147,9 @@ export const Config = {
         ? Config1.fromJSON(object.mqueueConfig)
         : undefined,
       hashType: isSet(object.hashType) ? hashTypeFromJSON(object.hashType) : 0,
+      disableHashGet: isSet(object.disableHashGet)
+        ? globalThis.Boolean(object.disableHashGet)
+        : false,
     }
   },
 
@@ -139,6 +160,9 @@ export const Config = {
     }
     if (message.hashType !== 0) {
       obj.hashType = hashTypeToJSON(message.hashType)
+    }
+    if (message.disableHashGet !== false) {
+      obj.disableHashGet = message.disableHashGet
     }
     return obj
   },
@@ -153,6 +177,7 @@ export const Config = {
         ? Config1.fromPartial(object.mqueueConfig)
         : undefined
     message.hashType = object.hashType ?? 0
+    message.disableHashGet = object.disableHashGet ?? false
     return message
   },
 }

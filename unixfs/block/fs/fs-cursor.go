@@ -237,9 +237,8 @@ func (f *FSCursor) resolveFsCursorOpsLocked() error {
 	// lookup our dirent
 	dirEnt, err := f.parent.fsCursorOps.fsTree.Lookup(f.name)
 	if err == nil {
-		if !dirEnt.GetNodeRef().GetEmpty() {
-			err = dirEnt.GetNodeRef().Validate()
-		}
+		// allow empty node ref
+		err = dirEnt.GetNodeRef().Validate(true)
 	}
 	if err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrNotExist && f.fs.writer != nil {
@@ -258,6 +257,7 @@ func (f *FSCursor) resolveFsCursorOpsLocked() error {
 		return err
 	}
 	f.fsCursorOps = newFSCursorOps(f, ftree, btx)
+
 	return nil
 }
 

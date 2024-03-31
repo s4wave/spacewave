@@ -81,11 +81,13 @@ func (o *ObjectRef) ParseFromB58(ref string) error {
 
 // Validate performs cursory validation of the object ref.
 func (o *ObjectRef) Validate() error {
-	if err := o.GetRootRef().Validate(); err != nil {
-		return err
+	if !o.GetRootRef().GetEmpty() {
+		if err := o.GetRootRef().Validate(false); err != nil {
+			return err
+		}
 	}
 	if !o.GetTransformConfRef().GetEmpty() {
-		if err := o.GetTransformConfRef().Validate(); err != nil {
+		if err := o.GetTransformConfRef().Validate(false); err != nil {
 			return err
 		}
 	}

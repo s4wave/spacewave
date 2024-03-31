@@ -46,7 +46,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 		if err != nil {
 			return nil, nil, err
 		}
-		kvtxBlk := NewRistrettoBlock(ctx, kvk, st, conf.GetForceHashType())
+		kvtxBlk := NewRistrettoBlock(kvk, st, conf.GetForceHashType(), conf.GetHashGet())
 		var store block_store.Store = kvtxBlk
 		return &store, st.Close, nil
 	}

@@ -12,7 +12,8 @@ func (r *RootDb) IsNil() bool {
 
 // Validate performs cursory checks on the RootDb.
 func (r *RootDb) Validate() error {
-	if err := r.GetRef().Validate(); err != nil {
+	// allow empty root db ref
+	if err := r.GetRef().Validate(true); err != nil {
 		return err
 	}
 	if len(r.GetName()) == 0 {

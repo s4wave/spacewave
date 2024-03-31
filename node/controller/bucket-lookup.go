@@ -25,8 +25,8 @@ func newBuildBucketLookupResolver(
 
 // resolveBuildBucketLookup resolves the node.BuildBucketLookup directive.
 func (c *Controller) resolveBuildBucketLookup(
-	ctx context.Context,
-	di directive.Instance,
+	_ context.Context,
+	_ directive.Instance,
 	d bucket_lookup.BuildBucketLookup,
 ) (directive.Resolver, error) {
 	return newBuildBucketLookupResolver(c, d), nil
@@ -43,10 +43,8 @@ func (r *buildBucketLookupResolver) Resolve(
 ) error {
 	bucketID := r.d.BuildBucketLookupBucketID()
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+		if err := ctx.Err(); err != nil {
+			return context.Canceled
 		}
 
 		r.c.mtx.Lock()

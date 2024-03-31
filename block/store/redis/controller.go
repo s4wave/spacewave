@@ -45,7 +45,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 		if err != nil {
 			return nil, nil, err
 		}
-		kvtxBlk := NewRedisBlock(ctx, kvk, st, conf.GetForceHashType())
+		kvtxBlk := NewRedisBlock(kvk, st, conf.GetForceHashType(), !conf.GetDisableHashGet())
 		var store block_store.Store = kvtxBlk
 		return &store, func() { st.GetPool().Close() }, nil
 	}

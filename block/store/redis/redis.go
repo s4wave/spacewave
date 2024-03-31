@@ -1,8 +1,6 @@
 package block_store_redis
 
 import (
-	"context"
-
 	"github.com/aperturerobotics/bifrost/hash"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_kvtx "github.com/aperturerobotics/hydra/block/store/kvtx"
@@ -17,13 +15,14 @@ type RedisBlock = block_store_kvtx.KVTxBlock
 // NewRedisBlock builds a new block store on top of a redis db.
 //
 // forceHashType can be 0 to use the default hash type.
+// hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
 func NewRedisBlock(
-	ctx context.Context,
 	kvk *kvkey.KVKey,
 	st *store_kvtx_redis.Store,
 	forceHashType hash.HashType,
+	hashGet bool,
 ) *RedisBlock {
-	return block_store_kvtx.NewKVTxBlock(ctx, kvk, st, forceHashType)
+	return block_store_kvtx.NewKVTxBlock(kvk, st, forceHashType, hashGet)
 }
 
 // _ is a type assertion

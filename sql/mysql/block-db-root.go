@@ -62,7 +62,8 @@ func (t *DatabaseRootTable) Validate() error {
 	if len(t.GetName()) == 0 {
 		return ErrEmptyTableName
 	}
-	if err := t.GetRef().Validate(); err != nil {
+	// allow empty root table
+	if err := t.GetRef().Validate(true); err != nil {
 		return err
 	}
 	return nil

@@ -47,8 +47,8 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(http_server.NewFactory(b))
 
 	sr.AddFactory(block_store_bucket.NewFactory(b))
-	sr.AddFactory(block_store_http.NewFactory(b))
 	sr.AddFactory(block_store_kvfile_http.NewFactory(b))
+	sr.AddFactory(block_store_http.NewFactory(b))
 	sr.AddFactory(block_store_s3.NewFactory(b))
 	sr.AddFactory(block_store_s3_lookup.NewFactory(b))
 	sr.AddFactory(block_store_ristretto.NewFactory(b))

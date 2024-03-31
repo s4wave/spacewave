@@ -44,5 +44,5 @@ func (k *KVTx) StorePeerPriv(ctx context.Context, privKey crypto.PrivKey) error 
 		return err
 	}
 
-	return tx.Commit(k.ctx)
+	return tx.Commit(ctx)
 }

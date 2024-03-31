@@ -92,7 +92,7 @@ func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRe
 	if err != nil {
 		return nil, false, err
 	}
-	// exceptional error
+	// unexpected error
 	if resp.StatusCode == 500 {
 		err = errors.Errorf("service returned internal error: %s", strings.TrimSpace(string(respBody)))
 		return nil, false, err

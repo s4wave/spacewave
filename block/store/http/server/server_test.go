@@ -105,7 +105,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := ref.Validate(); err != nil {
+	if err := ref.Validate(false); err != nil {
 		t.Fatal(err.Error())
 	}
 	if !ref.EqualsRef(sampleBlockRef2) {

@@ -139,10 +139,8 @@ func (p *remotePeer) executeIncomingSyncSession(ctx context.Context, ms link.Mou
 				)
 			}
 			blockRef = msg.GetRef()
-			if blockRef.GetEmpty() {
-				return errors.New("empty block ref in start_xmit message")
-			}
-			if err := blockRef.Validate(); err != nil {
+			// expect a non-nil ref
+			if err := blockRef.Validate(false); err != nil {
 				return errors.Wrap(err, "invalid block ref")
 			}
 			var err error
@@ -450,7 +448,8 @@ func (p *remotePeer) pushWantedRefs(refs []*block.BlockRef) []*block.BlockRef {
 		if r.GetEmpty() {
 			continue
 		}
-		if err := r.Validate(); err != nil {
+		if err := r.Validate(false); err != nil {
+			// TODO: log error somewhere?
 			continue
 		}
 		rid := r.MarshalString()

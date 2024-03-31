@@ -22,7 +22,7 @@ func TestVLogger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	blockStore := block_store_kvtx.NewKVTxBlock(ctx, kvk, st, 0)
+	blockStore := block_store_kvtx.NewKVTxBlock(kvk, st, 0, true)
 	client := NewVLoggerStore(le, blockStore)
 	if err := block_store_test.TestAll(ctx, client, 0); err != nil {
 		t.Fatal(err.Error())

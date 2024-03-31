@@ -23,7 +23,7 @@ func (d *Dirent) Validate() error {
 		return err
 	}
 	if !d.GetNodeRef().GetEmpty() {
-		if err := d.GetNodeRef().Validate(); err != nil {
+		if err := d.GetNodeRef().Validate(false); err != nil {
 			return errors.Wrap(err, "dirent node_ref")
 		}
 	}

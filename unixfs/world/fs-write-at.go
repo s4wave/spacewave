@@ -82,7 +82,8 @@ func (o *FsWriteAtOp) Validate() error {
 	if o.GetTimestamp().GetTimeUnixMs() == 0 {
 		return unixfs_errors.ErrEmptyTimestamp
 	}
-	if err := o.GetBlobRef().Validate(); err != nil {
+	// disallow empty blob ref
+	if err := o.GetBlobRef().Validate(false); err != nil {
 		return err
 	}
 	return nil

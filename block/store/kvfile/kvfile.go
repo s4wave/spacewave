@@ -38,7 +38,7 @@ func (k *KvfileBlock) PutBlock(ctx context.Context, data []byte, opts *block.Put
 }
 
 // GetBlock looks up a block in the store.
-// Returns data, found, and any exceptional error.
+// Returns data, found, and any unexpected error.
 func (k *KvfileBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
@@ -50,7 +50,7 @@ func (k *KvfileBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 }
 
 // GetBlockExists checks if a block exists in the store.
-// Returns found, and any exceptional error.
+// Returns found, and any unexpected error.
 func (k *KvfileBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {

@@ -67,7 +67,8 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		ref := &block.BlockRef{}
 		err := ref.ParseFromB58(pathPts[1])
 		if err == nil {
-			err = ref.Validate()
+			// expect a non-nil ref
+			err = ref.Validate(false)
 		}
 		if err != nil {
 			rw.WriteHeader(400)

@@ -40,8 +40,8 @@ func UnmarshalBucketReconcilerMqueueId(dat []byte) bucket_store.BucketReconciler
 }
 
 // loadBucketConfig loads a bucket config at a key.
-func (k *KVTx) loadBucketConfig(tx kvtx.Tx, key []byte) (*bucket.Config, error) {
-	dat, found, err := tx.Get(k.ctx, key)
+func (k *KVTx) loadBucketConfig(ctx context.Context, tx kvtx.Tx, key []byte) (*bucket.Config, error) {
+	dat, found, err := tx.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -73,14 +73,14 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 	}
 
 	key := k.kvkey.GetBucketConfigKey(conf.GetId())
-	tx, err := k.store.NewTransaction(k.ctx, true)
+	tx, err := k.store.NewTransaction(ctx, true)
 	if err != nil {
 		return false, nil, nil, err
 	}
 	defer tx.Discard()
 
 	// 1. lookup the existing config
-	econf, err := k.loadBucketConfig(tx, key)
+	econf, err := k.loadBucketConfig(ctx, tx, key)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -98,11 +98,11 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 		return false, nil, nil, kvtx.ErrEmptyValue
 	}
 
-	if err := tx.Set(k.ctx, key, dat); err != nil {
+	if err := tx.Set(ctx, key, dat); err != nil {
 		return false, nil, nil, err
 	}
 
-	if err := tx.Commit(k.ctx); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return false, nil, nil, err
 	}
 
@@ -118,7 +118,7 @@ func (k *KVTx) GetBucketInfo(ctx context.Context, id string) (*bucket.BucketInfo
 	}
 	defer tx.Discard()
 
-	bc, err := k.loadBucketConfig(tx, key)
+	bc, err := k.loadBucketConfig(ctx, tx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (k *KVTx) GetBucketConfig(ctx context.Context, id string) (*bucket.Config, 
 	}
 	defer tx.Discard()
 
-	return k.loadBucketConfig(tx, key)
+	return k.loadBucketConfig(ctx, tx, key)
 }
 
 // GetReconcilerEventQueue returns a reference to the event queue for a
@@ -188,7 +188,7 @@ func (k *KVTx) GetReconcilerEventQueue(ctx context.Context, pair bucket_store.Bu
 	prefix := k.kvkey.GetBucketMQueuePrefix()
 	id := MarshalBucketReconcilerMqueueId(pair)
 	prefixedID := bytes.Join([][]byte{prefix, id}, nil)
-	return k.OpenMqueue(k.ctx, prefixedID)
+	return k.OpenMqueue(ctx, prefixedID)
 }
 
 // DeleteReconcilerEventQueue purges a reconciler event queue.
@@ -196,7 +196,7 @@ func (k *KVTx) DeleteReconcilerEventQueue(ctx context.Context, pair bucket_store
 	prefix := k.kvkey.GetBucketMQueuePrefix()
 	id := MarshalBucketReconcilerMqueueId(pair)
 	prefixedID := bytes.Join([][]byte{prefix, id}, nil)
-	return k.DelMqueue(k.ctx, prefixedID)
+	return k.DelMqueue(ctx, prefixedID)
 }
 
 // ListFilledReconcilerEventQueues lists reconciler event queues that have

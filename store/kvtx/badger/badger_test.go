@@ -22,7 +22,6 @@ func TestBadger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bdb.DefaultOptions("")
 	o := bdb.DefaultOptions("").WithInMemory(true)
 	db, err := Open(o)
 	if err != nil {
@@ -31,7 +30,6 @@ func TestBadger(t *testing.T) {
 	defer db.db.Close()
 
 	ktx := store_kvtx.NewKVTx(
-		ctx,
 		"test/badger",
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),

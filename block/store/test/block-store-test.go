@@ -79,7 +79,7 @@ func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) er
 	if err != nil {
 		return err
 	}
-	if err := ref.Validate(); err != nil {
+	if err := ref.Validate(false); err != nil {
 		return err
 	}
 	if !ref.EqualsRef(sampleBlockRef2) {

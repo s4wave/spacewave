@@ -36,7 +36,6 @@ func TestBolt(t *testing.T) {
 	defer db.db.Close()
 
 	ktx := store_kvtx.NewKVTx(
-		ctx,
 		"test/bolt",
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),

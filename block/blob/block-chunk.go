@@ -29,7 +29,7 @@ func (r *Chunk) Validate() error {
 	if r.GetSize() == 0 {
 		return ErrEmptyChunk
 	}
-	if err := r.GetDataRef().Validate(); err != nil {
+	if err := r.GetDataRef().Validate(false); err != nil {
 		return err
 	}
 

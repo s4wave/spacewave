@@ -12,17 +12,28 @@ import (
 
 // KVTxBlock is a block store on top of a kvtx store.
 type KVTxBlock struct {
-	ctx      context.Context
 	kvkey    *store_kvkey.KVKey
 	store    kvtx.Store
 	hashType hash.HashType
+	hashGet  bool
 }
 
 // NewKVTxBlock constructs a new block store on top of a kvtx store.
 //
 // hashType can be 0 to use a default value.
-func NewKVTxBlock(ctx context.Context, kvkey *store_kvkey.KVKey, store kvtx.Store, hashType hash.HashType) *KVTxBlock {
-	return &KVTxBlock{ctx: ctx, kvkey: kvkey, store: store, hashType: hashType}
+// hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
+func NewKVTxBlock(
+	kvkey *store_kvkey.KVKey,
+	store kvtx.Store,
+	hashType hash.HashType,
+	hashGet bool,
+) *KVTxBlock {
+	return &KVTxBlock{
+		kvkey:    kvkey,
+		store:    store,
+		hashType: hashType,
+		hashGet:  hashGet,
+	}
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -77,24 +88,44 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		return ref, false, err
 	}
 
-	return ref, false, tx.Commit(k.ctx)
+	return ref, false, tx.Commit(ctx)
 }
 
 // GetBlock looks up a block in the store.
-// Returns data, found, and any exceptional error.
+// Returns data, found, and error.
 func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if err := ref.Validate(false); err != nil {
+		return nil, false, err
+	}
+
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
+
 	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
-	defer tx.Discard()
 
-	return tx.Get(ctx, key)
+	data, found, err := tx.Get(ctx, key)
+	tx.Discard()
+	if err != nil || !found {
+		return nil, found, err
+	}
+
+	// Re-hash the block reference if configured.
+	// This significantly reduces performance but improves security.
+	// Otherwise, an attacker could place any data at /h/b/{block-ref}.
+	if !k.hashGet {
+		return data, found, nil
+	}
+
+	// Return the data and the error with the hash mismatch.
+	// All callers to GetBlock should check the error return value.
+	// We return the data here for cases where we want to report the invalid data.
+	return data, found, ref.VerifyData(data, true)
 }
 
 // GetBlockExists checks if a block exists in the store.
@@ -105,6 +136,7 @@ func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 		return false, err
 	}
 	key := k.kvkey.GetBlockKey(rm)
+
 	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return false, err
@@ -122,6 +154,7 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return err
 	}
 	key := k.kvkey.GetBlockKey(rm)
+
 	tx, err := k.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -132,7 +165,7 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return err
 	}
 
-	return tx.Commit(k.ctx)
+	return tx.Commit(ctx)
 }
 
 // _ is a type assertion

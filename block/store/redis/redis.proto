@@ -17,6 +17,12 @@ message Config {
   // ForceHashType forces writing the given hash type to the store.
   // If unset, accepts any hash type.
   .hash.HashType force_hash_type = 4;
+  // DisableHashGet disables hashing values for Get requests.
+  // This improves performance if the underlying store is trusted & consistent.
+  //
+  // If the store may return invalid data or mismatch the requested block ref,
+  // do not enable this option. It is important to hash the data for each read.
+  bool disable_hash_get = 8;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
   repeated string bucket_ids = 5;
   // SkipNotFound skips returning a value if the block was not found.

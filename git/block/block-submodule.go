@@ -28,11 +28,11 @@ func (r *Submodule) Validate() error {
 	if err := ValidateRefName(r.GetName(), false); err != nil {
 		return err
 	}
+	// disallow empty repo ref
 	if r.GetRepoRef().GetEmpty() {
 		return ErrReferenceNameEmpty
 	}
-
-	if err := r.GetRepoRef().Validate(); err != nil {
+	if err := r.GetRepoRef().Validate(false); err != nil {
 		return err
 	}
 	return nil

@@ -25,6 +25,11 @@ func NewKVKey(conf *Config) (*KVKey, error) {
 	return &KVKey{conf: conf}, nil
 }
 
+// NewDefaultKVKey constructs a KVKey with a default config.
+func NewDefaultKVKey() *KVKey {
+	return &KVKey{conf: DefaultConfig()}
+}
+
 // GetBlockFullPrefix returns the prefix for all blocks.
 func (k *KVKey) GetBlockFullPrefix() []byte {
 	return bytes.Join([][]byte{

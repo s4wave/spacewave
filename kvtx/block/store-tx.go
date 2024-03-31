@@ -62,7 +62,8 @@ func (s *storeTx) Commit(ctx context.Context) error {
 	if commitErr == nil {
 		nroot, _, commitErr = s.writeBtx.Write(true)
 		if commitErr == nil {
-			commitErr = nroot.Validate()
+			// expect a non-nil ref
+			commitErr = nroot.Validate(false)
 		}
 	}
 

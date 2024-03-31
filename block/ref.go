@@ -55,7 +55,8 @@ func UnmarshalBlockRefB58(ref string) (*BlockRef, error) {
 	if err := r.UnmarshalVT(dat); err != nil {
 		return nil, err
 	}
-	if err := r.Validate(); err != nil {
+	// if a block ref string has non-zero length, it must not be empty.
+	if err := r.Validate(false); err != nil {
 		return nil, err
 	}
 	return r, nil
@@ -88,16 +89,42 @@ func (b *BlockRef) Clone() *BlockRef {
 }
 
 // Validate validates the block ref.
-func (b *BlockRef) Validate() error {
+func (b *BlockRef) Validate(allowEmpty bool) error {
+	if !allowEmpty && b.GetEmpty() {
+		return ErrEmptyBlockRef
+	}
 	if err := b.GetHash().Validate(); err != nil {
 		return err
 	}
 	return nil
 }
 
+// VerifyData checks the given data matches the block ref.
+// If errDetails is set, wraps the error with the unexpected and expected refs if mismatch.
+func (b *BlockRef) VerifyData(data []byte, errDetails bool) error {
+	if b == nil || b.Hash == nil {
+		return ErrEmptyBlockRef
+	}
+
+	actualHash, err := b.GetHash().VerifyData(data)
+	if err != nil {
+		actualRef := b.Clone()
+		if actualRef.Hash == nil {
+			actualRef.Hash = &hash.Hash{}
+		}
+		actualRef.Hash.Hash = actualHash
+		if errDetails {
+			return errors.Wrapf(err, "expected block %s but got %s", b.MarshalLog(), actualRef.MarshalLog())
+		}
+		return err
+	}
+
+	return nil
+}
+
 // GetEmpty returns if the ref is empty.
 func (b *BlockRef) GetEmpty() bool {
-	return len(b.GetHash().GetHash()) == 0
+	return len(b.GetHash().GetHash()) == 0 || b.GetHash().GetHashType() == 0
 }
 
 // EqualsRef checks if two refs are equal.

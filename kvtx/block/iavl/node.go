@@ -47,10 +47,11 @@ func (n *Node) Validate() error {
 			return ErrUnexpectedBlob
 		}
 	}
-	if err := n.GetLeftChildRef().Validate(); err != nil {
+	// allow empty left/right refs.
+	if err := n.GetLeftChildRef().Validate(true); err != nil {
 		return err
 	}
-	if err := n.GetRightChildRef().Validate(); err != nil {
+	if err := n.GetRightChildRef().Validate(true); err != nil {
 		return err
 	}
 	return nil

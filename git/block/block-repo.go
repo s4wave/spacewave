@@ -52,7 +52,8 @@ func (r *Repo) Validate() error {
 	if err := r.GetEncodedObjectStore().Validate(); err != nil {
 		return errors.Wrap(err, "encoded_object_store")
 	}
-	if err := r.GetShallowRefsStoreRef().Validate(); err != nil {
+	// allow nil reference
+	if err := r.GetShallowRefsStoreRef().Validate(true); err != nil {
 		return errors.Wrap(err, "shallow_refs_store_ref")
 	}
 	return nil

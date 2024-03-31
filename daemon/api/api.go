@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -52,12 +53,12 @@ func (r *BucketOpRequest) Validate() error {
 	case BucketOp_BucketOp_BLOCK_RM:
 		fallthrough
 	case BucketOp_BucketOp_BLOCK_GET:
-		if err := r.GetBlockRef().Validate(); err != nil {
-			return errors.New("block ref must be specified")
+		if err := r.GetBlockRef().Validate(false); err != nil {
+			return err
 		}
 	case BucketOp_BucketOp_BLOCK_PUT:
 		if len(r.GetData()) == 0 {
-			return errors.New("empty block not allowed")
+			return block.ErrEmptyBlock
 		}
 		if err := r.GetPutOpts().Validate(); err != nil {
 			return err

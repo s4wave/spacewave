@@ -27,6 +27,12 @@ export interface Config {
    * If unset, accepts any hash type.
    */
   forceHashType: HashType
+  /**
+   * HashGet enables hashing values for Get requests.
+   * This reduces performance but ensures data integrity.
+   * As ristretto is an in-memory cache, it shouldn't be necessary to use this.
+   */
+  hashGet: boolean
   /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
   bucketIds: string[]
   /** SkipNotFound skips returning a value if the block was not found. */
@@ -41,6 +47,7 @@ function createBaseConfig(): Config {
     ristretto: undefined,
     kvKeyOpts: undefined,
     forceHashType: 0,
+    hashGet: false,
     bucketIds: [],
     skipNotFound: false,
     verbose: false,
@@ -63,6 +70,9 @@ export const Config = {
     }
     if (message.forceHashType !== 0) {
       writer.uint32(32).int32(message.forceHashType)
+    }
+    if (message.hashGet !== false) {
+      writer.uint32(64).bool(message.hashGet)
     }
     for (const v of message.bucketIds) {
       writer.uint32(42).string(v!)
@@ -111,6 +121,13 @@ export const Config = {
           }
 
           message.forceHashType = reader.int32() as any
+          continue
+        case 8:
+          if (tag !== 64) {
+            break
+          }
+
+          message.hashGet = reader.bool()
           continue
         case 5:
           if (tag !== 42) {
@@ -190,6 +207,9 @@ export const Config = {
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
+      hashGet: isSet(object.hashGet)
+        ? globalThis.Boolean(object.hashGet)
+        : false,
       bucketIds: globalThis.Array.isArray(object?.bucketIds)
         ? object.bucketIds.map((e: any) => globalThis.String(e))
         : [],
@@ -215,6 +235,9 @@ export const Config = {
     }
     if (message.forceHashType !== 0) {
       obj.forceHashType = hashTypeToJSON(message.forceHashType)
+    }
+    if (message.hashGet !== false) {
+      obj.hashGet = message.hashGet
     }
     if (message.bucketIds?.length) {
       obj.bucketIds = message.bucketIds
@@ -243,6 +266,7 @@ export const Config = {
         ? Config2.fromPartial(object.kvKeyOpts)
         : undefined
     message.forceHashType = object.forceHashType ?? 0
+    message.hashGet = object.hashGet ?? false
     message.bucketIds = object.bucketIds?.map((e) => e) || []
     message.skipNotFound = object.skipNotFound ?? false
     message.verbose = object.verbose ?? false

@@ -30,6 +30,7 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.BlockStoreId = m.BlockStoreId
 	r.ForceHashType = m.ForceHashType
+	r.DisableHashGet = m.DisableHashGet
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
 	if rhs := m.Client; rhs != nil {
@@ -105,6 +106,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Verbose != that.Verbose {
 		return false
 	}
+	if this.DisableHashGet != that.DisableHashGet {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -144,6 +148,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableHashGet {
+		i--
+		if m.DisableHashGet {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.Verbose {
 		i--
@@ -276,6 +290,9 @@ func (m *Config) SizeVT() (n int) {
 		n += 2
 	}
 	if m.Verbose {
+		n += 2
+	}
+	if m.DisableHashGet {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -522,6 +539,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Verbose = bool(v != 0)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableHashGet", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableHashGet = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

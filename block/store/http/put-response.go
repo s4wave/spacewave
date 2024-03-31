@@ -9,10 +9,8 @@ func (o *PutResponse) Validate() error {
 	if o == nil {
 		return nil
 	}
-	if !o.GetRef().GetEmpty() {
-		return o.GetRef().Validate()
-	}
-	return nil
+	// allow empty ref only if err is not empty
+	return o.GetRef().Validate(o.GetErr() != "")
 }
 
 // MarshalBlock marshals the block to binary.

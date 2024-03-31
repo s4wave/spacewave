@@ -152,7 +152,7 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 }
 
 // GetBlock looks up a block in the store.
-// Returns data, found, and any exceptional error.
+// Returns data, found, and any unexpected error.
 func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if ref.GetEmpty() {
 		return nil, false, block.ErrEmptyBlockRef
@@ -214,7 +214,7 @@ func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 }
 
 // GetBlockExists checks if a block exists in the store.
-// Returns found, and any exceptional error.
+// Returns found, and any unexpected error.
 func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	if ref.GetEmpty() {
 		return false, block.ErrEmptyBlockRef

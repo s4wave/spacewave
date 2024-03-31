@@ -58,7 +58,7 @@ func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		return nil, false, errors.New(errStr)
 	}
 	addedRef := resp.GetRef()
-	if err := addedRef.Validate(); err != nil {
+	if err := addedRef.Validate(false); err != nil {
 		return nil, false, err
 	}
 	return addedRef, resp.GetExisted(), nil

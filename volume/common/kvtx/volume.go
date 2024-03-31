@@ -40,10 +40,11 @@ func NewVolume(
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	conf *store_kvtx.Config,
-	noGenerateKey, noWriteKey bool,
+	noGenerateKey,
+	noWriteKey bool,
 ) (*Volume, error) {
 	v := &Volume{
-		Store:     store_kvtx.NewKVTx(ctx, storeID, kvkey, store, conf),
+		Store:     store_kvtx.NewKVTx(storeID, kvkey, store, conf),
 		kvtxStore: store,
 	}
 

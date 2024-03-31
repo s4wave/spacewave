@@ -27,6 +27,14 @@ export interface Config {
    * If unset, accepts any hash type.
    */
   forceHashType: HashType
+  /**
+   * DisableHashGet disables hashing values for Get requests.
+   * This improves performance if the underlying store is trusted & consistent.
+   *
+   * If the store may return invalid data or mismatch the requested block ref,
+   * do not enable this option. It is important to hash the data for each read.
+   */
+  disableHashGet: boolean
   /** BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives. */
   bucketIds: string[]
   /** SkipNotFound skips returning a value if the block was not found. */
@@ -41,6 +49,7 @@ function createBaseConfig(): Config {
     client: undefined,
     kvKeyOpts: undefined,
     forceHashType: 0,
+    disableHashGet: false,
     bucketIds: [],
     skipNotFound: false,
     verbose: false,
@@ -63,6 +72,9 @@ export const Config = {
     }
     if (message.forceHashType !== 0) {
       writer.uint32(32).int32(message.forceHashType)
+    }
+    if (message.disableHashGet !== false) {
+      writer.uint32(64).bool(message.disableHashGet)
     }
     for (const v of message.bucketIds) {
       writer.uint32(42).string(v!)
@@ -111,6 +123,13 @@ export const Config = {
           }
 
           message.forceHashType = reader.int32() as any
+          continue
+        case 8:
+          if (tag !== 64) {
+            break
+          }
+
+          message.disableHashGet = reader.bool()
           continue
         case 5:
           if (tag !== 42) {
@@ -190,6 +209,9 @@ export const Config = {
       forceHashType: isSet(object.forceHashType)
         ? hashTypeFromJSON(object.forceHashType)
         : 0,
+      disableHashGet: isSet(object.disableHashGet)
+        ? globalThis.Boolean(object.disableHashGet)
+        : false,
       bucketIds: globalThis.Array.isArray(object?.bucketIds)
         ? object.bucketIds.map((e: any) => globalThis.String(e))
         : [],
@@ -215,6 +237,9 @@ export const Config = {
     }
     if (message.forceHashType !== 0) {
       obj.forceHashType = hashTypeToJSON(message.forceHashType)
+    }
+    if (message.disableHashGet !== false) {
+      obj.disableHashGet = message.disableHashGet
     }
     if (message.bucketIds?.length) {
       obj.bucketIds = message.bucketIds
@@ -243,6 +268,7 @@ export const Config = {
         ? Config1.fromPartial(object.kvKeyOpts)
         : undefined
     message.forceHashType = object.forceHashType ?? 0
+    message.disableHashGet = object.disableHashGet ?? false
     message.bucketIds = object.bucketIds?.map((e) => e) || []
     message.skipNotFound = object.skipNotFound ?? false
     message.verbose = object.verbose ?? false

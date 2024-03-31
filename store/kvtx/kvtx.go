@@ -11,7 +11,6 @@ import (
 
 // KVTx wraps a key/value transaction store and implements the Hydra store.
 type KVTx struct {
-	ctx   context.Context
 	kvkey *store_kvkey.KVKey
 	blk   *block_store_kvtx.KVTxBlock
 	conf  *Config
@@ -24,21 +23,19 @@ type KVTx struct {
 //
 // store can optionally be a store_kvtx.Store with execute func.
 func NewKVTx(
-	ctx context.Context,
 	storeID string,
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	conf *Config,
 ) hstore.Store {
 	return &KVTx{
-		ctx:   ctx,
 		conf:  conf,
 		kvkey: kvkey,
 		blk: block_store_kvtx.NewKVTxBlock(
-			ctx,
 			kvkey,
 			store,
 			conf.GetHashType(),
+			!conf.GetDisableHashGet(),
 		),
 		store:   store,
 		storeID: storeID,

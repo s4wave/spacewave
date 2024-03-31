@@ -75,7 +75,7 @@ func (f *File) Validate() error {
 			return errors.Errorf("range with zero length is invalid: %d", i)
 		}
 		if !r.GetRef().GetEmpty() {
-			if err := r.GetRef().Validate(); err != nil {
+			if err := r.GetRef().Validate(false); err != nil {
 				return errors.Wrapf(err, "ranges[%d]", i)
 			}
 		}
