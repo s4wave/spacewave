@@ -147,10 +147,10 @@ func (m *Manifest) Validate() error {
 	if err := m.GetMeta().Validate(false); err != nil {
 		return errors.Wrap(err, "meta")
 	}
-	if err := m.GetDistFsRef().Validate(); err != nil {
+	if err := m.GetDistFsRef().Validate(true); err != nil {
 		return errors.Wrap(err, "dist_fs_ref")
 	}
-	if err := m.GetAssetsFsRef().Validate(); err != nil {
+	if err := m.GetAssetsFsRef().Validate(true); err != nil {
 		return errors.Wrap(err, "assets_fs_ref")
 	}
 	if m.GetEntrypoint() == "" {

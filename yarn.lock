@@ -154,12 +154,35 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
+"@libp2p/interface@^1.1.5":
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.1.5.tgz#25b3c22a20a1b09bd6a6a9f9c4ef2c23c5a7aade"
+  integrity sha512-BjFgv/3VwEDNRcFKL4KW6g29IcUWUjaTJhyZVGWtodFuPjZsZHJgoQU7T/FFxDcfTdI90qpFbTREycOB+VL9NQ==
+  dependencies:
+    "@multiformats/multiaddr" "^12.1.14"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    multiformats "^13.1.0"
+    progress-events "^1.0.0"
+    uint8arraylist "^2.4.8"
+
 "@libp2p/logger@^4.0.6", "@libp2p/logger@^4.0.7":
   version "4.0.7"
   resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.7.tgz#b5e82135f5c8a6f275c1b2e183333db956f3ed90"
   integrity sha512-oyICns7G18S4eDhbFHUwZ7gLQnZTBVQtUMmMgEmrs8LnQu2GvXADxmQAPPkKtLNSCvRudg4hN3hP04Y+vNvlBQ==
   dependencies:
     "@libp2p/interface" "^1.1.4"
+    "@multiformats/multiaddr" "^12.1.14"
+    debug "^4.3.4"
+    interface-datastore "^8.2.11"
+    multiformats "^13.1.0"
+
+"@libp2p/logger@^4.0.8":
+  version "4.0.8"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.8.tgz#164ab350f50e98dda383c2211b69c6f1d3f5776f"
+  integrity sha512-H8vdQdjkPxnR9JbjyWQpyc+hjuE18ONvZet3hyOFqUUi28LkNSNMaW3VozgL+Gvb/JyJ3Hzni4Wbiqs2+EOi3g==
+  dependencies:
+    "@libp2p/interface" "^1.1.5"
     "@multiformats/multiaddr" "^12.1.14"
     debug "^4.3.4"
     interface-datastore "^8.2.11"
@@ -375,10 +398,10 @@
   resolved "https://registry.yarnpkg.com/@types/random-string/-/random-string-0.0.31.tgz#0f4dd8c04a154bddb630bdf0b607fcd839663c2e"
   integrity sha512-L/N6zJvxeiNRoGicjS93QYgVFHswsX7bXZIzm9GEZ0to3FMUM02PSBQ/PdijwSCaOaiodUwPXXwd5GnWMvBSfA==
 
-"@types/react-dom@^18.2.22":
-  version "18.2.22"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.22.tgz#d332febf0815403de6da8a97e5fe282cbe609bae"
-  integrity sha512-fHkBXPeNtfvri6gdsMYyW+dW7RXFo6Ad09nLFK0VQWR7yGLai/Cyvyj696gbwYvBnhGtevUG9cET0pmUbMtoPQ==
+"@types/react-dom@^18.2.23":
+  version "18.2.23"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.23.tgz#112338760f622a16d64271b408355f2f27f6302c"
+  integrity sha512-ZQ71wgGOTmDYpnav2knkjr3qXdAFu0vsk8Ci5w3pGAIdj7/kKAyn+VsQDhXsmzzzepAiI9leWMmubXz690AI/A==
   dependencies:
     "@types/react" "*"
 
@@ -2361,10 +2384,10 @@ ts-proto-descriptors@1.15.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.170.0:
-  version "1.170.0"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.170.0.tgz#9dd270db171cf20e922cd389e8cc274564228a3f"
-  integrity sha512-5ntOSpzJ4n5sGS/kmXU1P6Yaf6Q9HFwggjSDSr0bVCC2bl3fJUj3qsCJvnjbortKf3rUytwnSY8yM8wnc4LS1Q==
+ts-proto@^1.171.0:
+  version "1.171.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.171.0.tgz#679f9da0d3c9462b4814f422ef63e3f986936fd0"
+  integrity sha512-NMwiqCixlk6MZ3TAIpVQUuWwUktCXhoP+07V7D7Eo2IlEwulZucOGrU82toHhPL/QTd+oMBM2RDeQk9qs8+ZEQ==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"

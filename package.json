@@ -65,7 +65,7 @@
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.73",
-    "@types/react-dom": "^18.2.22",
+    "@types/react-dom": "^18.2.23",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.16.0",
     "esm-cjs-lexer": "^0.10.0",
@@ -74,12 +74,12 @@
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.5",
     "ts-poet": "6.7.0",
-    "ts-proto": "^1.170.0",
+    "ts-proto": "^1.171.0",
     "typescript": "^5.4.3",
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@libp2p/logger": "^4.0.7",
+    "@libp2p/logger": "^4.0.8",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
     "electron": "^29.1.6",
