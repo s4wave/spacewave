@@ -437,9 +437,9 @@
     undici-types "~5.26.4"
 
 "@types/node@>=13.7.0":
-  version "20.11.30"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.11.30.tgz#9c33467fc23167a347e73834f788f4b9f399d66f"
-  integrity sha512-dHM6ZxwlmuZaRmUPfv1p+KrdD1Dci04FbdEm/9wEMouFqxYoFl5aMkt0VMAUtYRQDyYvD41WJLukhq/ha3YuTw==
+  version "20.12.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.12.2.tgz#9facdd11102f38b21b4ebedd9d7999663343d72e"
+  integrity sha512-zQ0NYO87hyN6Xrclcqp7f8ZbXNbRfoGWNcMvHTPQp9UUrwI0mI7XBz+cu7/W6/VClYo2g63B0cjull/srU7LgQ==
   dependencies:
     undici-types "~5.26.4"
 
@@ -2248,9 +2248,9 @@ ts-proto-descriptors@1.15.0:
     protobufjs "^7.2.4"
 
 ts-proto@^1.169.1:
-  version "1.170.0"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.170.0.tgz#9dd270db171cf20e922cd389e8cc274564228a3f"
-  integrity sha512-5ntOSpzJ4n5sGS/kmXU1P6Yaf6Q9HFwggjSDSr0bVCC2bl3fJUj3qsCJvnjbortKf3rUytwnSY8yM8wnc4LS1Q==
+  version "1.171.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.171.0.tgz#679f9da0d3c9462b4814f422ef63e3f986936fd0"
+  integrity sha512-NMwiqCixlk6MZ3TAIpVQUuWwUktCXhoP+07V7D7Eo2IlEwulZucOGrU82toHhPL/QTd+oMBM2RDeQk9qs8+ZEQ==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"
