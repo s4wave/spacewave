@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240331081026-afd2dc2e452d // master
+require github.com/aperturerobotics/hydra v0.0.0-20240331085339-0994abbd18f7 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.4-0.20240326075319-f485a4156a47 // master
+require github.com/aperturerobotics/bifrost v0.26.1-0.20240331085022-54952f1c06d4 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -56,7 +56,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.7 // latest
+	github.com/aperturerobotics/controllerbus v0.36.8 // latest
 	github.com/aperturerobotics/entitygraph v0.7.0 // indirect
 	github.com/aperturerobotics/starpc v0.27.3 // latest
 )
@@ -78,7 +78,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.15.3-0.20240320183303-649409455fa5 // master
+	github.com/aperturerobotics/util v1.15.3 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/djherbis/buffer v1.2.0 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
-	github.com/pion/datachannel v1.5.5 // indirect
+	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
 	github.com/pion/ice/v3 v3.0.3 // indirect
 	github.com/pion/interceptor v0.1.27 // indirect
@@ -207,11 +207,11 @@ require (
 	github.com/pion/rtcp v1.2.14 // indirect
 	github.com/pion/rtp v1.8.4 // indirect
 	github.com/pion/sctp v1.8.13 // indirect
-	github.com/pion/sdp/v3 v3.0.8 // indirect
+	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
-	github.com/pion/transport/v3 v3.0.1 // indirect
+	github.com/pion/transport/v3 v3.0.2 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
 	github.com/pion/webrtc/v4 v4.0.0-beta.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
