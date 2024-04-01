@@ -68,11 +68,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	c.buckets.SetContext(ctx, true)
-	<-ctx.Done()
-
-	vRef.Release()
-	c.buckets.SetContext(nil, false)
-
+	_ = context.AfterFunc(ctx, vRef.Release)
 	return nil
 }
 
