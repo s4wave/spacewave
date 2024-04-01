@@ -15,6 +15,9 @@ message Config {
   bool disable_reconciler_queues = 3;
   // DisablePeer disables loading the peer controller from the volume.
   bool disable_peer = 4;
+  // DisableLookupBlockStore disables resolving LookupBlockStore when using the
+  // volume ID for the store_id field.
+  bool disable_lookup_block_store = 7;
 
   // BlockStoreId configures using a separate block store for blocks.
   // uses LookupBlockStore to lookup the block store on the bus.

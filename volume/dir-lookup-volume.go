@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 )
 
 // LookupVolume is a directive to lookup running volumes.
@@ -59,19 +60,27 @@ func ExLookupVolume(
 	)
 }
 
-// CheckLookupMatchesVolume checks if a lookupvolume matches a volume.
-// only checks if there are any constraints set on the directive (not ID).
+// CheckLookupMatchesVolume checks if a LookupVolume matches a volume.
 func CheckLookupMatchesVolume(dir LookupVolume, vol Volume, aliases []string) bool {
+	// check id matches
+	if !CheckIDMatchesAliases(dir.LookupVolumeID(), vol.GetID(), aliases) {
+		return false
+	}
+
+	// check peer id matches if set
 	if peerIDConstraint := dir.LookupVolumePeerIDConstraint(); len(peerIDConstraint) != 0 {
 		if vol.GetPeerID() != peerIDConstraint {
 			return false
 		}
 	}
-	if !CheckIDMatchesAliases(dir.LookupVolumeID(), vol.GetID(), aliases) {
-		return false
-	}
 
 	return true
+}
+
+// CheckLookupBlockStoreMatchesVolume checks if a LookupBlockStore matches a volume.
+// only checks if there are any constraints set on the directive (not ID).
+func CheckLookupBlockStoreMatchesVolume(dir block_store.LookupBlockStore, vol Volume, aliases []string) bool {
+	return CheckIDMatchesAliases(dir.LookupBlockStoreId(), vol.GetID(), aliases)
 }
 
 // LookupVolumeID returns a specific volume ID to filter to.

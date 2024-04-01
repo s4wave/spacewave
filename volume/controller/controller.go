@@ -194,6 +194,8 @@ func (c *Controller) HandleDirective(
 	switch d := dir.(type) {
 	case volume.LookupVolume:
 		return directive.R(c.resolveLookupVolume(ctx, di, d))
+	case block_store.LookupBlockStore:
+		return directive.R(c.resolveLookupBlockStore(ctx, di, d))
 	case bucket.ApplyBucketConfig:
 		return directive.R(c.resolveApplyBucketConf(ctx, di, d))
 	case bucket.BuildBucketAPI:

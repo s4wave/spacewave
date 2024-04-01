@@ -29,6 +29,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableEventBlockRm = m.DisableEventBlockRm
 	r.DisableReconcilerQueues = m.DisableReconcilerQueues
 	r.DisablePeer = m.DisablePeer
+	r.DisableLookupBlockStore = m.DisableLookupBlockStore
 	r.BlockStoreId = m.BlockStoreId
 	r.BlockStoreMode = m.BlockStoreMode
 	if rhs := m.VolumeIdAlias; rhs != nil {
@@ -77,6 +78,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.BlockStoreMode != that.BlockStoreMode {
 		return false
 	}
+	if this.DisableLookupBlockStore != that.DisableLookupBlockStore {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -116,6 +120,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableLookupBlockStore {
+		i--
+		if m.DisableLookupBlockStore {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.BlockStoreMode != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.BlockStoreMode))
@@ -198,6 +212,9 @@ func (m *Config) SizeVT() (n int) {
 	}
 	if m.BlockStoreMode != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.BlockStoreMode))
+	}
+	if m.DisableLookupBlockStore {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -375,6 +392,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableLookupBlockStore", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableLookupBlockStore = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

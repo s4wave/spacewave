@@ -24,6 +24,11 @@ export interface Config {
   /** DisablePeer disables loading the peer controller from the volume. */
   disablePeer: boolean
   /**
+   * DisableLookupBlockStore disables resolving LookupBlockStore when using the
+   * volume ID for the store_id field.
+   */
+  disableLookupBlockStore: boolean
+  /**
    * BlockStoreId configures using a separate block store for blocks.
    * uses LookupBlockStore to lookup the block store on the bus.
    */
@@ -42,6 +47,7 @@ function createBaseConfig(): Config {
     volumeIdAlias: [],
     disableReconcilerQueues: false,
     disablePeer: false,
+    disableLookupBlockStore: false,
     blockStoreId: '',
     blockStoreMode: 0,
   }
@@ -63,6 +69,9 @@ export const Config = {
     }
     if (message.disablePeer !== false) {
       writer.uint32(32).bool(message.disablePeer)
+    }
+    if (message.disableLookupBlockStore !== false) {
+      writer.uint32(56).bool(message.disableLookupBlockStore)
     }
     if (message.blockStoreId !== '') {
       writer.uint32(42).string(message.blockStoreId)
@@ -108,6 +117,13 @@ export const Config = {
           }
 
           message.disablePeer = reader.bool()
+          continue
+        case 7:
+          if (tag !== 56) {
+            break
+          }
+
+          message.disableLookupBlockStore = reader.bool()
           continue
         case 5:
           if (tag !== 42) {
@@ -180,6 +196,9 @@ export const Config = {
       disablePeer: isSet(object.disablePeer)
         ? globalThis.Boolean(object.disablePeer)
         : false,
+      disableLookupBlockStore: isSet(object.disableLookupBlockStore)
+        ? globalThis.Boolean(object.disableLookupBlockStore)
+        : false,
       blockStoreId: isSet(object.blockStoreId)
         ? globalThis.String(object.blockStoreId)
         : '',
@@ -203,6 +222,9 @@ export const Config = {
     if (message.disablePeer !== false) {
       obj.disablePeer = message.disablePeer
     }
+    if (message.disableLookupBlockStore !== false) {
+      obj.disableLookupBlockStore = message.disableLookupBlockStore
+    }
     if (message.blockStoreId !== '') {
       obj.blockStoreId = message.blockStoreId
     }
@@ -221,6 +243,7 @@ export const Config = {
     message.volumeIdAlias = object.volumeIdAlias?.map((e) => e) || []
     message.disableReconcilerQueues = object.disableReconcilerQueues ?? false
     message.disablePeer = object.disablePeer ?? false
+    message.disableLookupBlockStore = object.disableLookupBlockStore ?? false
     message.blockStoreId = object.blockStoreId ?? ''
     message.blockStoreMode = object.blockStoreMode ?? 0
     return message
