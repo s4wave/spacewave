@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.26.1-0.20240331085022-54952f1c06d4 // master
+require github.com/aperturerobotics/bifrost v0.26.1-0.20240401200813-4ac377ce72f3 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -205,7 +205,7 @@ require (
 	github.com/pion/mdns v0.0.12 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
-	github.com/pion/rtp v1.8.4 // indirect
+	github.com/pion/rtp v1.8.5 // indirect
 	github.com/pion/sctp v1.8.13 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
@@ -213,7 +213,7 @@ require (
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.14 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
