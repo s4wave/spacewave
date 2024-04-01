@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240331085339-0994abbd18f7 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240401202053-a0e5c56fd3e8 // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
