@@ -8,14 +8,14 @@ import (
 
 // StoreRW combines a read and write store together.
 type StoreRW struct {
-	readHandle  Store
-	writeHandle Store
+	readHandle  StoreOps
+	writeHandle StoreOps
 }
 
 // NewStoreRW constructs a new Store handle using a read handle and an optional
 // write handle. If the write handle is not nil, the write (put and delete)
 // calls will go to it. Otherwise, all calls are sent to the read handle.
-func NewStoreRW(readHandle, writeHandle Store) Store {
+func NewStoreRW(readHandle, writeHandle StoreOps) StoreOps {
 	if writeHandle == nil {
 		writeHandle = readHandle
 	}
@@ -66,4 +66,4 @@ func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
 }
 
 // _ is a type assertion
-var _ Store = ((*StoreRW)(nil))
+var _ StoreOps = ((*StoreRW)(nil))

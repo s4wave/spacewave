@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_kvtx "github.com/aperturerobotics/hydra/block/store/kvtx"
 	block_store_test "github.com/aperturerobotics/hydra/block/store/test"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
@@ -22,7 +23,8 @@ func TestVLogger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	blockStore := block_store_kvtx.NewKVTxBlock(kvk, st, 0, true)
+	blockStoreOps := block_store_kvtx.NewKVTxBlock(kvk, st, 0, true)
+	blockStore := block_store.NewStore("test/store", blockStoreOps)
 	client := NewVLoggerStore(le, blockStore)
 	if err := block_store_test.TestAll(ctx, client, 0); err != nil {
 		t.Fatal(err.Error())

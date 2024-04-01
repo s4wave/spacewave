@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/block"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	mqueue_store "github.com/aperturerobotics/hydra/mqueue/store"
 	object_store "github.com/aperturerobotics/hydra/object/store"
@@ -14,7 +14,7 @@ import (
 type BucketStore = bucket_store.Store
 
 // BlockStore is the block store.
-type BlockStore = block_store.Store
+type BlockStore = block.StoreOps
 
 // VolumeStore is the volume store.
 type VolumeStore = volume_store.Store
@@ -31,8 +31,6 @@ type Store interface {
 	// Returning nil ends execution.
 	// Returning an error triggers a retry with backoff.
 	Execute(ctx context.Context) error
-	// GetStoreID returns the store identifier.
-	GetStoreID() string
 	// BucketStore is the bucket config store.
 	BucketStore
 	// BlockStore is the block store.

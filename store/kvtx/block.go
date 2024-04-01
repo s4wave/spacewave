@@ -5,7 +5,6 @@ import (
 
 	hash "github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
-	block_store "github.com/aperturerobotics/hydra/block/store"
 )
 
 // GetHashType returns the preferred hash type for the store.
@@ -44,4 +43,4 @@ func (k *KVTx) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*KVTx)(nil))
+var _ block.StoreOps = ((*KVTx)(nil))

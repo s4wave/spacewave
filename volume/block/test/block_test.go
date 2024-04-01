@@ -83,7 +83,7 @@ func TestBlockVolume(t *testing.T) {
 	}
 
 	volBlockConf := &volume_block.Config{NoGenerateKey: true}
-	initHeadRef, err = volume_block.InitVolume(ctx, le, "test", volBlockConf, bcs, nvolPriv)
+	initHeadRef, err = volume_block.InitVolume(ctx, le, volBlockConf, bcs, nvolPriv)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

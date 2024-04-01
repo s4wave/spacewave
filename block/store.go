@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 )
 
-// Store can read/write blocks.
-type Store interface {
+// StoreOps can read/write blocks.
+type StoreOps interface {
 	// GetHashType returns the preferred hash type for the store.
 	// This should return as fast as possible (called frequently).
 	// If 0 is returned, uses a default defined by Hydra.
@@ -34,7 +34,7 @@ type Store interface {
 }
 
 // PutBlock marshals & puts a block into a bucket.
-func PutBlock(ctx context.Context, bk Store, b Block) (*BlockRef, bool, error) {
+func PutBlock(ctx context.Context, bk StoreOps, b Block) (*BlockRef, bool, error) {
 	dat, err := b.MarshalBlock()
 	if err != nil {
 		return nil, false, err

@@ -29,7 +29,7 @@ type Controller struct {
 	// conf is the config
 	conf *Config
 	// store is the http-backed block store
-	store *ccontainer.CContainer[*block_store.Store]
+	store *ccontainer.CContainer[block_store.Store]
 }
 
 // NewController constructs a controller that looks up blocks via an HTTP
@@ -38,7 +38,7 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return &Controller{
 		le:    le,
 		conf:  conf,
-		store: ccontainer.NewCContainer[*block_store.Store](nil),
+		store: ccontainer.NewCContainer[block_store.Store](nil),
 	}
 }
 
@@ -58,21 +58,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	httpStore := block_store_http.NewHTTPBlock(c.le, false, http.DefaultClient, baseURL, 0, c.conf.GetVerbose())
-	var store block_store.Store = httpStore
+	var store block_store.Store = block_store.NewStore(c.conf.GetBucketId(), httpStore)
 	if c.conf.GetVerbose() {
 		store = block_store_vlogger.NewVLoggerStore(c.le, store)
 	}
-	c.store.SetValue(&store)
+	c.store.SetValue(store)
 	return nil
 }
 
 // GetBlockStore returns the http store.
 func (c *Controller) GetBlockStore(ctx context.Context) (block_store.Store, error) {
-	val, err := c.store.WaitValue(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	return *val, nil
+	return c.store.WaitValue(ctx, nil)
 }
 
 // GetBlock looks up a block with the block store.

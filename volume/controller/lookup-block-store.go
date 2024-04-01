@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 )
 
-// lookupBlockStoreResolver resolves LookupVolume directives
+// lookupBlockStoreResolver resolves LookupBlockStore directives
 type lookupBlockStoreResolver struct {
 	c   *Controller
 	ctx context.Context
@@ -34,8 +34,8 @@ func (o *lookupBlockStoreResolver) Resolve(ctx context.Context, handler directiv
 	return nil
 }
 
-// resolveLookupVolume returns a resolver for looking up a volume.
-func (c *Controller) resolveLookupVolume(
+// resolveLookupBlockStore returns a resolver for looking up a volume.
+func (c *Controller) resolveLookupBlockStore(
 	ctx context.Context,
 	di directive.Instance,
 	dir block_store.LookupBlockStore,

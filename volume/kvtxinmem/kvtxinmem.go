@@ -40,7 +40,7 @@ func NewKVTxInmem(
 
 	return common_kvtx.NewVolume(
 		ctx,
-		"hydra/kvtxinmem",
+		ControllerID,
 		kvkey,
 		s,
 		conf.GetStoreConfig(),

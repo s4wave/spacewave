@@ -14,16 +14,14 @@ type KVTx struct {
 	kvkey *store_kvkey.KVKey
 	blk   *block_store_kvtx.KVTxBlock
 	conf  *Config
-	// store may also be a Store
-	store   kvtx.Store
-	storeID string
+	// store may also be a store_kvtx.Store
+	store kvtx.Store
 }
 
 // NewKVTx constructs a new KVTx store.
 //
 // store can optionally be a store_kvtx.Store with execute func.
 func NewKVTx(
-	storeID string,
 	kvkey *store_kvkey.KVKey,
 	store kvtx.Store,
 	conf *Config,
@@ -37,14 +35,8 @@ func NewKVTx(
 			conf.GetHashType(),
 			!conf.GetDisableHashGet(),
 		),
-		store:   store,
-		storeID: storeID,
+		store: store,
 	}
-}
-
-// GetStoreID returns the store id.
-func (k *KVTx) GetStoreID() string {
-	return k.storeID
 }
 
 // Execute executes the given store.

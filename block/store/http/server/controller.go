@@ -7,8 +7,7 @@ import (
 	bifrost_http "github.com/aperturerobotics/bifrost/http"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/hydra/bucket"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/blang/semver"
 )
 
@@ -35,18 +34,15 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 			controllerDescrip,
 		),
 		func(ctx context.Context, released func()) (*http.Handler, func(), error) {
-			// Lookup the bucket.
-			bkt, bktRel, err := bucket_lookup.StartBucketRWOperation(ctx, b, &bucket.BucketOpArgs{
-				BucketId: conf.GetBucketId(),
-				VolumeId: conf.GetVolumeId(),
-			})
+			// Lookup the block store.
+			blockStore, _, blockStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, b, conf.GetBlockStoreId(), false, nil)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			srv := NewHTTPBlock(bkt, conf.GetWrite(), conf.GetPathPrefix(), conf.GetForceHashType())
+			srv := NewHTTPBlock(blockStore, conf.GetWrite(), conf.GetPathPrefix(), conf.GetForceHashType())
 			var handler http.Handler = srv
-			return &handler, bktRel, nil
+			return &handler, blockStoreRef.Release, nil
 		},
 		[]string{conf.GetPathPrefix()},
 		false,

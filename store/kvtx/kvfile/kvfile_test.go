@@ -29,7 +29,6 @@ func TestKvfile(t *testing.T) {
 	// build an in-memory store first to commit to the kvfile.
 	writeStore := store_kvtx_inmem.NewStore()
 	writeKtx := store_kvtx.NewKVTx(
-		"test/kvfile/inmem",
 		kvkey,
 		store_kvtx_vlogger.NewVLogger(le, writeStore),
 		nil,
@@ -65,10 +64,9 @@ func TestKvfile(t *testing.T) {
 	}
 
 	ktx := store_kvtx.NewKVTx(
-		"test/kvfile",
 		kvkey,
 		store_kvtx_vlogger.NewVLogger(le, NewStore(rdr)),
-		&store_kvtx.Config{},
+		nil,
 	).(*store_kvtx.KVTx)
 	/*
 		if err := store_test.TestAll(ctx, ktx); err != nil {

@@ -2,10 +2,11 @@
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import {
-  BlockStoreMode,
-  blockStoreModeFromJSON,
-  blockStoreModeToJSON,
-} from '../../block/store/store.pb.js'
+  OverlayMode,
+  overlayModeFromJSON,
+  overlayModeToJSON,
+  PutOpts,
+} from '../../block/block.pb.js'
 
 export const protobufPackage = 'volume.controller'
 
@@ -17,7 +18,7 @@ export interface Config {
    * Optimization: skips exists() and mqueue write() on delete.
    */
   disableEventBlockRm: boolean
-  /** VolumeIdAlias matches LookupVolume calls for the given ids. */
+  /** VolumeIdAlias matches LookupVolume and LookupBlockStore calls for the given ids. */
   volumeIdAlias: string[]
   /** DisableReconcilerQueues disables waking filled reconciler queues. */
   disableReconcilerQueues: boolean
@@ -34,11 +35,22 @@ export interface Config {
    */
   blockStoreId: string
   /**
-   * BlockStoreMode indicates the mode to use for the block store.
-   * The volume is the lower, the block store is the upper.
+   * BlockStoreOverlayMode indicates the mode to use for the block store.
+   * Default: The volume is the lower, the block store is the upper.
    * Does nothing if block_store_id is empty.
    */
-  blockStoreMode: BlockStoreMode
+  blockStoreOverlayMode: OverlayMode
+  /**
+   * BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.
+   * If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
+   * Example: 30s
+   */
+  blockStoreWritebackTimeoutDur: string
+  /**
+   * BlockStoreWritebackPutOpts are the base put options for writing back blocks.
+   * If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
+   */
+  blockStoreWritebackPutOpts: PutOpts | undefined
 }
 
 function createBaseConfig(): Config {
@@ -49,7 +61,9 @@ function createBaseConfig(): Config {
     disablePeer: false,
     disableLookupBlockStore: false,
     blockStoreId: '',
-    blockStoreMode: 0,
+    blockStoreOverlayMode: 0,
+    blockStoreWritebackTimeoutDur: '',
+    blockStoreWritebackPutOpts: undefined,
   }
 }
 
@@ -76,8 +90,17 @@ export const Config = {
     if (message.blockStoreId !== '') {
       writer.uint32(42).string(message.blockStoreId)
     }
-    if (message.blockStoreMode !== 0) {
-      writer.uint32(48).int32(message.blockStoreMode)
+    if (message.blockStoreOverlayMode !== 0) {
+      writer.uint32(48).int32(message.blockStoreOverlayMode)
+    }
+    if (message.blockStoreWritebackTimeoutDur !== '') {
+      writer.uint32(66).string(message.blockStoreWritebackTimeoutDur)
+    }
+    if (message.blockStoreWritebackPutOpts !== undefined) {
+      PutOpts.encode(
+        message.blockStoreWritebackPutOpts,
+        writer.uint32(74).fork(),
+      ).ldelim()
     }
     return writer
   },
@@ -137,7 +160,24 @@ export const Config = {
             break
           }
 
-          message.blockStoreMode = reader.int32() as any
+          message.blockStoreOverlayMode = reader.int32() as any
+          continue
+        case 8:
+          if (tag !== 66) {
+            break
+          }
+
+          message.blockStoreWritebackTimeoutDur = reader.string()
+          continue
+        case 9:
+          if (tag !== 74) {
+            break
+          }
+
+          message.blockStoreWritebackPutOpts = PutOpts.decode(
+            reader,
+            reader.uint32(),
+          )
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -202,9 +242,15 @@ export const Config = {
       blockStoreId: isSet(object.blockStoreId)
         ? globalThis.String(object.blockStoreId)
         : '',
-      blockStoreMode: isSet(object.blockStoreMode)
-        ? blockStoreModeFromJSON(object.blockStoreMode)
+      blockStoreOverlayMode: isSet(object.blockStoreOverlayMode)
+        ? overlayModeFromJSON(object.blockStoreOverlayMode)
         : 0,
+      blockStoreWritebackTimeoutDur: isSet(object.blockStoreWritebackTimeoutDur)
+        ? globalThis.String(object.blockStoreWritebackTimeoutDur)
+        : '',
+      blockStoreWritebackPutOpts: isSet(object.blockStoreWritebackPutOpts)
+        ? PutOpts.fromJSON(object.blockStoreWritebackPutOpts)
+        : undefined,
     }
   },
 
@@ -228,8 +274,18 @@ export const Config = {
     if (message.blockStoreId !== '') {
       obj.blockStoreId = message.blockStoreId
     }
-    if (message.blockStoreMode !== 0) {
-      obj.blockStoreMode = blockStoreModeToJSON(message.blockStoreMode)
+    if (message.blockStoreOverlayMode !== 0) {
+      obj.blockStoreOverlayMode = overlayModeToJSON(
+        message.blockStoreOverlayMode,
+      )
+    }
+    if (message.blockStoreWritebackTimeoutDur !== '') {
+      obj.blockStoreWritebackTimeoutDur = message.blockStoreWritebackTimeoutDur
+    }
+    if (message.blockStoreWritebackPutOpts !== undefined) {
+      obj.blockStoreWritebackPutOpts = PutOpts.toJSON(
+        message.blockStoreWritebackPutOpts,
+      )
     }
     return obj
   },
@@ -245,7 +301,14 @@ export const Config = {
     message.disablePeer = object.disablePeer ?? false
     message.disableLookupBlockStore = object.disableLookupBlockStore ?? false
     message.blockStoreId = object.blockStoreId ?? ''
-    message.blockStoreMode = object.blockStoreMode ?? 0
+    message.blockStoreOverlayMode = object.blockStoreOverlayMode ?? 0
+    message.blockStoreWritebackTimeoutDur =
+      object.blockStoreWritebackTimeoutDur ?? ''
+    message.blockStoreWritebackPutOpts =
+      object.blockStoreWritebackPutOpts !== undefined &&
+      object.blockStoreWritebackPutOpts !== null
+        ? PutOpts.fromPartial(object.blockStoreWritebackPutOpts)
+        : undefined
     return message
   },
 }

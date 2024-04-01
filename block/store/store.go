@@ -2,20 +2,44 @@ package block_store
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/sirupsen/logrus"
 )
 
-// Store can read/write blocks.
-type Store = block.Store
+// Store is a block store with an ID and read/write functions.
+type Store interface {
+	// GetID returns the ID of the block store.
+	GetID() string
 
-// ErrReadOnlyStore is returned if the block store is not writable.
-var ErrReadOnlyStore = errors.New("block store is read-only")
+	// StoreOps are the block store operations.
+	block.StoreOps
+}
 
 // Constructor constructs a block store with common parameters.
 type Constructor func(
 	ctx context.Context,
 	le *logrus.Entry,
 ) (Store, error)
+
+// store wraps StoreOps with an ID.
+type store struct {
+	// StoreOps are the block store operations.
+	block.StoreOps
+
+	// id is the block store id
+	id string
+}
+
+// NewStore constructs a store with an id and opts.
+func NewStore(id string, ops block.StoreOps) Store {
+	return &store{StoreOps: ops, id: id}
+}
+
+// GetID returns the ID of the block store.
+func (s *store) GetID() string {
+	return s.id
+}
+
+// _ is a type assertion
+var _ Store = ((*store)(nil))

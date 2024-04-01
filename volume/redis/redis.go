@@ -52,7 +52,7 @@ func NewRedis(
 
 	return kvtx.NewVolume(
 		ctx,
-		"hydra/redis",
+		ControllerID,
 		kvkey,
 		vstore,
 		conf.GetStoreConfig(),

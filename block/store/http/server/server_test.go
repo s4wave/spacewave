@@ -230,8 +230,8 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 
 	// Create the HTTP server handler
 	blockStorePrefix := "/block"
-	bucketID := tb.BucketId
-	ctrlConf := NewConfig(bucketID, tb.Volume.GetID(), true, blockStorePrefix, 0)
+	blockStoreID := tb.Volume.GetID()
+	ctrlConf := NewConfig(blockStoreID, true, blockStorePrefix, 0)
 	_, _, ctrlRef, err := loader.WaitExecControllerRunning(ctx, tb.Bus, resolver.NewLoadControllerWithConfig(ctrlConf), nil)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -10,6 +10,62 @@ import _m0 from 'protobufjs/minimal.js'
 
 export const protobufPackage = 'block'
 
+/** OverlayMode controls the mode for the block store overlay. */
+export enum OverlayMode {
+  /**
+   * OverlayMode_DIRECT - OverlayMode_DIRECT is the direct block store mode.
+   * reads and writes go to the upper store bypassing the lower block store.
+   */
+  OverlayMode_DIRECT = 0,
+  /**
+   * OverlayMode_CACHE - OverlayMode_CACHE uses the upper store as a cache for the lower store.
+   * reads go to the upper store, then the lower store.
+   * writes go to both stores
+   * reads that miss the upper store are written back to the upper store
+   */
+  OverlayMode_CACHE = 1,
+  /**
+   * OverlayMode_CACHE_LOWER - OverlayMode_CACHE_LOWER uses the lower store as a cache for the upper store.
+   * reads go to the lower store, then the upper store.
+   * writes go to both stores
+   * reads that miss the lower store are written back to the lower store
+   */
+  OverlayMode_CACHE_LOWER = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function overlayModeFromJSON(object: any): OverlayMode {
+  switch (object) {
+    case 0:
+    case 'OverlayMode_DIRECT':
+      return OverlayMode.OverlayMode_DIRECT
+    case 1:
+    case 'OverlayMode_CACHE':
+      return OverlayMode.OverlayMode_CACHE
+    case 2:
+    case 'OverlayMode_CACHE_LOWER':
+      return OverlayMode.OverlayMode_CACHE_LOWER
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return OverlayMode.UNRECOGNIZED
+  }
+}
+
+export function overlayModeToJSON(object: OverlayMode): string {
+  switch (object) {
+    case OverlayMode.OverlayMode_DIRECT:
+      return 'OverlayMode_DIRECT'
+    case OverlayMode.OverlayMode_CACHE:
+      return 'OverlayMode_CACHE'
+    case OverlayMode.OverlayMode_CACHE_LOWER:
+      return 'OverlayMode_CACHE_LOWER'
+    case OverlayMode.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED'
+  }
+}
+
 /** BlockRef is a block content ID reference. */
 export interface BlockRef {
   /** Hash is the hash of the object. */

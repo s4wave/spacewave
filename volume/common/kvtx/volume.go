@@ -3,7 +3,6 @@ package kvtx
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -44,7 +43,7 @@ func NewVolume(
 	noWriteKey bool,
 ) (*Volume, error) {
 	v := &Volume{
-		Store:     store_kvtx.NewKVTx(storeID, kvkey, store, conf),
+		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
 		kvtxStore: store,
 	}
 
@@ -75,10 +74,8 @@ func NewVolume(
 		}
 	}
 
-	v.volumeID = strings.Join([]string{
-		storeID,
-		v.Peer.GetPeerID().String(),
-	}, "/")
+	// calcuate the volume id based on the peer id
+	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
 
 	return v, nil
 }

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package volume.controller;
 
-import "github.com/aperturerobotics/hydra/block/store/store.proto";
+import "github.com/aperturerobotics/hydra/block/block.proto";
 
 // Config configures the generic volume controller.
 message Config {
@@ -9,7 +9,7 @@ message Config {
   //
   // Optimization: skips exists() and mqueue write() on delete.
   bool disable_event_block_rm = 1;
-  // VolumeIdAlias matches LookupVolume calls for the given ids.
+  // VolumeIdAlias matches LookupVolume and LookupBlockStore calls for the given ids.
   repeated string volume_id_alias = 2;
   // DisableReconcilerQueues disables waking filled reconciler queues.
   bool disable_reconciler_queues = 3;
@@ -22,8 +22,15 @@ message Config {
   // BlockStoreId configures using a separate block store for blocks.
   // uses LookupBlockStore to lookup the block store on the bus.
   string block_store_id = 5;
-  // BlockStoreMode indicates the mode to use for the block store.
-  // The volume is the lower, the block store is the upper.
+  // BlockStoreOverlayMode indicates the mode to use for the block store.
+  // Default: The volume is the lower, the block store is the upper.
   // Does nothing if block_store_id is empty.
-  .block.store.BlockStoreMode block_store_mode = 6;
+  .block.OverlayMode block_store_overlay_mode = 6;
+  // BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.
+  // If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
+  // Example: 30s
+  string block_store_writeback_timeout_dur = 8;
+  // BlockStoreWritebackPutOpts are the base put options for writing back blocks.
+  // If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
+  .block.PutOpts block_store_writeback_put_opts = 9;
 }

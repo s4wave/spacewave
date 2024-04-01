@@ -181,7 +181,7 @@ func NewVolume(
 	// Build the volume wrapping the store.
 	bvol, err := common_kvtx.NewVolume(
 		ctx,
-		"hydra/block",
+		ControllerID,
 		kvkey,
 		store,
 		conf.GetStoreConfig(),

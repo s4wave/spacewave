@@ -6,18 +6,24 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/sirupsen/logrus"
 )
 
 // VLoggerStore implements a verbose logger wrapping a block store.
 type VLoggerStore struct {
 	le *logrus.Entry
-	st block.Store
+	st block_store.Store
 }
 
 // NewVLoggerStore constructs a new verbose logger wrapper for a block store.
-func NewVLoggerStore(le *logrus.Entry, st block.Store) *VLoggerStore {
+func NewVLoggerStore(le *logrus.Entry, st block_store.Store) *VLoggerStore {
 	return &VLoggerStore{le: le, st: st}
+}
+
+// GetID returns the ID of the block store.
+func (s *VLoggerStore) GetID() string {
+	return s.st.GetID()
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -100,4 +106,4 @@ func (s *VLoggerStore) RmBlock(ctx context.Context, ref *block.BlockRef) (err er
 }
 
 // _ is a type assertion
-var _ block.Store = ((*VLoggerStore)(nil))
+var _ block_store.Store = ((*VLoggerStore)(nil))

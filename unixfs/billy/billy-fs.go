@@ -259,40 +259,6 @@ func (f *BillyFS) MkdirAll(filepath string, perm os.FileMode) error {
 	return f.h.MkdirAllPath(f.ctx, filepath, perm, ts)
 }
 
-/* TODO: symlink support
-
-// Lstat returns a FileInfo describing the named file. If the file is a symbolic
-// link, the returned FileInfo describes the symbolic link. Lstat makes no
-// attempt to follow the link.
-func (f *BillyFS) Lstat(filename string) (os.FileInfo, error) {
-	// TODO: symbolic links not supported.
-	return f.Stat(filename)
-}
-
-// Symlink creates a symbolic-link from link to target. target may be an
-// absolute or relative path, and need not refer to an existing node.
-// Parent directories of link are created as necessary.
-func (f *BillyFS) Symlink(target, link string) error {
-	return errors.New("TODO: unixfs billy-fs: create symlink not supported")
-}
-
-// Readlink returns the target path of link.
-func (f *BillyFS) Readlink(link string) (string, error) {
-	fi, err := f.Lstat(link)
-	if err != nil {
-		return "", err
-	}
-	if !isSymlink(fi.Mode()) {
-		return "", &os.PathError{
-			Op:   "readlink",
-			Path: link,
-			Err:  unixfs_errors.ErrNotSymlink,
-		}
-	}
-	return "", errors.New("TODO: unixfs billy-fs: symlink not supported")
-}
-*/
-
 // Chmod changes the mode of the named file to mode. If the file is a
 // symbolic link, it changes the mode of the link's target.
 func (f *BillyFS) Chmod(filepath string, mode os.FileMode) error {
@@ -329,7 +295,7 @@ func (f *BillyFS) Chtimes(filepath string, atime time.Time, mtime time.Time) err
 // symbolic link, the returned FileInfo describes the symbolic link. Lstat
 // makes no attempt to follow the link.
 func (f *BillyFS) Lstat(filepath string) (os.FileInfo, error) {
-	// TODO: this will traverse symbolic links: Lstat should be added.
+	// TODO TODO: this will traverse symbolic links: Lstat should not.
 	return unixfs.StatWithPath(f.ctx, f.h, filepath)
 }
 

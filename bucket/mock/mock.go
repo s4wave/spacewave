@@ -8,8 +8,7 @@ import (
 
 // mockBucket is a mock in-memory bucket.
 type mockBucket struct {
-	block.Store
-	id   string
+	block.StoreOps
 	conf *bucket.Config
 }
 
@@ -19,9 +18,8 @@ func NewMockBucket(id string, conf *bucket.Config) bucket.Bucket {
 		conf = NewMockBucketConfig(id, 1)
 	}
 	return &mockBucket{
-		id:    id,
-		conf:  conf,
-		Store: block_mock.NewMockStore(conf.GetPutOpts().GetHashType()),
+		conf:     conf,
+		StoreOps: block_mock.NewMockStore(conf.GetPutOpts().GetHashType()),
 	}
 }
 

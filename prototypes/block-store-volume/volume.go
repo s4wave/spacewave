@@ -26,7 +26,7 @@ import (
 )
 
 // ControllerID is the controller identifier.
-const ControllerID = "hydra/toys/encrypted-volume"
+const ControllerID = "hydra/prototypes/block-store-volume"
 
 // Version is the controller version.
 var Version = semver.MustParse("0.0.1")
@@ -164,7 +164,7 @@ func NewEncryptedVolume(
 	// Build kvkey volume on top.
 	return common_kvtx.NewVolume(
 		ctx,
-		"hydra/kvtxinmem",
+		ControllerID,
 		kvkey,
 		&iavlStore{Store: avlTree},
 		storeConf,

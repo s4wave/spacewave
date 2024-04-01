@@ -11,11 +11,11 @@ import (
 // VolumeBlockStore wraps a volume with a block store.
 type VolumeBlockStore struct {
 	Volume
-	store block_store.Store
+	store block.StoreOps
 }
 
 // NewVolumeBlockStore constructs a new wrapper with a block store around a volume.
-func NewVolumeBlockStore(vol Volume, blockStore block_store.Store) *VolumeBlockStore {
+func NewVolumeBlockStore(vol Volume, blockStore block.StoreOps) *VolumeBlockStore {
 	return &VolumeBlockStore{Volume: vol, store: blockStore}
 }
 

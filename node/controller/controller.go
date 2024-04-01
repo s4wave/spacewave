@@ -4,13 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/node"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -32,11 +31,11 @@ type Controller struct {
 	cc *Config
 	// mtx guards the maps
 	mtx sync.Mutex
-	// volumes is the list of available volume handles.
-	// keyed by volume ID
-	volumes map[string]volume.Volume
+	// blockStores is the list of available block stores.
+	// keyed by store ID
+	blockStores map[string]block_store.Store
 	// buckets tracks the list of loadedBucket trackers.
-	// the bucket trackers manage cross-volume lookups.
+	// the bucket trackers manage cross-bucket-store lookups.
 	// key: bucket id
 	buckets *keyed.KeyedRefCount[string, *loadedBucket]
 }
@@ -48,7 +47,7 @@ func NewController(cc *Config, le *logrus.Entry, b bus.Bus) *Controller {
 		b:  b,
 		cc: cc,
 
-		volumes: make(map[string]volume.Volume),
+		blockStores: make(map[string]block_store.Store),
 	}
 	ctrl.buckets = keyed.NewKeyedRefCount(ctrl.newLoadedBucket)
 	return ctrl
@@ -58,10 +57,10 @@ func NewController(cc *Config, le *logrus.Entry, b bus.Bus) *Controller {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// execute volume monitoring.
+	// execute block store monitoring.
 	_, vRef, err := c.b.AddDirective(
-		volume.NewLookupVolume("", peer.ID("")),
-		newVolumeRefHandler(c),
+		block_store.NewLookupBlockStore(""),
+		newBlockStoreRefHandler(c),
 	)
 	if err != nil {
 		return err

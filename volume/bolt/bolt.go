@@ -64,7 +64,7 @@ func NewBolt(
 
 	return kvtx.NewVolume(
 		ctx,
-		"hydra/bolt",
+		ControllerID,
 		kvkey,
 		vstore,
 		conf.GetStoreConfig(),

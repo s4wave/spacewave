@@ -2,9 +2,11 @@ package volume
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/controller"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/object"
 	"github.com/aperturerobotics/hydra/store"
@@ -19,7 +21,8 @@ type Constructor func(
 
 // Volume stores data with an associated peer ID.
 type Volume interface {
-	// GetID returns the volume ID, should be derived from the peer ID.
+	// GetID returns the volume ID.
+	// Usually this is derived from the peer ID and volume type.
 	GetID() string
 
 	// GetPeerID returns the volume peer ID.
@@ -34,6 +37,16 @@ type Volume interface {
 
 	// Close closes the volume, returning any errors.
 	Close() error
+}
+
+// NewVolumeID constructs a new volume ID with a store type id and a peer id.
+//
+// storeTypeID should be like "hydra/volume/kvtxinmem"
+func NewVolumeID(storeTypeID string, peerID peer.ID) string {
+	return strings.Join([]string{
+		storeTypeID,
+		peerID.String(),
+	}, "/")
 }
 
 // Controller is a volume controller.
@@ -67,3 +80,6 @@ type ObjectStoreHandle interface {
 	// May be nil if the handle is not valid.
 	GetObjectStore() object.ObjectStore
 }
+
+// this assertion ensure LookupBlockStore matches Volume
+var _ block_store.Store = ((Volume)(nil))

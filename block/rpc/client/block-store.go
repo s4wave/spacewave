@@ -45,7 +45,7 @@ func (v *BlockStore) GetHashType() hash.HashType {
 // The second return value can optionally indicate if the block already existed.
 func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if v.readOnly {
-		return nil, false, block_store.ErrReadOnlyStore
+		return nil, false, block_store.ErrReadOnly
 	}
 	resp, err := v.client.PutBlock(ctx, &block_rpc.PutBlockRequest{
 		Data:    data,
@@ -101,7 +101,7 @@ func (v *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 // In some cases, will return before confirming delete.
 func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if v.readOnly {
-		return block_store.ErrReadOnlyStore
+		return block_store.ErrReadOnly
 	}
 	resp, err := v.client.RmBlock(ctx, &block_rpc.RmBlockRequest{
 		Ref: ref.Clone(),
@@ -116,4 +116,4 @@ func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*BlockStore)(nil))
+var _ block.StoreOps = ((*BlockStore)(nil))

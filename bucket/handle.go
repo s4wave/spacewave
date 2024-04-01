@@ -3,15 +3,13 @@ package bucket
 // bucketHandle implements a bucket handle with a block store and kvkey.
 type bucketHandle struct {
 	bucketID string
-	storeID  string
 	bucket   Bucket
 }
 
 // NewBucketHandle constructs a new bucket handle.
-func NewBucketHandle(bucketID, storeID string, bkt Bucket) BucketHandle {
+func NewBucketHandle(bucketID string, bkt Bucket) BucketHandle {
 	return &bucketHandle{
 		bucketID: bucketID,
-		storeID:  storeID,
 		bucket:   bkt,
 	}
 }
@@ -19,12 +17,6 @@ func NewBucketHandle(bucketID, storeID string, bkt Bucket) BucketHandle {
 // GetID returns the bucket ID.
 func (h *bucketHandle) GetID() string {
 	return h.bucketID
-}
-
-// GetStoreId returns the store ID of the bucket handle.
-// This is either the bucket store ID or the volume ID.
-func (h *bucketHandle) GetStoreId() string {
-	return h.storeID
 }
 
 // GetExists returns if the bucket exists. If false, the bucket does not

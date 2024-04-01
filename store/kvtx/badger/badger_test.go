@@ -30,7 +30,6 @@ func TestBadger(t *testing.T) {
 	defer db.db.Close()
 
 	ktx := store_kvtx.NewKVTx(
-		"test/badger",
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),
 		nil,

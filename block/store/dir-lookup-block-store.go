@@ -14,7 +14,7 @@ type LookupBlockStore interface {
 	directive.Directive
 
 	// LookupBlockStoreId is the block store id to lookup.
-	// Cannot be empty.
+	// If empty, returns all block stores on the bus.
 	LookupBlockStoreId() string
 }
 
@@ -70,16 +70,13 @@ func ExLookupFirstBlockStore(
 
 // Validate validates the directive.
 func (d *lookupBlockStore) Validate() error {
-	if d.blockStoreId == "" {
-		return ErrBlockStoreIDEmpty
-	}
 	return nil
 }
 
 // GetValueLookupBlockStoreOptions returns options relating to value handling.
 func (d *lookupBlockStore) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
-		UnrefDisposeDur:            time.Millisecond * 500,
+		UnrefDisposeDur:            time.Millisecond * 250,
 		UnrefDisposeEmptyImmediate: true,
 	}
 }
@@ -120,7 +117,9 @@ func (d *lookupBlockStore) GetName() string {
 // GetDebugString returns the directive arguments stringified.
 func (d *lookupBlockStore) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
-	vals["block-store-id"] = []string{d.LookupBlockStoreId()}
+	if id := d.LookupBlockStoreId(); id != "" {
+		vals["block-store-id"] = []string{d.LookupBlockStoreId()}
+	}
 	return vals
 }
 

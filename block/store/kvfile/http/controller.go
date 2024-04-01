@@ -39,7 +39,7 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 // le can be nil to disable logging
 // verbose logs successes as well as failures
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_store_controller.BlockStoreBuilder {
-	return func(ctx context.Context, released func()) (*block_store.Store, func(), error) {
+	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
 		fileURL, err := conf.ParseURL()
 		if err != nil {
 			return nil, nil, err
@@ -55,7 +55,6 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			return nil, nil, err
 		}
 
-		var store block_store.Store = kvfileBlock
-		return &store, nil, nil
+		return block_store.NewStore(conf.GetBlockStoreId(), kvfileBlock), nil, nil
 	}
 }

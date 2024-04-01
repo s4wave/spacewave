@@ -17,8 +17,8 @@ type Bucket interface {
 // BucketOps are operations against a bucket API handle.
 // All calls use the bucket handle context.
 type BucketOps interface {
-	// Store implements the block store operations.
-	block.Store
+	// Store implements the block store.
+	block.StoreOps
 }
 
 // BucketHandle is a bucket API handle.
@@ -26,9 +26,6 @@ type BucketOps interface {
 type BucketHandle interface {
 	// GetID returns the bucket ID.
 	GetID() string
-	// GetStoreId returns the store ID of the bucket handle.
-	// This is either the bucket store ID or the volume ID.
-	GetStoreId() string
 	// GetExists returns if the bucket exists. If false, the bucket does not
 	// exist in the store, and all block calls will not work.
 	GetExists() bool

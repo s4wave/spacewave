@@ -16,7 +16,7 @@ import (
 // HTTPBlockServer is HTTP server serving a BlockStore.
 type HTTPBlockServer struct {
 	// store is the store to read from
-	store block.Store
+	store block.StoreOps
 	// write enables write ops
 	write bool
 	// pathPrefix is the path prefix to use for requests.
@@ -33,7 +33,7 @@ type HTTPBlockServer struct {
 // pathPrefix is the URL path prefix for block store ops.
 // forceHashType can be 0 to use the default hash type.
 // if forceHashType is set, returns an error if the client attempts to force a different hash type.
-func NewHTTPBlock(store block.Store, write bool, pathPrefix string, forceHashType hash.HashType) *HTTPBlockServer {
+func NewHTTPBlock(store block.StoreOps, write bool, pathPrefix string, forceHashType hash.HashType) *HTTPBlockServer {
 	return &HTTPBlockServer{
 		store:         store,
 		write:         write,
@@ -178,7 +178,7 @@ func (h *HTTPBlockServer) ServeGetBlockExists(ctx context.Context, rw http.Respo
 func (h *HTTPBlockServer) ServeRmBlock(ctx context.Context, rw http.ResponseWriter, ref *block.BlockRef) {
 	if !h.write {
 		rw.WriteHeader(401)
-		_, _ = rw.Write([]byte(block_store.ErrReadOnlyStore.Error() + "\n"))
+		_, _ = rw.Write([]byte(block_store.ErrReadOnly.Error() + "\n"))
 		return
 	}
 
@@ -199,7 +199,7 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 	if !h.write {
 		_ = reqBody.Close()
 		rw.WriteHeader(401)
-		_, _ = rw.Write([]byte(block_store.ErrReadOnlyStore.Error() + "\n"))
+		_, _ = rw.Write([]byte(block_store.ErrReadOnly.Error() + "\n"))
 		return
 	}
 

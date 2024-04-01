@@ -14,14 +14,14 @@ type Cursor struct {
 	t *Transaction
 	// store is the block store to read from
 	// if nil, use the store from transaction.
-	store Store
+	store StoreOps
 	// pos is the current block handle
 	// if ephemeral, does not contain a block graph.
 	pos *handle
 }
 
 // newCursor builds a new cursor.
-func newCursor(t *Transaction, pos *handle, storeOverride Store) *Cursor {
+func newCursor(t *Transaction, pos *handle, storeOverride StoreOps) *Cursor {
 	return &Cursor{t: t, pos: pos, store: storeOverride}
 }
 
@@ -59,7 +59,7 @@ func (c *Cursor) GetTransaction() *Transaction {
 }
 
 // GetBlockStore returns the block store used for the transaction.
-func (c *Cursor) GetBlockStore() (Store, bool) {
+func (c *Cursor) GetBlockStore() (StoreOps, bool) {
 	if c != nil {
 		if c.store != nil {
 			return c.store, true
@@ -73,7 +73,7 @@ func (c *Cursor) GetBlockStore() (Store, bool) {
 
 // SetBlockStore sets the store to read from for this cursor and all sub-cursors.
 // If nil, will use the default bucket attached to the block transaction.
-func (c *Cursor) SetBlockStore(store Store) {
+func (c *Cursor) SetBlockStore(store StoreOps) {
 	if c != nil {
 		c.store = store
 	}

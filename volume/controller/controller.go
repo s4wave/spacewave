@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	peer_controller "github.com/aperturerobotics/bifrost/peer/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
@@ -128,13 +130,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		defer blkStoreRef.Release()
 
-		mode := c.config.GetBlockStoreMode()
-		if mode == block_store.BlockStoreMode_BlockStoreMode_DIRECT {
+		overlayMode := c.config.GetBlockStoreOverlayMode()
+		if overlayMode == block.OverlayMode_OverlayMode_DIRECT {
 			v = volume.NewVolumeBlockStore(v, blkStore)
 		} else {
-			v = volume.NewVolumeBlockStore(v, block_store.NewOverlay(v, blkStore, mode))
+			writebackTimeoutDur, err := c.config.ParseBlockStoreWritebackTimeoutDur()
+			if err != nil {
+				le.WithError(err).Warnf(
+					"write back timeout dur is invalid, using 30s: %v",
+					c.config.GetBlockStoreWritebackTimeoutDur(),
+				)
+				writebackTimeoutDur = time.Second * 30
+			}
+			writebackPutOpts := c.config.GetBlockStoreWritebackPutOpts()
+			v = volume.NewVolumeBlockStore(v, block.NewOverlay(ctx, v, blkStore, overlayMode, writebackTimeoutDur, writebackPutOpts))
 		}
-		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, mode.String())
+		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, overlayMode.String())
 	}
 
 	le.Info("volume ready")

@@ -22,6 +22,66 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// OverlayMode controls the mode for the block store overlay.
+type OverlayMode int32
+
+const (
+	// OverlayMode_DIRECT is the direct block store mode.
+	// reads and writes go to the upper store bypassing the lower block store.
+	OverlayMode_OverlayMode_DIRECT OverlayMode = 0
+	// OverlayMode_CACHE uses the upper store as a cache for the lower store.
+	// reads go to the upper store, then the lower store.
+	// writes go to both stores
+	// reads that miss the upper store are written back to the upper store
+	OverlayMode_OverlayMode_CACHE OverlayMode = 1
+	// OverlayMode_CACHE_LOWER uses the lower store as a cache for the upper store.
+	// reads go to the lower store, then the upper store.
+	// writes go to both stores
+	// reads that miss the lower store are written back to the lower store
+	OverlayMode_OverlayMode_CACHE_LOWER OverlayMode = 2
+)
+
+// Enum value maps for OverlayMode.
+var (
+	OverlayMode_name = map[int32]string{
+		0: "OverlayMode_DIRECT",
+		1: "OverlayMode_CACHE",
+		2: "OverlayMode_CACHE_LOWER",
+	}
+	OverlayMode_value = map[string]int32{
+		"OverlayMode_DIRECT":      0,
+		"OverlayMode_CACHE":       1,
+		"OverlayMode_CACHE_LOWER": 2,
+	}
+)
+
+func (x OverlayMode) Enum() *OverlayMode {
+	p := new(OverlayMode)
+	*p = x
+	return p
+}
+
+func (x OverlayMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OverlayMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_github_com_aperturerobotics_hydra_block_block_proto_enumTypes[0].Descriptor()
+}
+
+func (OverlayMode) Type() protoreflect.EnumType {
+	return &file_github_com_aperturerobotics_hydra_block_block_proto_enumTypes[0]
+}
+
+func (x OverlayMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OverlayMode.Descriptor instead.
+func (OverlayMode) EnumDescriptor() ([]byte, []int) {
+	return file_github_com_aperturerobotics_hydra_block_block_proto_rawDescGZIP(), []int{0}
+}
+
 // BlockRef is a block content ID reference.
 type BlockRef struct {
 	state         protoimpl.MessageState
@@ -153,8 +213,14 @@ var file_github_com_aperturerobotics_hydra_block_block_proto_rawDesc = []byte{
 	0x68, 0x54, 0x79, 0x70, 0x65, 0x12, 0x37, 0x0a, 0x0f, 0x66, 0x6f, 0x72, 0x63, 0x65, 0x5f, 0x62,
 	0x6c, 0x6f, 0x63, 0x6b, 0x5f, 0x72, 0x65, 0x66, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f,
 	0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65, 0x66, 0x52,
-	0x0d, 0x66, 0x6f, 0x72, 0x63, 0x65, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65, 0x66, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x0d, 0x66, 0x6f, 0x72, 0x63, 0x65, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65, 0x66, 0x2a, 0x59,
+	0x0a, 0x0b, 0x4f, 0x76, 0x65, 0x72, 0x6c, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x16, 0x0a,
+	0x12, 0x4f, 0x76, 0x65, 0x72, 0x6c, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x5f, 0x44, 0x49, 0x52,
+	0x45, 0x43, 0x54, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11, 0x4f, 0x76, 0x65, 0x72, 0x6c, 0x61, 0x79,
+	0x4d, 0x6f, 0x64, 0x65, 0x5f, 0x43, 0x41, 0x43, 0x48, 0x45, 0x10, 0x01, 0x12, 0x1b, 0x0a, 0x17,
+	0x4f, 0x76, 0x65, 0x72, 0x6c, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x5f, 0x43, 0x41, 0x43, 0x48,
+	0x45, 0x5f, 0x4c, 0x4f, 0x57, 0x45, 0x52, 0x10, 0x02, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -169,17 +235,19 @@ func file_github_com_aperturerobotics_hydra_block_block_proto_rawDescGZIP() []by
 	return file_github_com_aperturerobotics_hydra_block_block_proto_rawDescData
 }
 
+var file_github_com_aperturerobotics_hydra_block_block_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_github_com_aperturerobotics_hydra_block_block_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_github_com_aperturerobotics_hydra_block_block_proto_goTypes = []interface{}{
-	(*BlockRef)(nil),   // 0: block.BlockRef
-	(*PutOpts)(nil),    // 1: block.PutOpts
-	(*hash.Hash)(nil),  // 2: hash.Hash
-	(hash.HashType)(0), // 3: hash.HashType
+	(OverlayMode)(0),   // 0: block.OverlayMode
+	(*BlockRef)(nil),   // 1: block.BlockRef
+	(*PutOpts)(nil),    // 2: block.PutOpts
+	(*hash.Hash)(nil),  // 3: hash.Hash
+	(hash.HashType)(0), // 4: hash.HashType
 }
 var file_github_com_aperturerobotics_hydra_block_block_proto_depIdxs = []int32{
-	2, // 0: block.BlockRef.hash:type_name -> hash.Hash
-	3, // 1: block.PutOpts.hash_type:type_name -> hash.HashType
-	0, // 2: block.PutOpts.force_block_ref:type_name -> block.BlockRef
+	3, // 0: block.BlockRef.hash:type_name -> hash.Hash
+	4, // 1: block.PutOpts.hash_type:type_name -> hash.HashType
+	1, // 2: block.PutOpts.force_block_ref:type_name -> block.BlockRef
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -223,13 +291,14 @@ func file_github_com_aperturerobotics_hydra_block_block_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_aperturerobotics_hydra_block_block_proto_rawDesc,
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_github_com_aperturerobotics_hydra_block_block_proto_goTypes,
 		DependencyIndexes: file_github_com_aperturerobotics_hydra_block_block_proto_depIdxs,
+		EnumInfos:         file_github_com_aperturerobotics_hydra_block_block_proto_enumTypes,
 		MessageInfos:      file_github_com_aperturerobotics_hydra_block_block_proto_msgTypes,
 	}.Build()
 	File_github_com_aperturerobotics_hydra_block_block_proto = out.File

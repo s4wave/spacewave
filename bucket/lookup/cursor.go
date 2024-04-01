@@ -165,7 +165,7 @@ func WriteTransformConf(
 // returns nil if block not found
 func FetchTransformConf(
 	ctx context.Context,
-	bk block.Store,
+	bk block.StoreOps,
 	tconfRef *block.BlockRef,
 	xfrm block.Transformer,
 ) (*block_transform.Config, error) {

@@ -67,7 +67,6 @@ func NewVolume(
 	if err != nil {
 		return nil, err
 	}
-	//
 
 	// Determine the init ref to the HEAD
 	var headRef *bucket.ObjectRef
@@ -135,7 +134,7 @@ func NewVolume(
 	// Build the volume wrapping the store.
 	bvol, err := common_kvtx.NewVolume(
 		ctx,
-		"hydra/world",
+		ControllerID,
 		kvkey,
 		store,
 		conf.GetStoreConfig(),

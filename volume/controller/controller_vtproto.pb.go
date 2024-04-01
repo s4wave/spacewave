@@ -8,7 +8,7 @@ import (
 	fmt "fmt"
 	io "io"
 
-	store "github.com/aperturerobotics/hydra/block/store"
+	block "github.com/aperturerobotics/hydra/block"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -31,11 +31,19 @@ func (m *Config) CloneVT() *Config {
 	r.DisablePeer = m.DisablePeer
 	r.DisableLookupBlockStore = m.DisableLookupBlockStore
 	r.BlockStoreId = m.BlockStoreId
-	r.BlockStoreMode = m.BlockStoreMode
+	r.BlockStoreOverlayMode = m.BlockStoreOverlayMode
+	r.BlockStoreWritebackTimeoutDur = m.BlockStoreWritebackTimeoutDur
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.VolumeIdAlias = tmpContainer
+	}
+	if rhs := m.BlockStoreWritebackPutOpts; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *block.PutOpts }); ok {
+			r.BlockStoreWritebackPutOpts = vtpb.CloneVT()
+		} else {
+			r.BlockStoreWritebackPutOpts = proto.Clone(rhs).(*block.PutOpts)
+		}
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -75,10 +83,20 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.BlockStoreId != that.BlockStoreId {
 		return false
 	}
-	if this.BlockStoreMode != that.BlockStoreMode {
+	if this.BlockStoreOverlayMode != that.BlockStoreOverlayMode {
 		return false
 	}
 	if this.DisableLookupBlockStore != that.DisableLookupBlockStore {
+		return false
+	}
+	if this.BlockStoreWritebackTimeoutDur != that.BlockStoreWritebackTimeoutDur {
+		return false
+	}
+	if equal, ok := interface{}(this.BlockStoreWritebackPutOpts).(interface{ EqualVT(*block.PutOpts) bool }); ok {
+		if !equal.EqualVT(that.BlockStoreWritebackPutOpts) {
+			return false
+		}
+	} else if !proto.Equal(this.BlockStoreWritebackPutOpts, that.BlockStoreWritebackPutOpts) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -121,6 +139,35 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.BlockStoreWritebackPutOpts != nil {
+		if vtmsg, ok := interface{}(m.BlockStoreWritebackPutOpts).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.BlockStoreWritebackPutOpts)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.BlockStoreWritebackTimeoutDur) > 0 {
+		i -= len(m.BlockStoreWritebackTimeoutDur)
+		copy(dAtA[i:], m.BlockStoreWritebackTimeoutDur)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BlockStoreWritebackTimeoutDur)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.DisableLookupBlockStore {
 		i--
 		if m.DisableLookupBlockStore {
@@ -131,8 +178,8 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x38
 	}
-	if m.BlockStoreMode != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.BlockStoreMode))
+	if m.BlockStoreOverlayMode != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.BlockStoreOverlayMode))
 		i--
 		dAtA[i] = 0x30
 	}
@@ -210,11 +257,25 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	if m.BlockStoreMode != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.BlockStoreMode))
+	if m.BlockStoreOverlayMode != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.BlockStoreOverlayMode))
 	}
 	if m.DisableLookupBlockStore {
 		n += 2
+	}
+	l = len(m.BlockStoreWritebackTimeoutDur)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.BlockStoreWritebackPutOpts != nil {
+		if size, ok := interface{}(m.BlockStoreWritebackPutOpts).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.BlockStoreWritebackPutOpts)
+		}
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -375,9 +436,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 6:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreMode", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreOverlayMode", wireType)
 			}
-			m.BlockStoreMode = 0
+			m.BlockStoreOverlayMode = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -387,7 +448,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.BlockStoreMode |= store.BlockStoreMode(b&0x7F) << shift
+				m.BlockStoreOverlayMode |= block.OverlayMode(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -412,6 +473,82 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableLookupBlockStore = bool(v != 0)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreWritebackTimeoutDur", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BlockStoreWritebackTimeoutDur = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreWritebackPutOpts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BlockStoreWritebackPutOpts == nil {
+				m.BlockStoreWritebackPutOpts = &block.PutOpts{}
+			}
+			if unmarshal, ok := interface{}(m.BlockStoreWritebackPutOpts).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.BlockStoreWritebackPutOpts); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

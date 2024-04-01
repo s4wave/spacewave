@@ -18,11 +18,11 @@ type Controller struct {
 	// info is the controller info
 	info *controller.Info
 	// storeCtr contains the block store
-	storeCtr *ccontainer.CContainer[*block_store.Store]
+	storeCtr *ccontainer.CContainer[block_store.Store]
 	// errCtr contains any error building the handler
 	errCtr *ccontainer.CContainer[*error]
 	// rc is the refcount container
-	rc *refcount.RefCount[*block_store.Store]
+	rc *refcount.RefCount[block_store.Store]
 	// blockStoreIds is the list of block store ids to match
 	// ignores if empty
 	blockStoreIds []string
@@ -51,7 +51,7 @@ func NewController(
 ) *Controller {
 	h := &Controller{
 		info:          info,
-		storeCtr:      ccontainer.NewCContainer[*block_store.Store](nil),
+		storeCtr:      ccontainer.NewCContainer[block_store.Store](nil),
 		errCtr:        ccontainer.NewCContainer[*error](nil),
 		blockStoreIds: blockStoreIds,
 		bucketIDs:     bucketIDs,
@@ -75,19 +75,18 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // WaitBlockStore adds a reference to the block store and waits for it to be constructed.
-func (c *Controller) WaitBlockStore(ctx context.Context) (block_store.Store, *refcount.Ref[*block_store.Store], error) {
+func (c *Controller) WaitBlockStore(ctx context.Context) (block_store.Store, *refcount.Ref[block_store.Store], error) {
 	storePromise, storeRef := c.AddBlockStoreRef()
-	storePtr, err := storePromise.Await(ctx)
+	store, err := storePromise.Await(ctx)
 	if err != nil {
 		storeRef.Release()
 		return nil, nil, err
 	}
-	store := *storePtr
 	return store, storeRef, nil
 }
 
 // AddBlockStoreRef adds a reference to the block store.
-func (c *Controller) AddBlockStoreRef() (promise.PromiseLike[*block_store.Store], *refcount.Ref[*block_store.Store]) {
+func (c *Controller) AddBlockStoreRef() (promise.PromiseLike[block_store.Store], *refcount.Ref[block_store.Store]) {
 	return c.rc.AddRefPromise()
 }
 
@@ -115,11 +114,10 @@ func (c *Controller) HandleDirective(
 		if !matched {
 			return nil, nil
 		}
-		return directive.R(directive.NewRefCountResolver(c.rc, true, func(ctx context.Context, val *block_store.Store) (directive.Value, error) {
-			if val == nil {
+		return directive.R(directive.NewRefCountResolver(c.rc, true, func(ctx context.Context, store block_store.Store) (directive.Value, error) {
+			if store == nil {
 				return nil, nil
 			}
-			store := *val
 			return block_store.LookupBlockStoreValue(store), nil
 		}), nil)
 	case dex.LookupBlockFromNetwork:

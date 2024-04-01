@@ -135,7 +135,7 @@ func (c *Controller) resolveBucketHandle(ctx context.Context, released func()) (
 
 	// Wrap into the bucket handle
 	bkt := NewBucket(blockStore, c.bucketConf)
-	return bucket.NewBucketHandle(c.bucketConf.GetId(), c.bucketStoreID, bkt), relBlockStore, nil
+	return bucket.NewBucketHandle(c.bucketConf.GetId(), bkt), relBlockStore, nil
 }
 
 // Close releases any resources used by the controller.

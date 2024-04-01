@@ -15,14 +15,8 @@ export const protobufPackage = 'block.store.http.server'
  * Handles LookupHTTPHandler with the block store endpoints.
  */
 export interface Config {
-  /** BucketId is the bucket id to lookup on the bus. */
-  bucketId: string
-  /**
-   * VolumeId is the volume id to read/write from.
-   * If unset, uses the BucketLookup API to lookup blocks.
-   * Can be empty.
-   */
-  volumeId: string
+  /** BlockStoreId is the block store id to lookup on the bus. */
+  blockStoreId: string
   /** Write enables the write api endpoints (put, delete). */
   write: boolean
   /**
@@ -39,13 +33,7 @@ export interface Config {
 }
 
 function createBaseConfig(): Config {
-  return {
-    bucketId: '',
-    volumeId: '',
-    write: false,
-    pathPrefix: '',
-    forceHashType: 0,
-  }
+  return { blockStoreId: '', write: false, pathPrefix: '', forceHashType: 0 }
 }
 
 export const Config = {
@@ -53,20 +41,17 @@ export const Config = {
     message: Config,
     writer: _m0.Writer = _m0.Writer.create(),
   ): _m0.Writer {
-    if (message.bucketId !== '') {
-      writer.uint32(10).string(message.bucketId)
-    }
-    if (message.volumeId !== '') {
-      writer.uint32(18).string(message.volumeId)
+    if (message.blockStoreId !== '') {
+      writer.uint32(10).string(message.blockStoreId)
     }
     if (message.write !== false) {
-      writer.uint32(24).bool(message.write)
+      writer.uint32(16).bool(message.write)
     }
     if (message.pathPrefix !== '') {
-      writer.uint32(34).string(message.pathPrefix)
+      writer.uint32(26).string(message.pathPrefix)
     }
     if (message.forceHashType !== 0) {
-      writer.uint32(40).int32(message.forceHashType)
+      writer.uint32(32).int32(message.forceHashType)
     }
     return writer
   },
@@ -84,31 +69,24 @@ export const Config = {
             break
           }
 
-          message.bucketId = reader.string()
+          message.blockStoreId = reader.string()
           continue
         case 2:
-          if (tag !== 18) {
-            break
-          }
-
-          message.volumeId = reader.string()
-          continue
-        case 3:
-          if (tag !== 24) {
+          if (tag !== 16) {
             break
           }
 
           message.write = reader.bool()
           continue
-        case 4:
-          if (tag !== 34) {
+        case 3:
+          if (tag !== 26) {
             break
           }
 
           message.pathPrefix = reader.string()
           continue
-        case 5:
-          if (tag !== 40) {
+        case 4:
+          if (tag !== 32) {
             break
           }
 
@@ -159,11 +137,8 @@ export const Config = {
 
   fromJSON(object: any): Config {
     return {
-      bucketId: isSet(object.bucketId)
-        ? globalThis.String(object.bucketId)
-        : '',
-      volumeId: isSet(object.volumeId)
-        ? globalThis.String(object.volumeId)
+      blockStoreId: isSet(object.blockStoreId)
+        ? globalThis.String(object.blockStoreId)
         : '',
       write: isSet(object.write) ? globalThis.Boolean(object.write) : false,
       pathPrefix: isSet(object.pathPrefix)
@@ -177,11 +152,8 @@ export const Config = {
 
   toJSON(message: Config): unknown {
     const obj: any = {}
-    if (message.bucketId !== '') {
-      obj.bucketId = message.bucketId
-    }
-    if (message.volumeId !== '') {
-      obj.volumeId = message.volumeId
+    if (message.blockStoreId !== '') {
+      obj.blockStoreId = message.blockStoreId
     }
     if (message.write !== false) {
       obj.write = message.write
@@ -200,8 +172,7 @@ export const Config = {
   },
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
-    message.bucketId = object.bucketId ?? ''
-    message.volumeId = object.volumeId ?? ''
+    message.blockStoreId = object.blockStoreId ?? ''
     message.write = object.write ?? false
     message.pathPrefix = object.pathPrefix ?? ''
     message.forceHashType = object.forceHashType ?? 0

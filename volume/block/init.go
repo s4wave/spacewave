@@ -19,7 +19,6 @@ import (
 func InitVolume(
 	ctx context.Context,
 	le *logrus.Entry,
-	storeID string,
 	conf *Config,
 	cursor *bucket_lookup.Cursor,
 	nvolPriv crypto.PrivKey,
@@ -46,7 +45,7 @@ func InitVolume(
 		return nil, err
 	}
 
-	hstore := store_kvtx.NewKVTx(storeID, kvkey, bstore, conf.GetStoreConfig())
+	hstore := store_kvtx.NewKVTx(kvkey, bstore, conf.GetStoreConfig())
 	err = hstore.StorePeerPriv(ctx, nvolPriv)
 	if err != nil {
 		return nil, err

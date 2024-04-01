@@ -6,7 +6,7 @@ import (
 
 // bucketRW combines a read and write bucket together.
 type bucketRW struct {
-	block.Store
+	block.StoreOps
 	conf *Config
 }
 
@@ -19,8 +19,8 @@ func NewBucketRW(readHandle Bucket, writeHandle BucketOps) Bucket {
 		writeHandle = readHandle
 	}
 	return &bucketRW{
-		Store: block.NewStoreRW(readHandle, writeHandle),
-		conf:  readHandle.GetBucketConfig(),
+		StoreOps: block.NewStoreRW(readHandle, writeHandle),
+		conf:     readHandle.GetBucketConfig(),
 	}
 }
 

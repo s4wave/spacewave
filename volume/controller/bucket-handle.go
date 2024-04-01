@@ -118,11 +118,6 @@ func (b *bucketHandle) GetID() string {
 	return b.t.bucketID
 }
 
-// GetStoreId returns the volume ID.
-func (b *bucketHandle) GetStoreId() string {
-	return b.v.GetID()
-}
-
 // GetVolumeId returns the volume ID.
 func (b *bucketHandle) GetVolumeId() string {
 	return b.v.GetID()

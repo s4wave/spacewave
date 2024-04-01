@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
-	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/kvtx"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 )
@@ -169,4 +168,4 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*KVTxBlock)(nil))
+var _ block.StoreOps = ((*KVTxBlock)(nil))

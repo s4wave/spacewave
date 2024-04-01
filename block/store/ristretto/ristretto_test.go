@@ -25,11 +25,10 @@ func TestBlockStoreRistretto(t *testing.T) {
 		_ = ctrl.Execute(ctx)
 	}()
 
-	clientPtr, err := storeProm.Await(ctx)
+	client, err := storeProm.Await(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	client := *clientPtr
 
 	if err := block_store_test.TestAll(ctx, client, time.Millisecond*100); err != nil {
 		t.Fatal(err.Error())

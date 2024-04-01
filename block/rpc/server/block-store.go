@@ -3,18 +3,18 @@ package block_rpc_server
 import (
 	"context"
 
+	"github.com/aperturerobotics/hydra/block"
 	block_rpc "github.com/aperturerobotics/hydra/block/rpc"
-	block_store "github.com/aperturerobotics/hydra/block/store"
 )
 
 // BlockStore implements the BlockStore RPC service.
 type BlockStore struct {
 	// store is the underlying block store
-	store block_store.Store
+	store block.StoreOps
 }
 
 // NewBlockStore constructs a new BlockStore from a Store.
-func NewBlockStore(store block_store.Store) *BlockStore {
+func NewBlockStore(store block.StoreOps) *BlockStore {
 	return &BlockStore{
 		store: store,
 	}

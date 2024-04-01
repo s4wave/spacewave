@@ -55,7 +55,7 @@ func (b *S3Block) GetHashType() hash.HashType {
 // Stores should check if the block already exists if possible.
 func (b *S3Block) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
 	if !b.write {
-		return nil, false, block_store.ErrReadOnlyStore
+		return nil, false, block_store.ErrReadOnly
 	}
 
 	// many stores cannot handle empty values
@@ -142,7 +142,7 @@ func (b *S3Block) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return block.ErrEmptyBlockRef
 	}
 	if !b.write {
-		return block_store.ErrReadOnlyStore
+		return block_store.ErrReadOnly
 	}
 
 	refB58 := ref.MarshalString()
@@ -186,4 +186,4 @@ func isNotFoundErr(err error) bool {
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*S3Block)(nil))
+var _ block.StoreOps = ((*S3Block)(nil))

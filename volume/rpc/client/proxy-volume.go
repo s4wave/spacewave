@@ -70,11 +70,6 @@ func (v *ProxyVolume) GetPeerID() peer.ID {
 	return v.volPeer.GetPeerID()
 }
 
-// GetStoreID returns the store identifier.
-func (v *ProxyVolume) GetStoreID() string {
-	return v.volInfo.GetControllerInfo().GetId()
-}
-
 // GetVolumeClient returns the proxy volume client.
 func (v *ProxyVolume) GetVolumeClient() rpc_volume.SRPCProxyVolumeClient {
 	return v.client

@@ -36,7 +36,7 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 
 // NewBlockStoreBuilder constructs a new block store builder from config.
 func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller.BlockStoreBuilder {
-	return func(ctx context.Context, released func()) (*block_store.Store, func(), error) {
+	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
 		kvk, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 		if err != nil {
 			return nil, nil, err
@@ -45,8 +45,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 		if err != nil {
 			return nil, nil, err
 		}
-		kvtxBlk := NewRedisBlock(kvk, st, conf.GetForceHashType(), !conf.GetDisableHashGet())
-		var store block_store.Store = kvtxBlk
-		return &store, func() { st.GetPool().Close() }, nil
+		storeOps := NewRedisBlock(kvk, st, conf.GetForceHashType(), !conf.GetDisableHashGet())
+		return block_store.NewStore(conf.GetBlockStoreId(), storeOps), func() { st.GetPool().Close() }, nil
 	}
 }

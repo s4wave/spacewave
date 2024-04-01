@@ -3,7 +3,7 @@ package block_store_http_server
 import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/hydra/bucket"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/pkg/errors"
 )
 
@@ -11,10 +11,9 @@ import (
 const ConfigID = ControllerID
 
 // NewConfig constructs a new config.
-func NewConfig(bucketID, volumeID string, write bool, pathPrefix string, forceHashType hash.HashType) *Config {
+func NewConfig(blockStoreID string, write bool, pathPrefix string, forceHashType hash.HashType) *Config {
 	return &Config{
-		BucketId:      bucketID,
-		VolumeId:      volumeID,
+		BlockStoreId:  blockStoreID,
 		Write:         write,
 		PathPrefix:    pathPrefix,
 		ForceHashType: forceHashType,
@@ -23,8 +22,8 @@ func NewConfig(bucketID, volumeID string, write bool, pathPrefix string, forceHa
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if c.GetBucketId() == "" {
-		return bucket.ErrBucketIDEmpty
+	if c.GetBlockStoreId() == "" {
+		return block_store.ErrBlockStoreIDEmpty
 	}
 	if err := c.GetForceHashType().Validate(); err != nil {
 		return errors.Wrap(err, "force_hash_type")

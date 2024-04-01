@@ -50,7 +50,7 @@ func NewIndexedDB(
 
 	return kvtx.NewVolume(
 		ctx,
-		"hydra/indexeddb",
+		ControllerID,
 		kvkey,
 		store,
 		conf.GetStoreConfig(),

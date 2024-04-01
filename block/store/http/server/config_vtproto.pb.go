@@ -26,8 +26,7 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
-	r.BucketId = m.BucketId
-	r.VolumeId = m.VolumeId
+	r.BlockStoreId = m.BlockStoreId
 	r.Write = m.Write
 	r.PathPrefix = m.PathPrefix
 	r.ForceHashType = m.ForceHashType
@@ -48,10 +47,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.BucketId != that.BucketId {
-		return false
-	}
-	if this.VolumeId != that.VolumeId {
+	if this.BlockStoreId != that.BlockStoreId {
 		return false
 	}
 	if this.Write != that.Write {
@@ -106,14 +102,14 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.ForceHashType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ForceHashType))
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x20
 	}
 	if len(m.PathPrefix) > 0 {
 		i -= len(m.PathPrefix)
 		copy(dAtA[i:], m.PathPrefix)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PathPrefix)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x1a
 	}
 	if m.Write {
 		i--
@@ -123,19 +119,12 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x10
 	}
-	if len(m.VolumeId) > 0 {
-		i -= len(m.VolumeId)
-		copy(dAtA[i:], m.VolumeId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.VolumeId)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.BucketId) > 0 {
-		i -= len(m.BucketId)
-		copy(dAtA[i:], m.BucketId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BucketId)))
+	if len(m.BlockStoreId) > 0 {
+		i -= len(m.BlockStoreId)
+		copy(dAtA[i:], m.BlockStoreId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BlockStoreId)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -148,11 +137,7 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.BucketId)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.VolumeId)
+	l = len(m.BlockStoreId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -201,7 +186,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BucketId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -229,41 +214,9 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BucketId = string(dAtA[iNdEx:postIndex])
+			m.BlockStoreId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.VolumeId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Write", wireType)
 			}
@@ -283,7 +236,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Write = bool(v != 0)
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PathPrefix", wireType)
 			}
@@ -315,7 +268,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PathPrefix = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 5:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ForceHashType", wireType)
 			}

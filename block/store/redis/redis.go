@@ -2,7 +2,7 @@ package block_store_redis
 
 import (
 	"github.com/aperturerobotics/bifrost/hash"
-	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/block"
 	block_store_kvtx "github.com/aperturerobotics/hydra/block/store/kvtx"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx_redis "github.com/aperturerobotics/hydra/store/kvtx/redis"
@@ -26,4 +26,4 @@ func NewRedisBlock(
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*RedisBlock)(nil))
+var _ block.StoreOps = ((*RedisBlock)(nil))

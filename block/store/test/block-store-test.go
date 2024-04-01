@@ -11,7 +11,7 @@ import (
 )
 
 // TestAll tests all tests for a block store.
-func TestAll(ctx context.Context, client block.Store, putDelay time.Duration) error {
+func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration) error {
 	waitAfterPut := func() {
 		if putDelay != 0 {
 			select {

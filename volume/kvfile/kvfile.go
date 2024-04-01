@@ -44,7 +44,7 @@ func NewKVFile(
 
 	return common_kvtx.NewVolume(
 		ctx,
-		"hydra/kvfile",
+		ControllerID,
 		kvkey,
 		s,
 		conf.GetStoreConfig(),

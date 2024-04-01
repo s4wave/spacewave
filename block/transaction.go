@@ -32,7 +32,7 @@ var maxEncodeConcurrency = maxWriteConcurrency
 // nil BlockRef. SetBlockRef should handle nil BlockRef objects correctly.
 type Transaction struct {
 	// store is the block store handle
-	store Store
+	store StoreOps
 	// xfrm is an optional block transformer
 	xfrm Transformer
 	// root is the root reference
@@ -50,7 +50,7 @@ type Transaction struct {
 // NewTransaction builds a new transaction with a root cursor.
 func NewTransaction(
 	// store is the block store
-	store Store,
+	store StoreOps,
 	// transformer is an optional block transformer
 	transformer Transformer,
 	// rootRef is the root reference

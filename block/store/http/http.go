@@ -75,7 +75,7 @@ func (b *HTTPBlock) GetHashType() hash.HashType {
 // Stores should check if the block already exists if possible.
 func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
 	if !b.write {
-		return nil, false, block_store.ErrReadOnlyStore
+		return nil, false, block_store.ErrReadOnly
 	}
 
 	// many stores cannot handle empty values
@@ -265,7 +265,7 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return block.ErrEmptyBlockRef
 	}
 	if !b.write {
-		return block_store.ErrReadOnlyStore
+		return block_store.ErrReadOnly
 	}
 
 	// Deleting a block: /rm/{ref}
@@ -303,4 +303,4 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*HTTPBlock)(nil))
+var _ block.StoreOps = ((*HTTPBlock)(nil))

@@ -34,7 +34,7 @@ func (k *KvfileBlock) GetHashType() hash.HashType {
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KvfileBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {
-	return nil, false, block_store.ErrReadOnlyStore
+	return nil, false, block_store.ErrReadOnly
 }
 
 // GetBlock looks up a block in the store.
@@ -64,8 +64,8 @@ func (k *KvfileBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (k *KvfileBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	return block_store.ErrReadOnlyStore
+	return block_store.ErrReadOnly
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*KvfileBlock)(nil))
+var _ block.StoreOps = ((*KvfileBlock)(nil))

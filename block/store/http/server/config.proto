@@ -7,19 +7,15 @@ import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 //
 // Handles LookupHTTPHandler with the block store endpoints.
 message Config {
-  // BucketId is the bucket id to lookup on the bus.
-  string bucket_id = 1;
-  // VolumeId is the volume id to read/write from.
-  // If unset, uses the BucketLookup API to lookup blocks.
-  // Can be empty.
-  string volume_id = 2;
+  // BlockStoreId is the block store id to lookup on the bus.
+  string block_store_id = 1;
   // Write enables the write api endpoints (put, delete).
-  bool write = 3;
+  bool write = 2;
   // PathPrefix is the path prefix to use for requests.
   // [path_prefix]/{get,put,exists,rm}
   // Can be empty.
-  string path_prefix = 4;
+  string path_prefix = 3;
   // ForceHashType forces writing the given hash type to the store.
   // If unset, accepts any hash type the underlying bucket accepts.
-  .hash.HashType force_hash_type = 5;
+  .hash.HashType force_hash_type = 4;
 }

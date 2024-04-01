@@ -2,7 +2,7 @@ package block_store_ristretto
 
 import (
 	"github.com/aperturerobotics/bifrost/hash"
-	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/block"
 	block_store_kvtx "github.com/aperturerobotics/hydra/block/store/kvtx"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx_ristretto "github.com/aperturerobotics/hydra/store/kvtx/ristretto"
@@ -26,4 +26,4 @@ func NewRistrettoBlock(
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*RistrettoBlock)(nil))
+var _ block.StoreOps = ((*RistrettoBlock)(nil))
