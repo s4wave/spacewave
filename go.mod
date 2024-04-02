@@ -11,7 +11,7 @@ require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.27.1-0.20240402212456-a5bb6383e668 // master
+require github.com/aperturerobotics/bifrost v0.27.1-0.20240402221721-2f3a19a2665e // master
 
 // aperture: use ext-engines forks
 replace (

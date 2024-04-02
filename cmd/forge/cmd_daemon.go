@@ -4,13 +4,11 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
-	"time"
 
 	bcli "github.com/aperturerobotics/bifrost/cli"
+	daemon_prof "github.com/aperturerobotics/bifrost/daemon/prof"
 	"github.com/aperturerobotics/bifrost/keypem/keyfile"
 	floodsub_controller "github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -32,10 +30,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-
-	// _ enables the profiling endpoints
-
-	_ "net/http/pprof"
 )
 
 type hDaemonArgs = hcli.DaemonArgs
@@ -261,20 +255,11 @@ func runDaemon(c *cli.Context) error {
 	defer bdbRef.Release()
 
 	if daemonFlags.ProfListen != "" {
-		runtime.SetBlockProfileRate(1)
-		runtime.SetMutexProfileFraction(1)
 		go func() {
-			le.Debugf("profiling listener running: %s", daemonFlags.ProfListen)
-			err := http.ListenAndServe(daemonFlags.ProfListen, nil)
-			le.WithError(err).Warn("profiling listener exited")
+			_ = daemon_prof.ListenProf(le, daemonFlags.ProfListen)
 		}()
 	}
-	_ = d
 
 	<-ctx.Done()
-
-	// TODO controller-bus: wait for bus to exit fully
-	// allow everything to shut down properly.
-	<-time.After(time.Millisecond * 250)
 	return nil
 }
