@@ -1,17 +1,19 @@
 # https://github.com/aperturerobotics/protobuf-project
 
+SHELL:=bash
 PROTOWRAP=hack/bin/protowrap
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
 GOIMPORTS=hack/bin/goimports
+GOFUMPT=hack/bin/gofumpt
 GOLANGCI_LINT=hack/bin/golangci-lint
 GO_MOD_OUTDATED=hack/bin/go-mod-outdated
 GOLIST=go list -f "{{ .Dir }}" -m
 
 export GO111MODULE=on
-undefine GOARCH
 undefine GOOS
+undefine GOARCH
 
 all:
 
@@ -42,6 +44,12 @@ $(GOIMPORTS):
 		-o ./bin/goimports \
 		golang.org/x/tools/cmd/goimports
 
+$(GOFUMPT):
+	cd ./hack; \
+	go build -v \
+		-o ./bin/gofumpt \
+		mvdan.cc/gofumpt
+
 $(PROTOWRAP):
 	cd ./hack; \
 	go build -v \
@@ -61,7 +69,7 @@ $(GO_MOD_OUTDATED):
 		github.com/psampaz/go-mod-outdated
 
 .PHONY: gengo
-gengo: $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
+gengo: vendor $(GOIMPORTS) $(PROTOWRAP) $(PROTOC_GEN_GO) $(PROTOC_GEN_VTPROTO) $(PROTOC_GEN_STARPC)
 	shopt -s globstar; \
 	set -eo pipefail; \
 	export PROJECT=$$(go list -m); \
@@ -120,7 +128,7 @@ gents: vendor $(PROTOWRAP) node_modules
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
-	npm run format
+	npm run format:js
 
 .PHONY: genproto
 genproto: gents gengo
@@ -143,6 +151,11 @@ lint: $(GOLANGCI_LINT)
 .PHONY: fix
 fix: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run --fix --timeout=10m
+
+.PHONY: format
+format: $(GOFUMPT) $(GOIMPORTS)
+	$(GOIMPORTS) -w ./
+	$(GOFUMPT) -w ./
 
 .PHONY: test
 test:

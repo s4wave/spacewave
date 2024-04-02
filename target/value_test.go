@@ -67,7 +67,7 @@ func TestStoreBlobValue(t *testing.T) {
 	ctx := tb.Context
 
 	// Test storing large value
-	rnd := prng.BuildSeededRand([]byte("test-store-blob-value"))
+	rnd := prng.BuildSeededReader([]byte("test-store-blob-value"))
 	dat := make([]byte, 250000) // 250kb
 	_, err := io.ReadFull(rnd, dat)
 	if err != nil {

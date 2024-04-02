@@ -87,11 +87,12 @@ func (e *Execution) Validate() error {
 	if err := e.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
+	// disallow empty reference to target
+	if err := e.GetTargetRef().Validate(false); err != nil {
+		return errors.Wrap(err, "target_ref")
+	}
 	if err := e.GetValueSet().Validate(); err != nil {
 		return errors.Wrap(err, "value_set")
-	}
-	if err := e.GetTargetRef().Validate(); err != nil {
-		return errors.Wrap(err, "target_ref")
 	}
 
 	if e.GetExecutionState() == State_ExecutionState_COMPLETE {

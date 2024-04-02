@@ -118,14 +118,8 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 	if err := e.GetValueSet().Validate(); err != nil {
 		return errors.Wrap(err, "value_set")
 	}
-	if e.GetTargetRef().GetEmpty() {
-		if !allowEmptyRefs {
-			return errors.New("target_ref: cannot be empty")
-		}
-	} else {
-		if err := e.GetTargetRef().Validate(); err != nil {
-			return errors.Wrap(err, "target_ref")
-		}
+	if err := e.GetTargetRef().Validate(allowEmptyRefs); err != nil {
+		return errors.Wrap(err, "target_ref")
 	}
 	if e.GetPassNonce() == 0 {
 		return errors.New("pass_nonce cannot be zero")

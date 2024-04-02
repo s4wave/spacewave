@@ -61,8 +61,10 @@ func (v *Value) Validate(allowEmptyName bool) error {
 	if err := vt.Validate(); err != nil {
 		return nil
 	}
+
 	if vt == ValueType_ValueType_BLOCK_REF {
-		if err := v.GetBlockRef().Validate(); err != nil {
+		// allow empty ref
+		if err := v.GetBlockRef().Validate(true); err != nil {
 			return err
 		}
 	} else {
@@ -73,6 +75,7 @@ func (v *Value) Validate(allowEmptyName bool) error {
 			)
 		}
 	}
+
 	if vt == ValueType_ValueType_BUCKET_REF {
 		if err := v.GetBucketRef().Validate(); err != nil {
 			return err

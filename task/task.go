@@ -180,7 +180,7 @@ func (e *Task) Validate() error {
 			return errors.Errorf("target_ref: cannot be empty in state: %s", ts.String())
 		}
 	} else {
-		if err := e.GetTargetRef().Validate(); err != nil {
+		if err := e.GetTargetRef().Validate(false); err != nil {
 			return errors.Wrap(err, "target_ref")
 		}
 	}

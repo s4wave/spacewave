@@ -165,7 +165,7 @@ var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState
 
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.
-// Any exceptional errors are returned for logging.
+// Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 // The context clustered is canceled when the directive instance expires.
 func (c *Controller) HandleDirective(
