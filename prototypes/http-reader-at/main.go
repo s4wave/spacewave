@@ -43,7 +43,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	// optimization: cache the ending of the file up front
 	// kvfile does a lot of reads of the end of the file when querying
 	cacheReader := buffered_reader_at.NewBufferedReaderAt(rangeHTTP, 4096)
-	kvReader, err := kvfile.BuildReader(cacheReader, uint64(size))
+	kvReader, err := kvfile.BuildReader(cacheReader, size)
 	if err != nil {
 		return err
 	}

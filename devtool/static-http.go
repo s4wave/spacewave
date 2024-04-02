@@ -3,6 +3,7 @@ package devtool
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 // ExecuteStaticHttpServer runs the static http server command.
@@ -19,5 +20,6 @@ func (a *DevtoolArgs) ExecuteStaticHttpServer(ctx context.Context) error {
 	server := http.FileServer(serveFs)
 
 	le.Infof("listening on: %s", listenAddr)
-	return http.ListenAndServe(listenAddr, server)
+	hserver := &http.Server{Addr: listenAddr, Handler: server, ReadHeaderTimeout: time.Second * 30}
+	return hserver.ListenAndServe()
 }

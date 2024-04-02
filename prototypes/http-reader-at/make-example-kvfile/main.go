@@ -21,7 +21,7 @@ func run() error {
 	out := "demo.kvfile"
 	targetSize := 5 * 1024 * 512 // Target size in bytes
 
-	of, err := os.OpenFile(out, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	of, err := os.OpenFile(out, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o644)
 	if err != nil {
 		return err
 	}

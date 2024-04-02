@@ -1,9 +1,7 @@
 # https://github.com/aperturerobotics/protobuf-project
 
 SHELL:=bash
-BLDR=go run github.com/aperturerobotics/bldr/cmd/bldr --
 PROTOWRAP=hack/bin/protowrap
-ESBUILD=hack/bin/esbuild
 PROTOC_GEN_GO=hack/bin/protoc-gen-go
 PROTOC_GEN_STARPC=hack/bin/protoc-gen-go-starpc
 PROTOC_GEN_VTPROTO=hack/bin/protoc-gen-go-vtproto
@@ -17,17 +15,19 @@ export GO111MODULE=on
 undefine GOOS
 undefine GOARCH
 
+BLDR=go run github.com/aperturerobotics/bldr/cmd/bldr --
+
 all:
 
 vendor:
 	go mod vendor
 
+ESBUILD=hack/bin/esbuild
 $(ESBUILD):
 	cd ./hack; \
 	go build -v \
 		-o ./bin/esbuild \
 		github.com/evanw/esbuild/cmd/esbuild
-
 esbuild: $(ESBUILD)
 
 $(PROTOC_GEN_GO):
@@ -138,7 +138,7 @@ gents: vendor $(PROTOWRAP) node_modules
 				xargs printf -- \
 				"$$(pwd)/vendor/$${PROJECT}/%s "); \
 	rm $$(pwd)/vendor/$${PROJECT} || true
-	npm run format
+	npm run format:js
 
 .PHONY: genproto
 genproto: gents gengo

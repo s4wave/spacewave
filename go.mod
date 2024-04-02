@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240401202053-a0e5c56fd3e8 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240402220315-7161cec63e2c // master
 
 require (
 	github.com/evanw/esbuild v0.20.0 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.26.1-0.20240401200813-4ac377ce72f3 // master
+require github.com/aperturerobotics/bifrost v0.27.1-0.20240402212456-a5bb6383e668 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -56,7 +56,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.8 // latest
+	github.com/aperturerobotics/controllerbus v0.37.1-0.20240402212212-3832004eecd2 // latest
 	github.com/aperturerobotics/entitygraph v0.7.0 // indirect
 	github.com/aperturerobotics/starpc v0.27.3 // latest
 )
@@ -78,11 +78,9 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.15.3 // master
+	github.com/aperturerobotics/util v1.16.1-0.20240402215409-f7905836a411 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/djherbis/buffer v1.2.0 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.17.7
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
@@ -91,14 +89,12 @@ require (
 	github.com/nats-io/nats-server/v2 v2.10.12 // indirect
 	github.com/nats-io/nats.go v1.34.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
-	github.com/paralin/kcp-go-lite v5.4.20+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
-	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.21.0 // indirect
@@ -133,7 +129,6 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/creack/goselect v0.1.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
@@ -170,7 +165,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
-	github.com/klauspost/reedsolomon v1.12.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
@@ -196,7 +190,6 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
-	github.com/pauleyj/gobee v0.0.0-20190212035730-6270c53072a4 // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
 	github.com/pion/ice/v3 v3.0.3 // indirect
@@ -224,17 +217,12 @@ require (
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	github.com/templexxx/cpu v0.1.0 // indirect
-	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
-	github.com/templexxx/xorsimd v0.4.2 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/xtaci/smux v1.5.24 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
-	go.bug.st/serial v1.6.2 // indirect
 	go.etcd.io/bbolt v1.3.9 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect

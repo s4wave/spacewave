@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
@@ -159,7 +160,8 @@ func (b *DevtoolBus) ExecuteWebWs(
 	}
 
 	le.Infof("listening on: %s", listenAddr)
-	return http.ListenAndServe(listenAddr, http.HandlerFunc(serveFn))
+	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
+	return server.ListenAndServe()
 }
 
 // buildWsWebRuntime builds a websocket web runtime controller.

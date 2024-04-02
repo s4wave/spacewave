@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	link_holdopen_controller "github.com/aperturerobotics/bifrost/link/hold-open"
 	"github.com/aperturerobotics/bifrost/protocol"
@@ -277,7 +278,6 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	// run the http server
 	entryFs := http.Dir(entrypointDir)
 	entrySrv := http.FileServer(entryFs)
-	le.Infof("listening on: %s", listenAddr)
 
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == infoPath {
@@ -297,5 +297,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		entrySrv.ServeHTTP(rw, req)
 	}
 
-	return http.ListenAndServe(listenAddr, http.HandlerFunc(serveFn))
+	le.Infof("listening on: %s", listenAddr)
+	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
+	return server.ListenAndServe()
 }

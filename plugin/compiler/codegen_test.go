@@ -195,9 +195,9 @@ func TestCodegen(t *testing.T) {
 		output := strings.TrimSpace(string(dat))
 		expected := strings.TrimSpace(tcase.result)
 		t.Log("expected:")
-		t.Log(string(expected))
+		t.Log(expected)
 		t.Log("actual:")
-		t.Log(string(output))
+		t.Log(output)
 		if output != expected {
 			dmp := gdiff.New()
 			diffs := dmp.DiffMain(expected, output, false)

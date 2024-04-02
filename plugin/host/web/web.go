@@ -171,8 +171,8 @@ func (h *WebHost) ExecutePlugin(
 	var hostInvoker srpc.Invoker = hostMux
 	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
 		controller.NewInfo(rpcServiceControllerID, Version, "rpc host for plugin"),
-		func(ctx context.Context, released func()) (*srpc.Invoker, func(), error) {
-			return &hostInvoker, nil, nil
+		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
+			return hostInvoker, nil, nil
 		},
 		nil,
 		false,

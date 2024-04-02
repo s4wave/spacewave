@@ -290,7 +290,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 	}
 	defer relHandler()
 
-	(*handler).ServeHTTP(rw, req)
+	handler.ServeHTTP(rw, req)
 }
 
 // ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.

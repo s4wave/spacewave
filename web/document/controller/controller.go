@@ -108,6 +108,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	switch d := di.GetDirective().(type) {
 	case web_view.LookupWebView:
 		return c.resolveLookupWebView(ctx, di, d)
+	case web_document.LookupWebDocument:
+		return c.resolveLookupWebDocument(ctx, di, d)
 	}
 	return nil, nil
 }
