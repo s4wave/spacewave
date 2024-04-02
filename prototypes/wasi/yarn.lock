@@ -3,9 +3,9 @@
 
 
 "@bjorn3/browser_wasi_shim@^0.2.19":
-  version "0.2.19"
-  resolved "https://registry.yarnpkg.com/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.2.19.tgz#24b6dc7417677b641da6f0a24729b6d7766e0c5b"
-  integrity sha512-Zu5KVxRp7MBwwdOtXSmu14NUwPASNE6zK/BSwWKf0Fsc4g5NOqPYto5C0Nc6EixDb0AEXCoLFDMKP9RN7n2yPQ==
+  version "0.2.20"
+  resolved "https://registry.yarnpkg.com/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.2.20.tgz#bd6838273a6db9fa501c74a23dd28d8ac20081cb"
+  integrity sha512-URvkOAWWRQ8gazkBRgQ/e0H6R0VlOALJ9/vI2VBttG23MHzUZzy5KFyKAFVI1qL/hbqLwnZw/sIXFkeS6OH5EQ==
 
 xterm-addon-fit@^0.8.0:
   version "0.8.0"

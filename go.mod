@@ -12,15 +12,15 @@ replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.202403142141
 require github.com/aperturerobotics/hydra v0.0.0-20240402220315-7161cec63e2c // master
 
 require (
-	github.com/evanw/esbuild v0.20.0 // latest
+	github.com/evanw/esbuild v0.20.2 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
-	github.com/tetratelabs/wazero v1.6.0 // latest
+	github.com/tetratelabs/wazero v1.7.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.27.1-0.20240402212456-a5bb6383e668 // master
+require github.com/aperturerobotics/bifrost v0.27.1-0.20240402221721-2f3a19a2665e // master
 
 // aperture: use ext-engines forks
 replace (
@@ -112,7 +112,7 @@ require (
 	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.5.1-0.20231211202411-9f60ea941235
+	github.com/go-git/go-billy/v5 v5.5.1-0.20240327091054-4d0d7f0db7ba
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
 	golang.org/x/mod v0.16.0
