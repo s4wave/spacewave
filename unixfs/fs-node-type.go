@@ -10,13 +10,13 @@ import (
 // DefaultPermissions returns the default permissions set for a filetype.
 func DefaultPermissions(nt FSCursorNodeType) fs.FileMode {
 	if nt.GetIsSymlink() {
-		return 0777
+		return 0o777
 	}
 	if nt.GetIsDirectory() {
-		return 0755
+		return 0o755
 	}
 	// if nt == NodeType_NodeType_FILE
-	return 0644
+	return 0o644
 }
 
 // fsCursorNodeType is a static node type value

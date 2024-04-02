@@ -71,7 +71,7 @@ func (f *AferoFS) Name() string {
 // error, if any happens.
 func (f *AferoFS) Create(name string) (afero.File, error) {
 	// note: this is the same behavior as os.Create
-	return f.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	return f.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 }
 
 // Mkdir creates a directory in the filesystem, return an error if any happens.

@@ -29,7 +29,7 @@ func TestBolt(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	tp := path.Join(dir, "database.boltdb")
-	db, err := Open(tp, 0644, nil, []byte("test-bucket"))
+	db, err := Open(tp, 0o644, nil, []byte("test-bucket"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

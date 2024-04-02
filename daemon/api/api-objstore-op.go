@@ -70,9 +70,9 @@ func (a *API) ObjectStoreOp(
 			err = tx.Delete(ctx, reqKey)
 		}
 	case ObjectStoreOp_ObjectStoreOp_LIST_KEYS:
-		var keys []string
-		err = tx.ScanPrefix(ctx, []byte(reqKey), func(key, _ []byte) error {
-			keys = append(keys, string(key))
+		var keys [][]byte
+		err = tx.ScanPrefix(ctx, reqKey, func(key, _ []byte) error {
+			keys = append(keys, key)
 			return nil
 		})
 		resp.Keys = keys

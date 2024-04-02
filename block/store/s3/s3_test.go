@@ -10,8 +10,10 @@ import (
 	block_store_test "github.com/aperturerobotics/hydra/block/store/test"
 )
 
-var bucketName = "hydratest"
-var objectPrefix = "test/"
+var (
+	bucketName   = "hydratest"
+	objectPrefix = "test/"
+)
 
 var testConf = &ClientConfig{
 	Endpoint:   "127.0.0.1:9000",

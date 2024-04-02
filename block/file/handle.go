@@ -144,11 +144,11 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 		// read up to min(readEnd, zeroEnd)
 		readN := int(readEnd - idx)
 		// this is optimized by compiler to memset
-		for i := 0; i < int(readN); i++ {
+		for i := 0; i < readN; i++ {
 			p[i] = 0
 		}
 		r.idx += uint64(readN)
-		return int(readN), nil
+		return readN, nil
 	}
 
 	// otherwise we are reading from a blob...

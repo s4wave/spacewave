@@ -30,8 +30,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type hDaemonArgs = hcli.DaemonArgs
-type bDaemonArgs = bcli.DaemonArgs
+type (
+	hDaemonArgs = hcli.DaemonArgs
+	bDaemonArgs = bcli.DaemonArgs
+)
 
 var daemonFlags struct {
 	hDaemonArgs
@@ -229,7 +231,7 @@ func runDaemon(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "marshal config")
 		}
-		err = os.WriteFile(daemonFlags.ConfigPath, confDat, 0644)
+		err = os.WriteFile(daemonFlags.ConfigPath, confDat, 0o644)
 		if err != nil {
 			return errors.Wrap(err, "write config file")
 		}

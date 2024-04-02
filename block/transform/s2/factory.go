@@ -10,8 +10,7 @@ import (
 const ConfigID = "hydra/transform/s2"
 
 // StepFactory constructs the transform step.
-type StepFactory struct {
-}
+type StepFactory struct{}
 
 // NewStepFactory constructs the factory object.
 func NewStepFactory() *StepFactory {

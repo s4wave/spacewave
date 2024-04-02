@@ -39,7 +39,7 @@ func TestUnixFSWorldAccessController(t *testing.T) {
 
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
-	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
+	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -108,7 +108,7 @@ func TestUnixFSWorldAccessController_AccessFunc(t *testing.T) {
 
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
-	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
+	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 

@@ -53,7 +53,7 @@ func (i *txScanIterator) Key() kv.Key {
 	if i.value == nil {
 		return nil
 	}
-	return kv.Key(i.value.key)
+	return i.value.key
 }
 
 // Key return current value. The value will become invalid on Next or Close.

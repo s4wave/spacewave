@@ -219,7 +219,7 @@ func TestBlob_Chunked(t *testing.T) {
 	buf := make([]byte, 4096)
 	for i := 0; i < 10000; i++ {
 		// get random location
-		loc := int64(prand.Float32() * float32(len(expectedData)))
+		loc := int64(prand.Uint64() % uint64(len(expectedData)))
 		// read from that location
 		seekPos, err := blobReader.Seek(loc, io.SeekStart)
 		if err == nil && seekPos != loc {

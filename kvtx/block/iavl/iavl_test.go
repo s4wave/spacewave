@@ -344,7 +344,7 @@ func TestStress(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	trs := int(ns)
-	if int(trs) != expectedSize {
+	if trs != expectedSize {
 		t.Fatalf("removal size mismatch %d != expected %d", trs, expectedSize)
 	}
 	actLen := 0

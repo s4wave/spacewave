@@ -15,13 +15,13 @@ import (
 func TestFileSystem(t *testing.T) {
 	mfs := memfs.New()
 
-	err := mfs.MkdirAll("./stuff", 0755)
+	err := mfs.MkdirAll("./stuff", 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	data := []byte("hello world!\n")
-	err = util.WriteFile(mfs, "./stuff/test.txt", data, 0755)
+	err = util.WriteFile(mfs, "./stuff/test.txt", data, 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

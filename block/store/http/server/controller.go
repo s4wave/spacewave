@@ -33,7 +33,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 			Version,
 			controllerDescrip,
 		),
-		func(ctx context.Context, released func()) (*http.Handler, func(), error) {
+		func(ctx context.Context, released func()) (http.Handler, func(), error) {
 			// Lookup the block store.
 			blockStore, _, blockStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, b, conf.GetBlockStoreId(), false, nil)
 			if err != nil {
@@ -42,7 +42,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 
 			srv := NewHTTPBlock(blockStore, conf.GetWrite(), conf.GetPathPrefix(), conf.GetForceHashType())
 			var handler http.Handler = srv
-			return &handler, blockStoreRef.Release, nil
+			return handler, blockStoreRef.Release, nil
 		},
 		[]string{conf.GetPathPrefix()},
 		false,

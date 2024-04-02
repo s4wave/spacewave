@@ -34,7 +34,7 @@ func Sync(
 			return err
 		}
 	}
-	if err := os.MkdirAll(outPath, 0755); err != nil {
+	if err := os.MkdirAll(outPath, 0o755); err != nil {
 		return err
 	}
 

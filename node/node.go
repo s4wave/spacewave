@@ -5,8 +5,7 @@ import (
 )
 
 // Node tracks volumes and buckets across a running hydra process.
-type Node interface {
-}
+type Node interface{}
 
 // Controller describes the node controller. The node controller manages a
 // running Hydra instance, tracking running volumes, reconciling bucket

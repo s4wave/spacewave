@@ -84,7 +84,6 @@ func (o *FsRenameOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
-
 	// get the src fs object
 	fsObj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
 	if err != nil {

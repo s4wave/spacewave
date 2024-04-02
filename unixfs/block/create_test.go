@@ -69,7 +69,6 @@ func TestCreate(t *testing.T) {
 		if !strings.Contains(bufStr, "UpdateRootRef") {
 			t.Fatalf("expected fs.go to contain UpdateRootRef but didn't: %v", bufStr)
 		}
-
 	})
 	if !success {
 		t.Fail()

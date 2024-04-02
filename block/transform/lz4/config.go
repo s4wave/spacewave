@@ -75,7 +75,7 @@ func (c *Config) ToOptions() []lz4.Option {
 		opts = append(opts, lz4.ChecksumOption(false))
 	}
 	if cl, err := ToCompressionLevel(c.GetCompressionLevel()); cl != 0 && err == nil {
-		opts = append(opts, lz4.CompressionLevelOption(lz4.CompressionLevel(cl)))
+		opts = append(opts, lz4.CompressionLevelOption(cl))
 	}
 	return opts
 }

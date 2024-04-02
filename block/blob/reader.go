@@ -117,7 +117,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	}
 
 	r.idx = readEnd
-	return int(readEnd) - int(readStart), nil
+	return readEnd - readStart, nil
 }
 
 // Seek implements the seeking interface.

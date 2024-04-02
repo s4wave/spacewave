@@ -80,7 +80,7 @@ func TestBuildBlobWithReader(t *testing.T) {
 	}
 
 	buildReader := func() io.Reader {
-		return prng.BuildSeededRand([]byte("test-chunk-blob"))
+		return prng.BuildSeededReader([]byte("test-chunk-blob"))
 	}
 
 	// Test with data less than high water mark

@@ -532,7 +532,7 @@ func (f *FSCursorService) resolveFSCursorLookup(
 			} else {
 				if !slices.Contains(childCursor.clients, clientID) {
 					childCursor.clients = append(childCursor.clients, clientID)
-					clientObj.cursors = append(clientObj.cursors, uint64(childCursorID))
+					clientObj.cursors = append(clientObj.cursors, childCursorID)
 				}
 				retCursor := childCursor.cursor
 				f.mtx.Unlock()

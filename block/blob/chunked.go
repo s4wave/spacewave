@@ -53,8 +53,8 @@ func BuildChunkIndex(
 // AppendChunk appends a chunk with the given data.
 func (i *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start uint64, data []byte) {
 	i.Chunks = append(i.Chunks, &Chunk{
-		Size:  uint64(size),
-		Start: uint64(start),
+		Size:  size,
+		Start: start,
 	})
 	_, chkBcs := chkSet.Get(idx)
 	dataBcs := chkBcs.FollowRef(1, nil)

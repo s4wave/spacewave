@@ -26,7 +26,7 @@ func NewHTTPHandlerBuilder(
 	httpPrefix string,
 	returnIfIdle bool,
 ) bifrost_http.HTTPHandlerBuilder {
-	return func(ctx context.Context, released func()) (*http.Handler, func(), error) {
+	return func(ctx context.Context, released func()) (http.Handler, func(), error) {
 		val, valRef, err := unixfs_access.ExAccessUnixFS(ctx, b, unixFsID, returnIfIdle, released)
 		if err != nil {
 			return nil, nil, err
@@ -43,7 +43,7 @@ func NewHTTPHandlerBuilder(
 
 		hfs := NewFileSystem(ctx, fsHandle, unixFsPrefix, httpPrefix)
 		handler := http.FileServer(hfs)
-		return &handler, func() {
+		return handler, func() {
 			fsHandleRel()
 			valRef.Release()
 		}, nil

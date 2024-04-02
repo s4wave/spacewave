@@ -46,12 +46,12 @@ func TestHTTPHandlerController(t *testing.T) {
 
 	rbfs := unixfs_billy.NewBillyFS(ctx, rootRef, "", time.Now())
 	testData := []byte("hello world")
-	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0755); err != nil {
+	if err := billy_util.WriteFile(rbfs, "/bat/baz/test-file.txt", testData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 
 	testJsData := []byte("console.log(\"hello world\")\n")
-	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0755); err != nil {
+	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 

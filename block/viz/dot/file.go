@@ -21,7 +21,7 @@ func PlotToFile(
 	if err != nil {
 		return err
 	}
-	of, err := os.OpenFile("demo.dot", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	of, err := os.OpenFile("demo.dot", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}

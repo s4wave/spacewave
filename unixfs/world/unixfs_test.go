@@ -74,7 +74,7 @@ func TestFsBilly_WriteFile(t *testing.T) {
 	// create test script
 	filename := "test.js"
 	data := []byte("Hello world!\n")
-	err = billy_util.WriteFile(bfs, filename, data, 0755)
+	err = billy_util.WriteFile(bfs, filename, data, 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

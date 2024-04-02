@@ -32,10 +32,12 @@ var daemonFlags struct {
 	hDaemonArgs
 }
 
-var checkoutRoot = "./output"
-var verbose bool
-var dotOut string
-var profListen string
+var (
+	checkoutRoot = "./output"
+	verbose      bool
+	dotOut       string
+	profListen   string
+)
 
 func main() {
 	app := cli.NewApp()

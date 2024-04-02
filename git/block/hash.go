@@ -1,8 +1,6 @@
 package git_block
 
 import (
-	"crypto/sha1"
-
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/pkg/errors"
@@ -80,7 +78,7 @@ func ValidateHash(h *hash.Hash) error {
 	if len(h.GetHash()) == 0 || h.GetHashType() == hash.HashType_HashType_UNKNOWN {
 		return ErrEmptyHash
 	}
-	if len(h.GetHash()) != sha1.Size || h.GetHashType() != GitHashType {
+	if len(h.GetHash()) != 20 || h.GetHashType() != GitHashType {
 		return ErrHashTypeInvalid
 	}
 	return nil

@@ -275,8 +275,12 @@ func (m *ObjectStoreOpResponse) CloneVT() *ObjectStoreOpResponse {
 		r.Data = tmpBytes
 	}
 	if rhs := m.Keys; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
+		tmpContainer := make([][]byte, len(rhs))
+		for k, v := range rhs {
+			tmpBytes := make([]byte, len(v))
+			copy(tmpBytes, v)
+			tmpContainer[k] = tmpBytes
+		}
 		r.Keys = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
@@ -580,7 +584,7 @@ func (this *ObjectStoreOpResponse) EqualVT(that *ObjectStoreOpResponse) bool {
 	}
 	for i, vx := range this.Keys {
 		vy := that.Keys[i]
-		if vx != vy {
+		if string(vx) != string(vy) {
 			return false
 		}
 	}
@@ -1439,8 +1443,8 @@ func (m *ObjectStoreOpResponse) SizeVT() (n int) {
 		n += 2
 	}
 	if len(m.Keys) > 0 {
-		for _, s := range m.Keys {
-			l = len(s)
+		for _, b := range m.Keys {
+			l = len(b)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
@@ -2662,7 +2666,7 @@ func (m *ObjectStoreOpResponse) UnmarshalVT(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Keys", wireType)
 			}
-			var stringLen uint64
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -2672,23 +2676,23 @@ func (m *ObjectStoreOpResponse) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if byteLen < 0 {
 				return protohelpers.ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + byteLen
 			if postIndex < 0 {
 				return protohelpers.ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Keys = append(m.Keys, string(dAtA[iNdEx:postIndex]))
+			m.Keys = append(m.Keys, make([]byte, postIndex-iNdEx))
+			copy(m.Keys[len(m.Keys)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

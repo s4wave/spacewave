@@ -693,7 +693,7 @@ func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) 
 			if err != nil {
 				return nil, nil, err
 			}
-		} // else left left case
+		} // else left case
 
 		return t.rotateNodeRight(ctx, nod, bcs)
 	}
@@ -717,7 +717,7 @@ func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) 
 			if err != nil {
 				return nil, nil, err
 			}
-		} // else right right case
+		} // else right case
 
 		return t.rotateNodeLeft(ctx, nod, bcs)
 	}

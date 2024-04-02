@@ -43,18 +43,18 @@ func TestSync(t *testing.T) {
 
 	testFile := "test.txt"
 	testData := []byte("Hello world!")
-	err = billy_util.WriteFile(bfs, testFile, testData, 0755)
+	err = billy_util.WriteFile(bfs, testFile, testData, 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	outFs := memfs.New()
-	err = billy_util.WriteFile(outFs, testFile, []byte("Incorrect data to be overwritten by sync"), 0755)
+	err = billy_util.WriteFile(outFs, testFile, []byte("Incorrect data to be overwritten by sync"), 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	err = billy_util.WriteFile(outFs, "deleteme.txt", []byte("This file should be deleted"), 0755)
+	err = billy_util.WriteFile(outFs, "deleteme.txt", []byte("This file should be deleted"), 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

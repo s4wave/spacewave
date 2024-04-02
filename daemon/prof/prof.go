@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"runtime"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,7 +26,8 @@ func ListenProf(le *logrus.Entry, profListen string) error {
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)
 	mux := NewProfMux()
-	err := http.ListenAndServe(profListen, mux)
+	server := &http.Server{Addr: profListen, Handler: mux, ReadTimeout: time.Second * 10}
+	err := server.ListenAndServe()
 	le.WithError(err).Warn("profiling listener exited")
 	return err
 }

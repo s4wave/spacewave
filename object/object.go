@@ -6,10 +6,8 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 )
 
-var (
-	// ErrObjectStoreClosed is returned if the store is closed.
-	ErrObjectStoreClosed = errors.New("object store is closed")
-)
+// ErrObjectStoreClosed is returned if the store is closed.
+var ErrObjectStoreClosed = errors.New("object store is closed")
 
 // ObjectStore implements a key/value object store.
 // Calls may return ErrObjectStoreClosed or context.Canceled if the store is closed.

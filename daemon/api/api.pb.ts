@@ -238,7 +238,7 @@ export interface ObjectStoreOpResponse {
    */
   found: boolean
   /** Keys are the output keys from the list call. */
-  keys: string[]
+  keys: Uint8Array[]
 }
 
 function createBaseConfig(): Config {
@@ -1403,7 +1403,7 @@ export const ObjectStoreOpResponse = {
       writer.uint32(16).bool(message.found)
     }
     for (const v of message.keys) {
-      writer.uint32(26).string(v!)
+      writer.uint32(26).bytes(v!)
     }
     return writer
   },
@@ -1438,7 +1438,7 @@ export const ObjectStoreOpResponse = {
             break
           }
 
-          message.keys.push(reader.string())
+          message.keys.push(reader.bytes())
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -1492,7 +1492,7 @@ export const ObjectStoreOpResponse = {
         : new Uint8Array(0),
       found: isSet(object.found) ? globalThis.Boolean(object.found) : false,
       keys: globalThis.Array.isArray(object?.keys)
-        ? object.keys.map((e: any) => globalThis.String(e))
+        ? object.keys.map((e: any) => bytesFromBase64(e))
         : [],
     }
   },
@@ -1506,7 +1506,7 @@ export const ObjectStoreOpResponse = {
       obj.found = message.found
     }
     if (message.keys?.length) {
-      obj.keys = message.keys
+      obj.keys = message.keys.map((e) => base64FromBytes(e))
     }
     return obj
   },

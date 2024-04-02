@@ -38,7 +38,7 @@ func TestCheckout(t *testing.T) {
 
 	testFile := "test.txt"
 	testData := []byte("Hello world!")
-	err = billy_util.WriteFile(bfs, testFile, testData, 0755)
+	err = billy_util.WriteFile(bfs, testFile, testData, 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -14,10 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// TodoMtime is a placeholder used for mtime, ctime, atime
-	TodoMtime = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
-)
+// TodoMtime is a placeholder used for mtime, ctime, atime
+var TodoMtime = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 // FSTree is a handle to a filesystem tree.
 // The handle can be used to manipulate the tree.

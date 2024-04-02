@@ -243,7 +243,7 @@ func TestRandomReads(t *testing.T) {
 	buf := make([]byte, 4096)
 	for i := 0; i < 10000; i++ {
 		// get random location (fails)
-		loc := int64(prand.Float32() * float32(len(expectedData)))
+		loc := int64(prand.Uint64() % uint64(len(expectedData)))
 		// sequential: works perfectly
 		// loc := int64(i * 4096)
 		if int(loc) >= len(expectedData) {
@@ -267,5 +267,4 @@ func TestRandomReads(t *testing.T) {
 			t.Fatalf("read incorrect data n(%d) @ %d: len(%d): %v... != expected %v...", i, loc, n, readData[:12], readExpected[:12])
 		}
 	}
-
 }

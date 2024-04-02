@@ -42,6 +42,11 @@ func ParseObjectRef(ref string) (*ObjectRef, error) {
 	if err != nil {
 		return nil, err
 	}
+	return UnmarshalObjectRef(dat)
+}
+
+// UnmarshalObjectRef attempts to unmarshal an ObjectRef from bytes.
+func UnmarshalObjectRef(dat []byte) (*ObjectRef, error) {
 	o := &ObjectRef{}
 	if err := o.UnmarshalVT(dat); err != nil {
 		return nil, err

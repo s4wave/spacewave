@@ -95,7 +95,7 @@ func TestFS(t *testing.T) {
 			true,
 			[]string{testFilename},
 			unixfs.NewFSCursorNodeType_File(),
-			0644,
+			0o644,
 			time.Time{},
 		); err != nil {
 			t.Fatal(err.Error())

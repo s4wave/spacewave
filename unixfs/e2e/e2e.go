@@ -78,7 +78,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 	}
 
 	// change permissions
-	err = fhandle.SetPermissions(ctx, 0644, ts)
+	err = fhandle.SetPermissions(ctx, 0o644, ts)
 	if err != nil {
 		return err
 	}

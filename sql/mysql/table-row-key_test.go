@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"bytes"
-	"math/rand"
+	"math/rand/v2"
 	"sort"
 	"testing"
 )

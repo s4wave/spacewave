@@ -29,8 +29,8 @@ func TestCompareBlobs(t *testing.T) {
 	defer cs.Release()
 
 	// test not equal
-	r1 := prng.BuildSeededRand([]byte("test-1"))
-	r2 := prng.BuildSeededRand([]byte("test-2"))
+	r1 := prng.BuildSeededReader([]byte("test-1"))
+	r2 := prng.BuildSeededReader([]byte("test-2"))
 
 	btx, bcs := cs.BuildTransactionAtRef(nil, nil)
 	_, err = BuildBlob(ctx, int64(2048), r1, bcs, nil)

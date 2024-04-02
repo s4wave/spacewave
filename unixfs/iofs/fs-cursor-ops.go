@@ -137,7 +137,7 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 		return int64(rn), err
 	case io.Seeker:
 		if offset != 0 {
-			if _, err := f.Seek(int64(offset), io.SeekStart); err != nil {
+			if _, err := f.Seek(offset, io.SeekStart); err != nil {
 				return 0, err
 			}
 		}

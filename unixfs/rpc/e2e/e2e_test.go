@@ -82,7 +82,7 @@ func TestUnixFsRPC(t *testing.T) {
 
 	// make a directory
 	testDirPath := "test/dir"
-	if err := clientRootRef.MkdirAllPath(ctx, testDirPath, 0755, now); err != nil {
+	if err := clientRootRef.MkdirAllPath(ctx, testDirPath, 0o755, now); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -90,7 +90,7 @@ func TestUnixFsRPC(t *testing.T) {
 	bfs := unixfs_billy.NewBillyFilesystem(ctx, clientRootRef, "", time.Now())
 	filename := "test/dir/test.txt"
 	data := []byte("Hello world!\n")
-	err = billy_util.WriteFile(bfs, filename, data, 0755)
+	err = billy_util.WriteFile(bfs, filename, data, 0o755)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -106,7 +106,7 @@ func TestUnixFsRPC(t *testing.T) {
 
 	// make another directory
 	testDirPath = "unixfs-e2e"
-	if err := clientRootRef.MkdirAllPath(ctx, testDirPath, 0755, now); err != nil {
+	if err := clientRootRef.MkdirAllPath(ctx, testDirPath, 0o755, now); err != nil {
 		t.Fatal(err.Error())
 	}
 	testDirHandle, testDirHandlePts, err := clientRootRef.LookupPath(ctx, testDirPath)

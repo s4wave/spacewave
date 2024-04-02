@@ -353,7 +353,7 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 		return unixfs_errors.ErrNotFile
 	}
 
-	f, err := o.c.bfs.OpenFile(o.c.path, os.O_WRONLY, 0644)
+	f, err := o.c.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -378,7 +378,7 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 		return unixfs_errors.ErrNotFile
 	}
 
-	f, err := o.c.bfs.OpenFile(o.c.path, os.O_WRONLY, 0644)
+	f, err := o.c.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist

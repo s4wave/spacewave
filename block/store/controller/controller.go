@@ -114,12 +114,20 @@ func (c *Controller) HandleDirective(
 		if !matched {
 			return nil, nil
 		}
-		return directive.R(directive.NewRefCountResolver(c.rc, true, func(ctx context.Context, store block_store.Store) (directive.Value, error) {
-			if store == nil {
-				return nil, nil
-			}
-			return block_store.LookupBlockStoreValue(store), nil
-		}), nil)
+		return directive.R(
+			directive.NewRefCountResolverWithXfrm(
+				c.rc,
+				true,
+				func(ctx context.Context, store block_store.Store) (directive.Value, error) {
+					if store == nil {
+						return nil, nil
+					}
+					var val block_store.LookupBlockStoreValue = store
+					return val, nil
+				},
+			),
+			nil,
+		)
 	case dex.LookupBlockFromNetwork:
 		return c.resolveLookupBlockFromNetwork(ctx, inst, d)
 	}

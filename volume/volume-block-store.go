@@ -27,7 +27,6 @@ func (v *VolumeBlockStore) GetHashType() hash.HashType {
 // PutBlock puts a block into the store.
 func (v *VolumeBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return v.store.PutBlock(ctx, data, opts)
-
 }
 
 // GetBlock gets a block with the given reference.

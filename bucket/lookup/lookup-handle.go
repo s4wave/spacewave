@@ -9,10 +9,8 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 )
 
-var (
-	// ErrNotImplemented is returned for operations not implemented by Lookup().
-	ErrNotImplemented = errors.New("operation not implemented by lookup controller")
-)
+// ErrNotImplemented is returned for operations not implemented by Lookup().
+var ErrNotImplemented = errors.New("operation not implemented by lookup controller")
 
 // lookupBucket implements bucket.Bucket with a lookup handle.
 type lookupBucket struct {

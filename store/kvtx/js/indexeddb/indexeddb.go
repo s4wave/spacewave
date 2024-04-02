@@ -26,10 +26,8 @@ import (
 // increment whenever changing the schema.
 const dbSchemaVersion = 1
 
-var (
-	// kvStoreObjectStore is the key/value flat namespace store.
-	kvStoreObjectStore = "kvstore"
-)
+// kvStoreObjectStore is the key/value flat namespace store.
+var kvStoreObjectStore = "kvstore"
 
 // Store is a indexeddb key-value store.
 type Store struct {

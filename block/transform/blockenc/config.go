@@ -2,16 +2,18 @@ package transform_blockenc
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/hydra/util/blockenc"
 )
 
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
-	/*
-		if err := c.GetBlockCrypt().Validate(); err != nil {
-			return err
-		}
-	*/
+	if err := c.GetBlockEnc().Validate(); err != nil {
+		return err
+	}
+	if err := blockenc.ValidateKeySize(c.GetBlockEnc(), len(c.GetKey())); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -23,7 +25,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return true
+	return config.EqualsConfig[*Config](c, other)
 }
 
 // _ is a type assertion

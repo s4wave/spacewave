@@ -97,7 +97,7 @@ func (t *Factory) Construct(
 			le *logrus.Entry,
 		) (volume.Volume, error) {
 			// open the configured file
-			f, err := os.OpenFile(cc.GetFilePath(), os.O_RDONLY, 0644)
+			f, err := os.OpenFile(cc.GetFilePath(), os.O_RDONLY, 0o644)
 			if err != nil {
 				return nil, err
 			}

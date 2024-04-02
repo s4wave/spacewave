@@ -56,7 +56,7 @@ func TestStorage_References(t *testing.T) {
 	le.Info("set reference 'main'")
 
 	// check exists
-	_, err = store.Reference(plumbing.ReferenceName(testRef))
+	_, err = store.Reference(testRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -74,7 +74,7 @@ func TestStorage_References(t *testing.T) {
 	}
 
 	// check exists
-	ref, err := store.Reference(plumbing.ReferenceName(testRef))
+	ref, err := store.Reference(testRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

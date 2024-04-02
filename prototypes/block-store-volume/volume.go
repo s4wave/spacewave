@@ -31,9 +31,7 @@ const ControllerID = "hydra/prototypes/block-store-volume"
 // Version is the controller version.
 var Version = semver.MustParse("0.0.1")
 
-var (
-	headRefKey = []byte("head")
-)
+var headRefKey = []byte("head")
 
 // EncryptedVolume wraps a base volume with a block graph.
 //
@@ -91,7 +89,6 @@ func NewEncryptedVolume(
 	// encryption transform types
 	sfs := transform_all.BuildFactorySet()
 
-	var headRef *bucket.ObjectRef
 	var headCursor *bucket_lookup.Cursor
 
 	// The READ only happens once, or this would be in a separate util function.
@@ -105,9 +102,10 @@ func NewEncryptedVolume(
 		return nil, err
 	}
 	if headRefOk {
-		headRef = &bucket.ObjectRef{}
-		if err := headRef.UnmarshalVT(headRefDat); err != nil {
-			return nil, errors.Wrap(err, "unmarshal head ref from underlying storage")
+		var headRef *bucket.ObjectRef
+		headRef, err = bucket.UnmarshalObjectRef(headRefDat)
+		if err != nil {
+			return nil, errors.Wrap(err, "unmarshal head ref from storage")
 		}
 		le.Infof("loaded head reference from storage: %s", headRef.MarshalString())
 
@@ -122,8 +120,8 @@ func NewEncryptedVolume(
 		)
 	} else {
 		le.Info("head reference empty in storage, building new cursor")
-		var transformConf *block_transform.Config // nil
-		var putOpts *block.PutOpts                // nil
+		var transformConf *block_transform.Config
+		var putOpts *block.PutOpts
 
 		// note: don't use this key!
 		volPeerID := vol.GetPeerID()
@@ -133,7 +131,7 @@ func NewEncryptedVolume(
 			[]byte(volPeerID.String()),
 			demoKey[:],
 		)
-		transformConf, err := block_transform.NewConfig([]config.Config{
+		transformConf, err = block_transform.NewConfig([]config.Config{
 			&transform_snappy.Config{},
 			&transform_blockenc.Config{
 				BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -143,7 +141,7 @@ func NewEncryptedVolume(
 		if err != nil {
 			return nil, err
 		}
-		headCursor, headRef, err = bucket_lookup.BuildEmptyCursor(
+		headCursor, _, err = bucket_lookup.BuildEmptyCursor(
 			ctx,
 			b,
 			le,

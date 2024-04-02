@@ -46,9 +46,9 @@ func (e *FSDirEntry) Type() fs.FileMode {
 		defaultMode = e.fileInfo.Mode()
 	} else {
 		if e.ent.GetIsDirectory() {
-			defaultMode = fs.ModeDir | 0555
+			defaultMode = fs.ModeDir | 0o555
 		} else {
-			defaultMode = 0444
+			defaultMode = 0o444
 		}
 	}
 

@@ -102,7 +102,7 @@ func (t *Tx) DropStore(name []byte) error {
 	if err != nil {
 		return err
 	}
-	return t.tx.Delete(t.ctx, buildStoreKey([]byte(name)))
+	return t.tx.Delete(t.ctx, buildStoreKey(name))
 }
 
 // Commit applies all changes made in the transaction.

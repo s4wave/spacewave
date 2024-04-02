@@ -6,8 +6,7 @@ import (
 )
 
 // Snappy is the Snappy compression step.
-type Snappy struct {
-}
+type Snappy struct{}
 
 // NewSnappy constructs the snappy step.
 func NewSnappy(c *Config) (*Snappy, error) {

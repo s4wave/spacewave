@@ -90,7 +90,7 @@ func (f *BillyFS) Root() string {
 // be used for I/O; the associated file descriptor has mode O_RDWR.
 func (f *BillyFS) Create(filepath string) (billy.File, error) {
 	// note: this is the same behavior as os.Create
-	return f.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	return f.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 }
 
 // Open opens the named file for reading. If successful, methods on the
@@ -115,10 +115,10 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 	filepath = path.Clean(filepath)
 	filedir, filename := path.Split(filepath)
 
-	if flag&int(os.O_CREATE) != 0 {
+	if flag&os.O_CREATE != 0 {
 		// billyfs expects: create directories as needed
 		if len(filedir) != 0 && filedir != "." {
-			if err := f.MkdirAll(filedir, 0755); err != nil {
+			if err := f.MkdirAll(filedir, 0o755); err != nil {
 				return nil, err
 			}
 		}

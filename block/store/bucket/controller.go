@@ -105,7 +105,7 @@ func (c *Controller) ResolveBuildBucketAPI(
 		return nil
 	}
 
-	return directive.NewRefCountResolver(c.handleRc, false, nil)
+	return directive.NewRefCountResolver(c.handleRc)
 }
 
 // BuildBucketAPI accesses the bucket handle.

@@ -134,7 +134,7 @@ func (a *ClientArgs) RunListObjectKeys(_ *cli.Context) error {
 	}
 	le.WithField("key-count", len(resp.GetKeys())).Debug("returned keys")
 	for _, key := range resp.GetKeys() {
-		os.Stdout.WriteString(key)
+		os.Stdout.WriteString(string(key))
 		os.Stdout.WriteString("\n")
 	}
 	return nil

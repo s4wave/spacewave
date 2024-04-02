@@ -49,7 +49,7 @@ func NewBolt(
 
 	store, err := sbolt.Open(
 		conf.GetPath(),
-		0644,
+		0o644,
 		bdbOpts,
 		[]byte("hydra"),
 	)

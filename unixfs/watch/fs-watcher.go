@@ -50,7 +50,7 @@ type FSWatcher struct {
 	// index 0 is the location at access()
 	// index 1->len(pathPts) correspond to pathPts
 	handles []*unixfs.FSHandle
-	// handleRel releases the handle handle
+	// handleRel releases the handle
 	handleRel func()
 }
 

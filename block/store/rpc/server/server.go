@@ -47,7 +47,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 
 // NewRpcServiceBuilder constructs a new rpc service builder from config.
 func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder {
-	return func(ctx context.Context, released func()) (*srpc.Invoker, func(), error) {
+	return func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
 		// Lookup the bucket.
 		bkt, bktRel, err := bucket_lookup.StartBucketRWOperation(ctx, b, &bucket.BucketOpArgs{
 			BucketId: conf.GetBucketId(),
@@ -69,6 +69,6 @@ func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder
 		}
 
 		var handler srpc.Invoker = mux
-		return &handler, bktRel, nil
+		return handler, bktRel, nil
 	}
 }

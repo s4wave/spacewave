@@ -35,7 +35,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 			Version,
 			controllerDescrip,
 		),
-		func(ctx context.Context, released func()) (*http.Handler, func(), error) {
+		func(ctx context.Context, released func()) (http.Handler, func(), error) {
 			// Lookup the bucket.
 			bkt, bktRel, err := bucket_lookup.StartBucketRWOperation(ctx, b, &bucket.BucketOpArgs{
 				BucketId: conf.GetBucketId(),
@@ -47,7 +47,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 
 			srv := block_store_http_server.NewHTTPBlock(bkt, conf.GetWrite(), conf.GetPathPrefix(), conf.GetForceHashType())
 			var handler http.Handler = srv
-			return &handler, bktRel, nil
+			return handler, bktRel, nil
 		},
 		[]string{conf.GetPathPrefix()},
 		false,

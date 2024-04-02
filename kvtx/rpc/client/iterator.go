@@ -248,7 +248,6 @@ func (i *Iterator) Close() {
 		Body: &kvtx_rpc.KvtxIterateRequest_Close{Close: true},
 	})
 	_, _ = i.client.Recv()
-
 }
 
 // _ is a type assertion

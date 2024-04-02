@@ -46,7 +46,6 @@ func (d *FSCursorDirent) GetIsDirectory() bool {
 // GetIsFile returns if the node is a regular file.
 func (d *FSCursorDirent) GetIsFile() bool {
 	return d.GetNodeType().GetIsFile()
-
 }
 
 // GetIsSymlink returns if the node is a symlink.

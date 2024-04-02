@@ -220,12 +220,3 @@ func fmtRange(from, length int64) string {
 	to := from + length - 1
 	return "bytes=" + strconv.FormatInt(from, 10) + "-" + strconv.FormatInt(to, 10)
 }
-
-// cachedData contains cached data from the previous request.
-type cachedData struct {
-	// offset is the location of the read
-	offset uint64
-	//
-	// data is the read data
-	data []byte
-}

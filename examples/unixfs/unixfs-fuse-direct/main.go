@@ -35,10 +35,12 @@ var daemonFlags struct {
 	hDaemonArgs
 }
 
-var fuseRoot = "./fuseroot"
-var verbose bool
-var dotOut string
-var profListen string
+var (
+	fuseRoot   = "./fuseroot"
+	verbose    bool
+	dotOut     string
+	profListen string
+)
 
 func main() {
 	app := cli.NewApp()
