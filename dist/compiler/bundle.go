@@ -248,16 +248,16 @@ func BuildDistBundle(
 		embedAssetsFS = append(embedAssetsFS, outConfigSetFilename)
 	}
 
-	// output directory for the entrypoint
-	outEntryDir := filepath.Join(outputPath, "entrypoint")
-	if err := os.MkdirAll(outEntryDir, 0o755); err != nil {
-		return err
-	}
-
 	// on the Web platform we distribute the kvfile separately
 	// we also name the entrypoint file differently
 	var outBinPath string
 	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
+		// output directory for the entrypoint
+		outEntryDir := filepath.Join(outputPath, "entrypoint")
+		if err := os.MkdirAll(outEntryDir, 0o755); err != nil {
+			return err
+		}
+
 		// store the wasm file where the entrypoint expects.
 		// TODO: name it based on outBinName and add a hash to the name
 		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
