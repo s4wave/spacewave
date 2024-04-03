@@ -189,6 +189,22 @@ func (r *FetchRangeReader) Size() (uint64, error) {
 		return 0, err
 	}
 
+	switch resp.Status {
+	case 200, 206, 204, 304:
+		// success case
+	case 416:
+		// Requested Range Not Satisfiable
+		return 0, errors.New("requested range not satisfiable")
+	case 403:
+		// Forbidden
+		return 0, errors.New("forbidden")
+	case 404:
+		// Not Found
+		return 0, errors.New("not found")
+	default:
+		return 0, errors.Errorf("unexpected response status: %d", resp.Status)
+	}
+
 	contentLengthStr := resp.Headers.Get("content-length")
 	if len(contentLengthStr) == 0 {
 		return 0, errors.New("no content length returned by HEAD request")

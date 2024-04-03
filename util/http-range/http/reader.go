@@ -197,6 +197,23 @@ func (r *HTTPRangeReader) Size() (uint64, error) {
 		return 0, err
 	}
 
+	// handle error cases
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusPartialContent, http.StatusNoContent, http.StatusNotModified:
+		// success case
+	case 416:
+		// Requested Range Not Satisfiable
+		return 0, errors.New("requested range not satisfiable")
+	case 403:
+		// Forbidden
+		return 0, errors.New("forbidden")
+	case 404:
+		// Not Found
+		return 0, errors.New("not found")
+	default:
+		return 0, errors.Errorf("unexpected response status: %d", resp.StatusCode)
+	}
+
 	contentLengthStr := resp.Header.Get("content-length")
 	if len(contentLengthStr) == 0 {
 		return 0, errors.New("no content length returned by HEAD request")
