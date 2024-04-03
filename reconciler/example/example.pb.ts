@@ -8,14 +8,14 @@ export const protobufPackage = 'reconciler.example'
 export interface Config {
   /** BucketId is the bucket id attached. */
   bucketId: string
-  /** VolumeId is the volume id attached. */
-  volumeId: string
-  /** ReconcilerId is the reconciler id attached. */
+  /** BlockStoreId is the block store id. */
+  blockStoreId: string
+  /** ReconcilerId is the reconciler id. */
   reconcilerId: string
 }
 
 function createBaseConfig(): Config {
-  return { bucketId: '', volumeId: '', reconcilerId: '' }
+  return { bucketId: '', blockStoreId: '', reconcilerId: '' }
 }
 
 export const Config = {
@@ -26,8 +26,8 @@ export const Config = {
     if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId)
     }
-    if (message.volumeId !== '') {
-      writer.uint32(18).string(message.volumeId)
+    if (message.blockStoreId !== '') {
+      writer.uint32(18).string(message.blockStoreId)
     }
     if (message.reconcilerId !== '') {
       writer.uint32(26).string(message.reconcilerId)
@@ -55,7 +55,7 @@ export const Config = {
             break
           }
 
-          message.volumeId = reader.string()
+          message.blockStoreId = reader.string()
           continue
         case 3:
           if (tag !== 26) {
@@ -112,8 +112,8 @@ export const Config = {
       bucketId: isSet(object.bucketId)
         ? globalThis.String(object.bucketId)
         : '',
-      volumeId: isSet(object.volumeId)
-        ? globalThis.String(object.volumeId)
+      blockStoreId: isSet(object.blockStoreId)
+        ? globalThis.String(object.blockStoreId)
         : '',
       reconcilerId: isSet(object.reconcilerId)
         ? globalThis.String(object.reconcilerId)
@@ -126,8 +126,8 @@ export const Config = {
     if (message.bucketId !== '') {
       obj.bucketId = message.bucketId
     }
-    if (message.volumeId !== '') {
-      obj.volumeId = message.volumeId
+    if (message.blockStoreId !== '') {
+      obj.blockStoreId = message.blockStoreId
     }
     if (message.reconcilerId !== '') {
       obj.reconcilerId = message.reconcilerId
@@ -141,7 +141,7 @@ export const Config = {
   fromPartial<I extends Exact<DeepPartial<Config>, I>>(object: I): Config {
     const message = createBaseConfig()
     message.bucketId = object.bucketId ?? ''
-    message.volumeId = object.volumeId ?? ''
+    message.blockStoreId = object.blockStoreId ?? ''
     message.reconcilerId = object.reconcilerId ?? ''
     return message
   },

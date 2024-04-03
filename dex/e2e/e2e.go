@@ -150,7 +150,7 @@ func TestMultiNodeDEX(
 
 	lookupConf := &lc.Config{
 		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
-		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
+		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL,
 	}
 	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), false)
 	if err != nil {

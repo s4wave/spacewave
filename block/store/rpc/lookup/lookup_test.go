@@ -89,7 +89,7 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		// enable looking up via directive
 		NotFoundBehavior:  lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
-		WritebackBehavior: lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL_VOLUMES,
+		WritebackBehavior: lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL,
 	}))
 	if err != nil {
 		t.Fatal(err.Error())

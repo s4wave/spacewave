@@ -298,5 +298,5 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 // _ is a type assertion
 var (
 	_ bucket.Bucket       = ((*bucketHandle)(nil))
-	_ volume.BucketHandle = ((*bucketHandle)(nil))
+	_ bucket.BucketHandle = ((*bucketHandle)(nil))
 )

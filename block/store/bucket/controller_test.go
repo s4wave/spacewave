@@ -8,7 +8,7 @@ import (
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_inmem "github.com/aperturerobotics/hydra/block/store/inmem"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	"github.com/aperturerobotics/hydra/block/transform/all"
+	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"

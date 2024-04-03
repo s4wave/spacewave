@@ -33,7 +33,7 @@ func (c *Config) Validate() error {
 // Validate checks the value.
 func (b PutBlockBehavior) Validate() error {
 	switch b {
-	case PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES:
+	case PutBlockBehavior_PutBlockBehavior_ALL:
 	case PutBlockBehavior_PutBlockBehavior_NONE:
 	default:
 		return errors.Errorf("unknown put block behavior: %s", b.String())

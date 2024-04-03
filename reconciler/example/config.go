@@ -2,9 +2,9 @@ package reconciler_example
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/reconciler"
-	"github.com/aperturerobotics/hydra/volume"
 )
 
 // ConfigID is the id attached to the config objects.
@@ -15,8 +15,8 @@ func (c *Config) Validate() error {
 	if c.GetBucketId() == "" {
 		return bucket.ErrBucketIDEmpty
 	}
-	if c.GetVolumeId() == "" {
-		return volume.ErrVolumeIDEmpty
+	if c.GetBlockStoreId() == "" {
+		return block_store.ErrBlockStoreIDEmpty
 	}
 	if c.GetReconcilerId() == "" {
 		return reconciler.ErrReconcilerIDEmpty
@@ -29,9 +29,9 @@ func (c *Config) SetBucketId(id string) {
 	c.BucketId = id
 }
 
-// SetVolumeId sets the volume ID field.
-func (c *Config) SetVolumeId(id string) {
-	c.VolumeId = id
+// SetBlockStoreId sets the blockStore ID field.
+func (c *Config) SetBlockStoreId(id string) {
+	c.BlockStoreId = id
 }
 
 // SetReconcilerId sets the reconciler ID field.

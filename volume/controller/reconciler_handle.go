@@ -1,6 +1,8 @@
 package volume_controller
 
 import (
+	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/bucket"
 	bucket_store "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/mqueue"
 	"github.com/aperturerobotics/hydra/reconciler"
@@ -10,7 +12,7 @@ import (
 // reconcilerHandle is a handle passed to a reconciler.
 type reconcilerHandle struct {
 	pair         bucket_store.BucketReconcilerPair
-	bucketHandle volume.BucketHandle
+	bucketHandle bucket.BucketHandle
 	vol          volume.Volume
 	eveQueue     mqueue.Queue
 }
@@ -18,7 +20,7 @@ type reconcilerHandle struct {
 // newReconcilerHandle builds a new reconciler handle.
 func newReconcilerHandle(
 	pair bucket_store.BucketReconcilerPair,
-	bucketHandle volume.BucketHandle,
+	bucketHandle bucket.BucketHandle,
 	vol volume.Volume,
 	eveQueue mqueue.Queue,
 ) *reconcilerHandle {
@@ -41,8 +43,13 @@ func (h *reconcilerHandle) GetReconcilerId() string {
 }
 
 // GetBucketHandle returns the handle to the bucket.
-func (h *reconcilerHandle) GetBucketHandle() volume.BucketHandle {
+func (h *reconcilerHandle) GetBucketHandle() bucket.BucketHandle {
 	return h.bucketHandle
+}
+
+// GetBlockStore returns the block store.
+func (h *reconcilerHandle) GetBlockStore() block_store.Store {
+	return h.vol
 }
 
 // GetVolume returns the volume.

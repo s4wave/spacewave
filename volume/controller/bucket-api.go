@@ -3,7 +3,7 @@ package volume_controller
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/volume"
+	"github.com/aperturerobotics/hydra/bucket"
 )
 
 // BuildBucketAPI builds an API handle for the bucket ID in the volume.
@@ -12,7 +12,7 @@ import (
 func (c *Controller) BuildBucketAPI(
 	ctx context.Context,
 	bucketID string,
-) (volume.BucketHandle, func(), error) {
+) (bucket.BucketHandle, func(), error) {
 	ref, ht, _ := c.bucketHandles.AddKeyRef(bucketID)
 
 	h, err := ht.handleCtr.WaitValue(ctx, nil)

@@ -33,7 +33,7 @@ func RunDemoGit(
 	lookupConf := &lc.Config{
 		// NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
 		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_NONE,
-		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
+		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL,
 	}
 	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), true)
 	if err != nil {

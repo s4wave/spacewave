@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/conc"
@@ -38,7 +37,7 @@ type LookupController struct {
 	conf *Config
 
 	// bucketHandleSetCtr contains the bucket handle set
-	bucketHandleSetCtr *ccontainer.CContainer[*[]volume.BucketHandle]
+	bucketHandleSetCtr *ccontainer.CContainer[*[]bucket.BucketHandle]
 }
 
 // NewLookupController is the lookup controller constructor.
@@ -51,7 +50,7 @@ func NewLookupController(
 		le:                 le.WithField("bucket-id", conf.GetBucketConf().GetId()),
 		b:                  b,
 		conf:               conf,
-		bucketHandleSetCtr: ccontainer.NewCContainer[*[]volume.BucketHandle](nil),
+		bucketHandleSetCtr: ccontainer.NewCContainer[*[]bucket.BucketHandle](nil),
 	}
 }
 
@@ -105,7 +104,7 @@ func (c *LookupController) LookupBlock(
 		return c.le.WithField("ref", ref.MarshalString())
 	}
 	writeback := func(data []byte) error {
-		if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_ALL_VOLUMES {
+		if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_ALL {
 			return nil
 		}
 		putOpts := &block.PutOpts{
@@ -249,14 +248,14 @@ func (c *LookupController) PutBlock(
 	data []byte, opts *block.PutOpts,
 ) ([]*bucket.ObjectRef, bool, error) {
 	switch c.conf.GetPutBlockBehavior() {
-	case PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES:
+	case PutBlockBehavior_PutBlockBehavior_ALL:
 		return c.putBlockAllVolumes(reqCtx, data, opts)
 	default:
 		return nil, false, nil
 	}
 }
 
-// putBlockAllVolumes implements PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES
+// putBlockAllVolumes implements PutBlockBehavior_PutBlockBehavior_ALL
 func (c *LookupController) putBlockAllVolumes(
 	rctx context.Context,
 	data []byte,
@@ -277,7 +276,7 @@ func (c *LookupController) putBlockAllVolumes(
 	}
 	resCh := make(chan *res)
 
-	putBlockFn := func(h volume.BucketHandle) (bres *block.BlockRef, existed bool, berr error) {
+	putBlockFn := func(h bucket.BucketHandle) (bres *block.BlockRef, existed bool, berr error) {
 		if !h.GetExists() {
 			return nil, false, nil
 		}
@@ -290,7 +289,7 @@ func (c *LookupController) putBlockAllVolumes(
 			continue
 		}
 		br++
-		go func(h volume.BucketHandle) {
+		go func(h bucket.BucketHandle) {
 			bres, existed, berr := putBlockFn(h)
 			select {
 			case <-ctx.Done():
@@ -381,7 +380,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 }
 
 // getBucketHandles waits for the bucket handle set.
-func (c *LookupController) getBucketHandles(ctx context.Context) ([]volume.BucketHandle, error) {
+func (c *LookupController) getBucketHandles(ctx context.Context) ([]bucket.BucketHandle, error) {
 	valptr, err := c.bucketHandleSetCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -393,7 +392,7 @@ func (c *LookupController) getBucketHandles(ctx context.Context) ([]volume.Bucke
 // to service requests. The controller should wait for this to be called before
 // beginning to service requests. The bucket handles pushed should always have
 // GetExists() == true.
-func (c *LookupController) PushBucketHandles(ctx context.Context, handles []volume.BucketHandle) {
+func (c *LookupController) PushBucketHandles(ctx context.Context, handles []bucket.BucketHandle) {
 	c.bucketHandleSetCtr.SetValue(&handles)
 }
 

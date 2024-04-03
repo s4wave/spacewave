@@ -59,12 +59,8 @@ type Controller interface {
 	GetVolume(ctx context.Context) (Volume, error)
 	// BuildBucketAPI builds an API handle for the bucket ID in the volume.
 	// Returns the handle & a release function, or (nil, nil, err).
-	BuildBucketAPI(ctx context.Context, bucketID string) (BucketHandle, func(), error)
+	BuildBucketAPI(ctx context.Context, bucketID string) (bucket.BucketHandle, func(), error)
 }
-
-// BucketHandle is a bucket API handle.
-// All calls use the bucket handle context.
-type BucketHandle = bucket.BucketHandle
 
 // ObjectStoreHandle is a object store API handle.
 type ObjectStoreHandle interface {

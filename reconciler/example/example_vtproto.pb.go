@@ -26,7 +26,7 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.BucketId = m.BucketId
-	r.VolumeId = m.VolumeId
+	r.BlockStoreId = m.BlockStoreId
 	r.ReconcilerId = m.ReconcilerId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -48,7 +48,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.BucketId != that.BucketId {
 		return false
 	}
-	if this.VolumeId != that.VolumeId {
+	if this.BlockStoreId != that.BlockStoreId {
 		return false
 	}
 	if this.ReconcilerId != that.ReconcilerId {
@@ -101,10 +101,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.VolumeId) > 0 {
-		i -= len(m.VolumeId)
-		copy(dAtA[i:], m.VolumeId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.VolumeId)))
+	if len(m.BlockStoreId) > 0 {
+		i -= len(m.BlockStoreId)
+		copy(dAtA[i:], m.BlockStoreId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BlockStoreId)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -128,7 +128,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.VolumeId)
+	l = len(m.BlockStoreId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -203,7 +203,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -231,7 +231,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.VolumeId = string(dAtA[iNdEx:postIndex])
+			m.BlockStoreId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {

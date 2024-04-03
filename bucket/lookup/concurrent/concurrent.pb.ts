@@ -58,8 +58,8 @@ export function notFoundBehaviorToJSON(object: NotFoundBehavior): string {
 export enum PutBlockBehavior {
   /** PutBlockBehavior_NONE - PutBlockBehavior_NONE does nothing with the block. */
   PutBlockBehavior_NONE = 0,
-  /** PutBlockBehavior_ALL_VOLUMES - PutBlockBehavior_ALL_VOLUMES writes the block to all volumes. */
-  PutBlockBehavior_ALL_VOLUMES = 1,
+  /** PutBlockBehavior_ALL - PutBlockBehavior_ALL writes the block to all block stores. */
+  PutBlockBehavior_ALL = 1,
   UNRECOGNIZED = -1,
 }
 
@@ -69,8 +69,8 @@ export function putBlockBehaviorFromJSON(object: any): PutBlockBehavior {
     case 'PutBlockBehavior_NONE':
       return PutBlockBehavior.PutBlockBehavior_NONE
     case 1:
-    case 'PutBlockBehavior_ALL_VOLUMES':
-      return PutBlockBehavior.PutBlockBehavior_ALL_VOLUMES
+    case 'PutBlockBehavior_ALL':
+      return PutBlockBehavior.PutBlockBehavior_ALL
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -82,8 +82,8 @@ export function putBlockBehaviorToJSON(object: PutBlockBehavior): string {
   switch (object) {
     case PutBlockBehavior.PutBlockBehavior_NONE:
       return 'PutBlockBehavior_NONE'
-    case PutBlockBehavior.PutBlockBehavior_ALL_VOLUMES:
-      return 'PutBlockBehavior_ALL_VOLUMES'
+    case PutBlockBehavior.PutBlockBehavior_ALL:
+      return 'PutBlockBehavior_ALL'
     case PutBlockBehavior.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'
@@ -94,8 +94,8 @@ export function putBlockBehaviorToJSON(object: PutBlockBehavior): string {
 export enum WritebackBehavior {
   /** WritebackBehavior_NONE - WritebackBehavior_NONE returns the block without writing it back. */
   WritebackBehavior_NONE = 0,
-  /** WritebackBehavior_ALL_VOLUMES - WritebackBehavior_ALL_VOLUMES writes the block to all volumes. */
-  WritebackBehavior_ALL_VOLUMES = 1,
+  /** WritebackBehavior_ALL - WritebackBehavior_ALL writes the block to all block stores. */
+  WritebackBehavior_ALL = 1,
   UNRECOGNIZED = -1,
 }
 
@@ -105,8 +105,8 @@ export function writebackBehaviorFromJSON(object: any): WritebackBehavior {
     case 'WritebackBehavior_NONE':
       return WritebackBehavior.WritebackBehavior_NONE
     case 1:
-    case 'WritebackBehavior_ALL_VOLUMES':
-      return WritebackBehavior.WritebackBehavior_ALL_VOLUMES
+    case 'WritebackBehavior_ALL':
+      return WritebackBehavior.WritebackBehavior_ALL
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -118,8 +118,8 @@ export function writebackBehaviorToJSON(object: WritebackBehavior): string {
   switch (object) {
     case WritebackBehavior.WritebackBehavior_NONE:
       return 'WritebackBehavior_NONE'
-    case WritebackBehavior.WritebackBehavior_ALL_VOLUMES:
-      return 'WritebackBehavior_ALL_VOLUMES'
+    case WritebackBehavior.WritebackBehavior_ALL:
+      return 'WritebackBehavior_ALL'
     case WritebackBehavior.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'

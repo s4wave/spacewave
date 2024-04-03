@@ -5,38 +5,37 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/sirupsen/logrus"
 )
 
-// loadedBucketVolume contains state for a loaded bucket volume controller.
-type loadedBucketVolume struct {
+// loadedBucketBlockStore contains state for a block store with a loaded bucket.
+type loadedBucketBlockStore struct {
 	// b is constant
 	b *loadedBucket
-	// volumeID is constant
-	volumeID string
+	// blockStoreID is constant
+	blockStoreID string
 	// le is constant after init
 	le *logrus.Entry
 	// bh is the bucket handle
 	// guarded by b.mtx
-	bh volume.BucketHandle
+	bh bucket.BucketHandle
 }
 
-// newLoadedBucketVolume constructs a new loaded bucket volume.
-func (b *loadedBucket) newLoadedBucketVolume(volumeID string) (keyed.Routine, *loadedBucketVolume) {
-	lbv := &loadedBucketVolume{
-		b:        b,
-		volumeID: volumeID,
-		le:       b.le.WithField("volume-id", volumeID),
+// newLoadedBucketBlockStore constructs a new loaded bucket block store.
+func (b *loadedBucket) newLoadedBucketBlockStore(blockStoreID string) (keyed.Routine, *loadedBucketBlockStore) {
+	lbv := &loadedBucketBlockStore{
+		b:            b,
+		blockStoreID: blockStoreID,
+		le:           b.le.WithField("block-store-id", blockStoreID),
 	}
 	return lbv.execute, lbv
 }
 
-// execute executes the bucket volume tracker.
-func (l *loadedBucketVolume) execute(ctx context.Context) error {
+// execute executes the bucket block store tracker.
+func (l *loadedBucketBlockStore) execute(ctx context.Context) error {
 	_, diRef, err := l.b.c.b.AddDirective(
-		bucket.NewBuildBucketAPI(l.b.bucketID, l.volumeID),
+		bucket.NewBuildBucketAPI(l.b.bucketID, l.blockStoreID),
 		l,
 	)
 	if err != nil {
@@ -49,13 +48,13 @@ func (l *loadedBucketVolume) execute(ctx context.Context) error {
 
 // HandleValueAdded is called when a value is added to the directive.
 // Should not block.
-func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive.AttachedValue) {
+func (l *loadedBucketBlockStore) HandleValueAdded(_ directive.Instance, av directive.AttachedValue) {
 	val, ok := av.GetValue().(bucket.BuildBucketAPIValue)
 	if !ok {
 		return
 	}
 	l.b.mtx.Lock()
-	if lbv, exists := l.b.volumes.GetKey(l.volumeID); exists && lbv == l {
+	if lbv, exists := l.b.blockStores.GetKey(l.blockStoreID); exists && lbv == l {
 		if val.GetExists() {
 			nbc := val.GetBucketConfig().CloneVT()
 			if l.b.bucketConf == nil || nbc.GetRev() > l.b.bucketConf.GetRev() {
@@ -65,7 +64,7 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 				l.b.bucketConf = nbc
 			}
 		} else {
-			l.le.Debug("bucket not in volume")
+			l.le.Debug("bucket not in block store")
 		}
 		if l.bh != val {
 			l.bh = val
@@ -78,13 +77,13 @@ func (l *loadedBucketVolume) HandleValueAdded(_ directive.Instance, av directive
 
 // HandleValueRemoved is called when a value is removed from the directive.
 // Should not block.
-func (l *loadedBucketVolume) HandleValueRemoved(_ directive.Instance, av directive.AttachedValue) {
+func (l *loadedBucketBlockStore) HandleValueRemoved(_ directive.Instance, av directive.AttachedValue) {
 	val, ok := av.GetValue().(bucket.BuildBucketAPIValue)
 	if !ok || !val.GetExists() {
 		return
 	}
 	l.b.mtx.Lock()
-	if lbv, exists := l.b.volumes.GetKey(l.volumeID); exists && lbv == l {
+	if lbv, exists := l.b.blockStores.GetKey(l.blockStoreID); exists && lbv == l {
 		l.bh = nil
 		l.b.bucketHandleSetDirty = true
 		l.b.wake.Broadcast()
@@ -94,9 +93,9 @@ func (l *loadedBucketVolume) HandleValueRemoved(_ directive.Instance, av directi
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
 // This will occur if Close() is called on the directive instance.
-func (l *loadedBucketVolume) HandleInstanceDisposed(_ directive.Instance) {
+func (l *loadedBucketBlockStore) HandleInstanceDisposed(_ directive.Instance) {
 	l.b.mtx.Lock()
-	existed, reset := l.b.volumes.ResetRoutine(l.volumeID, func(_ string, other *loadedBucketVolume) bool {
+	existed, reset := l.b.blockStores.ResetRoutine(l.blockStoreID, func(_ string, other *loadedBucketBlockStore) bool {
 		return l == other
 	})
 	if existed && reset && l.bh != nil {
@@ -108,4 +107,4 @@ func (l *loadedBucketVolume) HandleInstanceDisposed(_ directive.Instance) {
 }
 
 // _ is a type assertion
-var _ directive.ReferenceHandler = ((*loadedBucketVolume)(nil))
+var _ directive.ReferenceHandler = ((*loadedBucketBlockStore)(nil))

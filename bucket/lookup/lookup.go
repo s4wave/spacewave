@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
-	"github.com/aperturerobotics/hydra/volume"
 )
 
 // LookupBlockOpts contains additional options for the lookup block call.
@@ -34,7 +33,7 @@ func NewLookupBlockOpts(opts ...LookupBlockOption) *LookupBlockOpts {
 	return o
 }
 
-// WithLocalOnly indicates we should only use the local volumes for the call.
+// WithLocalOnly indicates we should only use the local block stores for the call.
 func WithLocalOnly() LookupBlockOption {
 	return func(opts *LookupBlockOpts) {
 		opts.LocalOnly = true
@@ -70,7 +69,7 @@ type Lookup interface {
 	) ([]*bucket.ObjectRef, bool, error)
 }
 
-// Handle looks up data from a bucket independent of volume.
+// Handle looks up data from a bucket independent of block store.
 // Calls are bounded by the handle and request contexts.
 // Will be terminated when bucket config value changes.
 type Handle interface {
@@ -95,7 +94,7 @@ type Controller interface {
 	// use to service requests. The controller should wait for this to be called
 	// before beginning to service requests. The bucket handles pushed will
 	// always have GetExists() == true.
-	PushBucketHandles(ctx context.Context, handles []volume.BucketHandle)
+	PushBucketHandles(ctx context.Context, handles []bucket.BucketHandle)
 }
 
 // Config is the minimum requirement for a lookup config object.

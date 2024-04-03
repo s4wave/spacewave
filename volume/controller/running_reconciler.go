@@ -110,7 +110,7 @@ func (r *runningReconciler) executeReconciler() error {
 
 	recConf.SetBucketId(r.pair.BucketID)
 	recConf.SetReconcilerId(r.pair.ReconcilerID)
-	recConf.SetVolumeId(r.v.GetID())
+	recConf.SetBlockStoreId(r.v.GetID())
 
 	// Issue a configset fragment.
 	csf := configset.ConfigSet{}

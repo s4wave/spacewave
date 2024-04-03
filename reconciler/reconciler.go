@@ -5,8 +5,9 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/mqueue"
-	"github.com/aperturerobotics/hydra/volume"
 )
 
 // Reconciler is a routine executed when the reconciler message queue is filled.
@@ -28,9 +29,9 @@ type Handle interface {
 	// GetReconcilerId returns the reconciler id.
 	GetReconcilerId() string
 	// GetBucketHandle returns the handle to the bucket.
-	GetBucketHandle() volume.BucketHandle
-	// GetVolume returns the volume.
-	GetVolume() volume.Volume
+	GetBucketHandle() bucket.BucketHandle
+	// GetBlockStore returns the block store.
+	GetBlockStore() block_store.Store
 	// GetEventQueue returns the reconciler event queue handle.
 	GetEventQueue() mqueue.Queue
 }
@@ -58,10 +59,10 @@ type Config interface {
 	// SetBucketId sets the bucket ID field.
 	SetBucketId(id string)
 
-	// GetVolumeId returns the volume id that the reconciler is attached to.
-	GetVolumeId() string
-	// SetVolumeId sets the volume ID field.
-	SetVolumeId(id string)
+	// GetBlockStoreId returns the block store id that the reconciler is attached to.
+	GetBlockStoreId() string
+	// SetBlockStoreId sets the block store ID field.
+	SetBlockStoreId(id string)
 
 	// GetReconcilerId returns the reconciler id that the reconciler is attached to.
 	GetReconcilerId() string

@@ -3,10 +3,9 @@ package node_controller
 import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_store "github.com/aperturerobotics/hydra/block/store"
-	"github.com/aperturerobotics/hydra/volume"
 )
 
-// blockStoreRefHandler implements the reference handler for LookupVolume.
+// blockStoreRefHandler implements the reference handler for LookupBlockStore.
 type blockStoreRefHandler struct {
 	c *Controller
 }
@@ -34,7 +33,7 @@ func (r *blockStoreRefHandler) HandleValueAdded(
 		r.c.blockStores[blockStoreID] = v
 		bkts := r.c.buckets.GetKeysWithData()
 		for _, b := range bkts {
-			b.Data.PushVolume(blockStoreID, true)
+			b.Data.PushBlockStore(blockStoreID, true)
 		}
 	}
 	r.c.mtx.Unlock()
@@ -46,7 +45,7 @@ func (r *blockStoreRefHandler) HandleValueRemoved(
 	i directive.Instance,
 	av directive.AttachedValue,
 ) {
-	v, ok := av.GetValue().(volume.Volume)
+	v, ok := av.GetValue().(block_store.Store)
 	if !ok {
 		return
 	}
@@ -57,7 +56,7 @@ func (r *blockStoreRefHandler) HandleValueRemoved(
 		delete(r.c.blockStores, blockStoreID)
 		bkts := r.c.buckets.GetKeysWithData()
 		for _, b := range bkts {
-			b.Data.ClearVolume(blockStoreID)
+			b.Data.ClearBlockStore(blockStoreID)
 		}
 	}
 	r.c.mtx.Unlock()
@@ -71,7 +70,7 @@ func (r *blockStoreRefHandler) HandleInstanceDisposed(i directive.Instance) {
 	for k := range r.c.blockStores {
 		delete(r.c.blockStores, k)
 		for _, b := range bkts {
-			b.Data.ClearVolume(k)
+			b.Data.ClearBlockStore(k)
 		}
 	}
 	r.c.mtx.Unlock()

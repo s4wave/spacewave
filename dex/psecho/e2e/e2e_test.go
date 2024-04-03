@@ -19,8 +19,8 @@ func TestPsechoE2E_DEX(t *testing.T) {
 		func(bc *bucket.Config) error {
 			lookupConf := &lc.Config{
 				NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
-				PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL_VOLUMES,
-				WritebackBehavior: lc.WritebackBehavior_WritebackBehavior_ALL_VOLUMES,
+				PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL,
+				WritebackBehavior: lc.WritebackBehavior_WritebackBehavior_ALL,
 			}
 			cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), false)
 			if err != nil {

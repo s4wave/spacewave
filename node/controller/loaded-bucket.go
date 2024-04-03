@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -23,15 +22,15 @@ type loadedBucket struct {
 	le       *logrus.Entry
 	bucketID string
 
-	stateCtr *ccontainer.CContainer[*loadedBucketState]
-	lookupCh chan bucket_lookup.Lookup
-	wake     broadcast.Broadcast
+	stateCtr  *ccontainer.CContainer[*loadedBucketState]
+	lookupCtr *ccontainer.CContainer[bucket_lookup.Lookup]
+	wake      broadcast.Broadcast
 
 	mtx                   sync.Mutex
 	lastState             *loadedBucketState
 	bucketConf            *bucket.Config
 	lookupCtrlRef         bucket_lookup.Controller
-	volumes               *keyed.Keyed[string, *loadedBucketVolume]
+	blockStores           *keyed.Keyed[string, *loadedBucketBlockStore]
 	bucketHandleSetPushed bool
 	bucketHandleSetDirty  bool
 }
@@ -69,13 +68,13 @@ func (l *loadedBucketState) equal(ot *loadedBucketState) bool {
 // newLoadedBucket constructs a new loaded bucket.
 func (c *Controller) newLoadedBucket(bucketID string) (keyed.Routine, *loadedBucket) {
 	lb := &loadedBucket{
-		c:        c,
-		le:       c.le.WithField("bucket-id", bucketID),
-		bucketID: bucketID,
-		lookupCh: make(chan bucket_lookup.Lookup, 1),
-		stateCtr: ccontainer.NewCContainer[*loadedBucketState](nil),
+		c:         c,
+		le:        c.le.WithField("bucket-id", bucketID),
+		bucketID:  bucketID,
+		lookupCtr: ccontainer.NewCContainer[bucket_lookup.Lookup](nil),
+		stateCtr:  ccontainer.NewCContainer[*loadedBucketState](nil),
 	}
-	lb.volumes = keyed.NewKeyed(lb.newLoadedBucketVolume)
+	lb.blockStores = keyed.NewKeyed(lb.newLoadedBucketBlockStore)
 	return lb.execute, lb
 }
 
@@ -84,7 +83,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 	b.le.Debug("starting bucket tracking")
 
 	// State management routines.
-	defer b.volumes.SyncKeys(nil, false)
+	defer b.blockStores.SyncKeys(nil, false)
 	defer b.le.Debug("exited bucket tracking")
 
 	var st loadedBucketState
@@ -102,7 +101,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 
 	// startup
 	var wakeCh <-chan struct{}
-	b.volumes.SetContext(ctx, true)
+	b.blockStores.SetContext(ctx, true)
 
 	var lookupCtrCancel context.CancelFunc
 	for {
@@ -133,8 +132,8 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 		}
 
 		if b.bucketHandleSetDirty && b.lookupCtrlRef != nil {
-			vols := b.volumes.GetKeysWithData()
-			handles := make([]volume.BucketHandle, 0, len(vols))
+			vols := b.blockStores.GetKeysWithData()
+			handles := make([]bucket.BucketHandle, 0, len(vols))
 			for _, vdat := range vols {
 				v := vdat.Data
 				if v != nil && v.bh != nil && v.bh.GetExists() {
@@ -167,22 +166,22 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 	}
 }
 
-// PushVolume pushes a new volume ID, triggering a bucket handle lookup.
+// PushBlockStore pushes a new block store ID, triggering a bucket handle lookup.
 //
 // if reset is set, resets the routine if it already existed.
-func (b *loadedBucket) PushVolume(volumeID string, reset bool) {
+func (b *loadedBucket) PushBlockStore(blockStoreID string, reset bool) {
 	b.mtx.Lock()
-	_, existed := b.volumes.SetKey(volumeID, true)
+	_, existed := b.blockStores.SetKey(blockStoreID, true)
 	if existed && reset {
-		_, _ = b.volumes.ResetRoutine(volumeID)
+		_, _ = b.blockStores.ResetRoutine(blockStoreID)
 	}
 	b.mtx.Unlock()
 }
 
-// ClearVolume clears a volume ID if it was previously pushed with PushVolume.
-func (b *loadedBucket) ClearVolume(volumeID string) {
+// ClearBlockStore clears a block store ID if it was previously pushed with PushBlockStore.
+func (b *loadedBucket) ClearBlockStore(blockStoreID string) {
 	b.mtx.Lock()
-	removed := b.volumes.RemoveKey(volumeID)
+	removed := b.blockStores.RemoveKey(blockStoreID)
 	if removed {
 		b.bucketHandleSetDirty = true
 		b.wake.Broadcast()
@@ -192,42 +191,17 @@ func (b *loadedBucket) ClearVolume(volumeID string) {
 
 // GetLookup waits for the lookup.
 func (b *loadedBucket) GetLookup(ctx context.Context) (bucket_lookup.Lookup, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case l := <-b.lookupCh:
-		select {
-		case b.lookupCh <- l:
-		default:
-		}
-		return l, nil
-	}
+	return b.lookupCtr.WaitValue(ctx, nil)
 }
 
 // clearLookup removes the lookup from the lookupCh
 func (b *loadedBucket) clearLookup() {
-	for {
-		select {
-		case <-b.lookupCh:
-		default:
-			return
-		}
-	}
+	b.lookupCtr.SetValue(nil)
 }
 
 // pushLookup pushes the lookup to the lookupCh
 func (b *loadedBucket) pushLookup(l bucket_lookup.Lookup) {
-	for {
-		select {
-		case b.lookupCh <- l:
-			return
-		default:
-		}
-		select {
-		case <-b.lookupCh:
-		default:
-		}
-	}
+	b.lookupCtr.SetValue(l)
 }
 
 // execLookupController manages a lookup controller instance.

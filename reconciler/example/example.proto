@@ -5,9 +5,9 @@ package reconciler.example;
 message Config {
   // BucketId is the bucket id attached.
   string bucket_id = 1;
-  // VolumeId is the volume id attached.
-  string volume_id = 2;
-  // ReconcilerId is the reconciler id attached.
+  // BlockStoreId is the block store id.
+  string block_store_id = 2;
+  // ReconcilerId is the reconciler id.
   string reconciler_id = 3;
 }
 
