@@ -125,27 +125,24 @@ The full list of available daemon CLI flags is currently:
 
 ```
 OPTIONS:
-   --badger-db value         set a path to a badger db dir to load on startup [$HYDRA_BADGER_DB]
-   --bolt-db value           set a path to a bolt db file to load on startup [$HYDRA_BOLT_DB]
-   --bolt-db-verbose         if set, mark bolt database as verbose [$HYDRA_BOLT_DB_VERBOSE]
-   --redis-url value         set a url to a redis instance to connect to on startup [$HYDRA_REDIS_URL]
-   --inmem-db                if set, start a in-memory volume on startup [$HYDRA_INMEM_DB]
-   --inmem-db-verbose        if set, mark inmem database as verbose. implies --inmem-db [$HYDRA_INMEM_DB_VERBOSE]
-   --node-priv value         path to node private key, will be generated if doesn't exist (default: "daemon_node_priv.pem")
-   --api-listen value        if set, will listen on address for API connections, ex :5110 (default: ":5110")
-   --prof-listen value       if set, debug profiler will be hosted on the port, ex :8080
-   --config value, -c value  path to configuration yaml file (default: "hydra_daemon.yaml") [$HYDRA_CONFIG]
-   --write-config            write the daemon config file on startup [$HYDRA_WRITE_CONFIG]
-   --hold-open-links         if set, hold open links without an inactivity timeout [$BIFROST_HOLD_OPEN_LINKS]
-   --websocket-listen value  if set, will listen on address for websocket connections, ex :5111 [$BIFROST_WS_LISTEN]
-   --udp-listen value        if set, will listen on address for udp connections, ex :5112 [$BIFROST_UDP_LISTEN]
-   --xbee-device-path value  xbee device path to open, if set [$BIFROST_XBEE_PATH]
-   --xbee-device-baud value  xbee device baudrate to use, defaults to 115200 (default: 115200) [$BIFROST_XBEE_BAUD]
-   --establish-peers value   if set, request establish links to list of peer ids [$BIFROST_ESTABLISH_PEERS]
-   --xbee-peers value        list of peer-id@address known XBee peers [$BIFROST_XBEE_PEERS]
-   --udp-peers value         list of peer-id@address known UDP peers [$BIFROST_UDP_PEERS]
-   --websocket-peers value   list of peer-id@address known WebSocket peers [$BIFROST_WS_PEERS]
-   --pubsub value            if set, will configure pubsub from options: [floodsub] [$BIFROST_PUBSUB]
+   --badger-db value [ --badger-db value ]              set a path to a badger db dir to load on startup [$HYDRA_BADGER_DB]
+   --bolt-db value [ --bolt-db value ]                  set a path to a bolt db file to load on startup [$HYDRA_BOLT_DB]
+   --bolt-db-verbose                                    if set, mark bolt database as verbose (default: false) [$HYDRA_BOLT_DB_VERBOSE]
+   --redis-url value                                    set a url to a redis instance to connect to on startup [$HYDRA_REDIS_URL]
+   --inmem-db                                           if set, start a in-memory volume on startup (default: false) [$HYDRA_INMEM_DB]
+   --inmem-db-verbose                                   if set, mark inmem database as verbose. implies --inmem-db (default: false) [$HYDRA_INMEM_DB_VERBOSE]
+   --node-priv value                                    path to node private key, will be generated if doesn't exist (default: "daemon_node_priv.pem")
+   --api-listen value                                   if set, will listen on address for API connections, ex :5110 (default: ":5110")
+   --prof-listen value                                  if set, debug profiler will be hosted on the port, ex :8080
+   --config value, -c value                             path to configuration yaml file (default: "hydra_daemon.yaml") [$HYDRA_CONFIG]
+   --write-config                                       write the daemon config file on startup (default: false) [$HYDRA_WRITE_CONFIG]
+   --hold-open-links                                    if set, hold open links without an inactivity timeout (default: false) [$BIFROST_HOLD_OPEN_LINKS]
+   --websocket-listen value                             if set, will listen on address for websocket connections, ex :5111 [$BIFROST_WS_LISTEN]
+   --udp-listen value                                   if set, will listen on address for udp connections, ex :5112 [$BIFROST_UDP_LISTEN]
+   --establish-peers value [ --establish-peers value ]  if set, request establish links to list of peer ids [$BIFROST_ESTABLISH_PEERS]
+   --udp-peers value [ --udp-peers value ]              list of peer-id@address known UDP peers [$BIFROST_UDP_PEERS]
+   --websocket-peers value [ --websocket-peers value ]  list of peer-id@address known WebSocket peers [$BIFROST_WS_PEERS]
+   --pubsub value                                       if set, will configure pubsub from options: [floodsub, nats] [$BIFROST_PUBSUB]
 ```
 
 If `--write-config` is set, the options configured on the CLI will be written to

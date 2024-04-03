@@ -104,16 +104,23 @@ func (c *Controller) HandleDirective(
 	switch d := inst.GetDirective().(type) {
 	case block_store.LookupBlockStore:
 		storeID := d.LookupBlockStoreId()
+
 		var matched bool
-		for _, id := range c.blockStoreIds {
-			if id == storeID {
-				matched = true
-				break
+		// matches all store ids
+		if storeID == "" {
+			matched = true
+		} else {
+			for _, id := range c.blockStoreIds {
+				if id == storeID {
+					matched = true
+					break
+				}
 			}
 		}
 		if !matched {
 			return nil, nil
 		}
+
 		return directive.R(
 			directive.NewRefCountResolverWithXfrm(
 				c.rc,

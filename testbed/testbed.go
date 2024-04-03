@@ -210,6 +210,10 @@ func RunSubtest(t *testing.T, name string, cb func(t *testing.T, tb *Testbed)) b
 // BuildEmptyCursor builds an empty cursor rooted at the volume in the testbed.
 func (t *Testbed) BuildEmptyCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	vol := t.Volume
+	if vol == nil {
+		return nil, errors.New("no testbed volume configured")
+	}
+
 	volID := vol.GetID()
 	oc, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,

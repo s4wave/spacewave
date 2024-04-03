@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
+	block_store_inmem "github.com/aperturerobotics/hydra/block/store/inmem"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	"github.com/aperturerobotics/hydra/dex/psecho"
@@ -43,6 +44,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
+	sr.AddFactory(block_store_inmem.NewFactory(b))
 
 	sr.AddFactory(psecho.NewFactory(b))
 }

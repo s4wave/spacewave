@@ -82,7 +82,7 @@ func (c *Cursor) SetBlockStore(store StoreOps) {
 // CloneBlock tries to clone the contained block.
 //
 // returns ErrUnexpectedType or ErrNotClonable if the block was not clonable.
-func (c *Cursor) CloneBlock() (interface{}, error) {
+func (c *Cursor) CloneBlock() (any, error) {
 	if c.t != nil {
 		c.t.mtx.Lock()
 		defer c.t.mtx.Unlock()
@@ -246,7 +246,7 @@ func (c *Cursor) Parents() []*Cursor {
 // GetBlock returns the current loaded block at the position.
 // May be nil if Fetch or Unmarshal or SetBlock have not been called.
 // Returns isSubBlock.
-func (c *Cursor) GetBlock() (interface{}, bool) {
+func (c *Cursor) GetBlock() (any, bool) {
 	if c == nil {
 		return nil, false
 	}
@@ -713,7 +713,7 @@ func (c *Cursor) GetExistingRef(refID uint32) *Cursor {
 // the Write process.
 //
 // Also valid for sub-blocks.
-func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
+func (c *Cursor) SetPreWriteHook(h func(b any) error) {
 	if c != nil {
 		c.pos.blkPreWrite = h
 	}
@@ -725,7 +725,7 @@ func (c *Cursor) SetPreWriteHook(h func(b interface{}) error) {
 // If dirty is set, sets the block as dirty.
 //
 // Clears BlockPreWrite.
-func (c *Cursor) SetBlock(b interface{}, dirty bool) {
+func (c *Cursor) SetBlock(b any, dirty bool) {
 	if c == nil {
 		return
 	}

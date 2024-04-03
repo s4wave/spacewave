@@ -20,6 +20,7 @@ export enum BlockEnc {
   BlockEnc_XCHACHA20_POLY1305 = 2,
   /**
    * BlockEnc_SECRET_BOX - BlockCrypt_SECRET_BOX uses nacl secret box encryption.
+   * Key size of 32 bytes.
    * Derives the nonce with blake3 key derivation.
    * Stores the nonce in the first 24 bytes of the ciphertext.
    */

@@ -36,6 +36,7 @@ const (
 	// Stores the nonce in the first 24 bytes of the ciphertext.
 	BlockEnc_BlockEnc_XCHACHA20_POLY1305 BlockEnc = 2
 	// BlockCrypt_SECRET_BOX uses nacl secret box encryption.
+	// Key size of 32 bytes.
 	// Derives the nonce with blake3 key derivation.
 	// Stores the nonce in the first 24 bytes of the ciphertext.
 	BlockEnc_BlockEnc_SECRET_BOX BlockEnc = 3
