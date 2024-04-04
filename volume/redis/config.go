@@ -24,6 +24,10 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	if err := c.GetVolumeConfig().Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

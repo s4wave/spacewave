@@ -9,7 +9,7 @@ replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.1-0.20240323000257-f8e9a4365606
 	github.com/aperturerobotics/hydra v0.0.0-20240201230451-cc41903749a8
-	github.com/aperturerobotics/starpc v0.27.3
+	github.com/aperturerobotics/starpc v0.28.0
 )
 
 require (
@@ -36,8 +36,8 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.27.1-0.20240402212456-a5bb6383e668 // indirect
-	github.com/aperturerobotics/util v1.16.1-0.20240402214822-ef628b8e5a7a // indirect
+	github.com/aperturerobotics/bifrost v0.27.1 // indirect
+	github.com/aperturerobotics/util v1.16.1 // indirect
 	github.com/ashanbrown/forbidigo v1.5.3 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
