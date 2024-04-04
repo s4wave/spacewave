@@ -194,7 +194,7 @@ yarn start:web:wasm
 yarn start:native
 
 # build web (wasm) distribution bundle & serve
-yarn start:web:dist
+yarn start:web:release
 
 # build release bundle for all platforms
 yarn build:cross

@@ -9,18 +9,18 @@ start:
 
 build:
   cross:
-    manifests: ["web", "bldr-demo", "dist"]
+    manifests: ["web", "bldr-demo", "bldr-demo-release"]
     platformIds:
       - native/linux/amd64
       - native/windows/amd64
       - native/darwin/amd64
 
-  dist:
-    manifests: ["web", "bldr-demo", "dist"]
+  release:
+    manifests: ["web", "bldr-demo", "bldr-demo-release"]
     platformIds: ["native"]
 
-  dist-web:
-    manifests: ["web", "bldr-demo", "dist"]
+  release-web:
+    manifests: ["web", "bldr-demo", "bldr-demo-release"]
     platformIds: ["web"]
 
 remotes:
@@ -47,7 +47,7 @@ remotes:
 publish:
   demo-dist:
     remotes: ["demo-dist"]
-    manifests: ["web", "bldr-demo", "dist"]
+    manifests: ["web", "bldr-demo", "bldr-demo-dist"]
     storage:
       # bifrost util timestamp
       timestamp: "2023-10-18T18:38:40Z"
@@ -93,7 +93,7 @@ manifests:
                 config:
                   pluginId: bldr-demo
                   fetchManifestIdRe: demo-.*
-  dist:
+  bldr-demo-release:
     builder:
       id: bldr/dist/compiler
       config:
