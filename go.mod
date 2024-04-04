@@ -7,9 +7,9 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 
 // https://github.com/golang/tools/pull/483
 // https://go-review.googlesource.com/c/tools/+/570796
-replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
+replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240404211547-45a258a3579f // master
+require github.com/aperturerobotics/hydra v0.0.0-20240404231456-881955a8fc65 // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.27.1 // master
+require github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
 
 // aperture: use ext-engines forks
 replace (
@@ -56,7 +56,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.38.0 // master
+	github.com/aperturerobotics/controllerbus v0.38.1-0.20240404200601-a5d6ce4d901a // master
 	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 )
@@ -97,7 +97,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/crypto v0.22.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/protobuf v1.33.0
 	nhooyr.io/websocket v1.8.10
@@ -115,8 +115,8 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.1-0.20240327091054-4d0d7f0db7ba
 	github.com/sergi/go-diff v1.3.1
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
-	golang.org/x/mod v0.16.0
-	golang.org/x/sync v0.6.0
+	golang.org/x/mod v0.17.0
+	golang.org/x/sync v0.7.0
 	golang.org/x/tools v0.19.0
 )
 
@@ -230,9 +230,9 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/term v0.18.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect

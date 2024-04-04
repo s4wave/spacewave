@@ -92,7 +92,7 @@ func Run(
 	}
 
 	// mount the embedded read-only storage volume
-	staticVolFile, staticVolFileSize, err := openStaticVolume(assetsFS)
+	staticVolFile, staticVolFileSize, err := openStaticVolume(le, assetsFS, true)
 	if err != nil {
 		return errors.Wrap(err, "open static assets volume")
 	}
