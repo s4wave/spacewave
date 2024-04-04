@@ -27,6 +27,12 @@ func (r *blockStoreRefHandler) HandleValueAdded(
 	}
 
 	blockStoreID := v.GetID()
+	if blockStoreID == "" {
+		// this should not happen
+		r.c.le.Warn("ignoring value for LookupBlockStore with empty block store id")
+		return
+	}
+
 	r.c.mtx.Lock()
 	if vb, ok := r.c.blockStores[blockStoreID]; !ok || vb != v {
 		r.c.le.WithField("block-store-id", blockStoreID).Debug("block store added")
@@ -50,6 +56,9 @@ func (r *blockStoreRefHandler) HandleValueRemoved(
 		return
 	}
 	blockStoreID := v.GetID()
+	if blockStoreID == "" {
+		return
+	}
 	r.c.mtx.Lock()
 	if vb, ok := r.c.blockStores[blockStoreID]; ok && vb == v {
 		r.c.le.WithField("block-store-id", blockStoreID).Debug("block store removed")
