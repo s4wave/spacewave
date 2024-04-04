@@ -9,10 +9,9 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
-	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
+	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/config"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -40,6 +39,8 @@ type DistBus struct {
 	sr *static.Resolver
 	// platformID is the distribution platform id.
 	platformID string
+	// storageID is the id of the storage attached to the bus
+	storageID string
 	// worldEngineID is the world engine id for state
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
@@ -50,10 +51,6 @@ type DistBus struct {
 	pluginHostObjectKey string
 	// pluginHostCtrl is the plugin host controller
 	pluginHostCtrl *plugin_host_default.PluginHostController
-	// st contains the storage method
-	st storage.Storage
-	// stConf is the storage config
-	stConf config.Config
 	// stateRoot is the .bldr state root dir.
 	stateRoot string
 	// vol is the volume used for state
@@ -117,7 +114,8 @@ func BuildDistBus(
 
 	// attach the default storage controller
 	// this provides access to separate volumes for different purposes.
-	storageCtrl := default_storage.NewController(default_storage.StorageID, b, stateRoot)
+	storageID := default_storage.StorageID
+	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
 		ctxCancel()
@@ -132,18 +130,16 @@ func BuildDistBus(
 	}
 
 	// run the distribution storage volume (used for storing dist manifests)
-
-	// load storage
-	storageMethod := storageMethods[0]
-	storageMethod.AddFactories(b, sr)
-	stConf := storageMethod.BuildVolumeConfig(projectID, &volume_controller.Config{
-		VolumeIdAlias: []string{"dist"},
-	})
-
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(stConf),
+		resolver.NewLoadControllerWithConfig(&storage_volume.Config{
+			StorageId:       storageID,
+			StorageVolumeId: "dist/" + projectID,
+			VolumeConfig: &volume_controller.Config{
+				VolumeIdAlias: []string{"dist"},
+			},
+		}),
 		ctxCancel,
 	)
 	if err != nil {
@@ -261,14 +257,13 @@ func BuildDistBus(
 		b:                   b,
 		le:                  le,
 		sr:                  sr,
+		storageID:           storageID,
 		platformID:          platformID,
 		worldEngineID:       engineID,
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
 		pluginHostObjectKey: pluginHostObjectKey,
 		pluginHostCtrl:      pluginHostCtrl,
-		st:                  storageMethod,
-		stConf:              stConf,
 		stateRoot:           stateRoot,
 		vol:                 vol,
 		peerID:              vol.GetPeerID(),
@@ -307,6 +302,11 @@ func (d *DistBus) GetStaticResolver() *static.Resolver {
 	return d.sr
 }
 
+// GetStorageID returns the storag eid.
+func (d *DistBus) GetStorageID() string {
+	return d.storageID
+}
+
 // GetDistPlatformID returns the distribution platform id.
 func (d *DistBus) GetDistPlatformID() string {
 	return d.platformID
@@ -315,16 +315,6 @@ func (d *DistBus) GetDistPlatformID() string {
 // GetStateRoot returns the root of the state tree.
 func (d *DistBus) GetStateRoot() string {
 	return d.stateRoot
-}
-
-// GetStorage returns the storage.
-func (d *DistBus) GetStorage() storage.Storage {
-	return d.st
-}
-
-// GetStorageConf returns the storage config.
-func (d *DistBus) GetStorageConf() config.Config {
-	return d.stConf
 }
 
 // GetVolume returns the storage volume in use.
