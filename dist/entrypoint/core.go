@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
+	block_store_bucket "github.com/aperturerobotics/hydra/block/store/bucket"
 	block_store_rpc "github.com/aperturerobotics/hydra/block/store/rpc"
 	block_store_rpc_lookup "github.com/aperturerobotics/hydra/block/store/rpc/lookup"
 	block_store_rpc_server "github.com/aperturerobotics/hydra/block/store/rpc/server"
@@ -56,6 +57,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))
+	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(block_store_rpc.NewFactory(b))
 	sr.AddFactory(block_store_rpc_lookup.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server.NewFactory(b))
