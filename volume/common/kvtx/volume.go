@@ -22,12 +22,16 @@ type Volume struct {
 	peer.Peer
 	// kvtxStore is the underlying kvtx store
 	kvtxStore kvtx.Store
+	// kvKey is the underlying kvkey
+	kvKey *store_kvkey.KVKey
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
 type KvtxVolume interface {
 	// GetKvtxStore returns the underlying kvtx store.
 	GetKvtxStore() kvtx.Store
+	// GetKvKey returns the instance of KvKey used to build keys.
+	GetKvKey() *store_kvkey.KVKey
 }
 
 // NewVolume builds a new key/value volume.
@@ -45,6 +49,7 @@ func NewVolume(
 	v := &Volume{
 		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
 		kvtxStore: store,
+		kvKey:     kvkey,
 	}
 
 	peerPriv, err := v.Store.LoadPeerPriv(ctx)
@@ -103,6 +108,11 @@ func (v *Volume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, error) 
 // GetKvtxStore returns the underlying kvtx store.
 func (v *Volume) GetKvtxStore() kvtx.Store {
 	return v.kvtxStore
+}
+
+// GetKvKey returns the instance of KvKey used to build keys.
+func (v *Volume) GetKvKey() *store_kvkey.KVKey {
+	return v.kvKey
 }
 
 // Close closes the volume, returning any errors.
