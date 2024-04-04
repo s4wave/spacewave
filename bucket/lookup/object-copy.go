@@ -2,6 +2,7 @@ package bucket_lookup
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -53,6 +54,12 @@ func CopyObjectToBucket(
 	readXfrm := srcCursor.GetTransformer()
 	writeBkt := writeCursor.GetBucket()
 
+	// Ensure we do not process duplicate blocks by tracking which blocks were seen.
+	// use a sync.Map since this is the exact situation it is meant for
+	// key: string (BlockRef)
+	// value: bool (seen)
+	var seenBlocks sync.Map
+
 	// To copy the object fully, we have to traverse the block graph.
 	// We do this by recursively following the block refs.
 	// Note that GetBlockRefCtor must be implemented for this to work properly.
@@ -65,13 +72,23 @@ func CopyObjectToBucket(
 			if cb != nil {
 				cntu, err = cb(ent)
 			} else {
+				// Note: we give the callback the chance to ignore the err above.
 				err = ent.Err
 				if err == nil && !ent.Found && !ent.IsSubBlock {
 					err = errors.Wrap(block.ErrNotFound, ent.Ref.MarshalString())
 				}
 				cntu = err == nil
 			}
+
 			if err != nil || ent.IsSubBlock || !ent.Found || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
+				// skip this block since it is not found or a sub-block or empty
+				return
+			}
+
+			// skip copying if we already saw this block
+			refStr := ent.Ref.MarshalString()
+			_, seen := seenBlocks.LoadOrStore(refStr, true)
+			if seen {
 				return
 			}
 

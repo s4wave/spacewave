@@ -145,6 +145,8 @@ func (b *BlockRef) MarshalString() string {
 	}
 	dat, err := b.MarshalKey()
 	if err != nil {
+		// Yes, we are ignoring err here.
+		// MarshalVT will not return an error for BlockRef.
 		return ""
 	}
 	return b58.Encode(dat)
