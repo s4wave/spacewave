@@ -1,0 +1,16 @@
+syntax = "proto3";
+package storage.volume;
+
+import "github.com/aperturerobotics/hydra/volume/controller/controller.proto";
+
+// Config configures a volume attached to a Storage.
+message Config {
+  // StorageId is the id to use to look up the storage on the bus.
+  // usually "default"
+  string storage_id = 1;
+  // StorageVolumeId is the id to pass to the storage constructor for the volume.
+  // e.x. my-app-dist
+  string storage_volume_id = 2;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 3;
+}

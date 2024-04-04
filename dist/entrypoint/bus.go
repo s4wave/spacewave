@@ -115,12 +115,23 @@ func BuildDistBus(
 		}
 	}
 
-	// build storage config
-	storageMethods := default_storage.BuildStorage(b, stateRoot)
+	// attach the default storage controller
+	// this provides access to separate volumes for different purposes.
+	storageCtrl := default_storage.NewController(default_storage.StorageID, b, stateRoot)
+	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
+	if err != nil {
+		ctxCancel()
+		return nil, err
+	}
+
+	// ensure there is at least one storage method
+	storageMethods := storageCtrl.GetStorage()
 	if len(storageMethods) == 0 {
 		ctxCancel()
 		return nil, errors.New("no available storage methods")
 	}
+
+	// run the distribution storage volume (used for storing dist manifests)
 
 	// load storage
 	storageMethod := storageMethods[0]
@@ -264,6 +275,7 @@ func BuildDistBus(
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels: []func(){
+			relStorageCtrl,
 			pluginHostRel,
 			worldCtrlRef.Release,
 			nodeCtrlRef.Release,

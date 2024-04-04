@@ -1,4 +1,4 @@
-package bldr_manifest_builder_controller
+package storage_volume
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 	"github.com/blang/semver"
 )
 
-// Factory constructs a bldr manifest builder controller.
+// Factory constructs the volume.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
 }
 
-// NewFactory builds the controller factory.
+// NewFactory builds a volume factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }
 
-// GetConfigID returns the configuration ID for the controller.
+// GetConfigID returns the unique ID for the config.
 func (t *Factory) GetConfigID() string {
 	return ConfigID
 }
@@ -44,7 +44,13 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	return NewController(le, t.bus, cc), nil
+	// Construct the volume controller.
+	volCtrl, _, err := BuildVolumeController(ctx, le, t.bus, cc)
+	if err != nil {
+		return nil, err
+	}
+
+	return volCtrl, nil
 }
 
 // GetVersion returns the version of this controller.

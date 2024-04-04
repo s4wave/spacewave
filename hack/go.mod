@@ -19,7 +19,7 @@ require (
 	github.com/aperturerobotics/bldr v0.0.0-20240206224505-e8bf10e9b231
 	github.com/aperturerobotics/go-kvfile v0.4.1
 	github.com/aperturerobotics/goprotowrap v0.3.1 // master
-	github.com/aperturerobotics/starpc v0.27.3
+	github.com/aperturerobotics/starpc v0.28.0
 	github.com/evanw/esbuild v0.20.2
 	golang.org/x/tools v0.19.0
 	mvdan.cc/gofumpt v0.5.0
@@ -43,9 +43,9 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20240403203715-58f8a72f858a // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240404035045-ff37b27d5e08 // indirect
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a // indirect
-	github.com/aperturerobotics/util v1.16.1-0.20240402215409-f7905836a411 // indirect
+	github.com/aperturerobotics/util v1.16.1 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

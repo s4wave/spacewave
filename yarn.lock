@@ -375,10 +375,10 @@
   resolved "https://registry.yarnpkg.com/@types/random-string/-/random-string-0.0.31.tgz#0f4dd8c04a154bddb630bdf0b607fcd839663c2e"
   integrity sha512-L/N6zJvxeiNRoGicjS93QYgVFHswsX7bXZIzm9GEZ0to3FMUM02PSBQ/PdijwSCaOaiodUwPXXwd5GnWMvBSfA==
 
-"@types/react-dom@^18.2.23":
-  version "18.2.23"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.23.tgz#112338760f622a16d64271b408355f2f27f6302c"
-  integrity sha512-ZQ71wgGOTmDYpnav2knkjr3qXdAFu0vsk8Ci5w3pGAIdj7/kKAyn+VsQDhXsmzzzepAiI9leWMmubXz690AI/A==
+"@types/react-dom@^18.2.24":
+  version "18.2.24"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.24.tgz#8dda8f449ae436a7a6e91efed8035d4ab03ff759"
+  integrity sha512-cN6upcKd8zkGy4HU9F1+/s98Hrp6D4MOcippK4PoE8OZRngohHZpbJn1GsaDLz87MqvHNoT13nHvNqM9ocRHZg==
   dependencies:
     "@types/react" "*"
 
@@ -843,10 +843,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^29.1.6:
-  version "29.1.6"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-29.1.6.tgz#3804545a7570e88717f01e02ec871c667c55e596"
-  integrity sha512-UIYfpHR9gRBFKHyejHuXUVQ7nNzZRnoPVOHlijkvqR+DSLwgJ2ZcVVt0LNduNeO8PhPkY1+6kHonL52OTC1cOw==
+electron@^29.2.0:
+  version "29.2.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-29.2.0.tgz#98e9d45dcebda124fb0bd1ff20fc509ec692101c"
+  integrity sha512-ALKrCN52RG4g9prx4DriXSPnY5WoiyRUCNp7zEVQuoiNOpHTNqMMpRidQAHzntV4hajF1LMWHVoBkwqIs1jHhg==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -2193,10 +2193,33 @@ sprintf-js@^1.1.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.1.3.tgz#4914b903a2f8b685d17fdf78a70e917e872e444a"
   integrity sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==
 
-starpc@^0.27.2, starpc@^0.27.3:
+starpc@^0.27.2:
   version "0.27.3"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.27.3.tgz#d06c4abdd17542c484fee3c9fc3fa44f8dc86a12"
   integrity sha512-KYfjT4ch2i9GZRSXklBwycHD8Z0jDSxzAKFaKZ2ucNygtUtSHVbwyyyQbC04i/C2sgRAVhhZP+Ws+jUfmfNeCQ==
+  dependencies:
+    "@aptre/it-ws" "^1.0.0"
+    "@chainsafe/libp2p-yamux" "^6.0.2"
+    "@libp2p/interface" "^1.1.3"
+    "@libp2p/logger" "^4.0.6"
+    event-iterator "^2.0.0"
+    is-promise "^4.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.3"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    long "^5.2.3"
+    memoize-one "^6.0.0"
+    patch-package "^8.0.0"
+    protobufjs "^7.2.6"
+    uint8arraylist "^2.4.7"
+    ws "^8.15.1"
+
+starpc@^0.28.0:
+  version "0.28.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.28.0.tgz#52faabdbad0b4d8d883d27b69ee07d3ab4ce4dac"
+  integrity sha512-GQfgVGiTPORWYfk91PMP3/6rdrOPiixZLvcxW3Sw0IDE4fZtm2hPk5KUUwFWWAR2Yj0H/j54fKUw1QXqQAVY/w==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^6.0.2"
@@ -2222,6 +2245,7 @@ stream-shift@^1.0.2:
   integrity sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ==
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==

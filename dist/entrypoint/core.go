@@ -8,6 +8,7 @@ import (
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
+	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
@@ -58,4 +59,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(block_store_rpc_lookup.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server.NewFactory(b))
 	sr.AddFactory(block_store_s3_lookup.NewFactory(b))
+	sr.AddFactory(storage_volume.NewFactory(b))
 }

@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.19.1-0.20240314214115-ea4efd199cbf // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240403203715-58f8a72f858a // master
+require github.com/aperturerobotics/hydra v0.0.0-20240404035045-ff37b27d5e08 // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.27.1-0.20240402221721-2f3a19a2665e // master
+require github.com/aperturerobotics/bifrost v0.27.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -56,9 +56,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.37.1-0.20240402212212-3832004eecd2 // latest
-	github.com/aperturerobotics/entitygraph v0.7.0 // indirect
-	github.com/aperturerobotics/starpc v0.27.3 // latest
+	github.com/aperturerobotics/controllerbus v0.38.0 // master
+	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
+	github.com/aperturerobotics/starpc v0.28.0 // latest
 )
 
 // aperture: use compatibility forks
@@ -78,7 +78,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.16.1-0.20240402215409-f7905836a411 // master
+	github.com/aperturerobotics/util v1.16.1 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.7
@@ -87,7 +87,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.3 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.12 // indirect
-	github.com/nats-io/nats.go v1.34.0 // indirect
+	github.com/nats-io/nats.go v1.34.1 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
@@ -192,21 +192,21 @@ require (
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
-	github.com/pion/ice/v3 v3.0.3 // indirect
+	github.com/pion/ice/v3 v3.0.5 // indirect
 	github.com/pion/interceptor v0.1.27 // indirect
 	github.com/pion/logging v0.2.2 // indirect
-	github.com/pion/mdns v0.0.12 // indirect
+	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
 	github.com/pion/rtp v1.8.5 // indirect
-	github.com/pion/sctp v1.8.13 // indirect
+	github.com/pion/sctp v1.8.14 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.15 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.16 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect

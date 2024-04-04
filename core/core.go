@@ -8,6 +8,7 @@ import (
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	handle_webview_viaplugin "github.com/aperturerobotics/bldr/plugin/handle-web-view"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
+	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
 	web_pkg_rpc_client "github.com/aperturerobotics/bldr/web/pkg/rpc/client"
@@ -80,6 +81,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(web_pkg_rpc_server.NewFactory(b))
 	sr.AddFactory(web_view_handler_via_bus.NewFactory(b))
 
+	sr.AddFactory(storage_volume.NewFactory(b))
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
 

@@ -243,6 +243,7 @@ func BuildDistBundle(
 		return err
 	}
 
+	// build list of files to embed in the assets fs
 	var embedAssetsFS []string
 	if len(hostConfigSetBin) != 0 {
 		embedAssetsFS = append(embedAssetsFS, outConfigSetFilename)
