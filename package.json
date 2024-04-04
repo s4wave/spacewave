@@ -26,6 +26,7 @@
     "serve": "npm run start:web",
     "start": "npm run start:web",
     "start:native": "npm run bldr -- start native",
+    "start:native:dist": "npm run build:dist && cd ./.bldr/build/native/dist/dist && ./bldr-demo",
     "start:web": "npm run bldr -- --minify-entrypoint=false start web",
     "start:web:wasm": "npm run bldr -- --minify-entrypoint=false start web --wasm",
     "start:web:dist": "npm run build:dist:web && npm run bldr -- static --path ./.bldr/build/web/dist/dist",

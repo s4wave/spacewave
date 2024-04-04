@@ -38,8 +38,8 @@ func (s *CliStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
 // baseVolCtrlConf can be nil
-func (s *CliStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
-	return s.args.BuildSingleVolume(baseVolCtrlConf)
+func (s *CliStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
+	return s.args.BuildSingleVolume(baseVolCtrlConf), nil
 }
 
 // _ is a type assertion

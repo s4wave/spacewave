@@ -133,12 +133,16 @@ func BuildDistBundle(
 
 	// start with a working db on-disk in the working dir
 	workingDbVolID := "dist-working-vol"
-	workingDbVolConf := storage.BuildVolumeConfig("dist-working-vol", &volume_controller.Config{
+	workingDbVolConf, err := storage.BuildVolumeConfig("dist-working-vol", &volume_controller.Config{
 		VolumeIdAlias:           []string{workingDbVolID},
 		DisablePeer:             true,
 		DisableEventBlockRm:     true,
 		DisableReconcilerQueues: true,
 	})
+	if err != nil {
+		return err
+	}
+
 	workingVolCtrli, _, workingVolRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		workBus,
@@ -235,7 +239,7 @@ func BuildDistBundle(
 	// Write the kvfile
 	// NOTE: We don't use compression here since the content is already compressed / not compressable.
 	// In testing, the zstd compression had NO reduction in file-size here.
-	err = kvtx_kvfile.KvfileFromStore(ctx, embeddedVolFile, workingVolKvtx)
+	err = kvtx_kvfile.KvfileFromStore(ctx, embeddedVolFile, workingVolKvtx, nil)
 	if err != nil {
 		_ = embeddedVolFile.Close()
 		return err

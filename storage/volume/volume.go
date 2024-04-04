@@ -37,7 +37,10 @@ func BuildVolumeControllerConfig(
 		nil,
 		func(val directive.TypedAttachedValue[storage.LookupStorageValue]) (config.Config, bool, error) {
 			// true above sets waitOne (wait for at least one)
-			volConf := val.GetValue().BuildVolumeConfig(conf.GetStorageVolumeId(), conf.GetVolumeConfig())
+			volConf, err := val.GetValue().BuildVolumeConfig(conf.GetStorageVolumeId(), conf.GetVolumeConfig())
+			if err != nil {
+				return nil, false, err
+			}
 			if volConf == nil {
 				return nil, false, nil
 			}

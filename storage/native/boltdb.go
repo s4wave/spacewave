@@ -4,6 +4,7 @@ package storage_native
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/aperturerobotics/bldr/storage"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -11,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
+	"github.com/pkg/errors"
 )
 
 const BoltDBExt = ".bdb"
@@ -41,13 +43,19 @@ func (i *BoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
 
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
-func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
+func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
+	// replace any slashes with underscores
+	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
+	if cleanFilename := filepath.Clean(filename); cleanFilename != filename {
+		return nil, errors.Errorf("invalid storage id: %s", filename)
+	}
+
 	return &volume_bolt.Config{
-		Path:         filepath.Join(i.rootDir, id+BoltDBExt),
+		Path:         filepath.Join(i.rootDir, filename),
 		Verbose:      i.verbose,
 		Sync:         true,
 		VolumeConfig: baseVolCtrlConf,
-	}
+	}, nil
 }
 
 func init() {

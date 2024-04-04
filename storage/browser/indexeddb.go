@@ -37,12 +37,12 @@ func (i *IndexedDB) AddFactories(b bus.Bus, sr *static.Resolver) {
 
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
-func (i *IndexedDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
+func (i *IndexedDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
 	return &volume_indexeddb.Config{
 		DatabaseName: id,
 		Verbose:      i.verbose,
 		VolumeConfig: baseVolCtrlConf,
-	}
+	}, nil
 }
 
 func init() {
