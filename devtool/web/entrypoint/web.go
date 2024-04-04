@@ -18,6 +18,7 @@ import (
 	devtool_web_entrypoint_controller "github.com/aperturerobotics/bldr/devtool/web/entrypoint/controller"
 	manifest_fetch_rpc "github.com/aperturerobotics/bldr/manifest/fetch/rpc"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
+	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
@@ -95,6 +96,15 @@ func main() {
 			return err
 		}
 		defer relNodeCtrl()
+
+		// attach the default storage controller
+		storageID := default_storage.StorageID
+		storageCtrl := default_storage.NewController(storageID, b, "")
+		relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
+		if err != nil {
+			return err
+		}
+		defer relStorageCtrl()
 
 		ctrl := devtool_web_entrypoint_controller.NewController(
 			le,

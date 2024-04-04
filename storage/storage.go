@@ -1,15 +1,10 @@
 package storage
 
 import (
-	"context"
-
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
-	"github.com/sirupsen/logrus"
 )
 
 // Storage is an available storage mechanism in the environment.
@@ -22,35 +17,4 @@ type Storage interface {
 	// Returns nil if the storage cannot produce Volume.
 	// baseVolCtrlConf can be nil
 	BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) config.Config
-}
-
-// ExecuteStorage runs storage from a list of default providers.
-//
-// returns a release function. logs & ignores any errors.
-func ExecuteStorage(ctx context.Context, b bus.Bus, le *logrus.Entry, storageProviders []Storage, appID string) func() {
-	le.Debugf("executing %d storage provider(s)", len(storageProviders))
-
-	relFns := make([]func(), 0, len(storageProviders))
-	for _, st := range storageProviders {
-		vc := st.BuildVolumeConfig(appID, nil)
-		_, _, volRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			b,
-			resolver.NewLoadControllerWithConfig(vc),
-			nil,
-		)
-		if err != nil {
-			le.
-				WithError(err).
-				Warn("unable to start volume controller, skipping")
-		} else {
-			relFns = append(relFns, volRef.Release)
-		}
-	}
-
-	return func() {
-		for _, fn := range relFns {
-			fn()
-		}
-	}
 }

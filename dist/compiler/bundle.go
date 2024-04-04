@@ -104,6 +104,7 @@ func BuildDistBundle(
 	if err := os.MkdirAll(workingDbDir, 0o755); err != nil {
 		return err
 	}
+
 	storageOpts := default_storage.BuildStorage(workBus, workingDbDir)
 	if len(storageOpts) == 0 {
 		return errors.New("no available storage types for build system")

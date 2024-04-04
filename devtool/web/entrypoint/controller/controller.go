@@ -17,8 +17,8 @@ import (
 	manifest_fetch_rpc "github.com/aperturerobotics/bldr/manifest/fetch/rpc"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
-	"github.com/aperturerobotics/bldr/storage"
-	browser_storage "github.com/aperturerobotics/bldr/storage/browser"
+	storage_default "github.com/aperturerobotics/bldr/storage/default"
+	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -27,6 +27,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/blang/semver"
@@ -74,12 +75,21 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Execute executes the controller.
 // Returning nil ends execution.
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
-	// run the browser storage
 	b, le, devtoolInfo := c.b, c.le, c.devtoolInfo
 
-	browserStorage := browser_storage.BuildStorage(b, "")
-	storageRel := storage.ExecuteStorage(ctx, b, le, browserStorage, devtoolInfo.GetAppId())
-	defer storageRel()
+	// run the dist storage
+	storageID := storage_default.StorageID
+	_, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
+		StorageId:       storageID,
+		StorageVolumeId: "devtool/" + devtoolInfo.GetAppId(),
+		VolumeConfig: &volume_controller.Config{
+			VolumeIdAlias: []string{"dist"},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	defer volCtrlRef.Release()
 
 	// run the browser web runtime controller
 	_, _, rtRef, err := loader.WaitExecControllerRunning(

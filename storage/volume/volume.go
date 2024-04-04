@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/volume"
@@ -28,7 +29,7 @@ func BuildVolumeControllerConfig(
 	b bus.Bus,
 	conf *Config,
 ) (config.Config, storage.Storage, error) {
-	volumeConf, av, _, ref, err := bus.ExecOneOffWithXfrmTyped[storage.LookupStorageValue](
+	volumeConf, av, _, ref, err := bus.ExecOneOffWithXfrmTyped(
 		ctx,
 		b,
 		storage.NewLookupStorage(conf.GetStorageId()),
@@ -82,4 +83,25 @@ func BuildVolumeController(ctx context.Context, le *logrus.Entry, b bus.Bus, con
 	}
 
 	return volCtrl, st, err
+}
+
+// ExecVolumeController executes the volume controller on the bus and returns the volume controller.
+func ExecVolumeController(ctx context.Context, b bus.Bus, conf *Config) (volume.Controller, directive.Reference, error) {
+	volCtrli, _, ref, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(conf),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	volCtrl, ok := volCtrli.(volume.Controller)
+	if !ok {
+		ref.Release()
+		return nil, nil, errors.New("volume controller returned invalid value")
+	}
+
+	return volCtrl, ref, nil
 }

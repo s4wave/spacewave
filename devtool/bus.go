@@ -16,8 +16,8 @@ import (
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
 	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
-	"github.com/aperturerobotics/bldr/storage"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
+	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -68,10 +68,6 @@ type DevtoolBus struct {
 	engineObjectStoreID string
 	// pluginHostObjectKey is the object key used for the PluginHost
 	pluginHostObjectKey string
-	// st contains the storage method
-	st storage.Storage
-	// stConf is the storage config
-	stConf config.Config
 	// stateRoot is the .bldr state root dir.
 	stateRoot string
 	// distSrcRoot is the path to the web entrypoint sources.
@@ -140,37 +136,36 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
-	// build storage config
-	storageMethods := default_storage.BuildStorage(b, stateRoot)
-	if len(storageMethods) == 0 {
-		rel()
-		return nil, errors.New("no available storage methods")
-	}
-
-	// load storage
-	storageMethod := storageMethods[0]
-	storageMethod.AddFactories(b, sr)
-	stConf := storageMethod.BuildVolumeConfig("bldr", &volume_controller.Config{
-		VolumeIdAlias: []string{"devtool"},
-	})
-
-	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(stConf),
-		ctxCancel,
-	)
+	// attach the default storage controller
+	// this provides access to separate volumes for different purposes.
+	storageID := default_storage.StorageID
+	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
+	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	rels = append(rels, diRef.Release)
+	rels = append(rels, relStorageCtrl)
 
-	volCtrl, ok := volCtrli.(volume.Controller)
-	if !ok {
-		rel()
-		return nil, errors.New("volume controller returned invalid value")
+	// ensure there is at least one storage method
+	storageMethods := storageCtrl.GetStorage()
+	if len(storageMethods) == 0 {
+		ctxCancel()
+		return nil, errors.New("no available storage methods")
 	}
+
+	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
+		StorageId:       storageID,
+		StorageVolumeId: "devtool",
+		VolumeConfig: &volume_controller.Config{
+			VolumeIdAlias: []string{"dist"},
+		},
+	})
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, volCtrlRef.Release)
 
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
@@ -287,8 +282,6 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
 		pluginHostObjectKey: pluginHostObjectKey,
-		st:                  storageMethod,
-		stConf:              stConf,
 		stateRoot:           stateRoot,
 		distSrcRoot:         distSrcDir,
 		pluginsDistRoot:     pluginsDistRoot,
@@ -455,16 +448,6 @@ func (d *DevtoolBus) GetPluginsDistRoot() string {
 // GetPluginsStateRoot returns the path to the plugins state files dir.
 func (d *DevtoolBus) GetPluginsStateRoot() string {
 	return d.pluginsStateRoot
-}
-
-// GetStorage returns the storage.
-func (d *DevtoolBus) GetStorage() storage.Storage {
-	return d.st
-}
-
-// GetStorageConf returns the storage config.
-func (d *DevtoolBus) GetStorageConf() config.Config {
-	return d.stConf
 }
 
 // GetVolume returns the storage volume in use.
