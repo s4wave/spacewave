@@ -34,6 +34,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(plugin_host_default.NewPluginHostControllerFactory(b))
 
 	sr.AddFactory(storage_volume.NewFactory(b))
-
 	sr.AddFactory(world_block_engine.NewFactory(b))
 }

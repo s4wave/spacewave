@@ -137,7 +137,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	}
 
 	// attach the default storage controller
-	// this provides access to separate volumes for different purposes.
+	// this provides separate named volumes with the storage volume controller.
 	storageID := default_storage.StorageID
 	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
