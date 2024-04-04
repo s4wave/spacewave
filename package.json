@@ -78,7 +78,7 @@
     "rimraf": "^5.0.5",
     "ts-poet": "6.7.0",
     "ts-proto": "^1.171.0",
-    "typescript": "^5.4.3",
+    "typescript": "^5.4.4",
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
