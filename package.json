@@ -49,15 +49,15 @@
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "ts-poet": "6.7.0",
-    "ts-proto": "^1.169.1",
-    "typescript": "^5.4.2"
+    "ts-proto": "^1.171.0",
+    "typescript": "^5.4.3"
   },
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.3.0",
     "bufferutil": "^4.0.8",
     "long": "^5.2.3",
     "protobufjs": "^7.2.5",
-    "starpc": "^0.27.2",
+    "starpc": "^0.28.0",
     "utf-8-validate": "^6.0.3"
   }
 }

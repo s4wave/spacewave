@@ -129,7 +129,7 @@ func (c *Controller) processExec(
 
 	// construct the controller, using the ExecutionController logger
 	le := c.le
-	ctrl, err := fac.Construct(rCtrlConf, controller.ConstructOpts{
+	ctrl, err := fac.Construct(ctx, rCtrlConf, controller.ConstructOpts{
 		Logger: le,
 	})
 	if err != nil {

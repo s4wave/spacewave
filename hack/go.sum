@@ -78,8 +78,8 @@ github.com/aperturerobotics/goprotowrap v0.3.1 h1:nFCWZ4QNQEzpsgCN1mVWLDVTF/Jm0h
 github.com/aperturerobotics/goprotowrap v0.3.1/go.mod h1:5tRlYsb4VF0ySzx2/My3u9PtzTWNu5o2bqYHj0TRw+U=
 github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 h1:ScQPbkbABsFb7e86ArWSRtoOemQGrX4BDKeHj+JAgbQ=
 github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
-github.com/aperturerobotics/starpc v0.27.3 h1:spXXh7FsNd32dIOnBElRWQeYSAJLIulVz3xI6O+ezGg=
-github.com/aperturerobotics/starpc v0.27.3/go.mod h1:pAETN2gY3W2i+A7CGZgFMvc594H3HN65VMylF8Fp8eY=
+github.com/aperturerobotics/starpc v0.28.0 h1:axzzg+NVmnuIUQ45+XP2PY+JRiJdrYBn7MPos6gOldw=
+github.com/aperturerobotics/starpc v0.28.0/go.mod h1:Ie+AE8AikN3Xs/c5jB0F6wTjxfdlAFTd6U64exVWsTA=
 github.com/ashanbrown/forbidigo v1.6.0 h1:D3aewfM37Yb3pxHujIPSpTf6oQk9sc9WZi8gerOIVIY=
 github.com/ashanbrown/forbidigo v1.6.0/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=
@@ -138,8 +138,6 @@ github.com/esimonov/ifshort v1.0.4 h1:6SID4yGWfRae/M7hkVDVVyppy8q/v9OuxNdmjLQStB
 github.com/esimonov/ifshort v1.0.4/go.mod h1:Pe8zjlRrJ80+q2CxHLfEOfTwxCZ4O+MuhcHcfgNWTk0=
 github.com/ettle/strcase v0.1.1 h1:htFueZyVeE1XNnMEfbqp5r67qAN/4r6ya1ysq8Q+Zcw=
 github.com/ettle/strcase v0.1.1/go.mod h1:hzDLsPC7/lwKyBOywSHEP89nt2pDgdy+No1NBA9o9VY=
-github.com/evanw/esbuild v0.20.0 h1:pcW+/LCNc99Pgfs0kUnvjRCba8Lr9tDMSVg89t1ZLW4=
-github.com/evanw/esbuild v0.20.0/go.mod h1:D2vIQZqV/vIf/VRHtViaUtViZmG7o+kKmlBfVQuRi48=
 github.com/fatih/color v1.16.0 h1:zmkK9Ngbjj+K0yRhTVONQh1p/HknKYSlNT+vZCzyokM=
 github.com/fatih/color v1.16.0/go.mod h1:fL2Sau1YI5c0pdGEVCbKQbLXB6edEj1ZgiY4NijnWvE=
 github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
