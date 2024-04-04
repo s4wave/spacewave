@@ -79,8 +79,8 @@ github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 h1:
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195/go.mod h1:qBLT6/BYoGVoGAbS9XVFoXr5ZKQq3n8cGRXNOeEVn1U=
 github.com/aperturerobotics/controllerbus v0.38.0 h1:bOlWuxb84ZC45/qH9orxpj4JhVnQLq//w/K3cFAZ9w4=
 github.com/aperturerobotics/controllerbus v0.38.0/go.mod h1:63kbiV8sosp0mYO2vuUXOjYnUf04DScQM96Rq3nCWwo=
-github.com/aperturerobotics/entitygraph v0.7.0 h1:VqLRJL09a5K+Wm776TVgYNcPWVSTAg4z2WWqKBJ3WTA=
-github.com/aperturerobotics/entitygraph v0.7.0/go.mod h1:5uvzRHogNm1qhJdZ0kNoJNsY1szf9NkHm3l2MbIRV8s=
+github.com/aperturerobotics/entitygraph v0.8.0 h1:1tEsGPAk4kzJRLrwxn69JZbQreSOkqHgr3Ue5BGpE0M=
+github.com/aperturerobotics/entitygraph v0.8.0/go.mod h1:F9CfzYNTnIj9d7z79+2l0owNqsuVfz/U2cTPZbEcFTw=
 github.com/aperturerobotics/go-kvfile v0.4.1 h1:8hnmtYcJAW1r62MEOSThIgj16FNnRQ56KGwzEPXCztM=
 github.com/aperturerobotics/go-kvfile v0.4.1/go.mod h1:EztkyEY/x44m1dVz7XwK1hJctilTJZK1Ay3NPSHHAJY=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=

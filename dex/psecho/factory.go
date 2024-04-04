@@ -1,6 +1,8 @@
 package psecho
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -35,6 +37,7 @@ func (t *Factory) ConstructConfig() config.Config {
 
 // Construct constructs the associated controller given configuration.
 func (t *Factory) Construct(
+	ctx context.Context,
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {

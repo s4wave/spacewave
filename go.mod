@@ -64,7 +64,7 @@ require (
 
 require (
 	github.com/aperturerobotics/controllerbus v0.38.0 // latest
-	github.com/aperturerobotics/entitygraph v0.7.0
+	github.com/aperturerobotics/entitygraph v0.8.0 // latest
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest

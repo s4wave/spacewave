@@ -40,7 +40,7 @@ func TestSetupController(t *testing.T) {
 	}
 
 	f := bucket_setup.NewFactory(b)
-	ctrl, err := f.Construct(conf, controller.ConstructOpts{
+	ctrl, err := f.Construct(ctx, conf, controller.ConstructOpts{
 		Logger: le,
 	})
 	if err != nil {
