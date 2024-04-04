@@ -72,7 +72,7 @@ func TestBlockStoreBucketController(t *testing.T) {
 	btx, bcs := bls.BuildTransaction(nil)
 	bcs.SetBlock(block_mock.NewExample("hello world"), true)
 
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, _, err := btx.Write(true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

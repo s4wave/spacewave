@@ -50,9 +50,16 @@ func TestKvfile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// filter some keys
+	blockFullPrefix := kvkey.GetBlockFullPrefix()
+	keyfileFilterKeys := func(key []byte) (bool, error) {
+		// only include block store keys
+		return bytes.HasPrefix(key, blockFullPrefix), nil
+	}
+
 	// convert it to a kvfile
 	var buf bytes.Buffer
-	if err := kvtx_kvfile.KvfileFromStore(ctx, &buf, writeStore); err != nil {
+	if err := kvtx_kvfile.KvfileFromStore(ctx, &buf, writeStore, keyfileFilterKeys); err != nil {
 		t.Fatal(err.Error())
 	}
 	writeKtxCancel()
