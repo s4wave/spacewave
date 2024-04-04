@@ -1,4 +1,4 @@
-package bucket_rpc
+package bucket_store_rpc
 
 import (
 	"errors"

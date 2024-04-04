@@ -1,5 +1,5 @@
 syntax = "proto3";
-package bucket.rpc;
+package bucket.store.rpc;
 
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 

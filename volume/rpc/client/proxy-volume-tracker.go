@@ -7,7 +7,7 @@ import (
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
-	rpc_bucket "github.com/aperturerobotics/hydra/bucket/rpc"
+	rpc_bucket "github.com/aperturerobotics/hydra/bucket/store/rpc"
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	"github.com/aperturerobotics/hydra/volume"

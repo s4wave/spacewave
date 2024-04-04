@@ -22,7 +22,7 @@ func NewConfig(blockStoreId, serviceID string, readOnly bool, bucketIDs []string
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if c.GetBlockStoreId() == "" {
+	if c.GetBlockStoreId() == "" && len(c.GetBlockStoreIds()) == 0 {
 		return block_store.ErrBlockStoreIDEmpty
 	}
 	if c.GetServiceId() == "" {

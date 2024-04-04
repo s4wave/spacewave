@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	rpc_block "github.com/aperturerobotics/hydra/block/rpc"
-	rpc_bucket "github.com/aperturerobotics/hydra/bucket/rpc"
+	rpc_bucket "github.com/aperturerobotics/hydra/bucket/store/rpc"
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	"github.com/aperturerobotics/hydra/volume"

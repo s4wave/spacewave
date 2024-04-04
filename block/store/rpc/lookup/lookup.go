@@ -31,6 +31,7 @@ func NewController(b bus.Bus, le *logrus.Entry, conf *Config) *Controller {
 	return &Controller{
 		conf: conf,
 		blockStoreCtrl: block_store_rpc.NewController(b, le, &block_store_rpc.Config{
+			BlockStoreId: conf.GetBucketId(),
 			ServiceId:    conf.GetServiceId(),
 			ClientId:     conf.GetClientId(),
 			ReadOnly:     true,

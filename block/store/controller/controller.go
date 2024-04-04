@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/promise"
@@ -137,6 +138,8 @@ func (c *Controller) HandleDirective(
 		)
 	case dex.LookupBlockFromNetwork:
 		return c.resolveLookupBlockFromNetwork(ctx, inst, d)
+	case bucket.BuildBucketAPI:
+		return c.resolveBuildBucketAPI(ctx, inst, d)
 	}
 	return nil, nil
 }

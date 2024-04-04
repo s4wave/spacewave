@@ -1,9 +1,9 @@
 /* eslint-disable */
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
-import { BucketInfo, Config } from '../bucket.pb.js'
+import { BucketInfo, Config } from '../../bucket.pb.js'
 
-export const protobufPackage = 'bucket.rpc'
+export const protobufPackage = 'bucket.store.rpc'
 
 /** ApplyBucketConfigRequest requests running volumes ingest a bucket config. */
 export interface ApplyBucketConfigRequest {
@@ -990,7 +990,7 @@ export interface BucketStore {
   ): Promise<ListBucketInfoResponse>
 }
 
-export const BucketStoreServiceName = 'bucket.rpc.BucketStore'
+export const BucketStoreServiceName = 'bucket.store.rpc.BucketStore'
 export class BucketStoreClientImpl implements BucketStore {
   private readonly rpc: Rpc
   private readonly service: string
@@ -1071,7 +1071,7 @@ export class BucketStoreClientImpl implements BucketStore {
 export type BucketStoreDefinition = typeof BucketStoreDefinition
 export const BucketStoreDefinition = {
   name: 'BucketStore',
-  fullName: 'bucket.rpc.BucketStore',
+  fullName: 'bucket.store.rpc.BucketStore',
   methods: {
     /** GetBucketConfig gets the bucket config with the highest rev for the ID. */
     getBucketConfig: {
