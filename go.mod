@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240319001051-c9558e43b9ec // master
+	github.com/aperturerobotics/identity v0.0.0-20240404044106-5eeda8263f84 // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0 // latest
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240319000043-96d3d2070603 // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240404041922-8ef970777020 // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.25.3-0.20240311223214-084b9a4fa3f2 // master
+require github.com/aperturerobotics/bifrost v0.27.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -47,11 +47,11 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.36.6 // latest
-	github.com/aperturerobotics/entitygraph v0.6.1 // indirect
-	github.com/aperturerobotics/starpc v0.27.2 // indirect; latest
-	github.com/aperturerobotics/timestamp v0.8.3-0.20240219012811-452b5126f302 // indirect
-	github.com/aperturerobotics/util v1.15.0 // indirect; master
+	github.com/aperturerobotics/controllerbus v0.38.0 // latest
+	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
+	github.com/aperturerobotics/starpc v0.28.0 // indirect; latest
+	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a // indirect
+	github.com/aperturerobotics/util v1.16.1 // indirect; master
 )
 
 // aperture: use compatibility forks
@@ -64,14 +64,14 @@ replace (
 	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20240110212540-c015327ec623 // aperture
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.32.1-0.20240118233629-6aeee82c476f // aperture
+	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/libp2p/go-libp2p v0.33.0
+	github.com/libp2p/go-libp2p v0.33.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/planetscale/vtprotobuf v0.6.0
@@ -97,19 +97,19 @@ require (
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240206065824-7222fbc3459d // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.12.2 // indirect
+	github.com/multiformats/go-multiaddr v0.12.3 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
-	github.com/quic-go/quic-go v0.41.0 // indirect
+	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
@@ -118,12 +118,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
-	gonum.org/v1/gonum v0.14.0 // indirect
+	gonum.org/v1/gonum v0.15.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 )

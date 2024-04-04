@@ -2132,6 +2132,29 @@ starpc@^0.27.2:
     uint8arraylist "^2.4.7"
     ws "^8.15.1"
 
+starpc@^0.28.0:
+  version "0.28.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.28.0.tgz#52faabdbad0b4d8d883d27b69ee07d3ab4ce4dac"
+  integrity sha512-GQfgVGiTPORWYfk91PMP3/6rdrOPiixZLvcxW3Sw0IDE4fZtm2hPk5KUUwFWWAR2Yj0H/j54fKUw1QXqQAVY/w==
+  dependencies:
+    "@aptre/it-ws" "^1.0.0"
+    "@chainsafe/libp2p-yamux" "^6.0.2"
+    "@libp2p/interface" "^1.1.3"
+    "@libp2p/logger" "^4.0.6"
+    event-iterator "^2.0.0"
+    is-promise "^4.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.3"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    long "^5.2.3"
+    memoize-one "^6.0.0"
+    patch-package "^8.0.0"
+    protobufjs "^7.2.6"
+    uint8arraylist "^2.4.7"
+    ws "^8.15.1"
+
 string-width@^4.1.0, string-width@^4.2.0:
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
@@ -2216,10 +2239,10 @@ ts-proto-descriptors@1.15.0:
     long "^5.2.3"
     protobufjs "^7.2.4"
 
-ts-proto@^1.167.3:
-  version "1.169.1"
-  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.169.1.tgz#4849d3e12b6e85389eae030c39f0ebaf1834c448"
-  integrity sha512-MHdllDrtFCabxvIyUqze7/4vSh55SEgwirpthGVUGt3pMqIpmmrDyBv0vDk/RCjBxm0/LIWVMnXlOjBxYaE1rA==
+ts-proto@^1.171.0:
+  version "1.171.0"
+  resolved "https://registry.yarnpkg.com/ts-proto/-/ts-proto-1.171.0.tgz#679f9da0d3c9462b4814f422ef63e3f986936fd0"
+  integrity sha512-NMwiqCixlk6MZ3TAIpVQUuWwUktCXhoP+07V7D7Eo2IlEwulZucOGrU82toHhPL/QTd+oMBM2RDeQk9qs8+ZEQ==
   dependencies:
     case-anything "^2.1.13"
     protobufjs "^7.2.4"
@@ -2238,10 +2261,10 @@ type-fest@^0.20.2:
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.20.2.tgz#1bf207f4b28f91583666cb5fbd327887301cd5f4"
   integrity sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ==
 
-typescript@^5.3.3:
-  version "5.4.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.4.2.tgz#0ae9cebcfae970718474fe0da2c090cad6577372"
-  integrity sha512-+2/g0Fds1ERlP6JsakQQDXjZdZMM+rqpamFZJEKh4kwTIn3iDkgKtby0CeNd5ATNZ4Ry1ax15TMx0W2V+miizQ==
+typescript@^5.4.3:
+  version "5.4.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.4.3.tgz#5c6fedd4c87bee01cd7a528a30145521f8e0feff"
+  integrity sha512-KrPd3PKaCLr78MalgiwJnA25Nm8HAmdwN3mYUYZgG/wizIo9EainNVQI9/yDavtVFRN2h3k8uf3GLHuhDMgEHg==
 
 uint8-varint@^2.0.1:
   version "2.0.4"

@@ -1,0 +1,67 @@
+linters:
+  enable:
+    - depguard
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - misspell
+    - revive
+    - staticcheck
+    - typecheck
+    - unconvert
+    - unused
+
+  disable:
+    - errcheck
+
+  run:
+    concurrency: 4
+    modules-download-mode: vendor
+
+    skip-dirs:
+      - hack
+
+linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - '-SA1012' # Allow passing nil contexts.
+
+  importas:
+    # Do not allow unaliased imports of aliased packages.
+    no-unaliased: true
+
+  maligned:
+    suggest-new: true
+
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: io/ioutil
+            desc: The io/ioutil package has been deprecated, see https://go.dev/doc/go1.16#ioutil
+          - pkg: "github.com/stretchr/testify/assert"
+            desc: Use "gotest.tools/v3/assert" instead
+          - pkg: "github.com/stretchr/testify/require"
+            desc: Use "gotest.tools/v3/assert" instead
+          - pkg: "github.com/stretchr/testify/suite"
+            desc: Do not use
+
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
+
+  gosec:
+    excludes:
+      - G306 # Allow WriteFile permissions to be 0644.
+
+issues:
+  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
+  max-same-issues: 0

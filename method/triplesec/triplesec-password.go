@@ -21,8 +21,7 @@ const ControllerID = "auth/method/" + MethodID
 var Version = semver.MustParse("0.0.1")
 
 // TriplesecPassword implements triplesec auth method with password.
-type TriplesecPassword struct {
-}
+type TriplesecPassword struct{}
 
 // NewTriplesecPassword constructs the TriplesecPassword method.
 func NewTriplesecPassword() *TriplesecPassword {
