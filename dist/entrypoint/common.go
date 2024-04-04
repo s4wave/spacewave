@@ -36,6 +36,7 @@ func Run(
 		return errors.Wrap(err, "dist_meta")
 	}
 
+	// allow configuring the storage root via an environment variable.
 	projectID := distMeta.GetProjectId()
 	storageRoot, err := DetermineStorageRoot(projectID)
 	if err != nil {
