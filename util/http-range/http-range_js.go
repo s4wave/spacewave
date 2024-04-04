@@ -1,10 +1,13 @@
+//go:build js
+
 package http_range
 
 import (
 	"context"
 
+	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	http_range_fetch "github.com/aperturerobotics/hydra/util/http-range/fetch"
-	fetch "github.com/aperturerobotics/hydra/util/js-fetch"
+	"github.com/sirupsen/logrus"
 )
 
 // HTTPRangeReader uses HTTP requests with Range headers to implement
@@ -23,12 +26,15 @@ type HTTPRangeReader = http_range_fetch.FetchRangeReader
 //
 // The method of the request is changed to HEAD for Size().
 // Call SetSize to avoid a HEAD request.
-func NewHTTPRangeReader(ctx context.Context, fileUrl string, disableCache bool) (*HTTPRangeReader, error) {
+//
+// if le is set, requests will be logged
+// verbose logs successful as well as errored http requests
+func NewHTTPRangeReader(ctx context.Context, le *logrus.Entry, fileUrl string, disableCache, verbose bool) (*HTTPRangeReader, error) {
 	opts := &fetch.Opts{
 		Signal: ctx,
 	}
 	if disableCache {
 		opts.Cache = "no-store"
 	}
-	return http_range_fetch.NewFetchRangeReader(fileUrl, opts), nil
+	return http_range_fetch.NewFetchRangeReader(le, fileUrl, opts, verbose), nil
 }

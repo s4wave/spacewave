@@ -10,6 +10,7 @@ import (
 	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
 	http_range "github.com/aperturerobotics/hydra/util/http-range"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // KvfileHTTPBlock is a block store on top of a HTTP or Fetch client and base URL prefix.
@@ -22,12 +23,15 @@ type KvfileHTTPBlock = block_store_kvfile.KvfileBlock
 // kvkey controls the keys used to access blocks from the kvfile
 // httpRangeMinSize sets a minimum size for http requests and enables buffering.
 // if httpRangeMinSize is zero, disables buffering.
+// verbose logs http requests
 func NewKvfileHTTPBlock(
 	ctx context.Context,
+	le *logrus.Entry,
 	fileURL string,
 	disableCache bool,
 	kvkey *store_kvkey.KVKey,
 	httpRangeMinSize int64,
+	verbose bool,
 ) (*KvfileHTTPBlock, error) {
 	if fileURL == "" {
 		// this won't work
@@ -35,7 +39,7 @@ func NewKvfileHTTPBlock(
 	}
 
 	// construct the range reader
-	fetchReader, err := http_range.NewHTTPRangeReader(ctx, fileURL, disableCache)
+	fetchReader, err := http_range.NewHTTPRangeReader(ctx, le, fileURL, disableCache, verbose)
 	if err != nil {
 		return nil, err
 	}

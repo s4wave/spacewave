@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	fetch "github.com/aperturerobotics/hydra/util/js-fetch"
+	"github.com/aperturerobotics/bifrost/http/log/fetch"
+	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // FetchRangeReader uses fetch requests with Range headers to implement
@@ -22,9 +24,14 @@ import (
 // Call SetSize to avoid a HEAD request.
 // This type assumes that the URL contents will never change.
 // Use hashes in the URL to ensure this.
+//
+// if le is nil all logging will be disabled
+// verbose logs all http responses even if successful
 type FetchRangeReader struct {
+	le       *logrus.Entry
 	fetchUrl string
 	opts     *fetch.Opts
+	verbose  bool
 
 	seek      atomic.Pointer[int64]
 	knownSize atomic.Pointer[uint64]
@@ -40,8 +47,9 @@ type cachedData struct {
 }
 
 // NewFetchRangeReader initializes a FetchRangeReader for the given request.
-func NewFetchRangeReader(fetchUrl string, opts *fetch.Opts) *FetchRangeReader {
-	return &FetchRangeReader{fetchUrl: fetchUrl, opts: opts}
+// verbose logs http requests
+func NewFetchRangeReader(le *logrus.Entry, fetchUrl string, opts *fetch.Opts, verbose bool) *FetchRangeReader {
+	return &FetchRangeReader{le: le, fetchUrl: fetchUrl, opts: opts, verbose: verbose}
 }
 
 // SetSize sets the size of the remote file, avoiding a HEAD request.
@@ -79,7 +87,7 @@ func (r *FetchRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, 
 	}
 	req.Headers["Range"] = fmtRange(offset, length)
 
-	resp, err := fetch.Fetch(r.fetchUrl, req)
+	resp, err := httplog_fetch.Fetch(r.le, r.fetchUrl, req, r.verbose)
 	if err != nil {
 		return 0, nil, err
 	}

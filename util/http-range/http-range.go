@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	http_range_http "github.com/aperturerobotics/hydra/util/http-range/http"
+	"github.com/sirupsen/logrus"
 )
 
 // HTTPRangeReader uses HTTP requests with Range headers to implement
@@ -25,11 +26,14 @@ type HTTPRangeReader = http_range_http.HTTPRangeReader
 //
 // The method of the request is changed to HEAD for Size().
 // Call SetSize to avoid a HEAD request.
-func NewHTTPRangeReader(ctx context.Context, fileUrl string, disableCache bool) (*HTTPRangeReader, error) {
+//
+// if le is set, requests will be logged
+// verbose logs successful as well as errored http requests
+func NewHTTPRangeReader(ctx context.Context, le *logrus.Entry, fileUrl string, disableCache, verbose bool) (*HTTPRangeReader, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fileUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return http_range_http.NewHTTPRangeReader(req, http.DefaultClient), nil
+	return http_range_http.NewHTTPRangeReader(le, req, http.DefaultClient, verbose), nil
 }

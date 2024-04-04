@@ -66,8 +66,8 @@ github.com/alexkohler/prealloc v1.0.0 h1:Hbq0/3fJPQhNkN0dR95AVrr6R7tou91y0uHG5pO
 github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cvfHR56wJVlKE=
 github.com/alingse/asasalint v0.0.11 h1:SFwnQXJ49Kx/1GghOFz1XGqHYKp21Kq1nHad/0WQRnw=
 github.com/alingse/asasalint v0.0.11/go.mod h1:nCaoMhw7a9kSJObvQyVzNTPBDbNpdocqrSP7t/cW5+I=
-github.com/aperturerobotics/bifrost v0.27.1 h1:eQbnAxjRClJGo9w6S6mHsqU7zAbUlyKJ0N48NcIkU2s=
-github.com/aperturerobotics/bifrost v0.27.1/go.mod h1:6eZWvrytjxvansG2MJIcQlVa8Zcb/PV3L8dB6bvNLyo=
+github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a h1:EF9DS4kFbUS0SzvGYBzkwB4hkK0zh/T8+UJat+OU+nk=
+github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a/go.mod h1:JosWPzpSxz6xqIwF3GkQgAPFmclWf1MiHJ/Bo2rKUFU=
 github.com/aperturerobotics/goprotowrap v0.3.1-0.20240323000257-f8e9a4365606 h1:H+y9YDG9fP/nmnCdrLw7NP20VTCDyATMzsnt8LSs1r0=
 github.com/aperturerobotics/goprotowrap v0.3.1-0.20240323000257-f8e9a4365606/go.mod h1:5tRlYsb4VF0ySzx2/My3u9PtzTWNu5o2bqYHj0TRw+U=
 github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 h1:ScQPbkbABsFb7e86ArWSRtoOemQGrX4BDKeHj+JAgbQ=
@@ -634,8 +634,8 @@ golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4/go.mod h1:jJ57K6gSWd91
 golang.org/x/mod v0.6.0/go.mod h1:4mET923SAdbXp2ki8ey+zGs1SLqsuM2Y0uvdZR/fUNI=
 golang.org/x/mod v0.7.0/go.mod h1:iBbtSCu2XBx23ZKBPSOrRkjjQPZFPuis4dIYUhu/chs=
 golang.org/x/mod v0.8.0/go.mod h1:iBbtSCu2XBx23ZKBPSOrRkjjQPZFPuis4dIYUhu/chs=
-golang.org/x/mod v0.16.0 h1:QX4fJ0Rr5cPQCF7O9lh9Se4pmwfwskqZfq5moyldzic=
-golang.org/x/mod v0.16.0/go.mod h1:hTbmBsO62+eylJbnUtE2MGJUyE7QWk4xUqPFrRgJ+7c=
+golang.org/x/mod v0.17.0 h1:zY54UmvipHiNd+pm+m0x9KhZ9hl1/7QNMyxXbc6ICqA=
+golang.org/x/mod v0.17.0/go.mod h1:hTbmBsO62+eylJbnUtE2MGJUyE7QWk4xUqPFrRgJ+7c=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181114220301-adae6a3d119a/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=

@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.27.1 // master
+require github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
 
 // aperture: use ext-engines forks
 replace (
@@ -63,7 +63,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.38.0 // latest
+	github.com/aperturerobotics/controllerbus v0.38.1-0.20240404200601-a5d6ce4d901a // latest
 	github.com/aperturerobotics/entitygraph v0.8.0 // latest
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
@@ -226,7 +226,7 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/mod v0.16.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect

@@ -50,11 +50,19 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			return nil, nil, err
 		}
 
-		kvfileBlock, err := NewKvfileHTTPBlock(ctx, fileURL.String(), conf.GetDisableCache(), kvk, int64(conf.GetMinRequestSize()))
+		kvfileBlock, err := NewKvfileHTTPBlock(ctx, le, fileURL.String(), conf.GetDisableCache(), kvk, int64(conf.GetMinRequestSize()), verbose)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		return block_store.NewStore(conf.GetBlockStoreId(), kvfileBlock), nil, nil
+		var blockStore block_store.Store = block_store.NewStore(conf.GetBlockStoreId(), kvfileBlock)
+
+		/*
+			if verbose {
+				blockStore = block_store_vlogger.NewVLoggerStore(le, blockStore)
+			}
+		*/
+
+		return blockStore, nil, nil
 	}
 }

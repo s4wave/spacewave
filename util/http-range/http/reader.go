@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	httplog "github.com/aperturerobotics/bifrost/http/log"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // HttpClient can perform http requests.
@@ -23,17 +25,22 @@ type HttpClient interface {
 // Note that the body of the passed request is ignored.
 // The method of the request is changed to HEAD for Size().
 // Call SetSize to avoid a HEAD request.
+//
+// if le is nil all logging will be disabled
+// verbose logs all http responses even if successful
 type HTTPRangeReader struct {
+	le      *logrus.Entry
 	client  HttpClient
 	request *http.Request
+	verbose bool
 
 	seek      atomic.Pointer[int64]
 	knownSize atomic.Pointer[uint64]
 }
 
 // NewHTTPRangeReader initializes a HTTPRangeReader for the given request.
-func NewHTTPRangeReader(request *http.Request, client HttpClient) *HTTPRangeReader {
-	return &HTTPRangeReader{request: request, client: client}
+func NewHTTPRangeReader(le *logrus.Entry, request *http.Request, client HttpClient, verbose bool) *HTTPRangeReader {
+	return &HTTPRangeReader{le: le, request: request, client: client, verbose: verbose}
 }
 
 // SetSize sets the size of the remote file, avoiding a HEAD request.
@@ -84,7 +91,7 @@ func (r *HTTPRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, d
 	req := r.request.Clone(r.request.Context())
 	req.Header.Add("Range", fmtRange(offset, length))
 
-	resp, err := r.client.Do(req)
+	resp, err := httplog.DoRequestWithClient(r.le, r.client, req, r.verbose)
 	if err != nil {
 		return offset, nil, err
 	}
@@ -192,10 +199,11 @@ func (r *HTTPRangeReader) Size() (uint64, error) {
 	req := r.request.Clone(r.request.Context())
 	req.Method = "HEAD"
 
-	resp, err := r.client.Do(req)
+	resp, err := httplog.DoRequestWithClient(r.le, r.client, req, r.verbose)
 	if err != nil {
 		return 0, err
 	}
+	defer resp.Body.Close()
 
 	// handle error cases
 	switch resp.StatusCode {
