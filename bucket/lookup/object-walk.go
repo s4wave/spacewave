@@ -135,6 +135,16 @@ func WalkObjectBlocks(
 	return queue.WaitIdle(ctx, errCh)
 }
 
+// walkState contains state for walking a tree of blocks.
+type walkState struct {
+	readBkt      bucket.Bucket
+	readXfrm     block.Transformer
+	enqueue      func(...func())
+	handleErr    func(err error)
+	cb           WalkObjectBlocksCb
+	alwaysDecode bool
+}
+
 // BuildConcurrentQueue builds and starts a concurrent queue to walk the tree.
 func (e *WalkObjectBlocksEntry) BuildConcurrentQueue(
 	ctx context.Context,
@@ -149,45 +159,38 @@ func (e *WalkObjectBlocksEntry) BuildConcurrentQueue(
 	enqueue := func(f ...func()) {
 		_, _ = queue.Enqueue(f...)
 	}
+	state := &walkState{
+		readBkt:      readBkt,
+		readXfrm:     readXfrm,
+		enqueue:      enqueue,
+		handleErr:    handleErr,
+		cb:           cb,
+		alwaysDecode: alwaysDecode,
+	}
 	enqueue(
 		e.buildVisitFn(
 			ctx,
-			readBkt,
-			readXfrm,
-			enqueue,
-			handleErr,
-			cb,
-			alwaysDecode,
+			state,
 		),
 	)
 	return queue
 }
 
 // buildVisitFn builds the function called by the concurrent queue in WalkObjectBlocks.
-func (e *WalkObjectBlocksEntry) buildVisitFn(
-	ctx context.Context,
-	readBkt bucket.Bucket,
-	readXfrm block.Transformer,
-	enqueue func(...func()),
-	handleErr func(err error),
-	cb WalkObjectBlocksCb,
-	alwaysDecode bool,
-) func() {
+func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState) func() {
 	return func() {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return
-		default:
 		}
 
 		if !e.Found && e.Err == nil && !e.IsSubBlock && !e.Ref.GetEmpty() {
 			// returns nil, false, nil if reference was empty.
 			// returns nil, false, ErrNotFound if reference was not found.
-			e.Data, e.Found, e.Err = readBkt.GetBlock(ctx, e.Ref)
+			e.Data, e.Found, e.Err = st.readBkt.GetBlock(ctx, e.Ref)
 		}
 
 		if e.Found && e.Ctor != nil && e.Err == nil && !e.IsSubBlock {
-			err := e.decodeBlock(alwaysDecode, readXfrm)
+			err := e.decodeBlock(st.alwaysDecode, st.readXfrm)
 			if err != nil && e.Err == nil {
 				e.Err = err
 			}
@@ -195,13 +198,13 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(
 
 		var cntu bool
 		var err error
-		if cb != nil {
-			cntu, err = cb(e)
+		if st.cb != nil {
+			cntu, err = st.cb(e)
 		} else {
 			cntu, err = true, e.Err
 		}
 		if err != nil {
-			handleErr(err)
+			st.handleErr(err)
 			return
 		}
 		if !cntu || e.Blk == nil || e.Err != nil {
@@ -265,17 +268,9 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(
 
 		enqFns := make([]func(), len(toEnqueue))
 		for i, enq := range toEnqueue {
-			enqFns[i] = enq.buildVisitFn(
-				ctx,
-				readBkt,
-				readXfrm,
-				enqueue,
-				handleErr,
-				cb,
-				alwaysDecode,
-			)
+			enqFns[i] = enq.buildVisitFn(ctx, st)
 		}
-		enqueue(enqFns...)
+		st.enqueue(enqFns...)
 	}
 }
 
