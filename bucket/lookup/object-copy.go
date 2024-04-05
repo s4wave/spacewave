@@ -74,7 +74,7 @@ func CopyObjectToBucket(
 			} else {
 				// Note: we give the callback the chance to ignore the err above.
 				err = ent.Err
-				if err == nil && !ent.Found && !ent.IsSubBlock {
+				if err == nil && !ent.Found && !ent.IsSubBlock && !ent.Ref.GetEmpty() {
 					err = errors.Wrap(block.ErrNotFound, ent.Ref.MarshalString())
 				}
 				cntu = err == nil
@@ -82,7 +82,7 @@ func CopyObjectToBucket(
 
 			if err != nil || ent.IsSubBlock || !ent.Found || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
 				// skip this block since it is not found or a sub-block or empty
-				return
+				return cntu, err
 			}
 
 			// skip copying if we already saw this block
@@ -106,7 +106,7 @@ func CopyObjectToBucket(
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())
 			}
 
-			return
+			return err == nil, err
 		},
 		readBkt, readXfrm,
 		maxConcurrency,
