@@ -43,7 +43,11 @@ type WalkObjectBlocksEntry struct {
 	// Data is the data at this entry.
 	// May be empty if Err != nil or !Found or IsSubBlock
 	// May be empty if depth == 0 and blk != nil
+	// This is the data pre-transformation (at rest).
 	Data []byte
+	// XfrmData is the transformed data at this entry if any.
+	// Empty if there is no read transformer or if Blk is nil (not decoded).
+	XfrmData []byte
 }
 
 // NewWalkObjectBlocksWithRef constructs a new walk tree entry with a root ref.
@@ -94,7 +98,7 @@ func NewWalkObjectBlocksWithData(data []byte, ctor block.Ctor) *WalkObjectBlocks
 // Any error fetching a block other than context canceled will be passed to the cb.
 // If a block was not found, the callback is called with ErrNotFound.
 //
-// If alwaysDecode is false, skips decoding blocks if they have no refs.
+// If alwaysDecode is false, skips decoding blocks if they have no refs within.
 // This can save time significantly if you don't need to check the block contents.
 //
 // The callback can modify the block or change the block / ref in the Entry
@@ -299,6 +303,7 @@ func (e *WalkObjectBlocksEntry) decodeBlock(alwaysDecode bool, readXfrm block.Tr
 		}
 		return err
 	}
+	e.XfrmData = dat
 
 	// unmarshal the block
 	if err := decodeBlk.UnmarshalBlock(dat); err != nil {
