@@ -9,6 +9,7 @@ import (
 	io "io"
 
 	block "github.com/aperturerobotics/hydra/block"
+	blob "github.com/aperturerobotics/hydra/block/blob"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -28,7 +29,6 @@ func (m *Node) CloneVT() *Node {
 	r := new(Node)
 	r.Height = m.Height
 	r.Size = m.Size
-	r.ValueRefBlob = m.ValueRefBlob
 	if rhs := m.Key; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -39,6 +39,13 @@ func (m *Node) CloneVT() *Node {
 			r.ValueRef = vtpb.CloneVT()
 		} else {
 			r.ValueRef = proto.Clone(rhs).(*block.BlockRef)
+		}
+	}
+	if rhs := m.ValueBlob; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *blob.Blob }); ok {
+			r.ValueBlob = vtpb.CloneVT()
+		} else {
+			r.ValueBlob = proto.Clone(rhs).(*blob.Blob)
 		}
 	}
 	if rhs := m.LeftChildRef; rhs != nil {
@@ -102,7 +109,11 @@ func (this *Node) EqualVT(that *Node) bool {
 	} else if !proto.Equal(this.ValueRef, that.ValueRef) {
 		return false
 	}
-	if this.ValueRefBlob != that.ValueRefBlob {
+	if equal, ok := interface{}(this.ValueBlob).(interface{ EqualVT(*blob.Blob) bool }); ok {
+		if !equal.EqualVT(that.ValueBlob) {
+			return false
+		}
+	} else if !proto.Equal(this.ValueBlob, that.ValueBlob) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -145,15 +156,27 @@ func (m *Node) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ValueRefBlob {
-		i--
-		if m.ValueRefBlob {
-			dAtA[i] = 1
+	if m.ValueBlob != nil {
+		if vtmsg, ok := interface{}(m.ValueBlob).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			dAtA[i] = 0
+			encoded, err := proto.Marshal(m.ValueBlob)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x42
 	}
 	if m.ValueRef != nil {
 		if vtmsg, ok := interface{}(m.ValueRef).(interface {
@@ -287,8 +310,15 @@ func (m *Node) SizeVT() (n int) {
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	if m.ValueRefBlob {
-		n += 2
+	if m.ValueBlob != nil {
+		if size, ok := interface{}(m.ValueBlob).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.ValueBlob)
+		}
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -528,10 +558,10 @@ func (m *Node) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ValueRefBlob", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValueBlob", wireType)
 			}
-			var v int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -541,12 +571,36 @@ func (m *Node) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.ValueRefBlob = bool(v != 0)
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ValueBlob == nil {
+				m.ValueBlob = &blob.Blob{}
+			}
+			if unmarshal, ok := interface{}(m.ValueBlob).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.ValueBlob); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

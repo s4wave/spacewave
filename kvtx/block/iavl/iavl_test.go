@@ -184,8 +184,8 @@ func TestSimple(t *testing.T) {
 	*/
 }
 
-// TestStress is a basic iavl tree stress test.
-func TestStress(t *testing.T) {
+// TestIavl is a more comprehensive test.
+func TestIavl(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)

@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/byteslice"
+	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
@@ -37,14 +38,28 @@ func (n *Node) IsNil() bool {
 	return n == nil
 }
 
+// ValueIsBlob checks if the value is a blob.
+func (n *Node) ValueIsBlob() bool {
+	return n.GetValueBlob().GetTotalSize() != 0
+}
+
 // Validate does cursory checks on the node.
 func (n *Node) Validate() error {
+	// enforce empty non-leaf nodes
 	if n.GetHeight() != 0 {
-		if !n.GetValueRef().GetEmpty() {
+		if n.GetValueRef().SizeVT() != 0 {
 			return ErrUnexpectedValueRef
 		}
-		if n.GetValueRefBlob() {
+		if n.GetValueBlob().SizeVT() != 0 {
 			return ErrUnexpectedBlob
+		}
+	} else {
+		// enforce ValueRef OR ValueBlob
+		if n.GetValueRef().SizeVT() != 0 && n.GetValueBlob().SizeVT() != 0 {
+			return errors.New("value_blob cannot be set simultaneously with value_ref")
+		}
+		if err := n.GetValueBlob().Validate(); err != nil {
+			return err
 		}
 	}
 	// allow empty left/right refs.
@@ -72,6 +87,40 @@ func (n *Node) MarshalBlock() ([]byte, error) {
 // This is the final step of decoding, after transformations.
 func (n *Node) UnmarshalBlock(data []byte) error {
 	return n.UnmarshalVT(data)
+}
+
+// ApplySubBlock applies a sub-block change with a field id.
+func (n *Node) ApplySubBlock(id uint32, next block.SubBlock) error {
+	switch id {
+	case 8:
+		v, ok := next.(*blob.Blob)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		n.ValueBlob = v
+	}
+	return nil
+}
+
+// GetSubBlocks returns all constructed sub-blocks by ID.
+// May return nil, and values may also be nil.
+func (n *Node) GetSubBlocks() map[uint32]block.SubBlock {
+	if n.GetValueBlob() == nil {
+		return nil
+	}
+	m := make(map[uint32]block.SubBlock)
+	m[8] = n.GetValueBlob()
+	return m
+}
+
+// GetSubBlockCtor returns a function which creates or returns the existing
+// sub-block at reference id. Can return nil to indicate invalid reference id.
+func (n *Node) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	switch id {
+	case 8:
+		return blob.NewBlobSubBlockCtor(&n.ValueBlob)
+	}
+	return nil
 }
 
 // ApplyBlockRef applies a ref change with a field id.
@@ -102,13 +151,6 @@ func (n *Node) FollowRight(ctx context.Context, cursor *block.Cursor) (*Node, *b
 	return bcv, bcs, err
 }
 
-// FollowValue follows the value ref.
-func (n *Node) FollowValue(ctx context.Context, cursor *block.Cursor) (*Node, *block.Cursor, error) {
-	bcs := cursor.FollowRef(7, n.GetValueRef())
-	bcv, err := loadNode(ctx, bcs)
-	return bcv, bcs, err
-}
-
 // GetBlockRefs returns all block references by ID.
 // May return nil, and values may also be nil.
 // Note: this does not include pending references (in a cursor)
@@ -129,11 +171,7 @@ func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 	case 6:
 		return NewNodeBlock
 	case 7:
-		if n.GetValueRefBlob() {
-			return blob.NewBlobBlock
-		} else {
-			return byteslice.NewByteSliceBlock
-		}
+		return byteslice.NewByteSliceBlock
 	}
 	return nil
 }
@@ -156,4 +194,5 @@ var (
 	_ block.Block               = ((*Node)(nil))
 	_ block.BlockWithAttributes = ((*Node)(nil))
 	_ block.BlockWithRefs       = ((*Node)(nil))
+	_ block.BlockWithSubBlocks  = ((*Node)(nil))
 )

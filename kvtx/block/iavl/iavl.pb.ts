@@ -1,6 +1,7 @@
 /* eslint-disable */
 import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
+import { Blob } from '../../../block/blob/blob.pb.js'
 import { BlockRef } from '../../../block/block.pb.js'
 
 export const protobufPackage = 'kvtx.block.iavl'
@@ -19,13 +20,15 @@ export interface Node {
   /**
    * ValueRef contains a reference to the item's value.
    * Set only if height == 0.
+   * Empty if ValueBlob is set.
    */
   valueRef: BlockRef | undefined
   /**
+   * ValueBlob contains the value in-line as a Blob.
    * ValueRefBlob indicates that the ValueRef is a Blob.
    * If false, Get() will return the raw data of the block.
    */
-  valueRefBlob: boolean
+  valueBlob: Blob | undefined
   /**
    * LeftChildRef contains the left child ref.
    * Set only if height != 0.
@@ -44,7 +47,7 @@ function createBaseNode(): Node {
     size: Long.UZERO,
     key: new Uint8Array(0),
     valueRef: undefined,
-    valueRefBlob: false,
+    valueBlob: undefined,
     leftChildRef: undefined,
     rightChildRef: undefined,
   }
@@ -64,8 +67,8 @@ export const Node = {
     if (message.valueRef !== undefined) {
       BlockRef.encode(message.valueRef, writer.uint32(58).fork()).ldelim()
     }
-    if (message.valueRefBlob !== false) {
-      writer.uint32(64).bool(message.valueRefBlob)
+    if (message.valueBlob !== undefined) {
+      Blob.encode(message.valueBlob, writer.uint32(66).fork()).ldelim()
     }
     if (message.leftChildRef !== undefined) {
       BlockRef.encode(message.leftChildRef, writer.uint32(42).fork()).ldelim()
@@ -113,11 +116,11 @@ export const Node = {
           message.valueRef = BlockRef.decode(reader, reader.uint32())
           continue
         case 8:
-          if (tag !== 64) {
+          if (tag !== 66) {
             break
           }
 
-          message.valueRefBlob = reader.bool()
+          message.valueBlob = Blob.decode(reader, reader.uint32())
           continue
         case 5:
           if (tag !== 42) {
@@ -184,9 +187,9 @@ export const Node = {
       valueRef: isSet(object.valueRef)
         ? BlockRef.fromJSON(object.valueRef)
         : undefined,
-      valueRefBlob: isSet(object.valueRefBlob)
-        ? globalThis.Boolean(object.valueRefBlob)
-        : false,
+      valueBlob: isSet(object.valueBlob)
+        ? Blob.fromJSON(object.valueBlob)
+        : undefined,
       leftChildRef: isSet(object.leftChildRef)
         ? BlockRef.fromJSON(object.leftChildRef)
         : undefined,
@@ -210,8 +213,8 @@ export const Node = {
     if (message.valueRef !== undefined) {
       obj.valueRef = BlockRef.toJSON(message.valueRef)
     }
-    if (message.valueRefBlob !== false) {
-      obj.valueRefBlob = message.valueRefBlob
+    if (message.valueBlob !== undefined) {
+      obj.valueBlob = Blob.toJSON(message.valueBlob)
     }
     if (message.leftChildRef !== undefined) {
       obj.leftChildRef = BlockRef.toJSON(message.leftChildRef)
@@ -237,7 +240,10 @@ export const Node = {
       object.valueRef !== undefined && object.valueRef !== null
         ? BlockRef.fromPartial(object.valueRef)
         : undefined
-    message.valueRefBlob = object.valueRefBlob ?? false
+    message.valueBlob =
+      object.valueBlob !== undefined && object.valueBlob !== null
+        ? Blob.fromPartial(object.valueBlob)
+        : undefined
     message.leftChildRef =
       object.leftChildRef !== undefined && object.leftChildRef !== null
         ? BlockRef.fromPartial(object.leftChildRef)

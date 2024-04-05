@@ -15,6 +15,21 @@ func NewBlobBlock() block.Block {
 	return &Blob{}
 }
 
+// NewBlobSubBlockCtor returns the sub-block constructor.
+func NewBlobSubBlockCtor(r **Blob) block.SubBlockCtor {
+	if r == nil {
+		return nil
+	}
+	return func(create bool) block.SubBlock {
+		v := *r
+		if create && v == nil {
+			v = &Blob{}
+			*r = v
+		}
+		return v
+	}
+}
+
 // UnmarshalBlob unmarshals the Blob block.
 // Returns nil, nil if empty
 func UnmarshalBlob(ctx context.Context, bcs *block.Cursor) (*Blob, error) {

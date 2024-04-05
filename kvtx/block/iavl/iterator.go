@@ -13,8 +13,8 @@ import (
 type Iterator struct {
 	// underlying kvtx iterator, caching all keys in memory
 	*kvtx_iterator.Iterator
-	// keyBcs is the block cursor for the current key.
-	keyBcs *block.Cursor
+	// keyValueBcs is the block cursor for the value for the current key.
+	keyValueBcs *block.Cursor
 }
 
 // kvtxIteratorOps implements Get() with GetWithCursor()
@@ -29,7 +29,11 @@ func (o *kvtxIteratorOps) Get(ctx context.Context, key []byte) (data []byte, fou
 	if err != nil || nod == nil || nodCs == nil {
 		return nil, false, err
 	}
-	o.it.keyBcs = nodCs.FollowRef(7, nod.GetValueRef())
+	if nod.ValueIsBlob() {
+		o.it.keyValueBcs = nodCs.FollowSubBlock(8)
+	} else {
+		o.it.keyValueBcs = nodCs.FollowRef(7, nod.GetValueRef())
+	}
 	data, err = o.Tx.nodeToValue(ctx, nodCs, nod)
 	if err != nil {
 		return nil, true, err
@@ -56,7 +60,7 @@ func (i *Iterator) ValueCursor() *block.Cursor {
 	// ensure value was fetched
 	// this calls Get() internally which sets keyBcs
 	_, _ = i.Iterator.Value()
-	return i.keyBcs
+	return i.keyValueBcs
 }
 
 // _ is a type assertion

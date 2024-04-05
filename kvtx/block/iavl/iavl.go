@@ -84,18 +84,5 @@ func (t *AVLTree) NewAVLTreeTransaction(ctx context.Context, write bool) (*Tx, e
 	return atx, nil
 }
 
-// fetchRoot fetches the root block.
-/*
-func (t *AVLTree) fetchRoot() (
-	rn *Node,
-	btx *block.Transaction,
-	bcs *block.Cursor,
-	err error,
-) {
-	btx, bcs = t.rootCursor.BuildTransaction(nil)
-	return
-}
-*/
-
 // _ is a type assertion
 var _ kvtx.Store = ((*AVLTree)(nil))

@@ -11,7 +11,7 @@ import (
 	// kvtx_iterator "github.com/aperturerobotics/hydra/kvtx/iterator"
 )
 
-// Tx is a iavl transaction
+// Tx is an iavl k/v transaction.
 type Tx struct {
 	write bool
 	bcs   *block.Cursor
@@ -128,8 +128,9 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	}
 	val, err := t.nodeToValue(ctx, bcs, node)
 	if err != nil {
-		return nil, false, err
+		return nil, true, err
 	}
+
 	return val, true, nil
 }
 
@@ -147,6 +148,9 @@ func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, err
 	bcs, nod, err := t.getFromRoot(ctx, key)
 	if err != nil || bcs == nil || nod == nil {
 		return nil, err
+	}
+	if nod.ValueIsBlob() {
+		return bcs.FollowSubBlock(8), nil
 	}
 	return bcs.FollowRef(7, nod.GetValueRef()), nil
 }
@@ -273,6 +277,9 @@ func (t *Tx) DeleteCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, 
 	if err != nil {
 		return nil, err
 	}
+	if removedNod.ValueIsBlob() {
+		return removedNodCursor.FollowSubBlock(8), nil
+	}
 	return removedNodCursor.FollowRef(7, removedNod.GetValueRef()), nil
 }
 
@@ -307,8 +314,7 @@ func (t *Tx) removeFromRoot(ctx context.Context, key []byte) (*block.Cursor, *No
 		nextCs = t.bcs
 		nextNod = &Node{}
 		nextCs.SetBlock(nextNod, true)
-		nextCs.ClearRef(5)
-		nextCs.ClearRef(6)
+		nextCs.ClearAllRefs()
 	} else {
 		nextNod, err = loadNode(ctx, nextCs)
 		if err != nil {
@@ -431,12 +437,21 @@ func (t *Tx) setFromNode(
 			nod.Height = 0
 			nod.LeftChildRef = nil
 			nod.RightChildRef = nil
-			nod.ValueRefBlob = isBlob
-			nod.ValueRef = valCursor.GetRef()
-			bcs.ClearRef(5)
-			bcs.ClearRef(6)
+			nod.ValueBlob = nil
+			nod.ValueRef = nil
+
 			bcs.SetBlock(nod, true)
-			bcs.SetRef(7, valCursor)
+			bcs.ClearAllRefs()
+
+			if isBlob {
+				if err := valCursor.SetAsSubBlock(8, bcs); err != nil {
+					return nod, bcs, false, err
+				}
+			} else {
+				nod.ValueRef = valCursor.GetRef()
+				bcs.SetRef(7, valCursor)
+			}
+
 			return nod, bcs, true, nil
 		}
 
@@ -462,12 +477,18 @@ func (t *Tx) setFromNode(
 		}
 
 		// set the new node -> the key, val
+		ncs.ClearAllRefs()
 		ncs.SetBlock(&Node{
-			Key:          key,
-			Size:         1,
-			ValueRefBlob: isBlob,
+			Key:  key,
+			Size: 1,
 		}, true)
-		ncs.SetRef(7, valCursor)
+		if isBlob {
+			if err := valCursor.SetAsSubBlock(8, ncs); err != nil {
+				return nrootNod, nroot, true, err
+			}
+		} else {
+			ncs.SetRef(7, valCursor)
+		}
 
 		return nrootNod, nroot, true, nil
 	}
@@ -727,11 +748,12 @@ func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) 
 
 // nodeToValue converts a node into a []byte value, depending on isBlob flag.
 func (t *Tx) nodeToValue(ctx context.Context, bcs *block.Cursor, n *Node) ([]byte, error) {
-	valueCursor := bcs.FollowRef(7, n.GetValueRef())
-	if n.GetValueRefBlob() {
-		return blob.FetchToBytes(ctx, valueCursor)
+	if n.ValueIsBlob() {
+		return blob.FetchToBytes(ctx, bcs.FollowSubBlock(8))
 	}
+
 	// empty block returns nil
+	valueCursor := bcs.FollowRef(7, n.GetValueRef())
 	dat, _, err := valueCursor.Fetch(ctx)
 	return dat, err
 }
