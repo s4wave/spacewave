@@ -2,7 +2,10 @@ module github.com/aperturerobotics/hydra
 
 go 1.22
 
-require github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
+require (
+	github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
+	github.com/aperturerobotics/go-kvfile v0.5.0 // master
+)
 
 // aperture: use ext-engines forks
 replace (
@@ -34,7 +37,6 @@ require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/Workiva/go-datastructures v1.1.3
-	github.com/aperturerobotics/go-kvfile v0.4.1
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cayleygraph/cayley v0.7.7

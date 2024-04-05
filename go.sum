@@ -81,8 +81,8 @@ github.com/aperturerobotics/controllerbus v0.38.1-0.20240404200601-a5d6ce4d901a 
 github.com/aperturerobotics/controllerbus v0.38.1-0.20240404200601-a5d6ce4d901a/go.mod h1:bdu9olnPmETpX29HupgamOCAD/lOHo0pyWbk3CfasVs=
 github.com/aperturerobotics/entitygraph v0.8.0 h1:1tEsGPAk4kzJRLrwxn69JZbQreSOkqHgr3Ue5BGpE0M=
 github.com/aperturerobotics/entitygraph v0.8.0/go.mod h1:F9CfzYNTnIj9d7z79+2l0owNqsuVfz/U2cTPZbEcFTw=
-github.com/aperturerobotics/go-kvfile v0.4.1 h1:8hnmtYcJAW1r62MEOSThIgj16FNnRQ56KGwzEPXCztM=
-github.com/aperturerobotics/go-kvfile v0.4.1/go.mod h1:EztkyEY/x44m1dVz7XwK1hJctilTJZK1Ay3NPSHHAJY=
+github.com/aperturerobotics/go-kvfile v0.5.0 h1:pJ4u0/ck8NJwMkgQ5DMHlPKG76KHnwyqyv3ilev8Q8o=
+github.com/aperturerobotics/go-kvfile v0.5.0/go.mod h1:dine4k12t7SVwJr1EKK/19lajN9mr3C6hIMOcSfPGbQ=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51/go.mod h1:yZOf9ZPH3PIeAj3q/dvY9nAe+Y1zBBIZIInEguPbbpQ=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
