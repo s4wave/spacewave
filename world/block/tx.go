@@ -2,13 +2,13 @@ package world_block
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/util/csync"
 )
 
 // Tx implements the hydra world transaction interface.
@@ -18,8 +18,8 @@ type Tx struct {
 	state *WorldState
 	// rmtx guards the world operations, single-writer multi-reader
 	// not used for WaitSeqno
-	rmtx sync.RWMutex
-	// discarded indicates the tx was discarded already
+	rmtx csync.RWMutex
+	// discarded indicates the tx was discarded
 	discarded bool
 }
 
@@ -34,8 +34,11 @@ func NewTx(state *WorldState) *Tx {
 //
 // Creates a new block transaction.
 func (t *Tx) Fork(ctx context.Context) (world.WorldState, error) {
-	t.rmtx.Lock()
-	defer t.rmtx.Unlock()
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 
 	if t.discarded {
 		return nil, tx.ErrDiscarded
@@ -57,8 +60,11 @@ func (t *Tx) GetReadOnly() bool {
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 func (t *Tx) GetSeqno(ctx context.Context) (uint64, error) {
-	t.rmtx.RLock()
-	defer t.rmtx.RUnlock()
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return 0, err
+	}
+	defer unlock()
 
 	return t.state.GetSeqno(ctx)
 }
@@ -97,8 +103,11 @@ func (t *Tx) ApplyWorldOp(
 	op world.Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
-	t.rmtx.Lock()
-	defer t.rmtx.Unlock()
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return 0, false, err
+	}
+	defer unlock()
 
 	if t.discarded {
 		return 0, false, tx.ErrDiscarded
@@ -110,17 +119,16 @@ func (t *Tx) ApplyWorldOp(
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return context.Canceled
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
 	}
-	t.rmtx.Lock()
 	discarded := t.discarded
-	var err error
 	if !discarded {
 		t.discarded = true
 		err = t.state.Commit(ctx)
 	}
-	t.rmtx.Unlock()
+	unlock()
 	if discarded {
 		return tx.ErrDiscarded
 	}
@@ -132,12 +140,10 @@ func (t *Tx) Commit(ctx context.Context) error {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.rmtx.Lock()
-	discarded := t.discarded
-	if !discarded {
-		t.discarded = true
-	}
-	t.rmtx.Unlock()
+	lkr := t.rmtx.Locker()
+	lkr.Lock()
+	t.discarded = true
+	lkr.Unlock()
 }
 
 // _ is a type assertion

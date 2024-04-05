@@ -31,6 +31,7 @@ type ObjectState interface {
 	// Increments the revision of the object if changed.
 	// Returns revision just after the change was applied.
 	SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error)
+
 	// ApplyObjectOp applies a batch operation at the object level.
 	// The handling of the operation is operation-type specific.
 	// Returns the revision following the operation execution.

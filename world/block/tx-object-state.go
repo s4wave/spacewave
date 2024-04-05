@@ -34,8 +34,11 @@ func (t *TxObjectState) GetKey() string {
 
 // GetRootRef returns the root reference of the object.
 func (t *TxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
-	t.tx.rmtx.Lock()
-	defer t.tx.rmtx.Unlock()
+	unlock, err := t.tx.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer unlock()
 
 	if t.tx.discarded {
 		return nil, 0, tx.ErrDiscarded
@@ -58,8 +61,11 @@ func (t *TxObjectState) AccessWorldState(
 
 // SetRootRef changes the root reference of the object.
 func (t *TxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
-	t.tx.rmtx.Lock()
-	defer t.tx.rmtx.Unlock()
+	unlock, err := t.tx.rmtx.Lock(ctx, true)
+	if err != nil {
+		return 0, err
+	}
+	defer unlock()
 
 	return t.o.SetRootRef(ctx, nref)
 }
@@ -69,8 +75,11 @@ func (t *TxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) 
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
 func (t *TxObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
-	t.tx.rmtx.Lock()
-	defer t.tx.rmtx.Unlock()
+	unlock, err := t.tx.rmtx.Lock(ctx, true)
+	if err != nil {
+		return 0, false, err
+	}
+	defer unlock()
 
 	return t.o.ApplyObjectOp(ctx, op, opSender)
 }
@@ -78,8 +87,11 @@ func (t *TxObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, o
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
 func (t *TxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
-	t.tx.rmtx.Lock()
-	defer t.tx.rmtx.Unlock()
+	unlock, err := t.tx.rmtx.Lock(ctx, true)
+	if err != nil {
+		return 0, err
+	}
+	defer unlock()
 
 	return t.o.IncrementRev(ctx)
 }
@@ -93,9 +105,6 @@ func (t *TxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	t.tx.rmtx.Lock()
-	defer t.tx.rmtx.Unlock()
-
 	// t.tx.state.GetSeqno()
 	return 0, errors.New("TODO tx object state waitrev")
 }

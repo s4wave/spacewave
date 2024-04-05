@@ -28,6 +28,9 @@ type Volume struct {
 
 // KvtxVolume is an interface for a volume with a kvtx store.
 type KvtxVolume interface {
+	// KvtxVolume extends Volume
+	volume.Volume
+
 	// GetKvtxStore returns the underlying kvtx store.
 	GetKvtxStore() kvtx.Store
 	// GetKvKey returns the instance of KvKey used to build keys.

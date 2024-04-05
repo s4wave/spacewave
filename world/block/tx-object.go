@@ -11,8 +11,11 @@ import (
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
-	t.rmtx.Lock()
-	defer t.rmtx.Unlock()
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 
 	if t.discarded {
 		return nil, tx.ErrDiscarded
@@ -28,8 +31,11 @@ func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.Objec
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
-	t.rmtx.RLock()
-	defer t.rmtx.RUnlock()
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, false, err
+	}
+	defer unlock()
 
 	if t.discarded {
 		return nil, false, tx.ErrDiscarded
@@ -46,8 +52,11 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (t *Tx) DeleteObject(ctx context.Context, key string) (bool, error) {
-	t.rmtx.Lock()
-	defer t.rmtx.Unlock()
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return false, err
+	}
+	defer unlock()
 
 	return t.state.DeleteObject(ctx, key)
 }

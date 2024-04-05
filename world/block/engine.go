@@ -297,10 +297,11 @@ func (e *Engine) procWaiters(nseqno uint64) {
 	proc := e.waiters
 	e.waiters = nil
 	if e.readTx != nil && e.readTx.state != nil {
-		e.readTx.rmtx.Lock()
+		lkr := e.readTx.rmtx.Locker()
+		lkr.Lock()
 		proc = append(proc, e.readTx.state.waiters...)
 		e.readTx.state.waiters = nil
-		e.readTx.rmtx.Unlock()
+		lkr.Unlock()
 	}
 	for _, w := range proc {
 		w(nseqno)
