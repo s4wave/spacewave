@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240404231456-881955a8fc65 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240405094137-ab71a455ba12 // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -106,7 +106,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.4.1
+	github.com/aperturerobotics/go-kvfile v0.5.0
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
