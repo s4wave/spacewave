@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
-	"github.com/aperturerobotics/hydra/block/byteslice"
 	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph/encoding"
 )
@@ -167,11 +166,13 @@ func (n *Node) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
 	case 5:
-		fallthrough
+		return NewNodeBlock
 	case 6:
 		return NewNodeBlock
-	case 7:
-		return byteslice.NewByteSliceBlock
+
+		// Unknown!
+		// case 7:
+		// return byteslice.NewByteSliceBlock
 	}
 	return nil
 }

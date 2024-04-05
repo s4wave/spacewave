@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
-	github.com/aperturerobotics/go-kvfile v0.5.0 // master
+	github.com/aperturerobotics/go-kvfile v0.5.1 // master
 )
 
 // aperture: use ext-engines forks
