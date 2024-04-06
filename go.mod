@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.22
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240406123818-ab0539cc3d9b // master
+	github.com/aperturerobotics/hydra v0.0.0-20240406125835-7d79197f9a7f // master
 	github.com/aperturerobotics/identity v0.0.0-20240406121336-b4d0b625a197 // master
 )
 
@@ -11,7 +11,7 @@ require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.28.0 // master
+require github.com/aperturerobotics/bifrost v0.28.1-0.20240406125815-657ba84211d9 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -67,7 +67,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.39.0 // latest
+	github.com/aperturerobotics/controllerbus v0.39.1 // latest
 	github.com/aperturerobotics/entitygraph v0.8.0
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
