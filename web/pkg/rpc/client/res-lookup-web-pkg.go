@@ -15,7 +15,7 @@ type resolveLookupWebPkg = directive.TransformResolver[web_pkg.LookupWebPkgValue
 // newResolveLookupWebPkg constructs a new LookupWebPkg resolver.
 func newResolveLookupWebPkg(c *Controller, webPkgID string) *resolveLookupWebPkg {
 	serviceID := c.serviceIdPrefix + webPkgID
-	return directive.NewTransformResolver[web_pkg.LookupWebPkgValue](
+	return directive.NewTransformResolver(
 		c.bus,
 		bifrost_rpc.NewLookupRpcClient(serviceID, c.cc.GetClientId()),
 		func(ctx context.Context, val directive.AttachedValue) (web_pkg.LookupWebPkgValue, func(), bool, error) {

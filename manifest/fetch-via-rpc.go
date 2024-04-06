@@ -28,6 +28,7 @@ func FetchManifestViaRpc(
 		ctx,
 		strm,
 		hnd,
+
 		hnd.MarkIdle,
 		returnOnIdle,
 	)

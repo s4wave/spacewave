@@ -108,7 +108,10 @@ func (t *pluginManifestTracker) execute(ctx context.Context) error {
 	}
 	defer diRef.Release()
 
-	defer di.AddIdleCallback(func(errs []error) {
+	defer di.AddIdleCallback(func(isIdle bool, errs []error) {
+		if !isIdle {
+			return
+		}
 		for _, err := range errs {
 			if err != context.Canceled && err != nil {
 				handleErr(err)

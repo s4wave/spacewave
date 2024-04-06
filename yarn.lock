@@ -154,6 +154,18 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
+"@libp2p/interface@^1.1.6":
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.1.6.tgz#379e3201f776ca13482ea60d31c4c5d40d88f7de"
+  integrity sha512-CLz6TAZf+Mw1PCIU8pjMIct1uh3A1fIene2/t+E57Tw4uJLCBJE9CLed/Opxliy5RH0e32Aa6bi4QSXtkJTK7A==
+  dependencies:
+    "@multiformats/multiaddr" "^12.2.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    multiformats "^13.1.0"
+    progress-events "^1.0.0"
+    uint8arraylist "^2.4.8"
+
 "@libp2p/logger@^4.0.6", "@libp2p/logger@^4.0.8":
   version "4.0.8"
   resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.8.tgz#164ab350f50e98dda383c2211b69c6f1d3f5776f"
@@ -161,6 +173,17 @@
   dependencies:
     "@libp2p/interface" "^1.1.5"
     "@multiformats/multiaddr" "^12.1.14"
+    debug "^4.3.4"
+    interface-datastore "^8.2.11"
+    multiformats "^13.1.0"
+
+"@libp2p/logger@^4.0.9":
+  version "4.0.9"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.9.tgz#30905a37f02d52488d990d8c2318c9aa8e5ea733"
+  integrity sha512-eGjFvMGA2FtNrnQuI6YwYY5jviA00lTMAKi8pF3eH0TCnEokSYJ9LxBLwZNgIzrWuwZwO+sf4SsY1YBEisFf5Q==
+  dependencies:
+    "@libp2p/interface" "^1.1.6"
+    "@multiformats/multiaddr" "^12.2.1"
     debug "^4.3.4"
     interface-datastore "^8.2.11"
     multiformats "^13.1.0"
@@ -208,7 +231,7 @@
     "@multiformats/multiaddr" "^12.0.0"
     multiformats "^13.0.0"
 
-"@multiformats/multiaddr@^12.0.0", "@multiformats/multiaddr@^12.1.14":
+"@multiformats/multiaddr@^12.0.0", "@multiformats/multiaddr@^12.1.14", "@multiformats/multiaddr@^12.2.1":
   version "12.2.1"
   resolved "https://registry.yarnpkg.com/@multiformats/multiaddr/-/multiaddr-12.2.1.tgz#d95d1590b17dbe39dcefbb4d832d14434d3fe075"
   integrity sha512-UwjoArBbv64FlaetV4DDwh+PUMfzXUBltxQwdh+uTYnGFzVa8ZfJsn1vt1RJlJ6+Xtrm3RMekF/B+K338i2L5Q==

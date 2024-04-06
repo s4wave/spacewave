@@ -52,14 +52,18 @@ func ExHandleWebView(
 	defer diRef.Release()
 
 	errCh := make(chan error, 1)
+	handleErr := func(err error) {
+		select {
+		case errCh <- err:
+		default:
+		}
+	}
 	if returnIfErr {
-		defer di.AddIdleCallback(func(errs []error) {
+		defer di.AddIdleCallback(func(isIdle bool, errs []error) {
 			for _, err := range errs {
 				if err != nil {
-					select {
-					case errCh <- err:
-					default:
-					}
+					handleErr(err)
+					return
 				}
 			}
 		})()

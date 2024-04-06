@@ -82,7 +82,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			var val bldr_plugin.LoadPluginValue = bldr_plugin.NewRunningPlugin(rpcClient)
 			r.runningPluginCtr.SetValue(val)
 			_, _ = handler.AddValue(val)
-			handler.MarkIdle()
+			handler.MarkIdle(true)
 		}
 	}, r.bo)
 }

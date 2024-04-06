@@ -51,7 +51,7 @@ func (r *lookupWebViewResolver) Resolve(ctx context.Context, handler directive.R
 			currValue = webView
 			if currValue != nil {
 				_, _ = handler.AddValue(currValue)
-				handler.MarkIdle()
+				handler.MarkIdle(true)
 			}
 		}
 

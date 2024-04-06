@@ -20,7 +20,7 @@ func (r *FetchManifestResponse) SetValueId(id uint32) {
 }
 
 // SetIdle sets the idle field.
-func (r *FetchManifestResponse) SetIdle(idle bool) {
+func (r *FetchManifestResponse) SetIdle(idle uint32) {
 	r.Idle = idle
 }
 

@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240405094137-ab71a455ba12 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240406123818-ab0539cc3d9b // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
+require github.com/aperturerobotics/bifrost v0.28.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -56,7 +56,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.38.1-0.20240404200601-a5d6ce4d901a // master
+	github.com/aperturerobotics/controllerbus v0.39.0 // master
 	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 )
@@ -106,7 +106,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.5.0
+	github.com/aperturerobotics/go-kvfile v0.5.1
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
@@ -114,10 +114,10 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20240327091054-4d0d7f0db7ba
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
+	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
 	golang.org/x/mod v0.17.0
 	golang.org/x/sync v0.7.0
-	golang.org/x/tools v0.19.0
+	golang.org/x/tools v0.20.0
 )
 
 require (
@@ -127,7 +127,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.7.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

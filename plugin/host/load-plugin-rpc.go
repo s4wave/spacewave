@@ -69,7 +69,10 @@ func HandleLoadPluginRpc(
 	}
 	defer ref.Release()
 
-	defer di.AddIdleCallback(func(errs []error) {
+	defer di.AddIdleCallback(func(isIdle bool, errs []error) {
+		if !isIdle {
+			return
+		}
 		for _, err := range errs {
 			if err != nil && err != context.Canceled {
 				pushErr(err)

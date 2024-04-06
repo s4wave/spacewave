@@ -132,7 +132,7 @@ func (r *lookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 	_ = web_view_handler.SRPCRegisterHandleWebViewService(mux, handleViaBus)
 	var value bifrost_rpc.LookupRpcServiceValue = mux
 	_, _ = handler.AddValue(value)
-	handler.MarkIdle()
+	handler.MarkIdle(true)
 
 	<-ctx.Done()
 	return context.Canceled

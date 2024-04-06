@@ -61,7 +61,7 @@ func (r *fetchManifestWatchResolver) Resolve(ctx context.Context, handler direct
 		}
 
 		uniqueResolver.SetValues(manifests...)
-		handler.MarkIdle()
+		handler.MarkIdle(true)
 		return true, nil
 	}))
 

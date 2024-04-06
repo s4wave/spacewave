@@ -7,9 +7,9 @@ import (
 	"context"
 	"os"
 
+	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	web_runtime_wasm "github.com/aperturerobotics/bldr/web/runtime/wasm"
-	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"

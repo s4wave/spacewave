@@ -91,5 +91,8 @@ message FetchManifestResponse {
   // Removed indicates removal of the value with value_id.
   bool removed = 3;
   // Idle indicates the directive is now idle (no resolvers are running).
-  bool idle = 4;
+	//
+	// 1 = not idle
+	// 2 = idle
+  uint32 idle = 4;
 }

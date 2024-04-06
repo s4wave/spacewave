@@ -155,7 +155,7 @@ func (r *LookupRpcClientResolver) Resolve(rctx context.Context, handler directiv
 		var value bifrost_rpc.LookupRpcClientValue = client
 		r.rpcClientCtr.SetValue(&value)
 		_, _ = handler.AddValue(value)
-		handler.MarkIdle()
+		handler.MarkIdle(true)
 
 		select {
 		case <-ctx.Done():

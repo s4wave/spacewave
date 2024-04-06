@@ -99,7 +99,10 @@ func ExPluginLoadAccess(
 	defer dirRef.Release()
 
 	errCh := make(chan error, 1)
-	defer di.AddIdleCallback(func(resErrs []error) {
+	defer di.AddIdleCallback(func(isIdle bool, resErrs []error) {
+		if !isIdle {
+			return
+		}
 		for _, err := range resErrs {
 			if err != nil {
 				select {

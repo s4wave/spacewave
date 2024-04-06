@@ -49,7 +49,10 @@ func (t *webPkgTracker) execute(ctx context.Context) error {
 
 	// if the directive becomes idle we will set the srvPromise value to nil.
 	errCh := make(chan error, 1)
-	di.AddIdleCallback(func(errs []error) {
+	di.AddIdleCallback(func(isIdle bool, errs []error) {
+		if !isIdle {
+			return
+		}
 		for _, err := range errs {
 			if err != nil {
 				select {

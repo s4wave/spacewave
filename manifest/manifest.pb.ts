@@ -110,8 +110,13 @@ export interface FetchManifestResponse {
     | undefined;
   /** Removed indicates removal of the value with value_id. */
   removed: boolean;
-  /** Idle indicates the directive is now idle (no resolvers are running). */
-  idle: boolean;
+  /**
+   * Idle indicates the directive is now idle (no resolvers are running).
+   *
+   * 1 = not idle
+   * 2 = idle
+   */
+  idle: number;
 }
 
 function createBaseManifestMeta(): ManifestMeta {
@@ -909,7 +914,7 @@ export const FetchManifestValue = {
 };
 
 function createBaseFetchManifestResponse(): FetchManifestResponse {
-  return { valueId: 0, value: undefined, removed: false, idle: false };
+  return { valueId: 0, value: undefined, removed: false, idle: 0 };
 }
 
 export const FetchManifestResponse = {
@@ -923,8 +928,8 @@ export const FetchManifestResponse = {
     if (message.removed !== false) {
       writer.uint32(24).bool(message.removed);
     }
-    if (message.idle !== false) {
-      writer.uint32(32).bool(message.idle);
+    if (message.idle !== 0) {
+      writer.uint32(32).uint32(message.idle);
     }
     return writer;
   },
@@ -962,7 +967,7 @@ export const FetchManifestResponse = {
             break;
           }
 
-          message.idle = reader.bool();
+          message.idle = reader.uint32();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -1012,7 +1017,7 @@ export const FetchManifestResponse = {
       valueId: isSet(object.valueId) ? globalThis.Number(object.valueId) : 0,
       value: isSet(object.value) ? FetchManifestValue.fromJSON(object.value) : undefined,
       removed: isSet(object.removed) ? globalThis.Boolean(object.removed) : false,
-      idle: isSet(object.idle) ? globalThis.Boolean(object.idle) : false,
+      idle: isSet(object.idle) ? globalThis.Number(object.idle) : 0,
     };
   },
 
@@ -1027,8 +1032,8 @@ export const FetchManifestResponse = {
     if (message.removed !== false) {
       obj.removed = message.removed;
     }
-    if (message.idle !== false) {
-      obj.idle = message.idle;
+    if (message.idle !== 0) {
+      obj.idle = Math.round(message.idle);
     }
     return obj;
   },
@@ -1043,7 +1048,7 @@ export const FetchManifestResponse = {
       ? FetchManifestValue.fromPartial(object.value)
       : undefined;
     message.removed = object.removed ?? false;
-    message.idle = object.idle ?? false;
+    message.idle = object.idle ?? 0;
     return message;
   },
 };

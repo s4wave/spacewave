@@ -3,6 +3,7 @@ package valuelist
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -15,7 +16,11 @@ type WatchDirectiveResponse[T any] interface {
 	// GetValueId returns the value ID.
 	GetValueId() uint32
 	// GetIdle gets the idle field.
-	GetIdle() bool
+	//
+	// 0 = no change
+	// 1 = not idle
+	// 2 = idle
+	GetIdle() uint32
 	// GetRemoved gets the removed field.
 	GetRemoved() bool
 	// GetValue gets the value field.
@@ -24,7 +29,11 @@ type WatchDirectiveResponse[T any] interface {
 	// SetValueId sets the value id field.
 	SetValueId(id uint32)
 	// SetIdle sets the idle field.
-	SetIdle(idle bool)
+	//
+	// 0 = no change
+	// 1 = not idle
+	// 2 = idle
+	SetIdle(idle uint32)
 	// SetRemoved sets the removed field.
 	SetRemoved(removed bool)
 	// SetValue sets the value field.
@@ -92,9 +101,17 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	}
 	defer dirRef.Release()
 
-	defer di.AddIdleCallback(func(_ []error) {
+	var wasIdle atomic.Bool
+	defer di.AddIdleCallback(func(isIdle bool, _ []error) {
+		if wasIdle.Swap(isIdle) == isIdle {
+			return
+		}
+		idleVal := uint32(1)
+		if isIdle {
+			idleVal = 2
+		}
 		msg := ctor()
-		msg.SetIdle(true)
+		msg.SetIdle(idleVal)
 		queueSend(msg)
 	})()
 
@@ -129,7 +146,7 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 	ctx context.Context,
 	strm srpc.StreamRecv[R],
 	hnd directive.ValueHandler,
-	idle func(),
+	idle func(isIdle bool),
 	returnOnIdle bool,
 ) error {
 	for {
@@ -151,11 +168,13 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 			}
 		}
 
-		if msg.GetIdle() {
+		idleVal := msg.GetIdle()
+		if idleVal != 0 {
+			isIdle := idleVal != 1
 			if idle != nil {
-				idle()
+				idle(isIdle)
 			}
-			if returnOnIdle {
+			if returnOnIdle && isIdle {
 				return nil
 			}
 		}
