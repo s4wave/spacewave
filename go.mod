@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.22
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240406121253-b9171cca63ac // master
+	github.com/aperturerobotics/hydra v0.0.0-20240406123818-ab0539cc3d9b // master
 	github.com/aperturerobotics/identity v0.0.0-20240406121336-b4d0b625a197 // master
 )
 
