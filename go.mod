@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240406123818-ab0539cc3d9b // master
+require github.com/aperturerobotics/hydra v0.0.0-20240406125835-7d79197f9a7f // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.28.0 // master
+require github.com/aperturerobotics/bifrost v0.28.1-0.20240406125815-657ba84211d9 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -56,7 +56,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.39.0 // master
+	github.com/aperturerobotics/controllerbus v0.39.1 // master
 	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 )
