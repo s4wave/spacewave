@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.28.0 // master
+	github.com/aperturerobotics/bifrost v0.28.1-0.20240406125815-657ba84211d9 // master
 	github.com/aperturerobotics/go-kvfile v0.5.1 // master
 )
 
@@ -65,7 +65,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.39.0 // latest
+	github.com/aperturerobotics/controllerbus v0.39.1 // latest
 	github.com/aperturerobotics/entitygraph v0.8.0 // latest
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
