@@ -63,11 +63,17 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	bucketConfs := c.conf.GetApplyBucketConfigs()
 	refs := make([]func(), 0, len(bucketConfs)*2)
-	running := int32(len(bucketConfs))
+	var running atomic.Int32
+	running.Store(int32(len(bucketConfs)))
 
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
 	errCh := make(chan error, 1)
+	handleErr := func(err error) {
+		select {
+		case errCh <- err:
+		default:
+		}
+	}
+
 	for i, conf := range bucketConfs {
 		if conf.GetConfig() == nil {
 			continue
@@ -89,18 +95,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le.WithError(err).Warn("apply bucket config failed")
 			continue
 		}
+		var markedNotRunning atomic.Bool
 		refs = append(refs,
-			di.AddIdleCallback(func(errs []error) {
-				nrunning := atomic.AddInt32(&running, -1)
-				if nrunning == 0 {
-					subCtxCancel()
-				}
-				if len(errs) != 0 {
-					select {
-					case errCh <- errs[0]:
+			di.AddIdleCallback(func(isIdle bool, errs []error) {
+				for _, err := range errs {
+					if err != nil && err != context.Canceled {
+						le.WithError(err).Warn("apply bucket config failed")
+						handleErr(err)
 						return
-					default:
 					}
+				}
+				if !isIdle || markedNotRunning.Swap(true) {
+					return
+				}
+				if running.Add(-1) == 0 {
+					handleErr(nil)
 				}
 			}),
 			ref.Release,
@@ -123,9 +132,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// wait
 	select {
-	case <-subCtx.Done():
+	case <-ctx.Done():
 		// return (become idle)
-		return nil
+		return context.Canceled
 	case err := <-errCh:
 		return err
 	}

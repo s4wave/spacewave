@@ -337,9 +337,13 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 
 	var notFoundSeen atomic.Bool
 	var idle atomic.Bool
-	var idleCb bus.ExecIdleCallback = func(errs []error) (cwait bool, err error) {
+	var idleCb bus.ExecIdleCallback = func(isIdle bool, errs []error) (cwait bool, err error) {
+		if !isIdle {
+			return true, nil
+		}
+
 		idle.Store(true)
-		cwait, err = bus.ReturnIfIdle(!wait)(errs)
+		cwait, err = bus.ReturnIfIdle(!wait)(isIdle, errs)
 		if cwait && err == nil && notFoundSeen.Load() {
 			// don't wait if we saw not-found or an error
 			cwait = false

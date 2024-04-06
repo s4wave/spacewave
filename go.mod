@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.27.2-0.20240404225026-d90acff6d91a // master
+	github.com/aperturerobotics/bifrost v0.28.0 // master
 	github.com/aperturerobotics/go-kvfile v0.5.1 // master
 )
 
@@ -40,7 +40,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cayleygraph/cayley v0.7.7
-	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.2-0.20240116140435-c67e07994f91
 	github.com/dolthub/go-mysql-server v0.18.0
@@ -50,7 +50,7 @@ require (
 	github.com/genjidb/genji v0.16.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.0
-	github.com/go-git/go-git/v5 v5.11.0
+	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gomodule/redigo v1.9.2
 	github.com/hidal-go/hidalgo v0.3.0
@@ -65,7 +65,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.38.1-0.20240404200601-a5d6ce4d901a // latest
+	github.com/aperturerobotics/controllerbus v0.39.0 // latest
 	github.com/aperturerobotics/entitygraph v0.8.0 // latest
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
@@ -103,9 +103,9 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.9
-	golang.org/x/crypto v0.21.0
-	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
-	golang.org/x/sync v0.6.0
+	golang.org/x/crypto v0.22.0
+	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
+	golang.org/x/sync v0.7.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
@@ -229,12 +229,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/term v0.18.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.19.0 // indirect
+	golang.org/x/tools v0.20.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

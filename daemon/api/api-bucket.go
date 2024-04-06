@@ -2,6 +2,7 @@ package hydra_api
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -19,53 +20,61 @@ func (a *API) ApplyBucketConfig(
 		return err
 	}
 
-	reqCtx, reqCtxCancel := context.WithCancel(ctx)
-	defer reqCtxCancel()
-
-	added := func(aval directive.AttachedValue) {
-		val, ok := aval.GetValue().(bucket.ApplyBucketConfigValue)
-		if !ok {
-			return
+	errCh := make(chan error, 1)
+	handleErr := func(err error) {
+		select {
+		case errCh <- err:
+		default:
 		}
-		_ = serv.Send(&ApplyBucketConfigResponse{
-			ApplyConfResult: val,
-		})
 	}
+
 	applyBucketConf, err := req.ToApplyBucketConfig()
 	if err != nil {
 		return err
 	}
 
-	di, ref, err := a.bus.AddDirective(
+	var emittedAny atomic.Bool
+	di, diRef, err := bus.ExecWatchEffect(
+		func(val directive.TypedAttachedValue[*bucket.ApplyBucketConfigResult]) func() {
+			emittedAny.Store(true)
+			if err := serv.Send(&ApplyBucketConfigResponse{
+				ApplyConfResult: val.GetValue(),
+			}); err != nil {
+				handleErr(err)
+			}
+			return nil
+		},
+		a.bus,
 		applyBucketConf,
-		bus.NewCallbackHandler(
-			added,
-			nil,
-			reqCtxCancel,
-		),
 	)
 	if err != nil {
 		return err
 	}
-	defer ref.Release()
+	defer diRef.Release()
 
-	errCh := make(chan error, 1)
-	defer di.AddIdleCallback(func(errs []error) {
-		if len(errs) != 0 {
-			select {
-			case errCh <- errs[0]:
+	defer di.AddIdleCallback(func(isIdle bool, resolverErrs []error) {
+		if !isIdle {
+			return
+		}
+
+		for _, err := range resolverErrs {
+			if err != nil && err != context.Canceled {
+				handleErr(err)
 				return
-			default:
 			}
 		}
-		reqCtxCancel()
-	})()
+
+		// handle idle with success if at least one value emitted
+		if emittedAny.Load() {
+			handleErr(nil)
+		}
+	})
 
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
-	case <-reqCtx.Done():
 		return nil
+	case <-errCh:
+		return err
 	}
 }
 
@@ -74,45 +83,12 @@ func (a *API) ListBuckets(
 	ctx context.Context,
 	req *volume.ListBucketsRequest,
 ) (*ListBucketsResponse, error) {
-	var bucketInfos []*volume.ListBucketsValue
-	reqCtx, reqCtxCancel := context.WithCancel(ctx)
-	defer reqCtxCancel()
-	di, diRef, err := a.bus.AddDirective(
-		req,
-		bus.NewCallbackHandler(func(av directive.AttachedValue) {
-			v, ok := av.GetValue().(*volume.ListBucketsValue)
-			if !ok {
-				return
-			}
-			bucketInfos = append(bucketInfos, v)
-		}, nil, reqCtxCancel),
-	)
+
+	bucketInfos, _, ref, err := bus.ExecCollectValues[*volume.ListBucketsValue](ctx, a.bus, req, false, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer diRef.Release()
+	ref.Release()
 
-	errCh := make(chan error, 1)
-	di.AddIdleCallback(func(errs []error) {
-		if len(errs) != 0 {
-			select {
-			case errCh <- errs[0]:
-				return
-			default:
-			}
-		}
-		reqCtxCancel()
-	})
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case err := <-errCh:
-		return nil, err
-	case <-reqCtx.Done():
-	}
-
-	return &ListBucketsResponse{
-		Buckets: bucketInfos,
-	}, nil
+	return &ListBucketsResponse{Buckets: bucketInfos}, nil
 }

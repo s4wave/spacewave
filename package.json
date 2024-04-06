@@ -48,14 +48,14 @@
     "@typescript-eslint/eslint-plugin": "^7.5.0",
     "@typescript-eslint/parser": "^7.5.0",
     "depcheck": "^1.4.7",
-    "eslint": "^8.57.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-unused-imports": "^3.1.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
     "ts-poet": "6.7.0",
     "ts-proto": "^1.171.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.4"
   },
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.3.0",
