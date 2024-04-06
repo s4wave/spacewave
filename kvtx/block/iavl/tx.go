@@ -446,10 +446,17 @@ func (t *Tx) setFromNode(
 			if isBlob {
 				// SetAsSubBlock requires a value, set an empty blob if blk is nil.
 				if blk, _ := valCursor.GetBlock(); blk == nil {
-					valCursor.SetBlock(blob.NewBlobBlock(), false)
+					if valCursor.GetRef().GetEmpty() {
+						valCursor.SetBlock(blob.NewBlobBlock(), false)
+					} else {
+						_, err := blob.UnmarshalBlob(ctx, valCursor)
+						if err != nil {
+							return nod, bcs, true, err
+						}
+					}
 				}
 				if err := valCursor.SetAsSubBlock(8, bcs); err != nil {
-					return nod, bcs, false, err
+					return nod, bcs, true, err
 				}
 			} else {
 				nod.ValueRef = valCursor.GetRef()
@@ -489,7 +496,14 @@ func (t *Tx) setFromNode(
 		if isBlob {
 			// SetAsSubBlock requires a value, set an empty blob if blk is nil.
 			if blk, _ := valCursor.GetBlock(); blk == nil {
-				valCursor.SetBlock(blob.NewBlobBlock(), false)
+				if valCursor.GetRef().GetEmpty() {
+					valCursor.SetBlock(blob.NewBlobBlock(), false)
+				} else {
+					_, err := blob.UnmarshalBlob(ctx, valCursor)
+					if err != nil {
+						return nrootNod, nroot, true, err
+					}
+				}
 			}
 			if err := valCursor.SetAsSubBlock(8, ncs); err != nil {
 				return nrootNod, nroot, true, err
