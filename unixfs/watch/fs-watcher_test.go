@@ -12,6 +12,7 @@ import (
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
+	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/sirupsen/logrus"
@@ -29,7 +30,7 @@ func TestFSWatcher(t *testing.T) {
 	}
 
 	objKey := "test-fs"
-	rootRef, tb, err := unixfs_world.BuildTestbed(
+	rootRef, tb, err := unixfs_world_testbed.BuildTestbed(
 		btb,
 		objKey,
 		true,

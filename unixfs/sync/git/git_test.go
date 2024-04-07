@@ -9,7 +9,7 @@ import (
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
-	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
+	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +33,7 @@ func TestSyncFromGitWorkdir(t *testing.T) {
 	}
 
 	watchWorldChanges := true
-	fsHandle, err := unixfs_world.InitTestbed(wtb, objKey, watchWorldChanges)
+	fsHandle, err := unixfs_world_testbed.InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

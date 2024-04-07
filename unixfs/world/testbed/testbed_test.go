@@ -1,4 +1,4 @@
-package unixfs_world
+package unixfs_world_testbed
 
 import (
 	"context"

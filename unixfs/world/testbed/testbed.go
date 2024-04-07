@@ -1,10 +1,11 @@
-package unixfs_world
+package unixfs_world_testbed
 
 import (
 	"time"
 
 	hydra_testbed "github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	world_types "github.com/aperturerobotics/hydra/world/types"
@@ -42,7 +43,7 @@ func InitTestbed(
 
 	// provide op handlers to bus
 	engineID := tb.EngineID
-	opc := world.NewLookupOpController("test-fs-ops", engineID, LookupFsOp)
+	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)
 	go func() {
 		_ = tb.Bus.ExecuteController(ctx, opc)
 	}()
@@ -56,9 +57,9 @@ func InitTestbed(
 	ws := world.NewEngineWorldState(eng, true)
 
 	sender := tb.Volume.GetPeerID()
-	fsType := FSType_FSType_FS_NODE
-	typeID, _ := FSTypeToTypeID(fsType)
-	_, _, err := FsInit(
+	fsType := unixfs_world.FSType_FSType_FS_NODE
+	typeID, _ := unixfs_world.FSTypeToTypeID(fsType)
+	_, _, err := unixfs_world.FsInit(
 		ctx,
 		ws,
 		sender,
@@ -80,7 +81,7 @@ func InitTestbed(
 
 	// construct full fs
 	tb.Logger.Debug("filesystem initialized")
-	rootFSCursor, err := FollowUnixfsRef(ctx, tb.Logger, ws, &UnixfsRef{ObjectKey: objKey}, sender, watchWorldChanges)
+	rootFSCursor, err := unixfs_world.FollowUnixfsRef(ctx, tb.Logger, ws, &unixfs_world.UnixfsRef{ObjectKey: objKey}, sender, watchWorldChanges)
 	if err != nil {
 		return nil, err
 	}

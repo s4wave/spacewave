@@ -8,7 +8,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/testbed"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
-	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
+	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	memfs "github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -28,7 +28,7 @@ func TestSync(t *testing.T) {
 	}
 
 	objKey := "test-fs"
-	rref, _, err := unixfs_world.BuildTestbed(
+	rref, _, err := unixfs_world_testbed.BuildTestbed(
 		btb,
 		objKey,
 		true,
