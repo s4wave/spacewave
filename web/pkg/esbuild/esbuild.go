@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
@@ -176,7 +176,7 @@ func ResolveWebPkgRefsEsbuild(
 			WithField("web-pkg-imports", ref.Imports).
 			Debug("analyzing web pkg bundle with esbuild")
 		result := esbuild_api.Build(*buildOpts)
-		if err := bldr_esbuild.BuildResultToErr(result); err != nil {
+		if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
 			return nil, err
 		}
 	}
@@ -398,7 +398,7 @@ func BuildWebPkgsEsbuild(
 
 		le.Debugf("compiling web pkg bundle with esbuild: %s", webPkgID)
 		result := esbuild_api.Build(*buildOpts)
-		if err := bldr_esbuild.BuildResultToErr(result); err != nil {
+		if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
 			return nil, nil, err
 		}
 		if len(result.OutputFiles) == 0 {
@@ -413,7 +413,7 @@ func BuildWebPkgsEsbuild(
 			os.Stderr.WriteString(metaAnalysis + "\n")
 		*/
 
-		metaFile := &bldr_esbuild.EsbuildMetafile{}
+		metaFile := &bldr_esbuild_build.EsbuildMetafile{}
 		if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
 			return nil, nil, errors.Wrap(err, "parse esbuild metafile")
 		}

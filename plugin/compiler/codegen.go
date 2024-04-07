@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

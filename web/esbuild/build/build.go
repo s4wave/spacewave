@@ -1,6 +1,8 @@
-package bldr_esbuild
+package bldr_esbuild_build
 
 import (
+	"errors"
+
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
 	shellquote "github.com/kballard/go-shellquote"
@@ -26,4 +28,20 @@ func ParseEsbuildFlags(flags []string) (*esbuild_api.BuildOptions, error) {
 		return nil, err
 	}
 	return &opts, nil
+}
+
+// BuildResultToErr converts a BuildResult into a single error, if any.
+func BuildResultToErr(res esbuild_api.BuildResult) error {
+	if len(res.Errors) == 0 {
+		return nil
+	}
+	return errors.New(res.Errors[0].Text)
+}
+
+// ResolveResultToErr converts a BuildResult into a single error, if any.
+func ResolveResultToErr(res esbuild_api.ResolveResult) error {
+	if len(res.Errors) == 0 {
+		return nil
+	}
+	return errors.New(res.Errors[0].Text)
 }

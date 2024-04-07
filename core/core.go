@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 
+	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
+	link_holdopen_controller "github.com/aperturerobotics/bifrost/link/hold-open"
 	manifest_fetch_viaplugin "github.com/aperturerobotics/bldr/manifest/fetch/plugin"
 	manifest_fetch_viaworld "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
@@ -22,18 +24,16 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	block_store_bucket "github.com/aperturerobotics/hydra/block/store/bucket"
-	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
 	http_lookup "github.com/aperturerobotics/hydra/block/store/http/lookup"
 	http_server "github.com/aperturerobotics/hydra/block/store/http/server"
-	block_store_kvfile_http "github.com/aperturerobotics/hydra/block/store/kvfile/http"
 	block_store_ristretto "github.com/aperturerobotics/hydra/block/store/ristretto"
 	block_store_rpc "github.com/aperturerobotics/hydra/block/store/rpc"
 	block_store_rpc_lookup "github.com/aperturerobotics/hydra/block/store/rpc/lookup"
 	block_store_rpc_server "github.com/aperturerobotics/hydra/block/store/rpc/server"
-	block_store_s3 "github.com/aperturerobotics/hydra/block/store/s3"
-	block_store_s3_lookup "github.com/aperturerobotics/hydra/block/store/s3/lookup"
-	hydracore "github.com/aperturerobotics/hydra/core"
+	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
+	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	unixfs_world_access "github.com/aperturerobotics/hydra/unixfs/world/access"
+	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
@@ -56,8 +56,17 @@ func NewCoreBus(
 }
 
 // AddFactories adds factories to an existing static resolver.
+//
+// NOTE: We only add the essential factories here to keep binary sizes low.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
-	hydracore.AddFactories(b, sr)
+	// bifrostcore.AddFactories(b, sr)
+	// hydracore.AddFactories(b, sr)
+
+	sr.AddFactory(node_controller.NewFactory(b))
+	sr.AddFactory(lookup_concurrent.NewFactory(b))
+
+	sr.AddFactory(link_establish_controller.NewFactory(b))
+	sr.AddFactory(link_holdopen_controller.NewFactory(b))
 
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
@@ -82,6 +91,8 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(web_view_handler_via_bus.NewFactory(b))
 
 	sr.AddFactory(storage_volume.NewFactory(b))
+
+	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
 
@@ -89,10 +100,10 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(http_server.NewFactory(b))
 
 	sr.AddFactory(block_store_bucket.NewFactory(b))
-	sr.AddFactory(block_store_kvfile_http.NewFactory(b))
-	sr.AddFactory(block_store_http.NewFactory(b))
-	sr.AddFactory(block_store_s3.NewFactory(b))
-	sr.AddFactory(block_store_s3_lookup.NewFactory(b))
+	// sr.AddFactory(block_store_kvfile_http.NewFactory(b))
+	// sr.AddFactory(block_store_http.NewFactory(b))
+	// sr.AddFactory(block_store_s3.NewFactory(b))
+	// sr.AddFactory(block_store_s3_lookup.NewFactory(b))
 	sr.AddFactory(block_store_ristretto.NewFactory(b))
 
 	sr.AddFactory(block_store_rpc.NewFactory(b))

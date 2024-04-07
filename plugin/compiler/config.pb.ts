@@ -4,7 +4,7 @@ import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 import { EsbuildVarType, esbuildVarTypeFromJSON, esbuildVarTypeToJSON } from "../../web/esbuild/esbuild.pb.js";
 import { WebPkgRef } from "../../web/pkg/esbuild/esbuild.pb.js";
-import { PluginDevInfo } from "./vardef/vardef.pb.js";
+import { PluginDevInfo } from "../vardef/vardef.pb.js";
 
 export const protobufPackage = "bldr.plugin.compiler";
 
@@ -131,8 +131,11 @@ export interface Config {
   delveAddr: string;
   /**
    * EnableCgo enables cgo in the Go compiler.
+   *
    * Cgo is disabled by default as it may cause non-reproducible builds.
    * https://github.com/golang/go/issues/57120#issuecomment-1420752516
+   *
+   * Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
    */
   enableCgo: boolean;
   /**

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"syscall/js"
 
-	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
 	stream_srpc_client_controller "github.com/aperturerobotics/bifrost/stream/srpc/client/controller"
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	"github.com/aperturerobotics/bldr/banner"
@@ -21,7 +20,6 @@ import (
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
-	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/retry"
@@ -81,14 +79,13 @@ func main() {
 		if err != nil {
 			le.Fatal(err.Error())
 		}
-		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
-		sr.AddFactory(plugin_host_web.NewFactory(b))
-		sr.AddFactory(websocket.NewFactory(b))
-		sr.AddFactory(link_establish_controller.NewFactory(b))
-		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
-		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
-		sr.AddFactory(lookup_concurrent.NewFactory(b))
+
 		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
+		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
+		sr.AddFactory(plugin_host_web.NewFactory(b))
+		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
+		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
+		sr.AddFactory(websocket.NewFactory(b))
 
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)
@@ -105,6 +102,11 @@ func main() {
 			return err
 		}
 		defer relStorageCtrl()
+
+		// add storage factories
+		for _, st := range storageCtrl.GetStorage() {
+			st.AddFactories(b, sr)
+		}
 
 		ctrl := devtool_web_entrypoint_controller.NewController(
 			le,

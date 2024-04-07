@@ -9,7 +9,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -48,7 +48,7 @@ func BuildWasmRuntimeEntrypoint(
 	opts.Write = true
 
 	res := esbuild_api.Build(opts)
-	if err := bldr_esbuild.BuildResultToErr(res); err != nil {
+	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
 		return err
 	}
 
@@ -70,7 +70,7 @@ func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDi
 	opts.Write = true
 
 	res := esbuild_api.Build(opts)
-	if err := bldr_esbuild.BuildResultToErr(res); err != nil {
+	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
 		return err
 	}
 

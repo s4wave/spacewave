@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
-	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -68,7 +68,7 @@ func BuildPreloadBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify,
 	}
 
 	res := esbuild.Build(opts)
-	return util_esbuild.BuildResultToErr(res)
+	return bldr_esbuild_build.BuildResultToErr(res)
 }
 
 // BuildMainBundle builds the electron Main bundle files.
@@ -94,7 +94,7 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 	FixEsbuildIssue1921(&opts)
 
 	res := esbuild.Build(opts)
-	return util_esbuild.BuildResultToErr(res)
+	return bldr_esbuild_build.BuildResultToErr(res)
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
@@ -136,7 +136,7 @@ func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	}
 
 	res := esbuild.Build(opts)
-	return util_esbuild.BuildResultToErr(res)
+	return bldr_esbuild_build.BuildResultToErr(res)
 }
 
 // FixEsbuildIssue1921 fixes dynamic esbuild imports failing under node.js.

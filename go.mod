@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240406125835-7d79197f9a7f // master
+require github.com/aperturerobotics/hydra v0.0.0-20240407092827-520b7c0cf668 // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.28.1-0.20240406125815-657ba84211d9 // master
+require github.com/aperturerobotics/bifrost v0.28.1-0.20240407070326-513c7c2f0122 // master
 
 // aperture: use ext-engines forks
 replace (

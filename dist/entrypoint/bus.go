@@ -129,6 +129,11 @@ func BuildDistBus(
 		return nil, errors.New("no available storage methods")
 	}
 
+	// add storage factories
+	for _, st := range storageMethods {
+		st.AddFactories(b, sr)
+	}
+
 	// run the distribution storage volume (used for storing dist manifests)
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,

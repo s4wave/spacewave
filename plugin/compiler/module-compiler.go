@@ -10,7 +10,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -179,7 +179,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	goArgs := gocompiler.GetDefaultArgs()
 
 	// build tags
-	buildTags := gocompiler.NewBuildTags(buildPlatform, buildType, enableCgo)
+	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
 
 	// add build tags to build args
 	if len(buildTags) != 0 {
@@ -221,7 +221,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// build path: .
 	args = append(args, ".")
 
-	ecmd := gocompiler.NewGoCompilerCmd(args...)
+	ecmd := gocompiler.NewGoCompilerCmd("go", args...)
 	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host, ignore cgo-enabled
 	ecmd.Dir = devSrcDir
 	return gocompiler.ExecGoCompiler(m.le, ecmd)

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	"github.com/evanw/esbuild/pkg/api"
@@ -67,7 +67,7 @@ func BuildEsbuildPlugin(
 						ResolveDir: ora.ResolveDir,
 						Kind:       kind,
 					})
-					if err := util_esbuild.ResolveResultToErr(res); err != nil {
+					if err := bldr_esbuild_build.ResolveResultToErr(res); err != nil {
 						return "", err
 					}
 					// expect the path to have changed

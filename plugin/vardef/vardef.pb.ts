@@ -1,7 +1,7 @@
 /* eslint-disable */
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
-import { EsbuildOutput } from "../../../web/esbuild/esbuild.pb.js";
+import { EsbuildOutput } from "../../web/esbuild/esbuild.pb.js";
 
 export const protobufPackage = "bldr.plugin.compiler.vardef";
 

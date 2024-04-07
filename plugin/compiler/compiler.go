@@ -12,11 +12,11 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
@@ -447,7 +447,7 @@ func (c *Controller) FastRebuildPlugin(
 	}
 
 	webPkgs := inputMeta.GetWebPkgs()
-	baseEsbuildOpts, err := bldr_esbuild.ParseEsbuildFlags(inputMeta.GetEsbuildFlags())
+	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(inputMeta.GetEsbuildFlags())
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +665,7 @@ func (c *Controller) BuildPlugin(
 	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
 	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
 
-	baseEsbuildOpts, err := bldr_esbuild.ParseEsbuildFlags(baseEsbuildFlags)
+	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(baseEsbuildFlags)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -696,7 +696,7 @@ func (c *Controller) BuildPlugin(
 
 	// analyze go packages
 	le.Info("analyzing go packages")
-	buildTagsForAnalyze := gocompiler.NewBuildTags(buildPlatform, buildType, enableCgo)
+	buildTagsForAnalyze := gocompiler.NewBuildTags(buildType, enableCgo)
 	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTagsForAnalyze)
 	if err != nil {
 		return nil, nil, err

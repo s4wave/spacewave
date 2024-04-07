@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
@@ -228,7 +229,7 @@ func BuildEsbuildBundle(
 	bundleID := meta.GetId()
 	le.Debugf("compiling bundle with esbuild: %s", bundleID)
 	result := esbuild_api.Build(*buildOpts)
-	if err := bldr_esbuild.BuildResultToErr(result); err != nil {
+	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
 		return nil, nil, nil, nil, err
 	}
 	if len(result.OutputFiles) == 0 {
@@ -243,7 +244,7 @@ func BuildEsbuildBundle(
 		os.Stderr.WriteString(metaAnalysis + "\n")
 	*/
 
-	metaFile := &bldr_esbuild.EsbuildMetafile{}
+	metaFile := &bldr_esbuild_build.EsbuildMetafile{}
 	if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
 		return nil, nil, nil, nil, errors.Wrap(err, "parse esbuild metafile")
 	}
@@ -278,7 +279,7 @@ func BuildEsbuildBundle(
 
 		// Outputs: the key is the output path relative to the source dir.
 		var entrypointOutpPath string
-		var entrypointOutp bldr_esbuild.EsbuildMetaFileOutput
+		var entrypointOutp bldr_esbuild_build.EsbuildMetaFileOutput
 		for outpPath, outp := range metaFile.Outputs {
 			if outp.EntryPoint == entrypointInpPath {
 				entrypointOutpPath = outpPath
@@ -347,7 +348,7 @@ func BuildEsbuildBundle(
 }
 
 // BuildEsbuildOutputMetas builds output metadata from the meta file.
-func BuildEsbuildOutputMetas(metaFile *bldr_esbuild.EsbuildMetafile) []*EsbuildOutputMeta {
+func BuildEsbuildOutputMetas(metaFile *bldr_esbuild_build.EsbuildMetafile) []*EsbuildOutputMeta {
 	metas := make([]*EsbuildOutputMeta, 0, len(metaFile.Outputs))
 	files := make([]string, 0, 2)
 	for outputPath, outputFile := range metaFile.Outputs {

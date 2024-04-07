@@ -11,7 +11,7 @@ import (
 	"go/token"
 	"go/types"
 
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

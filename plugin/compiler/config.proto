@@ -4,7 +4,7 @@ package bldr.plugin.compiler;
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
 import "github.com/aperturerobotics/bldr/web/pkg/esbuild/esbuild.proto";
-import "github.com/aperturerobotics/bldr/plugin/compiler/vardef/vardef.proto";
+import "github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto";
 
 // Config configures the plugin compiler controller.
 message Config {
@@ -65,8 +65,11 @@ message Config {
   string delve_addr = 8;
 
   // EnableCgo enables cgo in the Go compiler.
+  //
   // Cgo is disabled by default as it may cause non-reproducible builds.
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
+  //
+  // Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
   bool enable_cgo = 9;
 
   // EsbuildFlags is a string containing additional flags to pass to esbuild.

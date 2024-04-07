@@ -7,7 +7,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
@@ -95,7 +95,7 @@ func (c *Config) Validate() error {
 // ParseEsbuildFlags parsed the esbuild flags field, if set.
 // Returns nil if no flags were set.
 func (c *Config) ParseEsbuildFlags() (*esbuild_api.BuildOptions, error) {
-	return bldr_esbuild.ParseEsbuildFlags(c.GetEsbuildFlags())
+	return bldr_esbuild_build.ParseEsbuildFlags(c.GetEsbuildFlags())
 }
 
 // Alloc allocates any nil maps.

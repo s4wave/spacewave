@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	gdiff "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/tools/imports"
@@ -27,7 +27,6 @@ import (
 	bldr_values "github.com/aperturerobotics/bldr/values"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,7 +46,7 @@ var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b)}
 }}
 
 // ConfigSets are the configuration sets to apply on startup.
@@ -79,7 +78,6 @@ import (
 	bldr_values "github.com/aperturerobotics/bldr/values"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/sirupsen/logrus"
 )
 
@@ -99,7 +97,7 @@ var LogLevel = logrus.DebugLevel
 
 // Factories are the factories included in the binary.
 var Factories = []plugin_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{bldr_example.NewFactory(b), boilerplate_controller.NewFactory(b)}
+	return []controller.Factory{bldr_example.NewFactory(b)}
 }}
 
 // ConfigSets are the configuration sets to apply on startup.

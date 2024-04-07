@@ -10,7 +10,7 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
-	util_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
@@ -97,7 +97,7 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 	if !minify {
 		swOpts.Sourcemap = esbuild.SourceMapInline
 	}
-	return util_esbuild.BuildResultToErr(esbuild.Build(swOpts))
+	return bldr_esbuild_build.BuildResultToErr(esbuild.Build(swOpts))
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
@@ -130,7 +130,7 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 	}
 
 	res := esbuild.Build(rendererBuildOpts)
-	return util_esbuild.BuildResultToErr(res)
+	return bldr_esbuild_build.BuildResultToErr(res)
 }
 
 // BuildBrowserBundle builds and outputs the web & service worker files.

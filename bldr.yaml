@@ -8,12 +8,13 @@ start:
     - web
 
 build:
-  cross:
-    manifests: ["web", "bldr-demo", "bldr-demo-release"]
-    platformIds:
-      - native/linux/amd64
-      - native/windows/amd64
-      - native/darwin/amd64
+  native:
+    manifests: ["web", "bldr-demo"]
+    platformIds: ["native"]
+
+  web:
+    manifests: ["web", "bldr-demo"]
+    platformIds: ["web"]
 
   release:
     manifests: ["web", "bldr-demo", "bldr-demo-release"]
@@ -22,6 +23,14 @@ build:
   release-web:
     manifests: ["web", "bldr-demo", "bldr-demo-release"]
     platformIds: ["web"]
+
+  release-cross:
+    manifests: ["web", "bldr-demo", "bldr-demo-release"]
+    platformIds:
+      - web
+      - native/linux/amd64
+      - native/windows/amd64
+      - native/darwin/amd64
 
 remotes:
   demo-dist:

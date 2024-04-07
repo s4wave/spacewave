@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	cf "github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

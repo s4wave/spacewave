@@ -8,7 +8,7 @@ import (
 	fmt "fmt"
 	io "io"
 
-	vardef "github.com/aperturerobotics/bldr/plugin/compiler/vardef"
+	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	esbuild1 "github.com/aperturerobotics/bldr/web/esbuild"
 	esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
