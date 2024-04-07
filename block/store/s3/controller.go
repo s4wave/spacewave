@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package block_store_s3
 
 import (

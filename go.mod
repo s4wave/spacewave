@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.28.1-0.20240406125815-657ba84211d9 // master
+	github.com/aperturerobotics/bifrost v0.28.1-0.20240407070326-513c7c2f0122 // master
 	github.com/aperturerobotics/go-kvfile v0.5.1 // master
 )
 
