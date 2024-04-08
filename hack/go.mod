@@ -41,9 +41,9 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.28.0 // indirect
-	github.com/aperturerobotics/controllerbus v0.39.0 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20240406121253-b9171cca63ac // indirect
+	github.com/aperturerobotics/bifrost v0.28.1-0.20240406125815-657ba84211d9 // indirect
+	github.com/aperturerobotics/controllerbus v0.39.1 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240406125835-7d79197f9a7f // indirect
 	github.com/aperturerobotics/identity v0.0.0-20240406121336-b4d0b625a197 // indirect
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a // indirect
 	github.com/aperturerobotics/util v1.16.1 // indirect
