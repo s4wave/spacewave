@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	hcli "github.com/aperturerobotics/hydra/cli"
-	hydra_all "github.com/aperturerobotics/hydra/core/all"
+	"github.com/aperturerobotics/hydra/cli/core"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 )
 
@@ -32,7 +32,7 @@ func (s *CliStorage) GetStorageInfo() *storage.StorageInfo {
 
 // AddFactories adds the factories to the resolver.
 func (s *CliStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
-	hydra_all.AddFactories(b, sr)
+	hydra_cli_core.AddFactories(b, sr)
 }
 
 // BuildVolumeConfig creates the volume config for the store ID.
