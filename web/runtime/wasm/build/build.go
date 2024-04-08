@@ -23,11 +23,11 @@ const webRuntimeWasmDir = "web/runtime/wasm"
 // outPath should have a .mjs suffix
 // entrypointPath should be foo.wasm (relative to script location)
 func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoot, outPath, entrypointPath string, minify bool) error {
-	if !strings.HasSuffix(entrypointPath, ".wasm") {
+	if !strings.HasSuffix(entrypointPath, ".wasm") && !strings.HasSuffix(entrypointPath, ".wasm.br") {
 		if entrypointPath == "" {
 			entrypointPath = "<empty>"
 		}
-		return errors.Errorf("plugin-wasm: entrypoint path must end in .wasm: %s", entrypointPath)
+		return errors.Errorf("plugin-wasm: entrypoint path must end in .wasm or .wasm.br: %s", entrypointPath)
 	}
 
 	goRootDir := runtime.GOROOT()

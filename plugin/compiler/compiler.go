@@ -33,6 +33,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
+	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -898,12 +899,60 @@ func (c *Controller) BuildPlugin(
 
 	copyFiles := []string{devInfoFile}
 	outDistBinary := filepath.Join(outDistPath, outBinName)
+	outBinNameWithoutExt := strings.TrimSuffix(outBinName, buildPlatform.GetExecutableExt())
 
 	// only use dev wrapper if !isRelease && delveAddr != "" && platform == native
 	if isRelease || delveAddr == "" || !isNativeBuildPlatform {
 		le.Info("compiling plugin binary")
 		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, buildType, enableCgo); err != nil {
 			return nil, nil, err
+		}
+
+		// optimization pass: brotli compression
+		if isRelease && isWebBuildPlatform {
+			le.Info("compressing plugin binary with brotli")
+
+			// track file size savings
+			preOptStat, err := os.Stat(outDistBinary)
+			if err != nil {
+				return nil, nil, err
+			}
+			preOptSize := preOptStat.Size()
+
+			brFilename := outBinName + ".br"
+			brPath := filepath.Join(outDistPath, brFilename)
+
+			brPathRel, err := filepath.Rel(workingPath, brPath)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			outDistBinaryRel, err := filepath.Rel(workingPath, outDistBinary)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			ecmd := uexec.NewCmd("brotli", "--best", "--keep", "-o", brPathRel, outDistBinaryRel)
+			ecmd.Env = os.Environ()
+			ecmd.Dir = workingPath
+			if err := gocompiler.ExecCmd(le, ecmd); err != nil {
+				return nil, nil, err
+			}
+
+			postOptStat, err := os.Stat(brPath)
+			if err != nil {
+				return nil, nil, err
+			}
+			postOptSize := postOptStat.Size()
+
+			le.Infof("brotli compressed .wasm binary from %d -> %d bytes delta %d", preOptSize, postOptSize, postOptSize-preOptSize)
+
+			// use this new binary from now on
+			if err := os.Remove(outDistBinary); err != nil {
+				return nil, nil, err
+			}
+			outDistBinary = brPath
+			outBinName = brFilename
 		}
 	} else {
 		le.Info("compiling plugin dev wrapper binary")
@@ -919,7 +968,7 @@ func (c *Controller) BuildPlugin(
 		le.Info("compiling web plugin entrypoint")
 		outScriptPath := filepath.Join(
 			outDistPath,
-			strings.TrimSuffix(outBinName, buildPlatform.GetExecutableExt())+".mjs",
+			outBinNameWithoutExt+".mjs",
 		)
 		if err := web_runtime_wasm_build.BuildWebWasmPluginScript(
 			ctx,

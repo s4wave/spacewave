@@ -13,3 +13,15 @@ brew install binaryen
 # or for apt
 apt install binaryen
 ```
+
+## brotli
+
+For the web platform, the .wasm binary is compressed with brotli.
+
+```
+# brew
+brew install brotli
+
+# or for apt
+apt install brotli
+```
