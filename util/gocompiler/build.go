@@ -106,6 +106,8 @@ func ExecBuildEntrypoint(
 		optPathRel := filepath.Join(outBinDirRel, optFilename)
 		optPath := filepath.Join(workingPath, optPathRel)
 
+		// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
+		// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
 		ecmd := uexec.NewCmd("wasm-opt", "--enable-bulk-memory", "-Oz", "-o", optPathRel, outBinPathRel)
 		ecmd.Env = os.Environ()
 		ecmd.Dir = workingPath
