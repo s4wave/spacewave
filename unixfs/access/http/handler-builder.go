@@ -3,6 +3,7 @@ package unixfs_access_http
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	bifrost_http "github.com/aperturerobotics/bifrost/http"
@@ -42,7 +43,7 @@ func NewHTTPHandlerBuilder(
 		}
 
 		hfs := NewFileSystem(ctx, fsHandle, unixFsPrefix, httpPrefix)
-		handler := http.FileServer(hfs)
+		handler := NewFileServer(hfs)
 		return handler, func() {
 			fsHandleRel()
 			valRef.Release()
@@ -61,4 +62,22 @@ func NewFileSystem(
 		billyfs = chroot.New(billyfs, unixFsPrefix)
 	}
 	return billyhttp.NewFileSystem(billyfs, httpPrefix)
+}
+
+// NewFileServer builds a new http.FileServer which has extended content-type support.
+func NewFileServer(hfs http.FileSystem) http.Handler {
+	handler := http.FileServer(hfs)
+	handlerFunc := func(rw http.ResponseWriter, req *http.Request) {
+		if strings.HasSuffix(req.URL.Path, ".wasm") {
+			rw.Header().Set("Content-Type", "application/wasm")
+		}
+		if strings.HasSuffix(req.URL.Path, ".wasm.br") {
+			rw.Header().Set("Content-Type", "application/wasm")
+			rw.Header().Set("Content-Encoding", "br")
+		}
+
+		handler.ServeHTTP(rw, req)
+	}
+
+	return http.HandlerFunc(handlerFunc)
 }
