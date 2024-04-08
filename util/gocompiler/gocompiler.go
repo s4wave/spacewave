@@ -39,15 +39,15 @@ func NewGoCompilerCmd(cmd string, args ...string) *exec.Cmd {
 	return ecmd
 }
 
-// ExecGoCompiler runs the Go compiler and collects the log output.
-func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
+// ExecCmd runs the command and collects the log output.
+func ExecCmd(le *logrus.Entry, cmd *exec.Cmd) error {
 	var stderrBuf bytes.Buffer
 
 	goLogger := le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = io.MultiWriter(&stderrBuf, goLogger)
 	le.
 		WithField("work-dir", cmd.Dir).
-		Debugf("running go compiler: %s", cmd.String())
+		Debugf("running command: %s", cmd.String())
 
 	err := cmd.Run()
 	if err != nil && (strings.HasPrefix(err.Error(), "exit status") || strings.HasPrefix(err.Error(), "err: exit status")) {
@@ -59,6 +59,11 @@ func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
 		err = errors.New(errMsg)
 	}
 	return err
+}
+
+// ExecGoCompiler runs the Go compiler and collects the log output.
+func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
+	return ExecCmd(le, cmd)
 }
 
 // NewBuildTags constructs build tags for a build type.

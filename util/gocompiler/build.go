@@ -1,6 +1,7 @@
 package gocompiler
 
 import (
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -8,6 +9,8 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
+	uexec "github.com/aperturerobotics/util/exec"
+	"github.com/aperturerobotics/util/fsutil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +27,7 @@ func ExecBuildEntrypoint(
 ) error {
 	isRelease := buildType.IsRelease()
 	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_NATIVE
+	isWebBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
 
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
@@ -43,10 +47,11 @@ func ExecBuildEntrypoint(
 	ldFlags = slices.Clone(ldFlags)
 
 	// relative output path
-	outBinPath, err = filepath.Rel(workingPath, outBinPath)
+	outBinPathRel, err := filepath.Rel(workingPath, outBinPath)
 	if err != nil {
 		return err
 	}
+	outBinDirRel, outBinFilename := filepath.Dir(outBinPathRel), filepath.Base(outBinPathRel)
 
 	// args
 	cmd := "go"
@@ -54,7 +59,7 @@ func ExecBuildEntrypoint(
 		"build",
 		"-trimpath",
 		"-o",
-		outBinPath,
+		outBinPathRel,
 	}, GetDefaultArgs()...)
 	args = append(args, "-tags="+strings.Join(buildTags, ","))
 
@@ -81,5 +86,44 @@ func ExecBuildEntrypoint(
 	}
 	ecmd.Env = append(ecmd.Env, platformEnv...)
 
-	return ExecGoCompiler(le, ecmd)
+	err = ExecGoCompiler(le, ecmd)
+	if err != nil {
+		return err
+	}
+
+	// post-processing in release mode
+	if isWebBuildPlatform && isRelease {
+		// track file size savings
+		preOptStat, err := os.Stat(outBinPath)
+		if err != nil {
+			return err
+		}
+		preOptSize := preOptStat.Size()
+
+		// wasm-opt
+		// wasm-opt -Oz -o ./out.wasm.opt ./out.wasm
+		optFilename := outBinFilename + ".wasm-opt"
+		optPathRel := filepath.Join(outBinDirRel, optFilename)
+		optPath := filepath.Join(workingPath, optPathRel)
+
+		ecmd := uexec.NewCmd("wasm-opt", "--enable-bulk-memory", "-Oz", "-o", optPathRel, outBinPathRel)
+		ecmd.Env = os.Environ()
+		ecmd.Dir = workingPath
+		if err := ExecCmd(le, ecmd); err != nil {
+			return err
+		}
+		if err := fsutil.MoveFile(outBinPath, optPath, 0o644); err != nil {
+			return err
+		}
+
+		postOptStat, err := os.Stat(outBinPath)
+		if err != nil {
+			return err
+		}
+		postOptSize := postOptStat.Size()
+
+		le.Infof("optimized .wasm binary from %d -> %d bytes delta %d", preOptSize, postOptSize, postOptSize-preOptSize)
+	}
+
+	return nil
 }
