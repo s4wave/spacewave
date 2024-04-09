@@ -203,7 +203,7 @@ func TestIavl(t *testing.T) {
 	// construct a basic transform config.
 	tconf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
-		&transform_snappy.Config{},
+		&transform_s2.Config{},
 	})
 	if err != nil {
 		t.Fatal(err.Error())
