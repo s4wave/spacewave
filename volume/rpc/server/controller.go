@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	volume "github.com/aperturerobotics/hydra/volume"
-	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
@@ -63,7 +63,7 @@ func NewController(
 		mux:             mux,
 		matchVolumeIdRe: volumeIDRe,
 	}
-	if err := mux.Register(rpc_volume.NewSRPCAccessVolumesHandler(c, cc.GetServiceId())); err != nil {
+	if err := mux.Register(volume_rpc.NewSRPCAccessVolumesHandler(c, cc.GetServiceId())); err != nil {
 		return nil, err
 	}
 	c.proxyVolumes = keyed.NewKeyedRefCount(
@@ -116,8 +116,8 @@ func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) 
 // The most recent message contains the most recently known state.
 // If the volume was not found (directive is idle) returns empty.
 func (c *Controller) WatchVolumeInfo(
-	req *rpc_volume.WatchVolumeInfoRequest,
-	strm rpc_volume.SRPCAccessVolumes_WatchVolumeInfoStream,
+	req *volume_rpc.WatchVolumeInfoRequest,
+	strm volume_rpc.SRPCAccessVolumes_WatchVolumeInfoStream,
 ) error {
 	// check if the volume id matches
 	volumeID := req.GetVolumeId()
@@ -125,7 +125,7 @@ func (c *Controller) WatchVolumeInfo(
 		return volume.ErrVolumeIDEmpty
 	}
 	if !c.checkVolumeID(volumeID) {
-		return errors.Wrap(rpc_volume.ErrUnknownVolumeID, volumeID)
+		return errors.Wrap(volume_rpc.ErrUnknownVolumeID, volumeID)
 	}
 
 	// create the volume tracker
@@ -144,7 +144,7 @@ func (c *Controller) WatchVolumeInfo(
 
 		if currProxyVol == nil {
 			// became not-found when previously found
-			err := strm.Send(&rpc_volume.WatchVolumeInfoResponse{
+			err := strm.Send(&volume_rpc.WatchVolumeInfoResponse{
 				NotFound: true,
 			})
 			if err != nil {
@@ -156,7 +156,7 @@ func (c *Controller) WatchVolumeInfo(
 			if err != nil {
 				return err
 			}
-			err = strm.Send(&rpc_volume.WatchVolumeInfoResponse{
+			err = strm.Send(&volume_rpc.WatchVolumeInfoResponse{
 				VolumeInfo: volInfo,
 			})
 			if err != nil {
@@ -169,14 +169,14 @@ func (c *Controller) WatchVolumeInfo(
 // VolumeRpc uses the LookupVolume directive access a Volume handle.
 // Exposes the ProxyVolume service.
 // Id: volume id
-func (c *Controller) VolumeRpc(strm rpc_volume.SRPCAccessVolumes_VolumeRpcStream) error {
+func (c *Controller) VolumeRpc(strm volume_rpc.SRPCAccessVolumes_VolumeRpcStream) error {
 	return rpcstream.HandleRpcStream(strm, c.GetRpcStreamMux)
 }
 
 // GetRpcStreamMux returns the mux for the given volume id proxy service.
 func (c *Controller) GetRpcStreamMux(ctx context.Context, volumeID string) (srpc.Invoker, func(), error) {
 	if !c.checkVolumeID(volumeID) {
-		return nil, nil, rpc_volume.ErrUnknownVolumeID
+		return nil, nil, volume_rpc.ErrUnknownVolumeID
 	}
 
 	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
@@ -211,5 +211,5 @@ func (c *Controller) checkVolumeID(volumeID string) bool {
 var (
 	_ controller.Controller              = ((*Controller)(nil))
 	_ srpc.Invoker                       = ((*Controller)(nil))
-	_ rpc_volume.SRPCAccessVolumesServer = ((*Controller)(nil))
+	_ volume_rpc.SRPCAccessVolumesServer = ((*Controller)(nil))
 )

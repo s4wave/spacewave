@@ -1,5 +1,5 @@
 syntax = "proto3";
-package rpc.volume;
+package volume.rpc;
 
 import "github.com/aperturerobotics/hydra/volume/volume.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";

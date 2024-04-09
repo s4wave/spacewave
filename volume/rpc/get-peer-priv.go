@@ -1,4 +1,4 @@
-package rpc_volume
+package volume_rpc
 
 import (
 	"github.com/aperturerobotics/bifrost/peer"

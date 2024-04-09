@@ -1,4 +1,4 @@
-package rpc_volume
+package volume_rpc
 
 import (
 	"context"

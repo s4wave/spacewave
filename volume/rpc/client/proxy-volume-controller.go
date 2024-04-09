@@ -11,7 +11,7 @@ import (
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
-	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +23,7 @@ type ProxyVolumeController struct {
 	volumeInfo *volume.VolumeInfo
 
 	// proxyVolumeClient is the client for the ProxyVolume service
-	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient
+	proxyVolumeClient volume_rpc.SRPCProxyVolumeClient
 	// blockStoreClient is the client for the BlockStore
 	blockStoreClient rpc_block.SRPCBlockStoreClient
 	// bucketStoreClient is the client for the BucketStore
@@ -40,7 +40,7 @@ func NewProxyVolumeController(
 	le *logrus.Entry,
 	volumeInfo *volume.VolumeInfo,
 	volumeIDAlias []string,
-	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient,
+	proxyVolumeClient volume_rpc.SRPCProxyVolumeClient,
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
@@ -100,9 +100,9 @@ func NewProxyVolumeControllerWithClient(
 		le,
 		volumeInfo,
 		volumeIDAlias,
-		rpc_volume.NewSRPCProxyVolumeClientWithServiceID(
+		volume_rpc.NewSRPCProxyVolumeClientWithServiceID(
 			cc,
-			serviceIDPrefix+rpc_volume.SRPCProxyVolumeServiceID,
+			serviceIDPrefix+volume_rpc.SRPCProxyVolumeServiceID,
 		),
 		rpc_block.NewSRPCBlockStoreClientWithServiceID(
 			cc,
@@ -129,7 +129,7 @@ func (v *ProxyVolumeController) GetID() string {
 }
 
 // GetVolumeClient returns the proxy volume client.
-func (v *ProxyVolumeController) GetVolumeClient() rpc_volume.SRPCProxyVolumeClient {
+func (v *ProxyVolumeController) GetVolumeClient() volume_rpc.SRPCProxyVolumeClient {
 	return v.proxyVolumeClient
 }
 

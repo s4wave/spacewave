@@ -14,7 +14,7 @@ import (
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	rpc_object_client "github.com/aperturerobotics/hydra/object/rpc/client"
 	"github.com/aperturerobotics/hydra/volume"
-	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	volume_store "github.com/aperturerobotics/hydra/volume/store"
 	"github.com/libp2p/go-libp2p/core/crypto"
 )
@@ -27,7 +27,7 @@ type ProxyVolume struct {
 	*rpc_mqueue_client.MqueueStore
 
 	// client is the client to use
-	client rpc_volume.SRPCProxyVolumeClient
+	client volume_rpc.SRPCProxyVolumeClient
 	// volInfo is the volume info
 	volInfo *volume.VolumeInfo
 	// volPeer is the parsed volume peer public key & id
@@ -37,7 +37,7 @@ type ProxyVolume struct {
 // NewProxyVolume constructs a new ProxyVolume.
 func NewProxyVolume(
 	volInfo *volume.VolumeInfo,
-	proxyVolumeClient rpc_volume.SRPCProxyVolumeClient,
+	proxyVolumeClient volume_rpc.SRPCProxyVolumeClient,
 	blockStoreClient rpc_block.SRPCBlockStoreClient,
 	bucketStoreClient rpc_bucket.SRPCBucketStoreClient,
 	objectStoreClient rpc_object.SRPCObjectStoreClient,
@@ -71,7 +71,7 @@ func (v *ProxyVolume) GetPeerID() peer.ID {
 }
 
 // GetVolumeClient returns the proxy volume client.
-func (v *ProxyVolume) GetVolumeClient() rpc_volume.SRPCProxyVolumeClient {
+func (v *ProxyVolume) GetVolumeClient() volume_rpc.SRPCProxyVolumeClient {
 	return v.client
 }
 
@@ -82,7 +82,7 @@ func (v *ProxyVolume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, er
 		return v.volPeer, nil
 	}
 
-	resp, err := v.client.GetPeerPriv(ctx, &rpc_volume.GetPeerPrivRequest{})
+	resp, err := v.client.GetPeerPriv(ctx, &volume_rpc.GetPeerPrivRequest{})
 	if err == nil {
 		err = resp.Validate()
 	}

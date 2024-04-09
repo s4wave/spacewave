@@ -11,7 +11,7 @@ import (
 	rpc_mqueue "github.com/aperturerobotics/hydra/mqueue/rpc"
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	"github.com/aperturerobotics/hydra/volume"
-	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
@@ -109,12 +109,12 @@ func (t *proxyVolumeTracker) executeOnce(ctx context.Context, le *logrus.Entry, 
 	}
 	defer clientSetRef.Release()
 
-	accessVolumes := rpc_volume.NewSRPCAccessVolumesClientWithServiceID(clientSet, t.c.cc.GetServiceId())
+	accessVolumes := volume_rpc.NewSRPCAccessVolumesClientWithServiceID(clientSet, t.c.cc.GetServiceId())
 	openStreamFn := rpcstream.NewRpcStreamOpenStream(accessVolumes.VolumeRpc, volumeID, false)
 	volClient := srpc.NewClient(openStreamFn)
 
 	// call WatchVolumeInfo to detect when we need to rebuild the volume controller
-	infoClient, err := accessVolumes.WatchVolumeInfo(ctx, &rpc_volume.WatchVolumeInfoRequest{
+	infoClient, err := accessVolumes.WatchVolumeInfo(ctx, &volume_rpc.WatchVolumeInfoRequest{
 		VolumeId: volumeID,
 	})
 	if err != nil {
@@ -202,7 +202,7 @@ func (t *proxyVolumeTracker) execProxyVolumeController(
 		t.le,
 		volumeInfo,
 		volumeIDAlias,
-		rpc_volume.NewSRPCProxyVolumeClient(volClient),
+		volume_rpc.NewSRPCProxyVolumeClient(volClient),
 		rpc_block.NewSRPCBlockStoreClient(volClient),
 		rpc_bucket.NewSRPCBucketStoreClient(volClient),
 		rpc_object.NewSRPCObjectStoreClient(volClient),

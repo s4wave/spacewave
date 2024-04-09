@@ -2,7 +2,7 @@
 // protoc-gen-srpc version: v0.28.0
 // source: github.com/aperturerobotics/hydra/volume/rpc/volume.proto
 
-package rpc_volume
+package volume_rpc
 
 import (
 	context "context"

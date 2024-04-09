@@ -4,7 +4,7 @@
 // 	protoc        v5.26.1
 // source: github.com/aperturerobotics/hydra/volume/rpc/volume.proto
 
-package rpc_volume
+package volume_rpc
 
 import (
 	reflect "reflect"
@@ -36,7 +36,7 @@ type WatchVolumeInfoRequest struct {
 func (x *WatchVolumeInfoRequest) Reset() {
 	*x = WatchVolumeInfoRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[0]
+		mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -49,7 +49,7 @@ func (x *WatchVolumeInfoRequest) String() string {
 func (*WatchVolumeInfoRequest) ProtoMessage() {}
 
 func (x *WatchVolumeInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[0]
+	mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *WatchVolumeInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchVolumeInfoRequest.ProtoReflect.Descriptor instead.
 func (*WatchVolumeInfoRequest) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP(), []int{0}
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *WatchVolumeInfoRequest) GetVolumeId() string {
@@ -87,7 +87,7 @@ type WatchVolumeInfoResponse struct {
 func (x *WatchVolumeInfoResponse) Reset() {
 	*x = WatchVolumeInfoResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[1]
+		mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -100,7 +100,7 @@ func (x *WatchVolumeInfoResponse) String() string {
 func (*WatchVolumeInfoResponse) ProtoMessage() {}
 
 func (x *WatchVolumeInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[1]
+	mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +113,7 @@ func (x *WatchVolumeInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchVolumeInfoResponse.ProtoReflect.Descriptor instead.
 func (*WatchVolumeInfoResponse) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP(), []int{1}
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *WatchVolumeInfoResponse) GetNotFound() bool {
@@ -140,7 +140,7 @@ type GetVolumeInfoRequest struct {
 func (x *GetVolumeInfoRequest) Reset() {
 	*x = GetVolumeInfoRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[2]
+		mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -153,7 +153,7 @@ func (x *GetVolumeInfoRequest) String() string {
 func (*GetVolumeInfoRequest) ProtoMessage() {}
 
 func (x *GetVolumeInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[2]
+	mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,7 +166,7 @@ func (x *GetVolumeInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVolumeInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetVolumeInfoRequest) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP(), []int{2}
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP(), []int{2}
 }
 
 // GetVolumeInfoResponse is the response to the request for volume info.
@@ -182,7 +182,7 @@ type GetVolumeInfoResponse struct {
 func (x *GetVolumeInfoResponse) Reset() {
 	*x = GetVolumeInfoResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[3]
+		mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -195,7 +195,7 @@ func (x *GetVolumeInfoResponse) String() string {
 func (*GetVolumeInfoResponse) ProtoMessage() {}
 
 func (x *GetVolumeInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[3]
+	mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -208,7 +208,7 @@ func (x *GetVolumeInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVolumeInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetVolumeInfoResponse) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP(), []int{3}
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetVolumeInfoResponse) GetVolumeInfo() *volume.VolumeInfo {
@@ -228,7 +228,7 @@ type GetPeerPrivRequest struct {
 func (x *GetPeerPrivRequest) Reset() {
 	*x = GetPeerPrivRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[4]
+		mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -241,7 +241,7 @@ func (x *GetPeerPrivRequest) String() string {
 func (*GetPeerPrivRequest) ProtoMessage() {}
 
 func (x *GetPeerPrivRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[4]
+	mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,7 +254,7 @@ func (x *GetPeerPrivRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPeerPrivRequest.ProtoReflect.Descriptor instead.
 func (*GetPeerPrivRequest) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP(), []int{4}
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP(), []int{4}
 }
 
 // GetPeerPrivResponse is the response to looking up the volume peer privkey.
@@ -270,7 +270,7 @@ type GetPeerPrivResponse struct {
 func (x *GetPeerPrivResponse) Reset() {
 	*x = GetPeerPrivResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[5]
+		mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -283,7 +283,7 @@ func (x *GetPeerPrivResponse) String() string {
 func (*GetPeerPrivResponse) ProtoMessage() {}
 
 func (x *GetPeerPrivResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[5]
+	mi := &file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -296,7 +296,7 @@ func (x *GetPeerPrivResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPeerPrivResponse.ProtoReflect.Descriptor instead.
 func (*GetPeerPrivResponse) Descriptor() ([]byte, []int) {
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP(), []int{5}
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetPeerPrivResponse) GetPrivKey() string {
@@ -306,9 +306,9 @@ func (x *GetPeerPrivResponse) GetPrivKey() string {
 	return ""
 }
 
-var File_github_com_aperturerobotics_hydra_volume_rpc_volume_proto protoreflect.FileDescriptor
+var File_github_com_aperturerobotics_hydra_volume_volume_rpc_proto protoreflect.FileDescriptor
 
-var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDesc = []byte{
+var file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDesc = []byte{
 	0x0a, 0x39, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61, 0x70, 0x65,
 	0x72, 0x74, 0x75, 0x72, 0x65, 0x72, 0x6f, 0x62, 0x6f, 0x74, 0x69, 0x63, 0x73, 0x2f, 0x68, 0x79,
 	0x64, 0x72, 0x61, 0x2f, 0x76, 0x6f, 0x6c, 0x75, 0x6d, 0x65, 0x2f, 0x72, 0x70, 0x63, 0x2f, 0x76,
@@ -369,19 +369,19 @@ var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDesc = []b
 }
 
 var (
-	file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescOnce sync.Once
-	file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescData = file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDesc
+	file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescOnce sync.Once
+	file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescData = file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDesc
 )
 
-func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescGZIP() []byte {
-	file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescOnce.Do(func() {
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescData = protoimpl.X.CompressGZIP(file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescData)
+func file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescGZIP() []byte {
+	file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescOnce.Do(func() {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescData = protoimpl.X.CompressGZIP(file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescData)
 	})
-	return file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDescData
+	return file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDescData
 }
 
-var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_goTypes = []interface{}{
+var file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_goTypes = []interface{}{
 	(*WatchVolumeInfoRequest)(nil),    // 0: rpc.volume.WatchVolumeInfoRequest
 	(*WatchVolumeInfoResponse)(nil),   // 1: rpc.volume.WatchVolumeInfoResponse
 	(*GetVolumeInfoRequest)(nil),      // 2: rpc.volume.GetVolumeInfoRequest
@@ -391,7 +391,7 @@ var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_goTypes = []i
 	(*volume.VolumeInfo)(nil),         // 6: volume.VolumeInfo
 	(*rpcstream.RpcStreamPacket)(nil), // 7: rpcstream.RpcStreamPacket
 }
-var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_depIdxs = []int32{
+var file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_depIdxs = []int32{
 	6, // 0: rpc.volume.WatchVolumeInfoResponse.volume_info:type_name -> volume.VolumeInfo
 	6, // 1: rpc.volume.GetVolumeInfoResponse.volume_info:type_name -> volume.VolumeInfo
 	0, // 2: rpc.volume.AccessVolumes.WatchVolumeInfo:input_type -> rpc.volume.WatchVolumeInfoRequest
@@ -409,13 +409,13 @@ var file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_depIdxs = []i
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() }
-func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
-	if File_github_com_aperturerobotics_hydra_volume_rpc_volume_proto != nil {
+func init() { file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_init() }
+func file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_init() {
+	if File_github_com_aperturerobotics_hydra_volume_volume_rpc_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WatchVolumeInfoRequest); i {
 			case 0:
 				return &v.state
@@ -427,7 +427,7 @@ func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
 				return nil
 			}
 		}
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WatchVolumeInfoResponse); i {
 			case 0:
 				return &v.state
@@ -439,7 +439,7 @@ func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
 				return nil
 			}
 		}
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVolumeInfoRequest); i {
 			case 0:
 				return &v.state
@@ -451,7 +451,7 @@ func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
 				return nil
 			}
 		}
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVolumeInfoResponse); i {
 			case 0:
 				return &v.state
@@ -463,7 +463,7 @@ func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
 				return nil
 			}
 		}
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetPeerPrivRequest); i {
 			case 0:
 				return &v.state
@@ -475,7 +475,7 @@ func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
 				return nil
 			}
 		}
-		file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetPeerPrivResponse); i {
 			case 0:
 				return &v.state
@@ -492,18 +492,18 @@ func file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDesc,
+			RawDescriptor: file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_goTypes,
-		DependencyIndexes: file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_depIdxs,
-		MessageInfos:      file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_msgTypes,
+		GoTypes:           file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_goTypes,
+		DependencyIndexes: file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_depIdxs,
+		MessageInfos:      file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_msgTypes,
 	}.Build()
-	File_github_com_aperturerobotics_hydra_volume_rpc_volume_proto = out.File
-	file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_rawDesc = nil
-	file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_goTypes = nil
-	file_github_com_aperturerobotics_hydra_volume_rpc_volume_proto_depIdxs = nil
+	File_github_com_aperturerobotics_hydra_volume_volume_rpc_proto = out.File
+	file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_rawDesc = nil
+	file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_goTypes = nil
+	file_github_com_aperturerobotics_hydra_volume_volume_rpc_proto_depIdxs = nil
 }

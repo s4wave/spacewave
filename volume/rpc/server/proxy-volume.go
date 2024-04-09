@@ -13,7 +13,7 @@ import (
 	rpc_object "github.com/aperturerobotics/hydra/object/rpc"
 	rpc_object_server "github.com/aperturerobotics/hydra/object/rpc/server"
 	"github.com/aperturerobotics/hydra/volume"
-	rpc_volume "github.com/aperturerobotics/hydra/volume/rpc"
+	volume_rpc "github.com/aperturerobotics/hydra/volume/rpc"
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -51,9 +51,9 @@ func RegisterProxyVolume(mux srpc.Mux, proxyVol *ProxyVolume) error {
 // RegisterProxyVolumeWithPrefix registers all ProxyVolume services with a service id prefix.
 func RegisterProxyVolumeWithPrefix(mux srpc.Mux, proxyVol *ProxyVolume, prefix string) error {
 	// register ProxyVolume
-	if err := mux.Register(rpc_volume.NewSRPCProxyVolumeHandler(
+	if err := mux.Register(volume_rpc.NewSRPCProxyVolumeHandler(
 		proxyVol,
-		prefix+rpc_volume.SRPCProxyVolumeServiceID,
+		prefix+volume_rpc.SRPCProxyVolumeServiceID,
 	)); err != nil {
 		return err
 	}
@@ -96,13 +96,13 @@ func (v *ProxyVolume) GetVolume() volume.Volume {
 // GetVolumeInfo returns the volume information.
 func (v *ProxyVolume) GetVolumeInfo(
 	ctx context.Context,
-	req *rpc_volume.GetVolumeInfoRequest,
-) (*rpc_volume.GetVolumeInfoResponse, error) {
+	req *volume_rpc.GetVolumeInfoRequest,
+) (*volume_rpc.GetVolumeInfoResponse, error) {
 	volInfo, err := volume.NewVolumeInfo(ctx, nil, v.vol)
 	if err != nil {
 		return nil, err
 	}
-	return &rpc_volume.GetVolumeInfoResponse{
+	return &volume_rpc.GetVolumeInfoResponse{
 		VolumeInfo: volInfo,
 	}, nil
 }
@@ -110,8 +110,8 @@ func (v *ProxyVolume) GetVolumeInfo(
 // GetPeerPriv returns the private key for the volume (if enabled).
 func (v *ProxyVolume) GetPeerPriv(
 	ctx context.Context,
-	req *rpc_volume.GetPeerPrivRequest,
-) (*rpc_volume.GetPeerPrivResponse, error) {
+	req *volume_rpc.GetPeerPrivRequest,
+) (*volume_rpc.GetPeerPrivResponse, error) {
 	if !v.exposePrivKey {
 		return nil, peer.ErrNoPrivKey
 	}
@@ -124,12 +124,12 @@ func (v *ProxyVolume) GetPeerPriv(
 	if err != nil {
 		return nil, err
 	}
-	return rpc_volume.NewGetPeerPrivResponse(peerPriv)
+	return volume_rpc.NewGetPeerPrivResponse(peerPriv)
 }
 
 // _ is a type assertion
 var (
-	_ rpc_volume.SRPCProxyVolumeServer = ((*ProxyVolume)(nil))
+	_ volume_rpc.SRPCProxyVolumeServer = ((*ProxyVolume)(nil))
 	_ rpc_block.SRPCBlockStoreServer   = ((*ProxyVolume)(nil))
 	_ rpc_bucket.SRPCBucketStoreServer = ((*ProxyVolume)(nil))
 	_ rpc_object.SRPCObjectStoreServer = ((*ProxyVolume)(nil))

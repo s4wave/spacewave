@@ -2,7 +2,7 @@
 // protoc-gen-go-vtproto version: v0.6.0
 // source: github.com/aperturerobotics/hydra/volume/rpc/volume.proto
 
-package rpc_volume
+package volume_rpc
 
 import (
 	fmt "fmt"
