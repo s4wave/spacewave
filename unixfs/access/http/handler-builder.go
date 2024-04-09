@@ -74,7 +74,7 @@ func NewFileServer(hfs http.FileSystem) http.Handler {
 		if strings.HasSuffix(req.URL.Path, ".wasm.br") {
 			rw.Header().Set("Content-Type", "application/wasm")
 			rw.Header().Set("Content-Encoding", "br")
-			rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding")
+			rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding, Content-Length")
 		}
 
 		handler.ServeHTTP(rw, req)
