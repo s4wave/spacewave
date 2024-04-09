@@ -85,6 +85,8 @@ github.com/aperturerobotics/entitygraph v0.8.0 h1:1tEsGPAk4kzJRLrwxn69JZbQreSOkq
 github.com/aperturerobotics/entitygraph v0.8.0/go.mod h1:F9CfzYNTnIj9d7z79+2l0owNqsuVfz/U2cTPZbEcFTw=
 github.com/aperturerobotics/go-kvfile v0.5.1 h1:g7JFmAlL+LgTRS3ZVjto3N7/qoE3A+gkGuq/fmPQojo=
 github.com/aperturerobotics/go-kvfile v0.5.1/go.mod h1:dine4k12t7SVwJr1EKK/19lajN9mr3C6hIMOcSfPGbQ=
+github.com/aperturerobotics/go-kvfile v0.5.2 h1:8jRDfxAYTM40u6wk/AsKNWMuwGO+YFTs9belj2K4ZWI=
+github.com/aperturerobotics/go-kvfile v0.5.2/go.mod h1:2p5R4bDXcebTVAuJ13lYzOCzTGIkTJHApl1OroP3mM4=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51/go.mod h1:yZOf9ZPH3PIeAj3q/dvY9nAe+Y1zBBIZIInEguPbbpQ=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
@@ -101,6 +103,8 @@ github.com/aperturerobotics/ts-proto-common-types v0.20.2 h1:xFy3ErasS5PNWV0ABdl
 github.com/aperturerobotics/ts-proto-common-types v0.20.2/go.mod h1:TgjsdPI5YvNF1iewbvCPmEnVkV8WVP1AyZxiOc9SEbo=
 github.com/aperturerobotics/util v1.16.1 h1:TnL+NutOkploExwEScqVk2FAOSI62JrHu02qWjdjYCE=
 github.com/aperturerobotics/util v1.16.1/go.mod h1:aMfWWor4v05bs0dTekucKSjVkmnTxKE6UPs3rCe84YM=
+github.com/aperturerobotics/util v1.16.3 h1:E/LOK6mEHet/QiAwM1qnJ64rSp+bsdMebvnBXIo1fG4=
+github.com/aperturerobotics/util v1.16.3/go.mod h1:gzG6uILC8DcCi8qIvyL/BGuGQV2qy4CydwvcMx6Zf6Q=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
@@ -412,6 +416,8 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/klauspost/compress v1.10.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.17.7 h1:ehO88t2UGzQK66LMdE8tibEd1ErmzZjNEqWkjLAKQQg=
 github.com/klauspost/compress v1.17.7/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
+github.com/klauspost/compress v1.17.8 h1:YcnTYrq7MikUT7k0Yb5eceMmALQPYBW/Xltxn0NAMnU=
+github.com/klauspost/compress v1.17.8/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
 github.com/klauspost/cpuid/v2 v2.0.1/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.0.12/go.mod h1:g2LTdtYhdyuGPqyWyv7qRAmj1WBqxuObKfj5c0PQa7c=
 github.com/klauspost/cpuid/v2 v2.2.7 h1:ZWSB3igEs+d0qvnxR/ZBzXVmxkgt8DdzP6m9pfuVLDM=
@@ -863,6 +869,8 @@ golang.org/x/exp v0.0.0-20200207192155-f17229e696bd/go.mod h1:J/WKrq2StrnmMY6+EH
 golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6/go.mod h1:3jZMyOhIsHpP37uCMkUooju7aAi5cS1Q23tOzKc+0MU=
 golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0 h1:985EYyeCOxTpcgOTJpflJUwOeEz0CQOdPt73OzpE9F8=
 golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0/go.mod h1:/lliqkxwWAhPjf5oSOIJup2XcqJaw8RGS6k3TGEc7GI=
+golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 h1:ESSUROHIBHg7USnszlcdmjBEwdMj9VUvU+OPk4yl2mc=
+golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8/go.mod h1:/lliqkxwWAhPjf5oSOIJup2XcqJaw8RGS6k3TGEc7GI=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=

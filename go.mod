@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aperturerobotics/bifrost v0.28.1-0.20240407070326-513c7c2f0122 // master
-	github.com/aperturerobotics/go-kvfile v0.5.1 // master
+	github.com/aperturerobotics/go-kvfile v0.5.2 // master
 )
 
 // aperture: use ext-engines forks
@@ -43,7 +43,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.2-0.20240116140435-c67e07994f91
-	github.com/dolthub/go-mysql-server v0.18.0
+	github.com/dolthub/go-mysql-server v0.18.1
 	github.com/dolthub/vitess v0.0.0-20231109003730-c0fa018b5ef6
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
@@ -70,7 +70,7 @@ require (
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.16.1 // master
+	github.com/aperturerobotics/util v1.16.3 // master
 )
 
 // aperture: use compatibility forks
@@ -93,7 +93,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/klauspost/compress v1.17.7
+	github.com/klauspost/compress v1.17.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pierrec/lz4/v4 v4.1.21
@@ -105,7 +105,7 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.9
 	golang.org/x/crypto v0.22.0
-	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
 	golang.org/x/sync v0.7.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/protobuf v1.33.0
