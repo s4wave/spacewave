@@ -28,8 +28,6 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
-// TODO: load plugins to the web wasm runtime
-
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.
 func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	// init repo root and storage directories
@@ -120,7 +118,6 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	}
 
 	// set the path to the entrypoint to use for the wasm main() function
-	// TODO: dist/web/entrypoint for dist bundle
 	entrypointPkg := "devtool/web/entrypoint"
 
 	// compile the entrypoint wasm

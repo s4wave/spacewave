@@ -6,7 +6,6 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 )
 
-// TODO
 const embeddedVolumeFmt = `package %s
 
 import (
