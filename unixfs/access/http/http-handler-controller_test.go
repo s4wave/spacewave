@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -157,5 +158,9 @@ func TestHTTPHandlerController(t *testing.T) {
 	}
 	if contentEnc := res.Header.Get("content-encoding"); contentEnc != "br" {
 		t.Fatalf("incorrect content encoding: %s", contentEnc)
+	}
+	exContentLength := strconv.Itoa(len(testWasmBrData))
+	if contentLength := res.Header.Get("content-length"); contentLength != exContentLength {
+		t.Fatalf("incorrect content length: %s != %s", contentLength, exContentLength)
 	}
 }
