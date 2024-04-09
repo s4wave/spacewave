@@ -11,7 +11,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
-	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/testbed"
@@ -38,7 +38,7 @@ func TestCursor(t *testing.T) {
 	// construct a basic transform config.
 	tconf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
-		&transform_snappy.Config{},
+		&transform_s2.Config{},
 		&transform_chksum.Config{},
 	})
 	if err != nil {

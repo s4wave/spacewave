@@ -9,7 +9,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	transform_blockenc "github.com/aperturerobotics/hydra/block/transform/blockenc"
-	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -132,7 +132,7 @@ func NewEncryptedVolume(
 			demoKey[:],
 		)
 		transformConf, err = block_transform.NewConfig([]config.Config{
-			&transform_snappy.Config{},
+			&transform_s2.Config{},
 			&transform_blockenc.Config{
 				BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 				Key:      demoKey[:],

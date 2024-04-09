@@ -23,7 +23,7 @@ import (
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
 	transform_chksum "github.com/aperturerobotics/hydra/block/transform/chksum"
-	transform_snappy "github.com/aperturerobotics/hydra/block/transform/snappy"
+	transform_s2 "github.com/aperturerobotics/hydra/block/transform/s2"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lc "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
@@ -54,7 +54,7 @@ func TestMultiNodeDEX(
 	transformSet := transform_all.BuildFactorySet()
 	tconf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
-		&transform_snappy.Config{},
+		&transform_s2.Config{},
 	})
 	if err != nil {
 		t.Fatal(err.Error())
