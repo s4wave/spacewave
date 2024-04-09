@@ -77,7 +77,6 @@ func NewFileServer(hfs http.FileSystem) http.Handler {
 		if strings.HasSuffix(req.URL.Path, ".wasm.br") {
 			rw.Header().Set("Content-Type", "application/wasm")
 			rw.Header().Set("Content-Encoding", "br")
-			rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding")
 		}
 
 		// XXX: When setting Content-Encoding, Go will drop the Content-Length header.
@@ -86,6 +85,9 @@ func NewFileServer(hfs http.FileSystem) http.Handler {
 		//
 		// Set the Content-Length header now.
 		if rw.Header().Get("Content-Encoding") != "" {
+			rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding")
+			rw.Header().Add("Vary", "Content-Encoding")
+
 			f, err := hfs.Open(path.Clean(req.URL.Path))
 			if err == nil {
 				var st fs.FileInfo
