@@ -17,7 +17,7 @@ require (
 
 require (
 	github.com/aperturerobotics/bldr v0.0.0-20240206224505-e8bf10e9b231
-	github.com/aperturerobotics/go-kvfile v0.5.1
+	github.com/aperturerobotics/go-kvfile v0.5.2
 	github.com/aperturerobotics/goprotowrap v0.3.1 // master
 	github.com/aperturerobotics/starpc v0.28.0
 	github.com/evanw/esbuild v0.20.2
@@ -43,7 +43,7 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20240409021526-303d3ab433f2 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240409230725-6db591fc3ca3 // indirect
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a // indirect
 	github.com/aperturerobotics/util v1.16.3 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
@@ -115,7 +115,7 @@ require (
 	github.com/kisielk/errcheck v1.6.3 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.4 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.8 // indirect
 	github.com/kyoh86/exportloopref v0.1.11 // indirect
@@ -205,7 +205,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0 // indirect
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect

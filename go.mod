@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240409021526-303d3ab433f2 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240409230725-6db591fc3ca3 // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -78,7 +78,7 @@ require (
 	github.com/aperturerobotics/util v1.16.3 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/klauspost/compress v1.17.7
+	github.com/klauspost/compress v1.17.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
 	github.com/mr-tron/base58 v1.2.0
@@ -103,7 +103,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.5.1
+	github.com/aperturerobotics/go-kvfile v0.5.2
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
@@ -111,7 +111,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20240327091054-4d0d7f0db7ba
 	github.com/sergi/go-diff v1.3.1
-	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
 	golang.org/x/mod v0.17.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/tools v0.20.0

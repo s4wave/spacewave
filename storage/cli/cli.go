@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	hcli "github.com/aperturerobotics/hydra/cli"
-	"github.com/aperturerobotics/hydra/cli/core"
+	hydra_cli_core "github.com/aperturerobotics/hydra/cli/core"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 )
 
