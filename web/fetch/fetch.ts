@@ -21,13 +21,6 @@ export function buildFetchHeaders(headers: Headers): Record<string, string> {
   return result
 }
 
-// buildHeaders builds the Headers object from a headers map.
-export function buildHeaders(
-  headersMap: { [key: string]: string } | null,
-): Headers {
-  return headersMap ? new Headers(headersMap) : new Headers()
-}
-
 // buildFetchRequestInfo builds a FetchRequestInfo message from a Request.
 export function buildFetchRequestInfo(
   request: Request,
@@ -64,9 +57,8 @@ export function buildRequestData(
 
 // buildResponseInit builds the ResponseInit from the ResponseInfo.
 export function buildResponseInit(info: ResponseInfo): ResponseInit {
-  const headers = buildHeaders(info.headers || null)
   return {
-    headers,
+    headers: info.headers ?? {},
     status: info.status,
     statusText: info.statusText,
   }

@@ -13,6 +13,7 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
+	opt_wasm "github.com/aperturerobotics/bldr/util/opt/wasm"
 	browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -257,7 +258,8 @@ func BuildDistBundle(
 	// on the Web platform we distribute the kvfile separately
 	// we also name the entrypoint file differently
 	var outBinPath string
-	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
+	isWebPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
+	if isWebPlatform {
 		// output directory for the entrypoint
 		outEntryDir := filepath.Join(outputPath, "entrypoint")
 		if err := os.MkdirAll(outEntryDir, 0o755); err != nil {
@@ -303,7 +305,7 @@ func BuildDistBundle(
 			return err
 		}
 
-		le.Info("building web wasm entrypoint")
+		le.Info("building web wasm entrypoint script")
 		err = browser_build.BuildWasmRuntimeEntrypoint(
 			ctx,
 			le,
@@ -315,6 +317,7 @@ func BuildDistBundle(
 		if err != nil {
 			return err
 		}
+		// TODO brotli compress
 	} else {
 		// otherwise we go:embed it
 		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)
@@ -341,6 +344,12 @@ func BuildDistBundle(
 	)
 	if err != nil {
 		return err
+	}
+
+	if isRelease && isWebPlatform {
+		if err := opt_wasm.OptimizeWasmBinary(le, workingPath, outBinPath); err != nil {
+			return err
+		}
 	}
 
 	return nil

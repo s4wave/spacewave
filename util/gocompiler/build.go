@@ -1,7 +1,6 @@
 package gocompiler
 
 import (
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -9,8 +8,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_go "github.com/aperturerobotics/bldr/platform/go"
-	uexec "github.com/aperturerobotics/util/exec"
-	"github.com/aperturerobotics/util/fsutil"
+	opt_wasm "github.com/aperturerobotics/bldr/util/opt/wasm"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,7 +49,6 @@ func ExecBuildEntrypoint(
 	if err != nil {
 		return err
 	}
-	outBinDirRel, outBinFilename := filepath.Dir(outBinPathRel), filepath.Base(outBinPathRel)
 
 	// args
 	cmd := "go"
@@ -93,38 +90,9 @@ func ExecBuildEntrypoint(
 
 	// post-processing in release mode
 	if isWebBuildPlatform && isRelease {
-		// track file size savings
-		preOptStat, err := os.Stat(outBinPath)
-		if err != nil {
+		if err := opt_wasm.OptimizeWasmBinary(le, workingPath, outBinPath); err != nil {
 			return err
 		}
-		preOptSize := preOptStat.Size()
-
-		// wasm-opt
-		// wasm-opt -Oz -o ./out.wasm.opt ./out.wasm
-		optFilename := outBinFilename + ".wasm-opt"
-		optPathRel := filepath.Join(outBinDirRel, optFilename)
-		optPath := filepath.Join(workingPath, optPathRel)
-
-		// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
-		// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
-		ecmd := uexec.NewCmd("wasm-opt", "--enable-bulk-memory", "-Oz", "-o", optPathRel, outBinPathRel)
-		ecmd.Env = os.Environ()
-		ecmd.Dir = workingPath
-		if err := ExecCmd(le, ecmd); err != nil {
-			return err
-		}
-		if err := fsutil.MoveFile(outBinPath, optPath, 0o644); err != nil {
-			return err
-		}
-
-		postOptStat, err := os.Stat(outBinPath)
-		if err != nil {
-			return err
-		}
-		postOptSize := postOptStat.Size()
-
-		le.Infof("optimized .wasm binary from %d -> %d bytes delta %d", preOptSize, postOptSize, postOptSize-preOptSize)
 	}
 
 	return nil
