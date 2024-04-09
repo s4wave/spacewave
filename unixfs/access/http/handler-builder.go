@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -80,41 +82,57 @@ func NewFileServer(hfs http.FileSystem) http.Handler {
 			rw.Header().Set("Content-Type", "application/wasm")
 		}
 
-		// XXX: fetch() does not set Accept-Encoding nor does it handle Content-Encoding.
+		// fetch() does not set Accept-Encoding nor does it handle Content-Encoding.
 		// https://stackoverflow.com/questions/78295701/fetch-set-accept-encoding-and-honor-content-encoding
-		// If the content is brotli encoded (ends with .br) let's decompress it here.
+		// If the content is brotli encoded (ends with .br) and not in Accept-Encoding let's decompress it here.
 		if hasSuffix(".br") {
-			//var st fs.FileInfo
+			acceptsBr := slices.ContainsFunc(
+				strings.Split(req.Header.Get("accept-encoding"), ","),
+				func(val string) bool {
+					return strings.ToLower(strings.TrimSpace(val)) == "br"
+				},
+			)
+			if !acceptsBr {
+				f, err := hfs.Open(path.Clean(req.URL.Path))
+				if err != nil {
+					msg, code := toHTTPError(err)
+					http.Error(rw, msg, code)
+					return
+				}
+
+				// Omit sending the Content-Length header since we don't know the decompressed length.
+				brReader := brotli.NewReader(f)
+				_, err = io.Copy(rw, brReader)
+				if err != nil {
+					http.Error(rw, err.Error(), 500)
+				}
+
+				// done
+				return
+			} else {
+				rw.Header().Set("Content-Encoding", "br")
+			}
+		}
+
+		if rw.Header().Get("Content-Encoding") != "" {
+			rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding")
+			rw.Header().Add("Vary", "Content-Encoding")
+
+			// XXX: When setting Content-Encoding, Go will drop the Content-Length header.
+			// https://github.com/golang/go/issues/66735
+			// https://github.com/golang/go/blob/9f136650/src/net/http/fs.go#L377
+			var st fs.FileInfo
 			f, err := hfs.Open(path.Clean(req.URL.Path))
-			// if err == nil {
-			//	st, err = f.Stat()
-			//}
+			if err == nil {
+				st, err = f.Stat()
+			}
 			if err != nil {
 				msg, code := toHTTPError(err)
 				http.Error(rw, msg, code)
 				return
 			}
-
-			// Omit sending the Content-Length header since we don't know the decompressed length.
-			brReader := brotli.NewReader(f)
-			_, err = io.Copy(rw, brReader)
-			if err != nil {
-				http.Error(rw, err.Error(), 500)
-				return
-			}
+			rw.Header().Add("Content-Length", strconv.Itoa(int(st.Size())))
 		}
-
-		// XXX: When setting Content-Encoding, Go will drop the Content-Length header.
-		// https://github.com/golang/go/issues/66735
-		// https://github.com/golang/go/blob/9f136650/src/net/http/fs.go#L377
-		/*
-				if rw.Header().Get("Content-Encoding") != "" {
-					rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding")
-					rw.Header().Add("Vary", "Content-Encoding")
-
-			        // ... send the file
-				}
-		*/
 
 		handler.ServeHTTP(rw, req)
 	}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -154,17 +155,41 @@ func TestHTTPHandlerController(t *testing.T) {
 	if _, err := io.Copy(&decWasmBrBuf, brotli.NewReader(bytes.NewReader(testWasmBrData))); err != nil {
 		t.Fatal(err.Error())
 	}
-	//if !bytes.Equal(readData, testWasmBrData) {
-	//	t.Fatalf("read data does not match test data: %#v", string(readData))
-	//}
 	if contentType := res.Header.Get("content-type"); contentType != "application/wasm" {
 		t.Fatalf("incorrect content type: %s", contentType)
 	}
-	//if contentEnc := res.Header.Get("content-encoding"); contentEnc != "br" {
-	//	t.Fatalf("incorrect content encoding: %s", contentEnc)
-	//}
-	//exContentLength := strconv.Itoa(len(testWasmBrData))
-	//if contentLength := res.Header.Get("content-length"); contentLength != exContentLength {
-	//	t.Fatalf("incorrect content length: %s != %s", contentLength, exContentLength)
-	//}
+	decodedWasmBr := decWasmBrBuf.Bytes()
+
+	// fourth request: test .wasm.br file with accept encoding
+	req = httptest.NewRequest("GET", "/foo/bar/baz/hello-world.wasm.br", nil)
+	req.Header.Set("accept-encoding", "br")
+
+	rw = httptest.NewRecorder()
+	busHandler.ServeHTTP(rw, req)
+
+	res = rw.Result()
+	if res.StatusCode != 200 {
+		t.Fatalf("status code: %d", res.StatusCode)
+	}
+	readData, err = io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	decWasmBrBuf.Reset()
+	if _, err := io.Copy(&decWasmBrBuf, brotli.NewReader(bytes.NewReader(readData))); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(decWasmBrBuf.Bytes(), decodedWasmBr) {
+		t.Fatalf("read data does not match test data: %#v", string(readData))
+	}
+	if contentType := res.Header.Get("content-type"); contentType != "application/wasm" {
+		t.Fatalf("incorrect content type: %s", contentType)
+	}
+	if contentEnc := res.Header.Get("content-encoding"); contentEnc != "br" {
+		t.Fatalf("incorrect content encoding: %s", contentEnc)
+	}
+	exContentLength := strconv.Itoa(len(testWasmBrData))
+	if contentLength := res.Header.Get("content-length"); contentLength != exContentLength {
+		t.Fatalf("incorrect content length: %s != %s", contentLength, exContentLength)
+	}
 }
