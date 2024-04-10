@@ -193,6 +193,8 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 			manifestCursor,
 			bldr_manifest.NewManifestBlock,
 			int(concurrentLimit),
+			// set true to skip block sub-graphs if they already existed
+			true,
 			nil,
 		)
 		if err == nil {
