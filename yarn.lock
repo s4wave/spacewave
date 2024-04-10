@@ -2090,9 +2090,9 @@ sprintf-js@~1.0.2:
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
 starpc@^0.28.0:
-  version "0.28.0"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.28.0.tgz#52faabdbad0b4d8d883d27b69ee07d3ab4ce4dac"
-  integrity sha512-GQfgVGiTPORWYfk91PMP3/6rdrOPiixZLvcxW3Sw0IDE4fZtm2hPk5KUUwFWWAR2Yj0H/j54fKUw1QXqQAVY/w==
+  version "0.28.1"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.28.1.tgz#60a4a58b18ecbbd42b483468df4aa2f9871e39d7"
+  integrity sha512-hBpMRK7XDhawrjruXOtZ+ch75fo4jV+fUcvcZngBb4j69zbUIHVLPWJQyVBaqlQOx/PJuUXT4q1Hykr28Pu2pQ==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@chainsafe/libp2p-yamux" "^6.0.2"
