@@ -23,7 +23,7 @@ message Config {
   // uses LookupBlockStore to lookup the block store on the bus.
   string block_store_id = 5;
   // BlockStoreOverlayMode indicates the mode to use for the block store.
-  // Default: The volume is the lower, the block store is the upper.
+  // The volume is the lower store, the block store is the upper store.
   // Does nothing if block_store_id is empty.
   .block.OverlayMode block_store_overlay_mode = 6;
   // BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.

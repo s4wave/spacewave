@@ -37,4 +37,14 @@ enum OverlayMode {
   // writes go to both stores
   // reads that miss the lower store are written back to the lower store
   OverlayMode_CACHE_LOWER = 2;
+  // OverlayMode_READ_CACHE uses the upper store as a read-through cache for the lower store.
+  // reads go to the upper store, then the lower store.
+  // writes go to the upper store only.
+  // reads that miss the upper store are written back to the upper store
+  OverlayMode_READ_CACHE = 3;
+  // OverlayMode_READ_CACHE_LOWER uses the lower store as a read-through cache for the upper store.
+  // reads go to the lower store, then the upper store.
+  // writes go to lower store only
+  // reads that miss the lower store are written back to the lower store
+  OverlayMode_READ_CACHE_LOWER = 4;
 }

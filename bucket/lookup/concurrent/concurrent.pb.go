@@ -200,6 +200,8 @@ type Config struct {
 	// FallbackBlockStoreId is a block store to use to lookup the block if not
 	// found. If the block is found in this store, it will be written back
 	// according to the writeback behavior.
+	//
+	// The lookup will be performed before the NotFoundBehavior is evaluated.
 	FallbackBlockStoreId string `protobuf:"bytes,7,opt,name=fallback_block_store_id,json=fallbackBlockStoreId,proto3" json:"fallback_block_store_id,omitempty"`
 }
 

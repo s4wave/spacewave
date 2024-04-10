@@ -36,7 +36,7 @@ export interface Config {
   blockStoreId: string
   /**
    * BlockStoreOverlayMode indicates the mode to use for the block store.
-   * Default: The volume is the lower, the block store is the upper.
+   * The volume is the lower store, the block store is the upper store.
    * Does nothing if block_store_id is empty.
    */
   blockStoreOverlayMode: OverlayMode

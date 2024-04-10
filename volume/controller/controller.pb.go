@@ -45,7 +45,7 @@ type Config struct {
 	// uses LookupBlockStore to lookup the block store on the bus.
 	BlockStoreId string `protobuf:"bytes,5,opt,name=block_store_id,json=blockStoreId,proto3" json:"block_store_id,omitempty"`
 	// BlockStoreOverlayMode indicates the mode to use for the block store.
-	// Default: The volume is the lower, the block store is the upper.
+	// The volume is the lower store, the block store is the upper store.
 	// Does nothing if block_store_id is empty.
 	BlockStoreOverlayMode block.OverlayMode `protobuf:"varint,6,opt,name=block_store_overlay_mode,json=blockStoreOverlayMode,proto3,enum=block.OverlayMode" json:"block_store_overlay_mode,omitempty"`
 	// BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.

@@ -20,9 +20,11 @@ func TestBlockStoreOverlay(t *testing.T) {
 	// Available overlay modes:
 	ctx := context.Background()
 	overlayModes := []block.OverlayMode{
+		block.OverlayMode_OverlayMode_DIRECT,
 		block.OverlayMode_OverlayMode_CACHE,
 		block.OverlayMode_OverlayMode_CACHE_LOWER,
-		block.OverlayMode_OverlayMode_DIRECT,
+		block.OverlayMode_OverlayMode_READ_CACHE,
+		block.OverlayMode_OverlayMode_READ_CACHE_LOWER,
 	}
 
 	// For each test:

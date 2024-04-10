@@ -31,6 +31,20 @@ export enum OverlayMode {
    * reads that miss the lower store are written back to the lower store
    */
   OverlayMode_CACHE_LOWER = 2,
+  /**
+   * OverlayMode_READ_CACHE - OverlayMode_READ_CACHE uses the upper store as a read-through cache for the lower store.
+   * reads go to the upper store, then the lower store.
+   * writes go to the upper store only.
+   * reads that miss the upper store are written back to the upper store
+   */
+  OverlayMode_READ_CACHE = 3,
+  /**
+   * OverlayMode_READ_CACHE_LOWER - OverlayMode_READ_CACHE_LOWER uses the lower store as a read-through cache for the upper store.
+   * reads go to the lower store, then the upper store.
+   * writes go to lower store only
+   * reads that miss the lower store are written back to the lower store
+   */
+  OverlayMode_READ_CACHE_LOWER = 4,
   UNRECOGNIZED = -1,
 }
 
@@ -45,6 +59,12 @@ export function overlayModeFromJSON(object: any): OverlayMode {
     case 2:
     case 'OverlayMode_CACHE_LOWER':
       return OverlayMode.OverlayMode_CACHE_LOWER
+    case 3:
+    case 'OverlayMode_READ_CACHE':
+      return OverlayMode.OverlayMode_READ_CACHE
+    case 4:
+    case 'OverlayMode_READ_CACHE_LOWER':
+      return OverlayMode.OverlayMode_READ_CACHE_LOWER
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -60,6 +80,10 @@ export function overlayModeToJSON(object: OverlayMode): string {
       return 'OverlayMode_CACHE'
     case OverlayMode.OverlayMode_CACHE_LOWER:
       return 'OverlayMode_CACHE_LOWER'
+    case OverlayMode.OverlayMode_READ_CACHE:
+      return 'OverlayMode_READ_CACHE'
+    case OverlayMode.OverlayMode_READ_CACHE_LOWER:
+      return 'OverlayMode_READ_CACHE_LOWER'
     case OverlayMode.UNRECOGNIZED:
     default:
       return 'UNRECOGNIZED'

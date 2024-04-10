@@ -78,6 +78,10 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 		return cacheMode(o.lower, o.upper)
 	case OverlayMode_OverlayMode_CACHE_LOWER:
 		return cacheMode(o.upper, o.lower)
+	case OverlayMode_OverlayMode_READ_CACHE:
+		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
+		return o.lower.PutBlock(ctx, data, opts)
 	}
 }
 
@@ -126,8 +130,12 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 		fallthrough
 	case OverlayMode_OverlayMode_DIRECT:
 		return o.upper.GetBlock(ctx, ref)
+	case OverlayMode_OverlayMode_READ_CACHE:
+		fallthrough
 	case OverlayMode_OverlayMode_CACHE:
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
+		fallthrough
 	case OverlayMode_OverlayMode_CACHE_LOWER:
 		return cacheMode(o.upper, o.lower)
 	}
@@ -150,8 +158,12 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 		fallthrough
 	case OverlayMode_OverlayMode_DIRECT:
 		return o.upper.GetBlockExists(ctx, ref)
+	case OverlayMode_OverlayMode_READ_CACHE:
+		fallthrough
 	case OverlayMode_OverlayMode_CACHE:
 		return cacheMode(o.lower, o.upper)
+	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
+		fallthrough
 	case OverlayMode_OverlayMode_CACHE_LOWER:
 		return cacheMode(o.upper, o.lower)
 	}
@@ -161,10 +173,29 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
 func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
-	if err := o.upper.RmBlock(ctx, ref); err != nil {
-		return err
+	cacheMode := func(lower, upper StoreOps) error {
+		uerr := upper.RmBlock(ctx, ref)
+		lerr := lower.RmBlock(ctx, ref)
+		if uerr != nil {
+			return uerr
+		}
+		return lerr
 	}
-	return o.lower.RmBlock(ctx, ref)
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_OverlayMode_DIRECT:
+		return o.upper.RmBlock(ctx, ref)
+	case OverlayMode_OverlayMode_CACHE:
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_OverlayMode_CACHE_LOWER:
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_OverlayMode_READ_CACHE:
+		return o.upper.RmBlock(ctx, ref)
+	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
+		return o.lower.RmBlock(ctx, ref)
+	}
 }
 
 // _ is a type assertion
