@@ -1,4 +1,4 @@
-package block_store_http
+package block_store_http_e2e
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/hydra/block"
+	block_store_http "github.com/aperturerobotics/hydra/block/store/http"
 	block_store_http_server "github.com/aperturerobotics/hydra/block/store/http/server"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -58,7 +59,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	clientTb.StaticResolver.AddFactory(NewFactory(clientTb.Bus))
+	clientTb.StaticResolver.AddFactory(block_store_http.NewFactory(clientTb.Bus))
 
 	// Create the bucket in the client
 	bucketID := clientTb.BucketId
@@ -83,7 +84,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	}
 
 	// Create the http block store controller
-	conf := NewConfig(blockStoreID, baseURL.String(), true, nil)
+	conf := block_store_http.NewConfig(blockStoreID, baseURL.String(), true, nil)
 	conf.Verbose = true
 	_, _, lookupCtrlRel, err := loader.WaitExecControllerRunning(
 		ctx,

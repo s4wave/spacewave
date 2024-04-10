@@ -40,7 +40,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	t.Logf("blob written to %s", bref.MarshalString())
+	le.Infof("blob written to %s", bref.MarshalString())
 
 	cs.SetRootRef(bref)
 	_, bcs = cs.BuildTransaction(nil)

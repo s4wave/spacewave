@@ -28,9 +28,9 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	vol := tb.Volume
-	volID := vol.GetID()
-	t.Log(volID)
+	// vol := tb.Volume
+	// volID := vol.GetID()
+	// t.Log(volID)
 
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
@@ -63,7 +63,7 @@ func TestBlob_Chunked(t *testing.T) {
 	if err := b1.ValidateFull(context.Background(), bcs); err != nil {
 		t.Fatal(err.Error())
 	}
-	t.Logf(
+	le.Infof(
 		"built & wrote %s blob with %d chunks in %s (%v / sec)",
 		humanize.Bytes(b1.GetTotalSize()),
 		len(b1.GetChunkIndex().GetChunks()),
@@ -76,7 +76,7 @@ func TestBlob_Chunked(t *testing.T) {
 	_, bcs = oc.BuildTransaction(nil)
 	rootBlobData, _, _ := bcs.Fetch(ctx)
 	rootBlobSize := uint64(len(rootBlobData))
-	t.Logf(
+	le.Infof(
 		"index block is %s (overhead of %v%%)",
 		humanize.Bytes(rootBlobSize),
 		math.Ceil(float64(rootBlobSize)/float64(b1.GetTotalSize())*100000)/1000,
@@ -95,7 +95,7 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fatalf("expected to read %d but got %d", b1.GetTotalSize(), len(dat))
 	}
 	opDur = t2.Sub(t1)
-	t.Logf(
+	le.Infof(
 		"read and verified %s bytes in %s (%s / sec)",
 		humanize.Bytes(uint64(len(dat))),
 		opDur.String(),
@@ -244,5 +244,5 @@ func TestBlob_Chunked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	t.Logf("storage size: %d total size: %d", storageSize, totalSize)
+	le.Infof("storage size: %d total size: %d", storageSize, totalSize)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/util/iocloser"
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/pkg/errors"
@@ -248,6 +249,12 @@ func (r *Store) EncodedObjectSize(ph plumbing.Hash) (int64, error) {
 		return 0, err
 	}
 	return encObj.Size(), nil
+}
+
+// AddAlternate adds an alternate remote.
+func (r *Store) AddAlternate(remote string) error {
+	// TODO https://stackoverflow.com/questions/36123655/what-is-the-git-alternates-mechanism
+	return git.ErrAlternatePathNotSupported
 }
 
 // Hash returns the hash of the encoded object.

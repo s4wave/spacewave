@@ -72,6 +72,7 @@ func TestWorldEngineController(t *testing.T) {
 			objectStoreID,
 			initWorldRef,
 			nodeStateTransformConf,
+			true,
 		)
 		engineConf.Verbose = true
 		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
@@ -207,8 +208,8 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 		objectStoreID,
 		initWorldRef,
 		nodeStateTransformConf,
+		false,
 	)
-	engineConf.DisableChangelog = true
 	engineConf.Verbose = true
 	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
 		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(

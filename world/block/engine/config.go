@@ -15,6 +15,7 @@ func NewConfig(
 	engineID, volumeID, bucketID, objectStoreID string,
 	initHeadRef *bucket.ObjectRef,
 	stateTransformConf *block_transform.Config,
+	enableChangelog bool,
 ) *Config {
 	return &Config{
 		BucketId:           bucketID,
@@ -23,6 +24,7 @@ func NewConfig(
 		ObjectStoreId:      objectStoreID,
 		InitHeadRef:        initHeadRef,
 		StateTransformConf: stateTransformConf,
+		DisableChangelog:   !enableChangelog,
 	}
 }
 

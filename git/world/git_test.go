@@ -78,6 +78,7 @@ func TestGitClone(t *testing.T) {
 			objectStoreID,
 			initWorldRef,
 			xfrmConf,
+			false,
 		),
 	)
 	if err != nil {

@@ -33,7 +33,7 @@ func TestBlockRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	t.Log(string(jdata))
+	// t.Log(string(jdata))
 	outRef, err := UnmarshalBlockRefJSON(jdata)
 	if err != nil {
 		t.Fatal(err.Error())

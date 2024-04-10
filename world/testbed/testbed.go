@@ -107,6 +107,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		t.EngineObjectStoreID,
 		initRef,
 		nil,
+		false,
 	)
 	engConf.Verbose = worldVerbose
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
