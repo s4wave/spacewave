@@ -151,6 +151,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	_ = readData
 	var decWasmBrBuf bytes.Buffer
 	if _, err := io.Copy(&decWasmBrBuf, brotli.NewReader(bytes.NewReader(testWasmBrData))); err != nil {
 		t.Fatal(err.Error())
