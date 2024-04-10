@@ -15,8 +15,9 @@ func NewConfig(
 	objectKey,
 	volumeID,
 	peerID string,
-	alwaysFetchManifest bool,
-	disableStoreManifest bool,
+	alwaysFetchManifest,
+	disableStoreManifest,
+	disableCopyManifest bool,
 ) *Config {
 	return &Config{
 		EngineId:  engineID,
@@ -26,6 +27,7 @@ func NewConfig(
 
 		AlwaysFetchManifest:  alwaysFetchManifest,
 		DisableStoreManifest: disableStoreManifest,
+		DisableCopyManifest:  disableCopyManifest,
 	}
 }
 

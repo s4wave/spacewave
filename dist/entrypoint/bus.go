@@ -7,22 +7,31 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	manifest_fetch_world "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
+	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -61,8 +70,8 @@ type DistBus struct {
 	worldEngine world.Engine
 	// worldState is the world state instance.
 	worldState world.WorldState
-	// rels are the release funcs
-	rels []func()
+	// rel is the release func
+	rel func()
 }
 
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
@@ -70,18 +79,31 @@ type DistBus struct {
 func BuildDistBus(
 	rctx context.Context,
 	le *logrus.Entry,
-	projectID,
-	platformID,
+	distMeta *bldr_dist.DistMeta,
 	stateRoot,
 	webRuntimeID string,
+	configSetProto *configset_proto.ConfigSet,
+	staticBlockStoreReaderBuilder refcount.RefCountResolver[*kvfile.Reader],
 ) (*DistBus, error) {
+	projectID := distMeta.GetProjectId()
+	platformID := distMeta.GetPlatformId()
 	le.
 		WithFields(logrus.Fields{"project-id": projectID, "platform-id": platformID}).
 		Info("initializing application and storage...")
 	ctx, ctxCancel := context.WithCancel(rctx)
+
+	rels := []func(){ctxCancel}
+	rel := func() {
+		for _, rel := range rels {
+			if rel != nil {
+				rel()
+			}
+		}
+	}
+
 	b, sr, err := NewCoreBus(ctx, le)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
@@ -89,12 +111,11 @@ func BuildDistBus(
 	configSetCtrl, _ := configset_controller.NewController(le, b)
 	_, err = b.AddController(ctx, configSetCtrl, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	// build the plugin state paths on disk
-	pluginHostObjectKey := "plugin-host"
 	pluginsRoot := filepath.Join(stateRoot, "p")
 	pluginsDistRoot := filepath.Join(pluginsRoot, "d")
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
@@ -103,12 +124,30 @@ func BuildDistBus(
 	isWebPlatform := platformID == "web" || strings.HasPrefix(platformID, "web/")
 	if !isWebPlatform {
 		if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
-			ctxCancel()
+			rel()
 			return nil, err
 		}
 		if err := os.MkdirAll(pluginsStateRoot, 0o755); err != nil {
-			ctxCancel()
+			rel()
 			return nil, err
+		}
+	}
+
+	// run the config set
+	if len(configSetProto.GetConfigurations()) != 0 {
+		configSet, err := configSetProto.Resolve(ctx, b)
+		if err != nil {
+			rel()
+			return nil, err
+		}
+
+		if len(configSet) != 0 {
+			_, applyCsetRef, err := b.AddDirective(configset.NewApplyConfigSet(configSet), nil)
+			if err != nil {
+				rel()
+				return nil, err
+			}
+			rels = append(rels, applyCsetRef.Release)
 		}
 	}
 
@@ -118,14 +157,15 @@ func BuildDistBus(
 	storageCtrl := default_storage.NewController(storageID, b, stateRoot)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, relStorageCtrl)
 
 	// ensure there is at least one storage method
 	storageMethods := storageCtrl.GetStorage()
 	if len(storageMethods) == 0 {
-		ctxCancel()
+		rel()
 		return nil, errors.New("no available storage methods")
 	}
 
@@ -133,6 +173,33 @@ func BuildDistBus(
 	for _, st := range storageMethods {
 		st.AddFactories(b, sr)
 	}
+
+	// note: make sure this matches dist compiler at create the embedded manifests world part
+	distBundleBucketConf, err := bldr_dist.NewDistBucketConfig(projectID)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	distBundleWorldRootRef := distMeta.GetDistWorldRef()
+	distBundleObjKey := distMeta.GetDistObjectKey()
+
+	// mount the embedded read-only block storage
+	embedBlockStoreID := bldr_dist.StaticBlockStoreID
+	staticBlockStoreCtrl := NewStaticBlockStore(
+		le,
+		b,
+		embedBlockStoreID,
+		staticBlockStoreReaderBuilder,
+		store_kvkey.NewDefaultKVKey(),
+		nil, // []string{distBundleBucketConf.GetId()},
+		nil,
+	)
+	relStaticVolCtrl, err := b.AddController(ctx, staticBlockStoreCtrl, nil)
+	if err != nil {
+		rel()
+		return nil, errors.Wrap(err, "add static block store controller")
+	}
+	rels = append(rels, relStaticVolCtrl)
 
 	// run the distribution storage volume (used for storing dist manifests)
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
@@ -143,34 +210,86 @@ func BuildDistBus(
 			StorageVolumeId: "dist/" + projectID,
 			VolumeConfig: &volume_controller.Config{
 				VolumeIdAlias: []string{"dist"},
+
+				// Configure static block store as fallback.
+				BlockStoreId:                  embedBlockStoreID,
+				BlockStoreOverlayMode:         block.OverlayMode_OverlayMode_READ_CACHE_LOWER,
+				BlockStoreWritebackTimeoutDur: "10s",
+
+				DisableEventBlockRm:     true,
+				DisableReconcilerQueues: true,
+				DisablePeer:             true,
 			},
 		}),
 		ctxCancel,
 	)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, diRef.Release)
 
 	volCtrl, ok := volCtrli.(volume.Controller)
 	if !ok {
-		ctxCancel()
+		rel()
 		return nil, errors.New("volume controller returned invalid value")
 	}
 
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+
+	// apply the dist bucket config to the node storage
+	_, _, _, err = vol.ApplyBucketConfig(ctx, distBundleBucketConf)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+
+	// mount the manifest kvtx block world backed by read-only storage
+	distWorldEngineID := bldr_dist.DistWorldEngineID
+	embedEngineConf := world_block_engine.NewConfig(
+		distWorldEngineID,
+		vol.GetID(),
+		distBundleBucketConf.GetId(),
+		"",
+		distBundleWorldRootRef,
+		nil,
+	)
+	_, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(embedEngineConf),
+		nil,
+	)
+	if err != nil {
+		rel()
+		return nil, errors.Wrap(err, "start static embedded engine controller")
+	}
+	rels = append(rels, embedEngineCtrlRef.Release)
+
+	// mount the manifest fetcher from the static world
+	staticManifestFetcher := manifest_fetch_world.NewController(le, b, &manifest_fetch_world.Config{
+		EngineId:   distWorldEngineID,
+		ObjectKeys: []string{distBundleObjKey},
+	})
+	relStaticManifestFetcher, err := b.AddController(ctx, staticManifestFetcher, nil)
+	if err != nil {
+		rel()
+		return nil, errors.Wrap(err, "start static manifest fetcher")
+	}
+	rels = append(rels, relStaticManifestFetcher)
 
 	// start the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, _, nodeCtrlRef, err := bus.ExecOneOff(ctx, b, dir, nil, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, nodeCtrlRef.Release)
 
 	// start world
 	engineID := "entrypoint"
@@ -180,19 +299,19 @@ func BuildDistBus(
 	// create bucket if it doesn't exist
 	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	_, err = bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(bucketConf, vol.GetID()))
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
 	distTransformConf := buildStorageTransformConf(projectID)
 	transformConf, err := block_transform.NewConfig(distTransformConf)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	initRef := &bucket.ObjectRef{
@@ -213,13 +332,14 @@ func BuildDistBus(
 		engConf,
 	)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, worldCtrlRef.Release)
 
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 	worldState := world.NewEngineWorldState(eng, true)
@@ -228,13 +348,15 @@ func BuildDistBus(
 	lookupOpCtrl := world.NewLookupOpController("bldr-manifest-ops", engineID, bldr_manifest_world.LookupOp)
 	relLookupCtrl, err := b.AddController(ctx, lookupOpCtrl, nil)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
+	rels = append(rels, relLookupCtrl)
 
 	// ensure the manifest store exists in the world
+	pluginHostObjectKey := "plugin-host"
 	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, eng, pluginHostObjectKey); err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
 	}
 
@@ -250,11 +372,23 @@ func BuildDistBus(
 		pluginsDistRoot,
 		true,
 		false,
+		true,
 		webRuntimeID,
 	)
 	if err != nil {
-		ctxCancel()
+		rel()
 		return nil, err
+	}
+	rels = append(rels, pluginHostRel)
+
+	// Create LoadPlugin directives for the startup plugins.
+	for _, pluginID := range distMeta.GetStartupPlugins() {
+		_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
+		if err != nil {
+			le.WithError(err).WithField("plugin-id", pluginID).Warn("failed to load startup plugin")
+			continue
+		}
+		rels = append(rels, pluginRef.Release)
 	}
 
 	return &DistBus{
@@ -274,16 +408,7 @@ func BuildDistBus(
 		peerID:              vol.GetPeerID(),
 		worldEngine:         eng,
 		worldState:          worldState,
-		rels: []func(){
-			relStorageCtrl,
-			pluginHostRel,
-			worldCtrlRef.Release,
-			nodeCtrlRef.Release,
-			relLookupCtrl,
-			ctxCancel,
-			diRef.Release,
-			func() { volCtrl.Close() },
-		},
+		rel:                 rel,
 	}, nil
 }
 
@@ -349,7 +474,5 @@ func (d *DistBus) GetPluginHostObjectKey() string {
 
 // Release releases the devtool bus.
 func (d *DistBus) Release() {
-	for _, rel := range d.rels {
-		rel()
-	}
+	d.rel()
 }

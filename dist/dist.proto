@@ -1,6 +1,8 @@
 syntax = "proto3";
 package bldr.dist;
 
+import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
+
 // DistMeta is metadata embedded in a distribution entrypoint.
 message DistMeta {
   // ProjectId is the project identifier.
@@ -11,4 +13,9 @@ message DistMeta {
   string platform_id = 2;
   // StartupPlugins is the list of plugins to run on startup.
   repeated string startup_plugins = 3;
+  // DistWorldRef is the root object ref to the static assets kvfile block-backed world.
+  // Contains the transform configuration.
+  .bucket.ObjectRef dist_world_ref = 4;
+  // DistObjectKey is the root object key to search for manifests in the dist world.
+  string dist_object_key = 5;
 }

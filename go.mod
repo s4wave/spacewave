@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240409230725-6db591fc3ca3 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240410072804-2a0999379e8f // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -20,7 +20,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.28.1-0.20240407070326-513c7c2f0122 // master
+require github.com/aperturerobotics/bifrost v0.28.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -39,8 +39,8 @@ replace (
 	github.com/dgraph-io/badger/v4 => github.com/paralin/badger/v4 v4.2.1-0.20240221040732-078580f8a58a // fix-wasm
 	// https://github.com/dgraph-io/ristretto/pull/375
 	github.com/dgraph-io/ristretto => github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8 // fix-wasm
-	github.com/go-git/go-billy/v5 => github.com/paralin/go-billy/v5 v5.5.1-0.20240225054224-3fbf975de769 // js
-	github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
+	// github.com/go-git/go-billy/v5 => github.com/paralin/go-billy/v5 v5.5.1-0.20240225054224-3fbf975de769 // js
+	// github.com/go-git/go-git/v5 => github.com/paralin/go-git/v5 v5.6.2-0.20230322095819-b641fd8f849b // gopherjs-compat
 	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 // aperture
 	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
@@ -53,7 +53,7 @@ require github.com/cayleygraph/cayley v0.7.7
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.39.1 // master
+	github.com/aperturerobotics/controllerbus v0.40.0 // master
 	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
 	github.com/aperturerobotics/starpc v0.28.0 // latest
 )
@@ -75,7 +75,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.16.3 // master
+	github.com/aperturerobotics/util v1.16.5 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.8

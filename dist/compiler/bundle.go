@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bldr"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	dist_compiler_bundle "github.com/aperturerobotics/bldr/dist/compiler/bundle"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
@@ -19,14 +20,16 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/go-kvfile"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
 	hydra_core "github.com/aperturerobotics/hydra/core"
-	kvtx_kvfile "github.com/aperturerobotics/hydra/kvtx/kvfile"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
+	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
+	world_block "github.com/aperturerobotics/hydra/world/block"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -172,17 +175,9 @@ func BuildDistBundle(
 	// it will contain the embedded manifests.
 
 	// create the embedded manifests world
-	embedWorldID := strings.Join([]string{"dist", meta.GetProjectId()}, "/")
-	embedBucketID := embedWorldID
+	embedWorldID := bldr_dist.DistWorldEngineID
 	embedObjStoreID := embedWorldID
-	// TODO: do not replicate flag?
-	embedXfrmConf, err := block_transform.NewConfig(buildEmbedTransformConf(workingID))
-	if err != nil {
-		return err
-	}
-	bucketConf, err := bucket.NewConfig(embedBucketID, 1, nil, &bucket.LookupConfig{
-		// Disable: true,
-	})
+	bucketConf, err := bldr_dist.NewDistBucketConfig(meta.GetProjectId())
 	if err != nil {
 		return err
 	}
@@ -190,10 +185,14 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
+	embedXfrmConf, err := block_transform.NewConfig(buildEmbedTransformConf(workingID))
+	if err != nil {
+		return err
+	}
 	embedEngineConf := world_block_engine.NewConfig(
 		embedWorldID,
 		workingDbVolID,
-		embedBucketID,
+		bucketConf.GetId(),
 		embedObjStoreID,
 		&bucket.ObjectRef{TransformConf: embedXfrmConf.CloneVT()},
 		nil,
@@ -216,6 +215,10 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
+	embedBlockEngine, ok := embedEngine.(*world_block.Engine)
+	if !ok {
+		return errors.New("unexpected type for world block engine")
+	}
 
 	// Write contents to the embedded world.
 	le.Debug("copying contents to embedded volume")
@@ -223,8 +226,16 @@ func BuildDistBundle(
 		return err
 	}
 
+	// Update the initial root ref
+	meta.DistWorldRef = embedBlockEngine.GetRootRef().Clone()
+
 	// Close the embedded world controller, no longer needed.
 	embedEngineCtrlRef.Release()
+
+	// Validate the metadata
+	if err := meta.Validate(); err != nil {
+		return err
+	}
 
 	le.Debug("packing embedded volume to assets.kvfile")
 	embeddedVolumeFilename := "assets.kvfile"
@@ -234,14 +245,32 @@ func BuildDistBundle(
 		return err
 	}
 
+	// build kvfile writer
+	kvfileWriter := kvfile.NewWriter(embeddedVolFile)
+	kvfileKvkey := store_kvkey.NewDefaultKVKey()
+	kvfileBlockPrefix := kvfileKvkey.GetBlockFullPrefix()
+
 	// Access the workingVol kvtx
-	workingVolKvtx := boltVol.GetKvtxStore()
+	kvtxVolStore := boltVol.GetKvtxStore()
+	kvtxVolBlockPrefix := boltVol.GetKvKey().GetBlockFullPrefix()
 
 	// Write the kvfile
 	// NOTE: We don't use compression here since the content is already compressed / not compressable.
-	// In testing, the zstd compression had NO reduction in file-size here.
-	err = kvtx_kvfile.KvfileFromStore(ctx, embeddedVolFile, workingVolKvtx, nil)
+	err = dist_compiler_bundle.BundleManifestsKvfile(
+		ctx,
+		le,
+		kvfileWriter,
+		kvfileBlockPrefix,
+		embedBlockEngine,
+		kvtxVolStore,
+		kvtxVolBlockPrefix,
+	)
 	if err != nil {
+		_ = kvfileWriter.Close()
+		_ = embeddedVolFile.Close()
+		return err
+	}
+	if err := kvfileWriter.Close(); err != nil {
 		_ = embeddedVolFile.Close()
 		return err
 	}

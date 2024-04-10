@@ -34,6 +34,11 @@ export interface Config {
    */
   disableStoreManifest: boolean;
   /**
+   * DisableCopyManifest disables copying manifests to the plugin host world bucket.
+   * This is used if the manifest bucket is always accessible and locally cached.
+   */
+  disableCopyManifest: boolean;
+  /**
    * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
    * If zero, uses no limit to the number of concurrent fetches.
    *
@@ -64,6 +69,7 @@ function createBaseConfig(): Config {
     volumeId: "",
     alwaysFetchManifest: false,
     disableStoreManifest: false,
+    disableCopyManifest: false,
     fetchConcurrency: 0,
     fetchBackoff: undefined,
     execBackoff: undefined,
@@ -89,6 +95,9 @@ export const Config = {
     }
     if (message.disableStoreManifest !== false) {
       writer.uint32(48).bool(message.disableStoreManifest);
+    }
+    if (message.disableCopyManifest !== false) {
+      writer.uint32(80).bool(message.disableCopyManifest);
     }
     if (message.fetchConcurrency !== 0) {
       writer.uint32(56).uint32(message.fetchConcurrency);
@@ -150,6 +159,13 @@ export const Config = {
           }
 
           message.disableStoreManifest = reader.bool();
+          continue;
+        case 10:
+          if (tag !== 80) {
+            break;
+          }
+
+          message.disableCopyManifest = reader.bool();
           continue;
         case 7:
           if (tag !== 56) {
@@ -223,6 +239,7 @@ export const Config = {
       disableStoreManifest: isSet(object.disableStoreManifest)
         ? globalThis.Boolean(object.disableStoreManifest)
         : false,
+      disableCopyManifest: isSet(object.disableCopyManifest) ? globalThis.Boolean(object.disableCopyManifest) : false,
       fetchConcurrency: isSet(object.fetchConcurrency) ? globalThis.Number(object.fetchConcurrency) : 0,
       fetchBackoff: isSet(object.fetchBackoff) ? Backoff.fromJSON(object.fetchBackoff) : undefined,
       execBackoff: isSet(object.execBackoff) ? Backoff.fromJSON(object.execBackoff) : undefined,
@@ -249,6 +266,9 @@ export const Config = {
     if (message.disableStoreManifest !== false) {
       obj.disableStoreManifest = message.disableStoreManifest;
     }
+    if (message.disableCopyManifest !== false) {
+      obj.disableCopyManifest = message.disableCopyManifest;
+    }
     if (message.fetchConcurrency !== 0) {
       obj.fetchConcurrency = Math.round(message.fetchConcurrency);
     }
@@ -272,6 +292,7 @@ export const Config = {
     message.volumeId = object.volumeId ?? "";
     message.alwaysFetchManifest = object.alwaysFetchManifest ?? false;
     message.disableStoreManifest = object.disableStoreManifest ?? false;
+    message.disableCopyManifest = object.disableCopyManifest ?? false;
     message.fetchConcurrency = object.fetchConcurrency ?? 0;
     message.fetchBackoff = (object.fetchBackoff !== undefined && object.fetchBackoff !== null)
       ? Backoff.fromPartial(object.fetchBackoff)

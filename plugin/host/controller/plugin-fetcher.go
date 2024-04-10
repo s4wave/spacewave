@@ -168,7 +168,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 		manifestBucketID = manifestCursor.GetOpArgs().GetBucketId()
 
 		// if the manifest is located in a different bucket, copy it over.
-		if manifestBucketID == pluginHostBucketID {
+		if manifestBucketID == pluginHostBucketID || t.c.conf.GetDisableCopyManifest() {
 			wroteManifestRef = manifestRef.Clone()
 			return nil
 		}
@@ -176,6 +176,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 		le.Infof("copying manifest from bucket %s to %s", manifestBucketID, pluginHostBucketID)
 		writeBaseRef := manifestCursor.GetRef().Clone()
 		writeBaseRef.BucketId = pluginHostBucketID
+
 		writeCursor, err := worldCursor.FollowRef(ctx, writeBaseRef)
 		if err != nil {
 			if err == context.Canceled {

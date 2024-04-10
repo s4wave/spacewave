@@ -12,6 +12,8 @@ import (
 
 	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
+	"github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/util/refcount"
 	fcolor "github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 )
@@ -50,17 +52,28 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 	}
 }
 
-// openStaticVolume opens the static volume kvfile.
-func openStaticVolume(le *logrus.Entry, assetsFS fs.FS, verbose bool) (io.ReaderAt, uint64, error) {
-	f, err := assetsFS.Open("assets.kvfile")
-	if err != nil {
-		return nil, 0, err
-	}
+// newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader
+func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose bool) refcount.RefCountResolver[*kvfile.Reader] {
+	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
+		f, err := assetsFS.Open("assets.kvfile")
+		if err != nil {
+			return nil, nil, err
+		}
 
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, 0, err
-	}
+		fi, err := f.Stat()
+		if err != nil {
+			_ = f.Close()
+			return nil, nil, err
+		}
 
-	return f.(io.ReaderAt), uint64(fi.Size()), nil
+		readerAt := f.(io.ReaderAt)
+		fileSize := uint64(fi.Size())
+
+		rdr, err := kvfile.BuildReader(readerAt, fileSize)
+		if err != nil {
+			_ = f.Close()
+			return nil, nil, err
+		}
+		return rdr, func() { _ = f.Close() }, nil
+	}
 }

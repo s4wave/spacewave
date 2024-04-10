@@ -2,6 +2,8 @@ package bldr_dist
 
 import (
 	"testing"
+
+	"github.com/aperturerobotics/hydra/bucket"
 )
 
 func TestDistMetaB58(t *testing.T) {
@@ -25,6 +27,8 @@ func TestDistMetaValidate(t *testing.T) {
 		ProjectId:      "project",
 		PlatformId:     "dist-platform",
 		StartupPlugins: []string{"test-plugin"},
+		DistWorldRef:   &bucket.ObjectRef{},
+		DistObjectKey:  "dist",
 	}
 	if err := input.Validate(); err != nil {
 		t.Fatal(err.Error())

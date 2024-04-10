@@ -29,7 +29,8 @@ func StartBusPluginHost(
 	pluginsStateRoot,
 	pluginsDistRoot string,
 	alwaysFetchManifest,
-	disableStoreManifest bool,
+	disableStoreManifest,
+	disableCopyManifest bool,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
 	pluginHostProcessConf := host_process.NewConfig(
@@ -40,6 +41,7 @@ func StartBusPluginHost(
 			volPeerID,
 			alwaysFetchManifest,
 			disableStoreManifest,
+			disableCopyManifest,
 		),
 		pluginsStateRoot,
 		pluginsDistRoot,

@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { ObjectRef } from "@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js";
 import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 
@@ -16,10 +17,19 @@ export interface DistMeta {
   platformId: string;
   /** StartupPlugins is the list of plugins to run on startup. */
   startupPlugins: string[];
+  /**
+   * DistWorldRef is the root object ref to the static assets kvfile block-backed world.
+   * Contains the transform configuration.
+   */
+  distWorldRef:
+    | ObjectRef
+    | undefined;
+  /** DistObjectKey is the root object key to search for manifests in the dist world. */
+  distObjectKey: string;
 }
 
 function createBaseDistMeta(): DistMeta {
-  return { projectId: "", platformId: "", startupPlugins: [] };
+  return { projectId: "", platformId: "", startupPlugins: [], distWorldRef: undefined, distObjectKey: "" };
 }
 
 export const DistMeta = {
@@ -32,6 +42,12 @@ export const DistMeta = {
     }
     for (const v of message.startupPlugins) {
       writer.uint32(26).string(v!);
+    }
+    if (message.distWorldRef !== undefined) {
+      ObjectRef.encode(message.distWorldRef, writer.uint32(34).fork()).ldelim();
+    }
+    if (message.distObjectKey !== "") {
+      writer.uint32(42).string(message.distObjectKey);
     }
     return writer;
   },
@@ -63,6 +79,20 @@ export const DistMeta = {
           }
 
           message.startupPlugins.push(reader.string());
+          continue;
+        case 4:
+          if (tag !== 34) {
+            break;
+          }
+
+          message.distWorldRef = ObjectRef.decode(reader, reader.uint32());
+          continue;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.distObjectKey = reader.string();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -112,6 +142,8 @@ export const DistMeta = {
       startupPlugins: globalThis.Array.isArray(object?.startupPlugins)
         ? object.startupPlugins.map((e: any) => globalThis.String(e))
         : [],
+      distWorldRef: isSet(object.distWorldRef) ? ObjectRef.fromJSON(object.distWorldRef) : undefined,
+      distObjectKey: isSet(object.distObjectKey) ? globalThis.String(object.distObjectKey) : "",
     };
   },
 
@@ -126,6 +158,12 @@ export const DistMeta = {
     if (message.startupPlugins?.length) {
       obj.startupPlugins = message.startupPlugins;
     }
+    if (message.distWorldRef !== undefined) {
+      obj.distWorldRef = ObjectRef.toJSON(message.distWorldRef);
+    }
+    if (message.distObjectKey !== "") {
+      obj.distObjectKey = message.distObjectKey;
+    }
     return obj;
   },
 
@@ -137,6 +175,10 @@ export const DistMeta = {
     message.projectId = object.projectId ?? "";
     message.platformId = object.platformId ?? "";
     message.startupPlugins = object.startupPlugins?.map((e) => e) || [];
+    message.distWorldRef = (object.distWorldRef !== undefined && object.distWorldRef !== null)
+      ? ObjectRef.fromPartial(object.distWorldRef)
+      : undefined;
+    message.distObjectKey = object.distObjectKey ?? "";
     return message;
   },
 };

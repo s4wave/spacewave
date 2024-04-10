@@ -2,17 +2,21 @@ package bldr_dist
 
 import (
 	"github.com/aperturerobotics/bifrost/util/labels"
+	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/world"
 	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 )
 
 // NewDistMeta constructs a new DistMeta.
-func NewDistMeta(projectID, platformID string, startupPlugins []string) *DistMeta {
+func NewDistMeta(projectID, platformID string, startupPlugins []string, distWorldRef *bucket.ObjectRef, distObjKey string) *DistMeta {
 	return &DistMeta{
 		ProjectId:      projectID,
 		PlatformId:     platformID,
 		StartupPlugins: startupPlugins,
+		DistWorldRef:   distWorldRef,
+		DistObjectKey:  distObjKey,
 	}
 }
 
@@ -38,6 +42,12 @@ func UnmarshalDistMetaB58(str string) (*DistMeta, error) {
 func (m *DistMeta) Validate() error {
 	if err := labels.ValidateDNSLabel(m.GetProjectId()); err != nil {
 		return errors.Wrap(err, "project_id")
+	}
+	if err := m.GetDistWorldRef().Validate(); err != nil {
+		return errors.Wrap(err, "dist_world_ref")
+	}
+	if m.GetDistObjectKey() == "" {
+		return errors.Wrap(world.ErrEmptyObjectKey, "dist_object_key")
 	}
 	return nil
 }

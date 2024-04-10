@@ -12,14 +12,10 @@ import (
 	web_plugin_compiler "github.com/aperturerobotics/bldr/web/plugin/compiler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 )
 
-// AddFactories adds the devtool factories.
-func AddFactories(b bus.Bus, sr *static.Resolver) {
-	// volumes
-	sr.AddFactory(volume_bolt.NewFactory(b))
-
+// addCommonFactories adds the factories common to all arches.
+func addCommonFactories(b bus.Bus, sr *static.Resolver) {
 	// transports
 	sr.AddFactory(websocket.NewFactory(b))
 

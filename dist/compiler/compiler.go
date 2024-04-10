@@ -182,7 +182,9 @@ func (c *Controller) BuildManifest(
 
 	le.Debug("compiling dist")
 	entrypointFilename := projectID + buildPlatform.GetExecutableExt()
-	distMeta := bldr_dist.NewDistMeta(projectID, platformID, loadPlugins)
+	manifestStoreObjKey := "dist"
+	manifestStorePrefix := manifestStoreObjKey + "/"
+	distMeta := bldr_dist.NewDistMeta(projectID, platformID, loadPlugins, nil, manifestStoreObjKey)
 
 	searchKeys := builderConf.GetLinkObjectKeys()
 	if len(searchKeys) == 0 {
@@ -236,8 +238,6 @@ func (c *Controller) BuildManifest(
 	}
 
 	// When we compile the bundle we will copy the embed manifests to the embed volume.
-	manifestStoreObjKey := "dist"
-	manifestStorePrefix := manifestStoreObjKey + "/"
 	initEmbeddedWorld := func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error {
 		// Create the base object store.
 		le.

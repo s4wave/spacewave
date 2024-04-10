@@ -32,6 +32,7 @@ func (m *Config) CloneVT() *Config {
 	r.VolumeId = m.VolumeId
 	r.AlwaysFetchManifest = m.AlwaysFetchManifest
 	r.DisableStoreManifest = m.DisableStoreManifest
+	r.DisableCopyManifest = m.DisableCopyManifest
 	r.FetchConcurrency = m.FetchConcurrency
 	if rhs := m.FetchBackoff; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *backoff.Backoff }); ok {
@@ -99,6 +100,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	} else if !proto.Equal(this.ExecBackoff, that.ExecBackoff) {
 		return false
 	}
+	if this.DisableCopyManifest != that.DisableCopyManifest {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -138,6 +142,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableCopyManifest {
+		i--
+		if m.DisableCopyManifest {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
 	}
 	if m.ExecBackoff != nil {
 		if vtmsg, ok := interface{}(m.ExecBackoff).(interface {
@@ -289,6 +303,9 @@ func (m *Config) SizeVT() (n int) {
 			l = proto.Size(m.ExecBackoff)
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.DisableCopyManifest {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -598,6 +615,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableCopyManifest", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableCopyManifest = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

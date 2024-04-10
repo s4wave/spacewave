@@ -30,12 +30,14 @@
     "start:web": "npm run bldr -- --minify-entrypoint=false start web",
     "start:web:wasm": "npm run bldr -- --minify-entrypoint=false start web --wasm",
     "start:web:release": "npm run build:release:web && npm run bldr -- static --path ./.bldr/build/web/bldr-demo-release/dist",
+    "start:web:release:debug": "npm run build:release:web:debug && npm run bldr -- static --path ./.bldr/build/web/bldr-demo-release/dist",
     "debug:native": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start native",
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
     "build": "npm run bldr -- --build-type=debug build -b native",
     "build:web": "npm run bldr -- --build-type=debug build -b web",
     "build:release": "npm run bldr -- --build-type=release build -b release",
     "build:release:web": "npm run bldr -- --build-type=release build -b release-web",
+    "build:release:web:debug": "npm run bldr -- --build-type=debug build -b release-web",
     "build:release:cross": "npm run bldr -- --build-type=release build -b release-cross",
     "build:release:debug": "npm run bldr -- --build-type=debug build -b release",
     "publish:release": "npm run bldr -- --build-type=release publish -p demo-dist",
@@ -53,7 +55,7 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
-    "lint:js": "eslint -c .eslintrc.js './web/**/*.{js,ts,tsx}'",
+    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.js ./",
     "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "precommit": "npm run format",
     "setup": "npm run bldr -- setup",
@@ -65,10 +67,10 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aperturerobotics/ts-common": "^0.8.7",
+    "@aperturerobotics/ts-common": "^0.9.1",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
-    "@types/react": "^18.2.74",
+    "@types/react": "^18.2.75",
     "@types/react-dom": "^18.2.24",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.16.0",
@@ -77,7 +79,7 @@
     "prettier": "^3.2.5",
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.5",
-    "ts-poet": "6.7.0",
+    "ts-poet": "6.8.0",
     "ts-proto": "^1.171.0",
     "typescript": "^5.4.4",
     "unzip-crx-3": "^0.2.0"
@@ -94,7 +96,7 @@
     "protobufjs": "^7.2.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.28.0",
+    "starpc": "^0.28.1",
     "workbox-window": "^7.0.0"
   }
 }

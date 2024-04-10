@@ -43,6 +43,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 		b.GetPluginsDistRoot(),
 		true,
 		true,
+		true,
 		"",
 	)
 	if err != nil {
