@@ -70,8 +70,8 @@ github.com/aperturerobotics/go-kvfile v0.5.2 h1:8jRDfxAYTM40u6wk/AsKNWMuwGO+YFTs
 github.com/aperturerobotics/go-kvfile v0.5.2/go.mod h1:2p5R4bDXcebTVAuJ13lYzOCzTGIkTJHApl1OroP3mM4=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51/go.mod h1:yZOf9ZPH3PIeAj3q/dvY9nAe+Y1zBBIZIInEguPbbpQ=
-github.com/aperturerobotics/hydra v0.0.0-20240410080857-ea820d6c126f h1:p4yu1NUAPrTN3QmBc4zWtb9mYa/IvPAXDjYRyZ0+sAs=
-github.com/aperturerobotics/hydra v0.0.0-20240410080857-ea820d6c126f/go.mod h1:kEUbGvvfdeIcp+xRFuQLiUKJJypraGa7/a8gMiWRX/Q=
+github.com/aperturerobotics/hydra v0.0.0-20240410085236-4c5caade1e8b h1:0r5GbP8KKuY9NORoHayVS44EW9PlUy3qAqOQPQuMmkA=
+github.com/aperturerobotics/hydra v0.0.0-20240410085236-4c5caade1e8b/go.mod h1:zz/yvj2leAFnVpHOED7PJ80FhJ+7jGe41A7ncJDCsyg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 h1:ScQPbkbABsFb7e86ArWSRtoOemQGrX4BDKeHj+JAgbQ=
@@ -398,6 +398,8 @@ github.com/paralin/go-multihash v0.2.0 h1:C66EjlMF2qJz9q61CC7erGUUB5wAEIox02PL2Y
 github.com/paralin/go-multihash v0.2.0/go.mod h1:WxoMcYG85AZVQUyRyo9s4wULvW5qrI9vb2Lt6evduFc=
 github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 h1:E9kjrr1lmZugo/rS5eqx/mEkxpwCoQvBDme6MCNLCvk=
 github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142/go.mod h1:WvitBU7JJf6A4jOdg4S1tviW9bhUxkgeCui/0JHctQg=
+github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=
+github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 h1:0NEvhfraMEkL7Y6jcy4kpm0P+/NmX/TaFFm2m8oYSTA=
 github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07/go.mod h1:szdAKb/TINbpD/bAZy4Ydj5xgVo2BOLNPIi/mcAOGrU=
