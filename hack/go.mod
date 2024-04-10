@@ -11,7 +11,7 @@ replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.1 // master
 	github.com/aperturerobotics/identity v0.0.0-20240125041447-beca280a4f54
-	github.com/aperturerobotics/starpc v0.28.0 // latest
+	github.com/aperturerobotics/starpc v0.28.1 // latest
 )
 
 require (
@@ -44,11 +44,11 @@ require (
 	github.com/alexkohler/nakedret/v2 v2.0.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
-	github.com/aperturerobotics/bifrost v0.28.0 // indirect
-	github.com/aperturerobotics/controllerbus v0.39.0 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20240406121253-b9171cca63ac // indirect
+	github.com/aperturerobotics/bifrost v0.28.2-0.20240410061343-2625e4ab7aff // indirect
+	github.com/aperturerobotics/controllerbus v0.40.0 // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240410115647-3cc007f90d91 // indirect
 	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a // indirect
-	github.com/aperturerobotics/util v1.16.1 // indirect
+	github.com/aperturerobotics/util v1.16.5 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -120,7 +120,7 @@ require (
 	github.com/kisielk/errcheck v1.6.3 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.4 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.8 // indirect
@@ -158,6 +158,7 @@ require (
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/nunnatsa/ginkgolinter v0.14.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -220,7 +221,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0 // indirect
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230307190834-24139beb5833 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
