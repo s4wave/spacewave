@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/aperturerobotics/auth/derive"
+	auth_derive "github.com/aperturerobotics/auth/derive"
 	auth_method_triplesec "github.com/aperturerobotics/auth/method/triplesec"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
