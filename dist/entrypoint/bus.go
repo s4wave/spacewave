@@ -372,7 +372,7 @@ func BuildDistBus(
 		pluginsDistRoot,
 		true,
 		false,
-		true,
+		false,
 		webRuntimeID,
 	)
 	if err != nil {
