@@ -124,7 +124,7 @@ func (s *SRPCAccessVolumesUnimplementedServer) VolumeRpc(SRPCAccessVolumes_Volum
 	return srpc.ErrUnimplemented
 }
 
-const SRPCAccessVolumesServiceID = "rpc.volume.AccessVolumes"
+const SRPCAccessVolumesServiceID = "volume.rpc.AccessVolumes"
 
 type SRPCAccessVolumesHandler struct {
 	serviceID string
@@ -132,7 +132,7 @@ type SRPCAccessVolumesHandler struct {
 }
 
 // NewSRPCAccessVolumesHandler constructs a new RPC handler.
-// serviceID: if empty, uses default: rpc.volume.AccessVolumes
+// serviceID: if empty, uses default: volume.rpc.AccessVolumes
 func NewSRPCAccessVolumesHandler(impl SRPCAccessVolumesServer, serviceID string) srpc.Handler {
 	if serviceID == "" {
 		serviceID = SRPCAccessVolumesServiceID
@@ -141,7 +141,7 @@ func NewSRPCAccessVolumesHandler(impl SRPCAccessVolumesServer, serviceID string)
 }
 
 // SRPCRegisterAccessVolumes registers the implementation with the mux.
-// Uses the default serviceID: rpc.volume.AccessVolumes
+// Uses the default serviceID: volume.rpc.AccessVolumes
 func SRPCRegisterAccessVolumes(mux srpc.Mux, impl SRPCAccessVolumesServer) error {
 	return mux.Register(NewSRPCAccessVolumesHandler(impl, ""))
 }
@@ -305,7 +305,7 @@ func (s *SRPCProxyVolumeUnimplementedServer) GetPeerPriv(context.Context, *GetPe
 	return nil, srpc.ErrUnimplemented
 }
 
-const SRPCProxyVolumeServiceID = "rpc.volume.ProxyVolume"
+const SRPCProxyVolumeServiceID = "volume.rpc.ProxyVolume"
 
 type SRPCProxyVolumeHandler struct {
 	serviceID string
@@ -313,7 +313,7 @@ type SRPCProxyVolumeHandler struct {
 }
 
 // NewSRPCProxyVolumeHandler constructs a new RPC handler.
-// serviceID: if empty, uses default: rpc.volume.ProxyVolume
+// serviceID: if empty, uses default: volume.rpc.ProxyVolume
 func NewSRPCProxyVolumeHandler(impl SRPCProxyVolumeServer, serviceID string) srpc.Handler {
 	if serviceID == "" {
 		serviceID = SRPCProxyVolumeServiceID
@@ -322,7 +322,7 @@ func NewSRPCProxyVolumeHandler(impl SRPCProxyVolumeServer, serviceID string) srp
 }
 
 // SRPCRegisterProxyVolume registers the implementation with the mux.
-// Uses the default serviceID: rpc.volume.ProxyVolume
+// Uses the default serviceID: volume.rpc.ProxyVolume
 func SRPCRegisterProxyVolume(mux srpc.Mux, impl SRPCProxyVolumeServer) error {
 	return mux.Register(NewSRPCProxyVolumeHandler(impl, ""))
 }

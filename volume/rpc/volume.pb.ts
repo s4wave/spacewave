@@ -4,7 +4,7 @@ import Long from 'long'
 import _m0 from 'protobufjs/minimal.js'
 import { VolumeInfo } from '../volume.pb.js'
 
-export const protobufPackage = 'rpc.volume'
+export const protobufPackage = 'volume.rpc'
 
 /** WatchVolumeInfoRequest is a request to watch volume information. */
 export interface WatchVolumeInfoRequest {
@@ -687,7 +687,7 @@ export interface AccessVolumes {
   ): AsyncIterable<RpcStreamPacket>
 }
 
-export const AccessVolumesServiceName = 'rpc.volume.AccessVolumes'
+export const AccessVolumesServiceName = 'volume.rpc.AccessVolumes'
 export class AccessVolumesClientImpl implements AccessVolumes {
   private readonly rpc: Rpc
   private readonly service: string
@@ -730,7 +730,7 @@ export class AccessVolumesClientImpl implements AccessVolumes {
 export type AccessVolumesDefinition = typeof AccessVolumesDefinition
 export const AccessVolumesDefinition = {
   name: 'AccessVolumes',
-  fullName: 'rpc.volume.AccessVolumes',
+  fullName: 'volume.rpc.AccessVolumes',
   methods: {
     /**
      * WatchVolumeInfo watches information about a volume.
@@ -786,7 +786,7 @@ export interface ProxyVolume {
   ): Promise<GetPeerPrivResponse>
 }
 
-export const ProxyVolumeServiceName = 'rpc.volume.ProxyVolume'
+export const ProxyVolumeServiceName = 'volume.rpc.ProxyVolume'
 export class ProxyVolumeClientImpl implements ProxyVolume {
   private readonly rpc: Rpc
   private readonly service: string
@@ -841,7 +841,7 @@ export class ProxyVolumeClientImpl implements ProxyVolume {
 export type ProxyVolumeDefinition = typeof ProxyVolumeDefinition
 export const ProxyVolumeDefinition = {
   name: 'ProxyVolume',
-  fullName: 'rpc.volume.ProxyVolume',
+  fullName: 'volume.rpc.ProxyVolume',
   methods: {
     /** GetVolumeInfo returns the basic volume information. */
     getVolumeInfo: {

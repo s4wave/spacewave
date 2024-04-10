@@ -19,6 +19,8 @@ type StoreOverlay struct {
 }
 
 // NewOverlay constructs a new overlay store.
+//
+// ctx is used for writeback requests
 func NewOverlay(
 	ctx context.Context,
 	lower,
