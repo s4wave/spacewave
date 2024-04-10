@@ -80,8 +80,8 @@ github.com/aperturerobotics/go-kvfile v0.5.2 h1:8jRDfxAYTM40u6wk/AsKNWMuwGO+YFTs
 github.com/aperturerobotics/go-kvfile v0.5.2/go.mod h1:2p5R4bDXcebTVAuJ13lYzOCzTGIkTJHApl1OroP3mM4=
 github.com/aperturerobotics/goprotowrap v0.3.1 h1:nFCWZ4QNQEzpsgCN1mVWLDVTF/Jm0hWtlCMUMGm3p1Y=
 github.com/aperturerobotics/goprotowrap v0.3.1/go.mod h1:5tRlYsb4VF0ySzx2/My3u9PtzTWNu5o2bqYHj0TRw+U=
-github.com/aperturerobotics/hydra v0.0.0-20240410085236-4c5caade1e8b h1:0r5GbP8KKuY9NORoHayVS44EW9PlUy3qAqOQPQuMmkA=
-github.com/aperturerobotics/hydra v0.0.0-20240410085236-4c5caade1e8b/go.mod h1:zz/yvj2leAFnVpHOED7PJ80FhJ+7jGe41A7ncJDCsyg=
+github.com/aperturerobotics/hydra v0.0.0-20240410101407-d22e5ebfbffc h1:sS7ODLWzMdtW4IJhVHZuPgSGg7HSnUvw05sWKV3KA4M=
+github.com/aperturerobotics/hydra v0.0.0-20240410101407-d22e5ebfbffc/go.mod h1:6MWUt5vaQ9YOiuZT3Ykh9FOK1U4/YZAjQGKymOeQ57g=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240322235918-b46c9358eab6 h1:jLqwJ89A0/peHeHka0qV6Ug5nkiAJ4YvCDB1huXPxBc=
 github.com/aperturerobotics/protobuf-go v1.32.1-0.20240322235918-b46c9358eab6/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
 github.com/aperturerobotics/starpc v0.28.1 h1:LxWUrRZhvZRZeeyWEWu3RNFoCyx9M6/TpNPfLKpul5c=
