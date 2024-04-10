@@ -87,7 +87,7 @@ replace (
 )
 
 require (
-	github.com/andybalholm/brotli v1.1.0
+	github.com/aperturerobotics/go-brotli-decoder v0.1.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
 	github.com/cenkalti/backoff v2.2.1+incompatible

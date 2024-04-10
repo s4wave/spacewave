@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andybalholm/brotli"
 	bifrost_http "github.com/aperturerobotics/bifrost/http"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/go-brotli-decoder"
 	"github.com/aperturerobotics/hydra/testbed"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
