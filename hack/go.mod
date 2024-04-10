@@ -9,7 +9,7 @@ replace google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1
 require (
 	github.com/aperturerobotics/goprotowrap v0.3.1-0.20240323000257-f8e9a4365606
 	github.com/aperturerobotics/hydra v0.0.0-20240201230451-cc41903749a8
-	github.com/aperturerobotics/starpc v0.28.0
+	github.com/aperturerobotics/starpc v0.28.1
 )
 
 require (
