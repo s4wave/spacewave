@@ -154,8 +154,8 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		engineObjStoreID,
 		initRef,
 		nil,
+		false,
 	)
-	engConf.DisableChangelog = true
 
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,

@@ -197,8 +197,8 @@ func BuildDistBundle(
 		embedObjStoreID,
 		&bucket.ObjectRef{TransformConf: embedXfrmConf.CloneVT()},
 		nil,
+		false,
 	)
-	embedEngineConf.DisableChangelog = true
 
 	embedEngineCtrli, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
 		ctx,

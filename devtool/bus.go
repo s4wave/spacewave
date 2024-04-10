@@ -221,10 +221,10 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		engineObjStoreID,
 		initRef,
 		nil,
+		false,
 	)
 	// engConf.Verbose = false
 	engConf.Verbose = true
-	engConf.DisableChangelog = true
 
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
