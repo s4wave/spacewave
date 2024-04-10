@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/util/conc"
+	"github.com/paralin/gonum-graph-simple"
 	"github.com/pkg/errors"
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
 )
 
