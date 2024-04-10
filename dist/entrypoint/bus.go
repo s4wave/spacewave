@@ -258,6 +258,9 @@ func BuildDistBus(
 		distBundleWorldRootRef,
 		nil,
 	)
+	embedEngineConf.DisableLookup = true
+	embedEngineConf.DisableChangelog = true
+
 	_, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -318,6 +321,7 @@ func BuildDistBus(
 		BucketId:      engineBucketID,
 		TransformConf: transformConf,
 	}
+
 	engConf := world_block_engine.NewConfig(
 		engineID,
 		vol.GetID(), engineBucketID,
@@ -325,7 +329,9 @@ func BuildDistBus(
 		initRef,
 		nil,
 	)
-	engConf.Verbose = false
+	engConf.DisableLookup = true
+	engConf.DisableChangelog = true
+
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,

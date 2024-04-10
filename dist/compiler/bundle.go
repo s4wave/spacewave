@@ -189,6 +189,7 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
+
 	embedEngineConf := world_block_engine.NewConfig(
 		embedWorldID,
 		workingDbVolID,
@@ -197,6 +198,8 @@ func BuildDistBundle(
 		&bucket.ObjectRef{TransformConf: embedXfrmConf.CloneVT()},
 		nil,
 	)
+	embedEngineConf.DisableChangelog = true
+
 	embedEngineCtrli, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		workBus,

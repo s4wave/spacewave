@@ -155,8 +155,8 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		initRef,
 		nil,
 	)
-	// engConf.Verbose = false
-	engConf.Verbose = true
+	engConf.DisableChangelog = true
+
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,

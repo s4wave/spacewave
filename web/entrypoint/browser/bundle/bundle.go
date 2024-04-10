@@ -88,7 +88,7 @@ func ServiceWorkerBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptio
 }
 
 // BuildServiceWorkerBundle builds specifically the service worker files.
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify bool) error {
+func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
 	le.Debug("generating service-worker bundle")
 	swOut := filepath.Join(buildDir, "sw.mjs")
 	swOpts := ServiceWorkerBuildOpts(bldrDistRoot, minify)
@@ -97,6 +97,7 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 	if !minify {
 		swOpts.Sourcemap = esbuild.SourceMapInline
 	}
+	swOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
 	return bldr_esbuild_build.BuildResultToErr(esbuild.Build(swOpts))
 }
 
@@ -141,7 +142,7 @@ func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bui
 	}
 
 	// service worker
-	if err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify); err != nil {
+	if err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 

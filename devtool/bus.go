@@ -214,6 +214,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		BucketId:      engineBucketID,
 		TransformConf: transformConf,
 	}
+
 	engConf := world_block_engine.NewConfig(
 		engineID,
 		vol.GetID(), engineBucketID,
@@ -223,6 +224,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	)
 	// engConf.Verbose = false
 	engConf.Verbose = true
+	engConf.DisableChangelog = true
+
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,

@@ -51,7 +51,7 @@ remotes:
           volumeId: devtool
           objectStoreId: demo-dist
           disableChangelog: true
-          verbose: true
+          # verbose: true
 
 publish:
   demo-dist:

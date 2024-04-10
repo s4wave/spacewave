@@ -6,6 +6,8 @@ import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
 
+declare let BLDR_DEBUG: boolean
+
 // Default type of `self` is `WorkerGlobalScope & typeof globalThis`
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: ServiceWorkerGlobalScope
@@ -23,11 +25,13 @@ const CACHES: { [name: string]: Cache | undefined } = { bldr: undefined }
 const onWebDocumentsExhausted = async () => {
   await self.clients.claim()
   const currClients = await self.clients.matchAll({ type: 'window' })
-  console.log(
-    'ServiceWorker: %s: notifying %d clients we want a connection',
-    serviceWorkerId,
-    currClients.length,
-  )
+  if (BLDR_DEBUG) {
+    console.log(
+      'ServiceWorker: %s: notifying %d clients we want a connection',
+      serviceWorkerId,
+      currClients.length,
+    )
+  }
   for (const client of currClients) {
     client.postMessage(<ServiceWorkerToWebDocument>{
       from: serviceWorkerId,
@@ -140,19 +144,23 @@ async function swFetch(
     }
 
     // Use the built-in browser fetch.
-    console.log(
-      'ServiceWorker: %s: using native fetch: %s',
-      serviceWorkerId,
-      request.url.toString(),
-    )
+    if (BLDR_DEBUG) {
+      console.log(
+        'ServiceWorker: %s: using native fetch: %s',
+        serviceWorkerId,
+        request.url.toString(),
+      )
+    }
     return fetch(ev.request)
   }
 
-  console.log(
-    'ServiceWorker: %s: forwarding fetch to runtime: %s',
-    serviceWorkerId,
-    request.url.toString(),
-  )
+  if (BLDR_DEBUG) {
+    console.log(
+      'ServiceWorker: %s: forwarding fetch to runtime: %s',
+      serviceWorkerId,
+      request.url.toString(),
+    )
+  }
   return proxyFetch(swHost, request, ev.clientId)
 
   /*

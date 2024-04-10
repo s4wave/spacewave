@@ -42,8 +42,8 @@ func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildO
 }
 
 // BuildServiceWorkerBundle builds specifically the service worker files.
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify bool) error {
-	return bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify)
+func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+	return bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
 }
 
 // BuildPreloadBundle builds the web renderer bundle files.
@@ -165,7 +165,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	}
 
 	// service worker
-	if err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify); err != nil {
+	if err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
 	}
 
