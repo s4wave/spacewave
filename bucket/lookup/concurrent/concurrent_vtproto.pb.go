@@ -31,6 +31,7 @@ func (m *Config) CloneVT() *Config {
 	r.WritebackBehavior = m.WritebackBehavior
 	r.LookupTimeoutDur = m.LookupTimeoutDur
 	r.Verbose = m.Verbose
+	r.FallbackBlockStoreId = m.FallbackBlockStoreId
 	if rhs := m.BucketConf; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *bucket.Config }); ok {
 			r.BucketConf = vtpb.CloneVT()
@@ -77,6 +78,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.LookupTimeoutDur != that.LookupTimeoutDur {
 		return false
 	}
+	if this.FallbackBlockStoreId != that.FallbackBlockStoreId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -116,6 +120,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.FallbackBlockStoreId) > 0 {
+		i -= len(m.FallbackBlockStoreId)
+		copy(dAtA[i:], m.FallbackBlockStoreId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FallbackBlockStoreId)))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if len(m.LookupTimeoutDur) > 0 {
 		i -= len(m.LookupTimeoutDur)
@@ -203,6 +214,10 @@ func (m *Config) SizeVT() (n int) {
 		n += 2
 	}
 	l = len(m.LookupTimeoutDur)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.FallbackBlockStoreId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -391,6 +406,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.LookupTimeoutDur = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FallbackBlockStoreId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FallbackBlockStoreId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

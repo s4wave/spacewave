@@ -146,6 +146,12 @@ export interface Config {
   lookupTimeoutDur: string
   /** Verbose enables verbose debug logging. */
   verbose: boolean
+  /**
+   * FallbackBlockStoreId is a block store to use to lookup the block if not
+   * found. If the block is found in this store, it will be written back
+   * according to the writeback behavior.
+   */
+  fallbackBlockStoreId: string
 }
 
 function createBaseConfig(): Config {
@@ -156,6 +162,7 @@ function createBaseConfig(): Config {
     writebackBehavior: 0,
     lookupTimeoutDur: '',
     verbose: false,
+    fallbackBlockStoreId: '',
   }
 }
 
@@ -181,6 +188,9 @@ export const Config = {
     }
     if (message.verbose !== false) {
       writer.uint32(40).bool(message.verbose)
+    }
+    if (message.fallbackBlockStoreId !== '') {
+      writer.uint32(58).string(message.fallbackBlockStoreId)
     }
     return writer
   },
@@ -234,6 +244,13 @@ export const Config = {
           }
 
           message.verbose = reader.bool()
+          continue
+        case 7:
+          if (tag !== 58) {
+            break
+          }
+
+          message.fallbackBlockStoreId = reader.string()
           continue
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -298,6 +315,9 @@ export const Config = {
       verbose: isSet(object.verbose)
         ? globalThis.Boolean(object.verbose)
         : false,
+      fallbackBlockStoreId: isSet(object.fallbackBlockStoreId)
+        ? globalThis.String(object.fallbackBlockStoreId)
+        : '',
     }
   },
 
@@ -321,6 +341,9 @@ export const Config = {
     if (message.verbose !== false) {
       obj.verbose = message.verbose
     }
+    if (message.fallbackBlockStoreId !== '') {
+      obj.fallbackBlockStoreId = message.fallbackBlockStoreId
+    }
     return obj
   },
 
@@ -338,6 +361,7 @@ export const Config = {
     message.writebackBehavior = object.writebackBehavior ?? 0
     message.lookupTimeoutDur = object.lookupTimeoutDur ?? ''
     message.verbose = object.verbose ?? false
+    message.fallbackBlockStoreId = object.fallbackBlockStoreId ?? ''
     return message
   },
 }

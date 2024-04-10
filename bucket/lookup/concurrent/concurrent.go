@@ -10,12 +10,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
+	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/hydra/bucket"
 	lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/conc"
+	"github.com/aperturerobotics/util/refcount"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -38,6 +40,8 @@ type LookupController struct {
 
 	// bucketHandleSetCtr contains the bucket handle set
 	bucketHandleSetCtr *ccontainer.CContainer[*[]bucket.BucketHandle]
+	// fallbackBlockStoreRc is a refcount for the fallback block store.
+	fallbackBlockStoreRc *refcount.RefCount[block_store.Store]
 }
 
 // NewLookupController is the lookup controller constructor.
@@ -46,16 +50,29 @@ func NewLookupController(
 	b bus.Bus,
 	conf *Config,
 ) lookup.Controller {
-	return &LookupController{
+	lc := &LookupController{
 		le:                 le.WithField("bucket-id", conf.GetBucketConf().GetId()),
 		b:                  b,
 		conf:               conf,
 		bucketHandleSetCtr: ccontainer.NewCContainer[*[]bucket.BucketHandle](nil),
 	}
+	if fallbackBlockStoreID := lc.conf.GetFallbackBlockStoreId(); fallbackBlockStoreID != "" {
+		lc.fallbackBlockStoreRc = refcount.NewRefCount[block_store.Store](
+			nil,
+			true,
+			nil,
+			nil,
+			block_store.NewAccessBlockStoreViaBusFunc(b, fallbackBlockStoreID, false),
+		)
+	}
+	return lc
 }
 
 // Execute executes the reconciler controller.
 func (c *LookupController) Execute(ctx context.Context) error {
+	if c.fallbackBlockStoreRc != nil {
+		c.fallbackBlockStoreRc.SetContext(ctx)
+	}
 	return nil
 }
 
@@ -148,21 +165,37 @@ func (c *LookupController) LookupBlock(
 		if c.conf.GetVerbose() {
 			le().Debugf("ref not found against %d handles", len(bh))
 		}
-		notFoundBehavior := c.conf.GetNotFoundBehavior()
-		var wait bool
-		lookupDirective := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE
-		if notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT {
-			lookupDirective = true
-			wait = true
+
+		if c.fallbackBlockStoreRc != nil {
+			var fallbackBlockStore block_store.Store
+			var fallbackBlockStoreRef *refcount.Ref[block_store.Store]
+			fallbackBlockStore, fallbackBlockStoreRef, err = c.fallbackBlockStoreRc.Wait(reqCtx)
+			if err != nil {
+				return nil, false, err
+			}
+			data, found, err = fallbackBlockStore.GetBlock(reqCtx, ref)
+			fallbackBlockStoreRef.Release()
 		}
-		if lookupDirective && !opts.LocalOnly {
-			data, found, err = c.lookupWithDirective(reqCtx, ref, wait)
+
+		if !found && err == nil {
+			notFoundBehavior := c.conf.GetNotFoundBehavior()
+			var wait bool
+			lookupDirective := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE
+			if notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT {
+				lookupDirective = true
+				wait = true
+			}
+			if lookupDirective && !opts.LocalOnly {
+				data, found, err = c.lookupWithDirective(reqCtx, ref, wait)
+			}
 		}
+
 		if found && err == nil {
 			if werr := writeback(data); werr != nil {
 				le().WithError(werr).Warn("unable to write-back block")
 			}
 		}
+
 		return data, found, err
 	}
 

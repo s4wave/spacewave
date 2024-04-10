@@ -3,6 +3,8 @@ package lookup.concurrent;
 
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 
+// TODO: Drop LookupBlockFromNetwork and use block stores instead?
+
 // NotFoundBehavior controls what happens when a block was not found locally.
 enum NotFoundBehavior {
   // NotFoundBehavior_NONE does nothing when we don't find a block.
@@ -49,5 +51,12 @@ message Config {
   string lookup_timeout_dur = 6;
   // Verbose enables verbose debug logging.
   bool verbose = 5;
+
+  // FallbackBlockStoreId is a block store to use to lookup the block if not
+  // found. If the block is found in this store, it will be written back
+  // according to the writeback behavior.
+  //
+  // The lookup will be performed before the NotFoundBehavior is evaluated.
+  string fallback_block_store_id = 7;
 }
 
