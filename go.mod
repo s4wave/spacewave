@@ -9,7 +9,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 // https://go-review.googlesource.com/c/tools/+/570796
 replace golang.org/x/tools => github.com/paralin/go-tools v0.20.1-0.20240404225252-0d90ebb56142 // avoid-cancel-log-spam
 
-require github.com/aperturerobotics/hydra v0.0.0-20240410072804-2a0999379e8f // master
+require github.com/aperturerobotics/hydra v0.0.0-20240410080857-ea820d6c126f // master
 
 require (
 	github.com/evanw/esbuild v0.20.2 // latest
@@ -55,7 +55,7 @@ require github.com/cayleygraph/cayley v0.7.7
 require (
 	github.com/aperturerobotics/controllerbus v0.40.0 // master
 	github.com/aperturerobotics/entitygraph v0.8.0 // indirect
-	github.com/aperturerobotics/starpc v0.28.0 // latest
+	github.com/aperturerobotics/starpc v0.28.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -97,7 +97,7 @@ require (
 	golang.org/x/crypto v0.22.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/protobuf v1.33.0
-	nhooyr.io/websocket v1.8.10
+	nhooyr.io/websocket v1.8.11
 	storj.io/drpc v0.0.34 // indirect
 )
 
@@ -110,7 +110,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.5.1-0.20240327091054-4d0d7f0db7ba
-	github.com/sergi/go-diff v1.3.1
+	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
 	golang.org/x/mod v0.17.0
 	golang.org/x/sync v0.7.0
