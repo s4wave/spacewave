@@ -1,5 +1,5 @@
 syntax = "proto3";
-package bldr.plugin.compiler.vardef;
+package bldr.plugin.vardef;
 
 import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
 

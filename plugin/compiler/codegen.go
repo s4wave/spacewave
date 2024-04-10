@@ -12,6 +12,7 @@ import (
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
+	bldr_plugin_vardef_ast "github.com/aperturerobotics/bldr/plugin/vardef/ast"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -372,13 +373,13 @@ func CodegenPluginWrapperFromAnalysis(
 
 			// if the dev info file is set, use it instead of hardcoding the value.
 			if devInfoFile != "" {
-				exp, err := varDef.ToGoDevInfoRefAst(devInfoVarName)
+				exp, err := bldr_plugin_vardef_ast.ToGoDevInfoRefAst(varDef, devInfoVarName)
 				if err != nil {
 					return nil, err
 				}
 				rhs = []gast.Expr{exp}
 			} else {
-				expr, err := varDef.ToGoValueAst()
+				expr, err := bldr_plugin_vardef_ast.ToGoValueAst(varDef)
 				if err != nil {
 					return nil, err
 				}

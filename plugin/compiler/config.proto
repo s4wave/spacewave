@@ -129,7 +129,7 @@ message InputManifestMeta {
   // EsbuildFlags are the base command-line arguments to pass to esbuild.
   repeated string esbuild_flags = 4;
   // DevInfo contains the set of plugin variable definitions.
-  .bldr.plugin.compiler.vardef.PluginDevInfo dev_info = 5;
+  .bldr.plugin.vardef.PluginDevInfo dev_info = 5;
   // EsbuildOutputs contains a list of files written by esbuild.
   repeated EsbuildOutputMeta esbuild_outputs = 6;
 }

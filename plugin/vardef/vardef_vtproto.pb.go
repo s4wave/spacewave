@@ -2,7 +2,7 @@
 // protoc-gen-go-vtproto version: v0.6.0
 // source: github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto
 
-package bldr_plugin_compiler_vardef
+package bldr_plugin_vardef
 
 import (
 	fmt "fmt"

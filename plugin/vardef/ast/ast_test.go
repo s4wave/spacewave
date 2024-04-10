@@ -1,4 +1,4 @@
-package bldr_plugin_compiler_vardef
+package bldr_plugin_vardef_ast
 
 import (
 	"bytes"
@@ -6,28 +6,29 @@ import (
 	"go/token"
 	"testing"
 
+	bldr_plugin_vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
 )
 
 type testcase struct {
-	pluginVar          *PluginVar
+	pluginVar          *bldr_plugin_vardef.PluginVar
 	expectedDevInfoRef string
 	expectedGoValue    string
 }
 
 var testcases = []*testcase{{
-	pluginVar: &PluginVar{
+	pluginVar: &bldr_plugin_vardef.PluginVar{
 		PkgImportPath: "test/package",
 		PkgVar:        "TestVariable",
-		Body:          &PluginVar_StringValue{StringValue: "test-value"},
+		Body:          &bldr_plugin_vardef.PluginVar_StringValue{StringValue: "test-value"},
 	},
 	expectedDevInfoRef: `devInfo.LookupPluginDevVar("test/package", "TestVariable").GetStringValue()`,
 	expectedGoValue:    `"test-value"`,
 }, {
-	pluginVar: &PluginVar{
+	pluginVar: &bldr_plugin_vardef.PluginVar{
 		PkgImportPath: "other/package",
 		PkgVar:        "OtherTestVar",
-		Body: &PluginVar_EsbuildOutput{EsbuildOutput: &bldr_esbuild.EsbuildOutput{
+		Body: &bldr_plugin_vardef.PluginVar_EsbuildOutput{EsbuildOutput: &bldr_esbuild.EsbuildOutput{
 			EntrypointHref: "/p/plugin/entrypoint.js",
 			CssHref:        "/p/plugin/entrypoint.css",
 		}},
@@ -41,7 +42,7 @@ var devInfoVarName = "devInfo"
 // TestToGoDevInfoRefAst tests building the dev info ref ast.
 func TestToGoDevInfoRefAst(t *testing.T) {
 	for _, tc := range testcases {
-		exp, err := tc.pluginVar.ToGoDevInfoRefAst(devInfoVarName)
+		exp, err := ToGoDevInfoRefAst(tc.pluginVar, devInfoVarName)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -62,7 +63,7 @@ func TestToGoDevInfoRefAst(t *testing.T) {
 // TestToGoValueAst tests building the go value ast.
 func TestToGoValueAst(t *testing.T) {
 	for _, tc := range testcases {
-		exp, err := tc.pluginVar.ToGoValueAst()
+		exp, err := ToGoValueAst(tc.pluginVar)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

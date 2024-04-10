@@ -48,6 +48,7 @@ type Config struct {
 	DisableStoreManifest bool `protobuf:"varint,6,opt,name=disable_store_manifest,json=disableStoreManifest,proto3" json:"disable_store_manifest,omitempty"`
 	// DisableCopyManifest disables copying manifests to the plugin host world bucket.
 	// This is used if the manifest bucket is always accessible and locally cached.
+	// No effect if disable_store_manifest is set.
 	DisableCopyManifest bool `protobuf:"varint,10,opt,name=disable_copy_manifest,json=disableCopyManifest,proto3" json:"disable_copy_manifest,omitempty"`
 	// FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
 	// If zero, uses no limit to the number of concurrent fetches.

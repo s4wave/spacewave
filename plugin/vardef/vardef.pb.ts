@@ -3,7 +3,7 @@ import Long from "long";
 import _m0 from "protobufjs/minimal.js";
 import { EsbuildOutput } from "../../web/esbuild/esbuild.pb.js";
 
-export const protobufPackage = "bldr.plugin.compiler.vardef";
+export const protobufPackage = "bldr.plugin.vardef";
 
 /** PluginDevInfo is information passed as a .bin file as part of the development plugin entrypoint. */
 export interface PluginDevInfo {
