@@ -20,6 +20,10 @@ import (
 // returns the updated object ref in the destination cursor.
 // sets the bucket id and transform config directly in the returned ref.
 //
+// skipSubtreeExists skips a block ref tree if the block already existed in the
+// target storage. this assumes that a block existing in storage implies that
+// all blocks it references have also already been stored.
+//
 // cb is an optional callback to call with each block before copying.
 // if cb is nil and a block is not found, returns block.ErrNotFound
 func CopyObjectToBucket(
@@ -27,6 +31,7 @@ func CopyObjectToBucket(
 	destCursor, srcCursor *Cursor,
 	rootCtor block.Ctor,
 	maxConcurrency int,
+	skipSubtreeExists bool,
 	cb WalkObjectBlocksCb,
 ) (*bucket.ObjectRef, error) {
 	// transform the destination object ref (for returning)
@@ -95,7 +100,8 @@ func CopyObjectToBucket(
 			// copy the block
 			// note: most implementations check Exists() inside PutBlock().
 			var writeRef *block.BlockRef
-			writeRef, _, err = writeBkt.PutBlock(ctx, ent.Data, &block.PutOpts{
+			var writeExisted bool
+			writeRef, writeExisted, err = writeBkt.PutBlock(ctx, ent.Data, &block.PutOpts{
 				HashType:      ent.Ref.GetHash().GetHashType(),
 				ForceBlockRef: ent.Ref,
 			})
@@ -104,6 +110,11 @@ func CopyObjectToBucket(
 			}
 			if err != nil && err != context.Canceled {
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())
+			}
+
+			if skipSubtreeExists && writeExisted && err == nil {
+				// skip sub-tree
+				return false, nil
 			}
 
 			return err == nil, err

@@ -87,6 +87,7 @@ func TestCopyObjectToBucket(t *testing.T) {
 		srcCursor,
 		block_mock.NewRootBlock,
 		-1,
+		true,
 		nil,
 	)
 	if err != nil {
