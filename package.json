@@ -34,7 +34,7 @@
     "demo": "make demo",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
-    "lint:js": "eslint -c .eslintrc.js --ext .ts ./**/*.ts",
+    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.js ./",
     "patch": "patch-package --use-yarn --patch-dir ./node_modules/@aperturerobotics/ts-common/patches",
     "prepare": "npm run patch && go mod vendor",
     "precommit": "npm run format"
@@ -48,7 +48,7 @@
     "depcheck": "^1.4.7",
     "patch-package": "^8.0.0",
     "prettier": "^3.2.5",
-    "ts-poet": "6.7.0",
+    "ts-poet": "6.8.0",
     "ts-proto": "^1.171.0",
     "typescript": "^5.4.4"
   },
