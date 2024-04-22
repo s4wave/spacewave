@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // TestAllTransforms tests all transforms.
@@ -62,19 +61,19 @@ func TestAllTransforms_JSON(t *testing.T) {
 		sfs := block_transform.NewStepFactorySet()
 		sfs.AddStepFactory(sf)
 		for tci, tc := range sf.ConstructMockConfig() {
-			jsonDat, err := jsonpb.Marshal(tc)
+			jsonDat, err := tc.MarshalJSON()
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			stepConfJSON, err := jsonpb.Marshal(&block_transform.StepConfig{
+			stepConfJSON, err := (&block_transform.StepConfig{
 				Id:     tc.GetConfigID(),
 				Config: jsonDat,
-			})
+			}).MarshalJSON()
 			if err != nil {
 				t.Fatal(err.Error())
 			}
 			stepConf := &block_transform.StepConfig{}
-			err = jsonpb.Unmarshal(stepConfJSON, stepConf)
+			err = stepConf.UnmarshalJSON(stepConfJSON)
 			if err != nil {
 				t.Fatal(err.Error())
 			}

@@ -122,7 +122,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	case TxType_TxType_BATCH:
 		return t.GetTxBatch(), nil
 	default:
-		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
+		return nil, errors.Wrap(world.ErrUnhandledOp, t.GetTxType().String())
 	}
 }
 

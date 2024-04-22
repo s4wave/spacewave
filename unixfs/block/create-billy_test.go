@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v5/osfs"
 )
 
@@ -23,13 +23,13 @@ func TestCreateBilly(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		btx, bcs := bls.BuildTransaction(nil)
-		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, writeTs.Clone()), true)
+		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, writeTs.CloneVT()), true)
 		fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		bfs := osfs.New("./fs", osfs.WithChrootOS())
-		err = CopyBillyFSToFSTree(ctx, bfs, fsTree, nil, writeTs.Clone())
+		err = CopyBillyFSToFSTree(ctx, bfs, fsTree, nil, writeTs.CloneVT())
 		if err != nil {
 			t.Fatal(err.Error())
 		}

@@ -400,7 +400,9 @@ func TestWorldState_Basic(t *testing.T) {
 	for lastChange.GetSeqno() != 0 {
 		changelogEntries = append(changelogEntries, lastChange)
 
-		le.Infof("changelog entry: %s", lastChange.String())
+		//  le.Infof("changelog entry: %s", lastChange.String())
+		_ = lastChange
+
 		lastChangeBcs = lastChangeBcs.FollowRef(2, lastChange.GetPrevRef())
 		lastChange, err = world_block.UnmarshalChangeLogLL(ctx, lastChangeBcs)
 		if err != nil {

@@ -3,7 +3,7 @@ package unixfs.rpc;
 
 import "github.com/aperturerobotics/hydra/unixfs/block/fstree.proto";
 import "github.com/aperturerobotics/hydra/unixfs/errors/errors.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // GetProxyCursorRequest is the request body for GetProxyCursor.
 message GetProxyCursorRequest {
@@ -123,7 +123,7 @@ message OpsSetPermissionsRequest {
   // FileMode corresponds to fs.FileMode containing the permissions bits.
   uint32 file_mode = 2;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 // OpsSetPermissionsResponse is the body of the ops SetPermissions response.
@@ -157,7 +157,7 @@ message OpsGetModTimestampResponse {
   // UnixfsError contains the error returned by the call, if any.
   .unixfs.errors.UnixFSError unixfs_error = 1;
   // ModTimestamp contains the modification timestamp.
-  .timestamp.Timestamp mod_timestamp = 2;
+  google.protobuf.Timestamp mod_timestamp = 2;
 }
 
 // OpsSetModTimestampRequest is the body of the ops SetModTimestamp request.
@@ -165,7 +165,7 @@ message OpsSetModTimestampRequest {
   // OpsHandleId uniquely identifies the open ops handle.
   uint64 ops_handle_id = 1;
   // ModTimestamp is the desired modification timestamp to set.
-  .timestamp.Timestamp mod_timestamp = 2;
+  google.protobuf.Timestamp mod_timestamp = 2;
 }
 
 // OpsSetModTimestampResponse is the body of the ops SetModTimestamp response.
@@ -216,7 +216,7 @@ message OpsWriteAtRequest {
   // Data is the chunk of data to write.
   bytes data = 3;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // OpsWriteAtResponse is the body of the ops WriteAt response.
@@ -232,7 +232,7 @@ message OpsTruncateRequest {
   // NewSize is the desired new size for the file.
   uint64 nsize = 2;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 // OpsTruncateResponse is the body of the ops Truncate response.
@@ -296,7 +296,7 @@ message OpsMknodRequest {
   // Permissions corresponds to fs.FileMode containing the permissions bits.
   uint32 permissions = 5;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 6;
+  google.protobuf.Timestamp timestamp = 6;
 }
 
 // OpsMknodResponse is the body of the ops Mknod response.
@@ -316,7 +316,7 @@ message OpsSymlinkRequest {
   // Symlink is the symlink to create.
   .unixfs.block.FSSymlink symlink = 4;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // OpsSymlinkResponse is the body of the ops Symlink response.
@@ -350,7 +350,7 @@ message OpsCopyToRequest {
   // Target name of the inode for the copy operation.
   string target_name = 3;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // OpsCopyToResponse is the body of the ops CopyTo response.
@@ -370,7 +370,7 @@ message OpsCopyFromRequest {
   // SrcCursorOpsHandleId is the handle identifier for the source cursor ops object for the copy operation.
   uint64 src_cursor_ops_handle_id = 3;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // OpsCopyFromResponse is the body of the ops CopyFrom response.
@@ -390,7 +390,7 @@ message OpsMoveToRequest {
   // Target name of the inode for the move operation.
   string target_name = 3;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // OpsMoveToResponse is the body of the ops MoveTo response.
@@ -410,7 +410,7 @@ message OpsMoveFromRequest {
   // SrcOpsHandleId is the handle id for the FSCursorOps for the source of the move operation.
   uint64 src_ops_handle_id = 3;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // OpsMoveFromResponse is the body of the ops MoveFrom response.
@@ -428,7 +428,7 @@ message OpsRemoveRequest {
   // Names is the list of entry names to be removed.
   repeated string names = 2;
   // Timestamp is the desired timestamp for the operation.
-  .timestamp.Timestamp timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 // OpsRemoveResponse is the body of the ops Remove response.

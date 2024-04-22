@@ -2,7 +2,7 @@ package unixfs_block
 
 import (
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // NewFSObject constructs a new FSObject with defaults.

@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/file"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // CreateFromFS creates a unixfs_block FSNode from the iofs.

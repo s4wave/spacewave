@@ -12,7 +12,7 @@ import (
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_rpc "github.com/aperturerobotics/hydra/unixfs/rpc"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"golang.org/x/exp/slices"
 )
 
@@ -916,7 +916,7 @@ func (f *FSCursorService) OpsSetPermissions(
 ) (*unixfs_rpc.OpsSetPermissionsResponse, error) {
 	var resp unixfs_rpc.OpsSetPermissionsResponse
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		return ops.SetPermissions(ctx, fs.FileMode(req.GetFileMode()), req.GetTimestamp().ToTime())
+		return ops.SetPermissions(ctx, fs.FileMode(req.GetFileMode()), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
 }
@@ -958,7 +958,7 @@ func (f *FSCursorService) OpsSetModTimestamp(
 ) (*unixfs_rpc.OpsSetModTimestampResponse, error) {
 	var resp unixfs_rpc.OpsSetModTimestampResponse
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		return ops.SetModTimestamp(ctx, req.GetModTimestamp().ToTime())
+		return ops.SetModTimestamp(ctx, req.GetModTimestamp().AsTime())
 	})
 	return &resp, nil
 }
@@ -1015,7 +1015,7 @@ func (f *FSCursorService) OpsWriteAt(
 ) (*unixfs_rpc.OpsWriteAtResponse, error) {
 	var resp unixfs_rpc.OpsWriteAtResponse
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		return ops.WriteAt(ctx, req.GetOffset(), req.GetData(), req.GetTimestamp().ToTime())
+		return ops.WriteAt(ctx, req.GetOffset(), req.GetData(), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
 }
@@ -1027,7 +1027,7 @@ func (f *FSCursorService) OpsTruncate(
 ) (*unixfs_rpc.OpsTruncateResponse, error) {
 	var resp unixfs_rpc.OpsTruncateResponse
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		return ops.Truncate(ctx, req.GetNsize(), req.GetTimestamp().ToTime())
+		return ops.Truncate(ctx, req.GetNsize(), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
 }
@@ -1101,7 +1101,7 @@ func (f *FSCursorService) OpsMknod(
 			req.GetNames(),
 			req.GetNodeType(),
 			fs.FileMode(req.GetPermissions()),
-			req.GetTimestamp().ToTime(),
+			req.GetTimestamp().AsTime(),
 		)
 	})
 	return &resp, nil
@@ -1120,7 +1120,7 @@ func (f *FSCursorService) OpsSymlink(
 			req.GetName(),
 			req.GetSymlink().GetTargetPath().GetNodes(),
 			req.GetSymlink().GetTargetPath().GetAbsolute(),
-			req.GetTimestamp().ToTime(),
+			req.GetTimestamp().AsTime(),
 		)
 	})
 	return &resp, nil
@@ -1165,7 +1165,7 @@ func (f *FSCursorService) OpsCopyTo(
 	// access the destination ops and copy
 	resp.UnixfsError = f.accessCursorOps(req.GetTargetDirOpsHandleId(), func(dstOps unixfs.FSCursorOps) error {
 		// perform the operation
-		done, err := srcOps.CopyTo(ctx, dstOps, req.GetTargetName(), req.GetTimestamp().ToTime())
+		done, err := srcOps.CopyTo(ctx, dstOps, req.GetTargetName(), req.GetTimestamp().AsTime())
 		resp.Done = done
 		return err
 	})
@@ -1192,7 +1192,7 @@ func (f *FSCursorService) OpsCopyFrom(
 	// access the destination ops and copy
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(dstOps unixfs.FSCursorOps) error {
 		// perform the operation
-		done, err := dstOps.CopyFrom(ctx, req.GetName(), srcOps, req.GetTimestamp().ToTime())
+		done, err := dstOps.CopyFrom(ctx, req.GetName(), srcOps, req.GetTimestamp().AsTime())
 		resp.Done = done
 		return err
 	})
@@ -1227,7 +1227,7 @@ func (f *FSCursorService) OpsMoveTo(
 		}
 
 		// perform the operation
-		done, err := srcOps.MoveTo(ctx, dstOps, req.GetTargetName(), req.GetTimestamp().ToTime())
+		done, err := srcOps.MoveTo(ctx, dstOps, req.GetTargetName(), req.GetTimestamp().AsTime())
 		resp.Done = done
 		return err
 	})
@@ -1254,7 +1254,7 @@ func (f *FSCursorService) OpsMoveFrom(
 	// access the destination ops and copy
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(dstOps unixfs.FSCursorOps) error {
 		// perform the operation
-		done, err := dstOps.MoveFrom(ctx, req.GetName(), srcOps, req.GetTimestamp().ToTime())
+		done, err := dstOps.MoveFrom(ctx, req.GetName(), srcOps, req.GetTimestamp().AsTime())
 		resp.Done = done
 		return err
 	})
@@ -1269,7 +1269,7 @@ func (f *FSCursorService) OpsRemove(
 ) (*unixfs_rpc.OpsRemoveResponse, error) {
 	var resp unixfs_rpc.OpsRemoveResponse
 	resp.UnixfsError = f.accessCursorOps(req.GetOpsHandleId(), func(ops unixfs.FSCursorOps) error {
-		return ops.Remove(ctx, req.GetNames(), req.GetTimestamp().ToTime())
+		return ops.Remove(ctx, req.GetNames(), req.GetTimestamp().AsTime())
 	})
 	return &resp, nil
 }

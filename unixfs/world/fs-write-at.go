@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -79,8 +78,8 @@ func (o *FsWriteAtOp) Validate() error {
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
 	}
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	// disallow empty blob ref
 	if err := o.GetBlobRef().Validate(false); err != nil {

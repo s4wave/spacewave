@@ -92,7 +92,7 @@ func (f *FSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, error) {
 	if f.CheckReleased() {
 		return time.Time{}, unixfs_errors.ErrReleased
 	}
-	return f.fsTree.GetFSNode().GetModTime().ToTime(), nil
+	return f.fsTree.GetFSNode().GetModTime().AsTime(), nil
 }
 
 // SetModTimestamp updates the modification timestamp of the node.

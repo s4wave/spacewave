@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/mqueue"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // Msg wraps a MqueueMsg into a mqueue.Message.

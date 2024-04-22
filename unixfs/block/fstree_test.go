@@ -65,7 +65,8 @@ func TestBasicDirectory(t *testing.T) {
 		t.Fail()
 	}
 
-	if ftree.GetFSNode().GetModTime().GetTimeUnixMs() == 0 {
+	// sanity check
+	if ftree.GetFSNode().GetModTime().SizeVT() == 0 {
 		t.Fatal("modification time was zero after making fstree")
 	}
 

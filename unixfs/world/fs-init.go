@@ -8,10 +8,9 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,8 +71,8 @@ func (o *FsInitOp) Validate() error {
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	if err := o.GetFsRefType().Validate(true); err != nil {
 		return err

@@ -20,7 +20,7 @@ import (
 	unixfs_world "github.com/aperturerobotics/hydra/unixfs/world"
 	"github.com/aperturerobotics/hydra/world"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"

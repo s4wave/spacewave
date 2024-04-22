@@ -5,8 +5,8 @@ package block
 import (
 	"context"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"gonum.org/v1/gonum/graph/encoding"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // Ctor is a block constructor.
@@ -122,8 +122,8 @@ func CloneBlock(blk interface{}) (interface{}, error) {
 	switch og := blk.(type) {
 	case BlockWithClone:
 		return og.CloneBlock()
-	case proto.Message:
-		obm := proto.Clone(og)
+	case protobuf_go_lite.CloneMessage:
+		obm := og.CloneMessageVT()
 		ob, ok := obm.(Block)
 		if !ok {
 			return nil, ErrUnexpectedType

@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/hydra/unixfs"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 )
 
@@ -89,8 +89,11 @@ func (n *FSNode) Validate(allowUnknownNodeType bool) error {
 	if perms := n.GetPermissions(); (perms & uint32(fs.ModeType)) != 0 {
 		return errors.Errorf("permissions field must not have mode bits set: %d", perms)
 	}
-	if n.GetModTime().GetTimeUnixMs() == 0 {
-		return errors.New("modification time cannot be empty")
+	if n.GetModTime().SizeVT() == 0 {
+		return errors.Wrap(timestamp.ErrEmptyTimestamp, "mod_time")
+	}
+	if err := n.GetModTime().CheckValid(); err != nil {
+		return errors.Wrap(err, "mod_time")
 	}
 	if err := n.GetFile().Validate(); err != nil {
 		return err

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,8 +55,8 @@ func NewFsTruncateOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *FsTruncateOp) Validate() error {
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err

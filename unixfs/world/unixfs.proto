@@ -4,7 +4,7 @@ package unixfs.world;
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/unixfs/block/fstree.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // FSType indicates the type of unixfs reference.
 enum FSType {
@@ -49,7 +49,7 @@ message FsInitOp {
   // FsOverwrite indicates to overwrite any existing object.
   bool fs_overwrite = 5;
   // Timestamp is the modification time for the fs root.
-  .timestamp.Timestamp timestamp = 6;
+  google.protobuf.Timestamp timestamp = 6;
 }
 
 // FsMknodOp is an operation to create one or more inodes at paths.
@@ -70,7 +70,7 @@ message FsMknodOp {
   // NodeType is the node type to create.
   .unixfs.block.NodeType node_type = 5;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 6;
+  google.protobuf.Timestamp timestamp = 6;
 }
 
 // FsSymlinkOp is an operation to create a symbolic link.
@@ -88,7 +88,7 @@ message FsSymlinkOp {
   // Symlink is the contents of the symlink.
   .unixfs.block.FSSymlink symlink = 4;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // FsSetPermissionsOp is an operation to set the permissions at the paths.
@@ -107,7 +107,7 @@ message FsSetPermissionsOp {
   // Permissions is the permissions bitset.
   uint32 permissions = 4;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
@@ -123,7 +123,7 @@ message FsSetModTimestampOp {
   // Paths are the paths to update the timestamp for.
   repeated .unixfs.block.FSPath paths = 3;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // FsWriteAtOp is an operation to write some data to a file.
@@ -143,7 +143,7 @@ message FsWriteAtOp {
   // BlobRef is the reference to the Blob to write.
   .block.BlockRef blob_ref = 5;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 6;
+  google.protobuf.Timestamp timestamp = 6;
 }
 
 // FsTruncateOp shrinks or extends a file to the specified size.
@@ -162,7 +162,7 @@ message FsTruncateOp {
   // FileSize is the new size to truncate to.
   int64 file_size = 4;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // FsCopyOp recursively copies a source path to a destination, overwriting destination.
@@ -182,7 +182,7 @@ message FsCopyOp {
   .unixfs.block.FSPath dest_path = 4;
 
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // FsRenameOp recursively moves a source path to a destination, overwriting destination.
@@ -203,7 +203,7 @@ message FsRenameOp {
   .unixfs.block.FSPath dest_path = 4;
 
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
 }
 
 // FsRemoveOp is an operation to delete inodes from the tree.
@@ -219,7 +219,7 @@ message FsRemoveOp {
   // Paths are the paths to delete.
   repeated .unixfs.block.FSPath paths = 3;
   // Timestamp is the modification time.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 // MountValue is the contents of the quad value field for a mount.

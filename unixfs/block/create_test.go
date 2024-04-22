@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	"github.com/aperturerobotics/hydra/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 //go:embed fs
@@ -26,12 +26,12 @@ func TestCreate(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		btx, bcs := bls.BuildTransaction(nil)
-		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, writeTs.Clone()), true)
+		bcs.SetBlock(NewFSNode(NodeType_NodeType_DIRECTORY, 0, writeTs.CloneVT()), true)
 		fsTree, err := NewFSTree(ctx, bcs, NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		err = CopyFSToFSTree(ctx, testFS, fsTree, nil, writeTs.Clone())
+		err = CopyFSToFSTree(ctx, testFS, fsTree, nil, writeTs.CloneVT())
 		if err != nil {
 			t.Fatal(err.Error())
 		}

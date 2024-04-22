@@ -3,13 +3,12 @@ package block
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"strconv"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	"github.com/aperturerobotics/protobuf-go-lite/json"
+	jsoniter "github.com/json-iterator/go"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
-	"github.com/valyala/fastjson"
 )
 
 // DefaultHashType is the default hash type for refs.
@@ -222,25 +221,6 @@ func (b *BlockRef) LessThan(other *BlockRef) bool {
 	return bytes.Compare(bh.GetHash(), oh.GetHash()) < 0
 }
 
-// MarshalJSON marshals the reference to a JSON string.
-// Returns "" if the ref is nil.
-func (b *BlockRef) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(b.MarshalString())), nil
-}
-
-// UnmarshalJSON unmarshals the reference from a JSON string.
-// Also accepts an object (in jsonpb format).
-func (b *BlockRef) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 || b == nil {
-		return nil
-	}
-	val, err := fastjson.ParseBytes(data)
-	if err != nil {
-		return err
-	}
-	return b.UnmarshalFastJSON(val)
-}
-
 // ParseFromB58 parses the object ref from a base58 string.
 func (b *BlockRef) ParseFromB58(ref string) error {
 	dat, err := b58.Decode(ref)
@@ -250,31 +230,49 @@ func (b *BlockRef) ParseFromB58(ref string) error {
 	return b.UnmarshalVT(dat)
 }
 
-// UnmarshalFastJSON unmarshals the fast json container.
-// If the val or object ref are nil, does nothing.
-func (b *BlockRef) UnmarshalFastJSON(val *fastjson.Value) error {
-	if val == nil || b == nil {
-		return nil
+// MarshalProtoJSON marshals the BlockRef message to JSON.
+func (x *BlockRef) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil || x.SizeVT() == 0 {
+		s.WriteNil()
+		return
 	}
-	switch val.Type() {
-	case fastjson.TypeString:
-		return b.ParseFromB58(string(val.GetStringBytes()))
-	case fastjson.TypeObject:
+	s.WriteString(x.MarshalString())
+}
 
-	default:
-		return errors.Errorf("unexpected json type for object ref: %v", val.Type().String())
+// MarshalJSON marshals the BlockRef to JSON.
+func (x *BlockRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BlockRef message from JSON.
+func (x *BlockRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
 	}
-
-	// hash
-	if hashVal := val.Get("hash"); hashVal != nil {
-		bh, err := hash.UnmarshalHashFastJSON(hashVal)
-		if err != nil {
-			return errors.Wrap(err, "hash")
+	if s.WhatIsNext() == jsoniter.StringValue {
+		if err := x.ParseFromB58(s.ReadString()); err != nil {
+			s.SetError(err)
 		}
-		b.Hash = bh
+		return
 	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.ReadAny() // ignore unknown field
+		case "hash":
+			if s.ReadNil() {
+				x.Hash = nil
+				return
+			}
+			x.Hash = &hash.Hash{}
+			x.Hash.UnmarshalProtoJSON(s.WithField("hash", true))
+		}
+	})
+}
 
-	return nil
+// UnmarshalJSON unmarshals the BlockRef from JSON.
+func (x *BlockRef) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // _ is a type assertion

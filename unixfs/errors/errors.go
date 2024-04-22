@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/aperturerobotics/timestamp"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 )
 
@@ -40,8 +40,8 @@ var (
 	ErrInodeUnresolvable = errors.New("inode unable to be resolved")
 	// ErrNotSymlink is returned if readlink is called on a non-symlink entry.
 	ErrNotSymlink = errors.New("not a symlink")
-	// ErrEmptyTimestamp is returned if a timestamp cannot be empty.
-	ErrEmptyTimestamp = timestamp.ErrEmptyTimestamp
+	// ErrEmptyTimestamp is returned if a timestamp cannot be empty but was empty.
+	ErrEmptyTimestamp = timestamppb.ErrEmptyTimestamp
 	// ErrMoveToSelf is returned if attempting to move or copy a path to itself.
 	ErrMoveToSelf = errors.New("cannot copy/move a path into itself")
 	// ErrInvalidWrite means that a write returned an impossible count.

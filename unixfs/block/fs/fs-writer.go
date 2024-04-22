@@ -7,7 +7,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // FSWriter implements a writer on top of a FS.

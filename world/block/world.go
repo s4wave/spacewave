@@ -19,7 +19,6 @@ import (
 	"github.com/cayleygraph/cayley/graph"
 	cayley_kv "github.com/cayleygraph/cayley/graph/kv"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // WorldState implements world state backed by a block graph.
@@ -247,7 +246,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		}
 	}
 	if blkv != nil {
-		blkv = proto.Clone(blkv).(*World)
+		blkv = blkv.CloneVT()
 		bcs.SetBlock(blkv, false)
 	} else {
 		blkv = &World{}

@@ -5,7 +5,7 @@ import "github.com/aperturerobotics/bifrost/hash/hash.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/blob/blob.proto";
 import "github.com/aperturerobotics/hydra/kvtx/block/kvtx.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // Repo contains a Git repository.
 // Changes are transactional and deterministic.
@@ -176,9 +176,9 @@ message IndexEntry {
   // Name is the entry path name relative to top directory.
   string name = 2;
   // CreatedAt is the time when the path was created.
-  timestamp.Timestamp created_at = 3;
+  google.protobuf.Timestamp created_at = 3;
   // ModifiedAt is the time when the path was modified.
-  timestamp.Timestamp modified_at = 4;
+  google.protobuf.Timestamp modified_at = 4;
   // Dev is the device of the tracked path.
   uint32 dev = 5;
   // Inode is the inode of the tracked path.

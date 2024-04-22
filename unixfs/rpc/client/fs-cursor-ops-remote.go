@@ -11,7 +11,7 @@ import (
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_rpc "github.com/aperturerobotics/hydra/unixfs/rpc"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // remoteFSCursorOps represents a remote FSCursorOps object.
@@ -140,7 +140,7 @@ func (o *remoteFSCursorOps) GetModTimestamp(ctx context.Context) (time.Time, err
 		return time.Time{}, err
 	}
 
-	return resp.GetModTimestamp().ToTime(), nil
+	return resp.GetModTimestamp().AsTime(), nil
 }
 
 // SetModTimestamp updates the modification timestamp of the node.

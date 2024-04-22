@@ -7,7 +7,7 @@ import "github.com/aperturerobotics/hydra/block/filters/filters.proto";
 import "github.com/aperturerobotics/hydra/block/quad/quad.proto";
 import "github.com/aperturerobotics/hydra/kvtx/block/kvtx.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // World contains a key/value Object store, and a graph database with quads
 // <subject, predicate, object, value>. Optionally a 2D changelog is used for

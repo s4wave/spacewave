@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/sirupsen/logrus"
 )
@@ -60,8 +59,8 @@ func (o *FsSymlinkOp) Validate() error {
 	if err := unixfs_block.ValidateSymlink(o.GetPath(), o.GetSymlink()); err != nil {
 		return err
 	}
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
@@ -110,7 +109,7 @@ func (o *FsSymlinkOp) ApplyWorldObjectOp(
 			o.GetPath().GetNodes(),
 			o.GetSymlink().GetTargetPath().GetNodes(),
 			o.GetSymlink().GetTargetPath().GetAbsolute(),
-			o.GetTimestamp().ToTime(),
+			o.GetTimestamp().AsTime(),
 		)
 	}, nil)
 

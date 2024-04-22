@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -65,8 +64,8 @@ func (o *FsMknodOp) Validate() error {
 	if err := unixfs_block.ValidateMknod(o.GetPaths(), o.GetNodeType()); err != nil {
 		return err
 	}
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	if err := o.GetFsType().Validate(true); err != nil {
 		return err
@@ -118,7 +117,7 @@ func (o *FsMknodOp) ApplyWorldObjectOp(
 			wr := unixfs_block.NewFSWriter(ftree)
 			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
 			nodeType := unixfs_block.NodeTypeToFSCursorNodeType(o.GetNodeType())
-			return wr.Mknod(ctx, paths, nodeType, fs.FileMode(o.GetPermissions()), o.GetTimestamp().ToTime())
+			return wr.Mknod(ctx, paths, nodeType, fs.FileMode(o.GetPermissions()), o.GetTimestamp().AsTime())
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO apply mknod to fsobject")
 		case FSType_FSType_FS_HOST_VOLUME:

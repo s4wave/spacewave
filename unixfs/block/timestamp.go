@@ -3,15 +3,15 @@ package unixfs_block
 import (
 	"time"
 
-	timestamp "github.com/aperturerobotics/timestamp"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // ToTimestamp converts a time.Time into a Timestamp.
 // If ts is zero, returns nil.
-func ToTimestamp(ts time.Time, fillPlaceholder bool) *timestamp.Timestamp {
-	var now *timestamp.Timestamp
+func ToTimestamp(ts time.Time, fillPlaceholder bool) *timestamppb.Timestamp {
+	var now *timestamppb.Timestamp
 	if !ts.IsZero() {
-		now = timestamp.ToTimestamp(ts)
+		now = timestamppb.New(ts)
 	}
 	if fillPlaceholder {
 		now = FillPlaceholderTimestamp(now)
@@ -20,9 +20,9 @@ func ToTimestamp(ts time.Time, fillPlaceholder bool) *timestamp.Timestamp {
 }
 
 // FillPlaceholderTimestamp fills a timestamp with a placeholder if nil.
-func FillPlaceholderTimestamp(ts *timestamp.Timestamp) *timestamp.Timestamp {
+func FillPlaceholderTimestamp(ts *timestamppb.Timestamp) *timestamppb.Timestamp {
 	if ts == nil {
-		ts = timestamp.ToTimestamp(TodoMtime)
+		ts = timestamppb.New(TodoMtime)
 	}
 	return ts
 }

@@ -123,7 +123,8 @@ func TestWorldEngineController(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		worldState := wi.(*world_block.World)
-		le.Infof("world state after test suite: %s", worldState.String())
+		_ = worldState
+		// le.Infof("world state after test suite: %s", worldState.String())
 		return nil
 	})
 	if err != nil {
@@ -254,7 +255,8 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		worldState := wi.(*world_block.World)
-		le.Infof("world state after test suite: %s", worldState.String())
+		// le.Infof("world state after test suite: %s", worldState.String())
+		_ = worldState
 
 		// check if any field other than seqno is set
 		lastChange := worldState.GetLastChange().CloneVT()

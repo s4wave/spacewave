@@ -4,7 +4,7 @@ package bucket;
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // Config is a bucket configuration object.
 message Config {
@@ -60,7 +60,7 @@ message ApplyBucketConfigResult {
 	// OldBucketConf returns the previous bucket configuration.
 	Config old_bucket_conf = 4;
 	// Timestamp returns the timestamp of the event.
-  .timestamp.Timestamp timestamp = 5;
+  google.protobuf.Timestamp timestamp = 5;
   // Updated indicates if the value was updated.
   bool updated = 6;
   // Error contains any error applying the value.
@@ -70,6 +70,8 @@ message ApplyBucketConfigResult {
 
 // ObjectRef is a reference that may contain a transformation config reference
 // and/or a bucket ID change.
+//
+//protobuf-go-lite:disable-json
 message ObjectRef {
   // RootRef is the root block ref.
   .block.BlockRef root_ref = 1;

@@ -4,7 +4,7 @@ package git.world;
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
 import "github.com/aperturerobotics/hydra/git/block/git.proto";
 import "github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // GitInitOp is an operation to create a repo with a root ref or empty.
 // If applied as an object op, skips checkout step.
@@ -60,7 +60,7 @@ message GitCreateWorktreeOp {
   // DisableCheckout disables checking out the data to the workdir.
   bool disable_checkout = 6;
   // Timestamp is the modification time for the workdir ops.
-  .timestamp.Timestamp timestamp = 7;
+  google.protobuf.Timestamp timestamp = 7;
 }
 
 // GitWorktreeCheckoutOp checks out a git revision in a worktree.
@@ -73,5 +73,5 @@ message GitWorktreeCheckoutOp {
   // CheckoutOpts are options to use when checking out the data.
   .git.block.CheckoutOpts checkout_opts = 3;
   // Timestamp is the modification time for the workdir ops.
-  .timestamp.Timestamp timestamp = 4;
+  google.protobuf.Timestamp timestamp = 4;
 }

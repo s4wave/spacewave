@@ -3,7 +3,7 @@ package git_block
 import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/hydra/block"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/pkg/errors"
 )

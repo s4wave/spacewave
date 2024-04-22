@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 )
 
@@ -85,7 +85,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 
 	// change mod time
 	nts := timestamp.Now()
-	setTs := nts.ToTime().Add(time.Minute * -1)
+	setTs := nts.AsTime().Add(time.Minute * -1)
 	err = fhandle.SetModTimestamp(ctx, setTs)
 	if err != nil {
 		return err

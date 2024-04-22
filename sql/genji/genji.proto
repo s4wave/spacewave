@@ -1,10 +1,10 @@
 syntax = "proto3";
 package kvtx.genji;
 
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // StoreMeta contains metadata about a store in the db.
 message StoreMeta {
   // CreatedTs is the timestamp store was created.
-  timestamp.Timestamp created_ts = 1;
+  google.protobuf.Timestamp created_ts = 1;
 }

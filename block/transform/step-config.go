@@ -2,21 +2,20 @@ package block_transform
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	"strings"
 
-	gabs "github.com/Jeffail/gabs/v2"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/ghodss/yaml"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
-	"github.com/valyala/fastjson"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewStepConfig constructs the step config with a underlying config.
 func NewStepConfig(conf config.Config) (*StepConfig, error) {
-	dat, err := proto.Marshal(conf)
+	dat, err := conf.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +31,7 @@ func UnmarshalStepConfig(data []byte, conf config.Config) error {
 		return nil
 	}
 	if data[0] == '{' {
-		return jsonpb.Unmarshal(data, conf)
+		return conf.UnmarshalJSON(data)
 	}
 	return conf.UnmarshalVT(data)
 }
@@ -62,83 +61,106 @@ func (c *StepConfig) UnmarshalBlock(data []byte) error {
 	return c.UnmarshalVT(data)
 }
 
-// UnmarshalJSON unmarshals json to the step config.
-// For the config field: supports JSON, YAML, or a string containing either.
-func (c *StepConfig) UnmarshalJSON(data []byte) error {
-	jdata, err := yaml.YAMLToJSON(data)
-	if err != nil {
-		return err
+// MarshalProtoJSON marshals the ControllerConfig message to JSON.
+func (c *StepConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if c == nil {
+		s.WriteNil()
+		return
 	}
-	var p fastjson.Parser
-	v, err := p.ParseBytes(jdata)
-	if err != nil {
-		return err
+	s.WriteObjectStart()
+	var wroteField bool
+	if c.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(c.Id)
 	}
-	if v.Exists("id") {
-		c.Id = string(v.GetStringBytes("id"))
-	}
-	if v.Exists("config") {
-		var configVal *fastjson.Value
-		configStr := v.GetStringBytes("config")
-		if len(configStr) != 0 {
-			// parse json and/or yaml
-			configJson, err := yaml.YAMLToJSON(configStr)
+	if len(c.Config) > 0 || s.HasField("config") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("config")
+		// Detect if config is JSON
+		if c.Config[0] == '{' && c.Config[len(c.Config)-1] == '}' {
+			// Ensure json is parseable
+			_, err := gabs.ParseJSON(c.Config)
 			if err != nil {
-				return err
+				s.SetError(errors.Wrap(err, "unable to parse config json"))
+				return
 			}
-			var cj fastjson.Parser
-			configVal, err = cj.ParseBytes(configJson)
+			_, err = s.Write(c.Config)
 			if err != nil {
-				return err
+				s.SetError(err)
+				return
 			}
 		} else {
-			// expect a object value
-			configVal = v.Get("config")
-			if t := configVal.Type(); t != fastjson.TypeObject {
-				return errors.Errorf("config: expected json object but got %s", t.String())
-			}
+			// Base58 encoded string
+			s.WriteString(base64.RawStdEncoding.EncodeToString(c.Config))
 		}
-		// re-marshal to json
-		c.Config = configVal.MarshalTo(nil)
 	}
-	return nil
+	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals json from the step config.
-// For the config field: supports JSON, YAML, or a string containing either.
+// MarshalJSON marshals the ControllerConfig to JSON.
 func (c *StepConfig) MarshalJSON() ([]byte, error) {
-	outCtr := gabs.New()
+	return json.DefaultMarshalerConfig.Marshal(c)
+}
 
-	// marshal the regular fields
-	if configID := c.GetId(); configID != "" {
-		_, err := outCtr.Set(configID, "id")
-		if err != nil {
-			return nil, err
+// UnmarshalJSON unmarshals the ControllerConfig from JSON.
+func (c *StepConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, c)
+}
+
+func (c *StepConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	for key := s.ReadObjectField(); key != ""; key = s.ReadObjectField() {
+		switch key {
+		case "id":
+			c.Id = s.ReadString()
+		case "config":
+			if s.ReadNil() {
+				break
+			}
+			if s.WhatIsNext() == jsoniter.StringValue {
+				// Expect base58 encoded string
+				var err error
+				c.Config, err = base64.RawStdEncoding.DecodeString(s.ReadString())
+				if err != nil {
+					s.SetError(errors.Wrap(err, "unmarshal config value as base58 string"))
+					return
+				}
+			} else {
+				// Expect inline JSON or YAML object
+				rawMsg := s.ReadRawMessage()
+				// Try parsing as JSON first
+				var jsonData interface{}
+				if err := jsoniter.Unmarshal(rawMsg, &jsonData); err != nil {
+					// If JSON parsing fails, try YAML
+					var yamlData interface{}
+					if err := yaml.Unmarshal(rawMsg, &yamlData); err != nil {
+						s.SetErrorf("invalid config format: %v", err)
+						return
+					}
+					// Convert YAML to JSON
+					jsonMsg, err := yaml.YAMLToJSON(rawMsg)
+					if err != nil {
+						s.SetErrorf("failed to convert YAML to JSON: %v", err)
+						return
+					}
+					c.Config = jsonMsg
+				} else {
+					c.Config = rawMsg
+				}
+			}
+		default:
+			s.ReadAny()
 		}
 	}
+}
 
-	if confFieldData := c.GetConfig(); len(confFieldData) != 0 {
-		// detect if the config field is json, if so, set it as inline json.
-		if confFieldData[0] == '{' && confFieldData[len(confFieldData)-1] == '}' {
-			confJSON, err := gabs.ParseJSON(confFieldData)
-			if err != nil {
-				return nil, err
-			}
-			_, err = outCtr.Set(confJSON, "config")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			// otherwise encode it as base64 (this is what jsonpb does)
-			_, err := outCtr.Set(base64.StdEncoding.EncodeToString(confFieldData), "config")
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// finalize the json
-	return outCtr.EncodeJSON(), nil
+// String returns a string representation of the StepConfig.
+func (c *StepConfig) String() string {
+	var sb strings.Builder
+	sb.WriteString("StepConfig")
+	dat, _ := c.MarshalJSON()
+	sb.WriteString(string(dat))
+	return sb.String()
 }
 
 // _ is a type assertion

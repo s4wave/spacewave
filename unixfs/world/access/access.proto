@@ -2,7 +2,7 @@ syntax = "proto3";
 package unixfs.world.access;
 
 import "github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // Config configures the world-backed UnixFS access controller.
 // Resolves AccessUnixFS requests with a Hydra World UnixFS.
@@ -22,5 +22,5 @@ message Config {
   bool disable_watch_changes = 6;
 	// Timestamp sets a constant timestamp for write operations.
   // If unset, uses time.Now()
-  .timestamp.Timestamp timestamp = 7;
+  google.protobuf.Timestamp timestamp = 7;
 }

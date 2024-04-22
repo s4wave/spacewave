@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -58,8 +57,8 @@ func (o *FsRemoveOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *FsRemoveOp) Validate() error {
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	if err := unixfs_block.ValidateRemove(o.GetPaths()); err != nil {
 		return err
@@ -108,7 +107,7 @@ func (o *FsRemoveOp) ApplyWorldObjectOp(
 			}
 			wr := unixfs_block.NewFSWriter(ftree)
 			paths := unixfs_block.PathsToStringSlices(o.GetPaths()...)
-			return wr.Remove(ctx, paths, o.GetTimestamp().ToTime())
+			return wr.Remove(ctx, paths, o.GetTimestamp().AsTime())
 		case FSType_FSType_FS_OBJECT:
 			return errors.New("TODO remove from fsobject")
 		case FSType_FSType_FS_HOST_VOLUME:

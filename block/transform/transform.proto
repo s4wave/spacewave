@@ -9,6 +9,8 @@ message Config {
 }
 
 // StepConfig configures a transformation step.
+//
+//protobuf-go-lite:disable-json
 message StepConfig {
   // Id contains the configuration ID.
   string id = 1;

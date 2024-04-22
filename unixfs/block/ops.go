@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/block/blob"
 	"github.com/aperturerobotics/hydra/block/file"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // Mknod creates one or more inodes at the given paths.

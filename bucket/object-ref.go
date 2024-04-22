@@ -1,15 +1,12 @@
 package bucket
 
 import (
-	"encoding/json"
-	"strconv"
-
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
+	transform "github.com/aperturerobotics/hydra/block/transform"
+	"github.com/aperturerobotics/protobuf-go-lite/json"
+	jsoniter "github.com/json-iterator/go"
 	b58 "github.com/mr-tron/base58/base58"
-	"github.com/pkg/errors"
-	"github.com/valyala/fastjson"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // NewObjectRefBlock constructs a new object ref block.
@@ -252,90 +249,88 @@ func (o *ObjectRef) GetBlockRefCtor(id uint32) block.Ctor {
 	return nil
 }
 
-// MarshalJSON marshals the reference to a JSON string.
-// Returns empty quotes if the ref is nil.
-func (o *ObjectRef) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(o.MarshalString())), nil
+// MarshalProtoJSON marshals the ObjectRef message to JSON.
+func (x *ObjectRef) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	if x.BucketId != "" || s.HasField("bucketId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucketId")
+		s.WriteString(x.BucketId)
+	}
+	if x.TransformConfRef != nil || s.HasField("transformConfRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transformConfRef")
+		x.TransformConfRef.MarshalProtoJSON(s.WithField("transformConfRef"))
+	}
+	if x.TransformConf != nil || s.HasField("transformConf") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transformConf")
+		x.TransformConf.MarshalProtoJSON(s.WithField("transformConf"))
+	}
+	s.WriteObjectEnd()
 }
 
-// UnmarshalFastJSON unmarshals the fast json container.
-// If the val or object ref are nil, does nothing.
-func (o *ObjectRef) UnmarshalFastJSON(val *fastjson.Value) error {
-	if val == nil || o == nil {
-		return nil
-	}
-	switch val.Type() {
-	case fastjson.TypeString:
-		return o.ParseFromB58(string(val.GetStringBytes()))
-	case fastjson.TypeObject:
-	default:
-		return errors.Errorf("unexpected json type for object ref: %v", val.Type().String())
-	}
+// MarshalJSON marshals the ObjectRef to JSON.
+func (x *ObjectRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
 
-	// rootRef:
-	if rootRefVal := val.Get("rootRef"); rootRefVal != nil {
-		rootRef := o.RootRef
-		if rootRef == nil {
-			rootRef = &block.BlockRef{}
-			o.RootRef = rootRef
-		}
-		if err := rootRef.UnmarshalFastJSON(rootRefVal); err != nil {
-			return errors.Wrap(err, "rootRef")
-		}
+// UnmarshalProtoJSON unmarshals the ObjectRef message from JSON.
+func (x *ObjectRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
 	}
-
-	// bucketId
-	if bucketIDVal := val.Get("bucketId"); bucketIDVal != nil {
-		bucketIdBytes, err := bucketIDVal.StringBytes()
-		if err != nil {
-			return errors.Wrap(err, "bucketId")
+	if s.WhatIsNext() == jsoniter.StringValue {
+		if err := x.UnmarshalB58(s.ReadString()); err != nil {
+			s.SetError(err)
 		}
-		o.BucketId = string(bucketIdBytes)
+		return
 	}
-
-	// transformConfRef
-	if transformConfRefVal := val.Get("transformConfRef"); transformConfRefVal != nil {
-		tconfRef := o.TransformConfRef
-		if tconfRef == nil {
-			tconfRef = &block.BlockRef{}
-			o.TransformConfRef = tconfRef
-		}
-		if err := tconfRef.UnmarshalFastJSON(transformConfRefVal); err != nil {
-			return errors.Wrap(err, "transformConfRef")
-		}
-	}
-
-	// transformConf is the inline transform configuration.
-	if transformConfVal := val.Get("transformConf"); transformConfVal != nil {
-		tconf := o.TransformConf
-		if tconf == nil {
-			tconf = &block_transform.Config{}
-			o.TransformConf = tconf
-		}
-		/*
-			if err := tconf.UnmarshalFastJSON(transformConfVal); err != nil {
-				return errors.Wrap(err, "transformConf")
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.ReadAny() // ignore unknown field
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
 			}
-		*/
-		if err := jsonpb.Unmarshal(transformConfVal.MarshalTo(nil), tconf); err != nil {
-			return errors.Wrap(err, "transformConf")
+			x.RootRef = &block.BlockRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "bucket_id", "bucketId":
+			s.AddField("bucket_id")
+			x.BucketId = s.ReadString()
+		case "transform_conf_ref", "transformConfRef":
+			if s.ReadNil() {
+				x.TransformConfRef = nil
+				return
+			}
+			x.TransformConfRef = &block.BlockRef{}
+			x.TransformConfRef.UnmarshalProtoJSON(s.WithField("transform_conf_ref", true))
+		case "transform_conf", "transformConf":
+			if s.ReadNil() {
+				x.TransformConf = nil
+				return
+			}
+			x.TransformConf = &transform.Config{}
+			x.TransformConf.UnmarshalProtoJSON(s.WithField("transform_conf", true))
 		}
-	}
-
-	return nil
+	})
 }
 
-// UnmarshalJSON unmarshals the reference from a JSON string.
-// Accepts a JSON object or a JSON string (b58 encoded).
-func (o *ObjectRef) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 || o == nil {
-		return nil
-	}
-	val, err := fastjson.ParseBytes(data)
-	if err != nil {
-		return err
-	}
-	return o.UnmarshalFastJSON(val)
+// UnmarshalJSON unmarshals the ObjectRef from JSON.
+func (x *ObjectRef) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // _ is a type assertion

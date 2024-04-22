@@ -1,7 +1,7 @@
 syntax = "proto3";
 package kvtx.mqueue;
 
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // Config is additional optional configuration for the kv mqueue.
 message Config {
@@ -26,7 +26,7 @@ message MQQueueMeta {
 // MQMessageWrapper is the message wrapper used to store data.
 message MQMessageWrapper {
   // Timestamp is the message timestamp.
-  timestamp.Timestamp timestamp = 1;
+  google.protobuf.Timestamp timestamp = 1;
   // Data is the message data.
   bytes data = 2;
 }

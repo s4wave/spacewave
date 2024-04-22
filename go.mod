@@ -3,8 +3,8 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.28.1 // master
-	github.com/aperturerobotics/go-kvfile v0.5.2 // master
+	github.com/aperturerobotics/bifrost v0.29.1 // master
+	github.com/aperturerobotics/go-kvfile v0.6.1 // master
 )
 
 // aperture: use ext-engines forks
@@ -25,7 +25,6 @@ replace (
 	// https://github.com/dgraph-io/ristretto/pull/375
 	github.com/dgraph-io/ristretto => github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8 // fix-wasm
 	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 // aperture
-	github.com/json-iterator/go => github.com/paralin/json-iterator-go v1.1.8-0.20191007015249-d1055a931522 // js-compat
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 	go.bug.st/serial => github.com/paralin/go-serial v0.0.0-20240301222658-42bc112d18a5 // fix-wasm
@@ -63,12 +62,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.40.0 // latest
-	github.com/aperturerobotics/entitygraph v0.8.0 // latest
-	github.com/aperturerobotics/starpc v0.28.1 // latest
-	github.com/aperturerobotics/timestamp v0.8.3-0.20240319022017-2c198e26587a
-	github.com/aperturerobotics/ts-proto-common-types v0.20.2 // indirect; latest
-	github.com/aperturerobotics/util v1.16.5 // master
+	github.com/aperturerobotics/controllerbus v0.41.3-0.20240422064855-efe4dbbe6d53 // latest
+	github.com/aperturerobotics/entitygraph v0.8.1 // latest
+	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
+	github.com/aperturerobotics/protobuf-go-lite v0.4.9 // latest
+	github.com/aperturerobotics/starpc v0.31.3 // latest
+	github.com/aperturerobotics/util v1.18.2-0.20240422064924-0aa0a8ef68ac // master
 )
 
 // aperture: use compatibility forks
@@ -78,33 +77,29 @@ replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
-	github.com/paralin/kcp-go-lite => github.com/paralin/kcp-go-lite v1.0.2-0.20240110212540-c015327ec623 // aperture
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240322235918-b46c9358eab6 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (
-	github.com/aperturerobotics/go-brotli-decoder v0.1.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/compress v1.17.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pkg/errors v0.9.1
-	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.1
-	github.com/valyala/fastjson v1.6.4
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.9
 	golang.org/x/crypto v0.22.0
-	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/sync v0.7.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/protobuf v1.33.0
@@ -137,7 +132,7 @@ require (
 	github.com/gobuffalo/packr/v2 v2.8.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -151,7 +146,6 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
@@ -217,10 +211,11 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/tetratelabs/wazero v1.1.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
+	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zeebo/errs v1.2.2 // indirect
+	github.com/zeebo/assert v1.3.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
@@ -243,5 +238,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
-	storj.io/drpc v0.0.34 // indirect
 )

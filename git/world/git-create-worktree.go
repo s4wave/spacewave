@@ -94,7 +94,7 @@ func (o *GitCreateWorktreeOp) ApplyWorldOp(
 		return false, world.ErrEmptyObjectKey
 	}
 
-	ts := o.GetTimestamp().ToTime()
+	ts := o.GetTimestamp().AsTime()
 	workdirRef := o.GetWorkdirRef()
 	createWorkdir := o.GetCreateWorkdir()
 	disableCheckout := o.GetDisableCheckout()

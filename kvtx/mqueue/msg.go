@@ -14,7 +14,7 @@ type mQueueMessage struct {
 }
 
 func newMQueueMessageFromWrapper(id uint64, wrapper *MQMessageWrapper) *mQueueMessage {
-	ts := wrapper.GetTimestamp().ToTime()
+	ts := wrapper.GetTimestamp().AsTime()
 	return &mQueueMessage{
 		id:        id,
 		timestamp: ts,

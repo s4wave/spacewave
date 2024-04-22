@@ -105,7 +105,7 @@ func TestGitClone(t *testing.T) {
 	worktreeKey := objKey + "/worktree"
 	workdirKey := "test-git-workdir"
 	opTs := unixfs_block.FillPlaceholderTimestamp(nil)
-	ts := opTs.ToTime()
+	ts := opTs.AsTime()
 	outRef, err := GitClone(
 		ctx,
 		ws,

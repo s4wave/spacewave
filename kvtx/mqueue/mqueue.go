@@ -10,7 +10,7 @@ import (
 	// "github.com/aperturerobotics/hydra/bucket/store"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/mqueue"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // MQueue implements a Hydra Object-Store message queue.
@@ -143,7 +143,7 @@ func (m *MQueue) Push(ctx context.Context, data []byte) (mqueue.Message, error) 
 	if head == 0 {
 		head = mid
 	}
-	mts := timestamp.ToTimestamp(ts)
+	mts := timestamp.New(ts)
 	key := m.getMessageKey(mid)
 	wrapper := &MQMessageWrapper{Timestamp: mts, Data: data}
 	wrapperData, err := wrapper.MarshalVT()

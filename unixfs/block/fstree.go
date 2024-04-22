@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	timestamp "github.com/aperturerobotics/timestamp"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/bits-and-blooms/bitset"
 	"github.com/pkg/errors"
 )
@@ -86,7 +86,7 @@ func (f *FSTree) SetPermissions(perm fs.FileMode) error {
 }
 
 // SetModTimestamp changes the modification timestamp for the node.
-func (f *FSTree) SetModTimestamp(ts *timestamp.Timestamp) error {
+func (f *FSTree) SetModTimestamp(ts *timestamppb.Timestamp) error {
 	if !f.node.ModTime.EqualVT(ts) {
 		f.node.ModTime = ts
 		f.bcs.MarkDirty()
@@ -115,7 +115,7 @@ func (f *FSTree) Mknod(
 	nodeType NodeType,
 	initRef *block.BlockRef,
 	permissions fs.FileMode,
-	ts *timestamp.Timestamp,
+	ts *timestamppb.Timestamp,
 ) (*FSTree, error) {
 	if len(name) == 0 {
 		return nil, unixfs_errors.ErrEmptyPath
@@ -180,7 +180,7 @@ func (f *FSTree) Symlink(
 	checkExist bool,
 	name string,
 	lnk *FSSymlink,
-	ts *timestamp.Timestamp,
+	ts *timestamppb.Timestamp,
 ) (*FSTree, error) {
 	if len(name) == 0 {
 		return nil, unixfs_errors.ErrEmptyPath
@@ -330,7 +330,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 
 // Mkdir creates one or more directories.
 // May return ErrExist if any of dirs exist as a file.
-func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamp.Timestamp, dirs ...string) (map[string]*FSTree, error) {
+func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs ...string) (map[string]*FSTree, error) {
 	if f.node.GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return nil, errors.New("inode is not a directory")
 	}
@@ -394,7 +394,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamp.Timestamp, dirs ..
 // returns if any existed.
 func (f *FSTree) Remove(
 	names []string,
-	ts *timestamp.Timestamp,
+	ts *timestamppb.Timestamp,
 ) (bool, error) {
 	if f.GetFSNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
 		return false, unixfs_errors.ErrNotDirectory

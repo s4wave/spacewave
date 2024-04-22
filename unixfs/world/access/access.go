@@ -183,7 +183,7 @@ func (c *Controller) resolveFs(ctx context.Context, released func()) (*unixfs.FS
 		conf.GetFsRef(),
 		false,
 		!conf.GetDisableWatchChanges(),
-		conf.GetTimestamp().ToTime(),
+		conf.GetTimestamp().AsTime(),
 	)
 	if err != nil {
 		engRelease()

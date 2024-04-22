@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -62,8 +61,8 @@ func (o *FsCopyOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *FsCopyOp) Validate() error {
-	if o.GetTimestamp().GetTimeUnixMs() == 0 {
-		return unixfs_errors.ErrEmptyTimestamp
+	if err := o.GetTimestamp().Validate(false); err != nil {
+		return err
 	}
 	if err := unixfs_block.ValidateCopy(o.GetSrcPath(), o.GetDestPath()); err != nil {
 		return err
@@ -107,7 +106,7 @@ func (o *FsCopyOp) ApplyWorldObjectOp(
 		return false, err
 	}
 
-	ts := o.GetTimestamp().ToTime()
+	ts := o.GetTimestamp().AsTime()
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
 		srcFsType := o.GetFsType()
 		switch srcFsType {

@@ -48,7 +48,7 @@ func NewApplyBucketConfigResult(
 		Error:         obj.GetError(),
 		BucketConf:    bc,
 		OldBucketConf: obc,
-		Timestamp:     obj.GetTimestamp().ToTime(),
+		Timestamp:     obj.GetTimestamp().AsTime(),
 		Updated:       obj.GetUpdated(),
 	}, nil
 }

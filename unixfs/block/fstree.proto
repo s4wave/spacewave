@@ -3,7 +3,7 @@ package unixfs.block;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/block/file/file.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // NodeType indicates the type of node.
 enum NodeType {
@@ -23,7 +23,7 @@ message FSNode {
   // NodeType marks the type of the node.
   NodeType node_type = 1;
   // ModTime is the modification timestamp.
-  .timestamp.Timestamp mod_time = 2;
+  google.protobuf.Timestamp mod_time = 2;
   // Permissions are the unixfs permissions bitset.
   // Note: the mode portion of this field must be zero.
   uint32 permissions = 3;

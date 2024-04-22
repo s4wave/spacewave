@@ -74,8 +74,8 @@ func (i *Index) ToGitIndex() (*index.Index, error) {
 		out.Entries[i] = &index.Entry{
 			Hash:         dataHash,
 			Name:         ent.GetName(),
-			CreatedAt:    ent.GetCreatedAt().ToTime(),
-			ModifiedAt:   ent.GetModifiedAt().ToTime(),
+			CreatedAt:    ent.GetCreatedAt().AsTime(),
+			ModifiedAt:   ent.GetModifiedAt().AsTime(),
 			Dev:          ent.GetDev(),
 			Inode:        ent.GetInode(),
 			Mode:         filemode.FileMode(ent.GetFileMode()),

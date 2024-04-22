@@ -9,7 +9,7 @@ import (
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 )
 

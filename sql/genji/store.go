@@ -3,9 +3,9 @@ package kvtx_genji
 import (
 	"errors"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/genjidb/genji/engine"
 	gengine "github.com/genjidb/genji/engine"
-	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // Store implements the GenjiDB store interface.
@@ -123,13 +123,13 @@ func (s *Store) NextSequence() (uint64, error) {
 			return 0, err
 		}
 		if found {
-			seqn, _ = protowire.ConsumeVarint(seqb)
+			seqn, _ = protobuf_go_lite.ConsumeVarint(seqb)
 		} else {
 			seqn = 1 // start at 1
 		}
 	}
 	ns := seqn + 1
-	seqb := protowire.AppendVarint(nil, ns)
+	seqb := protobuf_go_lite.AppendVarint(nil, ns)
 	if err := s.t.tx.Set(s.t.ctx, []byte(seqnumKey), seqb); err != nil {
 		return 0, err
 	}

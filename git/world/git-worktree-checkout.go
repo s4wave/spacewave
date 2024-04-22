@@ -65,7 +65,7 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 	}
 
 	// call git to checkout to the repo
-	ts := o.GetTimestamp().ToTime()
+	ts := o.GetTimestamp().AsTime()
 	checkoutOpts, err := o.GetCheckoutOpts().BuildCheckoutOpts()
 	if err != nil {
 		return false, err
