@@ -3,7 +3,7 @@ package identity.domain.service;
 
 import "github.com/aperturerobotics/bifrost/peer/peer.proto";
 import "github.com/aperturerobotics/identity/identity.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // EntityLookupIdentifier is the identifier to search.
 message EntityLookupIdentifier {
@@ -18,7 +18,7 @@ message LookupEntityReq {
   // Identifier is the id to lookup.
   EntityLookupIdentifier identifier = 1;
   // Timestamp is the timestamp of the request.
-  .timestamp.Timestamp timestamp = 2;
+  google.protobuf.Timestamp timestamp = 2;
   // Nonce is a random one-time uint64.
   uint64 nonce = 3;
 }

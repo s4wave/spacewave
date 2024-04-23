@@ -2,3 +2,4 @@ node_modules/
 *.pb.go
 *.pb.ts
 go.sum
+*_*.pb.ts
