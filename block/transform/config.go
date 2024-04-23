@@ -1,9 +1,6 @@
 package block_transform
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/pkg/errors"
@@ -88,17 +85,6 @@ func (c *Config) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 }
 
 // _ is a type assertion
-// String returns a string representation of the Config.
-func (c *Config) String() string {
-	var sb strings.Builder
-	sb.WriteString("TransformConfig{\n")
-	for i, step := range c.GetSteps() {
-		sb.WriteString(fmt.Sprintf("  Step %d: %s\n", i, step.String()))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
 var (
 	_ block.Block              = ((*Config)(nil))
 	_ block.BlockWithSubBlocks = ((*Config)(nil))

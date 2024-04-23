@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.29.1 // master
+	github.com/aperturerobotics/bifrost v0.30.4 // master
 	github.com/aperturerobotics/go-kvfile v0.6.1 // master
 )
 
@@ -27,7 +27,6 @@ replace (
 	github.com/hidal-go/hidalgo => github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 // aperture
 	github.com/multiformats/go-multihash => github.com/paralin/go-multihash v0.2.0 // gopherjs-compat
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
-	go.bug.st/serial => github.com/paralin/go-serial v0.0.0-20240301222658-42bc112d18a5 // fix-wasm
 )
 
 require (
@@ -62,12 +61,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.41.3-0.20240422064855-efe4dbbe6d53 // latest
-	github.com/aperturerobotics/entitygraph v0.8.1 // latest
+	github.com/aperturerobotics/controllerbus v0.43.1 // latest
+	github.com/aperturerobotics/entitygraph v0.8.2 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
-	github.com/aperturerobotics/protobuf-go-lite v0.4.9 // latest
-	github.com/aperturerobotics/starpc v0.31.3 // latest
-	github.com/aperturerobotics/util v1.18.2-0.20240422064924-0aa0a8ef68ac // master
+	github.com/aperturerobotics/protobuf-go-lite v0.5.0 // latest
+	github.com/aperturerobotics/starpc v0.31.5 // latest
+	github.com/aperturerobotics/util v1.20.1 // master
 )
 
 // aperture: use compatibility forks
@@ -80,10 +79,10 @@ replace (
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
-	storj.io/drpc => github.com/paralin/drpc v0.0.31-0.20220527065730-0e2a1370bccb // aperture
 )
 
 require (
+	github.com/aperturerobotics/common v0.12.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -102,7 +101,6 @@ require (
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/sync v0.7.0
 	gonum.org/v1/gonum v0.15.0
-	google.golang.org/protobuf v1.33.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.25.9
 )
@@ -173,7 +171,7 @@ require (
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.12 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.14 // indirect
 	github.com/nats-io/nats.go v1.34.1 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
@@ -181,21 +179,21 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
-	github.com/pion/ice/v3 v3.0.5 // indirect
-	github.com/pion/interceptor v0.1.27 // indirect
+	github.com/pion/ice/v3 v3.0.6 // indirect
+	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
 	github.com/pion/rtp v1.8.5 // indirect
-	github.com/pion/sctp v1.8.14 // indirect
+	github.com/pion/sctp v1.8.16 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
-	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.16 // indirect
+	github.com/pion/turn/v3 v3.0.2 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.17 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
@@ -231,6 +229,7 @@ require (
 	golang.org/x/tools v0.20.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

@@ -11,8 +11,8 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
-import { Config as Config$1 } from '../../../../bifrost/daemon/api/api_pb.js'
-import { Config as Config$2 } from '../../../../controllerbus/bus/api/api_pb.js'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/daemon/api/api_pb.js'
+import { Config as Config$2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api_pb.js'
 import { Config as Config$3 } from '../api_pb.js'
 
 /**

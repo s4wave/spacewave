@@ -21,7 +21,7 @@ import {
 } from './kvtx_pb.js'
 import type { PartialMessage } from '@bufbuild/protobuf'
 import { MethodKind } from '@bufbuild/protobuf'
-import { RpcStreamPacket } from '../../../starpc/rpcstream/rpcstream_pb.js'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

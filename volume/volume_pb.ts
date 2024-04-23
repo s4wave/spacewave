@@ -11,8 +11,8 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
-import { Info } from '../../controllerbus/controller/controller_pb.js'
-import { HashType } from '../../bifrost/hash/hash_pb.js'
+import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller_pb.js'
+import { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash_pb.js'
 import { BucketInfo } from '../bucket/bucket_pb.js'
 
 /**

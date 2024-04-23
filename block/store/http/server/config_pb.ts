@@ -11,7 +11,7 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
-import { HashType } from '../../../../../bifrost/hash/hash_pb.js'
+import { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash_pb.js'
 
 /**
  * Config configures the block store http server.

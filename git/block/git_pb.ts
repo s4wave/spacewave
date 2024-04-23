@@ -14,7 +14,7 @@ import { Message, proto3, Timestamp } from '@bufbuild/protobuf'
 import { BlockRef } from '../../block/block_pb.js'
 import { KeyValueStore } from '../../kvtx/block/kvtx_pb.js'
 import { Blob, ChunkerArgs } from '../../block/blob/blob_pb.js'
-import { Hash } from '../../../bifrost/hash/hash_pb.js'
+import { Hash } from '@go/github.com/aperturerobotics/bifrost/hash/hash_pb.js'
 
 /**
  * ReferenceType are the types of reference objects.

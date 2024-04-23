@@ -11,7 +11,7 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
-import { ControllerConfig } from '../../../controllerbus/controller/configset/proto/configset_pb.js'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset_pb.js'
 
 /**
  * Config is the node controller config.

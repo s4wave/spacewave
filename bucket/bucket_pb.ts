@@ -12,7 +12,7 @@ import type {
 } from '@bufbuild/protobuf'
 import { Message, proto3, Timestamp } from '@bufbuild/protobuf'
 import { BlockRef, PutOpts } from '../block/block_pb.js'
-import { ControllerConfig } from '../../controllerbus/controller/configset/proto/configset_pb.js'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset_pb.js'
 import { Config as Config$1 } from '../block/transform/transform_pb.js'
 
 /**

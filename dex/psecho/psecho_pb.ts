@@ -11,7 +11,7 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3, protoInt64 } from '@bufbuild/protobuf'
-import { Backoff } from '../../../util/backoff/backoff_pb.js'
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff_pb.js'
 import { BlockRef } from '../../block/block_pb.js'
 
 /**

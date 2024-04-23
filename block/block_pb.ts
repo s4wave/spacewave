@@ -11,7 +11,10 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
-import { Hash, HashType } from '../../bifrost/hash/hash_pb.js'
+import {
+  Hash,
+  HashType,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash_pb.js'
 
 /**
  * OverlayMode controls the mode for the block store overlay.

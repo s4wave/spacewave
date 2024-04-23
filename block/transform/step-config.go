@@ -2,7 +2,6 @@ package block_transform
 
 import (
 	"encoding/base64"
-	"strings"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -152,15 +151,6 @@ func (c *StepConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.ReadAny()
 		}
 	}
-}
-
-// String returns a string representation of the StepConfig.
-func (c *StepConfig) String() string {
-	var sb strings.Builder
-	sb.WriteString("StepConfig")
-	dat, _ := c.MarshalJSON()
-	sb.WriteString(string(dat))
-	return sb.String()
 }
 
 // _ is a type assertion

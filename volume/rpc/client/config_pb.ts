@@ -11,7 +11,7 @@ import type {
   PlainMessage,
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
-import { Backoff } from '../../../../util/backoff/backoff_pb.js'
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff_pb.js'
 
 /**
  * Config configures the rpc volume client.

@@ -13,7 +13,7 @@ import type {
 import { Message, proto3 } from '@bufbuild/protobuf'
 import { Config as Config$1 } from '../../../store/kvtx/ristretto/ristretto_pb.js'
 import { Config as Config$2 } from '../../../store/kvkey/kvkey_pb.js'
-import { HashType } from '../../../../bifrost/hash/hash_pb.js'
+import { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash_pb.js'
 
 /**
  * Config configures the Ristretto block cache controller.

@@ -2,7 +2,7 @@
 // @generated from file github.com/aperturerobotics/hydra/object/rpc/object.proto (package object.rpc, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '../../../starpc/rpcstream/rpcstream_pb.js'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
 import type { PartialMessage } from '@bufbuild/protobuf'
 import { MethodKind } from '@bufbuild/protobuf'
 import { RmObjectStoreRequest, RmObjectStoreResponse } from './object_pb.js'

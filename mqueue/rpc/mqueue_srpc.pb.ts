@@ -2,7 +2,7 @@
 // @generated from file github.com/aperturerobotics/hydra/mqueue/rpc/mqueue.proto (package mqueue.rpc, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '../../../starpc/rpcstream/rpcstream_pb.js'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
 import type { PartialMessage } from '@bufbuild/protobuf'
 import { MethodKind } from '@bufbuild/protobuf'
 import {

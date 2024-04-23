@@ -12,7 +12,7 @@ import type {
 } from '@bufbuild/protobuf'
 import { Message, proto3 } from '@bufbuild/protobuf'
 import { Config as Config$1 } from '../../kvtx/mqueue/mqueue_pb.js'
-import { HashType } from '../../../bifrost/hash/hash_pb.js'
+import { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash_pb.js'
 
 /**
  * Config is the configuration for the kvtx store.
