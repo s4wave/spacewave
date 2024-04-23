@@ -2,7 +2,6 @@ package auth_method_triplesec
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -20,7 +19,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return proto.Equal(c, other)
+	return config.EqualsConfig(c, other)
 }
 
 // _ is a type assertion

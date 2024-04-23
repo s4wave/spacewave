@@ -12,7 +12,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -66,7 +65,7 @@ func runAuthTester(c *cli.Context) error {
 	domainUUID, _ := uuid.FromString("1e4a7ac8-d1d9-4172-8d73-601e501f2382")
 	entityUUID := uuid.NewV5(domainUUID, username)
 
-	authParamsDat, err := proto.Marshal(params)
+	authParamsDat, err := params.MarshalVT()
 	if err != nil {
 		return err
 	}
