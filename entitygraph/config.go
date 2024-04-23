@@ -2,7 +2,6 @@ package forge_entitygraph
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the identifier for the config type.
@@ -15,12 +14,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks equality between two configs.
 func (c *Config) EqualsConfig(c2 config.Config) bool {
-	oc, ok := c2.(*Config)
-	if !ok {
-		return false
-	}
-
-	return proto.Equal(c, oc)
+	return config.EqualsConfig(c, c2)
 }
 
 // Validate validates the configuration.

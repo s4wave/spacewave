@@ -9,7 +9,7 @@ import (
 	execution_transaction "github.com/aperturerobotics/forge/execution/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // RunExecutionWithTarget runs a target using the Execution controller only.

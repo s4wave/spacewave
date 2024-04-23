@@ -50,6 +50,6 @@ func CreateExecutionWithPass(
 		execPeerID,
 		valueSet,
 		tgt,
-		passObj.GetTimestamp().Clone(),
+		passObj.GetTimestamp().CloneVT(),
 	)
 }

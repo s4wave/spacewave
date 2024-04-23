@@ -9,7 +9,7 @@ import (
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/aperturerobotics/forge/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // TestPassController_Simple tests basic mechanics of the pass controller.

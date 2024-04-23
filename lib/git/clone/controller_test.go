@@ -8,7 +8,7 @@ import (
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
 	forge_value "github.com/aperturerobotics/forge/value"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 const testYAML = `

@@ -9,7 +9,7 @@ import (
 	forge_lib_kvtx "github.com/aperturerobotics/forge/lib/kvtx"
 	target_mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/aperturerobotics/forge/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // TestExecutionController_Simple tests basic mechanics of the execution controller.

@@ -2,7 +2,7 @@ syntax = "proto3";
 package forge.worker;
 
 import "github.com/aperturerobotics/identity/identity.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // Worker associates a set of keypairs with a worker name.
 // The name is used for API calls and command-line / UI tools.

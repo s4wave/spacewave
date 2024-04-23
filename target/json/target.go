@@ -12,7 +12,6 @@ import (
 	target "github.com/aperturerobotics/forge/target"
 	"github.com/ghodss/yaml"
 	"github.com/valyala/fastjson"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // Target implements the JSON unmarshaling and marshaling logic for a Target.
@@ -143,7 +142,12 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 	}
 
 	// use jsonpb to parse everything else
-	if err := jsonpb.Unmarshal(data, c.underlying); err != nil {
+	if c.underlying == nil {
+		c.underlying = &target.Target{}
+	} else {
+		c.underlying.Reset()
+	}
+	if err := c.underlying.UnmarshalJSON(data); err != nil {
 		return err
 	}
 
@@ -152,13 +156,12 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON marshals a target JSON blob.
 func (c *Target) MarshalJSON() ([]byte, error) {
-	m := &jsonpb.MarshalOptions{}
 	var v *gabs.Container
 
 	// marshal the regular fields
 	if c.underlying != nil {
 		var b bytes.Buffer
-		xdat, err := m.Marshal(c.underlying)
+		xdat, err := c.underlying.MarshalJSON()
 		if err != nil {
 			return nil, err
 		}

@@ -2,7 +2,7 @@ syntax = "proto3";
 package forge.job;
 
 import "github.com/aperturerobotics/forge/value/value.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // Job contains state for running a set of Tasks.
 //
@@ -23,7 +23,7 @@ message Job {
   // Used as a reference timestamp to make all ops deterministic.
   // For example: all unixfs timestamps will be set to this value.
   // Must be set.
-  .timestamp.Timestamp timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 // State contains the possible Job states.

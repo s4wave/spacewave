@@ -13,7 +13,7 @@ import (
 	forge_world "github.com/aperturerobotics/forge/world"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 )
 

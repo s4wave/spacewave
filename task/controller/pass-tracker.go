@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // passTracker tracks the latest Pass of the Task.
@@ -81,7 +80,7 @@ func (t *passTracker) processState(
 		return true, errors.Wrap(err, "lookup pass")
 	}
 
-	if proto.Equal(passObj, t.prevState) {
+	if passObj.EqualVT(t.prevState) {
 		// no changes
 		return true, nil
 	}

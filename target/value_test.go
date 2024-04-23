@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/prng"
 	"github.com/sirupsen/logrus"
 )

@@ -12,7 +12,7 @@ import (
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/cayleygraph/cayley"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -8,7 +8,7 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // ExecController is a controller that implements the target Exec controller.

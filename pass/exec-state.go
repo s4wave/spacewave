@@ -18,7 +18,7 @@ func NewExecState(objKey string, e *forge_execution.Execution) *ExecState {
 		ObjectKey:      objKey,
 		ExecutionState: e.ExecutionState,
 		PeerId:         e.PeerId,
-		Timestamp:      e.GetTimestamp().Clone(),
+		Timestamp:      e.GetTimestamp().CloneVT(),
 		ValueSet:       e.GetValueSet().Clone(),
 		Result:         e.GetResult().Clone(),
 	}
@@ -64,7 +64,7 @@ func (s *ExecState) MatchesExecution(exec *forge_execution.Execution) bool {
 	switch {
 	case s.GetExecutionState() != exec.GetExecutionState():
 	case s.GetPeerId() != exec.GetPeerId():
-	case !s.GetTimestamp().Equals(exec.GetTimestamp()):
+	case !s.GetTimestamp().EqualVT(exec.GetTimestamp()):
 	default:
 		return true
 	}
@@ -77,7 +77,7 @@ func (s *ExecState) Equals(ot *ExecState) bool {
 	case s.GetObjectKey() != ot.GetObjectKey():
 	case s.GetExecutionState() != ot.GetExecutionState():
 	case s.GetPeerId() != ot.GetPeerId():
-	case !s.GetTimestamp().Equals(ot.GetTimestamp()):
+	case !s.GetTimestamp().EqualVT(ot.GetTimestamp()):
 	default:
 		return true
 	}

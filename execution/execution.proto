@@ -4,7 +4,7 @@ package forge.execution;
 import "github.com/aperturerobotics/forge/target/target.proto";
 import "github.com/aperturerobotics/forge/value/value.proto";
 import "github.com/aperturerobotics/hydra/block/block.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // World graph links:
 //  - <parent> -> usually a Pass which created the Execution
@@ -17,7 +17,7 @@ message Execution {
   // Timestamp is the time the parent object (usually Pass) was created.
   // Used as a reference timestamp to make all ops deterministic.
   // Must be set & is not updated.
-  .timestamp.Timestamp timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
   // ValueSet is the set of inputs and outputs used in the execution.
   // Outputs are updated while the execution is in RUNNING state.
   .forge.target.ValueSet value_set = 4;

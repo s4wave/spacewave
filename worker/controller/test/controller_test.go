@@ -11,7 +11,7 @@ import (
 	target_mock "github.com/aperturerobotics/forge/target/mock"
 	"github.com/aperturerobotics/forge/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // TestWorkerController tests basic mechanics of the worker controller.

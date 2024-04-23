@@ -18,8 +18,8 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
+	"github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/aperturerobotics/util/vtcompare"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -81,7 +81,7 @@ func NewController(
 		c.ProcessState,
 	)
 	c.execRoutine = routine.NewStateRoutineContainerWithLogger(
-		vtcompare.CompareEqualVT[*ExecConfig](),
+		protobuf_go_lite.CompareEqualVT[*ExecConfig](),
 		le.WithField("routine", "execution"),
 	)
 	c.execRoutine.SetStateRoutine(c.executeWithConfig)

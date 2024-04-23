@@ -11,7 +11,7 @@ import (
 	pass_transaction "github.com/aperturerobotics/forge/pass/tx"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // RunPassWithTarget runs a target using the Pass and Execution controllers.

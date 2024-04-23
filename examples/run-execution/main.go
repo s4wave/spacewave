@@ -8,7 +8,7 @@ import (
 	forge_lib_all "github.com/aperturerobotics/forge/lib/all"
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/sirupsen/logrus"
 )
 

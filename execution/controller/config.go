@@ -10,7 +10,6 @@ import (
 	forge_target "github.com/aperturerobotics/forge/target"
 	uuid "github.com/satori/go.uuid"
 	"github.com/zeebo/blake3"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the string used to identify this config object.
@@ -84,7 +83,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return proto.Equal(c, other)
+	return config.EqualsConfig(c, other)
 }
 
 // _ is a type assertion

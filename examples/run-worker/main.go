@@ -10,7 +10,7 @@ import (
 	target_json "github.com/aperturerobotics/forge/target/json"
 	"github.com/aperturerobotics/forge/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
