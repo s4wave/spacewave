@@ -10,7 +10,6 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 // NOTE: This code is nearly identical to session-update.go
@@ -179,13 +178,13 @@ func (o *EntityUpdateOp) ApplyWorldObjectOp(
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (o *EntityUpdateOp) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(o)
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (o *EntityUpdateOp) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, o)
+	return o.UnmarshalVT(data)
 }
 
 // _ is a type assertion

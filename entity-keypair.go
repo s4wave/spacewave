@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
-	proto "google.golang.org/protobuf/proto"
 )
 
 // NewEntityKeypair constructs a new entity keypair binding.
@@ -133,13 +132,13 @@ func (k *EntityKeypair) CheckMatchesEntity(e *Entity) bool {
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (k *EntityKeypair) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(k)
+	return k.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (k *EntityKeypair) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, k)
+	return k.UnmarshalVT(data)
 }
 
 // _ is a type assertion

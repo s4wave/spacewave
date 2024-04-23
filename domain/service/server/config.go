@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/identity"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID is the config id used to construct the config.
@@ -22,11 +21,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	ot, ok := other.(*Config)
-	if !ok {
-		return false
-	}
-	return proto.Equal(ot, c)
+	return config.EqualsConfig(c, other)
 }
 
 // Validate checks the config.

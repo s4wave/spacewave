@@ -11,7 +11,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // NewLookupEntityReq builds a new LookupEntityReq.
@@ -61,7 +60,7 @@ func (r *LookupEntityReq) Validate() error {
 // CheckTimestamp checks if the timestamp is within range.
 func (r *LookupEntityReq) CheckTimestamp(now time.Time) error {
 	// assert timestamp is within last 5 mins
-	reqTs := r.GetTimestamp().ToTime()
+	reqTs := r.GetTimestamp().AsTime()
 	reqTsDiff := now.Sub(reqTs)
 	if reqTsDiff > time.Minute*5 || reqTsDiff < -1*time.Second*30 {
 		return errors.Errorf(
@@ -101,13 +100,13 @@ func (r *LookupEntityReq) UnmarshalFrom(req *peer.SignedMsg) (crypto.PubKey, err
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (r *LookupEntityReq) MarshalBlock() ([]byte, error) {
-	return proto.Marshal(r)
+	return r.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
 func (r *LookupEntityReq) UnmarshalBlock(data []byte) error {
-	return proto.Unmarshal(data, r)
+	return r.UnmarshalVT(data)
 }
 
 var _ block.Block = ((*LookupEntityReq)(nil))

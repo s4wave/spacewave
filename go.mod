@@ -41,7 +41,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.43.1 // latest
+	github.com/aperturerobotics/controllerbus v0.43.2-0.20240423025855-d90d372732ca // latest
 	github.com/aperturerobotics/entitygraph v0.8.2 // indirect; latest
 	github.com/aperturerobotics/starpc v0.31.5 // latest
 	github.com/aperturerobotics/util v1.20.1 // master
@@ -68,7 +68,6 @@ require (
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	google.golang.org/protobuf v1.33.0
 )
 
 require (
@@ -128,6 +127,7 @@ require (
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect

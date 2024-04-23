@@ -5,7 +5,6 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 // ConfigID identifies the config.
@@ -35,11 +34,7 @@ func (c *Config) Validate() error {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	ov, ok := other.(*Config)
-	if !ok {
-		return false
-	}
-	return proto.Equal(c, ov)
+	return config.EqualsConfig(c, other)
 }
 
 // _ is a type assertion
