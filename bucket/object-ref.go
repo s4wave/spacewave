@@ -4,8 +4,8 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform "github.com/aperturerobotics/hydra/block/transform"
+	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
-	jsoniter "github.com/json-iterator/go"
 	b58 "github.com/mr-tron/base58/base58"
 )
 
@@ -299,7 +299,7 @@ func (x *ObjectRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	s.ReadObject(func(key string) {
 		switch key {
 		default:
-			s.ReadAny() // ignore unknown field
+			s.Skip() // ignore unknown field
 		case "root_ref", "rootRef":
 			if s.ReadNil() {
 				x.RootRef = nil

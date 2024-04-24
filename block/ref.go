@@ -5,8 +5,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/hash"
+	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/json"
-	jsoniter "github.com/json-iterator/go"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 )
@@ -258,7 +258,7 @@ func (x *BlockRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	s.ReadObject(func(key string) {
 		switch key {
 		default:
-			s.ReadAny() // ignore unknown field
+			s.Skip() // ignore unknown field
 		case "hash":
 			if s.ReadNil() {
 				x.Hash = nil

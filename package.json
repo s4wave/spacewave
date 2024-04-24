@@ -35,7 +35,7 @@
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
     "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.js ./",
-    "prepare": "go mod vendor",
+    "prepare": "go mod vendor && rimraf ./.tools",
     "precommit": "npm run format"
   },
   "prettier": {
@@ -44,12 +44,14 @@
   },
   "devDependencies": {
     "@aptre/common": "^0.12.6",
+    "@bufbuild/protoc-gen-es": "^1.9.0",
     "depcheck": "^1.4.7",
     "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
     "typescript": "^5.4.5"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.9.0",
-    "starpc": "^0.31.5"
+    "starpc": "^0.31.6"
   }
 }
