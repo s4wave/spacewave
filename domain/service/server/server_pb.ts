@@ -2,9 +2,16 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/server/server.proto (package identity.domain.server, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
-import { Config as Config$1 } from "../../../../bifrost/stream/srpc/server/server_pb.js";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/server/server_pb.js'
 
 /**
  * Config configures the identity server.
@@ -19,7 +26,7 @@ export class Config extends Message<Config> {
    *
    * @generated from field: stream.srpc.server.Config server = 1;
    */
-  server?: Config$1;
+  server?: Config$1
 
   /**
    * DomainIds is the list of domain IDs to service.
@@ -27,42 +34,64 @@ export class Config extends Message<Config> {
    *
    * @generated from field: repeated string domain_ids = 2;
    */
-  domainIds: string[] = [];
+  domainIds: string[] = []
 
   /**
    * RequestTimeout limits the amount of time a request can take.
    *
    * @generated from field: string request_timeout = 3;
    */
-  requestTimeout = "";
+  requestTimeout = ''
 
   constructor(data?: PartialMessage<Config>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.server.Config";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.server.Config'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "server", kind: "message", T: Config$1 },
-    { no: 2, name: "domain_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "request_timeout", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'server', kind: 'message', T: Config$1 },
+    {
+      no: 2,
+      name: 'domain_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 3,
+      name: 'request_timeout',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Config {
-    return new Config().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): Config {
+    return new Config().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Config {
-    return new Config().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): Config {
+    return new Config().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Config {
-    return new Config().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): Config {
+    return new Config().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Config | PlainMessage<Config> | undefined, b: Config | PlainMessage<Config> | undefined): boolean {
-    return proto3.util.equals(Config, a, b);
+  static equals(
+    a: Config | PlainMessage<Config> | undefined,
+    b: Config | PlainMessage<Config> | undefined,
+  ): boolean {
+    return proto3.util.equals(Config, a, b)
   }
 }
-

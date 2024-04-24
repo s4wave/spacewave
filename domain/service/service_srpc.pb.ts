@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/service.proto (package identity.domain.service, syntax proto3)
 /* eslint-disable */
 
-import { SignedMsg } from "../../../bifrost/peer/peer_pb.js";
-import { LookupEntityResp } from "./service_pb.js";
-import type { PartialMessage } from "@bufbuild/protobuf";
-import { MethodKind } from "@bufbuild/protobuf";
-import { ProtoRpc } from "starpc";
+import { SignedMsg } from '@go/github.com/aperturerobotics/bifrost/peer/peer_pb.js'
+import { LookupEntityResp } from './service_pb.js'
+import type { PartialMessage } from '@bufbuild/protobuf'
+import { MethodKind } from '@bufbuild/protobuf'
+import { ProtoRpc } from 'starpc'
 
 /**
  * IdentityDomain implements Entity lookup with a remote service.
@@ -14,7 +14,7 @@ import { ProtoRpc } from "starpc";
  * @generated from service identity.domain.service.IdentityDomain
  */
 export const IdentityDomainDefinition = {
-  typeName: "identity.domain.service.IdentityDomain",
+  typeName: 'identity.domain.service.IdentityDomain',
   methods: {
     /**
      * LookupEntity requests the Entity corresponding to an entity_id.
@@ -22,13 +22,13 @@ export const IdentityDomainDefinition = {
      * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
      */
     LookupEntity: {
-      name: "LookupEntity",
+      name: 'LookupEntity',
       I: SignedMsg,
       O: LookupEntityResp,
       kind: MethodKind.Unary,
     },
-  }
-} as const;
+  },
+} as const
 
 /**
  * IdentityDomain implements Entity lookup with a remote service.
@@ -42,10 +42,9 @@ export interface IdentityDomain {
    * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
    */
   LookupEntity(
-request: PartialMessage<SignedMsg>, abortSignal?: AbortSignal
-): 
-Promise<PartialMessage<LookupEntityResp>>
-
+    request: PartialMessage<SignedMsg>,
+    abortSignal?: AbortSignal,
+  ): Promise<PartialMessage<LookupEntityResp>>
 }
 
 export const IdentityDomainServiceName = IdentityDomainDefinition.typeName
@@ -64,9 +63,9 @@ export class IdentityDomainClient implements IdentityDomain {
    * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
    */
   async LookupEntity(
-request: PartialMessage<SignedMsg>, abortSignal?: AbortSignal
-): 
-Promise<PartialMessage<LookupEntityResp>> {
+    request: PartialMessage<SignedMsg>,
+    abortSignal?: AbortSignal,
+  ): Promise<PartialMessage<LookupEntityResp>> {
     const requestMsg = new SignedMsg(request)
     const result = await this.rpc.request(
       this.service,
@@ -76,5 +75,4 @@ Promise<PartialMessage<LookupEntityResp>> {
     )
     return LookupEntityResp.fromBinary(result)
   }
-
 }

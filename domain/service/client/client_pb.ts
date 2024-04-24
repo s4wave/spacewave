@@ -2,10 +2,17 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/client/client.proto (package identity.domain.client, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
-import { DomainInfo } from "../../domain_pb.js";
-import { Config as Config$1 } from "../../../../bifrost/stream/srpc/client/client_pb.js";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
+import { DomainInfo } from '../../domain_pb.js'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/client/client_pb.js'
 
 /**
  * Config configures the identity client domain controller.
@@ -18,14 +25,14 @@ export class Config extends Message<Config> {
    *
    * @generated from field: identity.domain.DomainInfo domain_info = 1;
    */
-  domainInfo?: DomainInfo;
+  domainInfo?: DomainInfo
 
   /**
    * ClientOpts are options passed to the client.
    *
    * @generated from field: stream.srpc.client.Config client_opts = 2;
    */
-  clientOpts?: Config$1;
+  clientOpts?: Config$1
 
   /**
    * PeerId is the peer id to use to sign requests.
@@ -33,7 +40,7 @@ export class Config extends Message<Config> {
    *
    * @generated from field: string peer_id = 3;
    */
-  peerId = "";
+  peerId = ''
 
   /**
    * ResolveSelectIdentityDomain indicates this domain should resolve any
@@ -41,36 +48,52 @@ export class Config extends Message<Config> {
    *
    * @generated from field: bool resolve_select_identity_domain = 4;
    */
-  resolveSelectIdentityDomain = false;
+  resolveSelectIdentityDomain = false
 
   constructor(data?: PartialMessage<Config>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.client.Config";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.client.Config'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "domain_info", kind: "message", T: DomainInfo },
-    { no: 2, name: "client_opts", kind: "message", T: Config$1 },
-    { no: 3, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "resolve_select_identity_domain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'domain_info', kind: 'message', T: DomainInfo },
+    { no: 2, name: 'client_opts', kind: 'message', T: Config$1 },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 4,
+      name: 'resolve_select_identity_domain',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Config {
-    return new Config().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): Config {
+    return new Config().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Config {
-    return new Config().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): Config {
+    return new Config().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Config {
-    return new Config().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): Config {
+    return new Config().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Config | PlainMessage<Config> | undefined, b: Config | PlainMessage<Config> | undefined): boolean {
-    return proto3.util.equals(Config, a, b);
+  static equals(
+    a: Config | PlainMessage<Config> | undefined,
+    b: Config | PlainMessage<Config> | undefined,
+  ): boolean {
+    return proto3.util.equals(Config, a, b)
   }
 }
-

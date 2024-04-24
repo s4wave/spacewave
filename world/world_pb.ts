@@ -2,9 +2,16 @@
 // @generated from file github.com/aperturerobotics/identity/world/world.proto (package identity.world, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
-import { ObjectRef } from "../../hydra/bucket/bucket_pb.js";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
+import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket_pb.js'
 
 /**
  * EntityUpdateOp updates an entity and links to other objects.
@@ -21,33 +28,45 @@ export class EntityUpdateOp extends Message<EntityUpdateOp> {
    *
    * @generated from field: bucket.ObjectRef entity_ref = 1;
    */
-  entityRef?: ObjectRef;
+  entityRef?: ObjectRef
 
   constructor(data?: PartialMessage<EntityUpdateOp>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.world.EntityUpdateOp";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.world.EntityUpdateOp'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "entity_ref", kind: "message", T: ObjectRef },
-  ]);
+    { no: 1, name: 'entity_ref', kind: 'message', T: ObjectRef },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EntityUpdateOp {
-    return new EntityUpdateOp().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): EntityUpdateOp {
+    return new EntityUpdateOp().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EntityUpdateOp {
-    return new EntityUpdateOp().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): EntityUpdateOp {
+    return new EntityUpdateOp().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EntityUpdateOp {
-    return new EntityUpdateOp().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EntityUpdateOp {
+    return new EntityUpdateOp().fromJsonString(jsonString, options)
   }
 
-  static equals(a: EntityUpdateOp | PlainMessage<EntityUpdateOp> | undefined, b: EntityUpdateOp | PlainMessage<EntityUpdateOp> | undefined): boolean {
-    return proto3.util.equals(EntityUpdateOp, a, b);
+  static equals(
+    a: EntityUpdateOp | PlainMessage<EntityUpdateOp> | undefined,
+    b: EntityUpdateOp | PlainMessage<EntityUpdateOp> | undefined,
+  ): boolean {
+    return proto3.util.equals(EntityUpdateOp, a, b)
   }
 }
 
@@ -62,33 +81,45 @@ export class KeypairUpdateOp extends Message<KeypairUpdateOp> {
    *
    * @generated from field: bucket.ObjectRef keypair_ref = 1;
    */
-  keypairRef?: ObjectRef;
+  keypairRef?: ObjectRef
 
   constructor(data?: PartialMessage<KeypairUpdateOp>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.world.KeypairUpdateOp";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.world.KeypairUpdateOp'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "keypair_ref", kind: "message", T: ObjectRef },
-  ]);
+    { no: 1, name: 'keypair_ref', kind: 'message', T: ObjectRef },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): KeypairUpdateOp {
-    return new KeypairUpdateOp().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): KeypairUpdateOp {
+    return new KeypairUpdateOp().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): KeypairUpdateOp {
-    return new KeypairUpdateOp().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): KeypairUpdateOp {
+    return new KeypairUpdateOp().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): KeypairUpdateOp {
-    return new KeypairUpdateOp().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): KeypairUpdateOp {
+    return new KeypairUpdateOp().fromJsonString(jsonString, options)
   }
 
-  static equals(a: KeypairUpdateOp | PlainMessage<KeypairUpdateOp> | undefined, b: KeypairUpdateOp | PlainMessage<KeypairUpdateOp> | undefined): boolean {
-    return proto3.util.equals(KeypairUpdateOp, a, b);
+  static equals(
+    a: KeypairUpdateOp | PlainMessage<KeypairUpdateOp> | undefined,
+    b: KeypairUpdateOp | PlainMessage<KeypairUpdateOp> | undefined,
+  ): boolean {
+    return proto3.util.equals(KeypairUpdateOp, a, b)
   }
 }
 
@@ -103,33 +134,44 @@ export class DomainInfoUpdateOp extends Message<DomainInfoUpdateOp> {
    *
    * @generated from field: bucket.ObjectRef domain_info_ref = 1;
    */
-  domainInfoRef?: ObjectRef;
+  domainInfoRef?: ObjectRef
 
   constructor(data?: PartialMessage<DomainInfoUpdateOp>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.world.DomainInfoUpdateOp";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.world.DomainInfoUpdateOp'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "domain_info_ref", kind: "message", T: ObjectRef },
-  ]);
+    { no: 1, name: 'domain_info_ref', kind: 'message', T: ObjectRef },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DomainInfoUpdateOp {
-    return new DomainInfoUpdateOp().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): DomainInfoUpdateOp {
+    return new DomainInfoUpdateOp().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DomainInfoUpdateOp {
-    return new DomainInfoUpdateOp().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): DomainInfoUpdateOp {
+    return new DomainInfoUpdateOp().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DomainInfoUpdateOp {
-    return new DomainInfoUpdateOp().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): DomainInfoUpdateOp {
+    return new DomainInfoUpdateOp().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DomainInfoUpdateOp | PlainMessage<DomainInfoUpdateOp> | undefined, b: DomainInfoUpdateOp | PlainMessage<DomainInfoUpdateOp> | undefined): boolean {
-    return proto3.util.equals(DomainInfoUpdateOp, a, b);
+  static equals(
+    a: DomainInfoUpdateOp | PlainMessage<DomainInfoUpdateOp> | undefined,
+    b: DomainInfoUpdateOp | PlainMessage<DomainInfoUpdateOp> | undefined,
+  ): boolean {
+    return proto3.util.equals(DomainInfoUpdateOp, a, b)
   }
 }
-

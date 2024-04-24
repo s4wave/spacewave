@@ -2,9 +2,16 @@
 // @generated from file github.com/aperturerobotics/identity/identity.proto (package identity, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
-import { Signature } from "../bifrost/peer/peer_pb.js";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3, protoInt64 } from '@bufbuild/protobuf'
+import { Signature } from '../bifrost/peer/peer_pb.js'
 
 /**
  * EntityChangeType is an entity change transaction type.
@@ -28,11 +35,11 @@ export enum EntityChangeType {
   EntityChangeType_REMOVE_KEYPAIR = 2,
 }
 // Retrieve enum metadata with: proto3.getEnumType(EntityChangeType)
-proto3.util.setEnumType(EntityChangeType, "identity.EntityChangeType", [
-  { no: 0, name: "EntityChangeType_UNKNOWN" },
-  { no: 1, name: "EntityChangeType_REGISTER_KEYPAIR" },
-  { no: 2, name: "EntityChangeType_REMOVE_KEYPAIR" },
-]);
+proto3.util.setEnumType(EntityChangeType, 'identity.EntityChangeType', [
+  { no: 0, name: 'EntityChangeType_UNKNOWN' },
+  { no: 1, name: 'EntityChangeType_REGISTER_KEYPAIR' },
+  { no: 2, name: 'EntityChangeType_REMOVE_KEYPAIR' },
+])
 
 /**
  * Entity is an individual user or system with a persistent identity.
@@ -51,7 +58,7 @@ export class Entity extends Message<Entity> {
    *
    * @generated from field: string entity_id = 1;
    */
-  entityId = "";
+  entityId = ''
 
   /**
    * EntityUuid is a domain-unique unique identifier, generated at account
@@ -61,7 +68,7 @@ export class Entity extends Message<Entity> {
    *
    * @generated from field: string entity_uuid = 2;
    */
-  entityUuid = "";
+  entityUuid = ''
 
   /**
    * DomainId is the domain identifier (typically the domain name).
@@ -71,51 +78,68 @@ export class Entity extends Message<Entity> {
    *
    * @generated from field: string domain_id = 3;
    */
-  domainId = "";
+  domainId = ''
 
   /**
    * Epoch is the change epoch for the entity, incremented when changes are made.
    *
    * @generated from field: uint64 epoch = 4;
    */
-  epoch = protoInt64.zero;
+  epoch = protoInt64.zero
 
   /**
    * EntityKeypairSet contains marshalled EntityKeypair aliases of the Entity.
    *
    * @generated from field: identity.EntityKeypairSet entity_keypair_set = 5;
    */
-  entityKeypairSet?: EntityKeypairSet;
+  entityKeypairSet?: EntityKeypairSet
 
   constructor(data?: PartialMessage<Entity>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.Entity";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.Entity'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "entity_uuid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "epoch", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    { no: 5, name: "entity_keypair_set", kind: "message", T: EntityKeypairSet },
-  ]);
+    { no: 1, name: 'entity_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 2,
+      name: 'entity_uuid',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 3, name: 'domain_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'epoch', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 5, name: 'entity_keypair_set', kind: 'message', T: EntityKeypairSet },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Entity {
-    return new Entity().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): Entity {
+    return new Entity().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Entity {
-    return new Entity().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): Entity {
+    return new Entity().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Entity {
-    return new Entity().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): Entity {
+    return new Entity().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Entity | PlainMessage<Entity> | undefined, b: Entity | PlainMessage<Entity> | undefined): boolean {
-    return proto3.util.equals(Entity, a, b);
+  static equals(
+    a: Entity | PlainMessage<Entity> | undefined,
+    b: Entity | PlainMessage<Entity> | undefined,
+  ): boolean {
+    return proto3.util.equals(Entity, a, b)
   }
 }
 
@@ -130,7 +154,7 @@ export class EntityKeypairSet extends Message<EntityKeypairSet> {
    *
    * @generated from field: repeated bytes entity_keypairs = 1;
    */
-  entityKeypairs: Uint8Array[] = [];
+  entityKeypairs: Uint8Array[] = []
 
   /**
    * EntityKeypairSignatures contains the signatures for each Keypair.
@@ -139,34 +163,58 @@ export class EntityKeypairSet extends Message<EntityKeypairSet> {
    *
    * @generated from field: repeated peer.Signature entity_keypair_signatures = 2;
    */
-  entityKeypairSignatures: Signature[] = [];
+  entityKeypairSignatures: Signature[] = []
 
   constructor(data?: PartialMessage<EntityKeypairSet>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.EntityKeypairSet";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.EntityKeypairSet'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "entity_keypairs", kind: "scalar", T: 12 /* ScalarType.BYTES */, repeated: true },
-    { no: 2, name: "entity_keypair_signatures", kind: "message", T: Signature, repeated: true },
-  ]);
+    {
+      no: 1,
+      name: 'entity_keypairs',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+      repeated: true,
+    },
+    {
+      no: 2,
+      name: 'entity_keypair_signatures',
+      kind: 'message',
+      T: Signature,
+      repeated: true,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EntityKeypairSet {
-    return new EntityKeypairSet().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): EntityKeypairSet {
+    return new EntityKeypairSet().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EntityKeypairSet {
-    return new EntityKeypairSet().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): EntityKeypairSet {
+    return new EntityKeypairSet().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EntityKeypairSet {
-    return new EntityKeypairSet().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EntityKeypairSet {
+    return new EntityKeypairSet().fromJsonString(jsonString, options)
   }
 
-  static equals(a: EntityKeypairSet | PlainMessage<EntityKeypairSet> | undefined, b: EntityKeypairSet | PlainMessage<EntityKeypairSet> | undefined): boolean {
-    return proto3.util.equals(EntityKeypairSet, a, b);
+  static equals(
+    a: EntityKeypairSet | PlainMessage<EntityKeypairSet> | undefined,
+    b: EntityKeypairSet | PlainMessage<EntityKeypairSet> | undefined,
+  ): boolean {
+    return proto3.util.equals(EntityKeypairSet, a, b)
   }
 }
 
@@ -183,7 +231,7 @@ export class EntityKeypair extends Message<EntityKeypair> {
    *
    * @generated from field: string entity_id = 1;
    */
-  entityId = "";
+  entityId = ''
 
   /**
    * DomainId is the domain_id field of the Entity.
@@ -191,42 +239,54 @@ export class EntityKeypair extends Message<EntityKeypair> {
    *
    * @generated from field: string domain_id = 2;
    */
-  domainId = "";
+  domainId = ''
 
   /**
    * Keypair is the keypair to associate with the entity.
    *
    * @generated from field: identity.Keypair keypair = 3;
    */
-  keypair?: Keypair;
+  keypair?: Keypair
 
   constructor(data?: PartialMessage<EntityKeypair>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.EntityKeypair";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.EntityKeypair'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "keypair", kind: "message", T: Keypair },
-  ]);
+    { no: 1, name: 'entity_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'domain_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'keypair', kind: 'message', T: Keypair },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EntityKeypair {
-    return new EntityKeypair().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): EntityKeypair {
+    return new EntityKeypair().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EntityKeypair {
-    return new EntityKeypair().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): EntityKeypair {
+    return new EntityKeypair().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EntityKeypair {
-    return new EntityKeypair().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EntityKeypair {
+    return new EntityKeypair().fromJsonString(jsonString, options)
   }
 
-  static equals(a: EntityKeypair | PlainMessage<EntityKeypair> | undefined, b: EntityKeypair | PlainMessage<EntityKeypair> | undefined): boolean {
-    return proto3.util.equals(EntityKeypair, a, b);
+  static equals(
+    a: EntityKeypair | PlainMessage<EntityKeypair> | undefined,
+    b: EntityKeypair | PlainMessage<EntityKeypair> | undefined,
+  ): boolean {
+    return proto3.util.equals(EntityKeypair, a, b)
   }
 }
 
@@ -242,7 +302,7 @@ export class EntityRef extends Message<EntityRef> {
    *
    * @generated from field: string entity_id = 1;
    */
-  entityId = "";
+  entityId = ''
 
   /**
    * DomainId is the domain_id field of the Entity.
@@ -250,34 +310,46 @@ export class EntityRef extends Message<EntityRef> {
    *
    * @generated from field: string domain_id = 2;
    */
-  domainId = "";
+  domainId = ''
 
   constructor(data?: PartialMessage<EntityRef>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.EntityRef";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.EntityRef'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'entity_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'domain_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EntityRef {
-    return new EntityRef().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): EntityRef {
+    return new EntityRef().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EntityRef {
-    return new EntityRef().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): EntityRef {
+    return new EntityRef().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EntityRef {
-    return new EntityRef().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EntityRef {
+    return new EntityRef().fromJsonString(jsonString, options)
   }
 
-  static equals(a: EntityRef | PlainMessage<EntityRef> | undefined, b: EntityRef | PlainMessage<EntityRef> | undefined): boolean {
-    return proto3.util.equals(EntityRef, a, b);
+  static equals(
+    a: EntityRef | PlainMessage<EntityRef> | undefined,
+    b: EntityRef | PlainMessage<EntityRef> | undefined,
+  ): boolean {
+    return proto3.util.equals(EntityRef, a, b)
   }
 }
 
@@ -293,7 +365,7 @@ export class Keypair extends Message<Keypair> {
    *
    * @generated from field: string peer_id = 1;
    */
-  peerId = "";
+  peerId = ''
 
   /**
    * PubKey is the PEM-encoded public key with Bifrost keypem.
@@ -301,7 +373,7 @@ export class Keypair extends Message<Keypair> {
    *
    * @generated from field: string pub_key = 2;
    */
-  pubKey = "";
+  pubKey = ''
 
   /**
    * AuthMethodId is the authentication method to derive this key.
@@ -309,7 +381,7 @@ export class Keypair extends Message<Keypair> {
    *
    * @generated from field: string auth_method_id = 3;
    */
-  authMethodId = "";
+  authMethodId = ''
 
   /**
    * AuthMethodParams is the encoded params object for the method.
@@ -318,36 +390,58 @@ export class Keypair extends Message<Keypair> {
    *
    * @generated from field: bytes auth_method_params = 4;
    */
-  authMethodParams = new Uint8Array(0);
+  authMethodParams = new Uint8Array(0)
 
   constructor(data?: PartialMessage<Keypair>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.Keypair";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.Keypair'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "pub_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "auth_method_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "auth_method_params", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-  ]);
+    { no: 1, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'pub_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 3,
+      name: 'auth_method_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 4,
+      name: 'auth_method_params',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Keypair {
-    return new Keypair().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): Keypair {
+    return new Keypair().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Keypair {
-    return new Keypair().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): Keypair {
+    return new Keypair().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Keypair {
-    return new Keypair().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): Keypair {
+    return new Keypair().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Keypair | PlainMessage<Keypair> | undefined, b: Keypair | PlainMessage<Keypair> | undefined): boolean {
-    return proto3.util.equals(Keypair, a, b);
+  static equals(
+    a: Keypair | PlainMessage<Keypair> | undefined,
+    b: Keypair | PlainMessage<Keypair> | undefined,
+  ): boolean {
+    return proto3.util.equals(Keypair, a, b)
   }
 }
 
@@ -373,65 +467,97 @@ export class PendingEntityChange extends Message<PendingEntityChange> {
    *
    * @generated from field: string change_peer_id = 1;
    */
-  changePeerId = "";
+  changePeerId = ''
 
   /**
    * Epoch is the change epoch, incremented when changes are made.
    *
    * @generated from field: uint64 epoch = 2;
    */
-  epoch = protoInt64.zero;
+  epoch = protoInt64.zero
 
   /**
    * DomainIdentifier is the identifier of the related entity.
    *
    * @generated from field: string domain_identifier = 3;
    */
-  domainIdentifier = "";
+  domainIdentifier = ''
 
   /**
    * EntityChangeType is the type of this entity change.
    *
    * @generated from field: identity.EntityChangeType entity_change_type = 4;
    */
-  entityChangeType = EntityChangeType.EntityChangeType_UNKNOWN;
+  entityChangeType = EntityChangeType.EntityChangeType_UNKNOWN
 
   /**
    * EntityChangeData is the inner data for the entity change.
    *
    * @generated from field: string entity_change_data = 5;
    */
-  entityChangeData = "";
+  entityChangeData = ''
 
   constructor(data?: PartialMessage<PendingEntityChange>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.PendingEntityChange";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.PendingEntityChange'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "change_peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "epoch", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    { no: 3, name: "domain_identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "entity_change_type", kind: "enum", T: proto3.getEnumType(EntityChangeType) },
-    { no: 5, name: "entity_change_data", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    {
+      no: 1,
+      name: 'change_peer_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'epoch', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    {
+      no: 3,
+      name: 'domain_identifier',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 4,
+      name: 'entity_change_type',
+      kind: 'enum',
+      T: proto3.getEnumType(EntityChangeType),
+    },
+    {
+      no: 5,
+      name: 'entity_change_data',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PendingEntityChange {
-    return new PendingEntityChange().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): PendingEntityChange {
+    return new PendingEntityChange().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PendingEntityChange {
-    return new PendingEntityChange().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): PendingEntityChange {
+    return new PendingEntityChange().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PendingEntityChange {
-    return new PendingEntityChange().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): PendingEntityChange {
+    return new PendingEntityChange().fromJsonString(jsonString, options)
   }
 
-  static equals(a: PendingEntityChange | PlainMessage<PendingEntityChange> | undefined, b: PendingEntityChange | PlainMessage<PendingEntityChange> | undefined): boolean {
-    return proto3.util.equals(PendingEntityChange, a, b);
+  static equals(
+    a: PendingEntityChange | PlainMessage<PendingEntityChange> | undefined,
+    b: PendingEntityChange | PlainMessage<PendingEntityChange> | undefined,
+  ): boolean {
+    return proto3.util.equals(PendingEntityChange, a, b)
   }
 }
 
@@ -449,14 +575,14 @@ export class RegisterKeypair extends Message<RegisterKeypair> {
    *
    * @generated from field: string register_peer_id = 1;
    */
-  registerPeerId = "";
+  registerPeerId = ''
 
   /**
    * AuthMethodId is the authentication method to use.
    *
    * @generated from field: string auth_method_id = 2;
    */
-  authMethodId = "";
+  authMethodId = ''
 
   /**
    * AuthMethodState is the encoded change state object for the method.
@@ -465,35 +591,62 @@ export class RegisterKeypair extends Message<RegisterKeypair> {
    *
    * @generated from field: bytes auth_method_state = 3;
    */
-  authMethodState = new Uint8Array(0);
+  authMethodState = new Uint8Array(0)
 
   constructor(data?: PartialMessage<RegisterKeypair>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.RegisterKeypair";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.RegisterKeypair'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "register_peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "auth_method_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "auth_method_state", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-  ]);
+    {
+      no: 1,
+      name: 'register_peer_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 2,
+      name: 'auth_method_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 3,
+      name: 'auth_method_state',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RegisterKeypair {
-    return new RegisterKeypair().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): RegisterKeypair {
+    return new RegisterKeypair().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RegisterKeypair {
-    return new RegisterKeypair().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): RegisterKeypair {
+    return new RegisterKeypair().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RegisterKeypair {
-    return new RegisterKeypair().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): RegisterKeypair {
+    return new RegisterKeypair().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RegisterKeypair | PlainMessage<RegisterKeypair> | undefined, b: RegisterKeypair | PlainMessage<RegisterKeypair> | undefined): boolean {
-    return proto3.util.equals(RegisterKeypair, a, b);
+  static equals(
+    a: RegisterKeypair | PlainMessage<RegisterKeypair> | undefined,
+    b: RegisterKeypair | PlainMessage<RegisterKeypair> | undefined,
+  ): boolean {
+    return proto3.util.equals(RegisterKeypair, a, b)
   }
 }
 
@@ -510,33 +663,44 @@ export class RemoveKeypair extends Message<RemoveKeypair> {
    *
    * @generated from field: string peer_id = 1;
    */
-  peerId = "";
+  peerId = ''
 
   constructor(data?: PartialMessage<RemoveKeypair>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.RemoveKeypair";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.RemoveKeypair'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveKeypair {
-    return new RemoveKeypair().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): RemoveKeypair {
+    return new RemoveKeypair().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveKeypair {
-    return new RemoveKeypair().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): RemoveKeypair {
+    return new RemoveKeypair().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveKeypair {
-    return new RemoveKeypair().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): RemoveKeypair {
+    return new RemoveKeypair().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveKeypair | PlainMessage<RemoveKeypair> | undefined, b: RemoveKeypair | PlainMessage<RemoveKeypair> | undefined): boolean {
-    return proto3.util.equals(RemoveKeypair, a, b);
+  static equals(
+    a: RemoveKeypair | PlainMessage<RemoveKeypair> | undefined,
+    b: RemoveKeypair | PlainMessage<RemoveKeypair> | undefined,
+  ): boolean {
+    return proto3.util.equals(RemoveKeypair, a, b)
   }
 }
-

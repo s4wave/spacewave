@@ -2,8 +2,15 @@
 // @generated from file github.com/aperturerobotics/identity/domain/domain.proto (package identity.domain, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
 
 /**
  * DomainInfo contains information about the domain to show the user.
@@ -17,49 +24,65 @@ export class DomainInfo extends Message<DomainInfo> {
    *
    * @generated from field: string domain_id = 1;
    */
-  domainId = "";
+  domainId = ''
 
   /**
    * Name is the domain name to render (title).
    *
    * @generated from field: string name = 2;
    */
-  name = "";
+  name = ''
 
   /**
    * Description is the short description to show.
    *
    * @generated from field: string description = 3;
    */
-  description = "";
+  description = ''
 
   constructor(data?: PartialMessage<DomainInfo>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.DomainInfo";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.DomainInfo'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'domain_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 3,
+      name: 'description',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DomainInfo {
-    return new DomainInfo().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): DomainInfo {
+    return new DomainInfo().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DomainInfo {
-    return new DomainInfo().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): DomainInfo {
+    return new DomainInfo().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DomainInfo {
-    return new DomainInfo().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): DomainInfo {
+    return new DomainInfo().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DomainInfo | PlainMessage<DomainInfo> | undefined, b: DomainInfo | PlainMessage<DomainInfo> | undefined): boolean {
-    return proto3.util.equals(DomainInfo, a, b);
+  static equals(
+    a: DomainInfo | PlainMessage<DomainInfo> | undefined,
+    b: DomainInfo | PlainMessage<DomainInfo> | undefined,
+  ): boolean {
+    return proto3.util.equals(DomainInfo, a, b)
   }
 }
-

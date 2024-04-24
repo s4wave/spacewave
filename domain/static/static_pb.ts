@@ -2,10 +2,17 @@
 // @generated from file github.com/aperturerobotics/identity/domain/static/static.proto (package identity.domain.static, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
-import { DomainInfo } from "../domain_pb.js";
-import { Entity } from "../../identity_pb.js";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
+import { DomainInfo } from '../domain_pb.js'
+import { Entity } from '../../identity_pb.js'
 
 /**
  * Config is the static identity provider config.
@@ -20,21 +27,21 @@ export class Config extends Message<Config> {
    *
    * @generated from field: identity.domain.DomainInfo domain_info = 1;
    */
-  domainInfo?: DomainInfo;
+  domainInfo?: DomainInfo
 
   /**
    * Entities is the set of entities to make available on the domain.
    *
    * @generated from field: repeated identity.Entity entities = 2;
    */
-  entities: Entity[] = [];
+  entities: Entity[] = []
 
   /**
    * SilentNotFound indicates not found will not satistfy the lookup.
    *
    * @generated from field: bool silent_not_found = 3;
    */
-  silentNotFound = false;
+  silentNotFound = false
 
   /**
    * ResolveSelectIdentityDomain indicates this domain should resolve any
@@ -42,36 +49,57 @@ export class Config extends Message<Config> {
    *
    * @generated from field: bool resolve_select_identity_domain = 4;
    */
-  resolveSelectIdentityDomain = false;
+  resolveSelectIdentityDomain = false
 
   constructor(data?: PartialMessage<Config>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.static.Config";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.static.Config'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "domain_info", kind: "message", T: DomainInfo },
-    { no: 2, name: "entities", kind: "message", T: Entity, repeated: true },
-    { no: 3, name: "silent_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: "resolve_select_identity_domain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'domain_info', kind: 'message', T: DomainInfo },
+    { no: 2, name: 'entities', kind: 'message', T: Entity, repeated: true },
+    {
+      no: 3,
+      name: 'silent_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 4,
+      name: 'resolve_select_identity_domain',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Config {
-    return new Config().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): Config {
+    return new Config().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Config {
-    return new Config().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): Config {
+    return new Config().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Config {
-    return new Config().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): Config {
+    return new Config().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Config | PlainMessage<Config> | undefined, b: Config | PlainMessage<Config> | undefined): boolean {
-    return proto3.util.equals(Config, a, b);
+  static equals(
+    a: Config | PlainMessage<Config> | undefined,
+    b: Config | PlainMessage<Config> | undefined,
+  ): boolean {
+    return proto3.util.equals(Config, a, b)
   }
 }
-

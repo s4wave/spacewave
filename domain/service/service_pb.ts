@@ -2,9 +2,16 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/service.proto (package identity.domain.service, syntax proto3)
 /* eslint-disable */
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
-import { Entity } from "../../identity_pb.js";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from '@bufbuild/protobuf'
+import { Message, proto3, protoInt64, Timestamp } from '@bufbuild/protobuf'
+import { Entity } from '../../identity_pb.js'
 
 /**
  * EntityLookupIdentifier is the identifier to search.
@@ -17,41 +24,59 @@ export class EntityLookupIdentifier extends Message<EntityLookupIdentifier> {
    *
    * @generated from field: string domain_id = 1;
    */
-  domainId = "";
+  domainId = ''
 
   /**
    * EntityId is the id of the entity to search.
    *
    * @generated from field: string entity_id = 2;
    */
-  entityId = "";
+  entityId = ''
 
   constructor(data?: PartialMessage<EntityLookupIdentifier>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.service.EntityLookupIdentifier";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.service.EntityLookupIdentifier'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'domain_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'entity_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EntityLookupIdentifier {
-    return new EntityLookupIdentifier().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): EntityLookupIdentifier {
+    return new EntityLookupIdentifier().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EntityLookupIdentifier {
-    return new EntityLookupIdentifier().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): EntityLookupIdentifier {
+    return new EntityLookupIdentifier().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EntityLookupIdentifier {
-    return new EntityLookupIdentifier().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EntityLookupIdentifier {
+    return new EntityLookupIdentifier().fromJsonString(jsonString, options)
   }
 
-  static equals(a: EntityLookupIdentifier | PlainMessage<EntityLookupIdentifier> | undefined, b: EntityLookupIdentifier | PlainMessage<EntityLookupIdentifier> | undefined): boolean {
-    return proto3.util.equals(EntityLookupIdentifier, a, b);
+  static equals(
+    a:
+      | EntityLookupIdentifier
+      | PlainMessage<EntityLookupIdentifier>
+      | undefined,
+    b:
+      | EntityLookupIdentifier
+      | PlainMessage<EntityLookupIdentifier>
+      | undefined,
+  ): boolean {
+    return proto3.util.equals(EntityLookupIdentifier, a, b)
   }
 }
 
@@ -66,49 +91,61 @@ export class LookupEntityReq extends Message<LookupEntityReq> {
    *
    * @generated from field: identity.domain.service.EntityLookupIdentifier identifier = 1;
    */
-  identifier?: EntityLookupIdentifier;
+  identifier?: EntityLookupIdentifier
 
   /**
    * Timestamp is the timestamp of the request.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 2;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
 
   /**
    * Nonce is a random one-time uint64.
    *
    * @generated from field: uint64 nonce = 3;
    */
-  nonce = protoInt64.zero;
+  nonce = protoInt64.zero
 
   constructor(data?: PartialMessage<LookupEntityReq>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.service.LookupEntityReq";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.service.LookupEntityReq'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "identifier", kind: "message", T: EntityLookupIdentifier },
-    { no: 2, name: "timestamp", kind: "message", T: Timestamp },
-    { no: 3, name: "nonce", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-  ]);
+    { no: 1, name: 'identifier', kind: 'message', T: EntityLookupIdentifier },
+    { no: 2, name: 'timestamp', kind: 'message', T: Timestamp },
+    { no: 3, name: 'nonce', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LookupEntityReq {
-    return new LookupEntityReq().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): LookupEntityReq {
+    return new LookupEntityReq().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LookupEntityReq {
-    return new LookupEntityReq().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): LookupEntityReq {
+    return new LookupEntityReq().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LookupEntityReq {
-    return new LookupEntityReq().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): LookupEntityReq {
+    return new LookupEntityReq().fromJsonString(jsonString, options)
   }
 
-  static equals(a: LookupEntityReq | PlainMessage<LookupEntityReq> | undefined, b: LookupEntityReq | PlainMessage<LookupEntityReq> | undefined): boolean {
-    return proto3.util.equals(LookupEntityReq, a, b);
+  static equals(
+    a: LookupEntityReq | PlainMessage<LookupEntityReq> | undefined,
+    b: LookupEntityReq | PlainMessage<LookupEntityReq> | undefined,
+  ): boolean {
+    return proto3.util.equals(LookupEntityReq, a, b)
   }
 }
 
@@ -123,57 +160,73 @@ export class LookupEntityResp extends Message<LookupEntityResp> {
    *
    * @generated from field: identity.domain.service.EntityLookupIdentifier identifier = 1;
    */
-  identifier?: EntityLookupIdentifier;
+  identifier?: EntityLookupIdentifier
 
   /**
    * LookupError contains any error looking up the entity.
    *
    * @generated from field: string lookup_error = 2;
    */
-  lookupError = "";
+  lookupError = ''
 
   /**
    * NotFound indicates if the error indicates a not found.
    *
    * @generated from field: bool not_found = 3;
    */
-  notFound = false;
+  notFound = false
 
   /**
    * LookupEntity is the result of the lookup.
    *
    * @generated from field: identity.Entity lookup_entity = 4;
    */
-  lookupEntity?: Entity;
+  lookupEntity?: Entity
 
   constructor(data?: PartialMessage<LookupEntityResp>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "identity.domain.service.LookupEntityResp";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'identity.domain.service.LookupEntityResp'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "identifier", kind: "message", T: EntityLookupIdentifier },
-    { no: 2, name: "lookup_error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: "lookup_entity", kind: "message", T: Entity },
-  ]);
+    { no: 1, name: 'identifier', kind: 'message', T: EntityLookupIdentifier },
+    {
+      no: 2,
+      name: 'lookup_error',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 3, name: 'not_found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'lookup_entity', kind: 'message', T: Entity },
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LookupEntityResp {
-    return new LookupEntityResp().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): LookupEntityResp {
+    return new LookupEntityResp().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LookupEntityResp {
-    return new LookupEntityResp().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): LookupEntityResp {
+    return new LookupEntityResp().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LookupEntityResp {
-    return new LookupEntityResp().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): LookupEntityResp {
+    return new LookupEntityResp().fromJsonString(jsonString, options)
   }
 
-  static equals(a: LookupEntityResp | PlainMessage<LookupEntityResp> | undefined, b: LookupEntityResp | PlainMessage<LookupEntityResp> | undefined): boolean {
-    return proto3.util.equals(LookupEntityResp, a, b);
+  static equals(
+    a: LookupEntityResp | PlainMessage<LookupEntityResp> | undefined,
+    b: LookupEntityResp | PlainMessage<LookupEntityResp> | undefined,
+  ): boolean {
+    return proto3.util.equals(LookupEntityResp, a, b)
   }
 }
-
