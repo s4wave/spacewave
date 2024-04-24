@@ -134,7 +134,7 @@ func BuildDistBus(
 	}
 
 	// run the config set
-	if len(configSetProto.GetConfigurations()) != 0 {
+	if len(configSetProto.GetConfigs()) != 0 {
 		configSet, err := configSetProto.Resolve(ctx, b)
 		if err != nil {
 			rel()

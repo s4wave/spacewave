@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/bifrost/util/labels"
 	"github.com/aperturerobotics/hydra/block"
 	unixfs_block "github.com/aperturerobotics/hydra/unixfs/block"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v5"
 	"github.com/pkg/errors"
 )

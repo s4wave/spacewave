@@ -72,7 +72,7 @@ func BuildDistBundle(
 	var hostConfigSetBin []byte
 	if len(hostConfigSet) != 0 {
 		configSetObj := &configset_proto.ConfigSet{
-			Configurations: hostConfigSet,
+			Configs: hostConfigSet,
 		}
 		var err error
 		hostConfigSetBin, err = configSetObj.MarshalVT()

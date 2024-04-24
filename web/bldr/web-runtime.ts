@@ -13,14 +13,13 @@ import {
   ChannelStream,
   castToError,
   ChannelStreamOpts,
+  MessageStream,
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import { Duplex, Source } from 'it-stream-types'
 
 import {
   WebRuntimeClientInit,
-  WebRuntime as WebRuntimeService,
-  WebRuntimeDefinition,
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
   RemoveWebDocumentRequest,
@@ -28,12 +27,16 @@ import {
   WebRuntimeStatus,
   WebDocumentStatus,
   WebRuntimeClientType,
-  webRuntimeClientTypeToJSON,
-  WebRuntimeHostClientImpl,
-} from '../runtime/runtime.pb.js'
+} from '../runtime/runtime_pb.js'
+import {
+  WebRuntime as WebRuntimeService,
+  WebRuntimeDefinition,
+  WebRuntimeHostClient,
+} from '../runtime/runtime_srpc.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { timeoutPromise } from './timeout.js'
+import { PartialMessage, PlainMessage, proto3 } from '@bufbuild/protobuf'
 
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
@@ -199,14 +202,14 @@ class WebRuntimeImpl implements WebRuntimeService {
   constructor(private readonly host: WebRuntime) {}
 
   // WatchWebRuntimeStatus returns an initial snapshot of WebRuntimes followed by updates.
-  public WatchWebRuntimeStatus(): AsyncIterable<WebRuntimeStatus> {
+  public WatchWebRuntimeStatus(): MessageStream<WebRuntimeStatus> {
     return this.host.statusStream.getIterable()
   }
 
   // CreateWebDocument requests to create a new WebDocument.
   public async CreateWebDocument(
     request: CreateWebDocumentRequest,
-  ): Promise<CreateWebDocumentResponse> {
+  ): Promise<PlainMessage<CreateWebDocumentResponse>> {
     const createCb = this.host.createDocCb
     if (!createCb) {
       return { created: false }
@@ -217,7 +220,7 @@ class WebRuntimeImpl implements WebRuntimeService {
   // RemoveWebDocument requests to remove a WebDocument.
   public async RemoveWebDocument(
     request: RemoveWebDocumentRequest,
-  ): Promise<RemoveWebDocumentResponse> {
+  ): Promise<PlainMessage<RemoveWebDocumentResponse>> {
     const removeCb = this.host.removeDocCb
     if (!removeCb) {
       return { removed: false }
@@ -227,8 +230,8 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // WebDocumentRpc opens a stream for a RPC call to a WebDocument.
   public WebDocumentRpc(
-    request: AsyncIterable<RpcStreamPacket>,
-  ): AsyncIterable<RpcStreamPacket> {
+    request: MessageStream<RpcStreamPacket>,
+  ): MessageStream<RpcStreamPacket> {
     return handleRpcStream(
       request[Symbol.asyncIterator](),
       this.buildWebDocumentRpcGetter(),
@@ -237,8 +240,8 @@ class WebRuntimeImpl implements WebRuntimeService {
 
   // WebWorkerRpc opens a stream for a RPC call to a WebWorker.
   public WebWorkerRpc(
-    request: AsyncIterable<RpcStreamPacket>,
-  ): AsyncIterable<RpcStreamPacket> {
+    request: MessageStream<RpcStreamPacket>,
+  ): MessageStream<RpcStreamPacket> {
     return handleRpcStream(
       request[Symbol.asyncIterator](),
       this.buildWebWorkerRpcGetter(),
@@ -277,13 +280,13 @@ class WebRuntimeImpl implements WebRuntimeService {
 
 // CreateWebDocumentFunc is a function to create a WebDocument.
 export type CreateWebDocumentFunc = (
-  req: CreateWebDocumentRequest,
-) => Promise<CreateWebDocumentResponse>
+  req: PartialMessage<CreateWebDocumentRequest>,
+) => Promise<PlainMessage<CreateWebDocumentResponse>>
 
 // RemoveWebDocumentFunc is a function to remove a WebDocument.
 export type RemoveWebDocumentFunc = (
-  req: RemoveWebDocumentRequest,
-) => Promise<RemoveWebDocumentResponse>
+  req: PartialMessage<RemoveWebDocumentRequest>,
+) => Promise<PlainMessage<RemoveWebDocumentResponse>>
 
 // WebRuntime implements the WebDocumentHost with a SharedWorker.
 export class WebRuntime {
@@ -297,17 +300,17 @@ export class WebRuntime {
   // runtimeClient is the RPC client for the WebRuntimeHost.
   private runtimeClient: RPCClient
   // runtimeHost is the WebRuntimeHost.
-  public readonly runtimeHost: WebRuntimeHostClientImpl
+  public readonly runtimeHost: WebRuntimeHostClient
 
   // _webStatusUpdates is a stream of web status updates.
-  public readonly statusStream: ItState<WebRuntimeStatus>
+  public readonly statusStream: ItState<PlainMessage<WebRuntimeStatus>>
 
   // clients contains the list of attached WebRuntime clients.
   // keyed by client ID
   private clients: Record<string, WebRuntimeClientInstance> = {}
   // webDocuments contains the list of attached WebDocuments.
   // keyed by web document ID
-  private webDocuments: Record<string, WebDocumentStatus> = {}
+  private webDocuments: Record<string, PlainMessage<WebDocumentStatus>> = {}
 
   // closed indicates the instance is closed.
   private closed?: true
@@ -334,13 +337,13 @@ export class WebRuntime {
     this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethodFunc)
 
     // Setup the status stream.
-    this.statusStream = new ItState<WebRuntimeStatus>(
+    this.statusStream = new ItState<PlainMessage<WebRuntimeStatus>>(
       this.buildWebRuntimeStatusSnapshot.bind(this),
     )
 
     // Setup the runtime client.
     this.runtimeClient = new RPCClient(openStreamFn)
-    this.runtimeHost = new WebRuntimeHostClientImpl(this.runtimeClient)
+    this.runtimeHost = new WebRuntimeHostClient(this.runtimeClient)
   }
 
   // getWebRuntimeServer returns the srpc Server for the web runtime service.
@@ -399,7 +402,9 @@ export class WebRuntime {
       existing.close()
     }
 
-    const clientTypeStr = webRuntimeClientTypeToJSON(msg.clientType)
+    const clientTypeStr =
+      proto3.getEnumType(WebRuntimeClientType).findNumber(msg.clientType)
+        ?.name ?? 'unknown'
     console.log(
       `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
     )
@@ -408,7 +413,7 @@ export class WebRuntime {
     if (
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     ) {
-      const status = <WebDocumentStatus>{
+      const status: PlainMessage<WebDocumentStatus> = {
         id: clientUuid,
         deleted: false,
         permanent: false,
@@ -431,7 +436,7 @@ export class WebRuntime {
     delete this.clients[clientUuid]
 
     const clientType = client.init.clientType
-    const clientTypeStr = webRuntimeClientTypeToJSON(clientType)
+    const clientTypeStr = proto3.getEnumType(WebRuntimeClientType).findNumber(clientType)?.name ?? "unknown"
     console.log(
       `WebRuntime: ${this.webRuntimeId}: removed client: ${clientUuid} type ${clientTypeStr}`,
     )
@@ -458,12 +463,12 @@ export class WebRuntime {
   // buildWebRuntimeStatusSnapshot builds a snapshot of the status.
   // if allWorkers is set, includes web views from other active workers.
   // prevents duplicate web view entries
-  public async buildWebRuntimeStatusSnapshot(): Promise<WebRuntimeStatus> {
+  public async buildWebRuntimeStatusSnapshot(): Promise<PlainMessage<WebRuntimeStatus>> {
     if (this.closed) {
       return { snapshot: true, closed: true, webDocuments: [] }
     }
 
-    const webDocuments: WebDocumentStatus[] = []
+    const webDocuments: PlainMessage<WebDocumentStatus>[] = []
     for (const webDocumentId of Object.keys(this.webDocuments)) {
       const webDocument = this.webDocuments[webDocumentId]
       if (webDocumentId && webDocument) {

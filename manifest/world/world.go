@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
@@ -438,7 +438,7 @@ func CreateManifestBundle(
 	ts *timestamp.Timestamp,
 ) (*bldr_manifest.ManifestBundle, *bucket.ObjectRef, error) {
 	manifestObjKeys = slices.Clone(manifestObjKeys)
-	bundle := &bldr_manifest.ManifestBundle{Timestamp: ts.Clone()}
+	bundle := &bldr_manifest.ManifestBundle{Timestamp: ts.CloneVT()}
 
 	// check for existing linked object keys
 	existingManifests, _, err := CollectManifests(ctx, ws, "", objKey)

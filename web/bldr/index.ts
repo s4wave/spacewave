@@ -28,4 +28,4 @@ export {
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
   HtmlLink,
-} from '../view/view.pb.js'
+} from '../view/view_pb.js'

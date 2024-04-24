@@ -1,4 +1,5 @@
 import {
+  MessageStream,
   Mux,
   PacketStream,
   RpcStreamPacket,
@@ -8,10 +9,10 @@ import {
 } from 'starpc'
 import { PluginWorker } from '../../runtime/plugin-worker.js'
 import {
-  PluginDefinition,
   Plugin as SRPCPlugin,
-} from '../../../plugin/plugin.pb.js'
-import { WebPluginBrowserHostClientImpl } from './browser.pb.js'
+  PluginDefinition,
+} from '../../../plugin/plugin_srpc.pb.js'
+import { WebPluginBrowserHostClient } from './browser_srpc.pb.js'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope
@@ -35,9 +36,7 @@ const webRuntimeClient = pluginWorker.webRuntimeClient
 const webRuntimeRpcClient = webRuntimeClient.rpcClient
 
 // webPluginBrowserHost is the web plugin browser host controller running on the web runtime host bus.
-const webPluginBrowserHost = new WebPluginBrowserHostClientImpl(
-  webRuntimeRpcClient,
-)
+const webPluginBrowserHost = new WebPluginBrowserHostClient(webRuntimeRpcClient)
 
 // Plugin implements the bldr.plugin.Plugin service.
 class Plugin implements SRPCPlugin {
@@ -58,9 +57,9 @@ class Plugin implements SRPCPlugin {
    * Component ID: remote plugin id
    */
   public PluginRpc(
-    request: AsyncIterable<RpcStreamPacket>,
+    request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
-  ): AsyncIterable<RpcStreamPacket> {
+  ): MessageStream<RpcStreamPacket> {
     console.log('WebPluginBrowser: forwarding incoming stream to host')
     return webPluginBrowserHost.PluginRpc(request, abortSignal)
   }

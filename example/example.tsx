@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import {
   renderProto,
-  useWebViewHostClient,
   DebugInfo,
   DebugInfoDisplay,
   DebugInfoProvider,
@@ -9,32 +8,36 @@ import {
 } from '@aptre/bldr-react'
 import { retryWithAbort, isMac, isElectron } from '@aptre/bldr'
 
-import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
-import { ExampleProps } from './example.pb.js'
+import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
+import { ExampleProps } from './example_pb.js'
 
 import './example.css'
+import { PlainMessage } from '@bufbuild/protobuf'
+import { useWebViewHostServiceClient } from 'web/bldr-react/hooks.js'
 
 // Example is an example of a functional react component accessing a host rpc.
-const Example: React.FC<ExampleProps> = (props: ExampleProps) => {
+const Example: React.FC<PlainMessage<ExampleProps>> = (props) => {
   const [message, setMessage] = useState<string | undefined>(undefined)
 
-  useWebViewHostClient((client, abortSignal) => {
-    const host = new EchoerClientImpl(client)
-    retryWithAbort(
-      abortSignal,
-      async () => {
-        const resp = await host.Echo({
-          body: props.msg,
-        })
-        setMessage(resp?.body)
-      },
-      {
-        errorCb: (err) => {
-          console.warn('example Echo failed', err)
+  useWebViewHostServiceClient<EchoerClient>(
+    (c) => new EchoerClient(c),
+    (host, abortSignal) => {
+      retryWithAbort(
+        abortSignal,
+        async () => {
+          const resp = await host.Echo({
+            body: props.msg,
+          })
+          setMessage(resp?.body)
         },
-      },
-    )
-  })
+        {
+          errorCb: (err) => {
+            console.warn('example Echo failed', err)
+          },
+        },
+      )
+    },
+  )
 
   return (
     <DebugInfoProvider>

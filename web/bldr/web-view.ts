@@ -1,13 +1,14 @@
 import type { Client, InvokeFn } from 'starpc'
 
-import type { WebViewStatus } from '../document/document.pb.js'
+import type { WebViewStatus } from '../document/document_pb.js'
 import {
-  WebViewHostClientImpl,
   SetRenderModeRequest,
   SetRenderModeResponse,
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
-} from '../view/view.pb.js'
+} from '../view/view_pb.js'
+import { WebViewHostClient } from '../view/view_srpc.pb.js'
+import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
@@ -23,8 +24,8 @@ export interface WebView {
   // setRenderMode sets the render mode of the view.
   // if wait=true, should wait for op to complete before returning.
   setRenderMode(
-    options: SetRenderModeRequest,
-  ): Promise<SetRenderModeResponse | void>
+    options: PartialMessage<SetRenderModeRequest>,
+  ): Promise<PartialMessage<SetRenderModeResponse> | void>
   // setHtmlLinks sets or updates the list of HTML links.
   setHtmlLinks(
     options: SetHtmlLinksRequest,
@@ -41,7 +42,7 @@ export interface WebViewRegistration {
   // rpcClient is the RPC client for the WebViewHost.
   readonly rpcClient: Client
   // webViewHost is the service attached to the rpcClient.
-  readonly webViewHost: WebViewHostClientImpl
+  readonly webViewHost: WebViewHostClient
   // release indicates that the web view has been shutdown.
   release(): void
 }
@@ -51,7 +52,7 @@ export interface WebViewRegistration {
 export function buildWebViewStatus(
   webViewId: string,
   webView?: WebView,
-): WebViewStatus {
+): PlainMessage<WebViewStatus> {
   return {
     id: webViewId,
     deleted: !webView,

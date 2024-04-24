@@ -18,11 +18,12 @@ import {
   RemoveWebDocumentRequest,
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
-} from '../../runtime/runtime.pb.js'
+} from '../../runtime/runtime_pb.js'
 import { APP_SCHEME, appRequestHandler } from './protocol.js'
-import { ServiceWorkerHostClientImpl } from '../../runtime/sw/sw.pb.js'
+import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../../fetch/fetch.js'
 import { messagePortMainToMessagePort } from './ipc.js'
+import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
 
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
@@ -39,8 +40,8 @@ export class BldrElectronApp {
   public readonly webRuntimeHostOpenStreamCtr: OpenStreamCtr
   // serviceWorkerHostClient contacts the ServiceWorkerHost via the webRuntime
   public readonly serviceWorkerHostClient: SRPCClient
-  // serviceWorkerHostClientImpl is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
-  public readonly serviceWorkerHostClientImpl: ServiceWorkerHostClientImpl
+  // serviceWorkerHostClient is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
+  public readonly serviceWorkerHostServiceClient: ServiceWorkerHostClient
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
@@ -69,7 +70,7 @@ export class BldrElectronApp {
     )
 
     // swHost is the RPC client for the ServiceWorkerHost.
-    this.serviceWorkerHostClientImpl = new ServiceWorkerHostClientImpl(
+    this.serviceWorkerHostServiceClient = new ServiceWorkerHostClient(
       this.serviceWorkerHostClient,
     )
   }
@@ -93,7 +94,7 @@ export class BldrElectronApp {
     clientId?: string,
   ): Promise<GlobalResponse> {
     return proxyFetch(
-      this.serviceWorkerHostClientImpl,
+      this.serviceWorkerHostServiceClient,
       req,
       clientId ?? 'electron:main',
     )
@@ -117,7 +118,7 @@ export class BldrElectronApp {
 
   private setupWebRuntimeClientPort() {
     ipcMain.on('BLDR_ELECTRON_CLIENT_OPEN', async (event, init: Uint8Array) => {
-      const initMsg = WebRuntimeClientInit.decode(init)
+      const initMsg = WebRuntimeClientInit.fromBinary(init)
       const clientPort = event.ports[0]
       this.webRuntime.handleClient(
         initMsg,
@@ -220,14 +221,18 @@ export class BldrElectronApp {
 
   // runtimeCreateWebDocument is called by the WebRuntimeHost to create a new WebDocument.
   private async createWebDocument(
-    req: CreateWebDocumentRequest,
-  ): Promise<CreateWebDocumentResponse> {
+    req: PartialMessage<CreateWebDocumentRequest>,
+  ): Promise<PlainMessage<CreateWebDocumentResponse>> {
+    const id = req.id
+    if (!id) {
+      return { created: false }
+    }
     const nwindow = this.createWindow(`#webDocumentUuid=${req.id}`)
-    this.browserWindows[req.id] = nwindow
+    this.browserWindows[id] = nwindow
     nwindow.on('closed', () => {
-      if (this.browserWindows[req.id] === nwindow) {
-        delete this.browserWindows[req.id]
-        this.webRuntime.removeConnection(req.id)
+      if (this.browserWindows[id] === nwindow) {
+        delete this.browserWindows[id]
+        this.webRuntime.removeConnection(id)
       }
     })
     return { created: true }
@@ -235,9 +240,9 @@ export class BldrElectronApp {
 
   // runtimeRemoveWebDocument is called to remove a browser window.
   private async removeWebDocument(
-    req: RemoveWebDocumentRequest,
-  ): Promise<RemoveWebDocumentResponse> {
-    const doc = this.browserWindows[req.id]
+    req: PartialMessage<RemoveWebDocumentRequest>,
+  ): Promise<PlainMessage<RemoveWebDocumentResponse>> {
+    const doc = req.id && this.browserWindows[req.id]
     if (!doc) {
       return { removed: false }
     }

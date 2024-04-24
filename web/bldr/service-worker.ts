@@ -1,7 +1,7 @@
 import { castToError } from 'starpc'
-import { ServiceWorkerHostClientImpl } from '../runtime/sw/sw.pb.js'
+import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
-import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
+import { WebRuntimeClientType } from '../runtime/runtime_pb.js'
 import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'
@@ -56,7 +56,7 @@ const webRuntimeClient = webDocumentTracker.webRuntimeClient
 const swHostClient = webRuntimeClient.rpcClient
 
 // swHost is the RPC client for the ServiceWorkerHost.
-const swHost = new ServiceWorkerHostClientImpl(swHostClient)
+const swHost = new ServiceWorkerHostClient(swHostClient)
 
 // install is the beginning of service worker registration.
 // setup resources such as offline caches.

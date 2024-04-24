@@ -1,4 +1,4 @@
-import { MessageDefinition } from 'starpc'
+import { Message, MessageType } from '@bufbuild/protobuf'
 
 // IRenderProtoProps are props passed to an imported ReactComponent.
 export interface IRenderProtoProps {
@@ -16,11 +16,11 @@ export type LoadedProtoComponent = React.LazyExoticComponent<ProtoComponentType>
 export type ProtoRenderFunc = React.FC<IRenderProtoProps>
 
 // renderProto wraps a render function with parsing a protobuf props object.
-export function renderProto<T>(
-  def: MessageDefinition<T>,
+export function renderProto<T extends Message<T>>(
+  def: MessageType<T>,
   render: React.FC<T>,
 ): ProtoRenderFunc {
   return (props: IRenderProtoProps) => {
-    return render(def.decode(props.componentProps || new Uint8Array(0)))
+    return render(def.fromBinary(props.componentProps || new Uint8Array(0)))
   }
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
@@ -269,7 +269,7 @@ func (c *Controller) BuildManifest(
 				manifestObjKey,
 				[]string{manifestStoreObjKey},
 				embedOpPeerID,
-				buildTimestamp.Clone(),
+				buildTimestamp.CloneVT(),
 			)
 			if err != nil {
 				embedTx.Discard()

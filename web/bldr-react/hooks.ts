@@ -22,7 +22,7 @@ import { ValueCallback } from './callback.js'
 // Destructor is the destructor type from React.
 export type Destructor = () => void
 
-// WebViewHostClientEffect is the callback function type for useWebViewHostClientImpl.
+// WebViewHostClientEffect is the callback function type for useWebViewHostClient.
 export type WebViewHostClientEffect = (
   client: Client,
   abortSignal: AbortSignal,
@@ -57,8 +57,8 @@ export function useWebViewHostClient(
   )
 }
 
-// WebViewHostClientImplEffect is the callback function type for useWebViewHostClientImpl.
-export type WebViewHostClientImplEffect<T> = (
+// WebViewHostServiceClientEffect is the callback function type for useWebViewHostServiceClient.
+export type WebViewHostServiceClientEffect<T> = (
   impl: T,
   abortSignal: AbortSignal,
   webDocument: BldrWebDocument,
@@ -66,10 +66,10 @@ export type WebViewHostClientImplEffect<T> = (
   client: Client,
 ) => void | Destructor
 
-// useWebViewHostClientImpl builds a client implementation and abort signal for the web view host.
-export function useWebViewHostClientImpl<T>(
+// useWebViewHostServiceClient builds a client implementation and abort signal for the web view host.
+export function useWebViewHostServiceClient<T>(
   ctor: (c: Client) => T,
-  effect: WebViewHostClientImplEffect<T>,
+  effect: WebViewHostServiceClientEffect<T>,
   deps?: DependencyList,
 ) {
   useWebViewHostClient((client, abortSignal, webDocument, webView) => {
@@ -77,17 +77,17 @@ export function useWebViewHostClientImpl<T>(
   }, deps)
 }
 
-// createWebViewHostClientImplEffect creates a useEffect function which calls useWebViewHostClientImpl.
-export function createWebViewHostClientImplEffect<T>(
+// createWebViewHostClientEffect creates a useEffect function which calls useWebViewHostClient.
+export function createWebViewHostClientEffect<T>(
   ctor: (c: Client) => T,
-): (effect: WebViewHostClientImplEffect<T>, deps?: DependencyList) => void {
-  return (effect: WebViewHostClientImplEffect<T>, deps?: DependencyList) => {
-    useWebViewHostClientImpl<T>(ctor, effect, deps)
+): (effect: WebViewHostServiceClientEffect<T>, deps?: DependencyList) => void {
+  return (effect: WebViewHostServiceClientEffect<T>, deps?: DependencyList) => {
+    useWebViewHostServiceClient<T>(ctor, effect, deps)
   }
 }
 
-// createWebViewHostClientImplState creates a useState function for calling a rpc service impl.
-export function createWebViewHostClientImplState<T>(
+// createWebViewHostClientState creates a useState function for calling a rpc service impl.
+export function createWebViewHostClientState<T>(
   ctor: (c: Client) => T,
 ): (deps?: DependencyList) => T | undefined {
   return (deps?: DependencyList) => {

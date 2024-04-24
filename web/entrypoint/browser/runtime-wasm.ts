@@ -2,7 +2,7 @@ import { MessagePortDuplex, OpenStreamCtr, PacketStream } from 'starpc'
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
-} from '../../runtime/runtime.pb.js'
+} from '../../runtime/runtime_pb.js'
 import { WebDocumentToWebRuntime } from '../../runtime/runtime.js'
 import {
   CreateWebDocumentFunc,
@@ -86,9 +86,9 @@ function startGoRuntime(webRuntimeId: string) {
   goStarted = true
 
   // Configure the BLDR_INIT global
-  global.BLDR_INIT = WebRuntimeHostInit.encode({
+  global.BLDR_INIT = new WebRuntimeHostInit({
     webRuntimeId,
-  }).finish()
+  }).toBinary()
 
   // Start the Go process
   goProcess.start()
@@ -133,7 +133,7 @@ self.addEventListener('connect', (ev) => {
     if (msg.connectWebRuntime && ev.ports.length) {
       // handle the incoming client
       webRuntime.handleClient(
-        WebRuntimeClientInit.decode(msg.connectWebRuntime.init),
+        WebRuntimeClientInit.fromBinary(msg.connectWebRuntime.init),
         msg.connectWebRuntime.port ?? ev.ports[0],
       )
     }

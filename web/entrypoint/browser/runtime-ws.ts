@@ -5,20 +5,21 @@ import {
   combineUint8ArrayListTransform,
 } from 'starpc'
 import { pipe } from 'it-pipe'
+import { defaultLogger } from '@libp2p/logger'
+import { PlainMessage } from '@bufbuild/protobuf'
 
 import { duplex } from '@aptre/it-ws'
 
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
-} from '../../runtime/runtime.pb.js'
-import { WebDocumentToWebRuntime } from '../..//runtime/runtime.js'
+} from '../../runtime/runtime_pb.js'
+import { WebDocumentToWebRuntime } from '../../runtime/runtime.js'
 import {
   CreateWebDocumentFunc,
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
-import { defaultLogger } from '@libp2p/logger'
 
 // https://github.com/microsoft/TypeScript/issues/14877
 declare let self: SharedWorkerGlobalScope
@@ -52,7 +53,7 @@ async function connectWebsocket(address: string): Promise<WebSocket> {
   })
 }
 
-async function startWsRuntime(msg: WebRuntimeHostInit) {
+async function startWsRuntime(msg: PlainMessage<WebRuntimeHostInit>) {
   // clear any existing open stream func
   openStreamCtr.set(undefined)
   console.log(
@@ -81,7 +82,7 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   openStreamCtr.set(openStream)
 }
 
-async function startWsRuntimeWithRetry(msg: WebRuntimeHostInit) {
+async function startWsRuntimeWithRetry(msg: PlainMessage<WebRuntimeHostInit>) {
   startWsRuntime(msg).catch((e) => {
     openStreamCtr.set(undefined)
     console.error('start runtime failed, will retry', e)
@@ -127,7 +128,7 @@ self.addEventListener('connect', (ev) => {
     if (msg.connectWebRuntime && ev.ports.length) {
       // handle the incoming client
       webRuntime.handleClient(
-        WebRuntimeClientInit.decode(msg.connectWebRuntime.init),
+        WebRuntimeClientInit.fromBinary(msg.connectWebRuntime.init),
         msg.connectWebRuntime.port ?? ev.ports[0],
       )
     }

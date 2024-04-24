@@ -1,5 +1,6 @@
 import React from 'react'
 
+import { PlainMessage } from '@bufbuild/protobuf'
 import {
   // createFunctionComponent,
   BldrComponent,
@@ -7,10 +8,10 @@ import {
   renderProto,
 } from '@aptre/bldr-react'
 import { retryWithAbort } from '@aptre/bldr'
-import { EchoerClientImpl } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
+import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 
 import './example.css'
-import { ExampleProps } from './example.pb.js'
+import { ExampleProps } from './example_pb.js'
 
 // IExampleState contains state for Example.
 interface IExampleState {
@@ -19,8 +20,11 @@ interface IExampleState {
 
 // ClassExample is an example of a class component implementing Example.
 // This is no longer recommended (use function components).
-export class Example extends BldrComponent<ExampleProps, IExampleState> {
-  private echoHost?: EchoerClientImpl
+export class Example extends BldrComponent<
+  PlainMessage<ExampleProps>,
+  IExampleState
+> {
+  private echoHost?: EchoerClient
 
   constructor(props: ExampleProps) {
     super(props)
@@ -28,7 +32,7 @@ export class Example extends BldrComponent<ExampleProps, IExampleState> {
   }
 
   public componentDidMount() {
-    this.echoHost = new EchoerClientImpl(this.buildWebViewHostClient())
+    this.echoHost = new EchoerClient(this.buildWebViewHostClient())
     retryWithAbort(this.abortController.signal, this.runEchoRpc.bind(this), {
       errorCb: (err) => {
         console.warn('example Echo failed', err)

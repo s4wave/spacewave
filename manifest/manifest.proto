@@ -3,7 +3,7 @@ package bldr.manifest;
 
 import "github.com/aperturerobotics/hydra/block/block.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // ManifestMeta is basic metadata about a manifest.
 message ManifestMeta {
@@ -49,7 +49,7 @@ message ManifestBundle {
   // ManifestRefs contains the set of manifest references.
   repeated ManifestRef manifest_refs = 1;
   // Timestamp is the timestamp the bundle was created.
-  .timestamp.Timestamp timestamp = 2;
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 // ManifestSnapshot is a manifest reference with the manifest value fetched.

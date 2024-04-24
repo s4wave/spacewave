@@ -67,7 +67,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	hostClient := hostClients[0]
 	pluginHostClient := plugin.NewSRPCPluginHostClientWithServiceID(hostClient, serviceID)
 	status, err := pluginHostClient.ExecController(ctx, &controller_exec.ExecControllerRequest{
-		ConfigSet: &configset_proto.ConfigSet{Configurations: configSet},
+		ConfigSet: &configset_proto.ConfigSet{Configs: configSet},
 	})
 	if err != nil {
 		return err

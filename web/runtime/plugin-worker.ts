@@ -1,7 +1,7 @@
 import { HandleStreamFn } from '../bldr/web-runtime-client.js'
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
 import { WebDocumentToWorker } from './runtime.js'
-import { WebRuntimeClientType } from './runtime.pb.js'
+import { WebRuntimeClientType } from './runtime_pb.js'
 
 export function checkSharedWorker(
   scope: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope,

@@ -1,8 +1,8 @@
 import React from 'react'
 import { createRoot, RootOptions } from 'react-dom/client'
 import { IBldrContext, BldrContext } from './bldr-context.js'
-import { MessageDefinition } from 'starpc'
 import { ProtoRenderFunc, renderProto } from './react-component.js'
+import { Message, MessageType } from '@bufbuild/protobuf'
 
 // FunctionComponent is a function that instantiates a sub-component.
 // Returns a function to call when releasing the component.
@@ -35,8 +35,8 @@ export function createReactFunctionComponent(
 
 // createReactProtoFunctionComponent builds a FunctionComponent from a React component with a protobuf props message.
 // NOTE: not recommended: use ReactComponent instead.
-export function createReactProtoFunctionComponent<T>(
-  def: MessageDefinition<T>,
+export function createReactProtoFunctionComponent<T extends Message<T>>(
+  def: MessageType<T>,
   render: (props: T) => React.ReactNode | JSX.Element | undefined,
   rootOptions?: RootOptions,
 ): FunctionComponent {

@@ -40,7 +40,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // ControllerID is the compiler controller ID.
@@ -279,7 +278,7 @@ func (c *Controller) BuildManifest(
 				return nil
 			}
 
-			configBin, err := jsonpb.Marshal(conf)
+			configBin, err := conf.MarshalJSON()
 			if err != nil {
 				if err == context.Canceled {
 					return err
@@ -875,7 +874,7 @@ func (c *Controller) BuildPlugin(
 	var configSetBin []byte
 	if len(embedConfigSet) != 0 {
 		configSetObj := &configset_proto.ConfigSet{
-			Configurations: embedConfigSet,
+			Configs: embedConfigSet,
 		}
 		configSetBin, err = configSetObj.MarshalVT()
 		if err != nil {
@@ -922,7 +921,7 @@ func (c *Controller) BuildPlugin(
 				return nil, nil, err
 			}
 
-			outDistBinary = brPath
+			outDistBinary = brPath //nolint
 			outBinName = filepath.Base(brPath)
 		}
 	} else {

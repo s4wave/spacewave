@@ -5,12 +5,15 @@ import { pushable } from 'it-pushable'
 import { castToError, buildPushableSink } from 'starpc'
 
 import {
-  FetchService,
   FetchRequestInfo,
   FetchResponse,
   ResponseInfo,
   FetchRequest,
-} from './fetch.pb.js'
+} from './fetch_pb.js'
+import {
+  FetchService,
+} from './fetch_srpc.pb.js'
+import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
 
 // buildFetchHeaders builds a Headers map from a Headers object.
 export function buildFetchHeaders(headers: Headers): Record<string, string> {
@@ -26,7 +29,7 @@ export function buildFetchRequestInfo(
   request: Request,
   clientId: string,
   hasBody: boolean,
-): FetchRequestInfo {
+): PlainMessage<FetchRequestInfo> {
   return {
     method: request.method,
     url: request.url,
@@ -46,11 +49,11 @@ export function buildFetchRequestInfo(
 export function buildRequestData(
   data: Uint8Array | null,
   done: boolean,
-): FetchRequest {
+): PlainMessage<FetchRequest> {
   return {
     body: {
-      $case: 'requestData',
-      requestData: { data: data || new Uint8Array(0), done },
+      case: 'requestData',
+      value: { data: data || new Uint8Array(0), done },
     },
   }
 }
@@ -66,7 +69,7 @@ export function buildResponseInit(info: ResponseInfo): ResponseInit {
 
 // buildResponseStream builds the ReadableStream for a response body.
 export function buildResponseStream(
-  it: AsyncIterator<FetchResponse>,
+  it: AsyncIterator<PartialMessage<FetchResponse>>,
 ): ReadableStream {
   async function readResponse(
     controller: ReadableStreamController<Uint8Array>,
@@ -80,11 +83,11 @@ export function buildResponseStream(
         controller.close()
         return
       }
-      const value: FetchResponse = next.value
-      if (value?.body?.$case !== 'responseData') {
+      const value = next.value
+      if (value?.body?.case !== 'responseData') {
         continue
       }
-      const responseDataPkt = value.body.responseData
+      const responseDataPkt = value.body.value
       const responseData = responseDataPkt?.data
       if (responseData && responseData.length) {
         enqueue(responseData as Uint8Array)
@@ -115,7 +118,7 @@ export function buildResponseStream(
 // Transform<Uint8Array, FetchRequest>
 export async function* transformRequestData(
   source: Source<Uint8Array>,
-): AsyncIterable<FetchRequest> {
+): AsyncIterable<PlainMessage<FetchRequest>> {
   for await (const pkt of source) {
     if (Array.isArray(pkt)) {
       for (const p of pkt) {
@@ -133,7 +136,7 @@ export async function proxyFetch(
   request: Request,
   clientId: string,
 ): Promise<Response> {
-  let resultIt: AsyncIterator<FetchResponse> | null = null
+  let resultIt: AsyncIterator<PartialMessage<FetchResponse>> | null = null
   try {
     // get the request body
     const requestBody = request.body
@@ -141,12 +144,12 @@ export async function proxyFetch(
     // build the fetch request.
     const fetchRequestInfo = buildFetchRequestInfo(request, clientId, hasBody)
     // build the pushable
-    const fetchRequestStream = pushable<FetchRequest>({ objectMode: true })
+    const fetchRequestStream = pushable<PlainMessage<FetchRequest>>({ objectMode: true })
     // push the initial info packet
     fetchRequestStream.push({
       body: {
-        $case: 'requestInfo',
-        requestInfo: fetchRequestInfo,
+        case: 'requestInfo',
+        value: fetchRequestInfo,
       },
     })
 
@@ -160,7 +163,7 @@ export async function proxyFetch(
     if (hasBody) {
       const bodyIt = toIt(requestBody!)
       const fetchRequestSink =
-        buildPushableSink<FetchRequest>(fetchRequestStream)
+        buildPushableSink<PlainMessage<FetchRequest>>(fetchRequestStream)
       pipe(bodyIt, transformRequestData, fetchRequestSink)
         .catch((err) => fetchRequestStream.end(err))
         .then(() => fetchRequestStream.end())
@@ -176,12 +179,12 @@ export async function proxyFetch(
     if (!firstPktBody || !firstPkt || firstPkt.done) {
       throw new Error('empty fetch rpc response')
     }
-    if (firstPktBody.$case !== 'responseInfo') {
+    if (firstPktBody.case !== 'responseInfo') {
       throw new Error('expected response info as first packet')
     }
 
     // responseInit is the headers and other immediate information.
-    const responseInfo = firstPktBody.responseInfo
+    const responseInfo = firstPktBody.value
     const responseInit = buildResponseInit(responseInfo)
     const responseBody = buildResponseStream(resultIt)
 

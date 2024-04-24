@@ -1,1 +1,1 @@
-./node_modules/@aperturerobotics/ts-common/.eslintrc.js
+./vendor/github.com/aperturerobotics/common/.eslintrc.js

@@ -102,7 +102,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 
 	t.c.le.
 		WithField("plugin-id", pluginID).
-		Infof("got plugin manifest: %v", manifest.GetMeta().String())
+		Infof("got plugin manifest: %v", manifest.String())
 	bcs, err := bucket_lookup.BuildCursor(
 		ctx,
 		t.c.bus,

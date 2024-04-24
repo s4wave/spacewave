@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,7 +52,7 @@ func DeepCopyManifest(
 		) error {
 			// distIoFS := unixfs_iofs.NewFS(ctx, distFS)
 			// assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFS)
-			writeTs := ts.ToTime()
+			writeTs := ts.AsTime()
 			if writeTs.IsZero() {
 				writeTs = time.Now()
 			}

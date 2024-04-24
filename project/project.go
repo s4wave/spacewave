@@ -13,7 +13,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
 )
 
 // UnmarshalProjectConfig unmarshals a project config from json or yaml.
@@ -23,7 +22,7 @@ func UnmarshalProjectConfig(data []byte, conf *ProjectConfig) error {
 		return err
 	}
 
-	return jsonpb.Unmarshal(jdata, conf)
+	return conf.UnmarshalJSON(jdata)
 }
 
 // ValidateProjectID validates a project identifier.
@@ -216,6 +215,6 @@ func (c *PublishStorageConfig) Merge(ot *PublishStorageConfig) {
 		c.TransformConfFromRef = xfrmRef.Clone()
 	}
 	if ts := ot.GetTimestamp(); !ts.GetEmpty() {
-		c.Timestamp = ts.Clone()
+		c.Timestamp = ts.CloneVT()
 	}
 }

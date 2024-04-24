@@ -1,3 +1,4 @@
+import { PartialMessage } from '@bufbuild/protobuf'
 import {
   ClientToWebDocument,
   ConnectWebRuntimeAck,
@@ -7,7 +8,7 @@ import {
 import {
   WebRuntimeClientInit,
   WebRuntimeClientType,
-} from '../runtime/runtime.pb.js'
+} from '../runtime/runtime_pb.js'
 import { timeoutPromise } from './timeout.js'
 import { HandleStreamFn, WebRuntimeClient } from './web-runtime-client.js'
 
@@ -118,9 +119,9 @@ export class WebDocumentTracker {
 
   // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
   private async openWebRuntimeClient(
-    initMsg: WebRuntimeClientInit,
+    initMsg: PartialMessage<WebRuntimeClientInit>,
   ): Promise<MessagePort> {
-    const init = WebRuntimeClientInit.encode(initMsg).finish()
+    const init = new WebRuntimeClientInit(initMsg).toBinary()
     const webDocumentIds = Object.keys(this.webDocuments)
     for (let i = 0; i < webDocumentIds.length; i++) {
       const x = (i + this.lastWebDocumentIdx + 1) % webDocumentIds.length

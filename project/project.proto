@@ -4,7 +4,7 @@ package bldr.project;
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/hydra/block/transform/transform.proto";
 import "github.com/aperturerobotics/hydra/bucket/bucket.proto";
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 // NOTE: Remember to update MergeProjectConfigs after updating ProjectConfig.
 
@@ -132,5 +132,5 @@ message PublishStorageConfig {
   .block.transform.Config transform_conf = 2;
   // Timestamp sets the timestamp to use for unixfs timestamps.
   // If empty, uses the current timestamp
-  .timestamp.Timestamp timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
 }

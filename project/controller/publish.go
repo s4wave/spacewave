@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/aperturerobotics/timestamp"
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -251,7 +251,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							destManifestObjKey,
 							destLinkObjKeys,
 							destRemotePeerID,
-							manifestTs.Clone(),
+							manifestTs.CloneVT(),
 						)
 						if err == nil {
 							err = destRemoteTx.Commit(ctx)
