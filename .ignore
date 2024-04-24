@@ -1,3 +1,5 @@
+/.tools
+/vendor
 *.pb.go
 *.pb.tsgo.sum
 *_*.pb.ts

@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240423031037-1bdf80439bc7 // master
+	github.com/aperturerobotics/identity v0.0.0-20240424093127-e3938be0b3b7 // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0 // latest
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240423025306-ac1888fd6bdf // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240424092755-a51a4612e61a // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.30.4 // master
+require github.com/aperturerobotics/bifrost v0.30.5 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -43,10 +43,10 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.43.2-0.20240423025855-d90d372732ca // latest
+	github.com/aperturerobotics/controllerbus v0.43.2 // latest
 	github.com/aperturerobotics/entitygraph v0.8.2 // indirect; latest
-	github.com/aperturerobotics/starpc v0.31.5 // indirect; latest
-	github.com/aperturerobotics/util v1.20.1 // indirect; master
+	github.com/aperturerobotics/starpc v0.31.6 // indirect; latest
+	github.com/aperturerobotics/util v1.20.3 // indirect; master
 )
 
 // aperture: use compatibility forks
@@ -58,13 +58,12 @@ replace (
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
 	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
-	google.golang.org/protobuf => github.com/aperturerobotics/protobuf-go v1.33.1-0.20240411062030-e36f75e0a3b8 // aperture
 	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 )
 
 require (
-	github.com/aperturerobotics/common v0.12.5
-	github.com/aperturerobotics/protobuf-go-lite v0.5.0
+	github.com/aperturerobotics/common v0.13.1
+	github.com/aperturerobotics/protobuf-go-lite v0.6.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/mr-tron/base58 v1.2.0
@@ -72,11 +71,11 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/zeebo/blake3 v0.2.3
-	google.golang.org/protobuf v1.33.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
+	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -87,7 +86,6 @@ require (
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
@@ -95,8 +93,6 @@ require (
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.12.3 // indirect
@@ -121,6 +117,7 @@ require (
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
 )

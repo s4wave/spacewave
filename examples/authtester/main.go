@@ -34,7 +34,6 @@ func runAuthTester(c *cli.Context) error {
 	le := logrus.NewEntry(log)
 
 	// the root command starts interactive authentication.
-	// TODO
 	username, password, err := common.RunLoginPrompt()
 	if err != nil {
 		return err
