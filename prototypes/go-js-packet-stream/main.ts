@@ -17,6 +17,7 @@ interface Global extends WindowOrWorkerGlobalScope {
     onClose: (errMsg?: string) => void,
   ) => Promise<Pushable<Uint8Array>>
 }
+//eslint-disable-next-line
 const goGlobal: Global = globalThis as any
 
 function buildPacketStream(): PacketStream {

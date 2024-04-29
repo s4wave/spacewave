@@ -56,14 +56,14 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
-    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs ./",
+    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs --ignore-pattern \"prototypes/**/*.js\" ./",
     "precommit": "npm run format",
     "setup": "npm run bldr -- setup",
     "vendor": "go mod vendor",
     "prepare": "npm run clean && rimraf ./.tools && npm run vendor && npm run setup"
   },
   "devDependencies": {
-    "@aptre/common": "^0.14.9",
+    "@aptre/common": "^0.14.10",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.79",
