@@ -1,18 +1,15 @@
 import { Client, PacketStream, ChannelStream, castToError } from 'starpc'
-import { PlainMessage } from '@bufbuild/protobuf'
 
 import {
   WebRuntimeClientInit,
   WebRuntimeClientType,
-} from '../runtime/runtime_pb.js'
+} from '../runtime/runtime.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { timeoutPromise } from './timeout.js'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
-export type OpenChannelFn = (
-  init: PlainMessage<WebRuntimeClientInit>,
-) => Promise<MessagePort>
+export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 
 // HandleStreamFn handles an incoming RPC stream.
 // Returns as soon as the stream has been passed off to be handled.

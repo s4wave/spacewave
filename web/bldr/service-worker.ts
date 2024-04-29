@@ -1,7 +1,7 @@
 import { castToError } from 'starpc'
 import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
-import { WebRuntimeClientType } from '../runtime/runtime_pb.js'
+import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { BLDR_CACHE_PATHS, BLDR_URI_PREFIXES } from './constants.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 import { ServiceWorkerToWebDocument } from 'web/runtime/runtime.js'

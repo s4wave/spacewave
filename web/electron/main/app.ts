@@ -18,12 +18,12 @@ import {
   RemoveWebDocumentRequest,
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
-} from '../../runtime/runtime_pb.js'
+} from '../../runtime/runtime.pb.js'
 import { APP_SCHEME, appRequestHandler } from './protocol.js'
 import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../../fetch/fetch.js'
 import { messagePortMainToMessagePort } from './ipc.js'
-import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
+import { Message } from '@aptre/protobuf-es-lite'
 
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
@@ -221,8 +221,8 @@ export class BldrElectronApp {
 
   // runtimeCreateWebDocument is called by the WebRuntimeHost to create a new WebDocument.
   private async createWebDocument(
-    req: PartialMessage<CreateWebDocumentRequest>,
-  ): Promise<PlainMessage<CreateWebDocumentResponse>> {
+    req: Message<CreateWebDocumentRequest>,
+  ): Promise<CreateWebDocumentResponse> {
     const id = req.id
     if (!id) {
       return { created: false }
@@ -240,8 +240,8 @@ export class BldrElectronApp {
 
   // runtimeRemoveWebDocument is called to remove a browser window.
   private async removeWebDocument(
-    req: PartialMessage<RemoveWebDocumentRequest>,
-  ): Promise<PlainMessage<RemoveWebDocumentResponse>> {
+    req: Message<RemoveWebDocumentRequest>,
+  ): Promise<RemoveWebDocumentResponse> {
     const doc = req.id && this.browserWindows[req.id]
     if (!doc) {
       return { removed: false }

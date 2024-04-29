@@ -27,7 +27,8 @@ import {
   WebRuntimeStatus,
   WebDocumentStatus,
   WebRuntimeClientType,
-} from '../runtime/runtime_pb.js'
+  WebRuntimeClientType_Enum,
+} from '../runtime/runtime.pb.js'
 import {
   WebRuntime as WebRuntimeService,
   WebRuntimeDefinition,
@@ -36,7 +37,6 @@ import {
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
 import { timeoutPromise } from './timeout.js'
-import { PartialMessage, PlainMessage, proto3 } from '@bufbuild/protobuf'
 
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
@@ -117,10 +117,9 @@ class WebRuntimeClientInstance {
     try {
       this.port.close()
     } finally {
-      console.log(
-        `WebRuntime: client connection removed: ${this.init.clientUuid}`,
-      )
-      this.host.removeConnection(this.init.clientUuid)
+      const clientUuid = this.init.clientUuid ?? ''
+      console.log(`WebRuntime: client connection removed: ${clientUuid}`)
+      this.host.removeConnection(clientUuid)
     }
   }
 
@@ -169,17 +168,17 @@ class WebRuntimeClientInstance {
       switch (this.init.clientType) {
         case WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT:
           streamPromise = this.host.openWebDocumentHostStream(
-            this.init.clientUuid,
+            this.init.clientUuid ?? '',
           )
           break
         case WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER:
           streamPromise = this.host.openServiceWorkerHostStream(
-            this.init.clientUuid,
+            this.init.clientUuid ?? '',
           )
           break
         case WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER:
           streamPromise = this.host.openWebWorkerHostStream(
-            this.init.clientUuid,
+            this.init.clientUuid ?? '',
           )
           break
         default:
@@ -209,7 +208,7 @@ class WebRuntimeImpl implements WebRuntimeService {
   // CreateWebDocument requests to create a new WebDocument.
   public async CreateWebDocument(
     request: CreateWebDocumentRequest,
-  ): Promise<PlainMessage<CreateWebDocumentResponse>> {
+  ): Promise<CreateWebDocumentResponse> {
     const createCb = this.host.createDocCb
     if (!createCb) {
       return { created: false }
@@ -220,7 +219,7 @@ class WebRuntimeImpl implements WebRuntimeService {
   // RemoveWebDocument requests to remove a WebDocument.
   public async RemoveWebDocument(
     request: RemoveWebDocumentRequest,
-  ): Promise<PlainMessage<RemoveWebDocumentResponse>> {
+  ): Promise<RemoveWebDocumentResponse> {
     const removeCb = this.host.removeDocCb
     if (!removeCb) {
       return { removed: false }
@@ -280,13 +279,13 @@ class WebRuntimeImpl implements WebRuntimeService {
 
 // CreateWebDocumentFunc is a function to create a WebDocument.
 export type CreateWebDocumentFunc = (
-  req: PartialMessage<CreateWebDocumentRequest>,
-) => Promise<PlainMessage<CreateWebDocumentResponse>>
+  req: CreateWebDocumentRequest,
+) => Promise<CreateWebDocumentResponse>
 
 // RemoveWebDocumentFunc is a function to remove a WebDocument.
 export type RemoveWebDocumentFunc = (
-  req: PartialMessage<RemoveWebDocumentRequest>,
-) => Promise<PlainMessage<RemoveWebDocumentResponse>>
+  req: RemoveWebDocumentRequest,
+) => Promise<RemoveWebDocumentResponse>
 
 // WebRuntime implements the WebDocumentHost with a SharedWorker.
 export class WebRuntime {
@@ -303,14 +302,14 @@ export class WebRuntime {
   public readonly runtimeHost: WebRuntimeHostClient
 
   // _webStatusUpdates is a stream of web status updates.
-  public readonly statusStream: ItState<PlainMessage<WebRuntimeStatus>>
+  public readonly statusStream: ItState<WebRuntimeStatus>
 
   // clients contains the list of attached WebRuntime clients.
   // keyed by client ID
   private clients: Record<string, WebRuntimeClientInstance> = {}
   // webDocuments contains the list of attached WebDocuments.
   // keyed by web document ID
-  private webDocuments: Record<string, PlainMessage<WebDocumentStatus>> = {}
+  private webDocuments: Record<string, WebDocumentStatus> = {}
 
   // closed indicates the instance is closed.
   private closed?: true
@@ -323,8 +322,12 @@ export class WebRuntime {
   constructor(
     webRuntimeId: string,
     openStreamFn: OpenStreamFunc,
-    public readonly createDocCb: CreateWebDocumentFunc | null,
-    public readonly removeDocCb: RemoveWebDocumentFunc | null,
+    public readonly createDocCb:
+      | ((req: CreateWebDocumentRequest) => Promise<CreateWebDocumentResponse>)
+      | null,
+    public readonly removeDocCb:
+      | ((req: RemoveWebDocumentRequest) => Promise<RemoveWebDocumentResponse>)
+      | null,
   ) {
     this.webRuntimeId = webRuntimeId
 
@@ -337,7 +340,7 @@ export class WebRuntime {
     this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethodFunc)
 
     // Setup the status stream.
-    this.statusStream = new ItState<PlainMessage<WebRuntimeStatus>>(
+    this.statusStream = new ItState<WebRuntimeStatus>(
       this.buildWebRuntimeStatusSnapshot.bind(this),
     )
 
@@ -403,8 +406,8 @@ export class WebRuntime {
     }
 
     const clientTypeStr =
-      proto3.getEnumType(WebRuntimeClientType).findNumber(msg.clientType)
-        ?.name ?? 'unknown'
+      WebRuntimeClientType_Enum.findNumber(msg.clientType ?? 0)?.name ??
+      'unknown'
     console.log(
       `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} type ${clientTypeStr}`,
     )
@@ -413,7 +416,7 @@ export class WebRuntime {
     if (
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     ) {
-      const status: PlainMessage<WebDocumentStatus> = {
+      const status: WebDocumentStatus = {
         id: clientUuid,
         deleted: false,
         permanent: false,
@@ -436,7 +439,8 @@ export class WebRuntime {
     delete this.clients[clientUuid]
 
     const clientType = client.init.clientType
-    const clientTypeStr = proto3.getEnumType(WebRuntimeClientType).findNumber(clientType)?.name ?? "unknown"
+    const clientTypeStr =
+      WebRuntimeClientType_Enum.findNumber(clientType ?? 0)?.name ?? 'unknown'
     console.log(
       `WebRuntime: ${this.webRuntimeId}: removed client: ${clientUuid} type ${clientTypeStr}`,
     )
@@ -463,19 +467,19 @@ export class WebRuntime {
   // buildWebRuntimeStatusSnapshot builds a snapshot of the status.
   // if allWorkers is set, includes web views from other active workers.
   // prevents duplicate web view entries
-  public async buildWebRuntimeStatusSnapshot(): Promise<PlainMessage<WebRuntimeStatus>> {
+  public async buildWebRuntimeStatusSnapshot(): Promise<WebRuntimeStatus> {
     if (this.closed) {
       return { snapshot: true, closed: true, webDocuments: [] }
     }
 
-    const webDocuments: PlainMessage<WebDocumentStatus>[] = []
+    const webDocuments: WebDocumentStatus[] = []
     for (const webDocumentId of Object.keys(this.webDocuments)) {
       const webDocument = this.webDocuments[webDocumentId]
       if (webDocumentId && webDocument) {
         webDocuments.push(webDocument)
       }
     }
-    webDocuments.sort((a, b) => (a.id < b.id ? -1 : 1))
+    webDocuments.sort((a, b) => ((a.id ?? '') < (b.id ?? '') ? -1 : 1))
     return {
       snapshot: true,
       closed: false,

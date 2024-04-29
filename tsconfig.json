@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "module": "esnext",
-    "target": "esnext",
-    "moduleResolution": "node",
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "jsx": "react",
     "baseUrl": "./",
     "paths": {
       "@go/*": ["vendor/*"],
-      "@aptre/bldr": ["./web/bldr"],
-      "@aptre/bldr-react": ["./web/bldr-react"],
+      "@aptre/bldr": ["./web/bldr/index.js"],
+      "@aptre/bldr-react": ["./web/bldr-react/index.js"],
       "electron": ["electron-nightly"]
     },
     "allowSyntheticDefaultImports": true,

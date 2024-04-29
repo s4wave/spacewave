@@ -2,9 +2,8 @@
 // @generated from file github.com/aperturerobotics/bldr/manifest/manifest.proto (package bldr.manifest, syntax proto3)
 /* eslint-disable */
 
-import { FetchManifestRequest, FetchManifestResponse } from './manifest_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+import { FetchManifestRequest, FetchManifestResponse } from './manifest.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -45,7 +44,7 @@ export interface ManifestFetch {
    * @generated from rpc bldr.manifest.ManifestFetch.FetchManifest
    */
   FetchManifest(
-    request: PartialMessage<FetchManifestRequest>,
+    request: Message<FetchManifestRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<FetchManifestResponse>
 }
@@ -68,14 +67,14 @@ export class ManifestFetchClient implements ManifestFetch {
    * @generated from rpc bldr.manifest.ManifestFetch.FetchManifest
    */
   FetchManifest(
-    request: PartialMessage<FetchManifestRequest>,
+    request: Message<FetchManifestRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<FetchManifestResponse> {
-    const requestMsg = new FetchManifestRequest(request)
+    const requestMsg = FetchManifestRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       ManifestFetchDefinition.methods.FetchManifest.name,
-      requestMsg.toBinary(),
+      FetchManifestRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(FetchManifestResponse)(result)

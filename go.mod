@@ -2,13 +2,13 @@ module github.com/aperturerobotics/bldr
 
 go 1.22
 
-require github.com/aperturerobotics/common v0.13.1 // latest
+require github.com/aperturerobotics/common v0.14.9 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240314215540-27d23cbf9cd6 // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240424092755-a51a4612e61a // master
+	github.com/aperturerobotics/hydra v0.0.0-20240429212903-9119033618d7 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.0 // master
 )
 
@@ -22,7 +22,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.30.5 // master
+require github.com/aperturerobotics/bifrost v0.31.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -49,9 +49,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.43.2 // master
+	github.com/aperturerobotics/controllerbus v0.44.3 // master
 	github.com/aperturerobotics/entitygraph v0.8.2 // indirect
-	github.com/aperturerobotics/starpc v0.31.6 // latest
+	github.com/aperturerobotics/starpc v0.31.12 // latest
 )
 
 // aperture: use compatibility forks
@@ -67,7 +67,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/util v1.20.3 // master
+	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.8
@@ -81,9 +81,9 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.42.0 // indirect
+	github.com/quic-go/quic-go v0.43.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.22.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
@@ -93,7 +93,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.6.2
+	github.com/aperturerobotics/go-kvfile v0.7.0
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
@@ -115,7 +115,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.7.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
@@ -169,7 +169,7 @@ require (
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
-	github.com/pion/rtp v1.8.5 // indirect
+	github.com/pion/rtp v1.8.6 // indirect
 	github.com/pion/sctp v1.8.16 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
@@ -177,7 +177,7 @@ require (
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
 	github.com/pion/turn/v3 v3.0.2 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.17 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.18 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -187,7 +187,7 @@ require (
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.etcd.io/bbolt v1.3.9 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect

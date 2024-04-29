@@ -6,14 +6,13 @@ import {
 } from 'starpc'
 import { pipe } from 'it-pipe'
 import { defaultLogger } from '@libp2p/logger'
-import { PlainMessage } from '@bufbuild/protobuf'
 
 import { duplex } from '@aptre/it-ws'
 
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
-} from '../../runtime/runtime_pb.js'
+} from '../../runtime/runtime.pb.js'
 import { WebDocumentToWebRuntime } from '../../runtime/runtime.js'
 import {
   CreateWebDocumentFunc,
@@ -53,7 +52,7 @@ async function connectWebsocket(address: string): Promise<WebSocket> {
   })
 }
 
-async function startWsRuntime(msg: PlainMessage<WebRuntimeHostInit>) {
+async function startWsRuntime(msg: WebRuntimeHostInit) {
   // clear any existing open stream func
   openStreamCtr.set(undefined)
   console.log(
@@ -82,7 +81,7 @@ async function startWsRuntime(msg: PlainMessage<WebRuntimeHostInit>) {
   openStreamCtr.set(openStream)
 }
 
-async function startWsRuntimeWithRetry(msg: PlainMessage<WebRuntimeHostInit>) {
+async function startWsRuntimeWithRetry(msg: WebRuntimeHostInit) {
   startWsRuntime(msg).catch((e) => {
     openStreamCtr.set(undefined)
     console.error('start runtime failed, will retry', e)
@@ -122,7 +121,7 @@ self.addEventListener('connect', (ev) => {
     }
 
     if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
-      startWsRuntime(msg.initWebRuntime)
+      startWsRuntime(msg.initWebRuntime!)
     }
 
     if (msg.connectWebRuntime && ev.ports.length) {

@@ -1,17 +1,11 @@
 import React from 'react'
 
-import { PlainMessage } from '@bufbuild/protobuf'
-import {
-  // createFunctionComponent,
-  BldrComponent,
-  DebugInfo,
-  renderProto,
-} from '@aptre/bldr-react'
+import { BldrComponent, DebugInfo, renderProto } from '@aptre/bldr-react'
 import { retryWithAbort } from '@aptre/bldr'
 import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 
 import './example.css'
-import { ExampleProps } from './example_pb.js'
+import { ExampleProps } from './example.pb.js'
 
 // IExampleState contains state for Example.
 interface IExampleState {
@@ -20,10 +14,7 @@ interface IExampleState {
 
 // ClassExample is an example of a class component implementing Example.
 // This is no longer recommended (use function components).
-export class Example extends BldrComponent<
-  PlainMessage<ExampleProps>,
-  IExampleState
-> {
+export class Example extends BldrComponent<ExampleProps, IExampleState> {
   private echoHost?: EchoerClient
 
   constructor(props: ExampleProps) {

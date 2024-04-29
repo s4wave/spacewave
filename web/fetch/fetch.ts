@@ -9,11 +9,9 @@ import {
   FetchResponse,
   ResponseInfo,
   FetchRequest,
-} from './fetch_pb.js'
-import {
-  FetchService,
-} from './fetch_srpc.pb.js'
-import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
+} from './fetch.pb.js'
+import { FetchService } from './fetch_srpc.pb.js'
+import { Message } from '@aptre/protobuf-es-lite'
 
 // buildFetchHeaders builds a Headers map from a Headers object.
 export function buildFetchHeaders(headers: Headers): Record<string, string> {
@@ -29,7 +27,7 @@ export function buildFetchRequestInfo(
   request: Request,
   clientId: string,
   hasBody: boolean,
-): PlainMessage<FetchRequestInfo> {
+): FetchRequestInfo {
   return {
     method: request.method,
     url: request.url,
@@ -49,7 +47,7 @@ export function buildFetchRequestInfo(
 export function buildRequestData(
   data: Uint8Array | null,
   done: boolean,
-): PlainMessage<FetchRequest> {
+): FetchRequest {
   return {
     body: {
       case: 'requestData',
@@ -61,7 +59,7 @@ export function buildRequestData(
 // buildResponseInit builds the ResponseInit from the ResponseInfo.
 export function buildResponseInit(info: ResponseInfo): ResponseInit {
   return {
-    headers: info.headers ?? {},
+    headers: (info.headers ?? undefined) as (Record<string, string> | undefined),
     status: info.status,
     statusText: info.statusText,
   }
@@ -69,7 +67,7 @@ export function buildResponseInit(info: ResponseInfo): ResponseInit {
 
 // buildResponseStream builds the ReadableStream for a response body.
 export function buildResponseStream(
-  it: AsyncIterator<PartialMessage<FetchResponse>>,
+  it: AsyncIterator<Message<FetchResponse>>,
 ): ReadableStream {
   async function readResponse(
     controller: ReadableStreamController<Uint8Array>,
@@ -118,7 +116,7 @@ export function buildResponseStream(
 // Transform<Uint8Array, FetchRequest>
 export async function* transformRequestData(
   source: Source<Uint8Array>,
-): AsyncIterable<PlainMessage<FetchRequest>> {
+): AsyncIterable<FetchRequest> {
   for await (const pkt of source) {
     if (Array.isArray(pkt)) {
       for (const p of pkt) {
@@ -136,7 +134,7 @@ export async function proxyFetch(
   request: Request,
   clientId: string,
 ): Promise<Response> {
-  let resultIt: AsyncIterator<PartialMessage<FetchResponse>> | null = null
+  let resultIt: AsyncIterator<Message<FetchResponse>> | null = null
   try {
     // get the request body
     const requestBody = request.body
@@ -144,7 +142,9 @@ export async function proxyFetch(
     // build the fetch request.
     const fetchRequestInfo = buildFetchRequestInfo(request, clientId, hasBody)
     // build the pushable
-    const fetchRequestStream = pushable<PlainMessage<FetchRequest>>({ objectMode: true })
+    const fetchRequestStream = pushable<FetchRequest>({
+      objectMode: true,
+    })
     // push the initial info packet
     fetchRequestStream.push({
       body: {
@@ -163,7 +163,7 @@ export async function proxyFetch(
     if (hasBody) {
       const bodyIt = toIt(requestBody!)
       const fetchRequestSink =
-        buildPushableSink<PlainMessage<FetchRequest>>(fetchRequestStream)
+        buildPushableSink<FetchRequest>(fetchRequestStream)
       pipe(bodyIt, transformRequestData, fetchRequestSink)
         .catch((err) => fetchRequestStream.end(err))
         .then(() => fetchRequestStream.end())

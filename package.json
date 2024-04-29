@@ -18,6 +18,7 @@
   "repository": {
     "url": "git+ssh://git@github.com/aperturerobotics/bldr.git"
   },
+  "type": "module",
   "scripts": {
     "check": "npm run typecheck && npm run lint",
     "clean": "rimraf ./.bldr",
@@ -55,7 +56,7 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
-    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.js ./",
+    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs ./",
     "precommit": "npm run format",
     "setup": "npm run bldr -- setup",
     "vendor": "go mod vendor",
@@ -66,8 +67,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.12.6",
-    "@bufbuild/protoc-gen-es": "^1.9.0",
+    "@aptre/common": "^0.14.9",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.79",
@@ -82,7 +82,7 @@
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^1.9.0",
+    "@aptre/protobuf-es-lite": "^0.2.14",
     "@libp2p/logger": "^4.0.10",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",

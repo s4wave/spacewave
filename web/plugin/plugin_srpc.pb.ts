@@ -9,9 +9,8 @@ import {
   HandleWebPkgViaPluginResponse,
   HandleWebViewViaPluginRequest,
   HandleWebViewViaPluginResponse,
-} from './plugin_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+} from './plugin.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -72,7 +71,7 @@ export interface WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
    */
   HandleWebViewViaPlugin(
-    request: PartialMessage<HandleWebViewViaPluginRequest>,
+    request: Message<HandleWebViewViaPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebViewViaPluginResponse>
 
@@ -82,7 +81,7 @@ export interface WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgViaPlugin
    */
   HandleWebPkgViaPlugin(
-    request: PartialMessage<HandleWebPkgViaPluginRequest>,
+    request: Message<HandleWebPkgViaPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebPkgViaPluginResponse>
 
@@ -92,7 +91,7 @@ export interface WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleRpcViaPlugin
    */
   HandleRpcViaPlugin(
-    request: PartialMessage<HandleRpcViaPluginRequest>,
+    request: Message<HandleRpcViaPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleRpcViaPluginResponse>
 }
@@ -115,14 +114,14 @@ export class WebPluginClient implements WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
    */
   HandleWebViewViaPlugin(
-    request: PartialMessage<HandleWebViewViaPluginRequest>,
+    request: Message<HandleWebViewViaPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebViewViaPluginResponse> {
-    const requestMsg = new HandleWebViewViaPluginRequest(request)
+    const requestMsg = HandleWebViewViaPluginRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       WebPluginDefinition.methods.HandleWebViewViaPlugin.name,
-      requestMsg.toBinary(),
+      HandleWebViewViaPluginRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(HandleWebViewViaPluginResponse)(result)
@@ -134,14 +133,14 @@ export class WebPluginClient implements WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgViaPlugin
    */
   HandleWebPkgViaPlugin(
-    request: PartialMessage<HandleWebPkgViaPluginRequest>,
+    request: Message<HandleWebPkgViaPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebPkgViaPluginResponse> {
-    const requestMsg = new HandleWebPkgViaPluginRequest(request)
+    const requestMsg = HandleWebPkgViaPluginRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       WebPluginDefinition.methods.HandleWebPkgViaPlugin.name,
-      requestMsg.toBinary(),
+      HandleWebPkgViaPluginRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(HandleWebPkgViaPluginResponse)(result)
@@ -153,14 +152,14 @@ export class WebPluginClient implements WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleRpcViaPlugin
    */
   HandleRpcViaPlugin(
-    request: PartialMessage<HandleRpcViaPluginRequest>,
+    request: Message<HandleRpcViaPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleRpcViaPluginResponse> {
-    const requestMsg = new HandleRpcViaPluginRequest(request)
+    const requestMsg = HandleRpcViaPluginRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       WebPluginDefinition.methods.HandleRpcViaPlugin.name,
-      requestMsg.toBinary(),
+      HandleRpcViaPluginRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(HandleRpcViaPluginResponse)(result)

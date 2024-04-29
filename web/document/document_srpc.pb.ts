@@ -2,9 +2,8 @@
 // @generated from file github.com/aperturerobotics/bldr/web/document/document.proto (package web.document, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -20,7 +19,7 @@ import {
   RemoveWebWorkerResponse,
   WatchWebDocumentStatusRequest,
   WebDocumentStatus,
-} from './document_pb.js'
+} from './document.pb.js'
 
 /**
  * WebDocumentHost is the API exposed by the Go runtime for WebDocument.
@@ -186,7 +185,7 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.WatchWebDocumentStatus
    */
   WatchWebDocumentStatus(
-    request: PartialMessage<WatchWebDocumentStatusRequest>,
+    request: Message<WatchWebDocumentStatusRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<WebDocumentStatus>
 
@@ -197,9 +196,9 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebView
    */
   CreateWebView(
-    request: PartialMessage<CreateWebViewRequest>,
+    request: Message<CreateWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<CreateWebViewResponse>>
+  ): Promise<Message<CreateWebViewResponse>>
 
   /**
    * WebViewRpc opens a stream for a RPC call to a WebView.
@@ -223,9 +222,9 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebWorker
    */
   CreateWebWorker(
-    request: PartialMessage<CreateWebWorkerRequest>,
+    request: Message<CreateWebWorkerRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<CreateWebWorkerResponse>>
+  ): Promise<Message<CreateWebWorkerResponse>>
 
   /**
    * RemoveWebWorker requests to terminate a WebWorker with the given id.
@@ -233,9 +232,9 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.RemoveWebWorker
    */
   RemoveWebWorker(
-    request: PartialMessage<RemoveWebWorkerRequest>,
+    request: Message<RemoveWebWorkerRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RemoveWebWorkerResponse>>
+  ): Promise<Message<RemoveWebWorkerResponse>>
 }
 
 export const WebDocumentServiceName = WebDocumentDefinition.typeName
@@ -258,14 +257,14 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.WatchWebDocumentStatus
    */
   WatchWebDocumentStatus(
-    request: PartialMessage<WatchWebDocumentStatusRequest>,
+    request: Message<WatchWebDocumentStatusRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<WebDocumentStatus> {
-    const requestMsg = new WatchWebDocumentStatusRequest(request)
+    const requestMsg = WatchWebDocumentStatusRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       WebDocumentDefinition.methods.WatchWebDocumentStatus.name,
-      requestMsg.toBinary(),
+      WatchWebDocumentStatusRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WebDocumentStatus)(result)
@@ -278,14 +277,14 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebView
    */
   async CreateWebView(
-    request: PartialMessage<CreateWebViewRequest>,
+    request: Message<CreateWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<CreateWebViewResponse>> {
-    const requestMsg = new CreateWebViewRequest(request)
+  ): Promise<Message<CreateWebViewResponse>> {
+    const requestMsg = CreateWebViewRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebDocumentDefinition.methods.CreateWebView.name,
-      requestMsg.toBinary(),
+      CreateWebViewRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return CreateWebViewResponse.fromBinary(result)
@@ -321,14 +320,14 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebWorker
    */
   async CreateWebWorker(
-    request: PartialMessage<CreateWebWorkerRequest>,
+    request: Message<CreateWebWorkerRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<CreateWebWorkerResponse>> {
-    const requestMsg = new CreateWebWorkerRequest(request)
+  ): Promise<Message<CreateWebWorkerResponse>> {
+    const requestMsg = CreateWebWorkerRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebDocumentDefinition.methods.CreateWebWorker.name,
-      requestMsg.toBinary(),
+      CreateWebWorkerRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return CreateWebWorkerResponse.fromBinary(result)
@@ -340,14 +339,14 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.RemoveWebWorker
    */
   async RemoveWebWorker(
-    request: PartialMessage<RemoveWebWorkerRequest>,
+    request: Message<RemoveWebWorkerRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RemoveWebWorkerResponse>> {
-    const requestMsg = new RemoveWebWorkerRequest(request)
+  ): Promise<Message<RemoveWebWorkerResponse>> {
+    const requestMsg = RemoveWebWorkerRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebDocumentDefinition.methods.RemoveWebWorker.name,
-      requestMsg.toBinary(),
+      RemoveWebWorkerRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return RemoveWebWorkerResponse.fromBinary(result)

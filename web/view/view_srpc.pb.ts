@@ -17,10 +17,9 @@ import {
   SetHtmlLinksResponse,
   SetRenderModeRequest,
   SetRenderModeResponse,
-} from './view_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
+} from './view.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 
 /**
  * WebViewHost is the service exposed by the Go runtime.
@@ -120,9 +119,9 @@ export interface WebView {
    * @generated from rpc web.view.WebView.SetRenderMode
    */
   SetRenderMode(
-    request: PartialMessage<SetRenderModeRequest>,
+    request: Message<SetRenderModeRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<SetRenderModeResponse>>
+  ): Promise<Message<SetRenderModeResponse>>
 
   /**
    * SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
@@ -130,9 +129,9 @@ export interface WebView {
    * @generated from rpc web.view.WebView.SetHtmlLinks
    */
   SetHtmlLinks(
-    request: PartialMessage<SetHtmlLinksRequest>,
+    request: Message<SetHtmlLinksRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<SetHtmlLinksResponse>>
+  ): Promise<Message<SetHtmlLinksResponse>>
 
   /**
    * ResetWebView clears the render mode, links, and contents of a WebView.
@@ -140,9 +139,9 @@ export interface WebView {
    * @generated from rpc web.view.WebView.ResetWebView
    */
   ResetWebView(
-    request: PartialMessage<ResetWebViewRequest>,
+    request: Message<ResetWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ResetWebViewResponse>>
+  ): Promise<Message<ResetWebViewResponse>>
 
   /**
    * RemoveWebView requests to remove a WebView from the root level.
@@ -150,9 +149,9 @@ export interface WebView {
    * @generated from rpc web.view.WebView.RemoveWebView
    */
   RemoveWebView(
-    request: PartialMessage<RemoveWebViewRequest>,
+    request: Message<RemoveWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RemoveWebViewResponse>>
+  ): Promise<Message<RemoveWebViewResponse>>
 }
 
 export const WebViewServiceName = WebViewDefinition.typeName
@@ -174,14 +173,14 @@ export class WebViewClient implements WebView {
    * @generated from rpc web.view.WebView.SetRenderMode
    */
   async SetRenderMode(
-    request: PartialMessage<SetRenderModeRequest>,
+    request: Message<SetRenderModeRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<SetRenderModeResponse>> {
-    const requestMsg = new SetRenderModeRequest(request)
+  ): Promise<Message<SetRenderModeResponse>> {
+    const requestMsg = SetRenderModeRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebViewDefinition.methods.SetRenderMode.name,
-      requestMsg.toBinary(),
+      SetRenderModeRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return SetRenderModeResponse.fromBinary(result)
@@ -193,14 +192,14 @@ export class WebViewClient implements WebView {
    * @generated from rpc web.view.WebView.SetHtmlLinks
    */
   async SetHtmlLinks(
-    request: PartialMessage<SetHtmlLinksRequest>,
+    request: Message<SetHtmlLinksRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<SetHtmlLinksResponse>> {
-    const requestMsg = new SetHtmlLinksRequest(request)
+  ): Promise<Message<SetHtmlLinksResponse>> {
+    const requestMsg = SetHtmlLinksRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebViewDefinition.methods.SetHtmlLinks.name,
-      requestMsg.toBinary(),
+      SetHtmlLinksRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return SetHtmlLinksResponse.fromBinary(result)
@@ -212,14 +211,14 @@ export class WebViewClient implements WebView {
    * @generated from rpc web.view.WebView.ResetWebView
    */
   async ResetWebView(
-    request: PartialMessage<ResetWebViewRequest>,
+    request: Message<ResetWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ResetWebViewResponse>> {
-    const requestMsg = new ResetWebViewRequest(request)
+  ): Promise<Message<ResetWebViewResponse>> {
+    const requestMsg = ResetWebViewRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebViewDefinition.methods.ResetWebView.name,
-      requestMsg.toBinary(),
+      ResetWebViewRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return ResetWebViewResponse.fromBinary(result)
@@ -231,14 +230,14 @@ export class WebViewClient implements WebView {
    * @generated from rpc web.view.WebView.RemoveWebView
    */
   async RemoveWebView(
-    request: PartialMessage<RemoveWebViewRequest>,
+    request: Message<RemoveWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RemoveWebViewResponse>> {
-    const requestMsg = new RemoveWebViewRequest(request)
+  ): Promise<Message<RemoveWebViewResponse>> {
+    const requestMsg = RemoveWebViewRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebViewDefinition.methods.RemoveWebView.name,
-      requestMsg.toBinary(),
+      RemoveWebViewRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return RemoveWebViewResponse.fromBinary(result)

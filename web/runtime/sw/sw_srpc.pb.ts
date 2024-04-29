@@ -2,8 +2,8 @@
 // @generated from file github.com/aperturerobotics/bldr/web/runtime/sw/sw.proto (package web.runtime.sw, syntax proto3)
 /* eslint-disable */
 
-import { FetchRequest, FetchResponse } from '../../fetch/fetch_pb.js'
-import { MethodKind } from '@bufbuild/protobuf'
+import { FetchRequest, FetchResponse } from '../../fetch/fetch.pb.js'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

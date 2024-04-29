@@ -7,14 +7,13 @@ import {
   GetPluginInfoResponse,
   LoadPluginRequest,
   LoadPluginResponse,
-} from './plugin_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+} from './plugin.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import {
   ExecControllerRequest,
   ExecControllerResponse,
-} from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec_pb.js'
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
+} from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -93,9 +92,9 @@ export interface PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.GetPluginInfo
    */
   GetPluginInfo(
-    request: PartialMessage<GetPluginInfoRequest>,
+    request: Message<GetPluginInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetPluginInfoResponse>>
+  ): Promise<Message<GetPluginInfoResponse>>
 
   /**
    * ExecController executes a controller configuration on the bus.
@@ -103,7 +102,7 @@ export interface PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.ExecController
    */
   ExecController(
-    request: PartialMessage<ExecControllerRequest>,
+    request: Message<ExecControllerRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ExecControllerResponse>
 
@@ -115,7 +114,7 @@ export interface PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.LoadPlugin
    */
   LoadPlugin(
-    request: PartialMessage<LoadPluginRequest>,
+    request: Message<LoadPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<LoadPluginResponse>
 
@@ -151,14 +150,14 @@ export class PluginHostClient implements PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.GetPluginInfo
    */
   async GetPluginInfo(
-    request: PartialMessage<GetPluginInfoRequest>,
+    request: Message<GetPluginInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetPluginInfoResponse>> {
-    const requestMsg = new GetPluginInfoRequest(request)
+  ): Promise<Message<GetPluginInfoResponse>> {
+    const requestMsg = GetPluginInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       PluginHostDefinition.methods.GetPluginInfo.name,
-      requestMsg.toBinary(),
+      GetPluginInfoRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetPluginInfoResponse.fromBinary(result)
@@ -170,14 +169,14 @@ export class PluginHostClient implements PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.ExecController
    */
   ExecController(
-    request: PartialMessage<ExecControllerRequest>,
+    request: Message<ExecControllerRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ExecControllerResponse> {
-    const requestMsg = new ExecControllerRequest(request)
+    const requestMsg = ExecControllerRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       PluginHostDefinition.methods.ExecController.name,
-      requestMsg.toBinary(),
+      ExecControllerRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(ExecControllerResponse)(result)
@@ -191,14 +190,14 @@ export class PluginHostClient implements PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.LoadPlugin
    */
   LoadPlugin(
-    request: PartialMessage<LoadPluginRequest>,
+    request: Message<LoadPluginRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<LoadPluginResponse> {
-    const requestMsg = new LoadPluginRequest(request)
+    const requestMsg = LoadPluginRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       PluginHostDefinition.methods.LoadPlugin.name,
-      requestMsg.toBinary(),
+      LoadPluginRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(LoadPluginResponse)(result)

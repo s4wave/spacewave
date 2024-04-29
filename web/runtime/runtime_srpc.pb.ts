@@ -2,9 +2,8 @@
 // @generated from file github.com/aperturerobotics/bldr/web/runtime/runtime.proto (package web.runtime, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -18,7 +17,7 @@ import {
   RemoveWebDocumentResponse,
   WatchWebRuntimeStatusRequest,
   WebRuntimeStatus,
-} from './runtime_pb.js'
+} from './runtime.pb.js'
 
 /**
  * WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
@@ -281,7 +280,7 @@ export interface WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.WatchWebRuntimeStatus
    */
   WatchWebRuntimeStatus(
-    request: PartialMessage<WatchWebRuntimeStatusRequest>,
+    request: Message<WatchWebRuntimeStatusRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<WebRuntimeStatus>
 
@@ -293,9 +292,9 @@ export interface WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
   CreateWebDocument(
-    request: PartialMessage<CreateWebDocumentRequest>,
+    request: Message<CreateWebDocumentRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<CreateWebDocumentResponse>>
+  ): Promise<Message<CreateWebDocumentResponse>>
 
   /**
    * RemoveWebDocument requests to delete a WebDocument.
@@ -305,9 +304,9 @@ export interface WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
   RemoveWebDocument(
-    request: PartialMessage<RemoveWebDocumentRequest>,
+    request: Message<RemoveWebDocumentRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RemoveWebDocumentResponse>>
+  ): Promise<Message<RemoveWebDocumentResponse>>
 
   /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
@@ -356,14 +355,14 @@ export class WebRuntimeClient implements WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.WatchWebRuntimeStatus
    */
   WatchWebRuntimeStatus(
-    request: PartialMessage<WatchWebRuntimeStatusRequest>,
+    request: Message<WatchWebRuntimeStatusRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<WebRuntimeStatus> {
-    const requestMsg = new WatchWebRuntimeStatusRequest(request)
+    const requestMsg = WatchWebRuntimeStatusRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       WebRuntimeDefinition.methods.WatchWebRuntimeStatus.name,
-      requestMsg.toBinary(),
+      WatchWebRuntimeStatusRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WebRuntimeStatus)(result)
@@ -377,14 +376,14 @@ export class WebRuntimeClient implements WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
   async CreateWebDocument(
-    request: PartialMessage<CreateWebDocumentRequest>,
+    request: Message<CreateWebDocumentRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<CreateWebDocumentResponse>> {
-    const requestMsg = new CreateWebDocumentRequest(request)
+  ): Promise<Message<CreateWebDocumentResponse>> {
+    const requestMsg = CreateWebDocumentRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebRuntimeDefinition.methods.CreateWebDocument.name,
-      requestMsg.toBinary(),
+      CreateWebDocumentRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return CreateWebDocumentResponse.fromBinary(result)
@@ -398,14 +397,14 @@ export class WebRuntimeClient implements WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
   async RemoveWebDocument(
-    request: PartialMessage<RemoveWebDocumentRequest>,
+    request: Message<RemoveWebDocumentRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RemoveWebDocumentResponse>> {
-    const requestMsg = new RemoveWebDocumentRequest(request)
+  ): Promise<Message<RemoveWebDocumentResponse>> {
+    const requestMsg = RemoveWebDocumentRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       WebRuntimeDefinition.methods.RemoveWebDocument.name,
-      requestMsg.toBinary(),
+      RemoveWebDocumentRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return RemoveWebDocumentResponse.fromBinary(result)

@@ -1,14 +1,14 @@
 import type { Client, InvokeFn } from 'starpc'
 
-import type { WebViewStatus } from '../document/document_pb.js'
+import type { WebViewStatus } from '../document/document.pb.js'
 import {
   SetRenderModeRequest,
   SetRenderModeResponse,
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
-} from '../view/view_pb.js'
+} from '../view/view.pb.js'
 import { WebViewHostClient } from '../view/view_srpc.pb.js'
-import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
+import { Message } from '@aptre/protobuf-es-lite'
 
 // WebView implements the web-view with pluggable logic.
 export interface WebView {
@@ -24,8 +24,8 @@ export interface WebView {
   // setRenderMode sets the render mode of the view.
   // if wait=true, should wait for op to complete before returning.
   setRenderMode(
-    options: PartialMessage<SetRenderModeRequest>,
-  ): Promise<PartialMessage<SetRenderModeResponse> | void>
+    options: Message<SetRenderModeRequest>,
+  ): Promise<Message<SetRenderModeResponse> | void>
   // setHtmlLinks sets or updates the list of HTML links.
   setHtmlLinks(
     options: SetHtmlLinksRequest,
@@ -52,7 +52,7 @@ export interface WebViewRegistration {
 export function buildWebViewStatus(
   webViewId: string,
   webView?: WebView,
-): PlainMessage<WebViewStatus> {
+): WebViewStatus {
   return {
     id: webViewId,
     deleted: !webView,

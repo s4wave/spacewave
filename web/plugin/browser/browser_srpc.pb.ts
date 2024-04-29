@@ -2,8 +2,8 @@
 // @generated from file github.com/aperturerobotics/bldr/web/plugin/browser/browser.proto (package bldr.web.plugin.browser, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
-import { MethodKind } from '@bufbuild/protobuf'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

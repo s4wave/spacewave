@@ -25,7 +25,7 @@ import {
   RemoveWebWorkerRequest,
   RemoveWebWorkerResponse,
   WebWorkerStatus,
-} from '../document/document_pb.js'
+} from '../document/document.pb.js'
 import {
   WebDocumentDefinition,
   WebDocument as WebDocumentService,
@@ -34,7 +34,7 @@ import {
 import {
   WebRuntimeClientInit,
   WebRuntimeClientType,
-} from '../runtime/runtime_pb.js'
+} from '../runtime/runtime.pb.js'
 import {
   SetRenderModeRequest,
   SetRenderModeResponse,
@@ -42,7 +42,7 @@ import {
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
   ResetWebViewResponse,
-} from '../view/view_pb.js'
+} from '../view/view.pb.js'
 import {
   WebViewHostClient,
   WebView as WebViewService,
@@ -63,7 +63,6 @@ import {
 import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
 import { WebRuntimeClient } from './web-runtime-client.js'
-import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
@@ -168,7 +167,7 @@ class WebDocumentWebView implements WebViewService {
   }
 
   // buildWebViewStatus returns the WebViewStatus for the WebView.
-  public buildWebViewStatus(): PlainMessage<WebViewStatus> {
+  public buildWebViewStatus(): WebViewStatus {
     return buildWebViewStatus(this.id, this.webView)
   }
 
@@ -179,8 +178,8 @@ class WebDocumentWebView implements WebViewService {
 
   // SetRenderMode sets the rendering mode of the view.
   public async SetRenderMode(
-    request: PartialMessage<SetRenderModeRequest>,
-  ): Promise<PartialMessage<SetRenderModeResponse>> {
+    request: SetRenderModeRequest,
+  ): Promise<SetRenderModeResponse> {
     const resp = await this.webView.setRenderMode(request)
     return resp || {}
   }
@@ -188,19 +187,19 @@ class WebDocumentWebView implements WebViewService {
   // SetHtmlLinks sets the list of html links for the view.
   public async SetHtmlLinks(
     request: SetHtmlLinksRequest,
-  ): Promise<PlainMessage<SetHtmlLinksResponse>> {
+  ): Promise<SetHtmlLinksResponse> {
     const resp = await this.webView.setHtmlLinks(request)
     return resp || {}
   }
 
   // ResetWebView resets the contents of the web view.
-  public async ResetWebView(): Promise<PlainMessage<ResetWebViewResponse>> {
+  public async ResetWebView(): Promise<ResetWebViewResponse> {
     await this.webView.resetView()
     return {}
   }
 
   // RemoveWebView requests to remove a WebView from the root level.
-  public async RemoveWebView(): Promise<PlainMessage<RemoveWebViewResponse>> {
+  public async RemoveWebView(): Promise<RemoveWebViewResponse> {
     const removed = await this.webView.remove()
     return { removed }
   }
@@ -222,7 +221,7 @@ class WebDocumentImpl implements WebDocumentService {
   // CreateWebView creates a new WebView at the root level.
   public async CreateWebView(
     request: CreateWebViewRequest,
-  ): Promise<PlainMessage<CreateWebViewResponse>> {
+  ): Promise<CreateWebViewResponse> {
     const webViewID = request.id
     if (!webViewID) {
       throw new Error('empty web view id')
@@ -237,14 +236,14 @@ class WebDocumentImpl implements WebDocumentService {
   // CreateWebWorker creates a new WebWorker.
   public async CreateWebWorker(
     request: CreateWebWorkerRequest,
-  ): Promise<PlainMessage<CreateWebWorkerResponse>> {
+  ): Promise<CreateWebWorkerResponse> {
     return this.webDocument.createWebWorker(request)
   }
 
   // RemoveWebWorker removes the WebWorker.
   public async RemoveWebWorker(
     request: RemoveWebWorkerRequest,
-  ): Promise<PlainMessage<RemoveWebWorkerResponse>> {
+  ): Promise<RemoveWebWorkerResponse> {
     return this.webDocument.removeWebWorker(request)
   }
 
@@ -327,7 +326,7 @@ export class WebDocument {
   // webWorkers contains the list of running web workers by id.
   private webWorkers: { [id: string]: WebDocumentWebWorker }
   // webStatusStream is a stream of web status updates.
-  public readonly webStatusStream: ItState<PlainMessage<WebDocumentStatus>>
+  public readonly webStatusStream: ItState<WebDocumentStatus>
 
   // serviceWorker is the loaded runtime service worker
   private serviceWorker?: Workbox
@@ -387,7 +386,7 @@ export class WebDocument {
     }
 
     // Setup the status stream.
-    const webStatusStream = new ItState<PlainMessage<WebDocumentStatus>>(
+    const webStatusStream = new ItState<WebDocumentStatus>(
       this.buildWebDocumentStatusSnapshot.bind(this),
     )
     this.webStatusStream = webStatusStream
@@ -590,9 +589,7 @@ export class WebDocument {
   }
 
   // buildWebDocumentStatusSnapshot builds a snapshot of the status.
-  public async buildWebDocumentStatusSnapshot(): Promise<
-    PlainMessage<WebDocumentStatus>
-  > {
+  public async buildWebDocumentStatusSnapshot(): Promise<WebDocumentStatus> {
     if (this.closed) {
       return {
         snapshot: true,
@@ -603,22 +600,22 @@ export class WebDocument {
       }
     }
 
-    const webViews: PlainMessage<WebViewStatus>[] = []
+    const webViews: WebViewStatus[] = []
     for (const webViewId of Object.keys(this.webViews)) {
       const webView = this.webViews[webViewId]
       if (webViewId && webView) {
         webViews.push(webView.buildWebViewStatus())
       }
     }
-    webViews.sort((a, b) => (a.id < b.id ? -1 : 1))
+    webViews.sort((a, b) => ((a.id ?? '') < (b.id ?? '') ? -1 : 1))
 
-    const webWorkers: PlainMessage<WebWorkerStatus>[] = Object.keys(
-      this.webWorkers,
-    ).map((id) => ({
-      id,
-      deleted: false,
-      shared: this.webWorkers[id].isShared,
-    }))
+    const webWorkers: WebWorkerStatus[] = Object.keys(this.webWorkers).map(
+      (id) => ({
+        id,
+        deleted: false,
+        shared: this.webWorkers[id].isShared,
+      }),
+    )
 
     return {
       snapshot: true,
@@ -632,9 +629,15 @@ export class WebDocument {
   // createWebWorker spawns a web worker per request of the web runtime.
   public createWebWorker(
     request: CreateWebWorkerRequest,
-  ): PlainMessage<CreateWebWorkerResponse> {
+  ): CreateWebWorkerResponse {
     if (this.closed) {
       throw new Error('web document is closed')
+    }
+    if (!request.id) {
+      throw new Error('web worker id is required')
+    }
+    if (!request.url) {
+      throw new Error('web worker url is required')
     }
 
     const old = this.webWorkers[request.id]
@@ -659,8 +662,11 @@ export class WebDocument {
   // removeWebWorker removes a web worker per request of the web runtime.
   public removeWebWorker(
     request: RemoveWebWorkerRequest,
-  ): PlainMessage<RemoveWebWorkerResponse> {
+  ): RemoveWebWorkerResponse {
     if (this.closed) return { removed: true }
+    if (!request.id) {
+      throw new Error('web worker id is required')
+    }
     const old = this.webWorkers[request.id]
     if (old) {
       old.close()
@@ -776,7 +782,7 @@ export class WebDocument {
       return
     }
 
-    const webStatus: PlainMessage<WebDocumentStatus> = {
+    const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
       hidden: this.hidden,
@@ -795,7 +801,7 @@ export class WebDocument {
     if (this.closed) {
       return
     }
-    const webStatus: PlainMessage<WebDocumentStatus> = {
+    const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
       hidden: this.hidden,
@@ -843,11 +849,11 @@ export class WebDocument {
   // openWebRuntimeClient attempts to open a message port with the WebRuntime.
   // this is the function passed to the WebRuntimeClient for the WebDocument
   private async openWebRuntimeClient(
-    init: PlainMessage<WebRuntimeClientInit>,
+    init: WebRuntimeClientInit,
   ): Promise<MessagePort> {
     const { port1: localPort, port2: remotePort } = new MessageChannel()
     this.sendWebRuntimeOpenClient(
-      new WebRuntimeClientInit(init).toBinary(),
+      WebRuntimeClientInit.toBinary(init),
       remotePort,
     )
     return localPort

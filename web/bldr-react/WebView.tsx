@@ -155,7 +155,9 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       ): Promise<SetHtmlLinksResponse | void> {
         // console.log('set html links', options)
         setWebViewState((prev) => {
-          const links = [...((!options.clear && prev.htmlLinks) || [])]
+          const links: IWebViewHtmlLink[] = [
+            ...((!options.clear && prev.htmlLinks) || []),
+          ]
           const removeLink = (id: string) => {
             for (let i = 0; i < links.length; i++) {
               if (links[i].id === id) {
@@ -164,15 +166,17 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
               }
             }
           }
-          for (const removeID of options.remove) {
+          for (const removeID of options.remove ?? []) {
             removeLink(removeID)
           }
-          for (const addID of Object.keys(options.setLinks)) {
-            removeLink(addID)
-            links.push({
-              id: addID,
-              link: options.setLinks[addID],
-            })
+          if (options.setLinks) {
+            for (const addID of Object.keys(options.setLinks)) {
+              removeLink(addID)
+              const link = options.setLinks[addID]
+              if (link) {
+                links.push({ id: addID, link })
+              }
+            }
           }
           return { ...prev, htmlLinks: links }
         })

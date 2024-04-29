@@ -2,10 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/web/pkg/rpc/rpc.proto (package web.pkg.rpc, syntax proto3)
 /* eslint-disable */
 
-import { GetInfoRequest, GetInfoResponse } from './rpc_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
+import { GetInfoRequest, GetInfoResponse } from './rpc.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -60,9 +59,9 @@ export interface AccessWebPkg {
    * @generated from rpc web.pkg.rpc.AccessWebPkg.GetWebPkgInfo
    */
   GetWebPkgInfo(
-    request: PartialMessage<GetInfoRequest>,
+    request: Message<GetInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetInfoResponse>>
+  ): Promise<Message<GetInfoResponse>>
 
   /**
    * WebPkgFsRpc exposes the web pkg fs service via RPC.
@@ -94,14 +93,14 @@ export class AccessWebPkgClient implements AccessWebPkg {
    * @generated from rpc web.pkg.rpc.AccessWebPkg.GetWebPkgInfo
    */
   async GetWebPkgInfo(
-    request: PartialMessage<GetInfoRequest>,
+    request: Message<GetInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetInfoResponse>> {
-    const requestMsg = new GetInfoRequest(request)
+  ): Promise<Message<GetInfoResponse>> {
+    const requestMsg = GetInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       AccessWebPkgDefinition.methods.GetWebPkgInfo.name,
-      requestMsg.toBinary(),
+      GetInfoRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetInfoResponse.fromBinary(result)

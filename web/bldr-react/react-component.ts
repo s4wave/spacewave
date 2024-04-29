@@ -1,4 +1,4 @@
-import { Message, MessageType } from '@bufbuild/protobuf'
+import { Message, MessageType } from '@aptre/protobuf-es-lite'
 
 // IRenderProtoProps are props passed to an imported ReactComponent.
 export interface IRenderProtoProps {

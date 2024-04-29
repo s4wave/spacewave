@@ -2,9 +2,8 @@
 // @generated from file github.com/aperturerobotics/bldr/web/view/handler/rpc.proto (package web.view.handler, syntax proto3)
 /* eslint-disable */
 
-import { HandleWebViewRequest, HandleWebViewResponse } from './rpc_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+import { HandleWebViewRequest, HandleWebViewResponse } from './rpc.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -47,9 +46,9 @@ export interface HandleWebViewService {
    * @generated from rpc web.view.handler.HandleWebViewService.HandleWebView
    */
   HandleWebView(
-    request: PartialMessage<HandleWebViewRequest>,
+    request: Message<HandleWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<HandleWebViewResponse>>
+  ): Promise<Message<HandleWebViewResponse>>
 }
 
 export const HandleWebViewServiceServiceName =
@@ -72,14 +71,14 @@ export class HandleWebViewServiceClient implements HandleWebViewService {
    * @generated from rpc web.view.handler.HandleWebViewService.HandleWebView
    */
   async HandleWebView(
-    request: PartialMessage<HandleWebViewRequest>,
+    request: Message<HandleWebViewRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<HandleWebViewResponse>> {
-    const requestMsg = new HandleWebViewRequest(request)
+  ): Promise<Message<HandleWebViewResponse>> {
+    const requestMsg = HandleWebViewRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       HandleWebViewServiceDefinition.methods.HandleWebView.name,
-      requestMsg.toBinary(),
+      HandleWebViewRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return HandleWebViewResponse.fromBinary(result)

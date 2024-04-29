@@ -2,7 +2,7 @@ import React from 'react'
 import { createRoot, RootOptions } from 'react-dom/client'
 import { IBldrContext, BldrContext } from './bldr-context.js'
 import { ProtoRenderFunc, renderProto } from './react-component.js'
-import { Message, MessageType } from '@bufbuild/protobuf'
+import { Message, MessageType } from '@aptre/protobuf-es-lite'
 
 // FunctionComponent is a function that instantiates a sub-component.
 // Returns a function to call when releasing the component.
