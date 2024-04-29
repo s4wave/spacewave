@@ -1,7 +1,7 @@
 //go:build deps_only
 // +build deps_only
 
-package template
+package auth
 
 import (
 	// _ imports common with the Makefile and tools
