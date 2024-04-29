@@ -18,7 +18,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	"github.com/aperturerobotics/protobuf-go-lite"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"

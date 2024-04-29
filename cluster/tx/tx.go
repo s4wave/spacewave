@@ -59,7 +59,7 @@ func (t *Tx) Validate() error {
 // Validate checks the execution tx type is in range.
 func (t TxType) Validate() error {
 	switch t {
-	//case TxType_TxType_COMPLETE:
+	// case TxType_TxType_COMPLETE:
 	//	return nil
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
@@ -69,8 +69,8 @@ func (t TxType) Validate() error {
 // LocateTx returns the sub-block for the transaction.
 func (t *Tx) LocateTx() (Transaction, error) {
 	switch t.GetTxType() {
-	//case TxType_TxType_COMPLETE:
-	//return t.GetTxComplete(), nil
+	// case TxType_TxType_COMPLETE:
+	// return t.GetTxComplete(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}

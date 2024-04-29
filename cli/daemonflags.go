@@ -8,8 +8,7 @@ import (
 )
 
 // DaemonArgs contains common flags for forge daemons.
-type DaemonArgs struct {
-}
+type DaemonArgs struct{}
 
 // BuildFlags attaches the flags to a flag set.
 func (a *DaemonArgs) BuildFlags() []cli.Flag {
