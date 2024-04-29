@@ -2,10 +2,9 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/service.proto (package identity.domain.service, syntax proto3)
 /* eslint-disable */
 
-import { SignedMsg } from '@go/github.com/aperturerobotics/bifrost/peer/peer_pb.js'
-import { LookupEntityResp } from './service_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+import { SignedMsg } from '@go/github.com/aperturerobotics/bifrost/peer/peer.pb.js'
+import { LookupEntityResp } from './service.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -42,9 +41,9 @@ export interface IdentityDomain {
    * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
    */
   LookupEntity(
-    request: PartialMessage<SignedMsg>,
+    request: Message<SignedMsg>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<LookupEntityResp>>
+  ): Promise<Message<LookupEntityResp>>
 }
 
 export const IdentityDomainServiceName = IdentityDomainDefinition.typeName
@@ -63,14 +62,14 @@ export class IdentityDomainClient implements IdentityDomain {
    * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
    */
   async LookupEntity(
-    request: PartialMessage<SignedMsg>,
+    request: Message<SignedMsg>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<LookupEntityResp>> {
-    const requestMsg = new SignedMsg(request)
+  ): Promise<Message<LookupEntityResp>> {
+    const requestMsg = SignedMsg.create(request)
     const result = await this.rpc.request(
       this.service,
       IdentityDomainDefinition.methods.LookupEntity.name,
-      requestMsg.toBinary(),
+      SignedMsg.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return LookupEntityResp.fromBinary(result)

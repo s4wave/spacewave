@@ -8,7 +8,7 @@ require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.30.5 // master
+require github.com/aperturerobotics/bifrost v0.31.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -40,10 +40,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.43.2 // latest
+	github.com/aperturerobotics/controllerbus v0.44.3 // latest
 	github.com/aperturerobotics/entitygraph v0.8.2 // indirect; latest
-	github.com/aperturerobotics/starpc v0.31.6 // latest
-	github.com/aperturerobotics/util v1.20.3 // master
+	github.com/aperturerobotics/starpc v0.31.12 // latest
+	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
 )
 
 // aperture: use compatibility forks
@@ -60,7 +60,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.13.1
+	github.com/aperturerobotics/common v0.14.8
 	github.com/aperturerobotics/protobuf-go-lite v0.6.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
@@ -105,7 +105,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
-	github.com/quic-go/quic-go v0.42.0 // indirect
+	github.com/quic-go/quic-go v0.43.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
