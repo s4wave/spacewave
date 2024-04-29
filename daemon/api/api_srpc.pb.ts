@@ -12,10 +12,9 @@ import {
   ListVolumesResponse,
   ObjectStoreOpRequest,
   ObjectStoreOpResponse,
-} from './api_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
-import { ListBucketsRequest } from '../../volume/volume_pb.js'
+} from './api.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { ListBucketsRequest } from '../../volume/volume.pb.js'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -96,9 +95,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListVolumes
    */
   ListVolumes(
-    request: PartialMessage<ListVolumesRequest>,
+    request: Message<ListVolumesRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ListVolumesResponse>>
+  ): Promise<Message<ListVolumesResponse>>
 
   /**
    * ListBuckets lists buckets by the daemon.
@@ -106,9 +105,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListBuckets
    */
   ListBuckets(
-    request: PartialMessage<ListBucketsRequest>,
+    request: Message<ListBucketsRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ListBucketsResponse>>
+  ): Promise<Message<ListBucketsResponse>>
 
   /**
    * ApplyBucketConfig applies a bucket config to volumes.
@@ -116,7 +115,7 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ApplyBucketConfig
    */
   ApplyBucketConfig(
-    request: PartialMessage<ApplyBucketConfigRequest>,
+    request: Message<ApplyBucketConfigRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ApplyBucketConfigResponse>
 
@@ -126,9 +125,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.BucketOp
    */
   BucketOp(
-    request: PartialMessage<BucketOpRequest>,
+    request: Message<BucketOpRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<BucketOpResponse>>
+  ): Promise<Message<BucketOpResponse>>
 
   /**
    * ObjectStoreOp performs an object store operation.
@@ -136,9 +135,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ObjectStoreOp
    */
   ObjectStoreOp(
-    request: PartialMessage<ObjectStoreOpRequest>,
+    request: Message<ObjectStoreOpRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ObjectStoreOpResponse>>
+  ): Promise<Message<ObjectStoreOpResponse>>
 }
 
 export const HydraDaemonServiceServiceName =
@@ -162,14 +161,14 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListVolumes
    */
   async ListVolumes(
-    request: PartialMessage<ListVolumesRequest>,
+    request: Message<ListVolumesRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ListVolumesResponse>> {
-    const requestMsg = new ListVolumesRequest(request)
+  ): Promise<Message<ListVolumesResponse>> {
+    const requestMsg = ListVolumesRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       HydraDaemonServiceDefinition.methods.ListVolumes.name,
-      requestMsg.toBinary(),
+      ListVolumesRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return ListVolumesResponse.fromBinary(result)
@@ -181,14 +180,14 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListBuckets
    */
   async ListBuckets(
-    request: PartialMessage<ListBucketsRequest>,
+    request: Message<ListBucketsRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ListBucketsResponse>> {
-    const requestMsg = new ListBucketsRequest(request)
+  ): Promise<Message<ListBucketsResponse>> {
+    const requestMsg = ListBucketsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       HydraDaemonServiceDefinition.methods.ListBuckets.name,
-      requestMsg.toBinary(),
+      ListBucketsRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return ListBucketsResponse.fromBinary(result)
@@ -200,14 +199,14 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ApplyBucketConfig
    */
   ApplyBucketConfig(
-    request: PartialMessage<ApplyBucketConfigRequest>,
+    request: Message<ApplyBucketConfigRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ApplyBucketConfigResponse> {
-    const requestMsg = new ApplyBucketConfigRequest(request)
+    const requestMsg = ApplyBucketConfigRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       HydraDaemonServiceDefinition.methods.ApplyBucketConfig.name,
-      requestMsg.toBinary(),
+      ApplyBucketConfigRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(ApplyBucketConfigResponse)(result)
@@ -219,14 +218,14 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.BucketOp
    */
   async BucketOp(
-    request: PartialMessage<BucketOpRequest>,
+    request: Message<BucketOpRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<BucketOpResponse>> {
-    const requestMsg = new BucketOpRequest(request)
+  ): Promise<Message<BucketOpResponse>> {
+    const requestMsg = BucketOpRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       HydraDaemonServiceDefinition.methods.BucketOp.name,
-      requestMsg.toBinary(),
+      BucketOpRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return BucketOpResponse.fromBinary(result)
@@ -238,14 +237,14 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ObjectStoreOp
    */
   async ObjectStoreOp(
-    request: PartialMessage<ObjectStoreOpRequest>,
+    request: Message<ObjectStoreOpRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ObjectStoreOpResponse>> {
-    const requestMsg = new ObjectStoreOpRequest(request)
+  ): Promise<Message<ObjectStoreOpResponse>> {
+    const requestMsg = ObjectStoreOpRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       HydraDaemonServiceDefinition.methods.ObjectStoreOp.name,
-      requestMsg.toBinary(),
+      ObjectStoreOpRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return ObjectStoreOpResponse.fromBinary(result)

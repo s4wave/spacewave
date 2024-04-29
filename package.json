@@ -18,8 +18,9 @@
   "repository": {
     "url": "git+ssh://git@github.com/aperturerobotics/hydra.git"
   },
+  "type": "module",
   "scripts": {
-    "build": "tsc --project tsconfig.json --noEmit false --module ES6 --target es2022 --outDir ./dist/",
+    "build": "tsc --project tsconfig.json --noEmit false --outDir ./dist/",
     "check": "npm run typecheck",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,starpc,@aptre/common,@go/github.com",
@@ -34,7 +35,7 @@
     "demo": "make demo",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
-    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.js ./",
+    "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs ./",
     "prepare": "go mod vendor && rimraf ./.tools",
     "precommit": "npm run format"
   },
@@ -43,15 +44,14 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.12.6",
-    "@bufbuild/protoc-gen-es": "^1.9.0",
+    "@aptre/common": "^0.14.3",
     "depcheck": "^1.4.7",
     "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^1.9.0",
-    "starpc": "^0.31.6"
+    "@aptre/protobuf-es-lite": "^0.2.14",
+    "starpc": "^0.31.11"
   }
 }

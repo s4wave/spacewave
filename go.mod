@@ -3,8 +3,8 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.30.5 // master
-	github.com/aperturerobotics/go-kvfile v0.6.2 // master
+	github.com/aperturerobotics/bifrost v0.31.0 // master
+	github.com/aperturerobotics/go-kvfile v0.7.0 // master
 )
 
 // aperture: use ext-engines forks
@@ -61,12 +61,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.43.2 // latest
+	github.com/aperturerobotics/controllerbus v0.44.3 // latest
 	github.com/aperturerobotics/entitygraph v0.8.2 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.0 // latest
-	github.com/aperturerobotics/starpc v0.31.6 // latest
-	github.com/aperturerobotics/util v1.20.3 // master
+	github.com/aperturerobotics/starpc v0.31.12 // latest
+	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
 )
 
 // aperture: use compatibility forks
@@ -82,7 +82,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.13.1
+	github.com/aperturerobotics/common v0.14.9
 	github.com/aperturerobotics/json-iterator-lite v1.0.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
@@ -94,7 +94,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
 	go.etcd.io/bbolt v1.3.9
 	golang.org/x/crypto v0.22.0
@@ -113,7 +113,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
@@ -186,7 +186,7 @@ require (
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
-	github.com/pion/rtp v1.8.5 // indirect
+	github.com/pion/rtp v1.8.6 // indirect
 	github.com/pion/sctp v1.8.16 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
@@ -194,10 +194,10 @@ require (
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
 	github.com/pion/turn/v3 v3.0.2 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.17 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.18 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/quic-go/quic-go v0.42.0 // indirect
+	github.com/quic-go/quic-go v0.43.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -212,7 +212,7 @@ require (
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	github.com/zeebo/assert v1.3.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect

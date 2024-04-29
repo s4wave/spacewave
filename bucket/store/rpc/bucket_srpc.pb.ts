@@ -11,9 +11,8 @@ import {
   GetBucketInfoResponse,
   ListBucketInfoRequest,
   ListBucketInfoResponse,
-} from './bucket_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+} from './bucket.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -83,9 +82,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketConfig
    */
   GetBucketConfig(
-    request: PartialMessage<GetBucketConfigRequest>,
+    request: Message<GetBucketConfigRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBucketConfigResponse>>
+  ): Promise<Message<GetBucketConfigResponse>>
 
   /**
    * ApplyBucketConfig requests to apply a bucket config to this volume only.
@@ -93,9 +92,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ApplyBucketConfig
    */
   ApplyBucketConfig(
-    request: PartialMessage<ApplyBucketConfigRequest>,
+    request: Message<ApplyBucketConfigRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ApplyBucketConfigResponse>>
+  ): Promise<Message<ApplyBucketConfigResponse>>
 
   /**
    * GetBucketInfo returns bucket information.
@@ -103,9 +102,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketInfo
    */
   GetBucketInfo(
-    request: PartialMessage<GetBucketInfoRequest>,
+    request: Message<GetBucketInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBucketInfoResponse>>
+  ): Promise<Message<GetBucketInfoResponse>>
 
   /**
    * ListBucketInfo returns a list of bucket infos with an optional regex.
@@ -113,9 +112,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ListBucketInfo
    */
   ListBucketInfo(
-    request: PartialMessage<ListBucketInfoRequest>,
+    request: Message<ListBucketInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ListBucketInfoResponse>>
+  ): Promise<Message<ListBucketInfoResponse>>
 }
 
 export const BucketStoreServiceName = BucketStoreDefinition.typeName
@@ -137,14 +136,14 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketConfig
    */
   async GetBucketConfig(
-    request: PartialMessage<GetBucketConfigRequest>,
+    request: Message<GetBucketConfigRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBucketConfigResponse>> {
-    const requestMsg = new GetBucketConfigRequest(request)
+  ): Promise<Message<GetBucketConfigResponse>> {
+    const requestMsg = GetBucketConfigRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BucketStoreDefinition.methods.GetBucketConfig.name,
-      requestMsg.toBinary(),
+      GetBucketConfigRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetBucketConfigResponse.fromBinary(result)
@@ -156,14 +155,14 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ApplyBucketConfig
    */
   async ApplyBucketConfig(
-    request: PartialMessage<ApplyBucketConfigRequest>,
+    request: Message<ApplyBucketConfigRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ApplyBucketConfigResponse>> {
-    const requestMsg = new ApplyBucketConfigRequest(request)
+  ): Promise<Message<ApplyBucketConfigResponse>> {
+    const requestMsg = ApplyBucketConfigRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BucketStoreDefinition.methods.ApplyBucketConfig.name,
-      requestMsg.toBinary(),
+      ApplyBucketConfigRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return ApplyBucketConfigResponse.fromBinary(result)
@@ -175,14 +174,14 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketInfo
    */
   async GetBucketInfo(
-    request: PartialMessage<GetBucketInfoRequest>,
+    request: Message<GetBucketInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBucketInfoResponse>> {
-    const requestMsg = new GetBucketInfoRequest(request)
+  ): Promise<Message<GetBucketInfoResponse>> {
+    const requestMsg = GetBucketInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BucketStoreDefinition.methods.GetBucketInfo.name,
-      requestMsg.toBinary(),
+      GetBucketInfoRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetBucketInfoResponse.fromBinary(result)
@@ -194,14 +193,14 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ListBucketInfo
    */
   async ListBucketInfo(
-    request: PartialMessage<ListBucketInfoRequest>,
+    request: Message<ListBucketInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<ListBucketInfoResponse>> {
-    const requestMsg = new ListBucketInfoRequest(request)
+  ): Promise<Message<ListBucketInfoResponse>> {
+    const requestMsg = ListBucketInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BucketStoreDefinition.methods.ListBucketInfo.name,
-      requestMsg.toBinary(),
+      ListBucketInfoRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return ListBucketInfoResponse.fromBinary(result)

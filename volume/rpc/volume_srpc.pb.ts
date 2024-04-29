@@ -9,10 +9,9 @@ import {
   GetVolumeInfoResponse,
   WatchVolumeInfoRequest,
   WatchVolumeInfoResponse,
-} from './volume_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
+} from './volume.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -71,7 +70,7 @@ export interface AccessVolumes {
    * @generated from rpc volume.rpc.AccessVolumes.WatchVolumeInfo
    */
   WatchVolumeInfo(
-    request: PartialMessage<WatchVolumeInfoRequest>,
+    request: Message<WatchVolumeInfoRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchVolumeInfoResponse>
 
@@ -107,14 +106,14 @@ export class AccessVolumesClient implements AccessVolumes {
    * @generated from rpc volume.rpc.AccessVolumes.WatchVolumeInfo
    */
   WatchVolumeInfo(
-    request: PartialMessage<WatchVolumeInfoRequest>,
+    request: Message<WatchVolumeInfoRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchVolumeInfoResponse> {
-    const requestMsg = new WatchVolumeInfoRequest(request)
+    const requestMsg = WatchVolumeInfoRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
       AccessVolumesDefinition.methods.WatchVolumeInfo.name,
-      requestMsg.toBinary(),
+      WatchVolumeInfoRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchVolumeInfoResponse)(result)
@@ -198,9 +197,9 @@ export interface ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetVolumeInfo
    */
   GetVolumeInfo(
-    request: PartialMessage<GetVolumeInfoRequest>,
+    request: Message<GetVolumeInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetVolumeInfoResponse>>
+  ): Promise<Message<GetVolumeInfoResponse>>
 
   /**
    * GetPeerPriv returns the volume peer private key.
@@ -209,9 +208,9 @@ export interface ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetPeerPriv
    */
   GetPeerPriv(
-    request: PartialMessage<GetPeerPrivRequest>,
+    request: Message<GetPeerPrivRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetPeerPrivResponse>>
+  ): Promise<Message<GetPeerPrivResponse>>
 }
 
 export const ProxyVolumeServiceName = ProxyVolumeDefinition.typeName
@@ -231,14 +230,14 @@ export class ProxyVolumeClient implements ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetVolumeInfo
    */
   async GetVolumeInfo(
-    request: PartialMessage<GetVolumeInfoRequest>,
+    request: Message<GetVolumeInfoRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetVolumeInfoResponse>> {
-    const requestMsg = new GetVolumeInfoRequest(request)
+  ): Promise<Message<GetVolumeInfoResponse>> {
+    const requestMsg = GetVolumeInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       ProxyVolumeDefinition.methods.GetVolumeInfo.name,
-      requestMsg.toBinary(),
+      GetVolumeInfoRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetVolumeInfoResponse.fromBinary(result)
@@ -251,14 +250,14 @@ export class ProxyVolumeClient implements ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetPeerPriv
    */
   async GetPeerPriv(
-    request: PartialMessage<GetPeerPrivRequest>,
+    request: Message<GetPeerPrivRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetPeerPrivResponse>> {
-    const requestMsg = new GetPeerPrivRequest(request)
+  ): Promise<Message<GetPeerPrivResponse>> {
+    const requestMsg = GetPeerPrivRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       ProxyVolumeDefinition.methods.GetPeerPriv.name,
-      requestMsg.toBinary(),
+      GetPeerPrivRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetPeerPrivResponse.fromBinary(result)

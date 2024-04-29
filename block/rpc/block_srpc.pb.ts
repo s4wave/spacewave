@@ -11,9 +11,8 @@ import {
   PutBlockResponse,
   RmBlockRequest,
   RmBlockResponse,
-} from './block_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
+} from './block.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -85,9 +84,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.PutBlock
    */
   PutBlock(
-    request: PartialMessage<PutBlockRequest>,
+    request: Message<PutBlockRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<PutBlockResponse>>
+  ): Promise<Message<PutBlockResponse>>
 
   /**
    * GetBlock requests to lookup a block from the store.
@@ -95,9 +94,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlock
    */
   GetBlock(
-    request: PartialMessage<GetBlockRequest>,
+    request: Message<GetBlockRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBlockResponse>>
+  ): Promise<Message<GetBlockResponse>>
 
   /**
    * GetBlockExists requests to check if a block exists in the store.
@@ -105,9 +104,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlockExists
    */
   GetBlockExists(
-    request: PartialMessage<GetBlockExistsRequest>,
+    request: Message<GetBlockExistsRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBlockExistsResponse>>
+  ): Promise<Message<GetBlockExistsResponse>>
 
   /**
    * RmBlock requests to remove a block from the store.
@@ -117,9 +116,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.RmBlock
    */
   RmBlock(
-    request: PartialMessage<RmBlockRequest>,
+    request: Message<RmBlockRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RmBlockResponse>>
+  ): Promise<Message<RmBlockResponse>>
 }
 
 export const BlockStoreServiceName = BlockStoreDefinition.typeName
@@ -141,14 +140,14 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.PutBlock
    */
   async PutBlock(
-    request: PartialMessage<PutBlockRequest>,
+    request: Message<PutBlockRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<PutBlockResponse>> {
-    const requestMsg = new PutBlockRequest(request)
+  ): Promise<Message<PutBlockResponse>> {
+    const requestMsg = PutBlockRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BlockStoreDefinition.methods.PutBlock.name,
-      requestMsg.toBinary(),
+      PutBlockRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return PutBlockResponse.fromBinary(result)
@@ -160,14 +159,14 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlock
    */
   async GetBlock(
-    request: PartialMessage<GetBlockRequest>,
+    request: Message<GetBlockRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBlockResponse>> {
-    const requestMsg = new GetBlockRequest(request)
+  ): Promise<Message<GetBlockResponse>> {
+    const requestMsg = GetBlockRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BlockStoreDefinition.methods.GetBlock.name,
-      requestMsg.toBinary(),
+      GetBlockRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetBlockResponse.fromBinary(result)
@@ -179,14 +178,14 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlockExists
    */
   async GetBlockExists(
-    request: PartialMessage<GetBlockExistsRequest>,
+    request: Message<GetBlockExistsRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<GetBlockExistsResponse>> {
-    const requestMsg = new GetBlockExistsRequest(request)
+  ): Promise<Message<GetBlockExistsResponse>> {
+    const requestMsg = GetBlockExistsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BlockStoreDefinition.methods.GetBlockExists.name,
-      requestMsg.toBinary(),
+      GetBlockExistsRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return GetBlockExistsResponse.fromBinary(result)
@@ -200,14 +199,14 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.RmBlock
    */
   async RmBlock(
-    request: PartialMessage<RmBlockRequest>,
+    request: Message<RmBlockRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RmBlockResponse>> {
-    const requestMsg = new RmBlockRequest(request)
+  ): Promise<Message<RmBlockResponse>> {
+    const requestMsg = RmBlockRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       BlockStoreDefinition.methods.RmBlock.name,
-      requestMsg.toBinary(),
+      RmBlockRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return RmBlockResponse.fromBinary(result)

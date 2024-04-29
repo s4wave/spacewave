@@ -2,10 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/object/rpc/object.proto (package object.rpc, syntax proto3)
 /* eslint-disable */
 
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream_pb.js'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { MethodKind } from '@bufbuild/protobuf'
-import { RmObjectStoreRequest, RmObjectStoreResponse } from './object_pb.js'
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { RmObjectStoreRequest, RmObjectStoreResponse } from './object.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -76,9 +75,9 @@ export interface ObjectStore {
    * @generated from rpc object.rpc.ObjectStore.RmObjectStore
    */
   RmObjectStore(
-    request: PartialMessage<RmObjectStoreRequest>,
+    request: Message<RmObjectStoreRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RmObjectStoreResponse>>
+  ): Promise<Message<RmObjectStoreResponse>>
 }
 
 export const ObjectStoreServiceName = ObjectStoreDefinition.typeName
@@ -120,14 +119,14 @@ export class ObjectStoreClient implements ObjectStore {
    * @generated from rpc object.rpc.ObjectStore.RmObjectStore
    */
   async RmObjectStore(
-    request: PartialMessage<RmObjectStoreRequest>,
+    request: Message<RmObjectStoreRequest>,
     abortSignal?: AbortSignal,
-  ): Promise<PartialMessage<RmObjectStoreResponse>> {
-    const requestMsg = new RmObjectStoreRequest(request)
+  ): Promise<Message<RmObjectStoreResponse>> {
+    const requestMsg = RmObjectStoreRequest.create(request)
     const result = await this.rpc.request(
       this.service,
       ObjectStoreDefinition.methods.RmObjectStore.name,
-      requestMsg.toBinary(),
+      RmObjectStoreRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return RmObjectStoreResponse.fromBinary(result)
