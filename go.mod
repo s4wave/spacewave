@@ -3,7 +3,7 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240424093127-e3938be0b3b7 // master
+	github.com/aperturerobotics/identity v0.0.0-20240429214814-cb79e7ffec56 // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0 // latest
 )
@@ -16,7 +16,7 @@ require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.30.5 // master
+require github.com/aperturerobotics/bifrost v0.31.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -43,10 +43,10 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.43.2 // latest
+	github.com/aperturerobotics/controllerbus v0.44.3 // latest
 	github.com/aperturerobotics/entitygraph v0.8.2 // indirect; latest
-	github.com/aperturerobotics/starpc v0.31.6 // indirect; latest
-	github.com/aperturerobotics/util v1.20.3 // indirect; master
+	github.com/aperturerobotics/starpc v0.31.12 // indirect; main
+	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // indirect; master
 )
 
 // aperture: use compatibility forks
@@ -62,14 +62,14 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.13.1
+	github.com/aperturerobotics/common v0.14.8
 	github.com/aperturerobotics/protobuf-go-lite v0.6.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
 )
 
@@ -78,7 +78,7 @@ require (
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
@@ -103,10 +103,10 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
-	github.com/quic-go/quic-go v0.42.0 // indirect
+	github.com/quic-go/quic-go v0.43.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect

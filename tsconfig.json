@@ -1,1 +1,27 @@
-./node_modules/@aperturerobotics/ts-common/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "jsx": "react",
+    "baseUrl": "./",
+    "paths": {
+      "@go/*": ["vendor/*"]
+    },
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "importsNotUsedAsValues": "remove",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "lib": ["webworker", "dom"]
+  },
+  "exclude": ["node_modules", "vendor", "dist"],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": true
+  }
+}
