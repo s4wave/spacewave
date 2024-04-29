@@ -86,7 +86,7 @@ function startGoRuntime(webRuntimeId: string) {
   goStarted = true
 
   // Configure the BLDR_INIT global
-  global.BLDR_INIT =  WebRuntimeHostInit.toBinary({
+  global.BLDR_INIT = WebRuntimeHostInit.toBinary({
     webRuntimeId,
   })
 

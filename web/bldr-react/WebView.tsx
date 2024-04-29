@@ -139,9 +139,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
-          refreshNonce: options.refresh
-            ? prev.refreshNonce + 1
-            : prev.refreshNonce,
+          refreshNonce:
+            options.refresh ? prev.refreshNonce + 1 : prev.refreshNonce,
           scriptPath:
             (options.renderMode !== RenderMode.RenderMode_NONE &&
               options.scriptPath?.trim()) ||
@@ -255,38 +254,34 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
 
   return (
     <BldrContext.Provider value={childContext}>
-      {props.showDebugInfo ? (
+      {props.showDebugInfo ?
         <DebugInfo>
           WebView ID: {uuid} <br />
-          {parentUuid ? (
+          {parentUuid ?
             <>
               Parent WebView ID: {parentUuid}
               <br />
             </>
-          ) : undefined}
+          : undefined}
           Ready: {webViewState.ready ? 'true' : 'false'}
           <br />
           Render Mode: {webViewState.renderMode}
           <br />
-          {webViewState.scriptPath ? (
+          {webViewState.scriptPath ?
             <>
               Script Path: {webViewState.scriptPath}
               <br />
             </>
-          ) : undefined}
+          : undefined}
         </DebugInfo>
-      ) : undefined}
-      {webViewState.ready
-        ? webViewState.htmlLinks.map((ilink) => {
-            return (
-              <link
-                key={ilink.id}
-                rel={ilink.link.rel}
-                href={ilink.link.href}
-              />
-            )
-          })
-        : undefined}
+      : undefined}
+      {webViewState.ready ?
+        webViewState.htmlLinks.map((ilink) => {
+          return (
+            <link key={ilink.id} rel={ilink.link.rel} href={ilink.link.href} />
+          )
+        })
+      : undefined}
       {webViewState.ready &&
         webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
         !!webViewState.scriptPath && (
@@ -296,15 +291,17 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             componentProps={webViewState.props}
           />
         )}
-      {webViewState.ready &&
-      webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
-      webViewState.scriptPath ? (
+      {(
+        webViewState.ready &&
+        webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
+        webViewState.scriptPath
+      ) ?
         <FunctionComponentContainer
           key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
           scriptPath={webViewState.scriptPath}
           componentProps={webViewState.props}
         />
-      ) : undefined}
+      : undefined}
     </BldrContext.Provider>
   )
 }

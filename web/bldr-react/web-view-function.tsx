@@ -96,22 +96,20 @@ export class FunctionComponentContainer extends BldrComponent<
   }
 
   public render() {
-    return this.state.loadError ? (
-      <>
-        Error: {this.state.loadError.message}
-        <br />
-      </>
-    ) : (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-        ref={(ref) => this.update(this.functionComponent, ref || undefined)}
-      />
-    )
+    return this.state.loadError ?
+        <>
+          Error: {this.state.loadError.message}
+          <br />
+        </>
+      : <div
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+          ref={(ref) => this.update(this.functionComponent, ref || undefined)}
+        />
   }
 
   // update updates the function component and/or div-ref field.

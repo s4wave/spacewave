@@ -59,7 +59,7 @@ export function buildRequestData(
 // buildResponseInit builds the ResponseInit from the ResponseInfo.
 export function buildResponseInit(info: ResponseInfo): ResponseInit {
   return {
-    headers: (info.headers ?? undefined) as (Record<string, string> | undefined),
+    headers: (info.headers ?? undefined) as Record<string, string> | undefined,
     status: info.status,
     statusText: info.statusText,
   }

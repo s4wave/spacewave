@@ -32,14 +32,12 @@ export class WebViewErrorBoundary extends React.Component<
   public render() {
     return (
       <>
-        {this.state.caughtError ? (
+        {this.state.caughtError ?
           <>
             Error: {this.state.caughtError.message}
             <br />
           </>
-        ) : (
-          this.props.children
-        )}
+        : this.props.children}
       </>
     )
   }

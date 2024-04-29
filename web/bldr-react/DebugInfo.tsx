@@ -136,9 +136,9 @@ const DebugInfoDisplay: FC = () => {
       {localDebugInfo.map((info, index) => (
         <p
           style={
-            index !== 0
-              ? { margin: '0.33rem 0', marginBlockEnd: 0 }
-              : { margin: 0 }
+            index !== 0 ?
+              { margin: '0.33rem 0', marginBlockEnd: 0 }
+            : { margin: 0 }
           }
           key={index.toString()}
         >

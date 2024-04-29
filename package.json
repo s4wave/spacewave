@@ -62,10 +62,6 @@
     "vendor": "go mod vendor",
     "prepare": "npm run clean && rimraf ./.tools && npm run vendor && npm run setup"
   },
-  "prettier": {
-    "semi": false,
-    "singleQuote": true
-  },
   "devDependencies": {
     "@aptre/common": "^0.14.9",
     "@types/lodash.isequal": "^4.5.8",

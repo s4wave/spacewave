@@ -51,14 +51,14 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
   public render() {
     return (
       <BldrContext.Provider value={this.childContext}>
-        {this.props.showDebugInfo ? (
+        {this.props.showDebugInfo ?
           <DebugInfo>
             Runtime ID: {this.webDocument?.webRuntimeId}
             <br />
             Document ID: {this.webDocument?.webDocumentUuid}
             <br />
           </DebugInfo>
-        ) : undefined}
+        : undefined}
         {this.props.children}
       </BldrContext.Provider>
     )
