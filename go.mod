@@ -2,14 +2,14 @@ module github.com/aperturerobotics/bldr
 
 go 1.22
 
-require github.com/aperturerobotics/common v0.14.9 // latest
+require github.com/aperturerobotics/common v0.14.11 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240314215540-27d23cbf9cd6 // aperture
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20240429212903-9119033618d7 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.6.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // master
 )
 
 require (

@@ -5,6 +5,7 @@ import {
   DebugInfoDisplay,
   DebugInfoProvider,
   BldrDebug,
+  useWebViewHostServiceClient,
 } from '@aptre/bldr-react'
 import { retryWithAbort, isMac, isElectron } from '@aptre/bldr'
 
@@ -12,7 +13,6 @@ import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.
 import { ExampleProps } from './example.pb.js'
 
 import './example.css'
-import { useWebViewHostServiceClient } from 'web/bldr-react/hooks.js'
 
 // Example is an example of a functional react component accessing a host rpc.
 const Example: React.FC<ExampleProps> = (props) => {

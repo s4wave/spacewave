@@ -206,23 +206,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 	}
 
 	// web pkgs we distribute with bldr
-	refs := []*web_pkg_esbuild.WebPkgRef{{
-		WebPkgId:   "react",
-		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
-		Imports:    []string{"index.js", "jsx-runtime.js"},
-	}, {
-		WebPkgId:   "react-dom",
-		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
-		Imports:    []string{"index.js", "client.js"},
-	}, {
-		WebPkgId:   "@aptre/bldr",
-		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
-		Imports:    []string{"index.ts"},
-	}, {
-		WebPkgId:   "@aptre/bldr-react",
-		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
-		Imports:    []string{"index.ts"},
-	}}
+	refs := web_pkg_esbuild.GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot)
 
 	// if we are in development mode: include test-utils to react-dom
 	if devMode {

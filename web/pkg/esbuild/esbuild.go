@@ -19,8 +19,33 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// BldrExternal are packages that are provided by bldr with an <importmap>.
-var BldrExternal = []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react"}
+// BldrExternal are packages that are bundled externally for all bldr components.
+var BldrExternal = []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react", "@aptre/protobuf-es-lite"}
+
+// GetBldrExternalWebPkgRefs returns the web pkg refs for BldrExternal.
+func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*WebPkgRef {
+	return []*WebPkgRef{{
+		WebPkgId:   "react",
+		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
+		Imports:    []string{"index.js", "jsx-runtime.js"},
+	}, {
+		WebPkgId:   "react-dom",
+		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
+		Imports:    []string{"index.js", "client.js"},
+	}, {
+		WebPkgId:   "@aptre/bldr",
+		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
+		Imports:    []string{"index.ts"},
+	}, {
+		WebPkgId:   "@aptre/bldr-react",
+		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
+		Imports:    []string{"index.ts"},
+	}, {
+		WebPkgId:   "@aptre/protobuf-es-lite",
+		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@aptre/protobuf-es-lite/dist"),
+		Imports:    []string{"index.js"},
+	}}
+}
 
 // pkgRootAlias is an alias to the root of the bldr web pkg.
 const pkgRootAlias = "@bldr-web-pkg"

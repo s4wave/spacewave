@@ -135,7 +135,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       async setRenderMode(
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
-        // console.log('set render mode', options)
+        console.log('set render mode', options)
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,

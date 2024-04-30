@@ -58,8 +58,8 @@ github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 h1:Qowgx
 github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0/go.mod h1:2vMuoynITu0wxbJckb2b4IuFA/IkT5sikZG5FvsPwK8=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 h1:ANiOvmJmykti5luVErG3SQLrM2zEkT928BO3pbWBxwY=
 github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195/go.mod h1:qBLT6/BYoGVoGAbS9XVFoXr5ZKQq3n8cGRXNOeEVn1U=
-github.com/aperturerobotics/common v0.14.9 h1:oxJjPJug3EKgj7iDXwOBJv+HEuU8QANvi9ydKngXy1Y=
-github.com/aperturerobotics/common v0.14.9/go.mod h1:MkCLl9iUXglujvO9wAbrZ9bm72mesXaAq288HGnzshA=
+github.com/aperturerobotics/common v0.14.11 h1:yflNTMIdRK7yThy40YvFr6iS9CFWNy129I7YtfsmElw=
+github.com/aperturerobotics/common v0.14.11/go.mod h1:lbKmrcn9sYjn8LsQ+dYOUJ+wjZUCNySsce6+t8r6GFk=
 github.com/aperturerobotics/controllerbus v0.44.3 h1:/0zxAMccdlVQJEZExi5o3fWtDzDA3Tmxas0r7Mp6HVI=
 github.com/aperturerobotics/controllerbus v0.44.3/go.mod h1:871Cl1QOvAmKGfrmrJ+KGa4dXLFfwlQ/i5p578pBHv0=
 github.com/aperturerobotics/entitygraph v0.8.2 h1:pNR5f6DJK+UF0IyXMJwtVXkjDI+KuoJdKiF2QuNH+iE=
@@ -78,8 +78,8 @@ github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
-github.com/aperturerobotics/protobuf-go-lite v0.6.0 h1:EE168e2oov6wmDv8AdSAlz2G1nHbf0HlYG917CgJ+ug=
-github.com/aperturerobotics/protobuf-go-lite v0.6.0/go.mod h1:6Bp+C+fI1uh0NmIKpxlxyHMkKtCP9Kb3PHkhOzxG4B8=
+github.com/aperturerobotics/protobuf-go-lite v0.6.1 h1:dN4baS2e2qHhdpX57RJKUEukseXrXtqtiUJxGFFUbRs=
+github.com/aperturerobotics/protobuf-go-lite v0.6.1/go.mod h1:6Bp+C+fI1uh0NmIKpxlxyHMkKtCP9Kb3PHkhOzxG4B8=
 github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 h1:QLhCPPV6tnQpbHqJLvU/aOdp9RNajGLDTAwFsKi7Kow=
 github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9/go.mod h1:tY2LVzdNWloFW0Gbg9bK8L49s4UhyUe9uCZIOF6KtuI=
 github.com/aperturerobotics/starpc v0.31.12 h1:Kpa5/NdTxKPMtIaJkW9ZevX0nOj4yi02wqpgC2JKArc=
