@@ -7,7 +7,6 @@ import {
   SetHtmlLinksRequest,
   SetHtmlLinksResponse,
 } from '../view/view.pb.js'
-import { WebViewHostClient } from '../view/view_srpc.pb.js'
 import { Message } from '@aptre/protobuf-es-lite'
 
 // WebView implements the web-view with pluggable logic.
@@ -41,8 +40,6 @@ export interface WebView {
 export interface WebViewRegistration {
   // rpcClient is the RPC client for the WebViewHost.
   readonly rpcClient: Client
-  // webViewHost is the service attached to the rpcClient.
-  readonly webViewHost: WebViewHostClient
   // release indicates that the web view has been shutdown.
   release(): void
 }

@@ -3,12 +3,6 @@
 /* eslint-disable */
 
 import {
-  buildDecodeMessageTransform,
-  buildEncodeMessageTransform,
-  MessageStream,
-  ProtoRpc,
-} from 'starpc'
-import {
   RemoveWebViewRequest,
   RemoveWebViewResponse,
   ResetWebViewRequest,
@@ -19,6 +13,12 @@ import {
   SetRenderModeResponse,
 } from './view.pb.js'
 import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import {
+  buildDecodeMessageTransform,
+  buildEncodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+} from 'starpc'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 
 /**
@@ -44,14 +44,6 @@ export interface WebViewHost {}
 
 export const WebViewHostServiceName = WebViewHostDefinition.typeName
 
-export class WebViewHostClient implements WebViewHost {
-  private readonly rpc: ProtoRpc
-  private readonly service: string
-  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
-    this.service = opts?.service || WebViewHostServiceName
-    this.rpc = rpc
-  }
-}
 /**
  * WebView exposes a remote WebView via rpc.
  *

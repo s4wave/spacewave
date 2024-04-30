@@ -44,7 +44,6 @@ import {
   ResetWebViewResponse,
 } from '../view/view.pb.js'
 import {
-  WebViewHostClient,
   WebView as WebViewService,
   WebViewDefinition,
 } from '../view/view_srpc.pb.js'
@@ -543,10 +542,8 @@ export class WebDocument {
 
     // openStream opens a stream to the WebViewHost service.
     const rpcClient = this.buildWebViewHostClient(webViewId)
-    const webViewHost = new WebViewHostClient(rpcClient)
     const reg: WebViewRegistration = {
       rpcClient,
-      webViewHost,
       release: () => {
         this.unregisterWebView(webView)
       },
