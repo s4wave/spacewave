@@ -2,13 +2,13 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240424092755-a51a4612e61a // master
+require github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.31.0 // master
+require github.com/aperturerobotics/bifrost v0.31.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -40,9 +40,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.3 // latest
-	github.com/aperturerobotics/entitygraph v0.8.2 // indirect; latest
-	github.com/aperturerobotics/starpc v0.31.12 // latest
+	github.com/aperturerobotics/controllerbus v0.44.4 // latest
+	github.com/aperturerobotics/entitygraph v0.9.0 // indirect; latest
+	github.com/aperturerobotics/starpc v0.31.14 // latest
 	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
 )
 
@@ -60,8 +60,8 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.14.8
-	github.com/aperturerobotics/protobuf-go-lite v0.6.0
+	github.com/aperturerobotics/common v0.15.0
+	github.com/aperturerobotics/protobuf-go-lite v0.6.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
 	github.com/libp2p/go-libp2p v0.33.2
@@ -123,7 +123,7 @@ require (
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.34.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
 )
