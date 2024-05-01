@@ -2,11 +2,16 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/service.proto (package identity.domain.service, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
-import { Entity } from "../../identity.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
+import { Entity } from '../../identity.pb.js'
 
-export const protobufPackage = "identity.domain.service";
+export const protobufPackage = 'identity.domain.service'
 
 /**
  * EntityLookupIdentifier is the identifier to search.
@@ -19,26 +24,25 @@ export type EntityLookupIdentifier = Message<{
    *
    * @generated from field: string domain_id = 1;
    */
-  domainId?: string;
+  domainId?: string
   /**
    * EntityId is the id of the entity to search.
    *
    * @generated from field: string entity_id = 2;
    */
-  entityId?: string;
+  entityId?: string
+}>
 
-}>;
-
-export const EntityLookupIdentifier: MessageType<EntityLookupIdentifier> = createMessageType(
-  {
-    typeName: "identity.domain.service.EntityLookupIdentifier",
+// EntityLookupIdentifier contains the message type declaration for EntityLookupIdentifier.
+export const EntityLookupIdentifier: MessageType<EntityLookupIdentifier> =
+  createMessageType({
+    typeName: 'identity.domain.service.EntityLookupIdentifier',
     fields: [
-        { no: 1, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * LookupEntityReq is the signed body of LookupEntity.
@@ -51,33 +55,36 @@ export type LookupEntityReq = Message<{
    *
    * @generated from field: identity.domain.service.EntityLookupIdentifier identifier = 1;
    */
-  identifier?: EntityLookupIdentifier;
+  identifier?: EntityLookupIdentifier
   /**
    * Timestamp is the timestamp of the request.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 2;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
   /**
    * Nonce is a random one-time uint64.
    *
    * @generated from field: uint64 nonce = 3;
    */
-  nonce?: bigint;
+  nonce?: bigint
+}>
 
-}>;
-
-export const LookupEntityReq: MessageType<LookupEntityReq> = createMessageType(
-  {
-    typeName: "identity.domain.service.LookupEntityReq",
-    fields: [
-        { no: 1, name: "identifier", kind: "message", T: () => EntityLookupIdentifier },
-        { no: 2, name: "timestamp", kind: "message", T: () => Timestamp },
-        { no: 3, name: "nonce", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+// LookupEntityReq contains the message type declaration for LookupEntityReq.
+export const LookupEntityReq: MessageType<LookupEntityReq> = createMessageType({
+  typeName: 'identity.domain.service.LookupEntityReq',
+  fields: [
+    {
+      no: 1,
+      name: 'identifier',
+      kind: 'message',
+      T: () => EntityLookupIdentifier,
+    },
+    { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    { no: 3, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * LookupEntityResp is the response to the LookupEntity.
@@ -90,38 +97,41 @@ export type LookupEntityResp = Message<{
    *
    * @generated from field: identity.domain.service.EntityLookupIdentifier identifier = 1;
    */
-  identifier?: EntityLookupIdentifier;
+  identifier?: EntityLookupIdentifier
   /**
    * LookupError contains any error looking up the entity.
    *
    * @generated from field: string lookup_error = 2;
    */
-  lookupError?: string;
+  lookupError?: string
   /**
    * NotFound indicates if the error indicates a not found.
    *
    * @generated from field: bool not_found = 3;
    */
-  notFound?: boolean;
+  notFound?: boolean
   /**
    * LookupEntity is the result of the lookup.
    *
    * @generated from field: identity.Entity lookup_entity = 4;
    */
-  lookupEntity?: Entity;
+  lookupEntity?: Entity
+}>
 
-}>;
-
-export const LookupEntityResp: MessageType<LookupEntityResp> = createMessageType(
-  {
-    typeName: "identity.domain.service.LookupEntityResp",
+// LookupEntityResp contains the message type declaration for LookupEntityResp.
+export const LookupEntityResp: MessageType<LookupEntityResp> =
+  createMessageType({
+    typeName: 'identity.domain.service.LookupEntityResp',
     fields: [
-        { no: 1, name: "identifier", kind: "message", T: () => EntityLookupIdentifier },
-        { no: 2, name: "lookup_error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "lookup_entity", kind: "message", T: () => Entity },
+      {
+        no: 1,
+        name: 'identifier',
+        kind: 'message',
+        T: () => EntityLookupIdentifier,
+      },
+      { no: 2, name: 'lookup_error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'lookup_entity', kind: 'message', T: () => Entity },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

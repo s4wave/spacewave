@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/server/server.proto (package identity.domain.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../../../bifrost/stream/srpc/server/server.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/server/server.pb.js'
 
-export const protobufPackage = "identity.domain.server";
+export const protobufPackage = 'identity.domain.server'
 
 /**
  * Config configures the identity server.
@@ -21,32 +21,35 @@ export type Config = Message<{
    *
    * @generated from field: stream.srpc.server.Config server = 1;
    */
-  server?: Config$1;
+  server?: Config$1
   /**
    * DomainIds is the list of domain IDs to service.
    * If empty, allows any domain ID.
    *
    * @generated from field: repeated string domain_ids = 2;
    */
-  domainIds?: string[];
+  domainIds?: string[]
   /**
    * RequestTimeout limits the amount of time a request can take.
    *
    * @generated from field: string request_timeout = 3;
    */
-  requestTimeout?: string;
+  requestTimeout?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "identity.domain.server.Config",
-    fields: [
-        { no: 1, name: "server", kind: "message", T: () => Config$1 },
-        { no: 2, name: "domain_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 3, name: "request_timeout", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+// Config contains the message type declaration for Config.
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'identity.domain.server.Config',
+  fields: [
+    { no: 1, name: 'server', kind: 'message', T: () => Config$1 },
+    {
+      no: 2,
+      name: 'domain_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 3, name: 'request_timeout', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

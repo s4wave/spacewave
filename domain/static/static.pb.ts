@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/identity/domain/static/static.proto (package identity.domain.static, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { DomainInfo } from "../domain.pb.js";
-import { Entity } from "../../identity.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { DomainInfo } from '../domain.pb.js'
+import { Entity } from '../../identity.pb.js'
 
-export const protobufPackage = "identity.domain.static";
+export const protobufPackage = 'identity.domain.static'
 
 /**
  * Config is the static identity provider config.
@@ -22,39 +22,47 @@ export type Config = Message<{
    *
    * @generated from field: identity.domain.DomainInfo domain_info = 1;
    */
-  domainInfo?: DomainInfo;
+  domainInfo?: DomainInfo
   /**
    * Entities is the set of entities to make available on the domain.
    *
    * @generated from field: repeated identity.Entity entities = 2;
    */
-  entities?: Entity[];
+  entities?: Entity[]
   /**
    * SilentNotFound indicates not found will not satistfy the lookup.
    *
    * @generated from field: bool silent_not_found = 3;
    */
-  silentNotFound?: boolean;
+  silentNotFound?: boolean
   /**
    * ResolveSelectIdentityDomain indicates this domain should resolve any
    * SelectIdentityDomain directive with its own domain info.
    *
    * @generated from field: bool resolve_select_identity_domain = 4;
    */
-  resolveSelectIdentityDomain?: boolean;
+  resolveSelectIdentityDomain?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "identity.domain.static.Config",
-    fields: [
-        { no: 1, name: "domain_info", kind: "message", T: () => DomainInfo },
-        { no: 2, name: "entities", kind: "message", T: () => Entity, repeated: true },
-        { no: 3, name: "silent_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "resolve_select_identity_domain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+// Config contains the message type declaration for Config.
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'identity.domain.static.Config',
+  fields: [
+    { no: 1, name: 'domain_info', kind: 'message', T: () => DomainInfo },
+    {
+      no: 2,
+      name: 'entities',
+      kind: 'message',
+      T: () => Entity,
+      repeated: true,
+    },
+    { no: 3, name: 'silent_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 4,
+      name: 'resolve_select_identity_domain',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

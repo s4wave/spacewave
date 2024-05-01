@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/client/client.proto (package identity.domain.client, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { DomainInfo } from "../../domain.pb.js";
-import { Config as Config$1 } from "../../../../bifrost/stream/srpc/client/client.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { DomainInfo } from '../../domain.pb.js'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/client/client.pb.js'
 
-export const protobufPackage = "identity.domain.client";
+export const protobufPackage = 'identity.domain.client'
 
 /**
  * Config configures the identity client domain controller.
@@ -20,40 +20,42 @@ export type Config = Message<{
    *
    * @generated from field: identity.domain.DomainInfo domain_info = 1;
    */
-  domainInfo?: DomainInfo;
+  domainInfo?: DomainInfo
   /**
    * ClientOpts are options passed to the client.
    *
    * @generated from field: stream.srpc.client.Config client_opts = 2;
    */
-  clientOpts?: Config$1;
+  clientOpts?: Config$1
   /**
    * PeerId is the peer id to use to sign requests.
    * Private key must be available.
    *
    * @generated from field: string peer_id = 3;
    */
-  peerId?: string;
+  peerId?: string
   /**
    * ResolveSelectIdentityDomain indicates this domain should resolve any
    * SelectIdentityDomain directive with its own domain info.
    *
    * @generated from field: bool resolve_select_identity_domain = 4;
    */
-  resolveSelectIdentityDomain?: boolean;
+  resolveSelectIdentityDomain?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "identity.domain.client.Config",
-    fields: [
-        { no: 1, name: "domain_info", kind: "message", T: () => DomainInfo },
-        { no: 2, name: "client_opts", kind: "message", T: () => Config$1 },
-        { no: 3, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "resolve_select_identity_domain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+// Config contains the message type declaration for Config.
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'identity.domain.client.Config',
+  fields: [
+    { no: 1, name: 'domain_info', kind: 'message', T: () => DomainInfo },
+    { no: 2, name: 'client_opts', kind: 'message', T: () => Config$1 },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 4,
+      name: 'resolve_select_identity_domain',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

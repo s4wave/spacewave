@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/identity/world/world.proto (package identity.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { ObjectRef } from "../../hydra/bucket/bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 
-export const protobufPackage = "identity.world";
+export const protobufPackage = 'identity.world'
 
 /**
  * EntityUpdateOp updates an entity and links to other objects.
@@ -23,19 +23,17 @@ export type EntityUpdateOp = Message<{
    *
    * @generated from field: bucket.ObjectRef entity_ref = 1;
    */
-  entityRef?: ObjectRef;
+  entityRef?: ObjectRef
+}>
 
-}>;
-
-export const EntityUpdateOp: MessageType<EntityUpdateOp> = createMessageType(
-  {
-    typeName: "identity.world.EntityUpdateOp",
-    fields: [
-        { no: 1, name: "entity_ref", kind: "message", T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+// EntityUpdateOp contains the message type declaration for EntityUpdateOp.
+export const EntityUpdateOp: MessageType<EntityUpdateOp> = createMessageType({
+  typeName: 'identity.world.EntityUpdateOp',
+  fields: [
+    { no: 1, name: 'entity_ref', kind: 'message', T: () => ObjectRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * KeypairUpdateOp updates a Keypair.
@@ -48,19 +46,17 @@ export type KeypairUpdateOp = Message<{
    *
    * @generated from field: bucket.ObjectRef keypair_ref = 1;
    */
-  keypairRef?: ObjectRef;
+  keypairRef?: ObjectRef
+}>
 
-}>;
-
-export const KeypairUpdateOp: MessageType<KeypairUpdateOp> = createMessageType(
-  {
-    typeName: "identity.world.KeypairUpdateOp",
-    fields: [
-        { no: 1, name: "keypair_ref", kind: "message", T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+// KeypairUpdateOp contains the message type declaration for KeypairUpdateOp.
+export const KeypairUpdateOp: MessageType<KeypairUpdateOp> = createMessageType({
+  typeName: 'identity.world.KeypairUpdateOp',
+  fields: [
+    { no: 1, name: 'keypair_ref', kind: 'message', T: () => ObjectRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * DomainInfoUpdateOp updates a DomainInfo.
@@ -73,17 +69,15 @@ export type DomainInfoUpdateOp = Message<{
    *
    * @generated from field: bucket.ObjectRef domain_info_ref = 1;
    */
-  domainInfoRef?: ObjectRef;
+  domainInfoRef?: ObjectRef
+}>
 
-}>;
-
-export const DomainInfoUpdateOp: MessageType<DomainInfoUpdateOp> = createMessageType(
-  {
-    typeName: "identity.world.DomainInfoUpdateOp",
+// DomainInfoUpdateOp contains the message type declaration for DomainInfoUpdateOp.
+export const DomainInfoUpdateOp: MessageType<DomainInfoUpdateOp> =
+  createMessageType({
+    typeName: 'identity.world.DomainInfoUpdateOp',
     fields: [
-        { no: 1, name: "domain_info_ref", kind: "message", T: () => ObjectRef },
+      { no: 1, name: 'domain_info_ref', kind: 'message', T: () => ObjectRef },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

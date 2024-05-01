@@ -60,8 +60,6 @@ github.com/aperturerobotics/entitygraph v0.9.0 h1:InXPpXS00IFMJszjKGUrSegHL1dI1n
 github.com/aperturerobotics/entitygraph v0.9.0/go.mod h1:2dcBYh8siYw0MBjQwtQyg3tvqEval59EfYGM4IDI7h0=
 github.com/aperturerobotics/hydra v0.0.0-20240501212750-eaba9aca26e5 h1:LAZHy4sUsuQYm0CIuLe+Bg59TSFB3jYrsuoNXFt1elE=
 github.com/aperturerobotics/hydra v0.0.0-20240501212750-eaba9aca26e5/go.mod h1:U7grgiV7+We/CNWaIkR4fWnBBnRbd3UqXRQi+sDeRv8=
-github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959 h1:I9cgAjLJcOJA2Md4QHjPs/YbyepBWaSWGEpSUp+b/jA=
-github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959/go.mod h1:FG/uCFrIhLgMoX+TPW6jix5cU7eRyciwpCcHkz8GPZw=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=

@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/identity/domain/domain.proto (package identity.domain, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "identity.domain";
+export const protobufPackage = 'identity.domain'
 
 /**
  * DomainInfo contains information about the domain to show the user.
@@ -19,31 +19,28 @@ export type DomainInfo = Message<{
    *
    * @generated from field: string domain_id = 1;
    */
-  domainId?: string;
+  domainId?: string
   /**
    * Name is the domain name to render (title).
    *
    * @generated from field: string name = 2;
    */
-  name?: string;
+  name?: string
   /**
    * Description is the short description to show.
    *
    * @generated from field: string description = 3;
    */
-  description?: string;
+  description?: string
+}>
 
-}>;
-
-export const DomainInfo: MessageType<DomainInfo> = createMessageType(
-  {
-    typeName: "identity.domain.DomainInfo",
-    fields: [
-        { no: 1, name: "domain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+// DomainInfo contains the message type declaration for DomainInfo.
+export const DomainInfo: MessageType<DomainInfo> = createMessageType({
+  typeName: 'identity.domain.DomainInfo',
+  fields: [
+    { no: 1, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
