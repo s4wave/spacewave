@@ -2,7 +2,7 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240501212750-eaba9aca26e5 // master
 
 require github.com/satori/go.uuid v1.2.0
 
