@@ -85,8 +85,8 @@ github.com/aperturerobotics/entitygraph v0.9.0 h1:InXPpXS00IFMJszjKGUrSegHL1dI1n
 github.com/aperturerobotics/entitygraph v0.9.0/go.mod h1:2dcBYh8siYw0MBjQwtQyg3tvqEval59EfYGM4IDI7h0=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1/go.mod h1:uGcRHycd7rIbt9Uh+6L5UXgWmRTUIE2MA1m0QKrBBQY=
-github.com/aperturerobotics/go-kvfile v0.7.0 h1:BWvnw74rFoxXkJc3uY5tbQlLk7nV68a1tmAvc/Z5gIE=
-github.com/aperturerobotics/go-kvfile v0.7.0/go.mod h1:FGKIHsj7ljTY2NWNZD9Pit/NWmn2/bL8btzvYMM6csQ=
+github.com/aperturerobotics/go-kvfile v0.7.1 h1:8YB3K4lk6GkRMlM1OxwgJEeTzmma6xRfHXSb+OlKqR0=
+github.com/aperturerobotics/go-kvfile v0.7.1/go.mod h1:WmWO/ACw4k1yLxNWQNalcwBc4vmq7154g/mAzgUVqJE=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51 h1:usBLfIaiwZ8MFOwY0njpQVS0/QGveXbex6VQsPD6ahI=
 github.com/aperturerobotics/hidalgo v0.3.1-0.20231111025334-8015549a1b51/go.mod h1:yZOf9ZPH3PIeAj3q/dvY9nAe+Y1zBBIZIInEguPbbpQ=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
