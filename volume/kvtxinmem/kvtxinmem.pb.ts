@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/kvtxinmem/kvtxinmem.proto (package volume.kvtxinmem, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../store/kvkey/kvkey.pb.js";
-import { Config as Config$2 } from "../controller/controller.pb.js";
-import { Config as Config$3 } from "../../store/kvtx/kvtx.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
+import { Config as Config$2 } from '../controller/controller.pb.js'
+import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
 
-export const protobufPackage = "volume.kvtxinmem";
+export const protobufPackage = 'volume.kvtxinmem'
 
 /**
  * Config is the kvtx in-memory volume controller config.
@@ -21,25 +21,25 @@ export type Config = Message<{
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 1;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * Verbose will log all operations to the logger for debugging.
    *
    * @generated from field: bool verbose = 2;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * VolumeConfig is the volume controller config.
    *
    * @generated from field: volume.controller.Config volume_config = 3;
    */
-  volumeConfig?: Config$2;
+  volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    *
    * @generated from field: store.kvtx.Config store_config = 4;
    */
-  storeConfig?: Config$3;
+  storeConfig?: Config$3
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
@@ -48,7 +48,7 @@ export type Config = Message<{
    *
    * @generated from field: bool no_generate_key = 5;
    */
-  noGenerateKey?: boolean;
+  noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
    * storage if it generates one. This results in an ephemeral volume peer
@@ -58,22 +58,23 @@ export type Config = Message<{
    *
    * @generated from field: bool no_write_key = 6;
    */
-  noWriteKey?: boolean;
+  noWriteKey?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.kvtxinmem.Config",
-    fields: [
-        { no: 1, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 2, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "volume_config", kind: "message", T: () => Config$2 },
-        { no: 4, name: "store_config", kind: "message", T: () => Config$3 },
-        { no: 5, name: "no_generate_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "no_write_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.kvtxinmem.Config',
+  fields: [
+    { no: 1, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'volume_config', kind: 'message', T: () => Config$2 },
+    { no: 4, name: 'store_config', kind: 'message', T: () => Config$3 },
+    {
+      no: 5,
+      name: 'no_generate_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 6, name: 'no_write_key', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

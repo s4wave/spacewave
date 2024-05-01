@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/object/rpc/object.proto (package object.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "object.rpc";
+export const protobufPackage = 'object.rpc'
 
 /**
  * RmObjectStoreRequest requests to remove an object store and all contents.
@@ -18,19 +18,22 @@ export type RmObjectStoreRequest = Message<{
    *
    * @generated from field: string object_store_id = 1;
    */
-  objectStoreId?: string;
+  objectStoreId?: string
+}>
 
-}>;
-
-export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> = createMessageType(
-  {
-    typeName: "object.rpc.RmObjectStoreRequest",
+export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> =
+  createMessageType({
+    typeName: 'object.rpc.RmObjectStoreRequest',
     fields: [
-        { no: 1, name: "object_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'object_store_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * RmObjectStoreResponse is the response to removing an object store.
@@ -44,17 +47,14 @@ export type RmObjectStoreResponse = Message<{
    *
    * @generated from field: string error = 1;
    */
-  error?: string;
+  error?: string
+}>
 
-}>;
-
-export const RmObjectStoreResponse: MessageType<RmObjectStoreResponse> = createMessageType(
-  {
-    typeName: "object.rpc.RmObjectStoreResponse",
+export const RmObjectStoreResponse: MessageType<RmObjectStoreResponse> =
+  createMessageType({
+    typeName: 'object.rpc.RmObjectStoreResponse',
     fields: [
-        { no: 1, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

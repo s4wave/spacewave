@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/node/controller/config.proto (package node.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { ControllerConfig } from "../../../controllerbus/controller/configset/proto/configset.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
-export const protobufPackage = "node.controller";
+export const protobufPackage = 'node.controller'
 
 /**
  * Config is the node controller config.
@@ -19,14 +19,14 @@ export type Config = Message<{
    *
    * @generated from field: bool disable_lookup = 1;
    */
-  disableLookup?: boolean;
+  disableLookup?: boolean
   /**
    * DisableDefaultLookup disables the default lookup controller.
    * If a controller is defined in a bucket config this has no effect.
    *
    * @generated from field: bool disable_default_lookup = 2;
    */
-  disableDefaultLookup?: boolean;
+  disableDefaultLookup?: boolean
   /**
    * DefaultLookup overrides the default lookup controller.
    * If this is empty, uses the hard-coded default controller.
@@ -35,19 +35,30 @@ export type Config = Message<{
    *
    * @generated from field: configset.proto.ControllerConfig default_lookup = 3;
    */
-  defaultLookup?: ControllerConfig;
+  defaultLookup?: ControllerConfig
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "node.controller.Config",
-    fields: [
-        { no: 1, name: "disable_lookup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 2, name: "disable_default_lookup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "default_lookup", kind: "message", T: () => ControllerConfig },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'node.controller.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'disable_lookup',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 2,
+      name: 'disable_default_lookup',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 3,
+      name: 'default_lookup',
+      kind: 'message',
+      T: () => ControllerConfig,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

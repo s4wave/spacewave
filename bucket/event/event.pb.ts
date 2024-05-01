@@ -2,11 +2,15 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/event/event.proto (package bucket.event, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BlockRef } from "../../block/block.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
+import { BlockRef } from '../../block/block.pb.js'
 
-export const protobufPackage = "bucket.event";
+export const protobufPackage = 'bucket.event'
 
 /**
  * EventType is the type of bucket reconciler event.
@@ -37,11 +41,11 @@ export enum EventType {
 }
 
 // EventType_Enum is the enum type for EventType.
-export const EventType_Enum = createEnumType("bucket.event.EventType", [
-  { no: 0, name: "EventType_UNKNOWN" },
-  { no: 1, name: "EventType_PUT_BLOCK" },
-  { no: 3, name: "EventType_RM_BLOCK" },
-]);
+export const EventType_Enum = createEnumType('bucket.event.EventType', [
+  { no: 0, name: 'EventType_UNKNOWN' },
+  { no: 1, name: 'EventType_PUT_BLOCK' },
+  { no: 3, name: 'EventType_RM_BLOCK' },
+])
 
 /**
  * BlockCommon are common block properties.
@@ -56,7 +60,7 @@ export type BlockCommon = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeId is the volume id.
    * May be unset.
@@ -64,7 +68,7 @@ export type BlockCommon = Message<{
    *
    * @generated from field: string volume_id = 2;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * BucketConfRev is the bucket config rev.
    * May be unset.
@@ -72,29 +76,31 @@ export type BlockCommon = Message<{
    *
    * @generated from field: uint32 bucket_conf_rev = 3;
    */
-  bucketConfRev?: number;
+  bucketConfRev?: number
   /**
    * BlockRef is the block reference.
    * Used for: PutBlock, RmBlock
    *
    * @generated from field: block.BlockRef block_ref = 4;
    */
-  blockRef?: BlockRef;
+  blockRef?: BlockRef
+}>
 
-}>;
-
-export const BlockCommon: MessageType<BlockCommon> = createMessageType(
-  {
-    typeName: "bucket.event.BlockCommon",
-    fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "bucket_conf_rev", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 4, name: "block_ref", kind: "message", T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const BlockCommon: MessageType<BlockCommon> = createMessageType({
+  typeName: 'bucket.event.BlockCommon',
+  fields: [
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 3,
+      name: 'bucket_conf_rev',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    { no: 4, name: 'block_ref', kind: 'message', T: () => BlockRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * PutBlock is the put block event.
@@ -107,19 +113,16 @@ export type PutBlock = Message<{
    *
    * @generated from field: bucket.event.BlockCommon block_common = 1;
    */
-  blockCommon?: BlockCommon;
+  blockCommon?: BlockCommon
+}>
 
-}>;
-
-export const PutBlock: MessageType<PutBlock> = createMessageType(
-  {
-    typeName: "bucket.event.PutBlock",
-    fields: [
-        { no: 1, name: "block_common", kind: "message", T: () => BlockCommon },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const PutBlock: MessageType<PutBlock> = createMessageType({
+  typeName: 'bucket.event.PutBlock',
+  fields: [
+    { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * RmBlock is the remoe block event.
@@ -132,19 +135,16 @@ export type RmBlock = Message<{
    *
    * @generated from field: bucket.event.BlockCommon block_common = 1;
    */
-  blockCommon?: BlockCommon;
+  blockCommon?: BlockCommon
+}>
 
-}>;
-
-export const RmBlock: MessageType<RmBlock> = createMessageType(
-  {
-    typeName: "bucket.event.RmBlock",
-    fields: [
-        { no: 1, name: "block_common", kind: "message", T: () => BlockCommon },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const RmBlock: MessageType<RmBlock> = createMessageType({
+  typeName: 'bucket.event.RmBlock',
+  fields: [
+    { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Event is the container for the event data.
@@ -157,31 +157,27 @@ export type Event = Message<{
    *
    * @generated from field: bucket.event.EventType event_type = 1;
    */
-  eventType?: EventType;
+  eventType?: EventType
   /**
    * PutBlock is the put event data.
    *
    * @generated from field: bucket.event.PutBlock put_block = 2;
    */
-  putBlock?: PutBlock;
+  putBlock?: PutBlock
   /**
    * RmBlock is the rm event data.
    *
    * @generated from field: bucket.event.RmBlock rm_block = 4;
    */
-  rmBlock?: RmBlock;
+  rmBlock?: RmBlock
+}>
 
-}>;
-
-export const Event: MessageType<Event> = createMessageType(
-  {
-    typeName: "bucket.event.Event",
-    fields: [
-        { no: 1, name: "event_type", kind: "enum", T: EventType_Enum },
-        { no: 2, name: "put_block", kind: "message", T: () => PutBlock },
-        { no: 4, name: "rm_block", kind: "message", T: () => RmBlock },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Event: MessageType<Event> = createMessageType({
+  typeName: 'bucket.event.Event',
+  fields: [
+    { no: 1, name: 'event_type', kind: 'enum', T: EventType_Enum },
+    { no: 2, name: 'put_block', kind: 'message', T: () => PutBlock },
+    { no: 4, name: 'rm_block', kind: 'message', T: () => RmBlock },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

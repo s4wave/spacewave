@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/rpc/rpc.proto (package block.store.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { HashType } from "../../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "block.store.rpc";
+export const protobufPackage = 'block.store.rpc'
 
 /**
  * Config configures the block store rpc controller.
@@ -23,85 +23,108 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * BlockStoreIds is a list of the block store id to use on the bus.
    * Combined with block_store_id if also set.
    *
    * @generated from field: repeated string block_store_ids = 2;
    */
-  blockStoreIds?: string[];
+  blockStoreIds?: string[]
   /**
    * ServiceId is the service id to lookup with LookupRpcClient.
    * Cannot be empty.
    *
    * @generated from field: string service_id = 3;
    */
-  serviceId?: string;
+  serviceId?: string
   /**
    * ClientId is the client id to use with LookupRpcClient.
    * Can be empty.
    *
    * @generated from field: string client_id = 4;
    */
-  clientId?: string;
+  clientId?: string
   /**
    * ReadOnly disables writing to the rpc store.
    *
    * @generated from field: bool read_only = 5;
    */
-  readOnly?: boolean;
+  readOnly?: boolean
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type.
    *
    * @generated from field: hash.HashType force_hash_type = 6;
    */
-  forceHashType?: HashType;
+  forceHashType?: HashType
   /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
    * @generated from field: repeated string bucket_ids = 7;
    */
-  bucketIds?: string[];
+  bucketIds?: string[]
   /**
    * LookupOnStart creates the LookupRpcClient directive on startup.
    * If false, waits until at least one directive references it.
    *
    * @generated from field: bool lookup_on_start = 8;
    */
-  lookupOnStart?: boolean;
+  lookupOnStart?: boolean
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
    * @generated from field: bool skip_not_found = 9;
    */
-  skipNotFound?: boolean;
+  skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
    * @generated from field: bool verbose = 10;
    */
-  verbose?: boolean;
+  verbose?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.rpc.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "block_store_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 3, name: "service_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "client_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 5, name: "read_only", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "force_hash_type", kind: "enum", T: HashType_Enum },
-        { no: 7, name: "bucket_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 8, name: "lookup_on_start", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 9, name: "skip_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 10, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.rpc.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 2,
+      name: 'block_store_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    { no: 3, name: 'service_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'client_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'read_only', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+    {
+      no: 7,
+      name: 'bucket_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 8,
+      name: 'lookup_on_start',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 9,
+      name: 'skip_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 10, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

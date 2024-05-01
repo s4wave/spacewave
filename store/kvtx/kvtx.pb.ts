@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/store/kvtx/kvtx.proto (package store.kvtx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../kvtx/mqueue/mqueue.pb.js";
-import type { HashType } from "../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../kvtx/mqueue/mqueue.pb.js'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "store.kvtx";
+export const protobufPackage = 'store.kvtx'
 
 /**
  * Config is the configuration for the kvtx store.
@@ -22,14 +22,14 @@ export type Config = Message<{
    *
    * @generated from field: kvtx.mqueue.Config mqueue_config = 1;
    */
-  mqueueConfig?: Config$1;
+  mqueueConfig?: Config$1
   /**
    * HashType is the hash type to use for block refs.
    * If unset (0 value) will use default for Hydra (BLAKE3).
    *
    * @generated from field: hash.HashType hash_type = 2;
    */
-  hashType?: HashType;
+  hashType?: HashType
   /**
    * DisableHashGet disables hashing values for Get requests.
    * This improves performance if the underlying store is trusted & consistent.
@@ -39,21 +39,23 @@ export type Config = Message<{
    *
    * @generated from field: bool disable_hash_get = 3;
    */
-  disableHashGet?: boolean;
+  disableHashGet?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "store.kvtx.Config",
-    fields: [
-        { no: 1, name: "mqueue_config", kind: "message", T: () => Config$1 },
-        { no: 2, name: "hash_type", kind: "enum", T: HashType_Enum },
-        { no: 3, name: "disable_hash_get", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'store.kvtx.Config',
+  fields: [
+    { no: 1, name: 'mqueue_config', kind: 'message', T: () => Config$1 },
+    { no: 2, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+    {
+      no: 3,
+      name: 'disable_hash_get',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * MqueueMeta contains message queue metadata.
@@ -66,19 +68,16 @@ export type MqueueMeta = Message<{
    *
    * @generated from field: bytes id = 1;
    */
-  id?: Uint8Array;
+  id?: Uint8Array
+}>
 
-}>;
-
-export const MqueueMeta: MessageType<MqueueMeta> = createMessageType(
-  {
-    typeName: "store.kvtx.MqueueMeta",
-    fields: [
-        { no: 1, name: "id", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const MqueueMeta: MessageType<MqueueMeta> = createMessageType({
+  typeName: 'store.kvtx.MqueueMeta',
+  fields: [
+    { no: 1, name: 'id', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * BucketReconcilerMqueueId is the message queue identifier.
@@ -91,22 +90,29 @@ export type BucketReconcilerMqueueId = Message<{
   /**
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * @generated from field: string reconciler_id = 2;
    */
-  reconcilerId?: string;
+  reconcilerId?: string
+}>
 
-}>;
-
-export const BucketReconcilerMqueueId: MessageType<BucketReconcilerMqueueId> = createMessageType(
-  {
-    typeName: "store.kvtx.BucketReconcilerMqueueId",
+export const BucketReconcilerMqueueId: MessageType<BucketReconcilerMqueueId> =
+  createMessageType({
+    typeName: 'store.kvtx.BucketReconcilerMqueueId',
     fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "reconciler_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'bucket_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      {
+        no: 2,
+        name: 'reconciler_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

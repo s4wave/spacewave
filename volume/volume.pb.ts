@@ -2,14 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/volume.proto (package volume, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Info } from "../../controllerbus/controller/controller.pb.js";
-import type { HashType } from "../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../bifrost/hash/hash.pb.js";
-import { BucketInfo } from "../bucket/bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { BucketInfo } from '../bucket/bucket.pb.js'
 
-export const protobufPackage = "volume";
+export const protobufPackage = 'volume'
 
 /**
  * VolumeInfo contains basic information about a volume.
@@ -22,49 +22,46 @@ export type VolumeInfo = Message<{
    *
    * @generated from field: string volume_id = 1;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * PeerId is the peer ID of the volume.
    *
    * @generated from field: string peer_id = 2;
    */
-  peerId?: string;
+  peerId?: string
   /**
    * PeerPub is the pem public key of the volume.
    *
    * @generated from field: string peer_pub = 3;
    */
-  peerPub?: string;
+  peerPub?: string
   /**
    * ControllerInfo is information about the volume controller.
    * Note: may be empty.
    *
    * @generated from field: controller.Info controller_info = 4;
    */
-  controllerInfo?: Info;
+  controllerInfo?: Info
   /**
    * HashType is the default block hash type to use for blocks.
    * If unset (0 value) will use default for Hydra (BLAKE3).
    *
    * @generated from field: hash.HashType hash_type = 5;
    */
-  hashType?: HashType;
+  hashType?: HashType
+}>
 
-}>;
-
-export const VolumeInfo: MessageType<VolumeInfo> = createMessageType(
-  {
-    typeName: "volume.VolumeInfo",
-    fields: [
-        { no: 1, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "peer_pub", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "controller_info", kind: "message", T: () => Info },
-        { no: 5, name: "hash_type", kind: "enum", T: HashType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const VolumeInfo: MessageType<VolumeInfo> = createMessageType({
+  typeName: 'volume.VolumeInfo',
+  fields: [
+    { no: 1, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'peer_pub', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'controller_info', kind: 'message', T: () => Info },
+    { no: 5, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * VolumeBucketInfo is information about a bucket in a volume.
@@ -77,26 +74,24 @@ export type VolumeBucketInfo = Message<{
    *
    * @generated from field: bucket.BucketInfo bucket_info = 1;
    */
-  bucketInfo?: BucketInfo;
+  bucketInfo?: BucketInfo
   /**
    * VolumeInfo is the volume containing the bucket instance.
    *
    * @generated from field: volume.VolumeInfo volume_info = 2;
    */
-  volumeInfo?: VolumeInfo;
+  volumeInfo?: VolumeInfo
+}>
 
-}>;
-
-export const VolumeBucketInfo: MessageType<VolumeBucketInfo> = createMessageType(
-  {
-    typeName: "volume.VolumeBucketInfo",
+export const VolumeBucketInfo: MessageType<VolumeBucketInfo> =
+  createMessageType({
+    typeName: 'volume.VolumeBucketInfo',
     fields: [
-        { no: 1, name: "bucket_info", kind: "message", T: () => BucketInfo },
-        { no: 2, name: "volume_info", kind: "message", T: () => VolumeInfo },
+      { no: 1, name: 'bucket_info', kind: 'message', T: () => BucketInfo },
+      { no: 2, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * ListBucketsRequest is a list buckets directive in proto form.
@@ -110,7 +105,7 @@ export type ListBucketsRequest = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeIdRe limits to specific volumes by regex.
    * Can be empty.
@@ -118,7 +113,7 @@ export type ListBucketsRequest = Message<{
    *
    * @generated from field: string volume_id_re = 2;
    */
-  volumeIdRe?: string;
+  volumeIdRe?: string
   /**
    * VolumeIdList returns a specific list of volumes to list.
    * If empty, uses the VolumeIDRe field instead.
@@ -126,19 +121,32 @@ export type ListBucketsRequest = Message<{
    *
    * @generated from field: repeated string volume_id_list = 3;
    */
-  volumeIdList?: string[];
+  volumeIdList?: string[]
+}>
 
-}>;
-
-export const ListBucketsRequest: MessageType<ListBucketsRequest> = createMessageType(
-  {
-    typeName: "volume.ListBucketsRequest",
+export const ListBucketsRequest: MessageType<ListBucketsRequest> =
+  createMessageType({
+    typeName: 'volume.ListBucketsRequest',
     fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "volume_id_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "volume_id_list", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+      {
+        no: 1,
+        name: 'bucket_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      {
+        no: 2,
+        name: 'volume_id_re',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      {
+        no: 3,
+        name: 'volume_id_list',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

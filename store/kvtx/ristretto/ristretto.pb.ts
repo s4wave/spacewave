@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/store/kvtx/ristretto/ristretto.proto (package store.kvtx.ristretto, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "store.kvtx.ristretto";
+export const protobufPackage = 'store.kvtx.ristretto'
 
 /**
  * Config configures the ristretto cache.
@@ -28,7 +28,7 @@ export type Config = Message<{
    *
    * @generated from field: uint64 num_counters = 1;
    */
-  numCounters?: bigint;
+  numCounters?: bigint
   /**
    * MaxCost is the maximum storage size in bytes of the cache.
    *
@@ -40,7 +40,7 @@ export type Config = Message<{
    *
    * @generated from field: uint64 max_cost = 2;
    */
-  maxCost?: bigint;
+  maxCost?: bigint
   /**
    * BufferItems is the size of the Get buffers.
    *
@@ -52,7 +52,7 @@ export type Config = Message<{
    *
    * @generated from field: uint32 buffer_items = 3;
    */
-  bufferItems?: number;
+  bufferItems?: number
   /**
    * TtlDur is the time to live duration.
    * If empty or zero has no ttl.
@@ -60,20 +60,26 @@ export type Config = Message<{
    *
    * @generated from field: string ttl_dur = 4;
    */
-  ttlDur?: string;
+  ttlDur?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "store.kvtx.ristretto.Config",
-    fields: [
-        { no: 1, name: "num_counters", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "max_cost", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "buffer_items", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 4, name: "ttl_dur", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'store.kvtx.ristretto.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'num_counters',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    { no: 2, name: 'max_cost', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    {
+      no: 3,
+      name: 'buffer_items',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    { no: 4, name: 'ttl_dur', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

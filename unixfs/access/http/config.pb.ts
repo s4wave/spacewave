@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/access/http/config.proto (package unixfs.access.http, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "unixfs.access.http";
+export const protobufPackage = 'unixfs.access.http'
 
 /**
  * Config configures the HTTP UnixFS Access controller.
@@ -21,21 +21,21 @@ export type Config = Message<{
    *
    * @generated from field: string unixfs_id = 1;
    */
-  unixfsId?: string;
+  unixfsId?: string
   /**
    * UnixfsPrefix is a path prefix to apply to paths in the FS.
    * This applies a chroot to the UnixFS.
    *
    * @generated from field: string unixfs_prefix = 2;
    */
-  unixfsPrefix?: string;
+  unixfsPrefix?: string
   /**
    * UnixfsHttpPrefix is a HTTP prefix to match & strip from requests.
    * Note: this is not related to match_path_prefixes.
    *
    * @generated from field: string unixfs_http_prefix = 3;
    */
-  unixfsHttpPrefix?: string;
+  unixfsHttpPrefix?: string
   /**
    * NotFoundIfIdle returns 404 not found if the handler lookup becomes idle.
    * Lookup becomes idle if no handler is available for the URL.
@@ -43,14 +43,14 @@ export type Config = Message<{
    *
    * @generated from field: bool not_found_if_idle = 4;
    */
-  notFoundIfIdle?: boolean;
+  notFoundIfIdle?: boolean
   /**
    * MatchPathPrefixes is the list of URL path prefixes to match.
    * Can be empty to match all.
    *
    * @generated from field: repeated string match_path_prefixes = 5;
    */
-  matchPathPrefixes?: string[];
+  matchPathPrefixes?: string[]
   /**
    * StripPathPrefix enables removing the matched path prefix from the URL path.
    * The first path prefix in match_path_prefixes to match will be removed.
@@ -58,30 +58,52 @@ export type Config = Message<{
    *
    * @generated from field: bool strip_path_prefix = 6;
    */
-  stripPathPrefix?: boolean;
+  stripPathPrefix?: boolean
   /**
    * PathRe is a url path regex to match URL paths with.
    * If unset, uses match_path_prefixes.
    *
    * @generated from field: string path_re = 7;
    */
-  pathRe?: string;
+  pathRe?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "unixfs.access.http.Config",
-    fields: [
-        { no: 1, name: "unixfs_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "unixfs_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "unixfs_http_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "not_found_if_idle", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "match_path_prefixes", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 6, name: "strip_path_prefix", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "path_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'unixfs.access.http.Config',
+  fields: [
+    { no: 1, name: 'unixfs_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 2,
+      name: 'unixfs_prefix',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 3,
+      name: 'unixfs_http_prefix',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 4,
+      name: 'not_found_if_idle',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 5,
+      name: 'match_path_prefixes',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 6,
+      name: 'strip_path_prefix',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 7, name: 'path_re', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

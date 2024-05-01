@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/util/blockenc/blockenc.proto (package blockenc, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from "@aptre/protobuf-es-lite";
+import { createEnumType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "blockenc";
+export const protobufPackage = 'blockenc'
 
 /**
  * BlockEnc is the block encryption method to use.
@@ -49,10 +49,9 @@ export enum BlockEnc {
 }
 
 // BlockEnc_Enum is the enum type for BlockEnc.
-export const BlockEnc_Enum = createEnumType("blockenc.BlockEnc", [
-  { no: 0, name: "BlockEnc_UNKNOWN" },
-  { no: 1, name: "BlockEnc_NONE" },
-  { no: 2, name: "BlockEnc_XCHACHA20_POLY1305" },
-  { no: 3, name: "BlockEnc_SECRET_BOX" },
-]);
-
+export const BlockEnc_Enum = createEnumType('blockenc.BlockEnc', [
+  { no: 0, name: 'BlockEnc_UNKNOWN' },
+  { no: 1, name: 'BlockEnc_NONE' },
+  { no: 2, name: 'BlockEnc_XCHACHA20_POLY1305' },
+  { no: 3, name: 'BlockEnc_SECRET_BOX' },
+])

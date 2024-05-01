@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/rpc/server/config.proto (package volume.rpc.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "volume.rpc.server";
+export const protobufPackage = 'volume.rpc.server'
 
 /**
  * Config configures the rpc volume server.
@@ -22,7 +22,7 @@ export type Config = Message<{
    *
    * @generated from field: string service_id = 1;
    */
-  serviceId?: string;
+  serviceId?: string
   /**
    * VolumeIdRe is a regex string to match volume IDs.
    * Set to '.*' to match all volumes.
@@ -30,7 +30,7 @@ export type Config = Message<{
    *
    * @generated from field: string volume_id_re = 2;
    */
-  volumeIdRe?: string;
+  volumeIdRe?: string
   /**
    * VolumeIdList is a list of volume IDs to match.
    * If the value is in this list, overrides volume_id_re.
@@ -38,35 +38,52 @@ export type Config = Message<{
    *
    * @generated from field: repeated string volume_id_list = 3;
    */
-  volumeIdList?: string[];
+  volumeIdList?: string[]
   /**
    * ExposePrivateKey enables callers to fetch the private key for the volume.
    * Defaults to false.
    *
    * @generated from field: bool expose_private_key = 4;
    */
-  exposePrivateKey?: boolean;
+  exposePrivateKey?: boolean
   /**
    * ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
    * If empty string, defaults to 1s (1 second).
    *
    * @generated from field: string release_delay = 5;
    */
-  releaseDelay?: string;
+  releaseDelay?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.rpc.server.Config",
-    fields: [
-        { no: 1, name: "service_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "volume_id_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "volume_id_list", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 4, name: "expose_private_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "release_delay", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.rpc.server.Config',
+  fields: [
+    { no: 1, name: 'service_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 2,
+      name: 'volume_id_re',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 3,
+      name: 'volume_id_list',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 4,
+      name: 'expose_private_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 5,
+      name: 'release_delay',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

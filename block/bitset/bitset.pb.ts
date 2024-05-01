@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/bitset/bitset.proto (package bitset, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "bitset";
+export const protobufPackage = 'bitset'
 
 /**
  * BitSet is a block-backed BitSet representation.
@@ -18,24 +18,26 @@ export type BitSet = Message<{
    *
    * @generated from field: repeated uint64 set = 1;
    */
-  set?: bigint[];
+  set?: bigint[]
   /**
    * Len is the length of the bitset.
    *
    * @generated from field: uint32 len = 2;
    */
-  len?: number;
+  len?: number
+}>
 
-}>;
-
-export const BitSet: MessageType<BitSet> = createMessageType(
-  {
-    typeName: "bitset.BitSet",
-    fields: [
-        { no: 1, name: "set", kind: "scalar", T: 4 /* ScalarType.UINT64 */, repeated: true },
-        { no: 2, name: "len", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const BitSet: MessageType<BitSet> = createMessageType({
+  typeName: 'bitset.BitSet',
+  fields: [
+    {
+      no: 1,
+      name: 'set',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+      repeated: true,
+    },
+    { no: 2, name: 'len', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

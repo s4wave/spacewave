@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/badger/badger.proto (package volume.badger, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../store/kvkey/kvkey.pb.js";
-import { Config as Config$2 } from "../controller/controller.pb.js";
-import { Config as Config$3 } from "../../store/kvtx/kvtx.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
+import { Config as Config$2 } from '../controller/controller.pb.js'
+import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
 
-export const protobufPackage = "volume.badger";
+export const protobufPackage = 'volume.badger'
 
 /**
  * Config is the badger volume controller config.
@@ -23,7 +23,7 @@ export type Config = Message<{
    *
    * @generated from field: string dir = 1;
    */
-  dir?: string;
+  dir?: string
   /**
    * ValueDir is the directory to store the value log in.
    * Can be the same as dir.
@@ -32,13 +32,13 @@ export type Config = Message<{
    *
    * @generated from field: string value_dir = 2;
    */
-  valueDir?: string;
+  valueDir?: string
   /**
    * KvKeyOpts are key/value options.
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 3;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
@@ -47,7 +47,7 @@ export type Config = Message<{
    *
    * @generated from field: bool no_generate_key = 4;
    */
-  noGenerateKey?: boolean;
+  noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
    * storage if it generates one. This results in an ephemeral volume peer
@@ -57,66 +57,66 @@ export type Config = Message<{
    *
    * @generated from field: bool no_write_key = 25;
    */
-  noWriteKey?: boolean;
+  noWriteKey?: boolean
   /**
    * Verbose indicates we should log every operation.
    *
    * @generated from field: bool verbose = 21;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * BadgerDebug indicates to enable badger debug log messages.
    *
    * @generated from field: bool badger_debug = 24;
    */
-  badgerDebug?: boolean;
+  badgerDebug?: boolean
   /**
    * VolumeConfig is the volume controller config.
    *
    * @generated from field: volume.controller.Config volume_config = 22;
    */
-  volumeConfig?: Config$2;
+  volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    *
    * @generated from field: store.kvtx.Config store_config = 23;
    */
-  storeConfig?: Config$3;
+  storeConfig?: Config$3
   /**
    * NumVersionsToKeep indicates how many versions to keep per key.
    * Defaults to 1.
    *
    * @generated from field: uint32 num_versions_to_keep = 7;
    */
-  numVersionsToKeep?: number;
+  numVersionsToKeep?: number
   /**
    * BaseTableSize is the base size for tables.
    * Defaults to 2 << 20.
    *
    * @generated from field: uint64 base_table_size = 26;
    */
-  baseTableSize?: bigint;
+  baseTableSize?: bigint
   /**
    * LevelSizeMultiplier is SizeOf(Li+1)/SizeOf(Li).
    * Defaults to 10.
    *
    * @generated from field: uint32 level_size_multiplier = 9;
    */
-  levelSizeMultiplier?: number;
+  levelSizeMultiplier?: number
   /**
    * MaxLevels is the maximum number of levels of compaction.
    * Defaults to 7
    *
    * @generated from field: uint32 max_levels = 10;
    */
-  maxLevels?: number;
+  maxLevels?: number
   /**
    * ValueThreshold if value size >= threshold, only store offsets in tree.
    * Defaults to 1 << 20, 1MB
    *
    * @generated from field: uint64 value_threshold = 27;
    */
-  valueThreshold?: bigint;
+  valueThreshold?: bigint
   /**
    * NumMemtables is the Maximum number of tables to keep in memory, before
    * stalling.
@@ -124,7 +124,7 @@ export type Config = Message<{
    *
    * @generated from field: uint32 num_memtables = 12;
    */
-  numMemtables?: number;
+  numMemtables?: number
   /**
    * NumLevelZeroTables affects how LSM tree L0 is handled.
    * Maximum number of Level 0 tables before we start compacting.
@@ -132,7 +132,7 @@ export type Config = Message<{
    *
    * @generated from field: uint32 num_level_zero_tables = 13;
    */
-  numLevelZeroTables?: number;
+  numLevelZeroTables?: number
   /**
    * NumLevelZeroTablesStall is the number of level 0 tables to stall at until
    * l0 is compacted.
@@ -140,14 +140,14 @@ export type Config = Message<{
    *
    * @generated from field: uint32 num_level_zero_tables_stall = 14;
    */
-  numLevelZeroTablesStall?: number;
+  numLevelZeroTablesStall?: number
   /**
    * BaseLevelSize is the base size for levels.
    * Defaults to 10 << 20.
    *
    * @generated from field: uint64 base_level_size = 28;
    */
-  baseLevelSize?: bigint;
+  baseLevelSize?: bigint
   /**
    * ValueLogFileSize is the size of single value log file.
    * (2^30 - 1)*2 when mmapping < 2^31 - 1, max int32.
@@ -156,7 +156,7 @@ export type Config = Message<{
    *
    * @generated from field: uint64 value_log_file_size = 16;
    */
-  valueLogFileSize?: bigint;
+  valueLogFileSize?: bigint
   /**
    * ValueLogMaxEntries is the max number of entries a value log file can hold
    * (approximately). A value log file would be determined by the smaller of its
@@ -165,14 +165,14 @@ export type Config = Message<{
    *
    * @generated from field: uint32 value_log_max_entries = 17;
    */
-  valueLogMaxEntries?: number;
+  valueLogMaxEntries?: number
   /**
    * NumCompactors is the number of compaction workers to run concurrently.
    * Defaults to 3.
    *
    * @generated from field: uint32 num_compactors = 18;
    */
-  numCompactors?: number;
+  numCompactors?: number
   /**
    * NoSyncWrites indicates all writes should not require disk sync before
    * returning. If set, writes will return before the filesystem has confirmed
@@ -181,38 +181,114 @@ export type Config = Message<{
    *
    * @generated from field: bool no_sync_writes = 20;
    */
-  noSyncWrites?: boolean;
+  noSyncWrites?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.badger.Config",
-    fields: [
-        { no: 1, name: "dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "value_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 4, name: "no_generate_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 25, name: "no_write_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 21, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 24, name: "badger_debug", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 22, name: "volume_config", kind: "message", T: () => Config$2 },
-        { no: 23, name: "store_config", kind: "message", T: () => Config$3 },
-        { no: 7, name: "num_versions_to_keep", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 26, name: "base_table_size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 9, name: "level_size_multiplier", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 10, name: "max_levels", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 27, name: "value_threshold", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 12, name: "num_memtables", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 13, name: "num_level_zero_tables", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 14, name: "num_level_zero_tables_stall", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 28, name: "base_level_size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 16, name: "value_log_file_size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 17, name: "value_log_max_entries", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 18, name: "num_compactors", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 20, name: "no_sync_writes", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.badger.Config',
+  fields: [
+    { no: 1, name: 'dir', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'value_dir', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    {
+      no: 4,
+      name: 'no_generate_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 25,
+      name: 'no_write_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 21, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 24,
+      name: 'badger_debug',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 22, name: 'volume_config', kind: 'message', T: () => Config$2 },
+    { no: 23, name: 'store_config', kind: 'message', T: () => Config$3 },
+    {
+      no: 7,
+      name: 'num_versions_to_keep',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 26,
+      name: 'base_table_size',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    {
+      no: 9,
+      name: 'level_size_multiplier',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 10,
+      name: 'max_levels',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 27,
+      name: 'value_threshold',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    {
+      no: 12,
+      name: 'num_memtables',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 13,
+      name: 'num_level_zero_tables',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 14,
+      name: 'num_level_zero_tables_stall',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 28,
+      name: 'base_level_size',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    {
+      no: 16,
+      name: 'value_log_file_size',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    {
+      no: 17,
+      name: 'value_log_max_entries',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 18,
+      name: 'num_compactors',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    {
+      no: 20,
+      name: 'no_sync_writes',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/s3/lookup/lookup.proto (package block.store.s3.lookup, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "block.store.s3.lookup";
+export const protobufPackage = 'block.store.s3.lookup'
 
 /**
  * Config configures the s3 block lookup controller.
@@ -19,7 +19,7 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * Url is the HTTP base URL to call the block lookup service.
    * Url is the HTTP base URL to call the S3 storage service.
@@ -30,32 +30,33 @@ export type Config = Message<{
    *
    * @generated from field: string url = 2;
    */
-  url?: string;
+  url?: string
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
    * @generated from field: bool skip_not_found = 3;
    */
-  skipNotFound?: boolean;
+  skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
    * @generated from field: bool verbose = 4;
    */
-  verbose?: boolean;
+  verbose?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.s3.lookup.Config",
-    fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "skip_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.s3.lookup.Config',
+  fields: [
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 3,
+      name: 'skip_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 4, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

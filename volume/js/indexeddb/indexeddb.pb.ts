@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.proto (package volume.indexeddb, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../../store/kvkey/kvkey.pb.js";
-import { Config as Config$2 } from "../../controller/controller.pb.js";
-import { Config as Config$3 } from "../../../store/kvtx/kvtx.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../../store/kvkey/kvkey.pb.js'
+import { Config as Config$2 } from '../../controller/controller.pb.js'
+import { Config as Config$3 } from '../../../store/kvtx/kvtx.pb.js'
 
-export const protobufPackage = "volume.indexeddb";
+export const protobufPackage = 'volume.indexeddb'
 
 /**
  * Config is the JavaScript IndexedDB volume controller config.
@@ -23,13 +23,13 @@ export type Config = Message<{
    *
    * @generated from field: string database_name = 1;
    */
-  databaseName?: string;
+  databaseName?: string
   /**
    * KvKeyOpts are key/value key constants.
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 2;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
@@ -38,7 +38,7 @@ export type Config = Message<{
    *
    * @generated from field: bool no_generate_key = 3;
    */
-  noGenerateKey?: boolean;
+  noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
    * storage if it generates one. This results in an ephemeral volume peer
@@ -48,41 +48,47 @@ export type Config = Message<{
    *
    * @generated from field: bool no_write_key = 7;
    */
-  noWriteKey?: boolean;
+  noWriteKey?: boolean
   /**
    * Verbose enables verbose logging.
    *
    * @generated from field: bool verbose = 4;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * VolumeConfig is the volume controller config.
    *
    * @generated from field: volume.controller.Config volume_config = 5;
    */
-  volumeConfig?: Config$2;
+  volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    *
    * @generated from field: store.kvtx.Config store_config = 6;
    */
-  storeConfig?: Config$3;
+  storeConfig?: Config$3
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.indexeddb.Config",
-    fields: [
-        { no: 1, name: "database_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 3, name: "no_generate_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "no_write_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "volume_config", kind: "message", T: () => Config$2 },
-        { no: 6, name: "store_config", kind: "message", T: () => Config$3 },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.indexeddb.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'database_name',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    {
+      no: 3,
+      name: 'no_generate_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 7, name: 'no_write_key', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: 'volume_config', kind: 'message', T: () => Config$2 },
+    { no: 6, name: 'store_config', kind: 'message', T: () => Config$3 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

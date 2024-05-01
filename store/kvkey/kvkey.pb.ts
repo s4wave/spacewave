@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/store/kvkey/kvkey.proto (package store.kvkey, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "store.kvkey";
+export const protobufPackage = 'store.kvkey'
 
 /**
  * Config is key/value key configuration.
@@ -19,73 +19,104 @@ export type Config = Message<{
    *
    * @generated from field: bytes prefix = 1;
    */
-  prefix?: Uint8Array;
+  prefix?: Uint8Array
   /**
    * BucketConfigPrefix is the prefix applied to bucket configs.
    * Default: bkt/c/
    *
    * @generated from field: bytes bucket_config_prefix = 2;
    */
-  bucketConfigPrefix?: Uint8Array;
+  bucketConfigPrefix?: Uint8Array
   /**
    * PeerPrivKey is the key to use for the peer private key.
    * Default: priv
    *
    * @generated from field: bytes peer_priv_key = 3;
    */
-  peerPrivKey?: Uint8Array;
+  peerPrivKey?: Uint8Array
   /**
    * BlockPrefix is the prefix applied to block hashes.
    * Default: b/
    *
    * @generated from field: bytes block_prefix = 5;
    */
-  blockPrefix?: Uint8Array;
+  blockPrefix?: Uint8Array
   /**
    * ObjectStorePrefix is the prefix applied to object stores.
    * Default: objs/
    *
    * @generated from field: bytes object_store_prefix = 6;
    */
-  objectStorePrefix?: Uint8Array;
+  objectStorePrefix?: Uint8Array
   /**
    * MqueuePrefix contains the key to use for the message queues.
    * Default: mq/q/
    *
    * @generated from field: bytes mqueue_prefix = 7;
    */
-  mqueuePrefix?: Uint8Array;
+  mqueuePrefix?: Uint8Array
   /**
    * MqueueMetaPrefix contains the key to use for the message queue metas.
    * Default: mq/m/
    *
    * @generated from field: bytes mqueue_meta_prefix = 8;
    */
-  mqueueMetaPrefix?: Uint8Array;
+  mqueueMetaPrefix?: Uint8Array
   /**
    * BucketMqueuePrefix contains the mqueue id prefix to use for bucket reconcilers.
    * Default: bkt/
    *
    * @generated from field: bytes bucket_mqueue_prefix = 9;
    */
-  bucketMqueuePrefix?: Uint8Array;
+  bucketMqueuePrefix?: Uint8Array
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "store.kvkey.Config",
-    fields: [
-        { no: 1, name: "prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 2, name: "bucket_config_prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 3, name: "peer_priv_key", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 5, name: "block_prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 6, name: "object_store_prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 7, name: "mqueue_prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 8, name: "mqueue_meta_prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 9, name: "bucket_mqueue_prefix", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'store.kvkey.Config',
+  fields: [
+    { no: 1, name: 'prefix', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    {
+      no: 2,
+      name: 'bucket_config_prefix',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+    {
+      no: 3,
+      name: 'peer_priv_key',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+    {
+      no: 5,
+      name: 'block_prefix',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+    {
+      no: 6,
+      name: 'object_store_prefix',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+    {
+      no: 7,
+      name: 'mqueue_prefix',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+    {
+      no: 8,
+      name: 'mqueue_meta_prefix',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+    {
+      no: 9,
+      name: 'bucket_mqueue_prefix',
+      kind: 'scalar',
+      T: 12 /* ScalarType.BYTES */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

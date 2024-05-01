@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/mount/checkout/checkout.proto (package unixfs.mount.checkout, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "unixfs.mount.checkout";
+export const protobufPackage = 'unixfs.mount.checkout'
 
 /**
  * Config configures the disk checkout controller.
@@ -19,32 +19,34 @@ export type Config = Message<{
    *
    * @generated from field: string mount_path = 1;
    */
-  mountPath?: string;
+  mountPath?: string
   /**
    * Verbose enables verbose logging.
    * Volume attribute: verbose=true
    *
    * @generated from field: bool verbose = 2;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * SkipPathPrefixes are source path prefixes to skip when syncing.
    *
    * @generated from field: repeated string skip_path_prefixes = 3;
    */
-  skipPathPrefixes?: string[];
+  skipPathPrefixes?: string[]
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "unixfs.mount.checkout.Config",
-    fields: [
-        { no: 1, name: "mount_path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "skip_path_prefixes", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'unixfs.mount.checkout.Config',
+  fields: [
+    { no: 1, name: 'mount_path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 3,
+      name: 'skip_path_prefixes',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

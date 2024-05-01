@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/kvtx/mqueue/mqueue.proto (package kvtx.mqueue, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "kvtx.mqueue";
+export const protobufPackage = 'kvtx.mqueue'
 
 /**
  * Config is additional optional configuration for the kv mqueue.
@@ -22,19 +22,16 @@ export type Config = Message<{
    *
    * @generated from field: string poll_dur = 1;
    */
-  pollDur?: string;
+  pollDur?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "kvtx.mqueue.Config",
-    fields: [
-        { no: 1, name: "poll_dur", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'kvtx.mqueue.Config',
+  fields: [
+    { no: 1, name: 'poll_dur', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * MQQueueMeta is queue metadata.
@@ -47,33 +44,36 @@ export type MQQueueMeta = Message<{
    *
    * @generated from field: uint64 head = 1;
    */
-  head?: bigint;
+  head?: bigint
   /**
    * Tail is the tail position.
    *
    * @generated from field: uint64 tail = 2;
    */
-  tail?: bigint;
+  tail?: bigint
   /**
    * Meta is any extra key/value metadata.
    *
    * @generated from field: map<string, string> meta = 3;
    */
-  meta?: { [key: string]: string };
+  meta?: { [key: string]: string }
+}>
 
-}>;
-
-export const MQQueueMeta: MessageType<MQQueueMeta> = createMessageType(
-  {
-    typeName: "kvtx.mqueue.MQQueueMeta",
-    fields: [
-        { no: 1, name: "head", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "tail", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const MQQueueMeta: MessageType<MQQueueMeta> = createMessageType({
+  typeName: 'kvtx.mqueue.MQQueueMeta',
+  fields: [
+    { no: 1, name: 'head', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 2, name: 'tail', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    {
+      no: 3,
+      name: 'meta',
+      kind: 'map',
+      K: 9 /* ScalarType.STRING */,
+      V: { kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * MQMessageWrapper is the message wrapper used to store data.
@@ -86,24 +86,21 @@ export type MQMessageWrapper = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 1;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
   /**
    * Data is the message data.
    *
    * @generated from field: bytes data = 2;
    */
-  data?: Uint8Array;
+  data?: Uint8Array
+}>
 
-}>;
-
-export const MQMessageWrapper: MessageType<MQMessageWrapper> = createMessageType(
-  {
-    typeName: "kvtx.mqueue.MQMessageWrapper",
+export const MQMessageWrapper: MessageType<MQMessageWrapper> =
+  createMessageType({
+    typeName: 'kvtx.mqueue.MQMessageWrapper',
     fields: [
-        { no: 1, name: "timestamp", kind: "message", T: () => Timestamp },
-        { no: 2, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+      { no: 1, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 2, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

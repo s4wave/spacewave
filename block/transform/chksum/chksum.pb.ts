@@ -2,10 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/block/transform/chksum/chksum.proto (package transform.chksum, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "transform.chksum";
+export const protobufPackage = 'transform.chksum'
 
 /**
  * ChksumType is the checksum type enum.
@@ -29,10 +33,10 @@ export enum ChksumType {
 }
 
 // ChksumType_Enum is the enum type for ChksumType.
-export const ChksumType_Enum = createEnumType("transform.chksum.ChksumType", [
-  { no: 0, name: "ChksumType_UNKNOWN" },
-  { no: 1, name: "ChksumType_CRC32" },
-]);
+export const ChksumType_Enum = createEnumType('transform.chksum.ChksumType', [
+  { no: 0, name: 'ChksumType_UNKNOWN' },
+  { no: 1, name: 'ChksumType_CRC32' },
+])
 
 /**
  * Config configures the snappy transform.
@@ -45,17 +49,13 @@ export type Config = Message<{
    *
    * @generated from field: transform.chksum.ChksumType chksum_type = 1;
    */
-  chksumType?: ChksumType;
+  chksumType?: ChksumType
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "transform.chksum.Config",
-    fields: [
-        { no: 1, name: "chksum_type", kind: "enum", T: ChksumType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'transform.chksum.Config',
+  fields: [
+    { no: 1, name: 'chksum_type', kind: 'enum', T: ChksumType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

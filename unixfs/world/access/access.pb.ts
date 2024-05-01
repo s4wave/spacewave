@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/world/access/access.proto (package unixfs.world.access, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
-import { UnixfsRef } from "../unixfs.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import { UnixfsRef } from '../unixfs.pb.js'
 
-export const protobufPackage = "unixfs.world.access";
+export const protobufPackage = 'unixfs.world.access'
 
 /**
  * Config configures the world-backed UnixFS access controller.
@@ -20,61 +20,62 @@ export type Config = Message<{
    *
    * @generated from field: string fs_id = 1;
    */
-  fsId?: string;
+  fsId?: string
   /**
    * EngineId is the world engine ID to access.
    *
    * @generated from field: string engine_id = 2;
    */
-  engineId?: string;
+  engineId?: string
   /**
    * PeerId is the peer id to use for transactions.
    * If unset, the filesystem will be read-only.
    *
    * @generated from field: string peer_id = 3;
    */
-  peerId?: string;
+  peerId?: string
   /**
    * FsRef is the reference to the filesystem.
    *
    * @generated from field: unixfs.world.UnixfsRef fs_ref = 4;
    */
-  fsRef?: UnixfsRef;
+  fsRef?: UnixfsRef
   /**
    * MkdirPath creates the path within the FS if it doesn't exist.
    *
    * @generated from field: bool mkdir_path = 5;
    */
-  mkdirPath?: boolean;
+  mkdirPath?: boolean
   /**
    * DisableWatchChanges disables watching for changes in the FS.
    *
    * @generated from field: bool disable_watch_changes = 6;
    */
-  disableWatchChanges?: boolean;
+  disableWatchChanges?: boolean
   /**
    * Timestamp sets a constant timestamp for write operations.
    * If unset, uses time.Now()
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 7;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "unixfs.world.access.Config",
-    fields: [
-        { no: 1, name: "fs_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "engine_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "fs_ref", kind: "message", T: () => UnixfsRef },
-        { no: 5, name: "mkdir_path", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "disable_watch_changes", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'unixfs.world.access.Config',
+  fields: [
+    { no: 1, name: 'fs_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'fs_ref', kind: 'message', T: () => UnixfsRef },
+    { no: 5, name: 'mkdir_path', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 6,
+      name: 'disable_watch_changes',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 7, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

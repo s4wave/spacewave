@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/kvfile/http/http.proto (package block.store.kvfile.http, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../../../store/kvkey/kvkey.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../../../store/kvkey/kvkey.pb.js'
 
-export const protobufPackage = "block.store.kvfile.http";
+export const protobufPackage = 'block.store.kvfile.http'
 
 /**
  * Config configures the block store kvfile via http controller.
@@ -22,68 +22,90 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * Url is the url where the kvfile is located.
    *
    * @generated from field: string url = 2;
    */
-  url?: string;
+  url?: string
   /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
    * @generated from field: repeated string bucket_ids = 3;
    */
-  bucketIds?: string[];
+  bucketIds?: string[]
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
    * @generated from field: bool skip_not_found = 4;
    */
-  skipNotFound?: boolean;
+  skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
    * @generated from field: bool verbose = 5;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * DisableCache disables the browser cache (if possible).
    *
    * @generated from field: bool disable_cache = 6;
    */
-  disableCache?: boolean;
+  disableCache?: boolean
   /**
    * KvKeyOpts are key/value key constants.
    * Optional.
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 7;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * MinRequestSize sets the minimum size to use for http range requests.
    * Enables buffering in memory if set.
    *
    * @generated from field: uint64 min_request_size = 8;
    */
-  minRequestSize?: bigint;
+  minRequestSize?: bigint
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.kvfile.http.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "bucket_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 4, name: "skip_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "disable_cache", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 8, name: "min_request_size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.kvfile.http.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 3,
+      name: 'bucket_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 4,
+      name: 'skip_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 5, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 6,
+      name: 'disable_cache',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 7, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    {
+      no: 8,
+      name: 'min_request_size',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

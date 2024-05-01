@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/rpc/volume.proto (package volume.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { VolumeInfo } from "../volume.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { VolumeInfo } from '../volume.pb.js'
 
-export const protobufPackage = "volume.rpc";
+export const protobufPackage = 'volume.rpc'
 
 /**
  * WatchVolumeInfoRequest is a request to watch volume information.
@@ -19,19 +19,22 @@ export type WatchVolumeInfoRequest = Message<{
    *
    * @generated from field: string volume_id = 1;
    */
-  volumeId?: string;
+  volumeId?: string
+}>
 
-}>;
-
-export const WatchVolumeInfoRequest: MessageType<WatchVolumeInfoRequest> = createMessageType(
-  {
-    typeName: "volume.rpc.WatchVolumeInfoRequest",
+export const WatchVolumeInfoRequest: MessageType<WatchVolumeInfoRequest> =
+  createMessageType({
+    typeName: 'volume.rpc.WatchVolumeInfoRequest',
     fields: [
-        { no: 1, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'volume_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * WatchVolumeInfoResponse is a state snapshot of the volume info.
@@ -44,44 +47,38 @@ export type WatchVolumeInfoResponse = Message<{
    *
    * @generated from field: bool not_found = 1;
    */
-  notFound?: boolean;
+  notFound?: boolean
   /**
    * VolumeInfo contains the located volume information.
    *
    * @generated from field: volume.VolumeInfo volume_info = 2;
    */
-  volumeInfo?: VolumeInfo;
+  volumeInfo?: VolumeInfo
+}>
 
-}>;
-
-export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> = createMessageType(
-  {
-    typeName: "volume.rpc.WatchVolumeInfoResponse",
+export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> =
+  createMessageType({
+    typeName: 'volume.rpc.WatchVolumeInfoResponse',
     fields: [
-        { no: 1, name: "not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 2, name: "volume_info", kind: "message", T: () => VolumeInfo },
+      { no: 1, name: 'not_found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 2, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetVolumeInfoRequest is a request to get volume information.
  *
  * @generated from message volume.rpc.GetVolumeInfoRequest
  */
-export type GetVolumeInfoRequest = Message<{
+export type GetVolumeInfoRequest = Message<{}>
 
-}>;
-
-export const GetVolumeInfoRequest: MessageType<GetVolumeInfoRequest> = createMessageType(
-  {
-    typeName: "volume.rpc.GetVolumeInfoRequest",
-    fields: [
-    ] as readonly PartialFieldInfo[],
+export const GetVolumeInfoRequest: MessageType<GetVolumeInfoRequest> =
+  createMessageType({
+    typeName: 'volume.rpc.GetVolumeInfoRequest',
+    fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetVolumeInfoResponse is the response to the request for volume info.
@@ -94,37 +91,31 @@ export type GetVolumeInfoResponse = Message<{
    *
    * @generated from field: volume.VolumeInfo volume_info = 1;
    */
-  volumeInfo?: VolumeInfo;
+  volumeInfo?: VolumeInfo
+}>
 
-}>;
-
-export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> = createMessageType(
-  {
-    typeName: "volume.rpc.GetVolumeInfoResponse",
+export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
+  createMessageType({
+    typeName: 'volume.rpc.GetVolumeInfoResponse',
     fields: [
-        { no: 1, name: "volume_info", kind: "message", T: () => VolumeInfo },
+      { no: 1, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetPeerPrivRequest is a request to get the volume peer privkey.
  *
  * @generated from message volume.rpc.GetPeerPrivRequest
  */
-export type GetPeerPrivRequest = Message<{
+export type GetPeerPrivRequest = Message<{}>
 
-}>;
-
-export const GetPeerPrivRequest: MessageType<GetPeerPrivRequest> = createMessageType(
-  {
-    typeName: "volume.rpc.GetPeerPrivRequest",
-    fields: [
-    ] as readonly PartialFieldInfo[],
+export const GetPeerPrivRequest: MessageType<GetPeerPrivRequest> =
+  createMessageType({
+    typeName: 'volume.rpc.GetPeerPrivRequest',
+    fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetPeerPrivResponse is the response to looking up the volume peer privkey.
@@ -137,17 +128,14 @@ export type GetPeerPrivResponse = Message<{
    *
    * @generated from field: string priv_key = 1;
    */
-  privKey?: string;
+  privKey?: string
+}>
 
-}>;
-
-export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> = createMessageType(
-  {
-    typeName: "volume.rpc.GetPeerPrivResponse",
+export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> =
+  createMessageType({
+    typeName: 'volume.rpc.GetPeerPrivResponse',
     fields: [
-        { no: 1, name: "priv_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'priv_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

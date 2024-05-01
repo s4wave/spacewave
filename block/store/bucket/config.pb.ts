@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/bucket/config.proto (package block.store.bucket, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../../bucket/bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../../bucket/bucket.pb.js'
 
-export const protobufPackage = "block.store.bucket";
+export const protobufPackage = 'block.store.bucket'
 
 /**
  * Config configures the block-store backed bucket controller.
@@ -22,40 +22,51 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * BucketConfig is the bucket config to expose on the bus and back with the block store.
    *
    * @generated from field: bucket.Config bucket_config = 2;
    */
-  bucketConfig?: Config$1;
+  bucketConfig?: Config$1
   /**
    * BucketStoreId configures the store id to use when filtering BuildBucketAPI directives.
    * If unset, defaults to the block_store_id.
    *
    * @generated from field: string bucket_store_id = 3;
    */
-  bucketStoreId?: string;
+  bucketStoreId?: string
   /**
    * NotFoundIfIdle returns a not found error if the block store was not found.
    * If unset, waits until the block store is available.
    *
    * @generated from field: bool not_found_if_idle = 4;
    */
-  notFoundIfIdle?: boolean;
+  notFoundIfIdle?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.bucket.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "bucket_config", kind: "message", T: () => Config$1 },
-        { no: 3, name: "bucket_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "not_found_if_idle", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.bucket.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'bucket_config', kind: 'message', T: () => Config$1 },
+    {
+      no: 3,
+      name: 'bucket_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 4,
+      name: 'not_found_if_idle',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/rpc/rpc.proto (package unixfs.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
-import { UnixFSError } from "../errors/errors.pb.js";
-import type { NodeType } from "../block/fstree.pb.js";
-import { FSSymlink, NodeType_Enum } from "../block/fstree.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import { UnixFSError } from '../errors/errors.pb.js'
+import type { NodeType } from '../block/fstree.pb.js'
+import { FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
 
-export const protobufPackage = "unixfs.rpc";
+export const protobufPackage = 'unixfs.rpc'
 
 /**
  * GetProxyCursorRequest is the request body for GetProxyCursor.
@@ -21,27 +21,35 @@ export type GetProxyCursorRequest = Message<{
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
   /**
    * ClientHandleId is the handle identifier for the client.
    * Call FSCursorClient to get a client handle ID.
    *
    * @generated from field: uint64 client_handle_id = 2;
    */
-  clientHandleId?: bigint;
+  clientHandleId?: bigint
+}>
 
-}>;
-
-export const GetProxyCursorRequest: MessageType<GetProxyCursorRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.GetProxyCursorRequest",
+export const GetProxyCursorRequest: MessageType<GetProxyCursorRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.GetProxyCursorRequest',
     fields: [
-        { no: 1, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "client_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'cursor_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'client_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetProxyCursorResponse is the response body for GetProxyCursor.
@@ -54,27 +62,30 @@ export type GetProxyCursorResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * CursorHandleId is the handle identifier returned by get proxy cursor.
    * if zero, the FSCursor returned is nil (no proxy cursor needed).
    *
    * @generated from field: uint64 cursor_handle_id = 2;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
+}>
 
-}>;
-
-export const GetProxyCursorResponse: MessageType<GetProxyCursorResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.GetProxyCursorResponse",
+export const GetProxyCursorResponse: MessageType<GetProxyCursorResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.GetProxyCursorResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      {
+        no: 2,
+        name: 'cursor_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * FSCursorChange represents the FSCursorChange struct from unixfs.
@@ -87,40 +98,42 @@ export type FSCursorChange = Message<{
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
   /**
    * Released indicates the cursor was released.
    *
    * @generated from field: bool released = 2;
    */
-  released?: boolean;
+  released?: boolean
   /**
    * Offset is the location to flush from.
    *
    * @generated from field: uint64 offset = 3;
    */
-  offset?: bigint;
+  offset?: bigint
   /**
    * Size is the amount of data to flush.
    *
    * @generated from field: uint64 size = 4;
    */
-  size?: bigint;
+  size?: bigint
+}>
 
-}>;
-
-export const FSCursorChange: MessageType<FSCursorChange> = createMessageType(
-  {
-    typeName: "unixfs.rpc.FSCursorChange",
-    fields: [
-        { no: 1, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "released", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "offset", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSCursorChange: MessageType<FSCursorChange> = createMessageType({
+  typeName: 'unixfs.rpc.FSCursorChange',
+  fields: [
+    {
+      no: 1,
+      name: 'cursor_handle_id',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    { no: 2, name: 'released', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'offset', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 4, name: 'size', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSCursorDirent represents the FSCursorDirent interface from unixfs.
@@ -133,44 +146,37 @@ export type FSCursorDirent = Message<{
    *
    * @generated from field: string name = 1;
    */
-  name?: string;
+  name?: string
   /**
    * NodeType is the type of node at the dirent.
    *
    * @generated from field: unixfs.block.NodeType node_type = 2;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
+}>
 
-}>;
-
-export const FSCursorDirent: MessageType<FSCursorDirent> = createMessageType(
-  {
-    typeName: "unixfs.rpc.FSCursorDirent",
-    fields: [
-        { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "node_type", kind: "enum", T: NodeType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSCursorDirent: MessageType<FSCursorDirent> = createMessageType({
+  typeName: 'unixfs.rpc.FSCursorDirent',
+  fields: [
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSCursorClientRequest is the request body for FSCursorClient.
  *
  * @generated from message unixfs.rpc.FSCursorClientRequest
  */
-export type FSCursorClientRequest = Message<{
+export type FSCursorClientRequest = Message<{}>
 
-}>;
-
-export const FSCursorClientRequest: MessageType<FSCursorClientRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.FSCursorClientRequest",
-    fields: [
-    ] as readonly PartialFieldInfo[],
+export const FSCursorClientRequest: MessageType<FSCursorClientRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.FSCursorClientRequest',
+    fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * FSClientInit is the initialization response to FSCursorClient.
@@ -184,27 +190,34 @@ export type FSClientInit = Message<{
    *
    * @generated from field: uint64 client_handle_id = 1;
    */
-  clientHandleId?: bigint;
+  clientHandleId?: bigint
   /**
    * CursorHandleId is the handle identifier for the root cursor.
    * Usually ID #1.
    *
    * @generated from field: uint64 cursor_handle_id = 2;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
+}>
 
-}>;
-
-export const FSClientInit: MessageType<FSClientInit> = createMessageType(
-  {
-    typeName: "unixfs.rpc.FSClientInit",
-    fields: [
-        { no: 1, name: "client_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSClientInit: MessageType<FSClientInit> = createMessageType({
+  typeName: 'unixfs.rpc.FSClientInit',
+  fields: [
+    {
+      no: 1,
+      name: 'client_handle_id',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    {
+      no: 2,
+      name: 'cursor_handle_id',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSCursorClientResponse contains an event for an FSCursor change.
@@ -212,55 +225,74 @@ export const FSClientInit: MessageType<FSClientInit> = createMessageType(
  * @generated from message unixfs.rpc.FSCursorClientResponse
  */
 export type FSCursorClientResponse = Message<{
-
   /**
    * Body is the body of the event.
    *
    * @generated from oneof unixfs.rpc.FSCursorClientResponse.body
    */
-  body?: {
-    value?: undefined,
-    case: undefined
-  } | {
-    /**
-     * FSClientInit contains the initialization message for FSCursorClient.
-     *
-     * @generated from field: unixfs.rpc.FSClientInit init = 1;
-     */
-    value: FSClientInit;
-    case: "init";
-  } | {
-    /**
-     * CursorChange contains a FSCursorChange event.
-     *
-     * @generated from field: unixfs.rpc.FSCursorChange cursor_change = 2;
-     */
-    value: FSCursorChange;
-    case: "cursorChange";
-  } | {
-    /**
-     * UnixfsError contains the error returned by the call, if any.
-     * If sent, this will be the last message in the rpc stream.
-     *
-     * @generated from field: unixfs.errors.UnixFSError unixfs_error = 3;
-     */
-    value: UnixFSError;
-    case: "unixfsError";
-  };
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * FSClientInit contains the initialization message for FSCursorClient.
+         *
+         * @generated from field: unixfs.rpc.FSClientInit init = 1;
+         */
+        value: FSClientInit
+        case: 'init'
+      }
+    | {
+        /**
+         * CursorChange contains a FSCursorChange event.
+         *
+         * @generated from field: unixfs.rpc.FSCursorChange cursor_change = 2;
+         */
+        value: FSCursorChange
+        case: 'cursorChange'
+      }
+    | {
+        /**
+         * UnixfsError contains the error returned by the call, if any.
+         * If sent, this will be the last message in the rpc stream.
+         *
+         * @generated from field: unixfs.errors.UnixFSError unixfs_error = 3;
+         */
+        value: UnixFSError
+        case: 'unixfsError'
+      }
+}>
 
-}>;
-
-export const FSCursorClientResponse: MessageType<FSCursorClientResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.FSCursorClientResponse",
+export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.FSCursorClientResponse',
     fields: [
-        { no: 1, name: "init", kind: "message", T: () => FSClientInit, oneof: "body" },
-        { no: 2, name: "cursor_change", kind: "message", T: () => FSCursorChange, oneof: "body" },
-        { no: 3, name: "unixfs_error", kind: "message", T: () => UnixFSError, oneof: "body" },
+      {
+        no: 1,
+        name: 'init',
+        kind: 'message',
+        T: () => FSClientInit,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'cursor_change',
+        kind: 'message',
+        T: () => FSCursorChange,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'unixfs_error',
+        kind: 'message',
+        T: () => UnixFSError,
+        oneof: 'body',
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetCursorOpsRequest requests that we resolve the FSCursorOps for an FSCursor.
@@ -273,19 +305,22 @@ export type GetCursorOpsRequest = Message<{
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
+}>
 
-}>;
-
-export const GetCursorOpsRequest: MessageType<GetCursorOpsRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.GetCursorOpsRequest",
+export const GetCursorOpsRequest: MessageType<GetCursorOpsRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.GetCursorOpsRequest',
     fields: [
-        { no: 1, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'cursor_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetCursorOpsResponse is the response body for GetCursorOps.
@@ -298,42 +333,45 @@ export type GetCursorOpsResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * OpsHandleId is the handle identifier for the ops.
    * If zero, the FSCursorOps will be nil.
    *
    * @generated from field: uint64 ops_handle_id = 2;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Name is the name of the inode at the ops (if applicable).
    * Empty if ops_handle_id is zero.
    *
    * @generated from field: string name = 3;
    */
-  name?: string;
+  name?: string
   /**
    * NodeType is the type of node at the ops object.
    *
    * @generated from field: unixfs.block.NodeType node_type = 4;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
+}>
 
-}>;
-
-export const GetCursorOpsResponse: MessageType<GetCursorOpsResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.GetCursorOpsResponse",
+export const GetCursorOpsResponse: MessageType<GetCursorOpsResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.GetCursorOpsResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "node_type", kind: "enum", T: NodeType_Enum },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      {
+        no: 2,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 4, name: 'node_type', kind: 'enum', T: NodeType_Enum },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * ReleaseFSCursorRequest is the body of the ReleaseFSCursor RPC request.
@@ -346,45 +384,49 @@ export type ReleaseFSCursorRequest = Message<{
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
   /**
    * ClientHandleId is the handle identifier for the client.
    * Call FSCursorClient to get a client handle ID.
    *
    * @generated from field: uint64 client_handle_id = 2;
    */
-  clientHandleId?: bigint;
+  clientHandleId?: bigint
+}>
 
-}>;
-
-export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.ReleaseFSCursorRequest",
+export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.ReleaseFSCursorRequest',
     fields: [
-        { no: 1, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "client_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'cursor_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'client_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * ReleaseFSCursorResponse is the body of the ReleaseFSCursor RPC response.
  *
  * @generated from message unixfs.rpc.ReleaseFSCursorResponse
  */
-export type ReleaseFSCursorResponse = Message<{
+export type ReleaseFSCursorResponse = Message<{}>
 
-}>;
-
-export const ReleaseFSCursorResponse: MessageType<ReleaseFSCursorResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.ReleaseFSCursorResponse",
-    fields: [
-    ] as readonly PartialFieldInfo[],
+export const ReleaseFSCursorResponse: MessageType<ReleaseFSCursorResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.ReleaseFSCursorResponse',
+    fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetPermissionsRequest is the body of the ops GetPermissions request.
@@ -397,19 +439,22 @@ export type OpsGetPermissionsRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
+}>
 
-}>;
-
-export const OpsGetPermissionsRequest: MessageType<OpsGetPermissionsRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetPermissionsRequest",
+export const OpsGetPermissionsRequest: MessageType<OpsGetPermissionsRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetPermissionsRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetPermissionsResponse is the body of the ops GetPermissions response.
@@ -422,26 +467,29 @@ export type OpsGetPermissionsResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * FileMode corresponds to fs.FileMode containing the permissions bits.
    *
    * @generated from field: uint32 file_mode = 2;
    */
-  fileMode?: number;
+  fileMode?: number
+}>
 
-}>;
-
-export const OpsGetPermissionsResponse: MessageType<OpsGetPermissionsResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetPermissionsResponse",
+export const OpsGetPermissionsResponse: MessageType<OpsGetPermissionsResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetPermissionsResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "file_mode", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      {
+        no: 2,
+        name: 'file_mode',
+        kind: 'scalar',
+        T: 13 /* ScalarType.UINT32 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsSetPermissionsRequest is the body of the ops SetPermissions request.
@@ -454,33 +502,41 @@ export type OpsSetPermissionsRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * FileMode corresponds to fs.FileMode containing the permissions bits.
    *
    * @generated from field: uint32 file_mode = 2;
    */
-  fileMode?: number;
+  fileMode?: number
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsSetPermissionsRequest: MessageType<OpsSetPermissionsRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsSetPermissionsRequest",
+export const OpsSetPermissionsRequest: MessageType<OpsSetPermissionsRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsSetPermissionsRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "file_mode", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 3, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'file_mode',
+        kind: 'scalar',
+        T: 13 /* ScalarType.UINT32 */,
+      },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsSetPermissionsResponse is the body of the ops SetPermissions response.
@@ -493,19 +549,17 @@ export type OpsSetPermissionsResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsSetPermissionsResponse: MessageType<OpsSetPermissionsResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsSetPermissionsResponse",
+export const OpsSetPermissionsResponse: MessageType<OpsSetPermissionsResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsSetPermissionsResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetSizeRequest is the body of the ops GetSize request.
@@ -518,19 +572,22 @@ export type OpsGetSizeRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
+}>
 
-}>;
-
-export const OpsGetSizeRequest: MessageType<OpsGetSizeRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetSizeRequest",
+export const OpsGetSizeRequest: MessageType<OpsGetSizeRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetSizeRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetSizeResponse is the body of the ops GetSize response.
@@ -543,26 +600,24 @@ export type OpsGetSizeResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Size contains the size of the inode in bytes.
    *
    * @generated from field: uint64 size = 2;
    */
-  size?: bigint;
+  size?: bigint
+}>
 
-}>;
-
-export const OpsGetSizeResponse: MessageType<OpsGetSizeResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetSizeResponse",
+export const OpsGetSizeResponse: MessageType<OpsGetSizeResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetSizeResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'size', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetModTimestampRequest is the body of the ops GetModTimestamp request.
@@ -575,19 +630,22 @@ export type OpsGetModTimestampRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
+}>
 
-}>;
-
-export const OpsGetModTimestampRequest: MessageType<OpsGetModTimestampRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetModTimestampRequest",
+export const OpsGetModTimestampRequest: MessageType<OpsGetModTimestampRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetModTimestampRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetModTimestampResponse is the body of the ops GetModTimestamp response.
@@ -600,26 +658,24 @@ export type OpsGetModTimestampResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * ModTimestamp contains the modification timestamp.
    *
    * @generated from field: google.protobuf.Timestamp mod_timestamp = 2;
    */
-  modTimestamp?: Timestamp;
+  modTimestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsGetModTimestampResponse: MessageType<OpsGetModTimestampResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetModTimestampResponse",
+export const OpsGetModTimestampResponse: MessageType<OpsGetModTimestampResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetModTimestampResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "mod_timestamp", kind: "message", T: () => Timestamp },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'mod_timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsSetModTimestampRequest is the body of the ops SetModTimestamp request.
@@ -632,26 +688,29 @@ export type OpsSetModTimestampRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * ModTimestamp is the desired modification timestamp to set.
    *
    * @generated from field: google.protobuf.Timestamp mod_timestamp = 2;
    */
-  modTimestamp?: Timestamp;
+  modTimestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsSetModTimestampRequest: MessageType<OpsSetModTimestampRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsSetModTimestampRequest",
+export const OpsSetModTimestampRequest: MessageType<OpsSetModTimestampRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsSetModTimestampRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "mod_timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'mod_timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsSetModTimestampResponse is the body of the ops SetModTimestamp response.
@@ -664,19 +723,17 @@ export type OpsSetModTimestampResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsSetModTimestampResponse: MessageType<OpsSetModTimestampResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsSetModTimestampResponse",
+export const OpsSetModTimestampResponse: MessageType<OpsSetModTimestampResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsSetModTimestampResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsReadAtRequest is the body of the ops ReadAt request.
@@ -689,34 +746,37 @@ export type OpsReadAtRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Offset is the location in the file from which to read.
    *
    * @generated from field: int64 offset = 2;
    */
-  offset?: bigint;
+  offset?: bigint
   /**
    * Size is the size of data to read (buffer max size).
    * This will automatically be capped by the hardcoded limit of 256e7 (256MB).
    *
    * @generated from field: int64 size = 3;
    */
-  size?: bigint;
+  size?: bigint
+}>
 
-}>;
-
-export const OpsReadAtRequest: MessageType<OpsReadAtRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsReadAtRequest",
+export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsReadAtRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "offset", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-        { no: 3, name: "size", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'offset', kind: 'scalar', T: 3 /* ScalarType.INT64 */ },
+      { no: 3, name: 'size', kind: 'scalar', T: 3 /* ScalarType.INT64 */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsReadAtResponse is the body of the ops ReadAt response.
@@ -729,26 +789,24 @@ export type OpsReadAtResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Data contains the data read, if any.
    *
    * @generated from field: bytes data = 2;
    */
-  data?: Uint8Array;
+  data?: Uint8Array
+}>
 
-}>;
-
-export const OpsReadAtResponse: MessageType<OpsReadAtResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsReadAtResponse",
+export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsReadAtResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetOptimalWriteSizeRequest is the body of the ops GetOptimalWriteSize request.
@@ -761,19 +819,22 @@ export type OpsGetOptimalWriteSizeRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
+}>
 
-}>;
-
-export const OpsGetOptimalWriteSizeRequest: MessageType<OpsGetOptimalWriteSizeRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetOptimalWriteSizeRequest",
+export const OpsGetOptimalWriteSizeRequest: MessageType<OpsGetOptimalWriteSizeRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetOptimalWriteSizeRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsGetOptimalWriteSizeResponse is the body of the ops GetOptimalWriteSize response.
@@ -786,26 +847,29 @@ export type OpsGetOptimalWriteSizeResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * OptimalWriteSize contains the optimal write size in bytes.
    *
    * @generated from field: int64 optimal_write_size = 2;
    */
-  optimalWriteSize?: bigint;
+  optimalWriteSize?: bigint
+}>
 
-}>;
-
-export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsGetOptimalWriteSizeResponse",
+export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsGetOptimalWriteSizeResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "optimal_write_size", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      {
+        no: 2,
+        name: 'optimal_write_size',
+        kind: 'scalar',
+        T: 3 /* ScalarType.INT64 */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsWriteAtRequest is the body of the ops WriteAt request.
@@ -818,40 +882,43 @@ export type OpsWriteAtRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Offset is the location in the file at which to write.
    *
    * @generated from field: int64 offset = 2;
    */
-  offset?: bigint;
+  offset?: bigint
   /**
    * Data is the chunk of data to write.
    *
    * @generated from field: bytes data = 3;
    */
-  data?: Uint8Array;
+  data?: Uint8Array
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsWriteAtRequest: MessageType<OpsWriteAtRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsWriteAtRequest",
+export const OpsWriteAtRequest: MessageType<OpsWriteAtRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsWriteAtRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "offset", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-        { no: 3, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'offset', kind: 'scalar', T: 3 /* ScalarType.INT64 */ },
+      { no: 3, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsWriteAtResponse is the body of the ops WriteAt response.
@@ -864,19 +931,17 @@ export type OpsWriteAtResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsWriteAtResponse: MessageType<OpsWriteAtResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsWriteAtResponse",
+export const OpsWriteAtResponse: MessageType<OpsWriteAtResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsWriteAtResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsTruncateRequest is the body of the ops Truncate request.
@@ -889,33 +954,36 @@ export type OpsTruncateRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * NewSize is the desired new size for the file.
    *
    * @generated from field: uint64 nsize = 2;
    */
-  nsize?: bigint;
+  nsize?: bigint
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsTruncateRequest: MessageType<OpsTruncateRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsTruncateRequest",
+export const OpsTruncateRequest: MessageType<OpsTruncateRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsTruncateRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "nsize", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'nsize', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsTruncateResponse is the body of the ops Truncate response.
@@ -928,19 +996,17 @@ export type OpsTruncateResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsTruncateResponse: MessageType<OpsTruncateResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsTruncateResponse",
+export const OpsTruncateResponse: MessageType<OpsTruncateResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsTruncateResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsLookupRequest is the body of the ops Lookup request.
@@ -954,41 +1020,54 @@ export type OpsLookupRequest = Message<{
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
    * @generated from field: uint64 ops_handle_id = 2;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * ClientHandleId is the handle identifier for the client.
    * Call FSCursorClient to get a client handle ID.
    *
    * @generated from field: uint64 client_handle_id = 3;
    */
-  clientHandleId?: bigint;
+  clientHandleId?: bigint
   /**
    * Name is the name of the child entry to look up.
    *
    * @generated from field: string name = 4;
    */
-  name?: string;
+  name?: string
+}>
 
-}>;
-
-export const OpsLookupRequest: MessageType<OpsLookupRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsLookupRequest",
+export const OpsLookupRequest: MessageType<OpsLookupRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsLookupRequest',
     fields: [
-        { no: 1, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "client_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'cursor_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 3,
+        name: 'client_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 4, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsLookupResponse is the body of the ops Lookup response.
@@ -1001,26 +1080,29 @@ export type OpsLookupResponse = Message<{
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
-  cursorHandleId?: bigint;
+  cursorHandleId?: bigint
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 2;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsLookupResponse: MessageType<OpsLookupResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsLookupResponse",
+export const OpsLookupResponse: MessageType<OpsLookupResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsLookupResponse',
     fields: [
-        { no: 1, name: "cursor_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      {
+        no: 1,
+        name: 'cursor_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsReaddirAllRequest is the body of the ops ReaddirAll request.
@@ -1033,26 +1115,29 @@ export type OpsReaddirAllRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Skip is the number of directory entries to skip.
    *
    * @generated from field: uint64 skip = 2;
    */
-  skip?: bigint;
+  skip?: bigint
+}>
 
-}>;
-
-export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsReaddirAllRequest",
+export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsReaddirAllRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "skip", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'skip', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsReaddirAllResponse is the body of the ops ReaddirAll response.
@@ -1060,52 +1145,71 @@ export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> = createMes
  * @generated from message unixfs.rpc.OpsReaddirAllResponse
  */
 export type OpsReaddirAllResponse = Message<{
-
   /**
    * @generated from oneof unixfs.rpc.OpsReaddirAllResponse.body
    */
-  body?: {
-    value?: undefined,
-    case: undefined
-  } | {
-    /**
-     * UnixfsError contains the error returned by the call, if any.
-     *
-     * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
-     */
-    value: UnixFSError;
-    case: "unixfsError";
-  } | {
-    /**
-     * Done indicates there are no more entries.
-     *
-     * @generated from field: bool done = 2;
-     */
-    value: boolean;
-    case: "done";
-  } | {
-    /**
-     * Dirent is the directory entry in the stream.
-     *
-     * @generated from field: unixfs.rpc.FSCursorDirent dirent = 3;
-     */
-    value: FSCursorDirent;
-    case: "dirent";
-  };
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * UnixfsError contains the error returned by the call, if any.
+         *
+         * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
+         */
+        value: UnixFSError
+        case: 'unixfsError'
+      }
+    | {
+        /**
+         * Done indicates there are no more entries.
+         *
+         * @generated from field: bool done = 2;
+         */
+        value: boolean
+        case: 'done'
+      }
+    | {
+        /**
+         * Dirent is the directory entry in the stream.
+         *
+         * @generated from field: unixfs.rpc.FSCursorDirent dirent = 3;
+         */
+        value: FSCursorDirent
+        case: 'dirent'
+      }
+}>
 
-}>;
-
-export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsReaddirAllResponse",
+export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsReaddirAllResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError, oneof: "body" },
-        { no: 2, name: "done", kind: "scalar", T: 8 /* ScalarType.BOOL */, oneof: "body" },
-        { no: 3, name: "dirent", kind: "message", T: () => FSCursorDirent, oneof: "body" },
+      {
+        no: 1,
+        name: 'unixfs_error',
+        kind: 'message',
+        T: () => UnixFSError,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'done',
+        kind: 'scalar',
+        T: 8 /* ScalarType.BOOL */,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'dirent',
+        kind: 'message',
+        T: () => FSCursorDirent,
+        oneof: 'body',
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsMknodRequest is the body of the ops Mknod request.
@@ -1118,54 +1222,67 @@ export type OpsMknodRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * CheckExist indicates if the existence of the node should be checked.
    *
    * @generated from field: bool check_exist = 2;
    */
-  checkExist?: boolean;
+  checkExist?: boolean
   /**
    * Names contains the names of the nodes to be created.
    *
    * @generated from field: repeated string names = 3;
    */
-  names?: string[];
+  names?: string[]
   /**
    * NodeType is the type of node to create.
    *
    * @generated from field: unixfs.block.NodeType node_type = 4;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
   /**
    * Permissions corresponds to fs.FileMode containing the permissions bits.
    *
    * @generated from field: uint32 permissions = 5;
    */
-  permissions?: number;
+  permissions?: number
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsMknodRequest: MessageType<OpsMknodRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsMknodRequest",
-    fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "check_exist", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "names", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 4, name: "node_type", kind: "enum", T: NodeType_Enum },
-        { no: 5, name: "permissions", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 6, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const OpsMknodRequest: MessageType<OpsMknodRequest> = createMessageType({
+  typeName: 'unixfs.rpc.OpsMknodRequest',
+  fields: [
+    {
+      no: 1,
+      name: 'ops_handle_id',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    { no: 2, name: 'check_exist', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 3,
+      name: 'names',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    { no: 4, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+    {
+      no: 5,
+      name: 'permissions',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * OpsMknodResponse is the body of the ops Mknod response.
@@ -1178,19 +1295,17 @@ export type OpsMknodResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsMknodResponse: MessageType<OpsMknodResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsMknodResponse",
+export const OpsMknodResponse: MessageType<OpsMknodResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsMknodResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsSymlinkRequest is the body of the ops Symlink request.
@@ -1203,47 +1318,55 @@ export type OpsSymlinkRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * CheckExist indicates if the existence of the node should be checked.
    *
    * @generated from field: bool check_exist = 2;
    */
-  checkExist?: boolean;
+  checkExist?: boolean
   /**
    * Name is the name of the link to be created.
    *
    * @generated from field: string name = 3;
    */
-  name?: string;
+  name?: string
   /**
    * Symlink is the symlink to create.
    *
    * @generated from field: unixfs.block.FSSymlink symlink = 4;
    */
-  symlink?: FSSymlink;
+  symlink?: FSSymlink
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsSymlinkRequest",
+export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsSymlinkRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "check_exist", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "symlink", kind: "message", T: () => FSSymlink },
-        { no: 5, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'check_exist',
+        kind: 'scalar',
+        T: 8 /* ScalarType.BOOL */,
+      },
+      { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsSymlinkResponse is the body of the ops Symlink response.
@@ -1256,19 +1379,17 @@ export type OpsSymlinkResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsSymlinkResponse: MessageType<OpsSymlinkResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsSymlinkResponse",
+export const OpsSymlinkResponse: MessageType<OpsSymlinkResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsSymlinkResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsReadlinkRequest is the body of the ops Readlink request.
@@ -1281,26 +1402,29 @@ export type OpsReadlinkRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Name is the name of the symbolic link to be read.
    *
    * @generated from field: string name = 2;
    */
-  name?: string;
+  name?: string
+}>
 
-}>;
-
-export const OpsReadlinkRequest: MessageType<OpsReadlinkRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsReadlinkRequest",
+export const OpsReadlinkRequest: MessageType<OpsReadlinkRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsReadlinkRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsReadlinkResponse is the body of the ops Readlink response.
@@ -1313,26 +1437,24 @@ export type OpsReadlinkResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Symlink contains the read symlink.
    *
    * @generated from field: unixfs.block.FSSymlink symlink = 2;
    */
-  symlink?: FSSymlink;
+  symlink?: FSSymlink
+}>
 
-}>;
-
-export const OpsReadlinkResponse: MessageType<OpsReadlinkResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsReadlinkResponse",
+export const OpsReadlinkResponse: MessageType<OpsReadlinkResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsReadlinkResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "symlink", kind: "message", T: () => FSSymlink },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'symlink', kind: 'message', T: () => FSSymlink },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsCopyToRequest is the body of the ops CopyTo request.
@@ -1345,40 +1467,53 @@ export type OpsCopyToRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * TargetDirOpsHandleId is the target directory FSCursorOps handle ID for the copy operation.
    *
    * @generated from field: uint64 target_dir_ops_handle_id = 2;
    */
-  targetDirOpsHandleId?: bigint;
+  targetDirOpsHandleId?: bigint
   /**
    * Target name of the inode for the copy operation.
    *
    * @generated from field: string target_name = 3;
    */
-  targetName?: string;
+  targetName?: string
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsCopyToRequest: MessageType<OpsCopyToRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsCopyToRequest",
+export const OpsCopyToRequest: MessageType<OpsCopyToRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsCopyToRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "target_dir_ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "target_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'target_dir_ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 3,
+        name: 'target_name',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsCopyToResponse is the body of the ops CopyTo response.
@@ -1391,26 +1526,24 @@ export type OpsCopyToResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Done indicates whether the copy operation is complete.
    *
    * @generated from field: bool done = 2;
    */
-  done?: boolean;
+  done?: boolean
+}>
 
-}>;
-
-export const OpsCopyToResponse: MessageType<OpsCopyToResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsCopyToResponse",
+export const OpsCopyToResponse: MessageType<OpsCopyToResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsCopyToResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "done", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'done', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsCopyFromRequest is the body of the ops CopyFrom request.
@@ -1423,40 +1556,48 @@ export type OpsCopyFromRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Name of the inode for the copy operation.
    *
    * @generated from field: string name = 2;
    */
-  name?: string;
+  name?: string
   /**
    * SrcCursorOpsHandleId is the handle identifier for the source cursor ops object for the copy operation.
    *
    * @generated from field: uint64 src_cursor_ops_handle_id = 3;
    */
-  srcCursorOpsHandleId?: bigint;
+  srcCursorOpsHandleId?: bigint
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsCopyFromRequest",
+export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsCopyFromRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "src_cursor_ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      {
+        no: 3,
+        name: 'src_cursor_ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsCopyFromResponse is the body of the ops CopyFrom response.
@@ -1469,26 +1610,24 @@ export type OpsCopyFromResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Done indicates whether the copy operation is complete.
    *
    * @generated from field: bool done = 2;
    */
-  done?: boolean;
+  done?: boolean
+}>
 
-}>;
-
-export const OpsCopyFromResponse: MessageType<OpsCopyFromResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsCopyFromResponse",
+export const OpsCopyFromResponse: MessageType<OpsCopyFromResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsCopyFromResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "done", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'done', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsMoveToRequest is the body of the ops MoveTo request.
@@ -1501,40 +1640,53 @@ export type OpsMoveToRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * TargetDirOpsHandleId is the handle id for the FSCursorOps for the directory for the move operation.
    *
    * @generated from field: uint64 target_dir_ops_handle_id = 2;
    */
-  targetDirOpsHandleId?: bigint;
+  targetDirOpsHandleId?: bigint
   /**
    * Target name of the inode for the move operation.
    *
    * @generated from field: string target_name = 3;
    */
-  targetName?: string;
+  targetName?: string
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsMoveToRequest: MessageType<OpsMoveToRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsMoveToRequest",
+export const OpsMoveToRequest: MessageType<OpsMoveToRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsMoveToRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "target_dir_ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "target_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'target_dir_ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 3,
+        name: 'target_name',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsMoveToResponse is the body of the ops MoveTo response.
@@ -1547,26 +1699,24 @@ export type OpsMoveToResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Done indicates whether the move operation is complete.
    *
    * @generated from field: bool done = 2;
    */
-  done?: boolean;
+  done?: boolean
+}>
 
-}>;
-
-export const OpsMoveToResponse: MessageType<OpsMoveToResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsMoveToResponse",
+export const OpsMoveToResponse: MessageType<OpsMoveToResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsMoveToResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "done", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'done', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsMoveFromRequest is the body of the ops MoveFrom request.
@@ -1579,40 +1729,48 @@ export type OpsMoveFromRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Name of the inode for the move operation.
    *
    * @generated from field: string name = 2;
    */
-  name?: string;
+  name?: string
   /**
    * SrcOpsHandleId is the handle id for the FSCursorOps for the source of the move operation.
    *
    * @generated from field: uint64 src_ops_handle_id = 3;
    */
-  srcOpsHandleId?: bigint;
+  srcOpsHandleId?: bigint
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsMoveFromRequest",
+export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsMoveFromRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "src_ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      {
+        no: 3,
+        name: 'src_ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsMoveFromResponse is the body of the ops MoveFrom response.
@@ -1625,26 +1783,24 @@ export type OpsMoveFromResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
   /**
    * Done indicates whether the move operation is complete.
    *
    * @generated from field: bool done = 2;
    */
-  done?: boolean;
+  done?: boolean
+}>
 
-}>;
-
-export const OpsMoveFromResponse: MessageType<OpsMoveFromResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsMoveFromResponse",
+export const OpsMoveFromResponse: MessageType<OpsMoveFromResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsMoveFromResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
-        { no: 2, name: "done", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
+      { no: 2, name: 'done', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsRemoveRequest is the body of the ops Remove request.
@@ -1657,33 +1813,42 @@ export type OpsRemoveRequest = Message<{
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
-  opsHandleId?: bigint;
+  opsHandleId?: bigint
   /**
    * Names is the list of entry names to be removed.
    *
    * @generated from field: repeated string names = 2;
    */
-  names?: string[];
+  names?: string[]
   /**
    * Timestamp is the desired timestamp for the operation.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const OpsRemoveRequest: MessageType<OpsRemoveRequest> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsRemoveRequest",
+export const OpsRemoveRequest: MessageType<OpsRemoveRequest> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsRemoveRequest',
     fields: [
-        { no: 1, name: "ops_handle_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "names", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 3, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'ops_handle_id',
+        kind: 'scalar',
+        T: 4 /* ScalarType.UINT64 */,
+      },
+      {
+        no: 2,
+        name: 'names',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+        repeated: true,
+      },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * OpsRemoveResponse is the body of the ops Remove response.
@@ -1696,17 +1861,14 @@ export type OpsRemoveResponse = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
-  unixfsError?: UnixFSError;
+  unixfsError?: UnixFSError
+}>
 
-}>;
-
-export const OpsRemoveResponse: MessageType<OpsRemoveResponse> = createMessageType(
-  {
-    typeName: "unixfs.rpc.OpsRemoveResponse",
+export const OpsRemoveResponse: MessageType<OpsRemoveResponse> =
+  createMessageType({
+    typeName: 'unixfs.rpc.OpsRemoveResponse',
     fields: [
-        { no: 1, name: "unixfs_error", kind: "message", T: () => UnixFSError },
+      { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

@@ -2,11 +2,15 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/lookup/concurrent/concurrent.proto (package lookup.concurrent, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../bucket.pb.js'
 
-export const protobufPackage = "lookup.concurrent";
+export const protobufPackage = 'lookup.concurrent'
 
 /**
  * NotFoundBehavior controls what happens when a block was not found locally.
@@ -39,11 +43,14 @@ export enum NotFoundBehavior {
 }
 
 // NotFoundBehavior_Enum is the enum type for NotFoundBehavior.
-export const NotFoundBehavior_Enum = createEnumType("lookup.concurrent.NotFoundBehavior", [
-  { no: 0, name: "NotFoundBehavior_NONE" },
-  { no: 1, name: "NotFoundBehavior_LOOKUP_DIRECTIVE" },
-  { no: 2, name: "NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT" },
-]);
+export const NotFoundBehavior_Enum = createEnumType(
+  'lookup.concurrent.NotFoundBehavior',
+  [
+    { no: 0, name: 'NotFoundBehavior_NONE' },
+    { no: 1, name: 'NotFoundBehavior_LOOKUP_DIRECTIVE' },
+    { no: 2, name: 'NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT' },
+  ],
+)
 
 /**
  * PutBlockBehavior controls what PutBlock does on the lookup handle.
@@ -67,10 +74,13 @@ export enum PutBlockBehavior {
 }
 
 // PutBlockBehavior_Enum is the enum type for PutBlockBehavior.
-export const PutBlockBehavior_Enum = createEnumType("lookup.concurrent.PutBlockBehavior", [
-  { no: 0, name: "PutBlockBehavior_NONE" },
-  { no: 1, name: "PutBlockBehavior_ALL" },
-]);
+export const PutBlockBehavior_Enum = createEnumType(
+  'lookup.concurrent.PutBlockBehavior',
+  [
+    { no: 0, name: 'PutBlockBehavior_NONE' },
+    { no: 1, name: 'PutBlockBehavior_ALL' },
+  ],
+)
 
 /**
  * WritebackBehavior controls what to do with blocks looked up from the network.
@@ -94,10 +104,13 @@ export enum WritebackBehavior {
 }
 
 // WritebackBehavior_Enum is the enum type for WritebackBehavior.
-export const WritebackBehavior_Enum = createEnumType("lookup.concurrent.WritebackBehavior", [
-  { no: 0, name: "WritebackBehavior_NONE" },
-  { no: 1, name: "WritebackBehavior_ALL" },
-]);
+export const WritebackBehavior_Enum = createEnumType(
+  'lookup.concurrent.WritebackBehavior',
+  [
+    { no: 0, name: 'WritebackBehavior_NONE' },
+    { no: 1, name: 'WritebackBehavior_ALL' },
+  ],
+)
 
 /**
  * Config is the example lookup config.
@@ -110,25 +123,25 @@ export type Config = Message<{
    *
    * @generated from field: bucket.Config bucket_conf = 1;
    */
-  bucketConf?: Config$1;
+  bucketConf?: Config$1
   /**
    * NotFoundBehavior controls the not-found behavior.
    *
    * @generated from field: lookup.concurrent.NotFoundBehavior not_found_behavior = 2;
    */
-  notFoundBehavior?: NotFoundBehavior;
+  notFoundBehavior?: NotFoundBehavior
   /**
    * PutBlockBehavior controls the PutBlock behavior.
    *
    * @generated from field: lookup.concurrent.PutBlockBehavior put_block_behavior = 3;
    */
-  putBlockBehavior?: PutBlockBehavior;
+  putBlockBehavior?: PutBlockBehavior
   /**
    * WritebackBehavior controls what to do after fetching a block.
    *
    * @generated from field: lookup.concurrent.WritebackBehavior writeback_behavior = 4;
    */
-  writebackBehavior?: WritebackBehavior;
+  writebackBehavior?: WritebackBehavior
   /**
    * LookupTimeoutDur is the duration to wait for looking up a block.
    * Examples: 1s, 1m, 1h
@@ -138,13 +151,13 @@ export type Config = Message<{
    *
    * @generated from field: string lookup_timeout_dur = 6;
    */
-  lookupTimeoutDur?: string;
+  lookupTimeoutDur?: string
   /**
    * Verbose enables verbose debug logging.
    *
    * @generated from field: bool verbose = 5;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * FallbackBlockStoreId is a block store to use to lookup the block if not
    * found. If the block is found in this store, it will be written back
@@ -154,23 +167,44 @@ export type Config = Message<{
    *
    * @generated from field: string fallback_block_store_id = 7;
    */
-  fallbackBlockStoreId?: string;
+  fallbackBlockStoreId?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "lookup.concurrent.Config",
-    fields: [
-        { no: 1, name: "bucket_conf", kind: "message", T: () => Config$1 },
-        { no: 2, name: "not_found_behavior", kind: "enum", T: NotFoundBehavior_Enum },
-        { no: 3, name: "put_block_behavior", kind: "enum", T: PutBlockBehavior_Enum },
-        { no: 4, name: "writeback_behavior", kind: "enum", T: WritebackBehavior_Enum },
-        { no: 6, name: "lookup_timeout_dur", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 5, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "fallback_block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'lookup.concurrent.Config',
+  fields: [
+    { no: 1, name: 'bucket_conf', kind: 'message', T: () => Config$1 },
+    {
+      no: 2,
+      name: 'not_found_behavior',
+      kind: 'enum',
+      T: NotFoundBehavior_Enum,
+    },
+    {
+      no: 3,
+      name: 'put_block_behavior',
+      kind: 'enum',
+      T: PutBlockBehavior_Enum,
+    },
+    {
+      no: 4,
+      name: 'writeback_behavior',
+      kind: 'enum',
+      T: WritebackBehavior_Enum,
+    },
+    {
+      no: 6,
+      name: 'lookup_timeout_dur',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 5, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 7,
+      name: 'fallback_block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

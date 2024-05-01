@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/kvtx/fibheap/fibheap.proto (package fibheap, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "fibheap";
+export const protobufPackage = 'fibheap'
 
 /**
  * Entry is an entry in the heap.
@@ -18,61 +18,58 @@ export type Entry = Message<{
    *
    * @generated from field: int32 degree = 1;
    */
-  degree?: number;
+  degree?: number
   /**
    * Marked indicates if the entry is marked.
    *
    * @generated from field: bool marked = 2;
    */
-  marked?: boolean;
+  marked?: boolean
   /**
    * Next is the key of the next entry.
    *
    * @generated from field: bytes next = 3;
    */
-  next?: Uint8Array;
+  next?: Uint8Array
   /**
    * Prev is the key of the previous entry.
    *
    * @generated from field: bytes prev = 4;
    */
-  prev?: Uint8Array;
+  prev?: Uint8Array
   /**
    * Child is the key of the child entry.
    *
    * @generated from field: bytes child = 5;
    */
-  child?: Uint8Array;
+  child?: Uint8Array
   /**
    * Parent is the key of the parent entry.
    *
    * @generated from field: bytes parent = 6;
    */
-  parent?: Uint8Array;
+  parent?: Uint8Array
   /**
    * Priority is the numerical priority of the entry.
    *
    * @generated from field: double priority = 7;
    */
-  priority?: number;
+  priority?: number
+}>
 
-}>;
-
-export const Entry: MessageType<Entry> = createMessageType(
-  {
-    typeName: "fibheap.Entry",
-    fields: [
-        { no: 1, name: "degree", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-        { no: 2, name: "marked", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "next", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 4, name: "prev", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 5, name: "child", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 6, name: "parent", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 7, name: "priority", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Entry: MessageType<Entry> = createMessageType({
+  typeName: 'fibheap.Entry',
+  fields: [
+    { no: 1, name: 'degree', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: 'marked', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'next', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 4, name: 'prev', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 5, name: 'child', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 6, name: 'parent', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 7, name: 'priority', kind: 'scalar', T: 1 /* ScalarType.DOUBLE */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Root is the root object of the heap.
@@ -85,31 +82,32 @@ export type Root = Message<{
    *
    * @generated from field: bytes min = 1;
    */
-  min?: Uint8Array;
+  min?: Uint8Array
   /**
    * MinPriority is the priority of the current minimum item.
    *
    * @generated from field: double min_priority = 2;
    */
-  minPriority?: number;
+  minPriority?: number
   /**
    * Size is the current size of the heap.
    *
    * @generated from field: uint32 size = 3;
    */
-  size?: number;
+  size?: number
+}>
 
-}>;
-
-export const Root: MessageType<Root> = createMessageType(
-  {
-    typeName: "fibheap.Root",
-    fields: [
-        { no: 1, name: "min", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 2, name: "min_priority", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
-        { no: 3, name: "size", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Root: MessageType<Root> = createMessageType({
+  typeName: 'fibheap.Root',
+  fields: [
+    { no: 1, name: 'min', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    {
+      no: 2,
+      name: 'min_priority',
+      kind: 'scalar',
+      T: 1 /* ScalarType.DOUBLE */,
+    },
+    { no: 3, name: 'size', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

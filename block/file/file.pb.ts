@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/file/file.proto (package file, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BlockRef } from "../block.pb.js";
-import { Blob } from "../blob/blob.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { BlockRef } from '../block.pb.js'
+import { Blob } from '../blob/blob.pb.js'
 
-export const protobufPackage = "file";
+export const protobufPackage = 'file'
 
 /**
  * Range contains a chunk of a file.
@@ -22,42 +22,39 @@ export type Range = Message<{
    *
    * @generated from field: uint64 nonce = 1;
    */
-  nonce?: bigint;
+  nonce?: bigint
   /**
    * Start contains the starting index of the range.
    *
    * @generated from field: uint64 start = 2;
    */
-  start?: bigint;
+  start?: bigint
   /**
    * Length contains the len of data in the range.
    * Start + length = end index + 1.
    *
    * @generated from field: uint64 length = 3;
    */
-  length?: bigint;
+  length?: bigint
   /**
    * Ref contains the blob ref.
    * If the ref is empty, the range represents a hole (zeros).
    *
    * @generated from field: block.BlockRef ref = 4;
    */
-  ref?: BlockRef;
+  ref?: BlockRef
+}>
 
-}>;
-
-export const Range: MessageType<Range> = createMessageType(
-  {
-    typeName: "file.Range",
-    fields: [
-        { no: 1, name: "nonce", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "start", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 3, name: "length", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "ref", kind: "message", T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Range: MessageType<Range> = createMessageType({
+  typeName: 'file.Range',
+  fields: [
+    { no: 1, name: 'nonce', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 2, name: 'start', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 3, name: 'length', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 4, name: 'ref', kind: 'message', T: () => BlockRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * File defines a pattern for storing a block-addressed file.
@@ -77,7 +74,7 @@ export type File = Message<{
    *
    * @generated from field: uint64 total_size = 1;
    */
-  totalSize?: bigint;
+  totalSize?: bigint
   /**
    * RootBlob, if set, contains the entire file in a blob.
    * Used when there is a single Range of data starting at index 0.
@@ -85,13 +82,13 @@ export type File = Message<{
    *
    * @generated from field: blob.Blob root_blob = 2;
    */
-  rootBlob?: Blob;
+  rootBlob?: Blob
   /**
    * RangeNonce is the next range nonce id to use.
    *
    * @generated from field: uint64 range_nonce = 3;
    */
-  rangeNonce?: bigint;
+  rangeNonce?: bigint
   /**
    * Ranges contains file data ranges.
    * Files are sparse when created.
@@ -99,20 +96,21 @@ export type File = Message<{
    *
    * @generated from field: repeated file.Range ranges = 4;
    */
-  ranges?: Range[];
+  ranges?: Range[]
+}>
 
-}>;
-
-export const File: MessageType<File> = createMessageType(
-  {
-    typeName: "file.File",
-    fields: [
-        { no: 1, name: "total_size", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "root_blob", kind: "message", T: () => Blob },
-        { no: 3, name: "range_nonce", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "ranges", kind: "message", T: () => Range, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const File: MessageType<File> = createMessageType({
+  typeName: 'file.File',
+  fields: [
+    { no: 1, name: 'total_size', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 2, name: 'root_blob', kind: 'message', T: () => Blob },
+    {
+      no: 3,
+      name: 'range_nonce',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    { no: 4, name: 'ranges', kind: 'message', T: () => Range, repeated: true },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

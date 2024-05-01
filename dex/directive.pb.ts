@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/dex/directive.proto (package dex, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BlockRef } from "../block/block.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { BlockRef } from '../block/block.pb.js'
 
-export const protobufPackage = "dex";
+export const protobufPackage = 'dex'
 
 /**
  * LookupBlockFromNetworkRequest requests that Data-Exchange (DEX) find data.
@@ -19,24 +19,26 @@ export type LookupBlockFromNetworkRequest = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * Ref is the reference.
    *
    * @generated from field: block.BlockRef ref = 2;
    */
-  ref?: BlockRef;
+  ref?: BlockRef
+}>
 
-}>;
-
-export const LookupBlockFromNetworkRequest: MessageType<LookupBlockFromNetworkRequest> = createMessageType(
-  {
-    typeName: "dex.LookupBlockFromNetworkRequest",
+export const LookupBlockFromNetworkRequest: MessageType<LookupBlockFromNetworkRequest> =
+  createMessageType({
+    typeName: 'dex.LookupBlockFromNetworkRequest',
     fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "ref", kind: "message", T: () => BlockRef },
+      {
+        no: 1,
+        name: 'bucket_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

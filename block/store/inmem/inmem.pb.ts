@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/inmem/inmem.proto (package block.store.inmem, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../../store/kvkey/kvkey.pb.js";
-import type { HashType } from "../../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../../store/kvkey/kvkey.pb.js'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "block.store.inmem";
+export const protobufPackage = 'block.store.inmem'
 
 /**
  * Config configures the inmem block store controller.
@@ -21,21 +21,21 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * KvKeyOpts are key/value key constants.
    * Optional.
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 2;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type.
    *
    * @generated from field: hash.HashType force_hash_type = 3;
    */
-  forceHashType?: HashType;
+  forceHashType?: HashType
   /**
    * HashGet enables hashing values for Get requests.
    * This reduces performance but ensures data integrity.
@@ -43,41 +43,53 @@ export type Config = Message<{
    *
    * @generated from field: bool hash_get = 4;
    */
-  hashGet?: boolean;
+  hashGet?: boolean
   /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
    * @generated from field: repeated string bucket_ids = 5;
    */
-  bucketIds?: string[];
+  bucketIds?: string[]
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
    * @generated from field: bool skip_not_found = 6;
    */
-  skipNotFound?: boolean;
+  skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
    * @generated from field: bool verbose = 7;
    */
-  verbose?: boolean;
+  verbose?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.inmem.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 3, name: "force_hash_type", kind: "enum", T: HashType_Enum },
-        { no: 4, name: "hash_get", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "bucket_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 6, name: "skip_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.inmem.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 3, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+    { no: 4, name: 'hash_get', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 5,
+      name: 'bucket_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 6,
+      name: 'skip_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 7, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

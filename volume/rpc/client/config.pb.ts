@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/rpc/client/config.proto (package volume.rpc.client, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Backoff } from "../../../../util/backoff/backoff.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
-export const protobufPackage = "volume.rpc.client";
+export const protobufPackage = 'volume.rpc.client'
 
 /**
  * VolumeAliases is a list of volume aliases.
@@ -19,19 +19,22 @@ export type VolumeAliases = Message<{
    *
    * @generated from field: repeated string from = 1;
    */
-  from?: string[];
+  from?: string[]
+}>
 
-}>;
-
-export const VolumeAliases: MessageType<VolumeAliases> = createMessageType(
-  {
-    typeName: "volume.rpc.client.VolumeAliases",
-    fields: [
-        { no: 1, name: "from", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const VolumeAliases: MessageType<VolumeAliases> = createMessageType({
+  typeName: 'volume.rpc.client.VolumeAliases',
+  fields: [
+    {
+      no: 1,
+      name: 'from',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Config configures the rpc volume client.
@@ -48,7 +51,7 @@ export type Config = Message<{
    *
    * @generated from field: string service_id = 1;
    */
-  serviceId?: string;
+  serviceId?: string
   /**
    * VolumeIdRe is a regex string to match volume IDs.
    * Matched volume IDs are forwarded to the RPC service.
@@ -58,34 +61,34 @@ export type Config = Message<{
    *
    * @generated from field: string volume_id_re = 2;
    */
-  volumeIdRe?: string;
+  volumeIdRe?: string
   /**
    * VolumeIdList returns a specific list of volumes to match.
    * If empty, uses the VolumeIDRe field instead.
    *
    * @generated from field: repeated string volume_id_list = 3;
    */
-  volumeIdList?: string[];
+  volumeIdList?: string[]
   /**
    * LoadOnStartup loads the volume_id_list on startup.
    *
    * @generated from field: bool load_on_startup = 8;
    */
-  loadOnStartup?: boolean;
+  loadOnStartup?: boolean
   /**
    * ClientId is the client id to use.
    * May be empty.
    *
    * @generated from field: string client_id = 4;
    */
-  clientId?: string;
+  clientId?: string
   /**
    * ReleaseDelay is a delay duration to wait before releasing a unreferenced volume.
    * If empty string, defaults to 1s (1 second).
    *
    * @generated from field: string release_delay = 5;
    */
-  releaseDelay?: string;
+  releaseDelay?: string
   /**
    * VolumeAliases contains aliases to assign to proxied volumes.
    * Key = the destination volume ID.
@@ -94,30 +97,53 @@ export type Config = Message<{
    *
    * @generated from field: map<string, volume.rpc.client.VolumeAliases> volume_aliases = 6;
    */
-  volumeAliases?: { [key: string]: VolumeAliases };
+  volumeAliases?: { [key: string]: VolumeAliases }
   /**
    * Backoff controls retry backoff for the volume rpc client.
    *
    * @generated from field: backoff.Backoff backoff = 7;
    */
-  backoff?: Backoff;
+  backoff?: Backoff
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.rpc.client.Config",
-    fields: [
-        { no: 1, name: "service_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "volume_id_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "volume_id_list", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 8, name: "load_on_startup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "client_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 5, name: "release_delay", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 6, name: "volume_aliases", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: () => VolumeAliases} },
-        { no: 7, name: "backoff", kind: "message", T: () => Backoff },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.rpc.client.Config',
+  fields: [
+    { no: 1, name: 'service_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 2,
+      name: 'volume_id_re',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 3,
+      name: 'volume_id_list',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 8,
+      name: 'load_on_startup',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 4, name: 'client_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 5,
+      name: 'release_delay',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 6,
+      name: 'volume_aliases',
+      kind: 'map',
+      K: 9 /* ScalarType.STRING */,
+      V: { kind: 'message', T: () => VolumeAliases },
+    },
+    { no: 7, name: 'backoff', kind: 'message', T: () => Backoff },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

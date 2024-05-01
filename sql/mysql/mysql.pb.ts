@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/sql/mysql/mysql.proto (package mysql, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BlockRef } from "../../block/block.pb.js";
-import { KeyValueStore } from "../../kvtx/block/kvtx.pb.js";
-import { MsgpackBlob } from "../../block/msgpack/msgpack.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { BlockRef } from '../../block/block.pb.js'
+import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
+import { MsgpackBlob } from '../../block/msgpack/msgpack.pb.js'
 
-export const protobufPackage = "mysql";
+export const protobufPackage = 'mysql'
 
 /**
  * RootDb contains the root definition of a database.
@@ -21,7 +21,7 @@ export type RootDb = Message<{
    *
    * @generated from field: string name = 1;
    */
-  name?: string;
+  name?: string
   /**
    * Ref is the block reference to the database root.
    * If empty, the database is empty.
@@ -29,20 +29,17 @@ export type RootDb = Message<{
    *
    * @generated from field: block.BlockRef ref = 2;
    */
-  ref?: BlockRef;
+  ref?: BlockRef
+}>
 
-}>;
-
-export const RootDb: MessageType<RootDb> = createMessageType(
-  {
-    typeName: "mysql.RootDb",
-    fields: [
-        { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "ref", kind: "message", T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const RootDb: MessageType<RootDb> = createMessageType({
+  typeName: 'mysql.RootDb',
+  fields: [
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Root is the root object of the mysql database.
@@ -55,19 +52,22 @@ export type Root = Message<{
    *
    * @generated from field: repeated mysql.RootDb databases = 1;
    */
-  databases?: RootDb[];
+  databases?: RootDb[]
+}>
 
-}>;
-
-export const Root: MessageType<Root> = createMessageType(
-  {
-    typeName: "mysql.Root",
-    fields: [
-        { no: 1, name: "databases", kind: "message", T: () => RootDb, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Root: MessageType<Root> = createMessageType({
+  typeName: 'mysql.Root',
+  fields: [
+    {
+      no: 1,
+      name: 'databases',
+      kind: 'message',
+      T: () => RootDb,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * DatabaseRootTable contains the reference to the TableRoot.
@@ -80,27 +80,25 @@ export type DatabaseRootTable = Message<{
    *
    * @generated from field: string name = 1;
    */
-  name?: string;
+  name?: string
   /**
    * Ref is the block reference to the table root.
    * Type: TableRoot.
    *
    * @generated from field: block.BlockRef ref = 2;
    */
-  ref?: BlockRef;
+  ref?: BlockRef
+}>
 
-}>;
-
-export const DatabaseRootTable: MessageType<DatabaseRootTable> = createMessageType(
-  {
-    typeName: "mysql.DatabaseRootTable",
+export const DatabaseRootTable: MessageType<DatabaseRootTable> =
+  createMessageType({
+    typeName: 'mysql.DatabaseRootTable',
     fields: [
-        { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "ref", kind: "message", T: () => BlockRef },
+      { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * DatabaseRoot is the root object of the database.
@@ -113,19 +111,22 @@ export type DatabaseRoot = Message<{
    *
    * @generated from field: repeated mysql.DatabaseRootTable tables = 1;
    */
-  tables?: DatabaseRootTable[];
+  tables?: DatabaseRootTable[]
+}>
 
-}>;
-
-export const DatabaseRoot: MessageType<DatabaseRoot> = createMessageType(
-  {
-    typeName: "mysql.DatabaseRoot",
-    fields: [
-        { no: 1, name: "tables", kind: "message", T: () => DatabaseRootTable, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const DatabaseRoot: MessageType<DatabaseRoot> = createMessageType({
+  typeName: 'mysql.DatabaseRoot',
+  fields: [
+    {
+      no: 1,
+      name: 'tables',
+      kind: 'message',
+      T: () => DatabaseRootTable,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * TableSchemaColumn is the definition of a column for a table schema.
@@ -138,75 +139,93 @@ export type TableSchemaColumn = Message<{
    *
    * @generated from field: string name = 1;
    */
-  name?: string;
+  name?: string
   /**
    * ColumnType is the data type of the column.
    *
    * @generated from field: string column_type = 2;
    */
-  columnType?: string;
+  columnType?: string
   /**
    * DefaultValueExpr is the default value expression, encoded to a string.
    *
    * @generated from field: string default_value_expr = 3;
    */
-  defaultValueExpr?: string;
+  defaultValueExpr?: string
   /**
    * AutoIncrement is true if the column auto-increments.
    *
    * @generated from field: bool auto_increment = 4;
    */
-  autoIncrement?: boolean;
+  autoIncrement?: boolean
   /**
    * Nullable is true if the column can contain NULL values, or false otherwise.
    *
    * @generated from field: bool nullable = 5;
    */
-  nullable?: boolean;
+  nullable?: boolean
   /**
    * Source is the name of the table this column came from.
    *
    * @generated from field: string source = 6;
    */
-  source?: string;
+  source?: string
   /**
    * PrimaryKey is true if the column is part of the primary key for its table.
    *
    * @generated from field: bool primary_key = 7;
    */
-  primaryKey?: boolean;
+  primaryKey?: boolean
   /**
    * Comment contains the string comment for this column.
    *
    * @generated from field: string comment = 8;
    */
-  comment?: string;
+  comment?: string
   /**
    * Extra contains any additional information to put in the `extra` column under `information_schema.columns`.
    *
    * @generated from field: string extra = 9;
    */
-  extra?: string;
+  extra?: string
+}>
 
-}>;
-
-export const TableSchemaColumn: MessageType<TableSchemaColumn> = createMessageType(
-  {
-    typeName: "mysql.TableSchemaColumn",
+export const TableSchemaColumn: MessageType<TableSchemaColumn> =
+  createMessageType({
+    typeName: 'mysql.TableSchemaColumn',
     fields: [
-        { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "column_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "default_value_expr", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "auto_increment", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "nullable", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 7, name: "primary_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 8, name: "comment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 9, name: "extra", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      {
+        no: 2,
+        name: 'column_type',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      {
+        no: 3,
+        name: 'default_value_expr',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      {
+        no: 4,
+        name: 'auto_increment',
+        kind: 'scalar',
+        T: 8 /* ScalarType.BOOL */,
+      },
+      { no: 5, name: 'nullable', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 6, name: 'source', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      {
+        no: 7,
+        name: 'primary_key',
+        kind: 'scalar',
+        T: 8 /* ScalarType.BOOL */,
+      },
+      { no: 8, name: 'comment', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 9, name: 'extra', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * TableSchema is the schema for a table.
@@ -219,19 +238,22 @@ export type TableSchema = Message<{
    *
    * @generated from field: repeated mysql.TableSchemaColumn columns = 1;
    */
-  columns?: TableSchemaColumn[];
+  columns?: TableSchemaColumn[]
+}>
 
-}>;
-
-export const TableSchema: MessageType<TableSchema> = createMessageType(
-  {
-    typeName: "mysql.TableSchema",
-    fields: [
-        { no: 1, name: "columns", kind: "message", T: () => TableSchemaColumn, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const TableSchema: MessageType<TableSchema> = createMessageType({
+  typeName: 'mysql.TableSchema',
+  fields: [
+    {
+      no: 1,
+      name: 'columns',
+      kind: 'message',
+      T: () => TableSchemaColumn,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * TablePartitionRoot contains the root of a table partition.
@@ -246,19 +268,17 @@ export type TablePartitionRoot = Message<{
    *
    * @generated from field: kvtx.block.KeyValueStore row_key_value = 1;
    */
-  rowKeyValue?: KeyValueStore;
+  rowKeyValue?: KeyValueStore
+}>
 
-}>;
-
-export const TablePartitionRoot: MessageType<TablePartitionRoot> = createMessageType(
-  {
-    typeName: "mysql.TablePartitionRoot",
+export const TablePartitionRoot: MessageType<TablePartitionRoot> =
+  createMessageType({
+    typeName: 'mysql.TablePartitionRoot',
     fields: [
-        { no: 1, name: "row_key_value", kind: "message", T: () => KeyValueStore },
+      { no: 1, name: 'row_key_value', kind: 'message', T: () => KeyValueStore },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * TableColumn is an entry in a table row.
@@ -272,19 +292,16 @@ export type TableColumn = Message<{
    *
    * @generated from field: msgpack.MsgpackBlob msgpack_blob = 1;
    */
-  msgpackBlob?: MsgpackBlob;
+  msgpackBlob?: MsgpackBlob
+}>
 
-}>;
-
-export const TableColumn: MessageType<TableColumn> = createMessageType(
-  {
-    typeName: "mysql.TableColumn",
-    fields: [
-        { no: 1, name: "msgpack_blob", kind: "message", T: () => MsgpackBlob },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const TableColumn: MessageType<TableColumn> = createMessageType({
+  typeName: 'mysql.TableColumn',
+  fields: [
+    { no: 1, name: 'msgpack_blob', kind: 'message', T: () => MsgpackBlob },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * TableRoot is the root object of the table.
@@ -297,25 +314,25 @@ export type TableRoot = Message<{
    *
    * @generated from field: mysql.TableSchema table_schema = 1;
    */
-  tableSchema?: TableSchema;
+  tableSchema?: TableSchema
   /**
    * PrimaryKeyOrdinals is the PkOrdinals field of PrimaryKeySchema.
    *
    * @generated from field: repeated int32 primary_key_ordinals = 5;
    */
-  primaryKeyOrdinals?: number[];
+  primaryKeyOrdinals?: number[]
   /**
    * TablePartitions contains the set of table partitions.
    *
    * @generated from field: repeated mysql.TablePartitionRoot table_partitions = 2;
    */
-  tablePartitions?: TablePartitionRoot[];
+  tablePartitions?: TablePartitionRoot[]
   /**
    * RowNonce is the row identifier nonce, incremented when a row is inserted.
    *
    * @generated from field: uint64 row_nonce = 3;
    */
-  rowNonce?: bigint;
+  rowNonce?: bigint
   /**
    * AutoIncrVal is the auto increment value, if necessary.
    * Typically contains an integer or float.
@@ -323,30 +340,44 @@ export type TableRoot = Message<{
    *
    * @generated from field: mysql.TableColumn auto_incr_val = 4;
    */
-  autoIncrVal?: TableColumn;
+  autoIncrVal?: TableColumn
   /**
    * CollationId is the method ID of the method used to control sorting.
    *
    * @generated from field: uint32 collation_id = 6;
    */
-  collationId?: number;
+  collationId?: number
+}>
 
-}>;
-
-export const TableRoot: MessageType<TableRoot> = createMessageType(
-  {
-    typeName: "mysql.TableRoot",
-    fields: [
-        { no: 1, name: "table_schema", kind: "message", T: () => TableSchema },
-        { no: 5, name: "primary_key_ordinals", kind: "scalar", T: 5 /* ScalarType.INT32 */, repeated: true },
-        { no: 2, name: "table_partitions", kind: "message", T: () => TablePartitionRoot, repeated: true },
-        { no: 3, name: "row_nonce", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 4, name: "auto_incr_val", kind: "message", T: () => TableColumn },
-        { no: 6, name: "collation_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const TableRoot: MessageType<TableRoot> = createMessageType({
+  typeName: 'mysql.TableRoot',
+  fields: [
+    { no: 1, name: 'table_schema', kind: 'message', T: () => TableSchema },
+    {
+      no: 5,
+      name: 'primary_key_ordinals',
+      kind: 'scalar',
+      T: 5 /* ScalarType.INT32 */,
+      repeated: true,
+    },
+    {
+      no: 2,
+      name: 'table_partitions',
+      kind: 'message',
+      T: () => TablePartitionRoot,
+      repeated: true,
+    },
+    { no: 3, name: 'row_nonce', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
+    {
+      no: 6,
+      name: 'collation_id',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * TableRow is a row in a table.
@@ -359,17 +390,19 @@ export type TableRow = Message<{
    *
    * @generated from field: repeated mysql.TableColumn columns = 1;
    */
-  columns?: TableColumn[];
+  columns?: TableColumn[]
+}>
 
-}>;
-
-export const TableRow: MessageType<TableRow> = createMessageType(
-  {
-    typeName: "mysql.TableRow",
-    fields: [
-        { no: 1, name: "columns", kind: "message", T: () => TableColumn, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const TableRow: MessageType<TableRow> = createMessageType({
+  typeName: 'mysql.TableRow',
+  fields: [
+    {
+      no: 1,
+      name: 'columns',
+      kind: 'message',
+      T: () => TableColumn,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

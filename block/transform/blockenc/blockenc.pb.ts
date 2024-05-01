@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/transform/blockenc/blockenc.proto (package transform.blockenc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { BlockEnc } from "../../../util/blockenc/blockenc.pb.js";
-import { BlockEnc_Enum } from "../../../util/blockenc/blockenc.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import type { BlockEnc } from '../../../util/blockenc/blockenc.pb.js'
+import { BlockEnc_Enum } from '../../../util/blockenc/blockenc.pb.js'
 
-export const protobufPackage = "transform.blockenc";
+export const protobufPackage = 'transform.blockenc'
 
 /**
  * Config configures the block encrypt transform.
@@ -20,24 +20,20 @@ export type Config = Message<{
    *
    * @generated from field: blockenc.BlockEnc block_enc = 1;
    */
-  blockEnc?: BlockEnc;
+  blockEnc?: BlockEnc
   /**
    * Key is the key to use.
    *
    * @generated from field: bytes key = 2;
    */
-  key?: Uint8Array;
+  key?: Uint8Array
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "transform.blockenc.Config",
-    fields: [
-        { no: 1, name: "block_enc", kind: "enum", T: BlockEnc_Enum },
-        { no: 2, name: "key", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'transform.blockenc.Config',
+  fields: [
+    { no: 1, name: 'block_enc', kind: 'enum', T: BlockEnc_Enum },
+    { no: 2, name: 'key', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/rpc/server/config.proto (package block.store.rpc.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { HashType } from "../../../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "block.store.rpc.server";
+export const protobufPackage = 'block.store.rpc.server'
 
 /**
  * Config configures the block store rpc server.
@@ -20,7 +20,7 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeId is the volume id to read/write from.
    * If unset, uses the BucketLookup API to lookup blocks.
@@ -28,49 +28,50 @@ export type Config = Message<{
    *
    * @generated from field: string volume_id = 2;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * Write enables the write api endpoints.
    *
    * @generated from field: bool write = 3;
    */
-  write?: boolean;
+  write?: boolean
   /**
    * ServiceId is the service id to serve LookupRpcService requests.
    * Cannot be empty.
    *
    * @generated from field: string service_id = 4;
    */
-  serviceId?: string;
+  serviceId?: string
   /**
    * ServerIdRe is the regex of server IDs to accept for LookupRpcService.
    * If empty, will accept any.
    *
    * @generated from field: string server_id_re = 5;
    */
-  serverIdRe?: string;
+  serverIdRe?: string
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type the underlying bucket accepts.
    *
    * @generated from field: hash.HashType force_hash_type = 6;
    */
-  forceHashType?: HashType;
+  forceHashType?: HashType
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.rpc.server.Config",
-    fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "write", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "service_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 5, name: "server_id_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 6, name: "force_hash_type", kind: "enum", T: HashType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.rpc.server.Config',
+  fields: [
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'write', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'service_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 5,
+      name: 'server_id_re',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 6, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

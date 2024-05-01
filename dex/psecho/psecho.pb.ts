@@ -2,12 +2,16 @@
 // @generated from file github.com/aperturerobotics/hydra/dex/psecho/psecho.proto (package psecho, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Backoff } from "../../../util/backoff/backoff.pb.js";
-import { BlockRef } from "../../block/block.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import { BlockRef } from '../../block/block.pb.js'
 
-export const protobufPackage = "psecho";
+export const protobufPackage = 'psecho'
 
 /**
  * SyncMessageType is the set of sync message types
@@ -43,12 +47,12 @@ export enum SyncMessageType {
 }
 
 // SyncMessageType_Enum is the enum type for SyncMessageType.
-export const SyncMessageType_Enum = createEnumType("psecho.SyncMessageType", [
-  { no: 0, name: "SyncMessageType_UNKNOWN" },
-  { no: 1, name: "SyncMessageType_START_XMIT" },
-  { no: 2, name: "SyncMessageType_CTNU_XMIT" },
-  { no: 3, name: "SyncMessageType_REFUSE_RX" },
-]);
+export const SyncMessageType_Enum = createEnumType('psecho.SyncMessageType', [
+  { no: 0, name: 'SyncMessageType_UNKNOWN' },
+  { no: 1, name: 'SyncMessageType_START_XMIT' },
+  { no: 2, name: 'SyncMessageType_CTNU_XMIT' },
+  { no: 3, name: 'SyncMessageType_REFUSE_RX' },
+])
 
 /**
  * Config configures the pubsub echo controller.
@@ -61,49 +65,56 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * PubsubChannel is the channel to subscribe and publish to.
    *
    * @generated from field: string pubsub_channel = 2;
    */
-  pubsubChannel?: string;
+  pubsubChannel?: string
   /**
    * PeerId is the peer id to use for pubsub and bucket.
    * If empty, will attach to any available peer.
    *
    * @generated from field: string peer_id = 3;
    */
-  peerId?: string;
+  peerId?: string
   /**
    * TransportId sets a transport ID constraint.
    * Can be empty.
    *
    * @generated from field: uint64 transport_id = 4;
    */
-  transportId?: bigint;
+  transportId?: bigint
   /**
    * SyncBackoff controls sync session backoff.
    *
    * @generated from field: backoff.Backoff sync_backoff = 5;
    */
-  syncBackoff?: Backoff;
+  syncBackoff?: Backoff
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "psecho.Config",
-    fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "pubsub_channel", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "peer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "transport_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 5, name: "sync_backoff", kind: "message", T: () => Backoff },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'psecho.Config',
+  fields: [
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 2,
+      name: 'pubsub_channel',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 4,
+      name: 'transport_id',
+      kind: 'scalar',
+      T: 4 /* ScalarType.UINT64 */,
+    },
+    { no: 5, name: 'sync_backoff', kind: 'message', T: () => Backoff },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * PubSubMessage is the root pub-sub message.
@@ -117,7 +128,7 @@ export type PubSubMessage = Message<{
    *
    * @generated from field: repeated block.BlockRef want_refs = 1;
    */
-  wantRefs?: BlockRef[];
+  wantRefs?: BlockRef[]
   /**
    * HaveRefs is the list of recently received blocks.
    * These should be removed from the want list.
@@ -125,36 +136,51 @@ export type PubSubMessage = Message<{
    *
    * @generated from field: repeated block.BlockRef have_refs = 2;
    */
-  haveRefs?: BlockRef[];
+  haveRefs?: BlockRef[]
   /**
    * ClearRefs is the list of no longer wanted blocks.
    * These should be removed from the want list.
    *
    * @generated from field: repeated block.BlockRef clear_refs = 3;
    */
-  clearRefs?: BlockRef[];
+  clearRefs?: BlockRef[]
   /**
    * WantEmpty indicates the wantlist is now empty.
    * The clear_refs list will be empty if this is set.
    *
    * @generated from field: bool want_empty = 4;
    */
-  wantEmpty?: boolean;
+  wantEmpty?: boolean
+}>
 
-}>;
-
-export const PubSubMessage: MessageType<PubSubMessage> = createMessageType(
-  {
-    typeName: "psecho.PubSubMessage",
-    fields: [
-        { no: 1, name: "want_refs", kind: "message", T: () => BlockRef, repeated: true },
-        { no: 2, name: "have_refs", kind: "message", T: () => BlockRef, repeated: true },
-        { no: 3, name: "clear_refs", kind: "message", T: () => BlockRef, repeated: true },
-        { no: 4, name: "want_empty", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
+  typeName: 'psecho.PubSubMessage',
+  fields: [
+    {
+      no: 1,
+      name: 'want_refs',
+      kind: 'message',
+      T: () => BlockRef,
+      repeated: true,
+    },
+    {
+      no: 2,
+      name: 'have_refs',
+      kind: 'message',
+      T: () => BlockRef,
+      repeated: true,
+    },
+    {
+      no: 3,
+      name: 'clear_refs',
+      kind: 'message',
+      T: () => BlockRef,
+      repeated: true,
+    },
+    { no: 4, name: 'want_empty', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * SyncMessage is the root sync session message.
@@ -167,14 +193,14 @@ export type SyncMessage = Message<{
    *
    * @generated from field: psecho.SyncMessageType message_type = 1;
    */
-  messageType?: SyncMessageType;
+  messageType?: SyncMessageType
   /**
    * Ref is the block reference if relevant.
    * Used for START_XMIT, REFUSE_RX
    *
    * @generated from field: block.BlockRef ref = 2;
    */
-  ref?: BlockRef;
+  ref?: BlockRef
   /**
    * Chunk is the data chunk.
    * Stream is always ordered - therefore, we don't need to send index.
@@ -182,35 +208,36 @@ export type SyncMessage = Message<{
    *
    * @generated from field: bytes chunk = 3;
    */
-  chunk?: Uint8Array;
+  chunk?: Uint8Array
   /**
    * Complete indicates this is the last block to transmit in the sequence.
    * Used for START_XMIT, CTNU_XMIT
    *
    * @generated from field: bool complete = 4;
    */
-  complete?: boolean;
+  complete?: boolean
   /**
    * BlockSize is the size of the block.
    * Used for START_XMIT
    *
    * @generated from field: uint32 block_size = 5;
    */
-  blockSize?: number;
+  blockSize?: number
+}>
 
-}>;
-
-export const SyncMessage: MessageType<SyncMessage> = createMessageType(
-  {
-    typeName: "psecho.SyncMessage",
-    fields: [
-        { no: 1, name: "message_type", kind: "enum", T: SyncMessageType_Enum },
-        { no: 2, name: "ref", kind: "message", T: () => BlockRef },
-        { no: 3, name: "chunk", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 4, name: "complete", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "block_size", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const SyncMessage: MessageType<SyncMessage> = createMessageType({
+  typeName: 'psecho.SyncMessage',
+  fields: [
+    { no: 1, name: 'message_type', kind: 'enum', T: SyncMessageType_Enum },
+    { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
+    { no: 3, name: 'chunk', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 4, name: 'complete', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 5,
+      name: 'block_size',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/http/server/config.proto (package bucket.http.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { HashType } from "../../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "bucket.http.server";
+export const protobufPackage = 'bucket.http.server'
 
 /**
  * Config configures the bucket store http server.
@@ -22,7 +22,7 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeId is the volume id to read/write from.
    * If unset, uses the BucketLookup API to lookup blocks.
@@ -30,13 +30,13 @@ export type Config = Message<{
    *
    * @generated from field: string volume_id = 2;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * Write enables the write api endpoints (put, delete).
    *
    * @generated from field: bool write = 3;
    */
-  write?: boolean;
+  write?: boolean
   /**
    * PathPrefix is the path prefix to use for requests.
    * [path_prefix]/{get,put,exists,rm}
@@ -44,28 +44,29 @@ export type Config = Message<{
    *
    * @generated from field: string path_prefix = 4;
    */
-  pathPrefix?: string;
+  pathPrefix?: string
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type the underlying bucket accepts.
    *
    * @generated from field: hash.HashType force_hash_type = 5;
    */
-  forceHashType?: HashType;
+  forceHashType?: HashType
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "bucket.http.server.Config",
-    fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "write", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "path_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 5, name: "force_hash_type", kind: "enum", T: HashType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'bucket.http.server.Config',
+  fields: [
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'write', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 4,
+      name: 'path_prefix',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 5, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/filters/filters.proto (package filters, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Quad } from "../quad/quad.pb.js";
-import { BloomFilter } from "../bloom/bloom.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Quad } from '../quad/quad.pb.js'
+import { BloomFilter } from '../bloom/bloom.pb.js'
 
-export const protobufPackage = "filters";
+export const protobufPackage = 'filters'
 
 /**
  * KeyFilters contains fields used to determine if a key might be in a set.
@@ -23,14 +23,14 @@ export type KeyFilters = Message<{
    *
    * @generated from field: string key_prefix = 1;
    */
-  keyPrefix?: string;
+  keyPrefix?: string
   /**
    * QuadPrefix contains prefixes affected by selected graph quads.
    * Ignore this field if it is empty.
    *
    * @generated from field: quad.Quad quad_prefix = 2;
    */
-  quadPrefix?: Quad;
+  quadPrefix?: Quad
   /**
    * KeyBloom is a bloom filter with all included keys.
    * Includes subject, obj fields of the quad changes.
@@ -39,19 +39,15 @@ export type KeyFilters = Message<{
    *
    * @generated from field: bloom.BloomFilter key_bloom = 3;
    */
-  keyBloom?: BloomFilter;
+  keyBloom?: BloomFilter
+}>
 
-}>;
-
-export const KeyFilters: MessageType<KeyFilters> = createMessageType(
-  {
-    typeName: "filters.KeyFilters",
-    fields: [
-        { no: 1, name: "key_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "quad_prefix", kind: "message", T: () => Quad },
-        { no: 3, name: "key_bloom", kind: "message", T: () => BloomFilter },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const KeyFilters: MessageType<KeyFilters> = createMessageType({
+  typeName: 'filters.KeyFilters',
+  fields: [
+    { no: 1, name: 'key_prefix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'quad_prefix', kind: 'message', T: () => Quad },
+    { no: 3, name: 'key_bloom', kind: 'message', T: () => BloomFilter },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

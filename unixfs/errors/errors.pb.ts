@@ -2,10 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/errors/errors.proto (package unixfs.errors, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "unixfs.errors";
+export const protobufPackage = 'unixfs.errors'
 
 /**
  * UnixFSErrorType contains all potential UnixFS errors.
@@ -162,29 +166,32 @@ export enum UnixFSErrorType {
 }
 
 // UnixFSErrorType_Enum is the enum type for UnixFSErrorType.
-export const UnixFSErrorType_Enum = createEnumType("unixfs.errors.UnixFSErrorType", [
-  { no: 0, name: "NONE" },
-  { no: 1, name: "OTHER" },
-  { no: 2, name: "FS_NOT_FOUND" },
-  { no: 3, name: "EXIST" },
-  { no: 4, name: "NOT_EXIST" },
-  { no: 5, name: "CLOSED" },
-  { no: 6, name: "READ_ONLY" },
-  { no: 7, name: "RELEASED" },
-  { no: 8, name: "NOT_DIRECTORY" },
-  { no: 9, name: "NOT_FILE" },
-  { no: 10, name: "OUT_OF_BOUNDS" },
-  { no: 11, name: "EMPTY_PATH" },
-  { no: 12, name: "ABSOLUTE_PATH" },
-  { no: 13, name: "INODE_UNRESOLVABLE" },
-  { no: 14, name: "NOT_SYMLINK" },
-  { no: 15, name: "EMPTY_TIMESTAMP" },
-  { no: 16, name: "MOVE_TO_SELF" },
-  { no: 17, name: "INVALID_WRITE" },
-  { no: 18, name: "EMPTY_UNIXFS_ID" },
-  { no: 19, name: "CONTEXT_CANCELED" },
-  { no: 20, name: "EOF" },
-]);
+export const UnixFSErrorType_Enum = createEnumType(
+  'unixfs.errors.UnixFSErrorType',
+  [
+    { no: 0, name: 'NONE' },
+    { no: 1, name: 'OTHER' },
+    { no: 2, name: 'FS_NOT_FOUND' },
+    { no: 3, name: 'EXIST' },
+    { no: 4, name: 'NOT_EXIST' },
+    { no: 5, name: 'CLOSED' },
+    { no: 6, name: 'READ_ONLY' },
+    { no: 7, name: 'RELEASED' },
+    { no: 8, name: 'NOT_DIRECTORY' },
+    { no: 9, name: 'NOT_FILE' },
+    { no: 10, name: 'OUT_OF_BOUNDS' },
+    { no: 11, name: 'EMPTY_PATH' },
+    { no: 12, name: 'ABSOLUTE_PATH' },
+    { no: 13, name: 'INODE_UNRESOLVABLE' },
+    { no: 14, name: 'NOT_SYMLINK' },
+    { no: 15, name: 'EMPTY_TIMESTAMP' },
+    { no: 16, name: 'MOVE_TO_SELF' },
+    { no: 17, name: 'INVALID_WRITE' },
+    { no: 18, name: 'EMPTY_UNIXFS_ID' },
+    { no: 19, name: 'CONTEXT_CANCELED' },
+    { no: 20, name: 'EOF' },
+  ],
+)
 
 /**
  * UnixFSError contains an RPC error returned by a cursor, if any.
@@ -197,7 +204,7 @@ export type UnixFSError = Message<{
    *
    * @generated from field: unixfs.errors.UnixFSErrorType error_type = 1;
    */
-  errorType?: UnixFSErrorType;
+  errorType?: UnixFSErrorType
   /**
    * ErrorBody is the body of the error.
    * If this is set and the error is type OTHER, return errors.New(ErrorBody).
@@ -206,18 +213,14 @@ export type UnixFSError = Message<{
    *
    * @generated from field: string error_body = 2;
    */
-  errorBody?: string;
+  errorBody?: string
+}>
 
-}>;
-
-export const UnixFSError: MessageType<UnixFSError> = createMessageType(
-  {
-    typeName: "unixfs.errors.UnixFSError",
-    fields: [
-        { no: 1, name: "error_type", kind: "enum", T: UnixFSErrorType_Enum },
-        { no: 2, name: "error_body", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const UnixFSError: MessageType<UnixFSError> = createMessageType({
+  typeName: 'unixfs.errors.UnixFSError',
+  fields: [
+    { no: 1, name: 'error_type', kind: 'enum', T: UnixFSErrorType_Enum },
+    { no: 2, name: 'error_body', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/store/kvtx/redis/redis.proto (package store.kvtx.redis, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "store.kvtx.redis";
+export const protobufPackage = 'store.kvtx.redis'
 
 /**
  * ClientConfig configures a redis client.
@@ -18,17 +18,13 @@ export type ClientConfig = Message<{
    *
    * @generated from field: string url = 1;
    */
-  url?: string;
+  url?: string
+}>
 
-}>;
-
-export const ClientConfig: MessageType<ClientConfig> = createMessageType(
-  {
-    typeName: "store.kvtx.redis.ClientConfig",
-    fields: [
-        { no: 1, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const ClientConfig: MessageType<ClientConfig> = createMessageType({
+  typeName: 'store.kvtx.redis.ClientConfig',
+  fields: [
+    { no: 1, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

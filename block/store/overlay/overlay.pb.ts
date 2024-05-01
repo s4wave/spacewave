@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/overlay/overlay.proto (package block.store.overlay, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { OverlayMode } from "../../block.pb.js";
-import { OverlayMode_Enum, PutOpts } from "../../block.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import type { OverlayMode } from '../../block.pb.js'
+import { OverlayMode_Enum, PutOpts } from '../../block.pb.js'
 
-export const protobufPackage = "block.store.overlay";
+export const protobufPackage = 'block.store.overlay'
 
 /**
  * Config configures the overlay block store controller.
@@ -20,25 +20,25 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * LowerBlockStoreId is the identifier of the "lower" block store.
    *
    * @generated from field: string lower_block_store_id = 2;
    */
-  lowerBlockStoreId?: string;
+  lowerBlockStoreId?: string
   /**
    * UpperBlockStoreId is the identifier of the "upper" block store.
    *
    * @generated from field: string upper_block_store_id = 3;
    */
-  upperBlockStoreId?: string;
+  upperBlockStoreId?: string
   /**
    * OverlayMode indicates the mode to use for the block store.
    *
    * @generated from field: block.OverlayMode overlay_mode = 4;
    */
-  overlayMode?: OverlayMode;
+  overlayMode?: OverlayMode
   /**
    * WritebackTimeoutDur is the timeout for writing back blocks.
    * If overlay_mode does not enable writeback, this is N/A.
@@ -46,50 +46,77 @@ export type Config = Message<{
    *
    * @generated from field: string writeback_timeout_dur = 5;
    */
-  writebackTimeoutDur?: string;
+  writebackTimeoutDur?: string
   /**
    * WritebackPutOpts are the base put options for writing back blocks.
    * If overlay_mode does not enable writeback, this is N/A.
    *
    * @generated from field: block.PutOpts writeback_put_opts = 6;
    */
-  writebackPutOpts?: PutOpts;
+  writebackPutOpts?: PutOpts
   /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
    * @generated from field: repeated string bucket_ids = 7;
    */
-  bucketIds?: string[];
+  bucketIds?: string[]
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
    * @generated from field: bool skip_not_found = 8;
    */
-  skipNotFound?: boolean;
+  skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
    * @generated from field: bool verbose = 9;
    */
-  verbose?: boolean;
+  verbose?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.overlay.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "lower_block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "upper_block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "overlay_mode", kind: "enum", T: OverlayMode_Enum },
-        { no: 5, name: "writeback_timeout_dur", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 6, name: "writeback_put_opts", kind: "message", T: () => PutOpts },
-        { no: 7, name: "bucket_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 8, name: "skip_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 9, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.overlay.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 2,
+      name: 'lower_block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 3,
+      name: 'upper_block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 4, name: 'overlay_mode', kind: 'enum', T: OverlayMode_Enum },
+    {
+      no: 5,
+      name: 'writeback_timeout_dur',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 6, name: 'writeback_put_opts', kind: 'message', T: () => PutOpts },
+    {
+      no: 7,
+      name: 'bucket_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 8,
+      name: 'skip_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 9, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

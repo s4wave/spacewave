@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/world/mock/mock.proto (package world.mock, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "world.mock";
+export const protobufPackage = 'world.mock'
 
 /**
  * MockObjectOp is a mock object operation.
@@ -18,19 +18,16 @@ export type MockObjectOp = Message<{
    *
    * @generated from field: string next_msg = 1;
    */
-  nextMsg?: string;
+  nextMsg?: string
+}>
 
-}>;
-
-export const MockObjectOp: MessageType<MockObjectOp> = createMessageType(
-  {
-    typeName: "world.mock.MockObjectOp",
-    fields: [
-        { no: 1, name: "next_msg", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const MockObjectOp: MessageType<MockObjectOp> = createMessageType({
+  typeName: 'world.mock.MockObjectOp',
+  fields: [
+    { no: 1, name: 'next_msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * MockWorldOp is a mock world operation.
@@ -43,24 +40,20 @@ export type MockWorldOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * NextMsg sets the next message on the mock object.
    *
    * @generated from field: string next_msg = 2;
    */
-  nextMsg?: string;
+  nextMsg?: string
+}>
 
-}>;
-
-export const MockWorldOp: MessageType<MockWorldOp> = createMessageType(
-  {
-    typeName: "world.mock.MockWorldOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "next_msg", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const MockWorldOp: MessageType<MockWorldOp> = createMessageType({
+  typeName: 'world.mock.MockWorldOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'next_msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

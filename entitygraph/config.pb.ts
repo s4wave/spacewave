@@ -2,26 +2,20 @@
 // @generated from file github.com/aperturerobotics/hydra/entitygraph/config.proto (package hydra.entitygraph, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "hydra.entitygraph";
+export const protobufPackage = 'hydra.entitygraph'
 
 /**
  * Config is the config object for the entitygraph repoter.
  *
  * @generated from message hydra.entitygraph.Config
  */
-export type Config = Message<{
+export type Config = Message<{}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "hydra.entitygraph.Config",
-    fields: [
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'hydra.entitygraph.Config',
+  fields: [] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

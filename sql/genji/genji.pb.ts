@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/sql/genji/genji.proto (package kvtx.genji, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "kvtx.genji";
+export const protobufPackage = 'kvtx.genji'
 
 /**
  * StoreMeta contains metadata about a store in the db.
@@ -18,17 +18,13 @@ export type StoreMeta = Message<{
    *
    * @generated from field: google.protobuf.Timestamp created_ts = 1;
    */
-  createdTs?: Timestamp;
+  createdTs?: Timestamp
+}>
 
-}>;
-
-export const StoreMeta: MessageType<StoreMeta> = createMessageType(
-  {
-    typeName: "kvtx.genji.StoreMeta",
-    fields: [
-        { no: 1, name: "created_ts", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const StoreMeta: MessageType<StoreMeta> = createMessageType({
+  typeName: 'kvtx.genji.StoreMeta',
+  fields: [
+    { no: 1, name: 'created_ts', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

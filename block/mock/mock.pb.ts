@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/block/mock/mock.proto (package block.mock, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BlockRef } from "../block.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { BlockRef } from '../block.pb.js'
 
-export const protobufPackage = "block.mock";
+export const protobufPackage = 'block.mock'
 
 /**
  * SubBlock is a example sub-block of Root.
@@ -19,19 +19,16 @@ export type SubBlock = Message<{
    *
    * @generated from field: block.BlockRef example_ptr = 1;
    */
-  examplePtr?: BlockRef;
+  examplePtr?: BlockRef
+}>
 
-}>;
-
-export const SubBlock: MessageType<SubBlock> = createMessageType(
-  {
-    typeName: "block.mock.SubBlock",
-    fields: [
-        { no: 1, name: "example_ptr", kind: "message", T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const SubBlock: MessageType<SubBlock> = createMessageType({
+  typeName: 'block.mock.SubBlock',
+  fields: [
+    { no: 1, name: 'example_ptr', kind: 'message', T: () => BlockRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Root is the root of the mock structure.
@@ -44,19 +41,16 @@ export type Root = Message<{
    *
    * @generated from field: block.mock.SubBlock example_sub_block = 1;
    */
-  exampleSubBlock?: SubBlock;
+  exampleSubBlock?: SubBlock
+}>
 
-}>;
-
-export const Root: MessageType<Root> = createMessageType(
-  {
-    typeName: "block.mock.Root",
-    fields: [
-        { no: 1, name: "example_sub_block", kind: "message", T: () => SubBlock },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Root: MessageType<Root> = createMessageType({
+  typeName: 'block.mock.Root',
+  fields: [
+    { no: 1, name: 'example_sub_block', kind: 'message', T: () => SubBlock },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Example is the value pointed to by ExamplePtr.
@@ -69,17 +63,13 @@ export type Example = Message<{
    *
    * @generated from field: string msg = 1;
    */
-  msg?: string;
+  msg?: string
+}>
 
-}>;
-
-export const Example: MessageType<Example> = createMessageType(
-  {
-    typeName: "block.mock.Example",
-    fields: [
-        { no: 1, name: "msg", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Example: MessageType<Example> = createMessageType({
+  typeName: 'block.mock.Example',
+  fields: [
+    { no: 1, name: 'msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

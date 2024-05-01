@@ -2,12 +2,17 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/block/fstree.proto (package unixfs.block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
-import { BlockRef } from "../../block/block.pb.js";
-import { File } from "../../block/file/file.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
+import { BlockRef } from '../../block/block.pb.js'
+import { File } from '../../block/file/file.pb.js'
 
-export const protobufPackage = "unixfs.block";
+export const protobufPackage = 'unixfs.block'
 
 /**
  * NodeType indicates the type of node.
@@ -45,12 +50,12 @@ export enum NodeType {
 }
 
 // NodeType_Enum is the enum type for NodeType.
-export const NodeType_Enum = createEnumType("unixfs.block.NodeType", [
-  { no: 0, name: "NodeType_UNKNOWN" },
-  { no: 1, name: "NodeType_DIRECTORY" },
-  { no: 2, name: "NodeType_FILE" },
-  { no: 3, name: "NodeType_SYMLINK" },
-]);
+export const NodeType_Enum = createEnumType('unixfs.block.NodeType', [
+  { no: 0, name: 'NodeType_UNKNOWN' },
+  { no: 1, name: 'NodeType_DIRECTORY' },
+  { no: 2, name: 'NodeType_FILE' },
+  { no: 3, name: 'NodeType_SYMLINK' },
+])
 
 /**
  * FSChangeType is a type of change to the filesystem.
@@ -86,12 +91,12 @@ export enum FSChangeType {
 }
 
 // FSChangeType_Enum is the enum type for FSChangeType.
-export const FSChangeType_Enum = createEnumType("unixfs.block.FSChangeType", [
-  { no: 0, name: "FSChangeType_INVALID" },
-  { no: 1, name: "FSChangeType_MKNOD" },
-  { no: 2, name: "FSChangeType_FILE_WRITE" },
-  { no: 3, name: "FSChangeType_FILE_REMOVE" },
-]);
+export const FSChangeType_Enum = createEnumType('unixfs.block.FSChangeType', [
+  { no: 0, name: 'FSChangeType_INVALID' },
+  { no: 1, name: 'FSChangeType_MKNOD' },
+  { no: 2, name: 'FSChangeType_FILE_WRITE' },
+  { no: 3, name: 'FSChangeType_FILE_REMOVE' },
+])
 
 /**
  * Dirent contains a directory entry.
@@ -104,7 +109,7 @@ export type Dirent = Message<{
    *
    * @generated from field: string name = 1;
    */
-  name?: string;
+  name?: string
   /**
    * NodeRef is the reference of the child FSNode.
    * may be empty.
@@ -113,27 +118,24 @@ export type Dirent = Message<{
    *
    * @generated from field: block.BlockRef node_ref = 2;
    */
-  nodeRef?: BlockRef;
+  nodeRef?: BlockRef
   /**
    * NodeType is the node type of the child FSNode.
    *
    * @generated from field: unixfs.block.NodeType node_type = 3;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
+}>
 
-}>;
-
-export const Dirent: MessageType<Dirent> = createMessageType(
-  {
-    typeName: "unixfs.block.Dirent",
-    fields: [
-        { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "node_ref", kind: "message", T: () => BlockRef },
-        { no: 3, name: "node_type", kind: "enum", T: NodeType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Dirent: MessageType<Dirent> = createMessageType({
+  typeName: 'unixfs.block.Dirent',
+  fields: [
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'node_ref', kind: 'message', T: () => BlockRef },
+    { no: 3, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSPath is a path in the filesystem.
@@ -146,26 +148,29 @@ export type FSPath = Message<{
    *
    * @generated from field: repeated string nodes = 1;
    */
-  nodes?: string[];
+  nodes?: string[]
   /**
    * Absolute indicates the path is an absolute path (starting at /).
    *
    * @generated from field: bool absolute = 2;
    */
-  absolute?: boolean;
+  absolute?: boolean
+}>
 
-}>;
-
-export const FSPath: MessageType<FSPath> = createMessageType(
-  {
-    typeName: "unixfs.block.FSPath",
-    fields: [
-        { no: 1, name: "nodes", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 2, name: "absolute", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSPath: MessageType<FSPath> = createMessageType({
+  typeName: 'unixfs.block.FSPath',
+  fields: [
+    {
+      no: 1,
+      name: 'nodes',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    { no: 2, name: 'absolute', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSSymlink contains symbolic link data.
@@ -178,19 +183,16 @@ export type FSSymlink = Message<{
    *
    * @generated from field: unixfs.block.FSPath target_path = 1;
    */
-  targetPath?: FSPath;
+  targetPath?: FSPath
+}>
 
-}>;
-
-export const FSSymlink: MessageType<FSSymlink> = createMessageType(
-  {
-    typeName: "unixfs.block.FSSymlink",
-    fields: [
-        { no: 1, name: "target_path", kind: "message", T: () => FSPath },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSSymlink: MessageType<FSSymlink> = createMessageType({
+  typeName: 'unixfs.block.FSSymlink',
+  fields: [
+    { no: 1, name: 'target_path', kind: 'message', T: () => FSPath },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSNode is a node in the tree.
@@ -204,20 +206,20 @@ export type FSNode = Message<{
    *
    * @generated from field: unixfs.block.NodeType node_type = 1;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
   /**
    * ModTime is the modification timestamp.
    *
    * @generated from field: google.protobuf.Timestamp mod_time = 2;
    */
-  modTime?: Timestamp;
+  modTime?: Timestamp
   /**
    * Permissions are the unixfs permissions bitset.
    * Note: the mode portion of this field must be zero.
    *
    * @generated from field: uint32 permissions = 3;
    */
-  permissions?: number;
+  permissions?: number
   /**
    * File contains a file if the node is of type FILE.
    *
@@ -225,7 +227,7 @@ export type FSNode = Message<{
    *
    * @generated from field: file.File file = 4;
    */
-  file?: File;
+  file?: File
   /**
    * DirectoryEntry contains a sorted list of directory entries (dirents).
    *
@@ -233,30 +235,38 @@ export type FSNode = Message<{
    *
    * @generated from field: repeated unixfs.block.Dirent directory_entry = 5;
    */
-  directoryEntry?: Dirent[];
+  directoryEntry?: Dirent[]
   /**
    * Symlink contains the symlink data if the node is of type SYMLINK.
    *
    * @generated from field: unixfs.block.FSSymlink symlink = 6;
    */
-  symlink?: FSSymlink;
+  symlink?: FSSymlink
+}>
 
-}>;
-
-export const FSNode: MessageType<FSNode> = createMessageType(
-  {
-    typeName: "unixfs.block.FSNode",
-    fields: [
-        { no: 1, name: "node_type", kind: "enum", T: NodeType_Enum },
-        { no: 2, name: "mod_time", kind: "message", T: () => Timestamp },
-        { no: 3, name: "permissions", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 4, name: "file", kind: "message", T: () => File },
-        { no: 5, name: "directory_entry", kind: "message", T: () => Dirent, repeated: true },
-        { no: 6, name: "symlink", kind: "message", T: () => FSSymlink },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSNode: MessageType<FSNode> = createMessageType({
+  typeName: 'unixfs.block.FSNode',
+  fields: [
+    { no: 1, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+    { no: 2, name: 'mod_time', kind: 'message', T: () => Timestamp },
+    {
+      no: 3,
+      name: 'permissions',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    { no: 4, name: 'file', kind: 'message', T: () => File },
+    {
+      no: 5,
+      name: 'directory_entry',
+      kind: 'message',
+      T: () => Dirent,
+      repeated: true,
+    },
+    { no: 6, name: 'symlink', kind: 'message', T: () => FSSymlink },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSConfig are optional configuration flags.
@@ -270,19 +280,21 @@ export type FSConfig = Message<{
    *
    * @generated from field: bool disable_changelog = 1;
    */
-  disableChangelog?: boolean;
+  disableChangelog?: boolean
+}>
 
-}>;
-
-export const FSConfig: MessageType<FSConfig> = createMessageType(
-  {
-    typeName: "unixfs.block.FSConfig",
-    fields: [
-        { no: 1, name: "disable_changelog", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSConfig: MessageType<FSConfig> = createMessageType({
+  typeName: 'unixfs.block.FSConfig',
+  fields: [
+    {
+      no: 1,
+      name: 'disable_changelog',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSChange is an entry in the changelog.
@@ -296,26 +308,26 @@ export type FSChange = Message<{
    *
    * @generated from field: uint64 seqno = 1;
    */
-  seqno?: bigint;
+  seqno?: bigint
   /**
    * PrevRef is the reference to the previous change.
    *
    * @generated from field: block.BlockRef prev_ref = 2;
    */
-  prevRef?: BlockRef;
+  prevRef?: BlockRef
   /**
    * ChangeType is the type of change this is.
    *
    * @generated from field: unixfs.block.FSChangeType change_type = 3;
    */
-  changeType?: FSChangeType;
+  changeType?: FSChangeType
   /**
    * TransactionRef is the reference to the associated transaction.
    * This is transparent to the core registry code.
    *
    * @generated from field: block.BlockRef transaction_ref = 4;
    */
-  transactionRef?: BlockRef;
+  transactionRef?: BlockRef
   /**
    * Paths are the associated paths.
    * Mknod: the nodes that will be created.
@@ -324,14 +336,14 @@ export type FSChange = Message<{
    *
    * @generated from field: repeated unixfs.block.FSPath paths = 5;
    */
-  paths?: FSPath[];
+  paths?: FSPath[]
   /**
    * NodeType is the transaction node type.
    * Mknod: the type of node to create.
    *
    * @generated from field: unixfs.block.NodeType node_type = 6;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
   /**
    * ValueRef are the reference(s) to the updated value.
    * Mknod: the references to the new inodes.
@@ -339,25 +351,28 @@ export type FSChange = Message<{
    *
    * @generated from field: repeated block.BlockRef value_ref = 8;
    */
-  valueRef?: BlockRef[];
+  valueRef?: BlockRef[]
+}>
 
-}>;
-
-export const FSChange: MessageType<FSChange> = createMessageType(
-  {
-    typeName: "unixfs.block.FSChange",
-    fields: [
-        { no: 1, name: "seqno", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-        { no: 2, name: "prev_ref", kind: "message", T: () => BlockRef },
-        { no: 3, name: "change_type", kind: "enum", T: FSChangeType_Enum },
-        { no: 4, name: "transaction_ref", kind: "message", T: () => BlockRef },
-        { no: 5, name: "paths", kind: "message", T: () => FSPath, repeated: true },
-        { no: 6, name: "node_type", kind: "enum", T: NodeType_Enum },
-        { no: 8, name: "value_ref", kind: "message", T: () => BlockRef, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSChange: MessageType<FSChange> = createMessageType({
+  typeName: 'unixfs.block.FSChange',
+  fields: [
+    { no: 1, name: 'seqno', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 2, name: 'prev_ref', kind: 'message', T: () => BlockRef },
+    { no: 3, name: 'change_type', kind: 'enum', T: FSChangeType_Enum },
+    { no: 4, name: 'transaction_ref', kind: 'message', T: () => BlockRef },
+    { no: 5, name: 'paths', kind: 'message', T: () => FSPath, repeated: true },
+    { no: 6, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+    {
+      no: 8,
+      name: 'value_ref',
+      kind: 'message',
+      T: () => BlockRef,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSObject is the root of a FSNode which may have edges to other dirents.
@@ -370,13 +385,13 @@ export type FSObject = Message<{
    *
    * @generated from field: unixfs.block.FSConfig config = 1;
    */
-  config?: FSConfig;
+  config?: FSConfig
   /**
    * FsNode is the root filesystem node.
    *
    * @generated from field: unixfs.block.FSNode fs_node = 2;
    */
-  fsNode?: FSNode;
+  fsNode?: FSNode
   /**
    * LastChange is the current head of the changelog linked list.
    * If seqno == 0, this field is empty.
@@ -384,21 +399,18 @@ export type FSObject = Message<{
    *
    * @generated from field: unixfs.block.FSChange last_change = 3;
    */
-  lastChange?: FSChange;
+  lastChange?: FSChange
+}>
 
-}>;
-
-export const FSObject: MessageType<FSObject> = createMessageType(
-  {
-    typeName: "unixfs.block.FSObject",
-    fields: [
-        { no: 1, name: "config", kind: "message", T: () => FSConfig },
-        { no: 2, name: "fs_node", kind: "message", T: () => FSNode },
-        { no: 3, name: "last_change", kind: "message", T: () => FSChange },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FSObject: MessageType<FSObject> = createMessageType({
+  typeName: 'unixfs.block.FSObject',
+  fields: [
+    { no: 1, name: 'config', kind: 'message', T: () => FSConfig },
+    { no: 2, name: 'fs_node', kind: 'message', T: () => FSNode },
+    { no: 3, name: 'last_change', kind: 'message', T: () => FSChange },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FSHostVolume is a volume provided by the host environment.
@@ -412,17 +424,13 @@ export type FSHostVolume = Message<{
    *
    * @generated from field: string volume_id = 1;
    */
-  volumeId?: string;
+  volumeId?: string
+}>
 
-}>;
-
-export const FSHostVolume: MessageType<FSHostVolume> = createMessageType(
-  {
-    typeName: "unixfs.block.FSHostVolume",
-    fields: [
-        { no: 1, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const FSHostVolume: MessageType<FSHostVolume> = createMessageType({
+  typeName: 'unixfs.block.FSHostVolume',
+  fields: [
+    { no: 1, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

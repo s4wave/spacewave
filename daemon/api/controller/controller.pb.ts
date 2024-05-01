@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/daemon/api/controller/controller.proto (package hydra.api.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../../../bifrost/daemon/api/api.pb.js";
-import { Config as Config$2 } from "../../../../controllerbus/bus/api/api.pb.js";
-import { Config as Config$3 } from "../api.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/daemon/api/api.pb.js'
+import { Config as Config$2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
+import { Config as Config$3 } from '../api.pb.js'
 
-export const protobufPackage = "hydra.api.controller";
+export const protobufPackage = 'hydra.api.controller'
 
 /**
  * Config configures the RPC API.
@@ -21,52 +21,63 @@ export type Config = Message<{
    *
    * @generated from field: string listen_addr = 1;
    */
-  listenAddr?: string;
+  listenAddr?: string
   /**
    * DisableBifrostApi disables the bifrost api.
    *
    * @generated from field: bool disable_bifrost_api = 2;
    */
-  disableBifrostApi?: boolean;
+  disableBifrostApi?: boolean
   /**
    * BifrostApiConfig are bifrost api config options.
    *
    * @generated from field: bifrost.api.Config bifrost_api_config = 3;
    */
-  bifrostApiConfig?: Config$1;
+  bifrostApiConfig?: Config$1
   /**
    * DisableBusApi disables the bus api.
    *
    * @generated from field: bool disable_bus_api = 4;
    */
-  disableBusApi?: boolean;
+  disableBusApi?: boolean
   /**
    * BusApiConfig are controller-bus bus api config options.
    *
    * @generated from field: bus.api.Config bus_api_config = 5;
    */
-  busApiConfig?: Config$2;
+  busApiConfig?: Config$2
   /**
    * HydraApiConfig is hydra api configuration.
    *
    * @generated from field: hydra.api.Config hydra_api_config = 6;
    */
-  hydraApiConfig?: Config$3;
+  hydraApiConfig?: Config$3
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "hydra.api.controller.Config",
-    fields: [
-        { no: 1, name: "listen_addr", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "disable_bifrost_api", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "bifrost_api_config", kind: "message", T: () => Config$1 },
-        { no: 4, name: "disable_bus_api", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "bus_api_config", kind: "message", T: () => Config$2 },
-        { no: 6, name: "hydra_api_config", kind: "message", T: () => Config$3 },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'hydra.api.controller.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'listen_addr',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 2,
+      name: 'disable_bifrost_api',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 3, name: 'bifrost_api_config', kind: 'message', T: () => Config$1 },
+    {
+      no: 4,
+      name: 'disable_bus_api',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 5, name: 'bus_api_config', kind: 'message', T: () => Config$2 },
+    { no: 6, name: 'hydra_api_config', kind: 'message', T: () => Config$3 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

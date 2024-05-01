@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/block/msgpack/msgpack.proto (package msgpack, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Blob } from "../blob/blob.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Blob } from '../blob/blob.pb.js'
 
-export const protobufPackage = "msgpack";
+export const protobufPackage = 'msgpack'
 
 /**
  * MsgpackBlob is a block containing data packed with msgpack.
@@ -24,17 +24,13 @@ export type MsgpackBlob = Message<{
    *
    * @generated from field: blob.Blob blob = 1;
    */
-  blob?: Blob;
+  blob?: Blob
+}>
 
-}>;
-
-export const MsgpackBlob: MessageType<MsgpackBlob> = createMessageType(
-  {
-    typeName: "msgpack.MsgpackBlob",
-    fields: [
-        { no: 1, name: "blob", kind: "message", T: () => Blob },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const MsgpackBlob: MessageType<MsgpackBlob> = createMessageType({
+  typeName: 'msgpack.MsgpackBlob',
+  fields: [
+    { no: 1, name: 'blob', kind: 'message', T: () => Blob },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

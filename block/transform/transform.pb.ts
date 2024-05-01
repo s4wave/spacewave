@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/transform/transform.proto (package block.transform, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "block.transform";
+export const protobufPackage = 'block.transform'
 
 /**
  * StepConfig configures a transformation step.
@@ -20,27 +20,24 @@ export type StepConfig = Message<{
    *
    * @generated from field: string id = 1;
    */
-  id?: string;
+  id?: string
   /**
    * Config contains configuration data.
    * May be formatted with proto or json.
    *
    * @generated from field: bytes config = 2;
    */
-  config?: Uint8Array;
+  config?: Uint8Array
+}>
 
-}>;
-
-export const StepConfig: MessageType<StepConfig> = createMessageType(
-  {
-    typeName: "block.transform.StepConfig",
-    fields: [
-        { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "config", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const StepConfig: MessageType<StepConfig> = createMessageType({
+  typeName: 'block.transform.StepConfig',
+  fields: [
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'config', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Config configures block transformation.
@@ -54,17 +51,19 @@ export type Config = Message<{
    *
    * @generated from field: repeated block.transform.StepConfig steps = 1;
    */
-  steps?: StepConfig[];
+  steps?: StepConfig[]
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.transform.Config",
-    fields: [
-        { no: 1, name: "steps", kind: "message", T: () => StepConfig, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.transform.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'steps',
+      kind: 'message',
+      T: () => StepConfig,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

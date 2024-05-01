@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/mount/fuse/fuse.proto (package unixfs.mount.fuse, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "unixfs.mount.fuse";
+export const protobufPackage = 'unixfs.mount.fuse'
 
 /**
  * Config configures the FUSE mount controller.
@@ -19,47 +19,43 @@ export type Config = Message<{
    *
    * @generated from field: string mount_path = 1;
    */
-  mountPath?: string;
+  mountPath?: string
   /**
    * Verbose enables verbose logging.
    * Volume attribute: verbose=true
    *
    * @generated from field: bool verbose = 2;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * AllowOther enables other users than the mounter to access the mount.
    * Volume attribute: allow_other=true
    *
    * @generated from field: bool allow_other = 3;
    */
-  allowOther?: boolean;
+  allowOther?: boolean
   /**
    * AllowDev enables device objects to exist on the FS.
    *
    * @generated from field: bool allow_dev = 4;
    */
-  allowDev?: boolean;
+  allowDev?: boolean
   /**
    * AllowSuid allows set-user-identifier or set-group-identifier bits to take effect.
    *
    * @generated from field: bool allow_suid = 5;
    */
-  allowSuid?: boolean;
+  allowSuid?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "unixfs.mount.fuse.Config",
-    fields: [
-        { no: 1, name: "mount_path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "allow_other", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "allow_dev", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "allow_suid", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'unixfs.mount.fuse.Config',
+  fields: [
+    { no: 1, name: 'mount_path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'allow_other', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'allow_dev', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: 'allow_suid', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

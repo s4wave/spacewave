@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/reconciler/example/example.proto (package reconciler.example, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "reconciler.example";
+export const protobufPackage = 'reconciler.example'
 
 /**
  * Config is the example reconciler config.
@@ -18,31 +18,37 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * BlockStoreId is the block store id.
    *
    * @generated from field: string block_store_id = 2;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * ReconcilerId is the reconciler id.
    *
    * @generated from field: string reconciler_id = 3;
    */
-  reconcilerId?: string;
+  reconcilerId?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "reconciler.example.Config",
-    fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "reconciler_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'reconciler.example.Config',
+  fields: [
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 2,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 3,
+      name: 'reconciler_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

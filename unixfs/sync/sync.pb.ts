@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/sync/sync.proto (package unixfs.sync, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from "@aptre/protobuf-es-lite";
+import { createEnumType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "unixfs.sync";
+export const protobufPackage = 'unixfs.sync'
 
 /**
  * DeleteMode is the set of available delete modes for Sync.
@@ -50,11 +50,10 @@ export enum DeleteMode {
 }
 
 // DeleteMode_Enum is the enum type for DeleteMode.
-export const DeleteMode_Enum = createEnumType("unixfs.sync.DeleteMode", [
-  { no: 0, name: "DeleteMode_NONE" },
-  { no: 1, name: "DeleteMode_BEFORE" },
-  { no: 2, name: "DeleteMode_DURING" },
-  { no: 3, name: "DeleteMode_AFTER" },
-  { no: 4, name: "DeleteMode_ONLY" },
-]);
-
+export const DeleteMode_Enum = createEnumType('unixfs.sync.DeleteMode', [
+  { no: 0, name: 'DeleteMode_NONE' },
+  { no: 1, name: 'DeleteMode_BEFORE' },
+  { no: 2, name: 'DeleteMode_DURING' },
+  { no: 3, name: 'DeleteMode_AFTER' },
+  { no: 4, name: 'DeleteMode_ONLY' },
+])

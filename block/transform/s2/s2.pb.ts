@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/transform/s2/s2.proto (package transform.s2, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "transform.s2";
+export const protobufPackage = 'transform.s2'
 
 /**
  * Config configures the s2 transform.
@@ -19,25 +19,21 @@ export type Config = Message<{
    *
    * @generated from field: bool better = 1;
    */
-  better?: boolean;
+  better?: boolean
   /**
    * Best uses the "best" s2 mode.
    * This is very much slower than better.
    *
    * @generated from field: bool best = 2;
    */
-  best?: boolean;
+  best?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "transform.s2.Config",
-    fields: [
-        { no: 1, name: "better", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 2, name: "best", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'transform.s2.Config',
+  fields: [
+    { no: 1, name: 'better', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: 'best', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

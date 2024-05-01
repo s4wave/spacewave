@@ -2,10 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/block/transform/lz4/lz4.proto (package transform.lz4, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "transform.lz4";
+export const protobufPackage = 'transform.lz4'
 
 /**
  * BlockSize is the list of available block sizes.
@@ -43,12 +47,12 @@ export enum BlockSize {
 }
 
 // BlockSize_Enum is the enum type for BlockSize.
-export const BlockSize_Enum = createEnumType("transform.lz4.BlockSize", [
-  { no: 0, name: "BlockSize_4MB" },
-  { no: 1, name: "BlockSize_64KB" },
-  { no: 2, name: "BlockSize_256KB" },
-  { no: 3, name: "BlockSize_1MB" },
-]);
+export const BlockSize_Enum = createEnumType('transform.lz4.BlockSize', [
+  { no: 0, name: 'BlockSize_4MB' },
+  { no: 1, name: 'BlockSize_64KB' },
+  { no: 2, name: 'BlockSize_256KB' },
+  { no: 3, name: 'BlockSize_1MB' },
+])
 
 /**
  * Config configures the lz4 compression transform.
@@ -62,40 +66,51 @@ export type Config = Message<{
    *
    * @generated from field: transform.lz4.BlockSize block_size = 1;
    */
-  blockSize?: BlockSize;
+  blockSize?: BlockSize
   /**
    * BlockChecksum enables the block checksum feature.
    *
    * @generated from field: bool block_checksum = 2;
    */
-  blockChecksum?: boolean;
+  blockChecksum?: boolean
   /**
    * DisableChecksum disables all blocks or content checksum.
    * Default=false.
    *
    * @generated from field: bool disable_checksum = 3;
    */
-  disableChecksum?: boolean;
+  disableChecksum?: boolean
   /**
    * CompressionLevel sets the compression level from 0-9.
    * The default value (0) is "FAST."
    *
    * @generated from field: uint32 compression_level = 4;
    */
-  compressionLevel?: number;
+  compressionLevel?: number
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "transform.lz4.Config",
-    fields: [
-        { no: 1, name: "block_size", kind: "enum", T: BlockSize_Enum },
-        { no: 2, name: "block_checksum", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "disable_checksum", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 4, name: "compression_level", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'transform.lz4.Config',
+  fields: [
+    { no: 1, name: 'block_size', kind: 'enum', T: BlockSize_Enum },
+    {
+      no: 2,
+      name: 'block_checksum',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 3,
+      name: 'disable_checksum',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 4,
+      name: 'compression_level',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

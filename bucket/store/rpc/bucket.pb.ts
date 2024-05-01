@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/store/rpc/bucket.proto (package bucket.store.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BucketInfo, Config } from "../../bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { BucketInfo, Config } from '../../bucket.pb.js'
 
-export const protobufPackage = "bucket.store.rpc";
+export const protobufPackage = 'bucket.store.rpc'
 
 /**
  * ApplyBucketConfigRequest requests running volumes ingest a bucket config.
@@ -19,19 +19,17 @@ export type ApplyBucketConfigRequest = Message<{
    *
    * @generated from field: bucket.Config config = 1;
    */
-  config?: Config;
+  config?: Config
+}>
 
-}>;
-
-export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.ApplyBucketConfigRequest",
+export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.ApplyBucketConfigRequest',
     fields: [
-        { no: 1, name: "config", kind: "message", T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * ApplyBucketConfigResponse returns results of the request.
@@ -44,33 +42,31 @@ export type ApplyBucketConfigResponse = Message<{
    *
    * @generated from field: bool updated = 1;
    */
-  updated?: boolean;
+  updated?: boolean
   /**
    * Prev is the previous configuration, if any.
    *
    * @generated from field: bucket.Config prev = 2;
    */
-  prev?: Config;
+  prev?: Config
   /**
    * Curr is the current configuration, if any.
    *
    * @generated from field: bucket.Config curr = 3;
    */
-  curr?: Config;
+  curr?: Config
+}>
 
-}>;
-
-export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.ApplyBucketConfigResponse",
+export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.ApplyBucketConfigResponse',
     fields: [
-        { no: 1, name: "updated", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 2, name: "prev", kind: "message", T: () => Config },
-        { no: 3, name: "curr", kind: "message", T: () => Config },
+      { no: 1, name: 'updated', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 2, name: 'prev', kind: 'message', T: () => Config },
+      { no: 3, name: 'curr', kind: 'message', T: () => Config },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetBucketConfigRequest requests to look up a bucket config in a volume.
@@ -83,19 +79,22 @@ export type GetBucketConfigRequest = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
+}>
 
-}>;
-
-export const GetBucketConfigRequest: MessageType<GetBucketConfigRequest> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.GetBucketConfigRequest",
+export const GetBucketConfigRequest: MessageType<GetBucketConfigRequest> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.GetBucketConfigRequest',
     fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'bucket_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetBucketConfigResponse responds to the request for a bucket config.
@@ -108,19 +107,17 @@ export type GetBucketConfigResponse = Message<{
    *
    * @generated from field: bucket.Config config = 1;
    */
-  config?: Config;
+  config?: Config
+}>
 
-}>;
-
-export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.GetBucketConfigResponse",
+export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.GetBucketConfigResponse',
     fields: [
-        { no: 1, name: "config", kind: "message", T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetBucketInfoRequest requests to bucket information from a volume.
@@ -133,19 +130,22 @@ export type GetBucketInfoRequest = Message<{
    *
    * @generated from field: string bucket_id = 1;
    */
-  bucketId?: string;
+  bucketId?: string
+}>
 
-}>;
-
-export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.GetBucketInfoRequest",
+export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.GetBucketInfoRequest',
     fields: [
-        { no: 1, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'bucket_id',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * GetBucketInfoResponse responds to the request for bucket info.
@@ -159,19 +159,17 @@ export type GetBucketInfoResponse = Message<{
    *
    * @generated from field: bucket.BucketInfo bucket_info = 1;
    */
-  bucketInfo?: BucketInfo;
+  bucketInfo?: BucketInfo
+}>
 
-}>;
-
-export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.GetBucketInfoResponse",
+export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.GetBucketInfoResponse',
     fields: [
-        { no: 1, name: "bucket_info", kind: "message", T: () => BucketInfo },
+      { no: 1, name: 'bucket_info', kind: 'message', T: () => BucketInfo },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * ListBucketInfoRequest requests to bucket information from a volume.
@@ -184,19 +182,22 @@ export type ListBucketInfoRequest = Message<{
    *
    * @generated from field: string bucket_id_re = 1;
    */
-  bucketIdRe?: string;
+  bucketIdRe?: string
+}>
 
-}>;
-
-export const ListBucketInfoRequest: MessageType<ListBucketInfoRequest> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.ListBucketInfoRequest",
+export const ListBucketInfoRequest: MessageType<ListBucketInfoRequest> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.ListBucketInfoRequest',
     fields: [
-        { no: 1, name: "bucket_id_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+      {
+        no: 1,
+        name: 'bucket_id_re',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * ListBucketInfoResponse is the response to the request for bucket infos.
@@ -209,17 +210,20 @@ export type ListBucketInfoResponse = Message<{
    *
    * @generated from field: repeated bucket.BucketInfo bucket_info = 1;
    */
-  bucketInfo?: BucketInfo[];
+  bucketInfo?: BucketInfo[]
+}>
 
-}>;
-
-export const ListBucketInfoResponse: MessageType<ListBucketInfoResponse> = createMessageType(
-  {
-    typeName: "bucket.store.rpc.ListBucketInfoResponse",
+export const ListBucketInfoResponse: MessageType<ListBucketInfoResponse> =
+  createMessageType({
+    typeName: 'bucket.store.rpc.ListBucketInfoResponse',
     fields: [
-        { no: 1, name: "bucket_info", kind: "message", T: () => BucketInfo, repeated: true },
+      {
+        no: 1,
+        name: 'bucket_info',
+        kind: 'message',
+        T: () => BucketInfo,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
-
+  })

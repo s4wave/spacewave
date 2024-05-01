@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/world/block/engine/engine.proto (package world.block.engine, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { ObjectRef } from "../../../bucket/bucket.pb.js";
-import { Config as Config$1 } from "../../../block/transform/transform.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { ObjectRef } from '../../../bucket/bucket.pb.js'
+import { Config as Config$1 } from '../../../block/transform/transform.pb.js'
 
-export const protobufPackage = "world.block.engine";
+export const protobufPackage = 'world.block.engine'
 
 /**
  * Config configures a World Graph engine bound to a block graph.
@@ -24,7 +24,7 @@ export type Config = Message<{
    *
    * @generated from field: string engine_id = 1;
    */
-  engineId?: string;
+  engineId?: string
   /**
    * BucketId is the bucket id to attach to for reading/writing state.
    * If set, overrides the bucket id from init_head_ref and the state.
@@ -32,27 +32,27 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 2;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeId is the volume id to attach to for writing DB state.
    * If unset, init_head_ref must be set, and the db will be read-only.
    *
    * @generated from field: string volume_id = 3;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * ObjectStoreId is the hydra object store to open to store the HEAD ref.
    * If unset, init_head_ref must be set, and the db will be read-only.
    *
    * @generated from field: string object_store_id = 4;
    */
-  objectStoreId?: string;
+  objectStoreId?: string
   /**
    * ObjectStorePrefix is the prefix to use for all object store ops.
    *
    * @generated from field: string object_store_prefix = 5;
    */
-  objectStorePrefix?: string;
+  objectStorePrefix?: string
   /**
    * ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
    *
@@ -60,7 +60,7 @@ export type Config = Message<{
    *
    * @generated from field: string object_store_head_key = 6;
    */
-  objectStoreHeadKey?: string;
+  objectStoreHeadKey?: string
   /**
    * InitHeadRef is the reference to the initial HEAD state of the database.
    * If the object store is empty, uses this reference to initialize it.
@@ -68,7 +68,7 @@ export type Config = Message<{
    *
    * @generated from field: bucket.ObjectRef init_head_ref = 7;
    */
-  initHeadRef?: ObjectRef;
+  initHeadRef?: ObjectRef
   /**
    * StateTransformConf transforms the HEAD ref before storing it in storage.
    * NOTE: this does not transform the entire world state.
@@ -76,63 +76,100 @@ export type Config = Message<{
    *
    * @generated from field: block.transform.Config state_transform_conf = 11;
    */
-  stateTransformConf?: Config$1;
+  stateTransformConf?: Config$1
   /**
    * DisableChangelog disables the changelog in the world structure.
    * Note: has no effect unless we initialize the world from empty.
    *
    * @generated from field: bool disable_changelog = 13;
    */
-  disableChangelog?: boolean;
+  disableChangelog?: boolean
   /**
    * DisableLookup disables looking up anything on the bus via directives.
    * Implies both DisableApplyWorldOp and DisableApplyObjectOp.
    *
    * @generated from field: bool disable_lookup = 8;
    */
-  disableLookup?: boolean;
+  disableLookup?: boolean
   /**
    * DisableApplyWorldOp disables calling the ApplyWorldOp directive.
    *
    * @generated from field: bool disable_apply_world_op = 9;
    */
-  disableApplyWorldOp?: boolean;
+  disableApplyWorldOp?: boolean
   /**
    * DisableApplyObjectOp directive.
    *
    * @generated from field: bool disable_apply_object_op = 10;
    */
-  disableApplyObjectOp?: boolean;
+  disableApplyObjectOp?: boolean
   /**
    * Verbose logs all operation results as debug messages.
    *
    * @generated from field: bool verbose = 12;
    */
-  verbose?: boolean;
+  verbose?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "world.block.engine.Config",
-    fields: [
-        { no: 1, name: "engine_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "object_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 5, name: "object_store_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 6, name: "object_store_head_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 7, name: "init_head_ref", kind: "message", T: () => ObjectRef },
-        { no: 11, name: "state_transform_conf", kind: "message", T: () => Config$1 },
-        { no: 13, name: "disable_changelog", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 8, name: "disable_lookup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 9, name: "disable_apply_world_op", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 10, name: "disable_apply_object_op", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 12, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'world.block.engine.Config',
+  fields: [
+    { no: 1, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 4,
+      name: 'object_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 5,
+      name: 'object_store_prefix',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 6,
+      name: 'object_store_head_key',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 7, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
+    {
+      no: 11,
+      name: 'state_transform_conf',
+      kind: 'message',
+      T: () => Config$1,
+    },
+    {
+      no: 13,
+      name: 'disable_changelog',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 8,
+      name: 'disable_lookup',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 9,
+      name: 'disable_apply_world_op',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 10,
+      name: 'disable_apply_object_op',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 12, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * HeadState contains the head state in the object storage.
@@ -145,17 +182,13 @@ export type HeadState = Message<{
    *
    * @generated from field: bucket.ObjectRef head_ref = 1;
    */
-  headRef?: ObjectRef;
+  headRef?: ObjectRef
+}>
 
-}>;
-
-export const HeadState: MessageType<HeadState> = createMessageType(
-  {
-    typeName: "world.block.engine.HeadState",
-    fields: [
-        { no: 1, name: "head_ref", kind: "message", T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const HeadState: MessageType<HeadState> = createMessageType({
+  typeName: 'world.block.engine.HeadState',
+  fields: [
+    { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

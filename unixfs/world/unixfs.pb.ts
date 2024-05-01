@@ -2,14 +2,19 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/world/unixfs.proto (package unixfs.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message, Timestamp } from "@aptre/protobuf-es-lite";
-import type { NodeType } from "../block/fstree.pb.js";
-import { FSPath, FSSymlink, NodeType_Enum } from "../block/fstree.pb.js";
-import { ObjectRef } from "../../bucket/bucket.pb.js";
-import { BlockRef } from "../../block/block.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
+import type { NodeType } from '../block/fstree.pb.js'
+import { FSPath, FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
+import { ObjectRef } from '../../bucket/bucket.pb.js'
+import { BlockRef } from '../../block/block.pb.js'
 
-export const protobufPackage = "unixfs.world";
+export const protobufPackage = 'unixfs.world'
 
 /**
  * FSType indicates the type of unixfs reference.
@@ -48,12 +53,12 @@ export enum FSType {
 }
 
 // FSType_Enum is the enum type for FSType.
-export const FSType_Enum = createEnumType("unixfs.world.FSType", [
-  { no: 0, name: "FSType_UNKNOWN" },
-  { no: 1, name: "FSType_FS_NODE" },
-  { no: 2, name: "FSType_FS_OBJECT" },
-  { no: 3, name: "FSType_FS_HOST_VOLUME" },
-]);
+export const FSType_Enum = createEnumType('unixfs.world.FSType', [
+  { no: 0, name: 'FSType_UNKNOWN' },
+  { no: 1, name: 'FSType_FS_NODE' },
+  { no: 2, name: 'FSType_FS_OBJECT' },
+  { no: 3, name: 'FSType_FS_HOST_VOLUME' },
+])
 
 /**
  * UnixfsRef is a reference to a UnixFS object in a World.
@@ -66,7 +71,7 @@ export type UnixfsRef = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType sets the expected filesystem object type at object_key.
    * If unset (0) reads the type from the graph.
@@ -74,28 +79,25 @@ export type UnixfsRef = Message<{
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Path is the location within the FS.
    * If empty, defaults to / (the root).
    *
    * @generated from field: unixfs.block.FSPath path = 3;
    */
-  path?: FSPath;
+  path?: FSPath
+}>
 
-}>;
-
-export const UnixfsRef: MessageType<UnixfsRef> = createMessageType(
-  {
-    typeName: "unixfs.world.UnixfsRef",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "path", kind: "message", T: () => FSPath },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const UnixfsRef: MessageType<UnixfsRef> = createMessageType({
+  typeName: 'unixfs.world.UnixfsRef',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsInitOp is an operation to create a unixfs filesystem with a root ref or empty.
@@ -109,56 +111,53 @@ export type FsInitOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType sets the filesystem object type to create.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * FsRef contains a initial object ref to use the root of the UnixFS.
    * If empty, will create a new blank fs.
    *
    * @generated from field: bucket.ObjectRef fs_ref = 3;
    */
-  fsRef?: ObjectRef;
+  fsRef?: ObjectRef
   /**
    * FsRefType is the FSType of the ref.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_ref_type = 4;
    */
-  fsRefType?: FSType;
+  fsRefType?: FSType
   /**
    * FsOverwrite indicates to overwrite any existing object.
    *
    * @generated from field: bool fs_overwrite = 5;
    */
-  fsOverwrite?: boolean;
+  fsOverwrite?: boolean
   /**
    * Timestamp is the modification time for the fs root.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsInitOp: MessageType<FsInitOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsInitOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "fs_ref", kind: "message", T: () => ObjectRef },
-        { no: 4, name: "fs_ref_type", kind: "enum", T: FSType_Enum },
-        { no: 5, name: "fs_overwrite", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsInitOp: MessageType<FsInitOp> = createMessageType({
+  typeName: 'unixfs.world.FsInitOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'fs_ref', kind: 'message', T: () => ObjectRef },
+    { no: 4, name: 'fs_ref_type', kind: 'enum', T: FSType_Enum },
+    { no: 5, name: 'fs_overwrite', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsMknodOp is an operation to create one or more inodes at paths.
@@ -173,56 +172,58 @@ export type FsMknodOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Paths are the paths to the new inodes.
    *
    * @generated from field: repeated unixfs.block.FSPath paths = 3;
    */
-  paths?: FSPath[];
+  paths?: FSPath[]
   /**
    * Permissions is the permissions bitset.
    * If zero uses defaults.
    *
    * @generated from field: uint32 permissions = 4;
    */
-  permissions?: number;
+  permissions?: number
   /**
    * NodeType is the node type to create.
    *
    * @generated from field: unixfs.block.NodeType node_type = 5;
    */
-  nodeType?: NodeType;
+  nodeType?: NodeType
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsMknodOp: MessageType<FsMknodOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsMknodOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "paths", kind: "message", T: () => FSPath, repeated: true },
-        { no: 4, name: "permissions", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 5, name: "node_type", kind: "enum", T: NodeType_Enum },
-        { no: 6, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsMknodOp: MessageType<FsMknodOp> = createMessageType({
+  typeName: 'unixfs.world.FsMknodOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'paths', kind: 'message', T: () => FSPath, repeated: true },
+    {
+      no: 4,
+      name: 'permissions',
+      kind: 'scalar',
+      T: 13 /* ScalarType.UINT32 */,
+    },
+    { no: 5, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsSymlinkOp is an operation to create a symbolic link.
@@ -237,48 +238,45 @@ export type FsSymlinkOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Path is the paths to the symbolic link source.
    *
    * @generated from field: unixfs.block.FSPath path = 3;
    */
-  path?: FSPath;
+  path?: FSPath
   /**
    * Symlink is the contents of the symlink.
    *
    * @generated from field: unixfs.block.FSSymlink symlink = 4;
    */
-  symlink?: FSSymlink;
+  symlink?: FSSymlink
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsSymlinkOp: MessageType<FsSymlinkOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsSymlinkOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "path", kind: "message", T: () => FSPath },
-        { no: 4, name: "symlink", kind: "message", T: () => FSSymlink },
-        { no: 5, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsSymlinkOp: MessageType<FsSymlinkOp> = createMessageType({
+  typeName: 'unixfs.world.FsSymlinkOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+    { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
+    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsSetPermissionsOp is an operation to set the permissions at the paths.
@@ -294,48 +292,62 @@ export type FsSetPermissionsOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Paths are the paths to update permissions for.
    *
    * @generated from field: repeated unixfs.block.FSPath paths = 3;
    */
-  paths?: FSPath[];
+  paths?: FSPath[]
   /**
    * Permissions is the permissions bitset.
    *
    * @generated from field: uint32 permissions = 4;
    */
-  permissions?: number;
+  permissions?: number
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsSetPermissionsOp",
+export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
+  createMessageType({
+    typeName: 'unixfs.world.FsSetPermissionsOp',
     fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "paths", kind: "message", T: () => FSPath, repeated: true },
-        { no: 4, name: "permissions", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 5, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'object_key',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      {
+        no: 3,
+        name: 'paths',
+        kind: 'message',
+        T: () => FSPath,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'permissions',
+        kind: 'scalar',
+        T: 13 /* ScalarType.UINT32 */,
+      },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * FsSetModTimestampOp is an operation to set the modification timestamp at the paths.
@@ -350,41 +362,50 @@ export type FsSetModTimestampOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Paths are the paths to update the timestamp for.
    *
    * @generated from field: repeated unixfs.block.FSPath paths = 3;
    */
-  paths?: FSPath[];
+  paths?: FSPath[]
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsSetModTimestampOp",
+export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
+  createMessageType({
+    typeName: 'unixfs.world.FsSetModTimestampOp',
     fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "paths", kind: "message", T: () => FSPath, repeated: true },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+      {
+        no: 1,
+        name: 'object_key',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      {
+        no: 3,
+        name: 'paths',
+        kind: 'message',
+        T: () => FSPath,
+        repeated: true,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * FsWriteAtOp is an operation to write some data to a file.
@@ -399,55 +420,52 @@ export type FsWriteAtOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Path is the path to write to.
    *
    * @generated from field: unixfs.block.FSPath path = 3;
    */
-  path?: FSPath;
+  path?: FSPath
   /**
    * Offset is the location to write the data to.
    *
    * @generated from field: int64 offset = 4;
    */
-  offset?: bigint;
+  offset?: bigint
   /**
    * BlobRef is the reference to the Blob to write.
    *
    * @generated from field: block.BlockRef blob_ref = 5;
    */
-  blobRef?: BlockRef;
+  blobRef?: BlockRef
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsWriteAtOp: MessageType<FsWriteAtOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsWriteAtOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "path", kind: "message", T: () => FSPath },
-        { no: 4, name: "offset", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-        { no: 5, name: "blob_ref", kind: "message", T: () => BlockRef },
-        { no: 6, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsWriteAtOp: MessageType<FsWriteAtOp> = createMessageType({
+  typeName: 'unixfs.world.FsWriteAtOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+    { no: 4, name: 'offset', kind: 'scalar', T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: 'blob_ref', kind: 'message', T: () => BlockRef },
+    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsTruncateOp shrinks or extends a file to the specified size.
@@ -463,48 +481,45 @@ export type FsTruncateOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Path is the path to write to.
    *
    * @generated from field: unixfs.block.FSPath path = 3;
    */
-  path?: FSPath;
+  path?: FSPath
   /**
    * FileSize is the new size to truncate to.
    *
    * @generated from field: int64 file_size = 4;
    */
-  fileSize?: bigint;
+  fileSize?: bigint
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsTruncateOp: MessageType<FsTruncateOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsTruncateOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "path", kind: "message", T: () => FSPath },
-        { no: 4, name: "file_size", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-        { no: 5, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsTruncateOp: MessageType<FsTruncateOp> = createMessageType({
+  typeName: 'unixfs.world.FsTruncateOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+    { no: 4, name: 'file_size', kind: 'scalar', T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsCopyOp recursively copies a source path to a destination, overwriting destination.
@@ -520,48 +535,45 @@ export type FsCopyOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * SrcPath is the path to copy from.
    *
    * @generated from field: unixfs.block.FSPath src_path = 3;
    */
-  srcPath?: FSPath;
+  srcPath?: FSPath
   /**
    * DestPath is the path to copy to.
    *
    * @generated from field: unixfs.block.FSPath dest_path = 4;
    */
-  destPath?: FSPath;
+  destPath?: FSPath
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsCopyOp: MessageType<FsCopyOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsCopyOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "src_path", kind: "message", T: () => FSPath },
-        { no: 4, name: "dest_path", kind: "message", T: () => FSPath },
-        { no: 5, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsCopyOp: MessageType<FsCopyOp> = createMessageType({
+  typeName: 'unixfs.world.FsCopyOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'src_path', kind: 'message', T: () => FSPath },
+    { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
+    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsRenameOp recursively moves a source path to a destination, overwriting destination.
@@ -578,48 +590,45 @@ export type FsRenameOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * SrcPath is the path to move from.
    *
    * @generated from field: unixfs.block.FSPath src_path = 3;
    */
-  srcPath?: FSPath;
+  srcPath?: FSPath
   /**
    * DestPath is the path to move to.
    *
    * @generated from field: unixfs.block.FSPath dest_path = 4;
    */
-  destPath?: FSPath;
+  destPath?: FSPath
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsRenameOp: MessageType<FsRenameOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsRenameOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "src_path", kind: "message", T: () => FSPath },
-        { no: 4, name: "dest_path", kind: "message", T: () => FSPath },
-        { no: 5, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsRenameOp: MessageType<FsRenameOp> = createMessageType({
+  typeName: 'unixfs.world.FsRenameOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'src_path', kind: 'message', T: () => FSPath },
+    { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
+    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * FsRemoveOp is an operation to delete inodes from the tree.
@@ -634,41 +643,38 @@ export type FsRemoveOp = Message<{
    *
    * @generated from field: string object_key = 1;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * FsType is the type of object located at ObjectKey.
    * Defaults to FsType_FS_NODE.
    *
    * @generated from field: unixfs.world.FSType fs_type = 2;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Paths are the paths to delete.
    *
    * @generated from field: repeated unixfs.block.FSPath paths = 3;
    */
-  paths?: FSPath[];
+  paths?: FSPath[]
   /**
    * Timestamp is the modification time.
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp;
+  timestamp?: Timestamp
+}>
 
-}>;
-
-export const FsRemoveOp: MessageType<FsRemoveOp> = createMessageType(
-  {
-    typeName: "unixfs.world.FsRemoveOp",
-    fields: [
-        { no: 1, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 3, name: "paths", kind: "message", T: () => FSPath, repeated: true },
-        { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const FsRemoveOp: MessageType<FsRemoveOp> = createMessageType({
+  typeName: 'unixfs.world.FsRemoveOp',
+  fields: [
+    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 3, name: 'paths', kind: 'message', T: () => FSPath, repeated: true },
+    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * MountValue is the contents of the quad value field for a mount.
@@ -683,27 +689,24 @@ export type MountValue = Message<{
    *
    * @generated from field: string mountpoint = 1;
    */
-  mountpoint?: string;
+  mountpoint?: string
   /**
    * Prefix is the path inside the target inode to link to.
    * If empty assumes /
    *
    * @generated from field: string prefix = 2;
    */
-  prefix?: string;
+  prefix?: string
+}>
 
-}>;
-
-export const MountValue: MessageType<MountValue> = createMessageType(
-  {
-    typeName: "unixfs.world.MountValue",
-    fields: [
-        { no: 1, name: "mountpoint", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const MountValue: MessageType<MountValue> = createMessageType({
+  typeName: 'unixfs.world.MountValue',
+  fields: [
+    { no: 1, name: 'mountpoint', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'prefix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * RefValue is the contents of the quad value field for a ref.
@@ -719,25 +722,21 @@ export type RefValue = Message<{
    *
    * @generated from field: unixfs.world.FSType fs_type = 1;
    */
-  fsType?: FSType;
+  fsType?: FSType
   /**
    * Path is the location within the FS.
    * If empty, defaults to / (the root).
    *
    * @generated from field: unixfs.block.FSPath path = 2;
    */
-  path?: FSPath;
+  path?: FSPath
+}>
 
-}>;
-
-export const RefValue: MessageType<RefValue> = createMessageType(
-  {
-    typeName: "unixfs.world.RefValue",
-    fields: [
-        { no: 1, name: "fs_type", kind: "enum", T: FSType_Enum },
-        { no: 2, name: "path", kind: "message", T: () => FSPath },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const RefValue: MessageType<RefValue> = createMessageType({
+  typeName: 'unixfs.world.RefValue',
+  fields: [
+    { no: 1, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+    { no: 2, name: 'path', kind: 'message', T: () => FSPath },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

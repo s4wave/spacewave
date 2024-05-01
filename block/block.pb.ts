@@ -2,12 +2,19 @@
 // @generated from file github.com/aperturerobotics/hydra/block/block.proto (package block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { HashType } from "../../bifrost/hash/hash.pb.js";
-import { Hash, HashType_Enum } from "../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import {
+  Hash,
+  HashType_Enum,
+} from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "block";
+export const protobufPackage = 'block'
 
 /**
  * OverlayMode controls the mode for the block store overlay.
@@ -65,13 +72,13 @@ export enum OverlayMode {
 }
 
 // OverlayMode_Enum is the enum type for OverlayMode.
-export const OverlayMode_Enum = createEnumType("block.OverlayMode", [
-  { no: 0, name: "OverlayMode_DIRECT" },
-  { no: 1, name: "OverlayMode_CACHE" },
-  { no: 2, name: "OverlayMode_CACHE_LOWER" },
-  { no: 3, name: "OverlayMode_READ_CACHE" },
-  { no: 4, name: "OverlayMode_READ_CACHE_LOWER" },
-]);
+export const OverlayMode_Enum = createEnumType('block.OverlayMode', [
+  { no: 0, name: 'OverlayMode_DIRECT' },
+  { no: 1, name: 'OverlayMode_CACHE' },
+  { no: 2, name: 'OverlayMode_CACHE_LOWER' },
+  { no: 3, name: 'OverlayMode_READ_CACHE' },
+  { no: 4, name: 'OverlayMode_READ_CACHE_LOWER' },
+])
 
 /**
  * BlockRef is a block content ID reference.
@@ -86,19 +93,16 @@ export type BlockRef = Message<{
    *
    * @generated from field: hash.Hash hash = 1;
    */
-  hash?: Hash;
+  hash?: Hash
+}>
 
-}>;
-
-export const BlockRef: MessageType<BlockRef> = createMessageType(
-  {
-    typeName: "block.BlockRef",
-    fields: [
-        { no: 1, name: "hash", kind: "message", T: () => Hash },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const BlockRef: MessageType<BlockRef> = createMessageType({
+  typeName: 'block.BlockRef',
+  fields: [
+    { no: 1, name: 'hash', kind: 'message', T: () => Hash },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * PutOpts are options that can be passed to PutBlock.
@@ -112,7 +116,7 @@ export type PutOpts = Message<{
    *
    * @generated from field: hash.HashType hash_type = 1;
    */
-  hashType?: HashType;
+  hashType?: HashType
   /**
    * ForceBlockRef forces the block ref to equal the given ref.
    * Can be unset to indicate none (allow any).
@@ -122,18 +126,14 @@ export type PutOpts = Message<{
    *
    * @generated from field: block.BlockRef force_block_ref = 2;
    */
-  forceBlockRef?: BlockRef;
+  forceBlockRef?: BlockRef
+}>
 
-}>;
-
-export const PutOpts: MessageType<PutOpts> = createMessageType(
-  {
-    typeName: "block.PutOpts",
-    fields: [
-        { no: 1, name: "hash_type", kind: "enum", T: HashType_Enum },
-        { no: 2, name: "force_block_ref", kind: "message", T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const PutOpts: MessageType<PutOpts> = createMessageType({
+  typeName: 'block.PutOpts',
+  fields: [
+    { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+    { no: 2, name: 'force_block_ref', kind: 'message', T: () => BlockRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

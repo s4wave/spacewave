@@ -2,15 +2,15 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/block/volume.proto (package volume.block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../store/kvkey/kvkey.pb.js";
-import { Config as Config$2 } from "../controller/controller.pb.js";
-import { Config as Config$3 } from "../../store/kvtx/kvtx.pb.js";
-import { ObjectRef } from "../../bucket/bucket.pb.js";
-import { Config as Config$4 } from "../../block/transform/transform.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
+import { Config as Config$2 } from '../controller/controller.pb.js'
+import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
+import { ObjectRef } from '../../bucket/bucket.pb.js'
+import { Config as Config$4 } from '../../block/transform/transform.pb.js'
 
-export const protobufPackage = "volume.block";
+export const protobufPackage = 'volume.block'
 
 /**
  * Config is the block graph backed hydra volume config.
@@ -23,25 +23,25 @@ export type Config = Message<{
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 1;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * Verbose will log all operations to the logger for debugging.
    *
    * @generated from field: bool verbose = 2;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * VolumeConfig is the volume controller config.
    *
    * @generated from field: volume.controller.Config volume_config = 3;
    */
-  volumeConfig?: Config$2;
+  volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    *
    * @generated from field: store.kvtx.Config store_config = 4;
    */
-  storeConfig?: Config$3;
+  storeConfig?: Config$3
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
@@ -50,7 +50,7 @@ export type Config = Message<{
    *
    * @generated from field: bool no_generate_key = 5;
    */
-  noGenerateKey?: boolean;
+  noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
    * storage if it generates one. This results in an ephemeral volume peer
@@ -60,7 +60,7 @@ export type Config = Message<{
    *
    * @generated from field: bool no_write_key = 13;
    */
-  noWriteKey?: boolean;
+  noWriteKey?: boolean
   /**
    * BucketId is the bucket id to attach to for reading/writing state.
    * If set, overrides the bucket id from init_head_ref and the state.
@@ -68,27 +68,27 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 6;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeId is the volume id to attach to for writing DB state.
    * If unset, init_head_ref must be set, and the db will be read-only.
    *
    * @generated from field: string volume_id = 7;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * ObjectStoreId is the hydra object store to open to store the HEAD ref.
    * If unset, init_head_ref must be set, and the db will be read-only.
    *
    * @generated from field: string object_store_id = 8;
    */
-  objectStoreId?: string;
+  objectStoreId?: string
   /**
    * ObjectStorePrefix is the prefix to use for all object store ops.
    *
    * @generated from field: string object_store_prefix = 9;
    */
-  objectStorePrefix?: string;
+  objectStorePrefix?: string
   /**
    * ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
    *
@@ -96,7 +96,7 @@ export type Config = Message<{
    *
    * @generated from field: string object_store_head_key = 10;
    */
-  objectStoreHeadKey?: string;
+  objectStoreHeadKey?: string
   /**
    * InitHeadRef is the reference to the initial HEAD state of the database.
    * If the object store is empty, uses this reference to initialize it.
@@ -104,37 +104,64 @@ export type Config = Message<{
    *
    * @generated from field: bucket.ObjectRef init_head_ref = 11;
    */
-  initHeadRef?: ObjectRef;
+  initHeadRef?: ObjectRef
   /**
    * StateTransformConf transforms the HEAD ref before storing it in storage.
    *
    * @generated from field: block.transform.Config state_transform_conf = 12;
    */
-  stateTransformConf?: Config$4;
+  stateTransformConf?: Config$4
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.block.Config",
-    fields: [
-        { no: 1, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 2, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "volume_config", kind: "message", T: () => Config$2 },
-        { no: 4, name: "store_config", kind: "message", T: () => Config$3 },
-        { no: 5, name: "no_generate_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 13, name: "no_write_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 7, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 8, name: "object_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 9, name: "object_store_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 10, name: "object_store_head_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 11, name: "init_head_ref", kind: "message", T: () => ObjectRef },
-        { no: 12, name: "state_transform_conf", kind: "message", T: () => Config$4 },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.block.Config',
+  fields: [
+    { no: 1, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'volume_config', kind: 'message', T: () => Config$2 },
+    { no: 4, name: 'store_config', kind: 'message', T: () => Config$3 },
+    {
+      no: 5,
+      name: 'no_generate_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 13,
+      name: 'no_write_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 6, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 8,
+      name: 'object_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 9,
+      name: 'object_store_prefix',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    {
+      no: 10,
+      name: 'object_store_head_key',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 11, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
+    {
+      no: 12,
+      name: 'state_transform_conf',
+      kind: 'message',
+      T: () => Config$4,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * HeadState contains the latest state of the volume.
@@ -149,17 +176,13 @@ export type HeadState = Message<{
    *
    * @generated from field: bucket.ObjectRef head_ref = 1;
    */
-  headRef?: ObjectRef;
+  headRef?: ObjectRef
+}>
 
-}>;
-
-export const HeadState: MessageType<HeadState> = createMessageType(
-  {
-    typeName: "volume.block.HeadState",
-    fields: [
-        { no: 1, name: "head_ref", kind: "message", T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const HeadState: MessageType<HeadState> = createMessageType({
+  typeName: 'volume.block.HeadState',
+  fields: [
+    { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

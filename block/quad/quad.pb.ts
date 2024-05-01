@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/quad/quad.proto (package quad, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "quad";
+export const protobufPackage = 'quad'
 
 /**
  * Quad implements a graph quad backed by a protobuf.
@@ -18,38 +18,34 @@ export type Quad = Message<{
    *
    * @generated from field: string subject = 1;
    */
-  subject?: string;
+  subject?: string
   /**
    * Predicate is the object field.
    *
    * @generated from field: string predicate = 2;
    */
-  predicate?: string;
+  predicate?: string
   /**
    * Obj is the object field.
    *
    * @generated from field: string obj = 3;
    */
-  obj?: string;
+  obj?: string
   /**
    * Label is the label field.
    *
    * @generated from field: string label = 4;
    */
-  label?: string;
+  label?: string
+}>
 
-}>;
-
-export const Quad: MessageType<Quad> = createMessageType(
-  {
-    typeName: "quad.Quad",
-    fields: [
-        { no: 1, name: "subject", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "predicate", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "obj", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "label", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Quad: MessageType<Quad> = createMessageType({
+  typeName: 'quad.Quad',
+  fields: [
+    { no: 1, name: 'subject', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'predicate', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'obj', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'label', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

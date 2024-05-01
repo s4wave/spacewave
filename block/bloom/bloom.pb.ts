@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/block/bloom/bloom.proto (package bloom, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { BitSet } from "../bitset/bitset.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { BitSet } from '../bitset/bitset.pb.js'
 
-export const protobufPackage = "bloom";
+export const protobufPackage = 'bloom'
 
 /**
  * BloomFilter contains a bloom filter in a Block.
@@ -23,31 +23,27 @@ export type BloomFilter = Message<{
    *
    * @generated from field: uint32 k = 1;
    */
-  k?: number;
+  k?: number
   /**
    * M is the length (capacity) of the bloom filter.
    *
    * @generated from field: uint32 m = 2;
    */
-  m?: number;
+  m?: number
   /**
    * BitSet is the underlying bitset.
    *
    * @generated from field: bitset.BitSet bit_set = 3;
    */
-  bitSet?: BitSet;
+  bitSet?: BitSet
+}>
 
-}>;
-
-export const BloomFilter: MessageType<BloomFilter> = createMessageType(
-  {
-    typeName: "bloom.BloomFilter",
-    fields: [
-        { no: 1, name: "k", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 2, name: "m", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-        { no: 3, name: "bit_set", kind: "message", T: () => BitSet },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const BloomFilter: MessageType<BloomFilter> = createMessageType({
+  typeName: 'bloom.BloomFilter',
+  fields: [
+    { no: 1, name: 'k', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 2, name: 'm', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 3, name: 'bit_set', kind: 'message', T: () => BitSet },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,11 +2,15 @@
 // @generated from file github.com/aperturerobotics/hydra/kvtx/block/kvtx.proto (package kvtx.block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createEnumType, createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Node } from "./iavl/iavl.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  Message,
+} from '@aptre/protobuf-es-lite'
+import { Node } from './iavl/iavl.pb.js'
 
-export const protobufPackage = "kvtx.block";
+export const protobufPackage = 'kvtx.block'
 
 /**
  * KVImplType is the key/value store implementation enum.
@@ -30,10 +34,10 @@ export enum KVImplType {
 }
 
 // KVImplType_Enum is the enum type for KVImplType.
-export const KVImplType_Enum = createEnumType("kvtx.block.KVImplType", [
-  { no: 0, name: "KV_IMPL_TYPE_UNKNOWN" },
-  { no: 1, name: "KV_IMPL_TYPE_IAVL" },
-]);
+export const KVImplType_Enum = createEnumType('kvtx.block.KVImplType', [
+  { no: 0, name: 'KV_IMPL_TYPE_UNKNOWN' },
+  { no: 1, name: 'KV_IMPL_TYPE_IAVL' },
+])
 
 /**
  * KeyValueStore is the root of a Key-Value Transaction store.
@@ -47,25 +51,21 @@ export type KeyValueStore = Message<{
    *
    * @generated from field: kvtx.block.KVImplType impl_type = 1;
    */
-  implType?: KVImplType;
+  implType?: KVImplType
   /**
    * IavlRoot is the root node for the iavl tree.
    * KV_IMPL_TYPE_IAVL
    *
    * @generated from field: kvtx.block.iavl.Node iavl_root = 2;
    */
-  iavlRoot?: Node;
+  iavlRoot?: Node
+}>
 
-}>;
-
-export const KeyValueStore: MessageType<KeyValueStore> = createMessageType(
-  {
-    typeName: "kvtx.block.KeyValueStore",
-    fields: [
-        { no: 1, name: "impl_type", kind: "enum", T: KVImplType_Enum },
-        { no: 2, name: "iavl_root", kind: "message", T: () => Node },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const KeyValueStore: MessageType<KeyValueStore> = createMessageType({
+  typeName: 'kvtx.block.KeyValueStore',
+  fields: [
+    { no: 1, name: 'impl_type', kind: 'enum', T: KVImplType_Enum },
+    { no: 2, name: 'iavl_root', kind: 'message', T: () => Node },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

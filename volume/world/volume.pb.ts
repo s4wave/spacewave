@@ -2,14 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/world/volume.proto (package volume.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../../store/kvkey/kvkey.pb.js";
-import { Config as Config$2 } from "../controller/controller.pb.js";
-import { Config as Config$3 } from "../../store/kvtx/kvtx.pb.js";
-import { ObjectRef } from "../../bucket/bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
+import { Config as Config$2 } from '../controller/controller.pb.js'
+import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
+import { ObjectRef } from '../../bucket/bucket.pb.js'
 
-export const protobufPackage = "volume.world";
+export const protobufPackage = 'volume.world'
 
 /**
  * Config is the World Object block-graph backed hydra volume config.
@@ -22,25 +22,25 @@ export type Config = Message<{
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 1;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * Verbose will log all operations to the logger for debugging.
    *
    * @generated from field: bool verbose = 2;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * VolumeConfig is the volume controller config.
    *
    * @generated from field: volume.controller.Config volume_config = 3;
    */
-  volumeConfig?: Config$2;
+  volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    *
    * @generated from field: store.kvtx.Config store_config = 4;
    */
-  storeConfig?: Config$3;
+  storeConfig?: Config$3
   /**
    * NoGenerateKey indicates the controller should not generate a private key if
    * one is not already present. Setting this to false will cause the system to
@@ -49,7 +49,7 @@ export type Config = Message<{
    *
    * @generated from field: bool no_generate_key = 5;
    */
-  noGenerateKey?: boolean;
+  noGenerateKey?: boolean
   /**
    * NoWriteKey indicates the controller should not write a private key to
    * storage if it generates one. This results in an ephemeral volume peer
@@ -59,27 +59,27 @@ export type Config = Message<{
    *
    * @generated from field: bool no_write_key = 11;
    */
-  noWriteKey?: boolean;
+  noWriteKey?: boolean
   /**
    * InitHeadRef is the reference to the initial HEAD state of the volume.
    * If the object does not exist, uses this reference to initialize it.
    *
    * @generated from field: bucket.ObjectRef init_head_ref = 6;
    */
-  initHeadRef?: ObjectRef;
+  initHeadRef?: ObjectRef
   /**
    * EngineId is the world engine to attach to for reading/writing state.
    *
    * @generated from field: string engine_id = 7;
    */
-  engineId?: string;
+  engineId?: string
   /**
    * ObjectKey is the BlockVolume object to attach to.
    * If not exists, waits for it to exist.
    *
    * @generated from field: string object_key = 8;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * BucketId is the bucket id to attach to for reading/writing state.
    * If set, overrides the bucket id from init_head_ref and the state.
@@ -87,34 +87,40 @@ export type Config = Message<{
    *
    * @generated from field: string bucket_id = 9;
    */
-  bucketId?: string;
+  bucketId?: string
   /**
    * VolumeId is the volume id to attach to for reading/writing data.
    * If unset, init_head_ref must be set, and the volume will be read-only.
    *
    * @generated from field: string volume_id = 10;
    */
-  volumeId?: string;
+  volumeId?: string
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "volume.world.Config",
-    fields: [
-        { no: 1, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 2, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "volume_config", kind: "message", T: () => Config$2 },
-        { no: 4, name: "store_config", kind: "message", T: () => Config$3 },
-        { no: 5, name: "no_generate_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 11, name: "no_write_key", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 6, name: "init_head_ref", kind: "message", T: () => ObjectRef },
-        { no: 7, name: "engine_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 8, name: "object_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 9, name: "bucket_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 10, name: "volume_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'volume.world.Config',
+  fields: [
+    { no: 1, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'volume_config', kind: 'message', T: () => Config$2 },
+    { no: 4, name: 'store_config', kind: 'message', T: () => Config$3 },
+    {
+      no: 5,
+      name: 'no_generate_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 11,
+      name: 'no_write_key',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 6, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
+    { no: 7, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

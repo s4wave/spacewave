@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/http/server/config.proto (package block.store.http.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import type { HashType } from "../../../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "block.store.http.server";
+export const protobufPackage = 'block.store.http.server'
 
 /**
  * Config configures the block store http server.
@@ -22,13 +22,13 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * Write enables the write api endpoints (put, delete).
    *
    * @generated from field: bool write = 2;
    */
-  write?: boolean;
+  write?: boolean
   /**
    * PathPrefix is the path prefix to use for requests.
    * [path_prefix]/{get,put,exists,rm}
@@ -36,27 +36,33 @@ export type Config = Message<{
    *
    * @generated from field: string path_prefix = 3;
    */
-  pathPrefix?: string;
+  pathPrefix?: string
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type the underlying bucket accepts.
    *
    * @generated from field: hash.HashType force_hash_type = 4;
    */
-  forceHashType?: HashType;
+  forceHashType?: HashType
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.http.server.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "write", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 3, name: "path_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 4, name: "force_hash_type", kind: "enum", T: HashType_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.http.server.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'write', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    {
+      no: 3,
+      name: 'path_prefix',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 4, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

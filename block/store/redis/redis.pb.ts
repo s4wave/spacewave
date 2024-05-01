@@ -2,14 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/redis/redis.proto (package block.store.redis, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { ClientConfig } from "../../../store/kvtx/redis/redis.pb.js";
-import { Config as Config$1 } from "../../../store/kvkey/kvkey.pb.js";
-import type { HashType } from "../../../../bifrost/hash/hash.pb.js";
-import { HashType_Enum } from "../../../../bifrost/hash/hash.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { ClientConfig } from '../../../store/kvtx/redis/redis.pb.js'
+import { Config as Config$1 } from '../../../store/kvkey/kvkey.pb.js'
+import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
-export const protobufPackage = "block.store.redis";
+export const protobufPackage = 'block.store.redis'
 
 /**
  * Config configures the Redis block store controller.
@@ -22,27 +22,27 @@ export type Config = Message<{
    *
    * @generated from field: string block_store_id = 1;
    */
-  blockStoreId?: string;
+  blockStoreId?: string
   /**
    * Client configures the redis client.
    *
    * @generated from field: store.kvtx.redis.ClientConfig client = 2;
    */
-  client?: ClientConfig;
+  client?: ClientConfig
   /**
    * KvKeyOpts are key/value key constants.
    * Optional.
    *
    * @generated from field: store.kvkey.Config kv_key_opts = 3;
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type.
    *
    * @generated from field: hash.HashType force_hash_type = 4;
    */
-  forceHashType?: HashType;
+  forceHashType?: HashType
   /**
    * DisableHashGet disables hashing values for Get requests.
    * This improves performance if the underlying store is trusted & consistent.
@@ -52,42 +52,59 @@ export type Config = Message<{
    *
    * @generated from field: bool disable_hash_get = 8;
    */
-  disableHashGet?: boolean;
+  disableHashGet?: boolean
   /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
    * @generated from field: repeated string bucket_ids = 5;
    */
-  bucketIds?: string[];
+  bucketIds?: string[]
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
    * @generated from field: bool skip_not_found = 6;
    */
-  skipNotFound?: boolean;
+  skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
    * @generated from field: bool verbose = 7;
    */
-  verbose?: boolean;
+  verbose?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "block.store.redis.Config",
-    fields: [
-        { no: 1, name: "block_store_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 2, name: "client", kind: "message", T: () => ClientConfig },
-        { no: 3, name: "kv_key_opts", kind: "message", T: () => Config$1 },
-        { no: 4, name: "force_hash_type", kind: "enum", T: HashType_Enum },
-        { no: 8, name: "disable_hash_get", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 5, name: "bucket_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-        { no: 6, name: "skip_not_found", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-        { no: 7, name: "verbose", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'block.store.redis.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'block_store_id',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+    },
+    { no: 2, name: 'client', kind: 'message', T: () => ClientConfig },
+    { no: 3, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 4, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+    {
+      no: 8,
+      name: 'disable_hash_get',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    {
+      no: 5,
+      name: 'bucket_ids',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true,
+    },
+    {
+      no: 6,
+      name: 'skip_not_found',
+      kind: 'scalar',
+      T: 8 /* ScalarType.BOOL */,
+    },
+    { no: 7, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/setup/config.proto (package bucket.setup, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
-import { Config as Config$1 } from "../bucket.pb.js";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '../bucket.pb.js'
 
-export const protobufPackage = "bucket.setup";
+export const protobufPackage = 'bucket.setup'
 
 /**
  * ApplyBucketConfig is the configuration for applying a bucket config.
@@ -19,7 +19,7 @@ export type ApplyBucketConfig = Message<{
    *
    * @generated from field: bucket.Config config = 1;
    */
-  config?: Config$1;
+  config?: Config$1
   /**
    * VolumeIdRe is a regex string to match volume IDs.
    * Set to '.*' to match all volumes.
@@ -29,28 +29,37 @@ export type ApplyBucketConfig = Message<{
    *
    * @generated from field: string volume_id_re = 2;
    */
-  volumeIdRe?: string;
+  volumeIdRe?: string
   /**
    * VolumeIdList is a list of volume IDs to match.
    * Cannot be specified if VolumeIDRe is set.
    *
    * @generated from field: repeated string volume_id_list = 3;
    */
-  volumeIdList?: string[];
+  volumeIdList?: string[]
+}>
 
-}>;
-
-export const ApplyBucketConfig: MessageType<ApplyBucketConfig> = createMessageType(
-  {
-    typeName: "bucket.setup.ApplyBucketConfig",
+export const ApplyBucketConfig: MessageType<ApplyBucketConfig> =
+  createMessageType({
+    typeName: 'bucket.setup.ApplyBucketConfig',
     fields: [
-        { no: 1, name: "config", kind: "message", T: () => Config$1 },
-        { no: 2, name: "volume_id_re", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-        { no: 3, name: "volume_id_list", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+      { no: 1, name: 'config', kind: 'message', T: () => Config$1 },
+      {
+        no: 2,
+        name: 'volume_id_re',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+      },
+      {
+        no: 3,
+        name: 'volume_id_list',
+        kind: 'scalar',
+        T: 9 /* ScalarType.STRING */,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  },
-);
+  })
 
 /**
  * Config is the setup configuration.
@@ -65,17 +74,19 @@ export type Config = Message<{
    *
    * @generated from field: repeated bucket.setup.ApplyBucketConfig apply_bucket_configs = 1;
    */
-  applyBucketConfigs?: ApplyBucketConfig[];
+  applyBucketConfigs?: ApplyBucketConfig[]
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "bucket.setup.Config",
-    fields: [
-        { no: 1, name: "apply_bucket_configs", kind: "message", T: () => ApplyBucketConfig, repeated: true },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'bucket.setup.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'apply_bucket_configs',
+      kind: 'message',
+      T: () => ApplyBucketConfig,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
