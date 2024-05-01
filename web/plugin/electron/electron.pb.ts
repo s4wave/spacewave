@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'electron'
 
@@ -51,38 +51,19 @@ export type Config = Message<{
   electronFlags?: string[]
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'electron.Config',
   fields: [
-    {
-      no: 1,
-      name: 'electron_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 5,
-      name: 'workdir_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'renderer_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 3,
-      name: 'web_runtime_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'electron_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'workdir_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'renderer_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 4,
       name: 'electron_flags',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'web.pkg.rpc.server'
@@ -65,41 +65,27 @@ export type Config = Message<{
   backoff?: Backoff
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'web.pkg.rpc.server.Config',
   fields: [
-    {
-      no: 1,
-      name: 'service_id_prefix',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'web_pkg_id_re',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'service_id_prefix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'web_pkg_id_re', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'web_pkg_id_prefixes',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 4,
       name: 'web_pkg_id_list',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 5,
-      name: 'release_delay',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 5, name: 'release_delay', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'backoff', kind: 'message', T: () => Backoff },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

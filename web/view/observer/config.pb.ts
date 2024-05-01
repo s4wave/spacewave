@@ -16,6 +16,7 @@ export const protobufPackage = 'bldr.web.view.observer'
  */
 export type Config = Message<{}>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.web.view.observer.Config',
   fields: [] as readonly PartialFieldInfo[],

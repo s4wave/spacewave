@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'bldr.web.pkg.compiler'
@@ -73,38 +73,34 @@ export type Config = Message<{
   delveAddr?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.web.pkg.compiler.Config',
   fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 11,
-      name: 'web_plugin_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 11, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 2,
       name: 'config_set',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
     {
       no: 3,
       name: 'host_config_set',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
     {
       no: 5,
       name: 'web_pkgs',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    { no: 8, name: 'delve_addr', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -2,13 +2,13 @@ module github.com/aperturerobotics/bldr
 
 go 1.22
 
-require github.com/aperturerobotics/common v0.14.11 // latest
+require github.com/aperturerobotics/common v0.15.0 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240314215540-27d23cbf9cd6 // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240429212903-9119033618d7 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // master
 )
 
@@ -22,7 +22,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.31.0 // master
+require github.com/aperturerobotics/bifrost v0.31.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -49,9 +49,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.3 // master
-	github.com/aperturerobotics/entitygraph v0.8.2 // indirect
-	github.com/aperturerobotics/starpc v0.31.12 // latest
+	github.com/aperturerobotics/controllerbus v0.44.4 // master
+	github.com/aperturerobotics/entitygraph v0.9.0 // indirect
+	github.com/aperturerobotics/starpc v0.31.14 // latest
 )
 
 // aperture: use compatibility forks
@@ -87,13 +87,13 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.22.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.34.0 // indirect
 	nhooyr.io/websocket v1.8.11
 )
 
 require (
 	github.com/Microsoft/go-winio v0.6.1
-	github.com/aperturerobotics/go-kvfile v0.7.0
+	github.com/aperturerobotics/go-kvfile v0.7.1
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
@@ -109,7 +109,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
-	github.com/Workiva/go-datastructures v1.1.3 // indirect
+	github.com/Workiva/go-datastructures v1.1.4 // indirect
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect

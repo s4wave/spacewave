@@ -17,6 +17,7 @@ export const protobufPackage = 'web.view.handler.server'
  */
 export type Config = Message<{}>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'web.view.handler.server.Config',
   fields: [] as readonly PartialFieldInfo[],

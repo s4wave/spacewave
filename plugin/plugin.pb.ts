@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ManifestRef } from '../manifest/manifest.pb.js'
 import { VolumeInfo } from '@go/github.com/aperturerobotics/hydra/volume/volume.pb.js'
 
@@ -29,11 +29,12 @@ export type PluginStatus = Message<{
   running?: boolean
 }>
 
+// PluginStatus contains the message type declaration for PluginStatus.
 export const PluginStatus: MessageType<PluginStatus> = createMessageType({
   typeName: 'bldr.plugin.PluginStatus',
   fields: [
-    { no: 1, name: 'plugin_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'running', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'running', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -45,6 +46,7 @@ export const PluginStatus: MessageType<PluginStatus> = createMessageType({
  */
 export type GetPluginInfoRequest = Message<{}>
 
+// GetPluginInfoRequest contains the message type declaration for GetPluginInfoRequest.
 export const GetPluginInfoRequest: MessageType<GetPluginInfoRequest> =
   createMessageType({
     typeName: 'bldr.plugin.GetPluginInfoRequest',
@@ -79,16 +81,12 @@ export type GetPluginInfoResponse = Message<{
   hostVolumeInfo?: VolumeInfo
 }>
 
+// GetPluginInfoResponse contains the message type declaration for GetPluginInfoResponse.
 export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
   createMessageType({
     typeName: 'bldr.plugin.GetPluginInfoResponse',
     fields: [
-      {
-        no: 1,
-        name: 'plugin_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
       { no: 3, name: 'host_volume_info', kind: 'message', T: () => VolumeInfo },
     ] as readonly PartialFieldInfo[],
@@ -109,16 +107,12 @@ export type LoadPluginRequest = Message<{
   pluginId?: string
 }>
 
+// LoadPluginRequest contains the message type declaration for LoadPluginRequest.
 export const LoadPluginRequest: MessageType<LoadPluginRequest> =
   createMessageType({
     typeName: 'bldr.plugin.LoadPluginRequest',
     fields: [
-      {
-        no: 1,
-        name: 'plugin_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -137,6 +131,7 @@ export type LoadPluginResponse = Message<{
   pluginStatus?: PluginStatus
 }>
 
+// LoadPluginResponse contains the message type declaration for LoadPluginResponse.
 export const LoadPluginResponse: MessageType<LoadPluginResponse> =
   createMessageType({
     typeName: 'bldr.plugin.LoadPluginResponse',
@@ -180,18 +175,14 @@ export type PluginMeta = Message<{
   buildType?: string
 }>
 
+// PluginMeta contains the message type declaration for PluginMeta.
 export const PluginMeta: MessageType<PluginMeta> = createMessageType({
   typeName: 'bldr.plugin.PluginMeta',
   fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'plugin_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 3,
-      name: 'platform_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 4, name: 'build_type', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -210,15 +201,11 @@ export type PluginStartInfo = Message<{
   instanceId?: string
 }>
 
+// PluginStartInfo contains the message type declaration for PluginStartInfo.
 export const PluginStartInfo: MessageType<PluginStartInfo> = createMessageType({
   typeName: 'bldr.plugin.PluginStartInfo',
   fields: [
-    {
-      no: 1,
-      name: 'instance_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'instance_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -238,6 +225,7 @@ export type PluginContextInfo = Message<{
   pluginMeta?: PluginMeta
 }>
 
+// PluginContextInfo contains the message type declaration for PluginContextInfo.
 export const PluginContextInfo: MessageType<PluginContextInfo> =
   createMessageType({
     typeName: 'bldr.plugin.PluginContextInfo',

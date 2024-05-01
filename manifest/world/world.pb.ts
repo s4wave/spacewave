@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ManifestRef } from '../manifest.pb.js'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 
@@ -35,15 +35,16 @@ export type StoreManifestOp = Message<{
   manifestRef?: ManifestRef
 }>
 
+// StoreManifestOp contains the message type declaration for StoreManifestOp.
 export const StoreManifestOp: MessageType<StoreManifestOp> = createMessageType({
   typeName: 'bldr.manifest.world.StoreManifestOp',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 2,
       name: 'link_object_keys',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     { no: 3, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
@@ -78,21 +79,17 @@ export type ExtractManifestBundleOp = Message<{
   manifestBundle?: ObjectRef
 }>
 
+// ExtractManifestBundleOp contains the message type declaration for ExtractManifestBundleOp.
 export const ExtractManifestBundleOp: MessageType<ExtractManifestBundleOp> =
   createMessageType({
     typeName: 'bldr.manifest.world.ExtractManifestBundleOp',
     fields: [
-      {
-        no: 1,
-        name: 'object_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 2,
         name: 'link_object_keys',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       { no: 3, name: 'manifest_bundle', kind: 'message', T: () => ObjectRef },

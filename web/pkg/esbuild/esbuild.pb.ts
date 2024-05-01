@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.pkg.esbuild'
 
@@ -40,28 +40,24 @@ export type WebPkgRef = Message<{
   crossRefs?: string[]
 }>
 
+// WebPkgRef contains the message type declaration for WebPkgRef.
 export const WebPkgRef: MessageType<WebPkgRef> = createMessageType({
   typeName: 'web.pkg.esbuild.WebPkgRef',
   fields: [
-    { no: 1, name: 'web_pkg_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'web_pkg_root',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'web_pkg_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'web_pkg_root', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'imports',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 4,
       name: 'cross_refs',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

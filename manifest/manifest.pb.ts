@@ -3,7 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
 import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 
@@ -44,23 +49,14 @@ export type ManifestMeta = Message<{
   rev?: bigint
 }>
 
+// ManifestMeta contains the message type declaration for ManifestMeta.
 export const ManifestMeta: MessageType<ManifestMeta> = createMessageType({
   typeName: 'bldr.manifest.ManifestMeta',
   fields: [
-    {
-      no: 1,
-      name: 'manifest_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 2, name: 'build_type', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 3,
-      name: 'platform_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 4, name: 'rev', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -100,11 +96,12 @@ export type Manifest = Message<{
   assetsFsRef?: BlockRef
 }>
 
+// Manifest contains the message type declaration for Manifest.
 export const Manifest: MessageType<Manifest> = createMessageType({
   typeName: 'bldr.manifest.Manifest',
   fields: [
     { no: 1, name: 'meta', kind: 'message', T: () => ManifestMeta },
-    { no: 2, name: 'entrypoint', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'dist_fs_ref', kind: 'message', T: () => BlockRef },
     { no: 4, name: 'assets_fs_ref', kind: 'message', T: () => BlockRef },
   ] as readonly PartialFieldInfo[],
@@ -132,6 +129,7 @@ export type ManifestRef = Message<{
   manifestRef?: ObjectRef
 }>
 
+// ManifestRef contains the message type declaration for ManifestRef.
 export const ManifestRef: MessageType<ManifestRef> = createMessageType({
   typeName: 'bldr.manifest.ManifestRef',
   fields: [
@@ -161,6 +159,7 @@ export type ManifestBundle = Message<{
   timestamp?: Timestamp
 }>
 
+// ManifestBundle contains the message type declaration for ManifestBundle.
 export const ManifestBundle: MessageType<ManifestBundle> = createMessageType({
   typeName: 'bldr.manifest.ManifestBundle',
   fields: [
@@ -197,6 +196,7 @@ export type ManifestSnapshot = Message<{
   manifest?: Manifest
 }>
 
+// ManifestSnapshot contains the message type declaration for ManifestSnapshot.
 export const ManifestSnapshot: MessageType<ManifestSnapshot> =
   createMessageType({
     typeName: 'bldr.manifest.ManifestSnapshot',
@@ -222,6 +222,7 @@ export type FetchManifestRequest = Message<{
   manifestMeta?: ManifestMeta
 }>
 
+// FetchManifestRequest contains the message type declaration for FetchManifestRequest.
 export const FetchManifestRequest: MessageType<FetchManifestRequest> =
   createMessageType({
     typeName: 'bldr.manifest.FetchManifestRequest',
@@ -245,6 +246,7 @@ export type FetchManifestValue = Message<{
   manifestRef?: ManifestRef
 }>
 
+// FetchManifestValue contains the message type declaration for FetchManifestValue.
 export const FetchManifestValue: MessageType<FetchManifestValue> =
   createMessageType({
     typeName: 'bldr.manifest.FetchManifestValue',
@@ -289,19 +291,15 @@ export type FetchManifestResponse = Message<{
   idle?: number
 }>
 
+// FetchManifestResponse contains the message type declaration for FetchManifestResponse.
 export const FetchManifestResponse: MessageType<FetchManifestResponse> =
   createMessageType({
     typeName: 'bldr.manifest.FetchManifestResponse',
     fields: [
-      {
-        no: 1,
-        name: 'value_id',
-        kind: 'scalar',
-        T: 13 /* ScalarType.UINT32 */,
-      },
+      { no: 1, name: 'value_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'value', kind: 'message', T: () => FetchManifestValue },
-      { no: 3, name: 'removed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 4, name: 'idle', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+      { no: 3, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'idle', kind: 'scalar', T: ScalarType.UINT32 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

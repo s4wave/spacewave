@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.document'
 
@@ -14,6 +14,7 @@ export const protobufPackage = 'web.document'
  */
 export type WatchWebDocumentStatusRequest = Message<{}>
 
+// WatchWebDocumentStatusRequest contains the message type declaration for WatchWebDocumentStatusRequest.
 export const WatchWebDocumentStatusRequest: MessageType<WatchWebDocumentStatusRequest> =
   createMessageType({
     typeName: 'web.document.WatchWebDocumentStatusRequest',
@@ -55,13 +56,14 @@ export type WebViewStatus = Message<{
   permanent?: boolean
 }>
 
+// WebViewStatus contains the message type declaration for WebViewStatus.
 export const WebViewStatus: MessageType<WebViewStatus> = createMessageType({
   typeName: 'web.document.WebViewStatus',
   fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'deleted', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'parent_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'permanent', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'parent_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -93,12 +95,13 @@ export type WebWorkerStatus = Message<{
   shared?: boolean
 }>
 
+// WebWorkerStatus contains the message type declaration for WebWorkerStatus.
 export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
   typeName: 'web.document.WebWorkerStatus',
   fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'deleted', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'shared', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -143,12 +146,13 @@ export type WebDocumentStatus = Message<{
   closed?: boolean
 }>
 
+// WebDocumentStatus contains the message type declaration for WebDocumentStatus.
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
   createMessageType({
     typeName: 'web.document.WebDocumentStatus',
     fields: [
-      { no: 1, name: 'snapshot', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 2, name: 'hidden', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'snapshot', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'hidden', kind: 'scalar', T: ScalarType.BOOL },
       {
         no: 3,
         name: 'web_views',
@@ -163,7 +167,7 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
         T: () => WebWorkerStatus,
         repeated: true,
       },
-      { no: 5, name: 'closed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 5, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -182,11 +186,12 @@ export type CreateWebViewRequest = Message<{
   id?: string
 }>
 
+// CreateWebViewRequest contains the message type declaration for CreateWebViewRequest.
 export const CreateWebViewRequest: MessageType<CreateWebViewRequest> =
   createMessageType({
     typeName: 'web.document.CreateWebViewRequest',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -206,11 +211,12 @@ export type CreateWebViewResponse = Message<{
   created?: boolean
 }>
 
+// CreateWebViewResponse contains the message type declaration for CreateWebViewResponse.
 export const CreateWebViewResponse: MessageType<CreateWebViewResponse> =
   createMessageType({
     typeName: 'web.document.CreateWebViewResponse',
     fields: [
-      { no: 1, name: 'created', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -249,19 +255,15 @@ export type CreateWebWorkerRequest = Message<{
   initData?: Uint8Array
 }>
 
+// CreateWebWorkerRequest contains the message type declaration for CreateWebWorkerRequest.
 export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
   createMessageType({
     typeName: 'web.document.CreateWebWorkerRequest',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 3, name: 'shared', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      {
-        no: 4,
-        name: 'init_data',
-        kind: 'scalar',
-        T: 12 /* ScalarType.BYTES */,
-      },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -288,12 +290,13 @@ export type CreateWebWorkerResponse = Message<{
   shared?: boolean
 }>
 
+// CreateWebWorkerResponse contains the message type declaration for CreateWebWorkerResponse.
 export const CreateWebWorkerResponse: MessageType<CreateWebWorkerResponse> =
   createMessageType({
     typeName: 'web.document.CreateWebWorkerResponse',
     fields: [
-      { no: 1, name: 'created', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 2, name: 'shared', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -312,11 +315,12 @@ export type RemoveWebWorkerRequest = Message<{
   id?: string
 }>
 
+// RemoveWebWorkerRequest contains the message type declaration for RemoveWebWorkerRequest.
 export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
   createMessageType({
     typeName: 'web.document.RemoveWebWorkerRequest',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -336,11 +340,12 @@ export type RemoveWebWorkerResponse = Message<{
   removed?: boolean
 }>
 
+// RemoveWebWorkerResponse contains the message type declaration for RemoveWebWorkerResponse.
 export const RemoveWebWorkerResponse: MessageType<RemoveWebWorkerResponse> =
   createMessageType({
     typeName: 'web.document.RemoveWebWorkerResponse',
     fields: [
-      { no: 1, name: 'removed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

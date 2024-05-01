@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'bldr.dist.compiler'
@@ -58,6 +58,7 @@ export type Config = Message<{
   enableCgo?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.dist.compiler.Config',
   fields: [
@@ -65,25 +66,25 @@ export const Config: MessageType<Config> = createMessageType({
       no: 1,
       name: 'embed_manifests',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 2,
       name: 'load_plugins',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 3,
       name: 'host_config_set',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
-    { no: 4, name: 'project_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'enable_cgo', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'enable_cgo', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -137,6 +138,7 @@ export type PreBuildHookResult = Message<{
   enableCgo?: boolean
 }>
 
+// PreBuildHookResult contains the message type declaration for PreBuildHookResult.
 export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   createMessageType({
     typeName: 'bldr.dist.compiler.PreBuildHookResult',
@@ -145,30 +147,25 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
         no: 1,
         name: 'host_config_set',
         kind: 'map',
-        K: 9 /* ScalarType.STRING */,
+        K: ScalarType.STRING,
         V: { kind: 'message', T: () => ControllerConfig },
       },
       {
         no: 2,
         name: 'load_plugins',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       {
         no: 3,
         name: 'embed_manifests',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
-      {
-        no: 4,
-        name: 'project_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 5, name: 'enable_cgo', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'enable_cgo', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

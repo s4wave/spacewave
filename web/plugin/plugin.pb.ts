@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'bldr.web.plugin'
@@ -29,22 +29,13 @@ export type HandleWebViewViaPluginRequest = Message<{
   webViewIdRe?: string
 }>
 
+// HandleWebViewViaPluginRequest contains the message type declaration for HandleWebViewViaPluginRequest.
 export const HandleWebViewViaPluginRequest: MessageType<HandleWebViewViaPluginRequest> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleWebViewViaPluginRequest',
     fields: [
-      {
-        no: 1,
-        name: 'handle_plugin_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'web_view_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'web_view_id_re', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -74,6 +65,7 @@ export type HandleWebViewViaPluginResponse = Message<{
       }
 }>
 
+// HandleWebViewViaPluginResponse contains the message type declaration for HandleWebViewViaPluginResponse.
 export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginResponse> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleWebViewViaPluginResponse',
@@ -82,7 +74,7 @@ export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginR
         no: 1,
         name: 'ready',
         kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
+        T: ScalarType.BOOL,
         oneof: 'body',
       },
     ] as readonly PartialFieldInfo[],
@@ -126,34 +118,25 @@ export type HandleWebPkgViaPluginRequest = Message<{
   webPkgIdList?: string[]
 }>
 
+// HandleWebPkgViaPluginRequest contains the message type declaration for HandleWebPkgViaPluginRequest.
 export const HandleWebPkgViaPluginRequest: MessageType<HandleWebPkgViaPluginRequest> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleWebPkgViaPluginRequest',
     fields: [
-      {
-        no: 1,
-        name: 'handle_plugin_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'web_pkg_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'web_pkg_id_re', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'web_pkg_id_prefixes',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       {
         no: 4,
         name: 'web_pkg_id_list',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],
@@ -185,6 +168,7 @@ export type HandleWebPkgViaPluginResponse = Message<{
       }
 }>
 
+// HandleWebPkgViaPluginResponse contains the message type declaration for HandleWebPkgViaPluginResponse.
 export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginResponse> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleWebPkgViaPluginResponse',
@@ -193,7 +177,7 @@ export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginRes
         no: 1,
         name: 'ready',
         kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
+        T: ScalarType.BOOL,
         oneof: 'body',
       },
     ] as readonly PartialFieldInfo[],
@@ -235,28 +219,14 @@ export type HandleRpcViaPluginRequest = Message<{
   backoff?: Backoff
 }>
 
+// HandleRpcViaPluginRequest contains the message type declaration for HandleRpcViaPluginRequest.
 export const HandleRpcViaPluginRequest: MessageType<HandleRpcViaPluginRequest> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleRpcViaPluginRequest',
     fields: [
-      {
-        no: 1,
-        name: 'handle_plugin_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'service_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 3,
-        name: 'server_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'service_id_re', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'backoff', kind: 'message', T: () => Backoff },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -287,6 +257,7 @@ export type HandleRpcViaPluginResponse = Message<{
       }
 }>
 
+// HandleRpcViaPluginResponse contains the message type declaration for HandleRpcViaPluginResponse.
 export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleRpcViaPluginResponse',
@@ -295,7 +266,7 @@ export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse>
         no: 1,
         name: 'ready',
         kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
+        T: ScalarType.BOOL,
         oneof: 'body',
       },
     ] as readonly PartialFieldInfo[],

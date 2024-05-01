@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'storage.default'
 
@@ -28,11 +28,12 @@ export type Config = Message<{
   rootDir?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'storage.default.Config',
   fields: [
-    { no: 1, name: 'storage_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'root_dir', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'root_dir', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

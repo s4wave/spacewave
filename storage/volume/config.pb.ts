@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '@go/github.com/aperturerobotics/hydra/volume/controller/controller.pb.js'
 
 export const protobufPackage = 'storage.volume'
@@ -36,16 +36,12 @@ export type Config = Message<{
   volumeConfig?: Config$1
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'storage.volume.Config',
   fields: [
-    { no: 1, name: 'storage_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'storage_volume_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'storage_volume_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'volume_config', kind: 'message', T: () => Config$1 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

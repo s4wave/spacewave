@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.dist'
@@ -49,30 +49,21 @@ export type DistMeta = Message<{
   distObjectKey?: string
 }>
 
+// DistMeta contains the message type declaration for DistMeta.
 export const DistMeta: MessageType<DistMeta> = createMessageType({
   typeName: 'bldr.dist.DistMeta',
   fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'platform_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'startup_plugins',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     { no: 4, name: 'dist_world_ref', kind: 'message', T: () => ObjectRef },
-    {
-      no: 5,
-      name: 'dist_object_key',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 5, name: 'dist_object_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

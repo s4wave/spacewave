@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.view'
@@ -85,19 +86,15 @@ export type SetRenderModeRequest = Message<{
   refresh?: boolean
 }>
 
+// SetRenderModeRequest contains the message type declaration for SetRenderModeRequest.
 export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
   createMessageType({
     typeName: 'web.view.SetRenderModeRequest',
     fields: [
       { no: 1, name: 'render_mode', kind: 'enum', T: RenderMode_Enum },
-      {
-        no: 2,
-        name: 'script_path',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 3, name: 'props', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-      { no: 4, name: 'refresh', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 2, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'props', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'refresh', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -109,6 +106,7 @@ export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
  */
 export type SetRenderModeResponse = Message<{}>
 
+// SetRenderModeResponse contains the message type declaration for SetRenderModeResponse.
 export const SetRenderModeResponse: MessageType<SetRenderModeResponse> =
   createMessageType({
     typeName: 'web.view.SetRenderModeResponse',
@@ -137,11 +135,12 @@ export type HtmlLink = Message<{
   rel?: string
 }>
 
+// HtmlLink contains the message type declaration for HtmlLink.
 export const HtmlLink: MessageType<HtmlLink> = createMessageType({
   typeName: 'web.view.HtmlLink',
   fields: [
-    { no: 1, name: 'href', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'rel', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'href', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'rel', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -172,23 +171,24 @@ export type SetHtmlLinksRequest = Message<{
   setLinks?: { [key: string]: HtmlLink }
 }>
 
+// SetHtmlLinksRequest contains the message type declaration for SetHtmlLinksRequest.
 export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
   createMessageType({
     typeName: 'web.view.SetHtmlLinksRequest',
     fields: [
-      { no: 1, name: 'clear', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'clear', kind: 'scalar', T: ScalarType.BOOL },
       {
         no: 2,
         name: 'remove',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       {
         no: 3,
         name: 'set_links',
         kind: 'map',
-        K: 9 /* ScalarType.STRING */,
+        K: ScalarType.STRING,
         V: { kind: 'message', T: () => HtmlLink },
       },
     ] as readonly PartialFieldInfo[],
@@ -202,6 +202,7 @@ export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
  */
 export type SetHtmlLinksResponse = Message<{}>
 
+// SetHtmlLinksResponse contains the message type declaration for SetHtmlLinksResponse.
 export const SetHtmlLinksResponse: MessageType<SetHtmlLinksResponse> =
   createMessageType({
     typeName: 'web.view.SetHtmlLinksResponse',
@@ -216,6 +217,7 @@ export const SetHtmlLinksResponse: MessageType<SetHtmlLinksResponse> =
  */
 export type ResetWebViewRequest = Message<{}>
 
+// ResetWebViewRequest contains the message type declaration for ResetWebViewRequest.
 export const ResetWebViewRequest: MessageType<ResetWebViewRequest> =
   createMessageType({
     typeName: 'web.view.ResetWebViewRequest',
@@ -230,6 +232,7 @@ export const ResetWebViewRequest: MessageType<ResetWebViewRequest> =
  */
 export type ResetWebViewResponse = Message<{}>
 
+// ResetWebViewResponse contains the message type declaration for ResetWebViewResponse.
 export const ResetWebViewResponse: MessageType<ResetWebViewResponse> =
   createMessageType({
     typeName: 'web.view.ResetWebViewResponse',
@@ -244,6 +247,7 @@ export const ResetWebViewResponse: MessageType<ResetWebViewResponse> =
  */
 export type RemoveWebViewRequest = Message<{}>
 
+// RemoveWebViewRequest contains the message type declaration for RemoveWebViewRequest.
 export const RemoveWebViewRequest: MessageType<RemoveWebViewRequest> =
   createMessageType({
     typeName: 'web.view.RemoveWebViewRequest',
@@ -265,11 +269,12 @@ export type RemoveWebViewResponse = Message<{
   removed?: boolean
 }>
 
+// RemoveWebViewResponse contains the message type declaration for RemoveWebViewResponse.
 export const RemoveWebViewResponse: MessageType<RemoveWebViewResponse> =
   createMessageType({
     typeName: 'web.view.RemoveWebViewResponse',
     fields: [
-      { no: 1, name: 'removed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.esbuild'
@@ -69,16 +70,12 @@ export type EsbuildOutput = Message<{
   cssHref?: string
 }>
 
+// EsbuildOutput contains the message type declaration for EsbuildOutput.
 export const EsbuildOutput: MessageType<EsbuildOutput> = createMessageType({
   typeName: 'bldr.esbuild.EsbuildOutput',
   fields: [
-    {
-      no: 1,
-      name: 'entrypoint_href',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 2, name: 'css_href', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'entrypoint_href', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'css_href', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -103,22 +100,13 @@ export type EsbuildEntrypoint = Message<{
   outputPath?: string
 }>
 
+// EsbuildEntrypoint contains the message type declaration for EsbuildEntrypoint.
 export const EsbuildEntrypoint: MessageType<EsbuildEntrypoint> =
   createMessageType({
     typeName: 'bldr.esbuild.EsbuildEntrypoint',
     fields: [
-      {
-        no: 1,
-        name: 'input_path',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'output_path',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

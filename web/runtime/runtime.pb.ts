@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.runtime'
@@ -75,16 +76,12 @@ export type WebRuntimeHostInit = Message<{
   webRuntimeId?: string
 }>
 
+// WebRuntimeHostInit contains the message type declaration for WebRuntimeHostInit.
 export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
   createMessageType({
     typeName: 'web.runtime.WebRuntimeHostInit',
     fields: [
-      {
-        no: 1,
-        name: 'web_runtime_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -96,6 +93,7 @@ export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
  */
 export type WatchWebRuntimeStatusRequest = Message<{}>
 
+// WatchWebRuntimeStatusRequest contains the message type declaration for WatchWebRuntimeStatusRequest.
 export const WatchWebRuntimeStatusRequest: MessageType<WatchWebRuntimeStatusRequest> =
   createMessageType({
     typeName: 'web.runtime.WatchWebRuntimeStatusRequest',
@@ -130,13 +128,14 @@ export type WebDocumentStatus = Message<{
   permanent?: boolean
 }>
 
+// WebDocumentStatus contains the message type declaration for WebDocumentStatus.
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
   createMessageType({
     typeName: 'web.runtime.WebDocumentStatus',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 2, name: 'deleted', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 3, name: 'permanent', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -167,11 +166,12 @@ export type WebRuntimeStatus = Message<{
   closed?: boolean
 }>
 
+// WebRuntimeStatus contains the message type declaration for WebRuntimeStatus.
 export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
   createMessageType({
     typeName: 'web.runtime.WebRuntimeStatus',
     fields: [
-      { no: 1, name: 'snapshot', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'snapshot', kind: 'scalar', T: ScalarType.BOOL },
       {
         no: 2,
         name: 'web_documents',
@@ -179,7 +179,7 @@ export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
         T: () => WebDocumentStatus,
         repeated: true,
       },
-      { no: 3, name: 'closed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 3, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -198,11 +198,12 @@ export type CreateWebDocumentRequest = Message<{
   id?: string
 }>
 
+// CreateWebDocumentRequest contains the message type declaration for CreateWebDocumentRequest.
 export const CreateWebDocumentRequest: MessageType<CreateWebDocumentRequest> =
   createMessageType({
     typeName: 'web.runtime.CreateWebDocumentRequest',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -222,11 +223,12 @@ export type CreateWebDocumentResponse = Message<{
   created?: boolean
 }>
 
+// CreateWebDocumentResponse contains the message type declaration for CreateWebDocumentResponse.
 export const CreateWebDocumentResponse: MessageType<CreateWebDocumentResponse> =
   createMessageType({
     typeName: 'web.runtime.CreateWebDocumentResponse',
     fields: [
-      { no: 1, name: 'created', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -245,11 +247,12 @@ export type RemoveWebDocumentRequest = Message<{
   id?: string
 }>
 
+// RemoveWebDocumentRequest contains the message type declaration for RemoveWebDocumentRequest.
 export const RemoveWebDocumentRequest: MessageType<RemoveWebDocumentRequest> =
   createMessageType({
     typeName: 'web.runtime.RemoveWebDocumentRequest',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -269,11 +272,12 @@ export type RemoveWebDocumentResponse = Message<{
   removed?: boolean
 }>
 
+// RemoveWebDocumentResponse contains the message type declaration for RemoveWebDocumentResponse.
 export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
   createMessageType({
     typeName: 'web.runtime.RemoveWebDocumentResponse',
     fields: [
-      { no: 1, name: 'removed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -308,22 +312,13 @@ export type WebRuntimeClientInit = Message<{
   clientType?: WebRuntimeClientType
 }>
 
+// WebRuntimeClientInit contains the message type declaration for WebRuntimeClientInit.
 export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =
   createMessageType({
     typeName: 'web.runtime.WebRuntimeClientInit',
     fields: [
-      {
-        no: 1,
-        name: 'web_runtime_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'client_uuid',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'client_uuid', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'client_type',

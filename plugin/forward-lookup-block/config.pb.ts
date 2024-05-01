@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'bldr.plugin.forward_lookup_block'
@@ -46,22 +46,13 @@ export type Config = Message<{
   backoff?: Backoff
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.plugin.forward_lookup_block.Config',
   fields: [
-    { no: 1, name: 'plugin_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'service_id_regex',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 3,
-      name: 'server_id_regex',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'service_id_regex', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'server_id_regex', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'backoff', kind: 'message', T: () => Backoff },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

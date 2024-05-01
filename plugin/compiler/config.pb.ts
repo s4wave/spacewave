@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { EsbuildVarType } from '../../web/esbuild/esbuild.pb.js'
@@ -196,70 +197,56 @@ export type Config = Message<{
   buildTypes?: { [key: string]: Config }
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.plugin.compiler.Config',
   fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 2,
       name: 'config_set',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
     {
       no: 3,
       name: 'host_config_set',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
     {
       no: 4,
       name: 'go_pkgs',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 5,
       name: 'web_pkgs',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 6,
-      name: 'disable_rpc_fetch',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 7,
-      name: 'disable_fetch_assets',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 8, name: 'delve_addr', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: 'enable_cgo', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'disable_fetch_assets', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'enable_cgo', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 10,
       name: 'esbuild_flags',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 11,
-      name: 'web_plugin_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 11, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 12,
       name: 'build_types',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => Config },
     },
   ] as readonly PartialFieldInfo[],
@@ -281,6 +268,7 @@ export type PreBuildHookResult = Message<{
   config?: Config
 }>
 
+// PreBuildHookResult contains the message type declaration for PreBuildHookResult.
 export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.PreBuildHookResult',
@@ -304,6 +292,7 @@ export type InputFileMeta = Message<{
   kind?: InputFileKind
 }>
 
+// InputFileMeta contains the message type declaration for InputFileMeta.
 export const InputFileMeta: MessageType<InputFileMeta> = createMessageType({
   typeName: 'bldr.plugin.compiler.InputFileMeta',
   fields: [
@@ -350,29 +339,20 @@ export type EsbuildEntrypointVar = Message<{
   esbuildFlags?: string[]
 }>
 
+// EsbuildEntrypointVar contains the message type declaration for EsbuildEntrypointVar.
 export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.EsbuildEntrypointVar',
     fields: [
-      {
-        no: 1,
-        name: 'pkg_import_path',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 2, name: 'pkg_var', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      {
-        no: 3,
-        name: 'pkg_code_path',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'pkg_var', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'pkg_code_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'pkg_var_type', kind: 'enum', T: EsbuildVarType_Enum },
       {
         no: 5,
         name: 'esbuild_flags',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],
@@ -399,11 +379,12 @@ export type EsbuildBundleMeta = Message<{
   entrypointVars?: EsbuildEntrypointVar[]
 }>
 
+// EsbuildBundleMeta contains the message type declaration for EsbuildBundleMeta.
 export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.EsbuildBundleMeta',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 2,
         name: 'entrypoint_vars',
@@ -442,18 +423,14 @@ export type EsbuildOutputMeta = Message<{
   entrypointPath?: string
 }>
 
+// EsbuildOutputMeta contains the message type declaration for EsbuildOutputMeta.
 export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.EsbuildOutputMeta',
     fields: [
-      { no: 1, name: 'path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 2, name: 'length', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-      {
-        no: 3,
-        name: 'entrypoint_path',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'length', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -502,6 +479,7 @@ export type InputManifestMeta = Message<{
   esbuildOutputs?: EsbuildOutputMeta[]
 }>
 
+// InputManifestMeta contains the message type declaration for InputManifestMeta.
 export const InputManifestMeta: MessageType<InputManifestMeta> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.InputManifestMeta',
@@ -510,7 +488,7 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         no: 1,
         name: 'esbuild_bundles',
         kind: 'map',
-        K: 9 /* ScalarType.STRING */,
+        K: ScalarType.STRING,
         V: { kind: 'message', T: () => EsbuildBundleMeta },
       },
       {
@@ -524,14 +502,14 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         no: 3,
         name: 'web_pkgs',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       {
         no: 4,
         name: 'esbuild_flags',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       { no: 5, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
 
 export const protobufPackage = 'bldr.manifest.builder'
@@ -73,39 +73,25 @@ export type BuilderConfig = Message<{
   projectId?: string
 }>
 
+// BuilderConfig contains the message type declaration for BuilderConfig.
 export const BuilderConfig: MessageType<BuilderConfig> = createMessageType({
   typeName: 'bldr.manifest.builder.BuilderConfig',
   fields: [
     { no: 1, name: 'manifest_meta', kind: 'message', T: () => ManifestMeta },
-    {
-      no: 2,
-      name: 'source_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 3,
-      name: 'dist_source_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 4,
-      name: 'working_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 5, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'source_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'dist_source_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'working_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 6, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 7,
       name: 'link_object_keys',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    { no: 8, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: 'project_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -131,12 +117,13 @@ export type InputManifest_File = Message<{
   metadata?: Uint8Array
 }>
 
+// InputManifest_File contains the message type declaration for InputManifest_File.
 export const InputManifest_File: MessageType<InputManifest_File> =
   createMessageType({
     typeName: 'bldr.manifest.builder.InputManifest.File',
     fields: [
-      { no: 1, name: 'path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 2, name: 'metadata', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -163,6 +150,7 @@ export type InputManifest = Message<{
   metadata?: Uint8Array
 }>
 
+// InputManifest contains the message type declaration for InputManifest.
 export const InputManifest: MessageType<InputManifest> = createMessageType({
   typeName: 'bldr.manifest.builder.InputManifest',
   fields: [
@@ -173,7 +161,7 @@ export const InputManifest: MessageType<InputManifest> = createMessageType({
       T: () => InputManifest_File,
       repeated: true,
     },
-    { no: 2, name: 'metadata', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -205,6 +193,7 @@ export type BuilderResult = Message<{
   inputManifest?: InputManifest
 }>
 
+// BuilderResult contains the message type declaration for BuilderResult.
 export const BuilderResult: MessageType<BuilderResult> = createMessageType({
   typeName: 'bldr.manifest.builder.BuilderResult',
   fields: [
@@ -247,6 +236,7 @@ export type BuildManifestArgs = Message<{
   changedFiles?: InputManifest_File[]
 }>
 
+// BuildManifestArgs contains the message type declaration for BuildManifestArgs.
 export const BuildManifestArgs: MessageType<BuildManifestArgs> =
   createMessageType({
     typeName: 'bldr.manifest.builder.BuildManifestArgs',

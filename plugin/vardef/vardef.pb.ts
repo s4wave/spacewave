@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { EsbuildOutput } from '../../web/esbuild/esbuild.pb.js'
 
 export const protobufPackage = 'bldr.plugin.vardef'
@@ -57,21 +57,17 @@ export type PluginVar = Message<{
       }
 }>
 
+// PluginVar contains the message type declaration for PluginVar.
 export const PluginVar: MessageType<PluginVar> = createMessageType({
   typeName: 'bldr.plugin.vardef.PluginVar',
   fields: [
-    {
-      no: 1,
-      name: 'pkg_import_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 2, name: 'pkg_var', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'pkg_var', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'string_value',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       oneof: 'body',
     },
     {
@@ -99,6 +95,7 @@ export type PluginDevInfo = Message<{
   pluginVars?: PluginVar[]
 }>
 
+// PluginDevInfo contains the message type declaration for PluginDevInfo.
 export const PluginDevInfo: MessageType<PluginDevInfo> = createMessageType({
   typeName: 'bldr.plugin.vardef.PluginDevInfo',
   fields: [

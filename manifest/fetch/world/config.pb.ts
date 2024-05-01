@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'manifest.fetch.world'
 
@@ -43,29 +43,25 @@ export type Config = Message<{
   disableWatch?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'manifest.fetch.world.Config',
   fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 2,
       name: 'object_keys',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 3,
       name: 'fetch_manifest_id_re',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
-    {
-      no: 4,
-      name: 'disable_watch',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 4, name: 'disable_watch', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

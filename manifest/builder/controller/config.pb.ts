@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BuilderConfig } from '../builder.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
@@ -45,6 +45,7 @@ export type Config = Message<{
   watch?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.manifest.builder.controller.Config',
   fields: [
@@ -56,7 +57,7 @@ export const Config: MessageType<Config> = createMessageType({
       T: () => ControllerConfig,
     },
     { no: 3, name: 'build_backoff', kind: 'message', T: () => Backoff },
-    { no: 4, name: 'watch', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'watch', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

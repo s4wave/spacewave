@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.view.handler'
 
@@ -41,24 +41,15 @@ export type HandleWebViewRequest = Message<{
   permanent?: boolean
 }>
 
+// HandleWebViewRequest contains the message type declaration for HandleWebViewRequest.
 export const HandleWebViewRequest: MessageType<HandleWebViewRequest> =
   createMessageType({
     typeName: 'web.view.handler.HandleWebViewRequest',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      {
-        no: 2,
-        name: 'parent_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 3,
-        name: 'document_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 4, name: 'permanent', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'parent_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'document_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -78,11 +69,12 @@ export type HandleWebViewResponse = Message<{
   error?: string
 }>
 
+// HandleWebViewResponse contains the message type declaration for HandleWebViewResponse.
 export const HandleWebViewResponse: MessageType<HandleWebViewResponse> =
   createMessageType({
     typeName: 'web.view.handler.HandleWebViewResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'plugin.host.controller'
@@ -91,37 +91,33 @@ export type Config = Message<{
   execBackoff?: Backoff
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'plugin.host.controller.Config',
   fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 5,
       name: 'always_fetch_manifest',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     {
       no: 6,
       name: 'disable_store_manifest',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     {
       no: 10,
       name: 'disable_copy_manifest',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
-    {
-      no: 7,
-      name: 'fetch_concurrency',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 7, name: 'fetch_concurrency', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
     { no: 9, name: 'exec_backoff', kind: 'message', T: () => Backoff },
   ] as readonly PartialFieldInfo[],

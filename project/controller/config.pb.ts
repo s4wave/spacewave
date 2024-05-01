@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ProjectConfig } from '../project.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import {
@@ -68,30 +68,21 @@ export type Config = Message<{
   fetchManifestRemote?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.project.controller.Config',
   fields: [
-    {
-      no: 1,
-      name: 'source_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'working_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'source_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'working_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'project_config', kind: 'message', T: () => ProjectConfig },
     { no: 4, name: 'build_backoff', kind: 'message', T: () => Backoff },
-    { no: 5, name: 'watch', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 6, name: 'start', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: 'watch', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'start', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 7,
       name: 'fetch_manifest_remote',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -129,34 +120,15 @@ export type ManifestBuilderConfig = Message<{
   remoteId?: string
 }>
 
+// ManifestBuilderConfig contains the message type declaration for ManifestBuilderConfig.
 export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
   createMessageType({
     typeName: 'bldr.project.controller.ManifestBuilderConfig',
     fields: [
-      {
-        no: 1,
-        name: 'manifest_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'build_type',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 3,
-        name: 'platform_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 4,
-        name: 'remote_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'remote_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -181,6 +153,7 @@ export type ManifestBuilderResult = Message<{
   builderResult?: BuilderResult
 }>
 
+// ManifestBuilderResult contains the message type declaration for ManifestBuilderResult.
 export const ManifestBuilderResult: MessageType<ManifestBuilderResult> =
   createMessageType({
     typeName: 'bldr.project.controller.ManifestBuilderResult',

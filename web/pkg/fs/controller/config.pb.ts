@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.pkg.fs.controller'
 
@@ -46,27 +46,18 @@ export type Config = Message<{
   webPkgIdList?: string[]
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'web.pkg.fs.controller.Config',
   fields: [
-    { no: 1, name: 'unixfs_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'unixfs_prefix',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 3,
-      name: 'not_found_if_idle',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 1, name: 'unixfs_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'unixfs_prefix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'not_found_if_idle', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 4,
       name: 'web_pkg_id_list',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

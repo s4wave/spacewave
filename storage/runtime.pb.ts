@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'storage'
 
@@ -31,11 +31,12 @@ export type StorageInfo = Message<{
   cache?: boolean
 }>
 
+// StorageInfo contains the message type declaration for StorageInfo.
 export const StorageInfo: MessageType<StorageInfo> = createMessageType({
   typeName: 'storage.StorageInfo',
   fields: [
-    { no: 1, name: 'isolated', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'cache', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'isolated', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'cache', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

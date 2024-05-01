@@ -15,6 +15,7 @@ export const protobufPackage = 'web.pkg.rpc'
  */
 export type GetInfoRequest = Message<{}>
 
+// GetInfoRequest contains the message type declaration for GetInfoRequest.
 export const GetInfoRequest: MessageType<GetInfoRequest> = createMessageType({
   typeName: 'web.pkg.rpc.GetInfoRequest',
   fields: [] as readonly PartialFieldInfo[],
@@ -35,6 +36,7 @@ export type GetInfoResponse = Message<{
   info?: WebPkgInfo
 }>
 
+// GetInfoResponse contains the message type declaration for GetInfoResponse.
 export const GetInfoResponse: MessageType<GetInfoResponse> = createMessageType({
   typeName: 'web.pkg.rpc.GetInfoResponse',
   fields: [

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../controller/config.pb.js'
 
 export const protobufPackage = 'bldr.project.watcher'
@@ -36,27 +36,18 @@ export type Config = Message<{
   disableWatch?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.project.watcher.Config',
   fields: [
-    {
-      no: 1,
-      name: 'config_path',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'config_path', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 2,
       name: 'project_controller_config',
       kind: 'message',
       T: () => Config$1,
     },
-    {
-      no: 3,
-      name: 'disable_watch',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 3, name: 'disable_watch', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

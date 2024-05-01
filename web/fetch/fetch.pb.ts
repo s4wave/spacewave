@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.fetch'
 
@@ -98,52 +98,28 @@ export type FetchRequestInfo = Message<{
   referrerPolicy?: string
 }>
 
+// FetchRequestInfo contains the message type declaration for FetchRequestInfo.
 export const FetchRequestInfo: MessageType<FetchRequestInfo> =
   createMessageType({
     typeName: 'web.fetch.FetchRequestInfo',
     fields: [
-      { no: 1, name: 'method', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'method', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'headers',
         kind: 'map',
-        K: 9 /* ScalarType.STRING */,
-        V: { kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
       },
-      { no: 4, name: 'has_body', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      {
-        no: 5,
-        name: 'client_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 6,
-        name: 'destination',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 7,
-        name: 'integrity',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 8, name: 'mode', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 9, name: 'redirect', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      {
-        no: 10,
-        name: 'referrer',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 11,
-        name: 'referrer_policy',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 4, name: 'has_body', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'client_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'destination', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'integrity', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'mode', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'redirect', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'referrer', kind: 'scalar', T: ScalarType.STRING },
+      { no: 11, name: 'referrer_policy', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -168,12 +144,13 @@ export type FetchRequestData = Message<{
   done?: boolean
 }>
 
+// FetchRequestData contains the message type declaration for FetchRequestData.
 export const FetchRequestData: MessageType<FetchRequestData> =
   createMessageType({
     typeName: 'web.fetch.FetchRequestData',
     fields: [
-      { no: 1, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-      { no: 2, name: 'done', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -214,6 +191,7 @@ export type FetchRequest = Message<{
       }
 }>
 
+// FetchRequest contains the message type declaration for FetchRequest.
 export const FetchRequest: MessageType<FetchRequest> = createMessageType({
   typeName: 'web.fetch.FetchRequest',
   fields: [
@@ -280,6 +258,7 @@ export type ResponseInfo = Message<{
   responseType?: string
 }>
 
+// ResponseInfo contains the message type declaration for ResponseInfo.
 export const ResponseInfo: MessageType<ResponseInfo> = createMessageType({
   typeName: 'web.fetch.ResponseInfo',
   fields: [
@@ -287,24 +266,14 @@ export const ResponseInfo: MessageType<ResponseInfo> = createMessageType({
       no: 1,
       name: 'headers',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
-      V: { kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      K: ScalarType.STRING,
+      V: { kind: 'scalar', T: ScalarType.STRING },
     },
-    { no: 2, name: 'ok', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'redirected', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'status', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    {
-      no: 5,
-      name: 'status_text',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 6,
-      name: 'response_type',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 2, name: 'ok', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'redirected', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'status', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 5, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
+    { no: 6, name: 'response_type', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -329,11 +298,12 @@ export type ResponseData = Message<{
   done?: boolean
 }>
 
+// ResponseData contains the message type declaration for ResponseData.
 export const ResponseData: MessageType<ResponseData> = createMessageType({
   typeName: 'web.fetch.ResponseData',
   fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 2, name: 'done', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -375,6 +345,7 @@ export type FetchResponse = Message<{
       }
 }>
 
+// FetchResponse contains the message type declaration for FetchResponse.
 export const FetchResponse: MessageType<FetchResponse> = createMessageType({
   typeName: 'web.fetch.FetchResponse',
   fields: [

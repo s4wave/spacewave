@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'devtool.web.entrypoint.plugin_host'
@@ -36,10 +36,11 @@ export type Config = Message<{
   execBackoff?: Backoff
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'devtool.web.entrypoint.plugin_host.Config',
   fields: [
-    { no: 1, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
     { no: 3, name: 'exec_backoff', kind: 'message', T: () => Backoff },
   ] as readonly PartialFieldInfo[],

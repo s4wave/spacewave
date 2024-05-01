@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'plugin.host.configset'
@@ -22,6 +22,7 @@ export type Config = Message<{
   configSet?: { [key: string]: ControllerConfig }
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'plugin.host.configset.Config',
   fields: [
@@ -29,7 +30,7 @@ export const Config: MessageType<Config> = createMessageType({
       no: 1,
       name: 'config_set',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
+      K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
   ] as readonly PartialFieldInfo[],

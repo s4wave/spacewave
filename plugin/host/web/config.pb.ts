@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../controller/config.pb.js'
 
 export const protobufPackage = 'plugin.host.web'
@@ -28,16 +28,12 @@ export type Config = Message<{
   webRuntimeId?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'plugin.host.web.Config',
   fields: [
     { no: 1, name: 'host_config', kind: 'message', T: () => Config$1 },
-    {
-      no: 2,
-      name: 'web_runtime_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 2, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.example'
 
@@ -21,10 +21,11 @@ export type Config = Message<{
   runDemo?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bldr.example.Config',
   fields: [
-    { no: 1, name: 'run_demo', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'run_demo', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -43,10 +44,11 @@ export type ExampleProps = Message<{
   msg?: string
 }>
 
+// ExampleProps contains the message type declaration for ExampleProps.
 export const ExampleProps: MessageType<ExampleProps> = createMessageType({
   typeName: 'bldr.example.ExampleProps',
   fields: [
-    { no: 1, name: 'msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'msg', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

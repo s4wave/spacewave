@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { VolumeInfo } from '@go/github.com/aperturerobotics/hydra/volume/volume.pb.js'
 
 export const protobufPackage = 'devtool.web'
@@ -41,17 +41,13 @@ export type DevtoolInitBrowser = Message<{
   startPlugins?: string[]
 }>
 
+// DevtoolInitBrowser contains the message type declaration for DevtoolInitBrowser.
 export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
   createMessageType({
     typeName: 'devtool.web.DevtoolInitBrowser',
     fields: [
-      { no: 1, name: 'app_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      {
-        no: 2,
-        name: 'devtool_peer_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'app_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'devtool_peer_id', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'devtool_volume_info',
@@ -62,7 +58,7 @@ export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
         no: 4,
         name: 'start_plugins',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],

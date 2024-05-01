@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.runtime.wasm'
 
@@ -34,29 +34,25 @@ export type WebWorkerWasmPluginInit = Message<{
   env?: { [key: string]: string }
 }>
 
+// WebWorkerWasmPluginInit contains the message type declaration for WebWorkerWasmPluginInit.
 export const WebWorkerWasmPluginInit: MessageType<WebWorkerWasmPluginInit> =
   createMessageType({
     typeName: 'web.runtime.wasm.WebWorkerWasmPluginInit',
     fields: [
-      {
-        no: 1,
-        name: 'entrypoint',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 2,
         name: 'argv',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
       {
         no: 3,
         name: 'env',
         kind: 'map',
-        K: 9 /* ScalarType.STRING */,
-        V: { kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
