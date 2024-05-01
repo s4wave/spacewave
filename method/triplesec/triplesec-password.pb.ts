@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/auth/method/triplesec/triplesec-password.proto (package auth.method.triplesec, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "auth.method.triplesec";
+export const protobufPackage = 'auth.method.triplesec'
 
 /**
  * Parameters are stored with the user record.
@@ -19,43 +19,36 @@ export type Parameters = Message<{
    *
    * @generated from field: bytes salt = 1;
    */
-  salt?: Uint8Array;
+  salt?: Uint8Array
   /**
    * Version is the triplesec version to use.
    * If zero, latest is used.
    *
    * @generated from field: uint32 version = 2;
    */
-  version?: number;
+  version?: number
+}>
 
-}>;
-
-export const Parameters: MessageType<Parameters> = createMessageType(
-  {
-    typeName: "auth.method.triplesec.Parameters",
-    fields: [
-        { no: 1, name: "salt", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
-        { no: 2, name: "version", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
+// Parameters contains the message type declaration for Parameters.
+export const Parameters: MessageType<Parameters> = createMessageType({
+  typeName: 'auth.method.triplesec.Parameters',
+  fields: [
+    { no: 1, name: 'salt', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 2, name: 'version', kind: 'scalar', T: ScalarType.UINT32 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Config is configuration for the auth method.
  *
  * @generated from message auth.method.triplesec.Config
  */
-export type Config = Message<{
+export type Config = Message<{}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "auth.method.triplesec.Config",
-    fields: [
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+// Config contains the message type declaration for Config.
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'auth.method.triplesec.Config',
+  fields: [] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

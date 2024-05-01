@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/auth/derive/derive.proto (package auth.derive, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, Message } from "@aptre/protobuf-es-lite";
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "auth.derive";
+export const protobufPackage = 'auth.derive'
 
 /**
  * Config configures the derive keypair controller.
@@ -18,17 +18,19 @@ export type Config = Message<{
    *
    * @generated from field: bool disable_prompt_password = 1;
    */
-  disablePromptPassword?: boolean;
+  disablePromptPassword?: boolean
+}>
 
-}>;
-
-export const Config: MessageType<Config> = createMessageType(
-  {
-    typeName: "auth.derive.Config",
-    fields: [
-        { no: 1, name: "disable_prompt_password", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  },
-);
-
+// Config contains the message type declaration for Config.
+export const Config: MessageType<Config> = createMessageType({
+  typeName: 'auth.derive.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'disable_prompt_password',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

@@ -2,5 +2,4 @@
 // @generated from file github.com/aperturerobotics/auth/method/controller/controller.proto (package auth.method.controller, syntax proto3)
 /* eslint-disable */
 
-export const protobufPackage = "auth.method.controller";
-
+export const protobufPackage = 'auth.method.controller'
