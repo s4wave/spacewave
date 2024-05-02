@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@aptre/common@^0.15.0":
-  version "0.15.0"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.0.tgz#77c22037f4e6ffcad23255b536f64e1eb08b6381"
-  integrity sha512-Q3b8BekWK9Y+oYV/GC5SL/HYQOzGCrcFFoUNMRPU9Lwx13ddZIwxm9+VqdsmfAk6uTIgaLMtLjohY7Pt2K7u/Q==
+"@aptre/common@^0.15.1":
+  version "0.15.1"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.1.tgz#120725ae9a0a48ac0a101510afd6780670d9b8ab"
+  integrity sha512-uM2dimDNUPj5sj9CGLNhw5gdrT8sGl37SM0AWgVJhtflfF75fyJPKbygboLiaBHiEf02SLiIfINEdnBfOyyYGw==
   dependencies:
-    "@aptre/protobuf-es-lite" "^0.4.0"
+    "@aptre/protobuf-es-lite" "^0.4.1"
     "@typescript-eslint/eslint-plugin" "^7.8.0"
     "@typescript-eslint/parser" "^7.8.0"
     eslint "^8.0.0"
     eslint-config-prettier "^9.0.0"
     eslint-plugin-react-hooks "^4.6.1"
     eslint-plugin-unused-imports "^3.2.0"
-    starpc "^0.31.14"
+    starpc "^0.32.0"
 
 "@aptre/it-ws@^1.0.0":
   version "1.0.0"
@@ -27,10 +27,10 @@
     uint8arrays "^5.0.0"
     ws "^8.4.0"
 
-"@aptre/protobuf-es-lite@0.4.0", "@aptre/protobuf-es-lite@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.4.0.tgz#af71df96e75fa3bdf6406e508f3e99354f9e588d"
-  integrity sha512-+OlzCuS583Ba1N9GM8EgSiOKksOjrxncBmBcBuEMfCBZZ2jEPVxf/h3IkZ4l+HeEGoNs4pBjXKwyYFWRAtWQsA==
+"@aptre/protobuf-es-lite@0.4.2", "@aptre/protobuf-es-lite@^0.4.1", "@aptre/protobuf-es-lite@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.4.2.tgz#f5f8db0485bfeafde1839f48f41f481a6e086375"
+  integrity sha512-vB97fKwXaUc2pyNRrxTT1Wx7cI+YaZPFj/DsbA5WoBJ6rGCNc1ZgrlguZHcEujwX1U7j6hvWCzRtU2UXqXuHBA==
   dependencies:
     "@typescript/vfs" "^1.5.0"
     lz-string "^1.5.0"
@@ -798,10 +798,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^30.0.1:
-  version "30.0.1"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.1.tgz#2caf0eb7ed591b9b9842b522421bcae3aa8293d6"
-  integrity sha512-iwxkI/n2wBd29NH7TH0ZY8aWGzCoKpzJz+D10u7aGSJi1TV6d4MSM3rWyKvT/UkAHkTKOEgYfUyCa2vWQm8L0g==
+electron@^30.0.2:
+  version "30.0.2"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.2.tgz#95ba019216bf8be9f3097580123e33ea37497733"
+  integrity sha512-zv7T+GG89J/hyWVkQsLH4Y/rVEfqJG5M/wOBIGNaDdqd8UV9/YZPdS7CuFeaIj0H9LhCt95xkIQNpYB/3svOkQ==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -2012,13 +2012,13 @@ sprintf-js@^1.1.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.1.3.tgz#4914b903a2f8b685d17fdf78a70e917e872e444a"
   integrity sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==
 
-starpc@^0.31.14:
-  version "0.31.14"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.31.14.tgz#98f78c5dd4786321c3e61c95c6dcfff3789b2ff8"
-  integrity sha512-THqtrWIM+Rj24eHRtxH9o4ftyShrWVAFfvg9Y28RyeJjfu2D9Txm63mDbb9jEK3+Jone51t+KltgmkHmYX8H/Q==
+starpc@^0.32.0:
+  version "0.32.0"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.0.tgz#c2187b3cc6382d972eb261825757f2376639230f"
+  integrity sha512-M3zjT7O4iP1RunDOmYPBA0KUwv4ABx7masmKHNDO3x2j5OJJBSWi0eZ7ehnPIUamW299OliNo8czXlQMlS8O0A==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
-    "@aptre/protobuf-es-lite" "^0.4.0"
+    "@aptre/protobuf-es-lite" "^0.4.1"
     "@chainsafe/libp2p-yamux" "^6.0.2"
     "@libp2p/interface" "^1.3.1"
     "@libp2p/logger" "^4.0.12"
@@ -2037,6 +2037,7 @@ stream-shift@^1.0.2:
   integrity sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ==
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==

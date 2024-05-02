@@ -65,7 +65,7 @@
     "prepare": "npm run clean && rimraf ./.tools && npm run vendor && npm run setup"
   },
   "devDependencies": {
-    "@aptre/common": "^0.15.0",
+    "@aptre/common": "^0.15.1",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.79",
@@ -80,20 +80,20 @@
     "unzip-crx-3": "^0.2.0"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.0",
+    "@aptre/protobuf-es-lite": "^0.4.2",
     "@libp2p/logger": "^4.0.12",
     "browser-readablestream-to-it": "^2.0.5",
     "console": "^0.7.2",
-    "electron": "^30.0.1",
+    "electron": "^30.0.2",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "lodash.isequal": "^4.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.31.14",
+    "starpc": "^0.32.0",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.0"
+    "@aptre/protobuf-es-lite": "0.4.2"
   }
 }
