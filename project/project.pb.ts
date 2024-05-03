@@ -235,7 +235,7 @@ export type PublishStorageConfig = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
 // PublishStorageConfig contains the message type declaration for PublishStorageConfig.

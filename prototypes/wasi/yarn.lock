@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@bjorn3/browser_wasi_shim@^0.2.19":
-  version "0.2.20"
-  resolved "https://registry.yarnpkg.com/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.2.20.tgz#bd6838273a6db9fa501c74a23dd28d8ac20081cb"
-  integrity sha512-URvkOAWWRQ8gazkBRgQ/e0H6R0VlOALJ9/vI2VBttG23MHzUZzy5KFyKAFVI1qL/hbqLwnZw/sIXFkeS6OH5EQ==
+"@bjorn3/browser_wasi_shim@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.3.0.tgz#8aa310eed2298bab435bd1f73ab100fbc3f018da"
+  integrity sha512-FlRBYttPRLcWORzBe6g8nmYTafBkOEFeOqMYM4tAHJzFsQy4+xJA94z85a9BCs8S+Uzfh9LrkpII7DXr2iUVFg==
 
 xterm-addon-fit@^0.8.0:
   version "0.8.0"

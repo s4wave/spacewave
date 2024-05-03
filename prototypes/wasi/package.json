@@ -3,7 +3,7 @@
   "description": "prototype of wasi",
   "private": true,
   "dependencies": {
-    "@bjorn3/browser_wasi_shim": "^0.2.19",
+    "@bjorn3/browser_wasi_shim": "^0.3.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   }

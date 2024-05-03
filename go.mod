@@ -2,13 +2,13 @@ module github.com/aperturerobotics/bldr
 
 go 1.22
 
-require github.com/aperturerobotics/common v0.15.0 // latest
+require github.com/aperturerobotics/common v0.15.2 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240503081103-3e0a71b3b209 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // master
 )
 
@@ -17,12 +17,12 @@ require (
 	github.com/evanw/esbuild v0.20.2 // latest
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
-	github.com/tetratelabs/wazero v1.7.0 // latest
+	github.com/tetratelabs/wazero v1.7.1 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.31.1 // master
+require github.com/aperturerobotics/bifrost v0.32.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -49,9 +49,9 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.4 // master
+	github.com/aperturerobotics/controllerbus v0.44.5 // master
 	github.com/aperturerobotics/entitygraph v0.9.0 // indirect
-	github.com/aperturerobotics/starpc v0.31.14 // latest
+	github.com/aperturerobotics/starpc v0.32.2 // latest
 )
 
 // aperture: use compatibility forks
@@ -67,7 +67,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
+	github.com/aperturerobotics/util v1.23.0 // master
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.8
@@ -92,18 +92,18 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.1
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/aperturerobotics/go-kvfile v0.7.1
 	github.com/cayleygraph/quad v1.2.5
 	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v5 v5.5.1-0.20240327091054-4d0d7f0db7ba
+	github.com/go-git/go-billy/v5 v5.5.1-0.20240501073131-eafb735e5b54
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/mod v0.17.0
 	golang.org/x/sync v0.7.0
-	golang.org/x/tools v0.20.1-0.20240419174437-daf94608b5e2 // master
+	golang.org/x/tools v0.20.1-0.20240502223823-ccdef3cc2699 // master
 )
 
 require (
@@ -163,7 +163,7 @@ require (
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
-	github.com/pion/ice/v3 v3.0.6 // indirect
+	github.com/pion/ice/v3 v3.0.7 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
@@ -176,8 +176,8 @@ require (
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
-	github.com/pion/turn/v3 v3.0.2 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.18 // indirect
+	github.com/pion/turn/v3 v3.0.3 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.19 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect

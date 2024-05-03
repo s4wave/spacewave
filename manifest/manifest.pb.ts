@@ -156,7 +156,7 @@ export type ManifestBundle = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 2;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
 // ManifestBundle contains the message type declaration for ManifestBundle.
