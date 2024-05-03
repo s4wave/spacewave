@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.http.lookup'
 
@@ -48,18 +48,14 @@ export type Config = Message<{
   verbose?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.http.lookup.Config',
   fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 3,
-      name: 'skip_not_found',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 4, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Quad } from '../../../block/quad/quad.pb.js'
@@ -123,21 +124,12 @@ export type TxApplyWorldOp = Message<{
   operationBody?: Uint8Array
 }>
 
+// TxApplyWorldOp contains the message type declaration for TxApplyWorldOp.
 export const TxApplyWorldOp: MessageType<TxApplyWorldOp> = createMessageType({
   typeName: 'world.block.tx.TxApplyWorldOp',
   fields: [
-    {
-      no: 1,
-      name: 'operation_type_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'operation_body',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
+    { no: 1, name: 'operation_type_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -169,22 +161,13 @@ export type TxApplyObjectOp = Message<{
   objectKey?: string
 }>
 
+// TxApplyObjectOp contains the message type declaration for TxApplyObjectOp.
 export const TxApplyObjectOp: MessageType<TxApplyObjectOp> = createMessageType({
   typeName: 'world.block.tx.TxApplyObjectOp',
   fields: [
-    {
-      no: 1,
-      name: 'operation_type_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'operation_body',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
-    { no: 3, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'operation_type_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -210,10 +193,11 @@ export type TxCreateObject = Message<{
   rootRef?: ObjectRef
 }>
 
+// TxCreateObject contains the message type declaration for TxCreateObject.
 export const TxCreateObject: MessageType<TxCreateObject> = createMessageType({
   typeName: 'world.block.tx.TxCreateObject',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -240,10 +224,11 @@ export type TxObjectSet = Message<{
   rootRef?: ObjectRef
 }>
 
+// TxObjectSet contains the message type declaration for TxObjectSet.
 export const TxObjectSet: MessageType<TxObjectSet> = createMessageType({
   typeName: 'world.block.tx.TxObjectSet',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -264,10 +249,11 @@ export type TxObjectIncRev = Message<{
   objectKey?: string
 }>
 
+// TxObjectIncRev contains the message type declaration for TxObjectIncRev.
 export const TxObjectIncRev: MessageType<TxObjectIncRev> = createMessageType({
   typeName: 'world.block.tx.TxObjectIncRev',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -293,16 +279,12 @@ export type TxDeleteObject = Message<{
   failIfNotFound?: boolean
 }>
 
+// TxDeleteObject contains the message type declaration for TxDeleteObject.
 export const TxDeleteObject: MessageType<TxDeleteObject> = createMessageType({
   typeName: 'world.block.tx.TxDeleteObject',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'fail_if_not_found',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'fail_if_not_found', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -322,6 +304,7 @@ export type TxSetGraphQuad = Message<{
   quad?: Quad
 }>
 
+// TxSetGraphQuad contains the message type declaration for TxSetGraphQuad.
 export const TxSetGraphQuad: MessageType<TxSetGraphQuad> = createMessageType({
   typeName: 'world.block.tx.TxSetGraphQuad',
   fields: [
@@ -345,6 +328,7 @@ export type TxDeleteGraphQuad = Message<{
   quad?: Quad
 }>
 
+// TxDeleteGraphQuad contains the message type declaration for TxDeleteGraphQuad.
 export const TxDeleteGraphQuad: MessageType<TxDeleteGraphQuad> =
   createMessageType({
     typeName: 'world.block.tx.TxDeleteGraphQuad',
@@ -368,6 +352,7 @@ export type TxBatch = Message<{
   txs?: Tx[]
 }>
 
+// TxBatch contains the message type declaration for TxBatch.
 export const TxBatch: MessageType<TxBatch> = createMessageType({
   typeName: 'world.block.tx.TxBatch',
   fields: [
@@ -450,6 +435,7 @@ export type Tx = Message<{
   txBatch?: TxBatch
 }>
 
+// Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({
   typeName: 'world.block.tx.Tx',
   fields: [

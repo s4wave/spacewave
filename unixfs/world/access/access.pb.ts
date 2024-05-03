@@ -3,7 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
 import { UnixfsRef } from '../unixfs.pb.js'
 
 export const protobufPackage = 'unixfs.world.access'
@@ -58,22 +63,23 @@ export type Config = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 7;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'unixfs.world.access.Config',
   fields: [
-    { no: 1, name: 'fs_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'fs_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'fs_ref', kind: 'message', T: () => UnixfsRef },
-    { no: 5, name: 'mkdir_path', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: 'mkdir_path', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 6,
       name: 'disable_watch_changes',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     { no: 7, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] as readonly PartialFieldInfo[],

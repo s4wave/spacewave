@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { BlockRef, PutOpts } from '../../block.pb.js'
@@ -61,32 +61,23 @@ export type Config = Message<{
   verbose?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.http.Config',
   fields: [
-    {
-      no: 1,
-      name: 'block_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'read_only', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
     {
       no: 5,
       name: 'bucket_ids',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 6,
-      name: 'skip_not_found',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 7, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -111,10 +102,11 @@ export type PutRequest = Message<{
   putOpts?: PutOpts
 }>
 
+// PutRequest contains the message type declaration for PutRequest.
 export const PutRequest: MessageType<PutRequest> = createMessageType({
   typeName: 'block.store.http.PutRequest',
   fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -148,12 +140,13 @@ export type PutResponse = Message<{
   err?: string
 }>
 
+// PutResponse contains the message type declaration for PutResponse.
 export const PutResponse: MessageType<PutResponse> = createMessageType({
   typeName: 'block.store.http.PutResponse',
   fields: [
     { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-    { no: 2, name: 'exists', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'err', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'err', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -185,12 +178,13 @@ export type GetResponse = Message<{
   err?: string
 }>
 
+// GetResponse contains the message type declaration for GetResponse.
 export const GetResponse: MessageType<GetResponse> = createMessageType({
   typeName: 'block.store.http.GetResponse',
   fields: [
-    { no: 1, name: 'not_found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 3, name: 'err', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 3, name: 'err', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -223,12 +217,13 @@ export type ExistsResponse = Message<{
   err?: string
 }>
 
+// ExistsResponse contains the message type declaration for ExistsResponse.
 export const ExistsResponse: MessageType<ExistsResponse> = createMessageType({
   typeName: 'block.store.http.ExistsResponse',
   fields: [
-    { no: 1, name: 'exists', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'not_found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'err', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'err', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -254,11 +249,12 @@ export type RmResponse = Message<{
   err?: string
 }>
 
+// RmResponse contains the message type declaration for RmResponse.
 export const RmResponse: MessageType<RmResponse> = createMessageType({
   typeName: 'block.store.http.RmResponse',
   fields: [
-    { no: 1, name: 'removed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'err', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'err', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
@@ -36,22 +36,13 @@ export type Credentials = Message<{
   token?: string
 }>
 
+// Credentials contains the message type declaration for Credentials.
 export const Credentials: MessageType<Credentials> = createMessageType({
   typeName: 'block.store.s3.Credentials',
   fields: [
-    {
-      no: 1,
-      name: 'access_key_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'secret_access_key',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 3, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'access_key_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'secret_access_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'token', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -91,13 +82,14 @@ export type ClientConfig = Message<{
   region?: string
 }>
 
+// ClientConfig contains the message type declaration for ClientConfig.
 export const ClientConfig: MessageType<ClientConfig> = createMessageType({
   typeName: 'block.store.s3.ClientConfig',
   fields: [
-    { no: 1, name: 'endpoint', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'credentials', kind: 'message', T: () => Credentials },
-    { no: 3, name: 'disable_ssl', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'region', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'disable_ssl', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'region', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -166,44 +158,25 @@ export type Config = Message<{
   verbose?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.s3.Config',
   fields: [
-    {
-      no: 1,
-      name: 'block_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'client', kind: 'message', T: () => ClientConfig },
-    {
-      no: 3,
-      name: 'bucket_name',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 4,
-      name: 'object_prefix',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 5, name: 'read_only', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'bucket_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
     {
       no: 7,
       name: 'bucket_ids',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 8,
-      name: 'skip_not_found',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 9, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 8, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 9, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

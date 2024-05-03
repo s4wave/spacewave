@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { VolumeBucketInfo, VolumeInfo } from '../../volume/volume.pb.js'
 import {
@@ -110,6 +111,7 @@ export const ObjectStoreOp_Enum = createEnumType('hydra.api.ObjectStoreOp', [
  */
 export type Config = Message<{}>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'hydra.api.Config',
   fields: [] as readonly PartialFieldInfo[],
@@ -123,6 +125,7 @@ export const Config: MessageType<Config> = createMessageType({
  */
 export type ListVolumesRequest = Message<{}>
 
+// ListVolumesRequest contains the message type declaration for ListVolumesRequest.
 export const ListVolumesRequest: MessageType<ListVolumesRequest> =
   createMessageType({
     typeName: 'hydra.api.ListVolumesRequest',
@@ -144,6 +147,7 @@ export type ListVolumesResponse = Message<{
   volumes?: VolumeInfo[]
 }>
 
+// ListVolumesResponse contains the message type declaration for ListVolumesResponse.
 export const ListVolumesResponse: MessageType<ListVolumesResponse> =
   createMessageType({
     typeName: 'hydra.api.ListVolumesResponse',
@@ -173,6 +177,7 @@ export type ListBucketsResponse = Message<{
   buckets?: VolumeBucketInfo[]
 }>
 
+// ListBucketsResponse contains the message type declaration for ListBucketsResponse.
 export const ListBucketsResponse: MessageType<ListBucketsResponse> =
   createMessageType({
     typeName: 'hydra.api.ListBucketsResponse',
@@ -219,22 +224,18 @@ export type ApplyBucketConfigRequest = Message<{
   volumeIdList?: string[]
 }>
 
+// ApplyBucketConfigRequest contains the message type declaration for ApplyBucketConfigRequest.
 export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
   createMessageType({
     typeName: 'hydra.api.ApplyBucketConfigRequest',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config$1 },
-      {
-        no: 2,
-        name: 'volume_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 2, name: 'volume_id_re', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'volume_id_list',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],
@@ -255,6 +256,7 @@ export type ApplyBucketConfigResponse = Message<{
   applyConfResult?: ApplyBucketConfigResult
 }>
 
+// ApplyBucketConfigResponse contains the message type declaration for ApplyBucketConfigResponse.
 export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
   createMessageType({
     typeName: 'hydra.api.ApplyBucketConfigResponse',
@@ -310,6 +312,7 @@ export type BucketOpRequest = Message<{
   data?: Uint8Array
 }>
 
+// BucketOpRequest contains the message type declaration for BucketOpRequest.
 export const BucketOpRequest: MessageType<BucketOpRequest> = createMessageType({
   typeName: 'hydra.api.BucketOpRequest',
   fields: [
@@ -317,7 +320,7 @@ export const BucketOpRequest: MessageType<BucketOpRequest> = createMessageType({
     { no: 2, name: 'bucket_op_args', kind: 'message', T: () => BucketOpArgs },
     { no: 3, name: 'block_ref', kind: 'message', T: () => BlockRef },
     { no: 4, name: 'put_opts', kind: 'message', T: () => PutOpts },
-    { no: 5, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -351,13 +354,14 @@ export type BucketOpResponse = Message<{
   found?: boolean
 }>
 
+// BucketOpResponse contains the message type declaration for BucketOpResponse.
 export const BucketOpResponse: MessageType<BucketOpResponse> =
   createMessageType({
     typeName: 'hydra.api.BucketOpResponse',
     fields: [
       { no: 1, name: 'event', kind: 'message', T: () => Event },
-      { no: 2, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-      { no: 3, name: 'found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -403,25 +407,16 @@ export type ObjectStoreOpRequest = Message<{
   data?: Uint8Array
 }>
 
+// ObjectStoreOpRequest contains the message type declaration for ObjectStoreOpRequest.
 export const ObjectStoreOpRequest: MessageType<ObjectStoreOpRequest> =
   createMessageType({
     typeName: 'hydra.api.ObjectStoreOpRequest',
     fields: [
       { no: 1, name: 'op', kind: 'enum', T: ObjectStoreOp_Enum },
-      {
-        no: 2,
-        name: 'volume_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 3,
-        name: 'store_name',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 4, name: 'key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 5, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+      { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'store_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -454,17 +449,18 @@ export type ObjectStoreOpResponse = Message<{
   keys?: Uint8Array[]
 }>
 
+// ObjectStoreOpResponse contains the message type declaration for ObjectStoreOpResponse.
 export const ObjectStoreOpResponse: MessageType<ObjectStoreOpResponse> =
   createMessageType({
     typeName: 'hydra.api.ObjectStoreOpResponse',
     fields: [
-      { no: 1, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-      { no: 2, name: 'found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       {
         no: 3,
         name: 'keys',
         kind: 'scalar',
-        T: 12 /* ScalarType.BYTES */,
+        T: ScalarType.BYTES,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
 export const protobufPackage = 'node.controller'
@@ -38,20 +38,16 @@ export type Config = Message<{
   defaultLookup?: ControllerConfig
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'node.controller.Config',
   fields: [
-    {
-      no: 1,
-      name: 'disable_lookup',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 1, name: 'disable_lookup', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 2,
       name: 'disable_default_lookup',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     {
       no: 3,

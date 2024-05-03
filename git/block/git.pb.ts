@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
@@ -164,6 +165,7 @@ export type ReferencesStore = Message<{
   kvtxRoot?: KeyValueStore
 }>
 
+// ReferencesStore contains the message type declaration for ReferencesStore.
 export const ReferencesStore: MessageType<ReferencesStore> = createMessageType({
   typeName: 'git.block.ReferencesStore',
   fields: [
@@ -187,6 +189,7 @@ export type ModuleReferencesStore = Message<{
   kvtxRoot?: KeyValueStore
 }>
 
+// ModuleReferencesStore contains the message type declaration for ModuleReferencesStore.
 export const ModuleReferencesStore: MessageType<ModuleReferencesStore> =
   createMessageType({
     typeName: 'git.block.ModuleReferencesStore',
@@ -216,6 +219,7 @@ export type EncodedObjectStore = Message<{
   chunkerArgs?: ChunkerArgs
 }>
 
+// EncodedObjectStore contains the message type declaration for EncodedObjectStore.
 export const EncodedObjectStore: MessageType<EncodedObjectStore> =
   createMessageType({
     typeName: 'git.block.EncodedObjectStore',
@@ -266,6 +270,7 @@ export type Repo = Message<{
   gitConfig?: string
 }>
 
+// Repo contains the message type declaration for Repo.
 export const Repo: MessageType<Repo> = createMessageType({
   typeName: 'git.block.Repo',
   fields: [
@@ -293,7 +298,7 @@ export const Repo: MessageType<Repo> = createMessageType({
       kind: 'message',
       T: () => BlockRef,
     },
-    { no: 5, name: 'git_config', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'git_config', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -312,6 +317,7 @@ export type ShallowRefsStore = Message<{
   shallowRefs?: Hash[]
 }>
 
+// ShallowRefsStore contains the message type declaration for ShallowRefsStore.
 export const ShallowRefsStore: MessageType<ShallowRefsStore> =
   createMessageType({
     typeName: 'git.block.ShallowRefsStore',
@@ -347,10 +353,11 @@ export type Submodule = Message<{
   repoRef?: BlockRef
 }>
 
+// Submodule contains the message type declaration for Submodule.
 export const Submodule: MessageType<Submodule> = createMessageType({
   typeName: 'git.block.Submodule',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'repo_ref', kind: 'message', T: () => BlockRef },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -392,17 +399,18 @@ export type Reference = Message<{
   targetReferenceName?: string
 }>
 
+// Reference contains the message type declaration for Reference.
 export const Reference: MessageType<Reference> = createMessageType({
   typeName: 'git.block.Reference',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'reference_type', kind: 'enum', T: ReferenceType_Enum },
     { no: 3, name: 'hash', kind: 'message', T: () => Hash },
     {
       no: 4,
       name: 'target_reference_name',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -435,6 +443,7 @@ export type EncodedObject = Message<{
   encodedObjectType?: EncodedObjectType
 }>
 
+// EncodedObject contains the message type declaration for EncodedObject.
 export const EncodedObject: MessageType<EncodedObject> = createMessageType({
   typeName: 'git.block.EncodedObject',
   fields: [
@@ -474,13 +483,13 @@ export type IndexEntry = Message<{
    *
    * @generated from field: google.protobuf.Timestamp created_at = 3;
    */
-  createdAt?: Timestamp
+  createdAt?: Date
   /**
    * ModifiedAt is the time when the path was modified.
    *
    * @generated from field: google.protobuf.Timestamp modified_at = 4;
    */
-  modifiedAt?: Timestamp
+  modifiedAt?: Date
   /**
    * Dev is the device of the tracked path.
    *
@@ -540,32 +549,23 @@ export type IndexEntry = Message<{
   intentToAdd?: boolean
 }>
 
+// IndexEntry contains the message type declaration for IndexEntry.
 export const IndexEntry: MessageType<IndexEntry> = createMessageType({
   typeName: 'git.block.IndexEntry',
   fields: [
     { no: 1, name: 'data_hash', kind: 'message', T: () => Hash },
-    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 4, name: 'modified_at', kind: 'message', T: () => Timestamp },
-    { no: 5, name: 'dev', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 6, name: 'inode', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 7, name: 'file_mode', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 8, name: 'uid', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 9, name: 'gid', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 10, name: 'size', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 11, name: 'stage', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    {
-      no: 12,
-      name: 'skip_worktree',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 13,
-      name: 'intent_to_add',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 5, name: 'dev', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 6, name: 'inode', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 7, name: 'file_mode', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 8, name: 'uid', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 9, name: 'gid', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 10, name: 'size', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 11, name: 'stage', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 12, name: 'skip_worktree', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 13, name: 'intent_to_add', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -604,12 +604,13 @@ export type TreeEntry = Message<{
   hash?: Hash
 }>
 
+// TreeEntry contains the message type declaration for TreeEntry.
 export const TreeEntry: MessageType<TreeEntry> = createMessageType({
   typeName: 'git.block.TreeEntry',
   fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'entries', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    { no: 3, name: 'trees', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'entries', kind: 'scalar', T: ScalarType.INT32 },
+    { no: 3, name: 'trees', kind: 'scalar', T: ScalarType.INT32 },
     { no: 4, name: 'hash', kind: 'message', T: () => Hash },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -630,6 +631,7 @@ export type Tree = Message<{
   entries?: TreeEntry[]
 }>
 
+// Tree contains the message type declaration for Tree.
 export const Tree: MessageType<Tree> = createMessageType({
   typeName: 'git.block.Tree',
   fields: [
@@ -664,16 +666,17 @@ export type ResolveUndoEntry = Message<{
   stages?: { [key: number]: Hash }
 }>
 
+// ResolveUndoEntry contains the message type declaration for ResolveUndoEntry.
 export const ResolveUndoEntry: MessageType<ResolveUndoEntry> =
   createMessageType({
     typeName: 'git.block.ResolveUndoEntry',
     fields: [
-      { no: 1, name: 'path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 2,
         name: 'stages',
         kind: 'map',
-        K: 13 /* ScalarType.UINT32 */,
+        K: ScalarType.UINT32,
         V: { kind: 'message', T: () => Hash },
       },
     ] as readonly PartialFieldInfo[],
@@ -697,6 +700,7 @@ export type ResolveUndo = Message<{
   entries?: ResolveUndoEntry[]
 }>
 
+// ResolveUndo contains the message type declaration for ResolveUndo.
 export const ResolveUndo: MessageType<ResolveUndo> = createMessageType({
   typeName: 'git.block.ResolveUndo',
   fields: [
@@ -732,10 +736,11 @@ export type EndOfIndexEntry = Message<{
   hash?: Hash
 }>
 
+// EndOfIndexEntry contains the message type declaration for EndOfIndexEntry.
 export const EndOfIndexEntry: MessageType<EndOfIndexEntry> = createMessageType({
   typeName: 'git.block.EndOfIndexEntry',
   fields: [
-    { no: 1, name: 'offset', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'offset', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 2, name: 'hash', kind: 'message', T: () => Hash },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -779,10 +784,11 @@ export type Index = Message<{
   endOfIndexEntry?: EndOfIndexEntry
 }>
 
+// Index contains the message type declaration for Index.
 export const Index: MessageType<Index> = createMessageType({
   typeName: 'git.block.Index',
   fields: [
-    { no: 1, name: 'version', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'version', kind: 'scalar', T: ScalarType.UINT32 },
     {
       no: 2,
       name: 'entries',
@@ -822,11 +828,12 @@ export type AuthOpts = Message<{
   peerId?: string
 }>
 
+// AuthOpts contains the message type declaration for AuthOpts.
 export const AuthOpts: MessageType<AuthOpts> = createMessageType({
   typeName: 'git.block.AuthOpts',
   fields: [
-    { no: 1, name: 'username', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -900,34 +907,20 @@ export type CloneOpts = Message<{
   caBundle?: string
 }>
 
+// CloneOpts contains the message type declaration for CloneOpts.
 export const CloneOpts: MessageType<CloneOpts> = createMessageType({
   typeName: 'git.block.CloneOpts',
   fields: [
-    { no: 1, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'remote_name',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 3, name: 'ref', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 4,
-      name: 'single_branch',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 5,
-      name: 'disable_checkout',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 6, name: 'depth', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 7, name: 'recursive', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'remote_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'ref', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'single_branch', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'depth', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 7, name: 'recursive', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'tag_mode', kind: 'enum', T: TagMode_Enum },
-    { no: 9, name: 'insecure', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 10, name: 'ca_bundle', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: 'insecure', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 10, name: 'ca_bundle', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -974,14 +967,15 @@ export type CheckoutOpts = Message<{
   keep?: boolean
 }>
 
+// CheckoutOpts contains the message type declaration for CheckoutOpts.
 export const CheckoutOpts: MessageType<CheckoutOpts> = createMessageType({
   typeName: 'git.block.CheckoutOpts',
   fields: [
     { no: 1, name: 'commit', kind: 'message', T: () => Hash },
-    { no: 2, name: 'branch', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'create', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'force', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 5, name: 'keep', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: 'branch', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'create', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'force', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'keep', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

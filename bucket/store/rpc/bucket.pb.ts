@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BucketInfo, Config } from '../../bucket.pb.js'
 
 export const protobufPackage = 'bucket.store.rpc'
@@ -22,6 +22,7 @@ export type ApplyBucketConfigRequest = Message<{
   config?: Config
 }>
 
+// ApplyBucketConfigRequest contains the message type declaration for ApplyBucketConfigRequest.
 export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
   createMessageType({
     typeName: 'bucket.store.rpc.ApplyBucketConfigRequest',
@@ -57,11 +58,12 @@ export type ApplyBucketConfigResponse = Message<{
   curr?: Config
 }>
 
+// ApplyBucketConfigResponse contains the message type declaration for ApplyBucketConfigResponse.
 export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
   createMessageType({
     typeName: 'bucket.store.rpc.ApplyBucketConfigResponse',
     fields: [
-      { no: 1, name: 'updated', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'updated', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'prev', kind: 'message', T: () => Config },
       { no: 3, name: 'curr', kind: 'message', T: () => Config },
     ] as readonly PartialFieldInfo[],
@@ -82,16 +84,12 @@ export type GetBucketConfigRequest = Message<{
   bucketId?: string
 }>
 
+// GetBucketConfigRequest contains the message type declaration for GetBucketConfigRequest.
 export const GetBucketConfigRequest: MessageType<GetBucketConfigRequest> =
   createMessageType({
     typeName: 'bucket.store.rpc.GetBucketConfigRequest',
     fields: [
-      {
-        no: 1,
-        name: 'bucket_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -110,6 +108,7 @@ export type GetBucketConfigResponse = Message<{
   config?: Config
 }>
 
+// GetBucketConfigResponse contains the message type declaration for GetBucketConfigResponse.
 export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> =
   createMessageType({
     typeName: 'bucket.store.rpc.GetBucketConfigResponse',
@@ -133,16 +132,12 @@ export type GetBucketInfoRequest = Message<{
   bucketId?: string
 }>
 
+// GetBucketInfoRequest contains the message type declaration for GetBucketInfoRequest.
 export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> =
   createMessageType({
     typeName: 'bucket.store.rpc.GetBucketInfoRequest',
     fields: [
-      {
-        no: 1,
-        name: 'bucket_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -162,6 +157,7 @@ export type GetBucketInfoResponse = Message<{
   bucketInfo?: BucketInfo
 }>
 
+// GetBucketInfoResponse contains the message type declaration for GetBucketInfoResponse.
 export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> =
   createMessageType({
     typeName: 'bucket.store.rpc.GetBucketInfoResponse',
@@ -185,16 +181,12 @@ export type ListBucketInfoRequest = Message<{
   bucketIdRe?: string
 }>
 
+// ListBucketInfoRequest contains the message type declaration for ListBucketInfoRequest.
 export const ListBucketInfoRequest: MessageType<ListBucketInfoRequest> =
   createMessageType({
     typeName: 'bucket.store.rpc.ListBucketInfoRequest',
     fields: [
-      {
-        no: 1,
-        name: 'bucket_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'bucket_id_re', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -213,6 +205,7 @@ export type ListBucketInfoResponse = Message<{
   bucketInfo?: BucketInfo[]
 }>
 
+// ListBucketInfoResponse contains the message type declaration for ListBucketInfoResponse.
 export const ListBucketInfoResponse: MessageType<ListBucketInfoResponse> =
   createMessageType({
     typeName: 'bucket.store.rpc.ListBucketInfoResponse',

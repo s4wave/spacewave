@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
@@ -97,30 +97,21 @@ export type Config = Message<{
   volumeId?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.world.Config',
   fields: [
     { no: 1, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 4, name: 'store_config', kind: 'message', T: () => Config$3 },
-    {
-      no: 5,
-      name: 'no_generate_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 11,
-      name: 'no_write_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 5, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 11, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
-    { no: 7, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 10, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 10, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

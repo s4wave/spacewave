@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
@@ -94,23 +95,14 @@ export type Config = Message<{
   syncBackoff?: Backoff
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'psecho.Config',
   fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'pubsub_channel',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 4,
-      name: 'transport_id',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'pubsub_channel', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'transport_id', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 5, name: 'sync_backoff', kind: 'message', T: () => Backoff },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -153,6 +145,7 @@ export type PubSubMessage = Message<{
   wantEmpty?: boolean
 }>
 
+// PubSubMessage contains the message type declaration for PubSubMessage.
 export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
   typeName: 'psecho.PubSubMessage',
   fields: [
@@ -177,7 +170,7 @@ export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
       T: () => BlockRef,
       repeated: true,
     },
-    { no: 4, name: 'want_empty', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'want_empty', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -225,19 +218,15 @@ export type SyncMessage = Message<{
   blockSize?: number
 }>
 
+// SyncMessage contains the message type declaration for SyncMessage.
 export const SyncMessage: MessageType<SyncMessage> = createMessageType({
   typeName: 'psecho.SyncMessage',
   fields: [
     { no: 1, name: 'message_type', kind: 'enum', T: SyncMessageType_Enum },
     { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
-    { no: 3, name: 'chunk', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 4, name: 'complete', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    {
-      no: 5,
-      name: 'block_size',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 3, name: 'chunk', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 4, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'block_size', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

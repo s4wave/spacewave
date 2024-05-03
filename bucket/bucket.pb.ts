@@ -3,7 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { BlockRef, PutOpts } from '../block/block.pb.js'
 import { Config as Config$1 } from '../block/transform/transform.pb.js'
@@ -36,13 +41,14 @@ export type ReconcilerConfig = Message<{
   filterPut?: boolean
 }>
 
+// ReconcilerConfig contains the message type declaration for ReconcilerConfig.
 export const ReconcilerConfig: MessageType<ReconcilerConfig> =
   createMessageType({
     typeName: 'bucket.ReconcilerConfig',
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'controller', kind: 'message', T: () => ControllerConfig },
-      { no: 3, name: 'filter_put', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 3, name: 'filter_put', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -70,10 +76,11 @@ export type LookupConfig = Message<{
   controller?: ControllerConfig
 }>
 
+// LookupConfig contains the message type declaration for LookupConfig.
 export const LookupConfig: MessageType<LookupConfig> = createMessageType({
   typeName: 'bucket.LookupConfig',
   fields: [
-    { no: 1, name: 'disable', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'disable', kind: 'scalar', T: ScalarType.BOOL },
     { no: 2, name: 'controller', kind: 'message', T: () => ControllerConfig },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -120,11 +127,12 @@ export type Config = Message<{
   lookup?: LookupConfig
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'bucket.Config',
   fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'rev', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT32 },
     {
       no: 3,
       name: 'reconcilers',
@@ -152,6 +160,7 @@ export type BucketInfo = Message<{
   config?: Config
 }>
 
+// BucketInfo contains the message type declaration for BucketInfo.
 export const BucketInfo: MessageType<BucketInfo> = createMessageType({
   typeName: 'bucket.BucketInfo',
   fields: [
@@ -195,7 +204,7 @@ export type ApplyBucketConfigResult = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
   /**
    * Updated indicates if the value was updated.
    *
@@ -211,27 +220,18 @@ export type ApplyBucketConfigResult = Message<{
   error?: string
 }>
 
+// ApplyBucketConfigResult contains the message type declaration for ApplyBucketConfigResult.
 export const ApplyBucketConfigResult: MessageType<ApplyBucketConfigResult> =
   createMessageType({
     typeName: 'bucket.ApplyBucketConfigResult',
     fields: [
-      {
-        no: 1,
-        name: 'volume_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'bucket_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'bucket_conf', kind: 'message', T: () => Config },
       { no: 4, name: 'old_bucket_conf', kind: 'message', T: () => Config },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-      { no: 6, name: 'updated', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 7, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 6, name: 'updated', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -274,11 +274,12 @@ export type ObjectRef = Message<{
   transformConf?: Config$1
 }>
 
+// ObjectRef contains the message type declaration for ObjectRef.
 export const ObjectRef: MessageType<ObjectRef> = createMessageType({
   typeName: 'bucket.ObjectRef',
   fields: [
     { no: 1, name: 'root_ref', kind: 'message', T: () => BlockRef },
-    { no: 2, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'transform_conf_ref', kind: 'message', T: () => BlockRef },
     { no: 4, name: 'transform_conf', kind: 'message', T: () => Config$1 },
   ] as readonly PartialFieldInfo[],
@@ -306,11 +307,12 @@ export type BucketOpArgs = Message<{
   volumeId?: string
 }>
 
+// BucketOpArgs contains the message type declaration for BucketOpArgs.
 export const BucketOpArgs: MessageType<BucketOpArgs> = createMessageType({
   typeName: 'bucket.BucketOpArgs',
   fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

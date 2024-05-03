@@ -61,6 +61,7 @@ export type KeyValueStore = Message<{
   iavlRoot?: Node
 }>
 
+// KeyValueStore contains the message type declaration for KeyValueStore.
 export const KeyValueStore: MessageType<KeyValueStore> = createMessageType({
   typeName: 'kvtx.block.KeyValueStore',
   fields: [

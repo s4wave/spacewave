@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block.pb.js'
 
@@ -97,12 +98,13 @@ export type Chunk = Message<{
   start?: bigint
 }>
 
+// Chunk contains the message type declaration for Chunk.
 export const Chunk: MessageType<Chunk> = createMessageType({
   typeName: 'blob.Chunk',
   fields: [
     { no: 1, name: 'data_ref', kind: 'message', T: () => BlockRef },
-    { no: 2, name: 'size', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
-    { no: 3, name: 'start', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 2, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'start', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -146,23 +148,14 @@ export type RabinArgs = Message<{
   chunkingMaxSize?: bigint
 }>
 
+// RabinArgs contains the message type declaration for RabinArgs.
 export const RabinArgs: MessageType<RabinArgs> = createMessageType({
   typeName: 'blob.RabinArgs',
   fields: [
-    { no: 1, name: 'pol', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
-    { no: 4, name: 'random_pol', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    {
-      no: 2,
-      name: 'chunking_min_size',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
-    {
-      no: 3,
-      name: 'chunking_max_size',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
+    { no: 1, name: 'pol', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 4, name: 'random_pol', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'chunking_min_size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'chunking_max_size', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -189,6 +182,7 @@ export type ChunkerArgs = Message<{
   rabinArgs?: RabinArgs
 }>
 
+// ChunkerArgs contains the message type declaration for ChunkerArgs.
 export const ChunkerArgs: MessageType<ChunkerArgs> = createMessageType({
   typeName: 'blob.ChunkerArgs',
   fields: [
@@ -219,6 +213,7 @@ export type ChunkIndex = Message<{
   chunkerArgs?: ChunkerArgs
 }>
 
+// ChunkIndex contains the message type declaration for ChunkIndex.
 export const ChunkIndex: MessageType<ChunkIndex> = createMessageType({
   typeName: 'blob.ChunkIndex',
   fields: [
@@ -263,12 +258,13 @@ export type Blob = Message<{
   chunkIndex?: ChunkIndex
 }>
 
+// Blob contains the message type declaration for Blob.
 export const Blob: MessageType<Blob> = createMessageType({
   typeName: 'blob.Blob',
   fields: [
     { no: 1, name: 'blob_type', kind: 'enum', T: BlobType_Enum },
-    { no: 2, name: 'total_size', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
-    { no: 3, name: 'raw_data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: 'total_size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'raw_data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 4, name: 'chunk_index', kind: 'message', T: () => ChunkIndex },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -295,6 +291,7 @@ export type BuildBlobOpts = Message<{
   chunkerArgs?: ChunkerArgs
 }>
 
+// BuildBlobOpts contains the message type declaration for BuildBlobOpts.
 export const BuildBlobOpts: MessageType<BuildBlobOpts> = createMessageType({
   typeName: 'blob.BuildBlobOpts',
   fields: [
@@ -302,7 +299,7 @@ export const BuildBlobOpts: MessageType<BuildBlobOpts> = createMessageType({
       no: 1,
       name: 'raw_high_water_mark',
       kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
+      T: ScalarType.UINT64,
     },
     { no: 2, name: 'chunker_args', kind: 'message', T: () => ChunkerArgs },
   ] as readonly PartialFieldInfo[],

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block.pb.js'
 
 export const protobufPackage = 'block.mock'
@@ -22,6 +22,7 @@ export type SubBlock = Message<{
   examplePtr?: BlockRef
 }>
 
+// SubBlock contains the message type declaration for SubBlock.
 export const SubBlock: MessageType<SubBlock> = createMessageType({
   typeName: 'block.mock.SubBlock',
   fields: [
@@ -44,6 +45,7 @@ export type Root = Message<{
   exampleSubBlock?: SubBlock
 }>
 
+// Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({
   typeName: 'block.mock.Root',
   fields: [
@@ -66,10 +68,11 @@ export type Example = Message<{
   msg?: string
 }>
 
+// Example contains the message type declaration for Example.
 export const Example: MessageType<Example> = createMessageType({
   typeName: 'block.mock.Example',
   fields: [
-    { no: 1, name: 'msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'msg', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

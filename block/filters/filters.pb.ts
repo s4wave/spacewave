@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Quad } from '../quad/quad.pb.js'
 import { BloomFilter } from '../bloom/bloom.pb.js'
 
@@ -42,10 +42,11 @@ export type KeyFilters = Message<{
   keyBloom?: BloomFilter
 }>
 
+// KeyFilters contains the message type declaration for KeyFilters.
 export const KeyFilters: MessageType<KeyFilters> = createMessageType({
   typeName: 'filters.KeyFilters',
   fields: [
-    { no: 1, name: 'key_prefix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'key_prefix', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'quad_prefix', kind: 'message', T: () => Quad },
     { no: 3, name: 'key_bloom', kind: 'message', T: () => BloomFilter },
   ] as readonly PartialFieldInfo[],

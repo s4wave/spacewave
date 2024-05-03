@@ -96,6 +96,7 @@ export type BlockRef = Message<{
   hash?: Hash
 }>
 
+// BlockRef contains the message type declaration for BlockRef.
 export const BlockRef: MessageType<BlockRef> = createMessageType({
   typeName: 'block.BlockRef',
   fields: [
@@ -129,6 +130,7 @@ export type PutOpts = Message<{
   forceBlockRef?: BlockRef
 }>
 
+// PutOpts contains the message type declaration for PutOpts.
 export const PutOpts: MessageType<PutOpts> = createMessageType({
   typeName: 'block.PutOpts',
   fields: [

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../block/block.pb.js'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { MsgpackBlob } from '../../block/msgpack/msgpack.pb.js'
@@ -32,10 +32,11 @@ export type RootDb = Message<{
   ref?: BlockRef
 }>
 
+// RootDb contains the message type declaration for RootDb.
 export const RootDb: MessageType<RootDb> = createMessageType({
   typeName: 'mysql.RootDb',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -55,6 +56,7 @@ export type Root = Message<{
   databases?: RootDb[]
 }>
 
+// Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({
   typeName: 'mysql.Root',
   fields: [
@@ -90,11 +92,12 @@ export type DatabaseRootTable = Message<{
   ref?: BlockRef
 }>
 
+// DatabaseRootTable contains the message type declaration for DatabaseRootTable.
 export const DatabaseRootTable: MessageType<DatabaseRootTable> =
   createMessageType({
     typeName: 'mysql.DatabaseRootTable',
     fields: [
-      { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -114,6 +117,7 @@ export type DatabaseRoot = Message<{
   tables?: DatabaseRootTable[]
 }>
 
+// DatabaseRoot contains the message type declaration for DatabaseRoot.
 export const DatabaseRoot: MessageType<DatabaseRoot> = createMessageType({
   typeName: 'mysql.DatabaseRoot',
   fields: [
@@ -190,39 +194,25 @@ export type TableSchemaColumn = Message<{
   extra?: string
 }>
 
+// TableSchemaColumn contains the message type declaration for TableSchemaColumn.
 export const TableSchemaColumn: MessageType<TableSchemaColumn> =
   createMessageType({
     typeName: 'mysql.TableSchemaColumn',
     fields: [
-      { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      {
-        no: 2,
-        name: 'column_type',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'column_type', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'default_value_expr',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
       },
-      {
-        no: 4,
-        name: 'auto_increment',
-        kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
-      },
-      { no: 5, name: 'nullable', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 6, name: 'source', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      {
-        no: 7,
-        name: 'primary_key',
-        kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
-      },
-      { no: 8, name: 'comment', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 9, name: 'extra', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 4, name: 'auto_increment', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'nullable', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'source', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'primary_key', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'extra', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -241,6 +231,7 @@ export type TableSchema = Message<{
   columns?: TableSchemaColumn[]
 }>
 
+// TableSchema contains the message type declaration for TableSchema.
 export const TableSchema: MessageType<TableSchema> = createMessageType({
   typeName: 'mysql.TableSchema',
   fields: [
@@ -271,6 +262,7 @@ export type TablePartitionRoot = Message<{
   rowKeyValue?: KeyValueStore
 }>
 
+// TablePartitionRoot contains the message type declaration for TablePartitionRoot.
 export const TablePartitionRoot: MessageType<TablePartitionRoot> =
   createMessageType({
     typeName: 'mysql.TablePartitionRoot',
@@ -295,6 +287,7 @@ export type TableColumn = Message<{
   msgpackBlob?: MsgpackBlob
 }>
 
+// TableColumn contains the message type declaration for TableColumn.
 export const TableColumn: MessageType<TableColumn> = createMessageType({
   typeName: 'mysql.TableColumn',
   fields: [
@@ -349,6 +342,7 @@ export type TableRoot = Message<{
   collationId?: number
 }>
 
+// TableRoot contains the message type declaration for TableRoot.
 export const TableRoot: MessageType<TableRoot> = createMessageType({
   typeName: 'mysql.TableRoot',
   fields: [
@@ -357,7 +351,7 @@ export const TableRoot: MessageType<TableRoot> = createMessageType({
       no: 5,
       name: 'primary_key_ordinals',
       kind: 'scalar',
-      T: 5 /* ScalarType.INT32 */,
+      T: ScalarType.INT32,
       repeated: true,
     },
     {
@@ -367,14 +361,9 @@ export const TableRoot: MessageType<TableRoot> = createMessageType({
       T: () => TablePartitionRoot,
       repeated: true,
     },
-    { no: 3, name: 'row_nonce', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 3, name: 'row_nonce', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
-    {
-      no: 6,
-      name: 'collation_id',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 6, name: 'collation_id', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -393,6 +382,7 @@ export type TableRow = Message<{
   columns?: TableColumn[]
 }>
 
+// TableRow contains the message type declaration for TableRow.
 export const TableRow: MessageType<TableRow> = createMessageType({
   typeName: 'mysql.TableRow',
   fields: [

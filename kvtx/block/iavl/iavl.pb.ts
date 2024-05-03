@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../../block/block.pb.js'
 import { Blob } from '../../../block/blob/blob.pb.js'
 
@@ -66,12 +66,13 @@ export type Node = Message<{
   rightChildRef?: BlockRef
 }>
 
+// Node contains the message type declaration for Node.
 export const Node: MessageType<Node> = createMessageType({
   typeName: 'kvtx.block.iavl.Node',
   fields: [
-    { no: 1, name: 'height', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 2, name: 'size', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
-    { no: 3, name: 'key', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'height', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 2, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 3, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
     { no: 7, name: 'value_ref', kind: 'message', T: () => BlockRef },
     { no: 8, name: 'value_blob', kind: 'message', T: () => Blob },
     { no: 5, name: 'left_child_ref', kind: 'message', T: () => BlockRef },

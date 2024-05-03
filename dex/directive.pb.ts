@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block/block.pb.js'
 
 export const protobufPackage = 'dex'
@@ -28,16 +28,12 @@ export type LookupBlockFromNetworkRequest = Message<{
   ref?: BlockRef
 }>
 
+// LookupBlockFromNetworkRequest contains the message type declaration for LookupBlockFromNetworkRequest.
 export const LookupBlockFromNetworkRequest: MessageType<LookupBlockFromNetworkRequest> =
   createMessageType({
     typeName: 'dex.LookupBlockFromNetworkRequest',
     fields: [
-      {
-        no: 1,
-        name: 'bucket_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,

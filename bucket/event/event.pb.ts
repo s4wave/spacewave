@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../block/block.pb.js'
 
@@ -86,17 +87,13 @@ export type BlockCommon = Message<{
   blockRef?: BlockRef
 }>
 
+// BlockCommon contains the message type declaration for BlockCommon.
 export const BlockCommon: MessageType<BlockCommon> = createMessageType({
   typeName: 'bucket.event.BlockCommon',
   fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 3,
-      name: 'bucket_conf_rev',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'bucket_conf_rev', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 4, name: 'block_ref', kind: 'message', T: () => BlockRef },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -116,6 +113,7 @@ export type PutBlock = Message<{
   blockCommon?: BlockCommon
 }>
 
+// PutBlock contains the message type declaration for PutBlock.
 export const PutBlock: MessageType<PutBlock> = createMessageType({
   typeName: 'bucket.event.PutBlock',
   fields: [
@@ -138,6 +136,7 @@ export type RmBlock = Message<{
   blockCommon?: BlockCommon
 }>
 
+// RmBlock contains the message type declaration for RmBlock.
 export const RmBlock: MessageType<RmBlock> = createMessageType({
   typeName: 'bucket.event.RmBlock',
   fields: [
@@ -172,6 +171,7 @@ export type Event = Message<{
   rmBlock?: RmBlock
 }>
 
+// Event contains the message type declaration for Event.
 export const Event: MessageType<Event> = createMessageType({
   typeName: 'bucket.event.Event',
   fields: [

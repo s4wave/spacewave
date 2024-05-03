@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'fibheap'
 
@@ -57,16 +57,17 @@ export type Entry = Message<{
   priority?: number
 }>
 
+// Entry contains the message type declaration for Entry.
 export const Entry: MessageType<Entry> = createMessageType({
   typeName: 'fibheap.Entry',
   fields: [
-    { no: 1, name: 'degree', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    { no: 2, name: 'marked', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'next', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 4, name: 'prev', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 5, name: 'child', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 6, name: 'parent', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    { no: 7, name: 'priority', kind: 'scalar', T: 1 /* ScalarType.DOUBLE */ },
+    { no: 1, name: 'degree', kind: 'scalar', T: ScalarType.INT32 },
+    { no: 2, name: 'marked', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'next', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 4, name: 'prev', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 5, name: 'child', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 6, name: 'parent', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 7, name: 'priority', kind: 'scalar', T: ScalarType.DOUBLE },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -97,17 +98,13 @@ export type Root = Message<{
   size?: number
 }>
 
+// Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({
   typeName: 'fibheap.Root',
   fields: [
-    { no: 1, name: 'min', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-    {
-      no: 2,
-      name: 'min_priority',
-      kind: 'scalar',
-      T: 1 /* ScalarType.DOUBLE */,
-    },
-    { no: 3, name: 'size', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'min', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 2, name: 'min_priority', kind: 'scalar', T: ScalarType.DOUBLE },
+    { no: 3, name: 'size', kind: 'scalar', T: ScalarType.UINT32 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

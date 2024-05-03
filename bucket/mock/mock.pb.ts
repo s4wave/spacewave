@@ -22,6 +22,7 @@ export type Root = Message<{
   examplePtr?: ObjectRef
 }>
 
+// Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({
   typeName: 'bucket.mock.Root',
   fields: [

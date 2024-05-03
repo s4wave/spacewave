@@ -52,6 +52,7 @@ export type Config = Message<{
   chksumType?: ChksumType
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'transform.chksum.Config',
   fields: [

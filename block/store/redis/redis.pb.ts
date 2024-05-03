@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ClientConfig } from '../../../store/kvtx/redis/redis.pb.js'
 import { Config as Config$1 } from '../../../store/kvkey/kvkey.pb.js'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
@@ -73,38 +73,24 @@ export type Config = Message<{
   verbose?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.redis.Config',
   fields: [
-    {
-      no: 1,
-      name: 'block_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'client', kind: 'message', T: () => ClientConfig },
     { no: 3, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
     { no: 4, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
-    {
-      no: 8,
-      name: 'disable_hash_get',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 8, name: 'disable_hash_get', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 5,
       name: 'bucket_ids',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 6,
-      name: 'skip_not_found',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 7, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

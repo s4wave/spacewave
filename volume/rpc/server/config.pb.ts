@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.rpc.server'
 
@@ -55,35 +55,21 @@ export type Config = Message<{
   releaseDelay?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.rpc.server.Config',
   fields: [
-    { no: 1, name: 'service_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'volume_id_re',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'service_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'volume_id_re', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'volume_id_list',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 4,
-      name: 'expose_private_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 5,
-      name: 'release_delay',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 4, name: 'expose_private_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'release_delay', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

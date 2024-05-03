@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { BlockEnc } from '../../../util/blockenc/blockenc.pb.js'
 import { BlockEnc_Enum } from '../../../util/blockenc/blockenc.pb.js'
 
@@ -29,11 +29,12 @@ export type Config = Message<{
   key?: Uint8Array
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'transform.blockenc.Config',
   fields: [
     { no: 1, name: 'block_enc', kind: 'enum', T: BlockEnc_Enum },
-    { no: 2, name: 'key', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
@@ -184,111 +184,62 @@ export type Config = Message<{
   noSyncWrites?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.badger.Config',
   fields: [
-    { no: 1, name: 'dir', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'value_dir', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'dir', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'value_dir', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    {
-      no: 4,
-      name: 'no_generate_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 25,
-      name: 'no_write_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 21, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    {
-      no: 24,
-      name: 'badger_debug',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 4, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 25, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 21, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 24, name: 'badger_debug', kind: 'scalar', T: ScalarType.BOOL },
     { no: 22, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 23, name: 'store_config', kind: 'message', T: () => Config$3 },
     {
       no: 7,
       name: 'num_versions_to_keep',
       kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
+      T: ScalarType.UINT32,
     },
-    {
-      no: 26,
-      name: 'base_table_size',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
+    { no: 26, name: 'base_table_size', kind: 'scalar', T: ScalarType.UINT64 },
     {
       no: 9,
       name: 'level_size_multiplier',
       kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
+      T: ScalarType.UINT32,
     },
-    {
-      no: 10,
-      name: 'max_levels',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
-    {
-      no: 27,
-      name: 'value_threshold',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
-    {
-      no: 12,
-      name: 'num_memtables',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 10, name: 'max_levels', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 27, name: 'value_threshold', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 12, name: 'num_memtables', kind: 'scalar', T: ScalarType.UINT32 },
     {
       no: 13,
       name: 'num_level_zero_tables',
       kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
+      T: ScalarType.UINT32,
     },
     {
       no: 14,
       name: 'num_level_zero_tables_stall',
       kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
+      T: ScalarType.UINT32,
     },
-    {
-      no: 28,
-      name: 'base_level_size',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
+    { no: 28, name: 'base_level_size', kind: 'scalar', T: ScalarType.UINT64 },
     {
       no: 16,
       name: 'value_log_file_size',
       kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
+      T: ScalarType.UINT64,
     },
     {
       no: 17,
       name: 'value_log_max_entries',
       kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
+      T: ScalarType.UINT32,
     },
-    {
-      no: 18,
-      name: 'num_compactors',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
-    {
-      no: 20,
-      name: 'no_sync_writes',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 18, name: 'num_compactors', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 20, name: 'no_sync_writes', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

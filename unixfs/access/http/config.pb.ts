@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.access.http'
 
@@ -68,42 +68,23 @@ export type Config = Message<{
   pathRe?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'unixfs.access.http.Config',
   fields: [
-    { no: 1, name: 'unixfs_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 2,
-      name: 'unixfs_prefix',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 3,
-      name: 'unixfs_http_prefix',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 4,
-      name: 'not_found_if_idle',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 1, name: 'unixfs_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'unixfs_prefix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'unixfs_http_prefix', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'not_found_if_idle', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 5,
       name: 'match_path_prefixes',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 6,
-      name: 'strip_path_prefix',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 7, name: 'path_re', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'strip_path_prefix', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'path_re', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

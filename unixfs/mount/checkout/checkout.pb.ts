@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.mount.checkout'
 
@@ -35,16 +35,17 @@ export type Config = Message<{
   skipPathPrefixes?: string[]
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'unixfs.mount.checkout.Config',
   fields: [
-    { no: 1, name: 'mount_path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'mount_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 3,
       name: 'skip_path_prefixes',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],

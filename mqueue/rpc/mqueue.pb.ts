@@ -3,7 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'mqueue.rpc'
 
@@ -21,10 +26,11 @@ export type RmMqueueRequest = Message<{
   mqueueId?: Uint8Array
 }>
 
+// RmMqueueRequest contains the message type declaration for RmMqueueRequest.
 export const RmMqueueRequest: MessageType<RmMqueueRequest> = createMessageType({
   typeName: 'mqueue.rpc.RmMqueueRequest',
   fields: [
-    { no: 1, name: 'mqueue_id', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'mqueue_id', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -44,11 +50,12 @@ export type RmMqueueResponse = Message<{
   error?: string
 }>
 
+// RmMqueueResponse contains the message type declaration for RmMqueueResponse.
 export const RmMqueueResponse: MessageType<RmMqueueResponse> =
   createMessageType({
     typeName: 'mqueue.rpc.RmMqueueResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -76,12 +83,13 @@ export type ListMqueuesRequest = Message<{
   filled?: boolean
 }>
 
+// ListMqueuesRequest contains the message type declaration for ListMqueuesRequest.
 export const ListMqueuesRequest: MessageType<ListMqueuesRequest> =
   createMessageType({
     typeName: 'mqueue.rpc.ListMqueuesRequest',
     fields: [
-      { no: 1, name: 'prefix', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-      { no: 2, name: 'filled', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+      { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'filled', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -106,16 +114,17 @@ export type ListMqueuesResponse = Message<{
   mqueueIds?: Uint8Array[]
 }>
 
+// ListMqueuesResponse contains the message type declaration for ListMqueuesResponse.
 export const ListMqueuesResponse: MessageType<ListMqueuesResponse> =
   createMessageType({
     typeName: 'mqueue.rpc.ListMqueuesResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 2,
         name: 'mqueue_ids',
         kind: 'scalar',
-        T: 12 /* ScalarType.BYTES */,
+        T: ScalarType.BYTES,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],
@@ -129,6 +138,7 @@ export const ListMqueuesResponse: MessageType<ListMqueuesResponse> =
  */
 export type PeekRequest = Message<{}>
 
+// PeekRequest contains the message type declaration for PeekRequest.
 export const PeekRequest: MessageType<PeekRequest> = createMessageType({
   typeName: 'mqueue.rpc.PeekRequest',
   fields: [] as readonly PartialFieldInfo[],
@@ -152,7 +162,7 @@ export type MqueueMsg = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 2;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
   /**
    * Data contains the message data.
    *
@@ -161,12 +171,13 @@ export type MqueueMsg = Message<{
   data?: Uint8Array
 }>
 
+// MqueueMsg contains the message type declaration for MqueueMsg.
 export const MqueueMsg: MessageType<MqueueMsg> = createMessageType({
   typeName: 'mqueue.rpc.MqueueMsg',
   fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    { no: 3, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -198,11 +209,12 @@ export type PeekResponse = Message<{
   msg?: MqueueMsg
 }>
 
+// PeekResponse contains the message type declaration for PeekResponse.
 export const PeekResponse: MessageType<PeekResponse> = createMessageType({
   typeName: 'mqueue.rpc.PeekResponse',
   fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'found', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'msg', kind: 'message', T: () => MqueueMsg },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -222,10 +234,11 @@ export type AckRequest = Message<{
   id?: bigint
 }>
 
+// AckRequest contains the message type declaration for AckRequest.
 export const AckRequest: MessageType<AckRequest> = createMessageType({
   typeName: 'mqueue.rpc.AckRequest',
   fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -245,10 +258,11 @@ export type AckResponse = Message<{
   error?: string
 }>
 
+// AckResponse contains the message type declaration for AckResponse.
 export const AckResponse: MessageType<AckResponse> = createMessageType({
   typeName: 'mqueue.rpc.AckResponse',
   fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -267,10 +281,11 @@ export type PushRequest = Message<{
   data?: Uint8Array
 }>
 
+// PushRequest contains the message type declaration for PushRequest.
 export const PushRequest: MessageType<PushRequest> = createMessageType({
   typeName: 'mqueue.rpc.PushRequest',
   fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -297,10 +312,11 @@ export type PushResponse = Message<{
   msg?: MqueueMsg
 }>
 
+// PushResponse contains the message type declaration for PushResponse.
 export const PushResponse: MessageType<PushResponse> = createMessageType({
   typeName: 'mqueue.rpc.PushResponse',
   fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'msg', kind: 'message', T: () => MqueueMsg },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -322,10 +338,11 @@ export type WaitRequest = Message<{
   ack?: boolean
 }>
 
+// WaitRequest contains the message type declaration for WaitRequest.
 export const WaitRequest: MessageType<WaitRequest> = createMessageType({
   typeName: 'mqueue.rpc.WaitRequest',
   fields: [
-    { no: 1, name: 'ack', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'ack', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -344,6 +361,7 @@ export type WaitResponse = Message<{
   msg?: MqueueMsg
 }>
 
+// WaitResponse contains the message type declaration for WaitResponse.
 export const WaitResponse: MessageType<WaitResponse> = createMessageType({
   typeName: 'mqueue.rpc.WaitResponse',
   fields: [
@@ -359,6 +377,7 @@ export const WaitResponse: MessageType<WaitResponse> = createMessageType({
  */
 export type DeleteQueueRequest = Message<{}>
 
+// DeleteQueueRequest contains the message type declaration for DeleteQueueRequest.
 export const DeleteQueueRequest: MessageType<DeleteQueueRequest> =
   createMessageType({
     typeName: 'mqueue.rpc.DeleteQueueRequest',
@@ -381,11 +400,12 @@ export type DeleteQueueResponse = Message<{
   error?: string
 }>
 
+// DeleteQueueResponse contains the message type declaration for DeleteQueueResponse.
 export const DeleteQueueResponse: MessageType<DeleteQueueResponse> =
   createMessageType({
     typeName: 'mqueue.rpc.DeleteQueueResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

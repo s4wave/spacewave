@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../bucket.pb.js'
 
@@ -170,6 +171,7 @@ export type Config = Message<{
   fallbackBlockStoreId?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'lookup.concurrent.Config',
   fields: [
@@ -192,18 +194,13 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'enum',
       T: WritebackBehavior_Enum,
     },
-    {
-      no: 6,
-      name: 'lookup_timeout_dur',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 5, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'lookup_timeout_dur', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 7,
       name: 'fallback_block_store_id',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

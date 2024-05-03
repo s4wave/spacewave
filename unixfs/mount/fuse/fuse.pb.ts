@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.mount.fuse'
 
@@ -48,14 +48,15 @@ export type Config = Message<{
   allowSuid?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'unixfs.mount.fuse.Config',
   fields: [
-    { no: 1, name: 'mount_path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: 'allow_other', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'allow_dev', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 5, name: 'allow_suid', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'mount_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'allow_other', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'allow_dev', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'allow_suid', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

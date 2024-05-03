@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Config as Config$1 } from '../../../block/transform/transform.pb.js'
 
@@ -80,29 +80,25 @@ export type Config = Message<{
   createDbs?: string[]
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'mysql.controller.Config',
   fields: [
-    { no: 1, name: 'sql_db_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 4,
-      name: 'object_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'sql_db_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 5,
       name: 'object_store_prefix',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     {
       no: 6,
       name: 'object_store_head_key',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     { no: 7, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
     { no: 8, name: 'state_transform_conf', kind: 'message', T: () => Config$1 },
@@ -110,7 +106,7 @@ export const Config: MessageType<Config> = createMessageType({
       no: 9,
       name: 'create_dbs',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
   ] as readonly PartialFieldInfo[],
@@ -131,6 +127,7 @@ export type HeadState = Message<{
   headRef?: ObjectRef
 }>
 
+// HeadState contains the message type declaration for HeadState.
 export const HeadState: MessageType<HeadState> = createMessageType({
   typeName: 'mysql.controller.HeadState',
   fields: [

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'transform.s2'
 
@@ -29,11 +29,12 @@ export type Config = Message<{
   best?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'transform.s2.Config',
   fields: [
-    { no: 1, name: 'better', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'best', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'better', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'best', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

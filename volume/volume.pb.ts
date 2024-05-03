@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
@@ -51,12 +51,13 @@ export type VolumeInfo = Message<{
   hashType?: HashType
 }>
 
+// VolumeInfo contains the message type declaration for VolumeInfo.
 export const VolumeInfo: MessageType<VolumeInfo> = createMessageType({
   typeName: 'volume.VolumeInfo',
   fields: [
-    { no: 1, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_pub', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_pub', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'controller_info', kind: 'message', T: () => Info },
     { no: 5, name: 'hash_type', kind: 'enum', T: HashType_Enum },
   ] as readonly PartialFieldInfo[],
@@ -83,6 +84,7 @@ export type VolumeBucketInfo = Message<{
   volumeInfo?: VolumeInfo
 }>
 
+// VolumeBucketInfo contains the message type declaration for VolumeBucketInfo.
 export const VolumeBucketInfo: MessageType<VolumeBucketInfo> =
   createMessageType({
     typeName: 'volume.VolumeBucketInfo',
@@ -124,27 +126,18 @@ export type ListBucketsRequest = Message<{
   volumeIdList?: string[]
 }>
 
+// ListBucketsRequest contains the message type declaration for ListBucketsRequest.
 export const ListBucketsRequest: MessageType<ListBucketsRequest> =
   createMessageType({
     typeName: 'volume.ListBucketsRequest',
     fields: [
-      {
-        no: 1,
-        name: 'bucket_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'volume_id_re',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'volume_id_re', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 3,
         name: 'volume_id_list',
         kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],

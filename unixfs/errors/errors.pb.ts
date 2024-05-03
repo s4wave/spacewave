@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.errors'
@@ -216,11 +217,12 @@ export type UnixFSError = Message<{
   errorBody?: string
 }>
 
+// UnixFSError contains the message type declaration for UnixFSError.
 export const UnixFSError: MessageType<UnixFSError> = createMessageType({
   typeName: 'unixfs.errors.UnixFSError',
   fields: [
     { no: 1, name: 'error_type', kind: 'enum', T: UnixFSErrorType_Enum },
-    { no: 2, name: 'error_body', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'error_body', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

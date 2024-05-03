@@ -3,7 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
 import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
 import { CheckoutOpts, Index, Reference } from '../block/git.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
@@ -58,39 +63,20 @@ export type GitCreateWorktreeOp = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 7;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
+// GitCreateWorktreeOp contains the message type declaration for GitCreateWorktreeOp.
 export const GitCreateWorktreeOp: MessageType<GitCreateWorktreeOp> =
   createMessageType({
     typeName: 'git.world.GitCreateWorktreeOp',
     fields: [
-      {
-        no: 1,
-        name: 'object_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'repo_object_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'workdir_ref', kind: 'message', T: () => UnixfsRef },
-      {
-        no: 4,
-        name: 'create_workdir',
-        kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
-      },
+      { no: 4, name: 'create_workdir', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'checkout_opts', kind: 'message', T: () => CheckoutOpts },
-      {
-        no: 6,
-        name: 'disable_checkout',
-        kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
-      },
+      { no: 6, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -133,17 +119,13 @@ export type GitInitOp = Message<{
   createWorktree?: GitCreateWorktreeOp
 }>
 
+// GitInitOp contains the message type declaration for GitInitOp.
 export const GitInitOp: MessageType<GitInitOp> = createMessageType({
   typeName: 'git.world.GitInitOp',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'repo_ref', kind: 'message', T: () => ObjectRef },
-    {
-      no: 3,
-      name: 'disable_checkout',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 3, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 4,
       name: 'create_worktree',
@@ -182,15 +164,11 @@ export type HeadRefStore = Message<{
   submodules?: HeadRefStore[]
 }>
 
+// HeadRefStore contains the message type declaration for HeadRefStore.
 export const HeadRefStore: MessageType<HeadRefStore> = createMessageType({
   typeName: 'git.world.HeadRefStore',
   fields: [
-    {
-      no: 1,
-      name: 'submodule_name',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'submodule_name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'head_ref', kind: 'message', T: () => Reference },
     {
       no: 3,
@@ -224,6 +202,7 @@ export type Worktree = Message<{
   headRefStore?: HeadRefStore
 }>
 
+// Worktree contains the message type declaration for Worktree.
 export const Worktree: MessageType<Worktree> = createMessageType({
   typeName: 'git.world.Worktree',
   fields: [
@@ -263,25 +242,16 @@ export type GitWorktreeCheckoutOp = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
+// GitWorktreeCheckoutOp contains the message type declaration for GitWorktreeCheckoutOp.
 export const GitWorktreeCheckoutOp: MessageType<GitWorktreeCheckoutOp> =
   createMessageType({
     typeName: 'git.world.GitWorktreeCheckoutOp',
     fields: [
-      {
-        no: 1,
-        name: 'object_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'repo_object_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'checkout_opts', kind: 'message', T: () => CheckoutOpts },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] as readonly PartialFieldInfo[],

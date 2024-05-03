@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Config as Config$1 } from '../../../block/transform/transform.pb.js'
 
@@ -111,29 +111,25 @@ export type Config = Message<{
   verbose?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'world.block.engine.Config',
   fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 4,
-      name: 'object_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 5,
       name: 'object_store_prefix',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     {
       no: 6,
       name: 'object_store_head_key',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     { no: 7, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
     {
@@ -142,31 +138,21 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'message',
       T: () => Config$1,
     },
-    {
-      no: 13,
-      name: 'disable_changelog',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 8,
-      name: 'disable_lookup',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 13, name: 'disable_changelog', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 8, name: 'disable_lookup', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 9,
       name: 'disable_apply_world_op',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     {
       no: 10,
       name: 'disable_apply_object_op',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
-    { no: 12, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 12, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -185,6 +171,7 @@ export type HeadState = Message<{
   headRef?: ObjectRef
 }>
 
+// HeadState contains the message type declaration for HeadState.
 export const HeadState: MessageType<HeadState> = createMessageType({
   typeName: 'world.block.engine.HeadState',
   fields: [

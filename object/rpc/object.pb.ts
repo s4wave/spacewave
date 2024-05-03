@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'object.rpc'
 
@@ -21,16 +21,12 @@ export type RmObjectStoreRequest = Message<{
   objectStoreId?: string
 }>
 
+// RmObjectStoreRequest contains the message type declaration for RmObjectStoreRequest.
 export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> =
   createMessageType({
     typeName: 'object.rpc.RmObjectStoreRequest',
     fields: [
-      {
-        no: 1,
-        name: 'object_store_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -50,11 +46,12 @@ export type RmObjectStoreResponse = Message<{
   error?: string
 }>
 
+// RmObjectStoreResponse contains the message type declaration for RmObjectStoreResponse.
 export const RmObjectStoreResponse: MessageType<RmObjectStoreResponse> =
   createMessageType({
     typeName: 'object.rpc.RmObjectStoreResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

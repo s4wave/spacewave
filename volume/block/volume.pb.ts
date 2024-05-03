@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
@@ -113,44 +113,30 @@ export type Config = Message<{
   stateTransformConf?: Config$4
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.block.Config',
   fields: [
     { no: 1, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    { no: 2, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 4, name: 'store_config', kind: 'message', T: () => Config$3 },
-    {
-      no: 5,
-      name: 'no_generate_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 13,
-      name: 'no_write_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 6, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 8,
-      name: 'object_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 5, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 13, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 7, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 9,
       name: 'object_store_prefix',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     {
       no: 10,
       name: 'object_store_head_key',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     { no: 11, name: 'init_head_ref', kind: 'message', T: () => ObjectRef },
     {
@@ -179,6 +165,7 @@ export type HeadState = Message<{
   headRef?: ObjectRef
 }>
 
+// HeadState contains the message type declaration for HeadState.
 export const HeadState: MessageType<HeadState> = createMessageType({
   typeName: 'volume.block.HeadState',
   fields: [

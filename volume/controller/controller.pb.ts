@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { OverlayMode } from '../../block/block.pb.js'
 import { OverlayMode_Enum, PutOpts } from '../../block/block.pb.js'
 
@@ -80,6 +80,7 @@ export type Config = Message<{
   blockStoreWritebackPutOpts?: PutOpts
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.controller.Config',
   fields: [
@@ -87,34 +88,29 @@ export const Config: MessageType<Config> = createMessageType({
       no: 1,
       name: 'disable_event_block_rm',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     {
       no: 2,
       name: 'volume_id_alias',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
     {
       no: 3,
       name: 'disable_reconciler_queues',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
-    { no: 4, name: 'disable_peer', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'disable_peer', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 7,
       name: 'disable_lookup_block_store',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
-    {
-      no: 5,
-      name: 'block_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 5, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 6,
       name: 'block_store_overlay_mode',
@@ -125,7 +121,7 @@ export const Config: MessageType<Config> = createMessageType({
       no: 8,
       name: 'block_store_writeback_timeout_dur',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     {
       no: 9,

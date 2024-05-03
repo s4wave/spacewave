@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'quad'
 
@@ -39,13 +39,14 @@ export type Quad = Message<{
   label?: string
 }>
 
+// Quad contains the message type declaration for Quad.
 export const Quad: MessageType<Quad> = createMessageType({
   typeName: 'quad.Quad',
   fields: [
-    { no: 1, name: 'subject', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'predicate', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'obj', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'label', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'obj', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

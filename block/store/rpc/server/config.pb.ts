@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
@@ -58,19 +58,15 @@ export type Config = Message<{
   forceHashType?: HashType
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.rpc.server.Config',
   fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'write', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'service_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 5,
-      name: 'server_id_re',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 4, name: 'service_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

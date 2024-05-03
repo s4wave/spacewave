@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
@@ -79,33 +79,19 @@ export type Config = Message<{
   freelistSync?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.bolt.Config',
   fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    { no: 3, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 6, name: 'store_config', kind: 'message', T: () => Config$3 },
-    {
-      no: 7,
-      name: 'no_generate_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    {
-      no: 10,
-      name: 'no_write_key',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 8, name: 'sync', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    {
-      no: 9,
-      name: 'freelist_sync',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 7, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 10, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 8, name: 'sync', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 9, name: 'freelist_sync', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../kvtx/mqueue/mqueue.pb.js'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
@@ -42,17 +42,13 @@ export type Config = Message<{
   disableHashGet?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'store.kvtx.Config',
   fields: [
     { no: 1, name: 'mqueue_config', kind: 'message', T: () => Config$1 },
     { no: 2, name: 'hash_type', kind: 'enum', T: HashType_Enum },
-    {
-      no: 3,
-      name: 'disable_hash_get',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 3, name: 'disable_hash_get', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -71,10 +67,11 @@ export type MqueueMeta = Message<{
   id?: Uint8Array
 }>
 
+// MqueueMeta contains the message type declaration for MqueueMeta.
 export const MqueueMeta: MessageType<MqueueMeta> = createMessageType({
   typeName: 'store.kvtx.MqueueMeta',
   fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.BYTES },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -97,22 +94,13 @@ export type BucketReconcilerMqueueId = Message<{
   reconcilerId?: string
 }>
 
+// BucketReconcilerMqueueId contains the message type declaration for BucketReconcilerMqueueId.
 export const BucketReconcilerMqueueId: MessageType<BucketReconcilerMqueueId> =
   createMessageType({
     typeName: 'store.kvtx.BucketReconcilerMqueueId',
     fields: [
-      {
-        no: 1,
-        name: 'bucket_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'reconciler_id',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'reconciler_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

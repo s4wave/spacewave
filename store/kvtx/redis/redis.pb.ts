@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'store.kvtx.redis'
 
@@ -21,10 +21,11 @@ export type ClientConfig = Message<{
   url?: string
 }>
 
+// ClientConfig contains the message type declaration for ClientConfig.
 export const ClientConfig: MessageType<ClientConfig> = createMessageType({
   typeName: 'store.kvtx.redis.ClientConfig',
   fields: [
-    { no: 1, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

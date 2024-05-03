@@ -18,9 +18,10 @@ export type StoreMeta = Message<{
    *
    * @generated from field: google.protobuf.Timestamp created_ts = 1;
    */
-  createdTs?: Timestamp
+  createdTs?: Date
 }>
 
+// StoreMeta contains the message type declaration for StoreMeta.
 export const StoreMeta: MessageType<StoreMeta> = createMessageType({
   typeName: 'kvtx.genji.StoreMeta',
   fields: [

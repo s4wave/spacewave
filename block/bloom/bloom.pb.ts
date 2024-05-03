@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BitSet } from '../bitset/bitset.pb.js'
 
 export const protobufPackage = 'bloom'
@@ -38,11 +38,12 @@ export type BloomFilter = Message<{
   bitSet?: BitSet
 }>
 
+// BloomFilter contains the message type declaration for BloomFilter.
 export const BloomFilter: MessageType<BloomFilter> = createMessageType({
   typeName: 'bloom.BloomFilter',
   fields: [
-    { no: 1, name: 'k', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 2, name: 'm', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'k', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 2, name: 'm', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 3, name: 'bit_set', kind: 'message', T: () => BitSet },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

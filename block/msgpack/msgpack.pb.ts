@@ -27,6 +27,7 @@ export type MsgpackBlob = Message<{
   blob?: Blob
 }>
 
+// MsgpackBlob contains the message type declaration for MsgpackBlob.
 export const MsgpackBlob: MessageType<MsgpackBlob> = createMessageType({
   typeName: 'msgpack.MsgpackBlob',
   fields: [

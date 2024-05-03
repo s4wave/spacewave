@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'world.mock'
 
@@ -21,10 +21,11 @@ export type MockObjectOp = Message<{
   nextMsg?: string
 }>
 
+// MockObjectOp contains the message type declaration for MockObjectOp.
 export const MockObjectOp: MessageType<MockObjectOp> = createMessageType({
   typeName: 'world.mock.MockObjectOp',
   fields: [
-    { no: 1, name: 'next_msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'next_msg', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -49,11 +50,12 @@ export type MockWorldOp = Message<{
   nextMsg?: string
 }>
 
+// MockWorldOp contains the message type declaration for MockWorldOp.
 export const MockWorldOp: MessageType<MockWorldOp> = createMessageType({
   typeName: 'world.mock.MockWorldOp',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'next_msg', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'next_msg', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

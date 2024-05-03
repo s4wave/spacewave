@@ -3,7 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, Timestamp } from '@aptre/protobuf-es-lite'
+import {
+  createMessageType,
+  Message,
+  ScalarType,
+  Timestamp,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'kvtx.mqueue'
 
@@ -25,10 +30,11 @@ export type Config = Message<{
   pollDur?: string
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'kvtx.mqueue.Config',
   fields: [
-    { no: 1, name: 'poll_dur', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'poll_dur', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -59,17 +65,18 @@ export type MQQueueMeta = Message<{
   meta?: { [key: string]: string }
 }>
 
+// MQQueueMeta contains the message type declaration for MQQueueMeta.
 export const MQQueueMeta: MessageType<MQQueueMeta> = createMessageType({
   typeName: 'kvtx.mqueue.MQQueueMeta',
   fields: [
-    { no: 1, name: 'head', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
-    { no: 2, name: 'tail', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: 'head', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 2, name: 'tail', kind: 'scalar', T: ScalarType.UINT64 },
     {
       no: 3,
       name: 'meta',
       kind: 'map',
-      K: 9 /* ScalarType.STRING */,
-      V: { kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      K: ScalarType.STRING,
+      V: { kind: 'scalar', T: ScalarType.STRING },
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -86,7 +93,7 @@ export type MQMessageWrapper = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 1;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
   /**
    * Data is the message data.
    *
@@ -95,12 +102,13 @@ export type MQMessageWrapper = Message<{
   data?: Uint8Array
 }>
 
+// MQMessageWrapper contains the message type declaration for MQMessageWrapper.
 export const MQMessageWrapper: MessageType<MQMessageWrapper> =
   createMessageType({
     typeName: 'kvtx.mqueue.MQMessageWrapper',
     fields: [
       { no: 1, name: 'timestamp', kind: 'message', T: () => Timestamp },
-      { no: 2, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../../../store/kvkey/kvkey.pb.js'
 
 export const protobufPackage = 'block.store.kvfile.http'
@@ -69,43 +69,24 @@ export type Config = Message<{
   minRequestSize?: bigint
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.kvfile.http.Config',
   fields: [
-    {
-      no: 1,
-      name: 'block_store_id',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 2, name: 'url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'bucket_ids',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    {
-      no: 4,
-      name: 'skip_not_found',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
-    { no: 5, name: 'verbose', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    {
-      no: 6,
-      name: 'disable_cache',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 4, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'disable_cache', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    {
-      no: 8,
-      name: 'min_request_size',
-      kind: 'scalar',
-      T: 4 /* ScalarType.UINT64 */,
-    },
+    { no: 8, name: 'min_request_size', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -14,6 +14,7 @@ export const protobufPackage = 'transform.snappy'
  */
 export type Config = Message<{}>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'transform.snappy.Config',
   fields: [] as readonly PartialFieldInfo[],

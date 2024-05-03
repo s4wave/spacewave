@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef, PutOpts } from '../block.pb.js'
 
 export const protobufPackage = 'block.rpc'
@@ -28,10 +28,11 @@ export type PutBlockRequest = Message<{
   putOpts?: PutOpts
 }>
 
+// PutBlockRequest contains the message type declaration for PutBlockRequest.
 export const PutBlockRequest: MessageType<PutBlockRequest> = createMessageType({
   typeName: 'block.rpc.PutBlockRequest',
   fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -63,13 +64,14 @@ export type PutBlockResponse = Message<{
   error?: string
 }>
 
+// PutBlockResponse contains the message type declaration for PutBlockResponse.
 export const PutBlockResponse: MessageType<PutBlockResponse> =
   createMessageType({
     typeName: 'block.rpc.PutBlockResponse',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-      { no: 2, name: 'existed', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 3, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 2, name: 'existed', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -88,6 +90,7 @@ export type GetBlockRequest = Message<{
   ref?: BlockRef
 }>
 
+// GetBlockRequest contains the message type declaration for GetBlockRequest.
 export const GetBlockRequest: MessageType<GetBlockRequest> = createMessageType({
   typeName: 'block.rpc.GetBlockRequest',
   fields: [
@@ -122,13 +125,14 @@ export type GetBlockResponse = Message<{
   error?: string
 }>
 
+// GetBlockResponse contains the message type declaration for GetBlockResponse.
 export const GetBlockResponse: MessageType<GetBlockResponse> =
   createMessageType({
     typeName: 'block.rpc.GetBlockResponse',
     fields: [
-      { no: 1, name: 'exists', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 2, name: 'data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
-      { no: 3, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -147,6 +151,7 @@ export type GetBlockExistsRequest = Message<{
   ref?: BlockRef
 }>
 
+// GetBlockExistsRequest contains the message type declaration for GetBlockExistsRequest.
 export const GetBlockExistsRequest: MessageType<GetBlockExistsRequest> =
   createMessageType({
     typeName: 'block.rpc.GetBlockExistsRequest',
@@ -176,12 +181,13 @@ export type GetBlockExistsResponse = Message<{
   error?: string
 }>
 
+// GetBlockExistsResponse contains the message type declaration for GetBlockExistsResponse.
 export const GetBlockExistsResponse: MessageType<GetBlockExistsResponse> =
   createMessageType({
     typeName: 'block.rpc.GetBlockExistsResponse',
     fields: [
-      { no: 1, name: 'exists', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-      { no: 2, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -200,6 +206,7 @@ export type RmBlockRequest = Message<{
   ref?: BlockRef
 }>
 
+// RmBlockRequest contains the message type declaration for RmBlockRequest.
 export const RmBlockRequest: MessageType<RmBlockRequest> = createMessageType({
   typeName: 'block.rpc.RmBlockRequest',
   fields: [
@@ -223,10 +230,11 @@ export type RmBlockResponse = Message<{
   error?: string
 }>
 
+// RmBlockResponse contains the message type declaration for RmBlockResponse.
 export const RmBlockResponse: MessageType<RmBlockResponse> = createMessageType({
   typeName: 'block.rpc.RmBlockResponse',
   fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

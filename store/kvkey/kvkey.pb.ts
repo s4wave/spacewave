@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'store.kvkey'
 
@@ -71,51 +71,27 @@ export type Config = Message<{
   bucketMqueuePrefix?: Uint8Array
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'store.kvkey.Config',
   fields: [
-    { no: 1, name: 'prefix', kind: 'scalar', T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
     {
       no: 2,
       name: 'bucket_config_prefix',
       kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
+      T: ScalarType.BYTES,
     },
-    {
-      no: 3,
-      name: 'peer_priv_key',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
-    {
-      no: 5,
-      name: 'block_prefix',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
-    {
-      no: 6,
-      name: 'object_store_prefix',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
-    {
-      no: 7,
-      name: 'mqueue_prefix',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
-    {
-      no: 8,
-      name: 'mqueue_meta_prefix',
-      kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
-    },
+    { no: 3, name: 'peer_priv_key', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 5, name: 'block_prefix', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 6, name: 'object_store_prefix', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 7, name: 'mqueue_prefix', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 8, name: 'mqueue_meta_prefix', kind: 'scalar', T: ScalarType.BYTES },
     {
       no: 9,
       name: 'bucket_mqueue_prefix',
       kind: 'scalar',
-      T: 12 /* ScalarType.BYTES */,
+      T: ScalarType.BYTES,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

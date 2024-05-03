@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Quad } from '../../block/quad/quad.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
@@ -130,16 +131,17 @@ export type WorldChange = Message<{
   objectRev?: bigint
 }>
 
+// WorldChange contains the message type declaration for WorldChange.
 export const WorldChange: MessageType<WorldChange> = createMessageType({
   typeName: 'world.block.WorldChange',
   fields: [
     { no: 1, name: 'change_type', kind: 'enum', T: WorldChangeType_Enum },
-    { no: 2, name: 'key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'quad', kind: 'message', T: () => Quad },
     { no: 4, name: 'transaction_ref', kind: 'message', T: () => BlockRef },
     { no: 5, name: 'object_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'prev_object_ref', kind: 'message', T: () => BlockRef },
-    { no: 7, name: 'object_rev', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 7, name: 'object_rev', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -179,17 +181,13 @@ export type WorldChangeLL = Message<{
   changes?: WorldChange[]
 }>
 
+// WorldChangeLL contains the message type declaration for WorldChangeLL.
 export const WorldChangeLL: MessageType<WorldChangeLL> = createMessageType({
   typeName: 'world.block.WorldChangeLL',
   fields: [
-    { no: 1, name: 'height', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: 'height', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 2, name: 'prev_ref', kind: 'message', T: () => BlockRef },
-    {
-      no: 3,
-      name: 'total_size',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 3, name: 'total_size', kind: 'scalar', T: ScalarType.UINT32 },
     {
       no: 4,
       name: 'changes',
@@ -251,10 +249,11 @@ export type ChangeLogLL = Message<{
   keyFilters?: KeyFilters
 }>
 
+// ChangeLogLL contains the message type declaration for ChangeLogLL.
 export const ChangeLogLL: MessageType<ChangeLogLL> = createMessageType({
   typeName: 'world.block.ChangeLogLL',
   fields: [
-    { no: 1, name: 'seqno', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'prev_ref', kind: 'message', T: () => BlockRef },
     { no: 3, name: 'change_batch', kind: 'message', T: () => WorldChangeLL },
     { no: 4, name: 'change_type', kind: 'enum', T: WorldChangeType_Enum },
@@ -304,6 +303,7 @@ export type World = Message<{
   lastChangeDisable?: boolean
 }>
 
+// World contains the message type declaration for World.
 export const World: MessageType<World> = createMessageType({
   typeName: 'world.block.World',
   fields: [
@@ -315,12 +315,7 @@ export const World: MessageType<World> = createMessageType({
     },
     { no: 2, name: 'graph_key_value', kind: 'message', T: () => KeyValueStore },
     { no: 3, name: 'last_change', kind: 'message', T: () => ChangeLogLL },
-    {
-      no: 4,
-      name: 'last_change_disable',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 4, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -355,12 +350,13 @@ export type Object$ = Message<{
   rev?: bigint
 }>
 
+// Object$ contains the message type declaration for Object$.
 export const Object$: MessageType<Object$> = createMessageType({
   typeName: 'world.block.Object',
   fields: [
-    { no: 1, name: 'key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-    { no: 3, name: 'rev', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

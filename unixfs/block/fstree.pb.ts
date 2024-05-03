@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../block/block.pb.js'
@@ -127,10 +128,11 @@ export type Dirent = Message<{
   nodeType?: NodeType
 }>
 
+// Dirent contains the message type declaration for Dirent.
 export const Dirent: MessageType<Dirent> = createMessageType({
   typeName: 'unixfs.block.Dirent',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'node_ref', kind: 'message', T: () => BlockRef },
     { no: 3, name: 'node_type', kind: 'enum', T: NodeType_Enum },
   ] as readonly PartialFieldInfo[],
@@ -157,6 +159,7 @@ export type FSPath = Message<{
   absolute?: boolean
 }>
 
+// FSPath contains the message type declaration for FSPath.
 export const FSPath: MessageType<FSPath> = createMessageType({
   typeName: 'unixfs.block.FSPath',
   fields: [
@@ -164,10 +167,10 @@ export const FSPath: MessageType<FSPath> = createMessageType({
       no: 1,
       name: 'nodes',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
       repeated: true,
     },
-    { no: 2, name: 'absolute', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: 'absolute', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -186,6 +189,7 @@ export type FSSymlink = Message<{
   targetPath?: FSPath
 }>
 
+// FSSymlink contains the message type declaration for FSSymlink.
 export const FSSymlink: MessageType<FSSymlink> = createMessageType({
   typeName: 'unixfs.block.FSSymlink',
   fields: [
@@ -212,7 +216,7 @@ export type FSNode = Message<{
    *
    * @generated from field: google.protobuf.Timestamp mod_time = 2;
    */
-  modTime?: Timestamp
+  modTime?: Date
   /**
    * Permissions are the unixfs permissions bitset.
    * Note: the mode portion of this field must be zero.
@@ -244,17 +248,13 @@ export type FSNode = Message<{
   symlink?: FSSymlink
 }>
 
+// FSNode contains the message type declaration for FSNode.
 export const FSNode: MessageType<FSNode> = createMessageType({
   typeName: 'unixfs.block.FSNode',
   fields: [
     { no: 1, name: 'node_type', kind: 'enum', T: NodeType_Enum },
     { no: 2, name: 'mod_time', kind: 'message', T: () => Timestamp },
-    {
-      no: 3,
-      name: 'permissions',
-      kind: 'scalar',
-      T: 13 /* ScalarType.UINT32 */,
-    },
+    { no: 3, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 4, name: 'file', kind: 'message', T: () => File },
     {
       no: 5,
@@ -283,15 +283,11 @@ export type FSConfig = Message<{
   disableChangelog?: boolean
 }>
 
+// FSConfig contains the message type declaration for FSConfig.
 export const FSConfig: MessageType<FSConfig> = createMessageType({
   typeName: 'unixfs.block.FSConfig',
   fields: [
-    {
-      no: 1,
-      name: 'disable_changelog',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 1, name: 'disable_changelog', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -354,10 +350,11 @@ export type FSChange = Message<{
   valueRef?: BlockRef[]
 }>
 
+// FSChange contains the message type declaration for FSChange.
 export const FSChange: MessageType<FSChange> = createMessageType({
   typeName: 'unixfs.block.FSChange',
   fields: [
-    { no: 1, name: 'seqno', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'prev_ref', kind: 'message', T: () => BlockRef },
     { no: 3, name: 'change_type', kind: 'enum', T: FSChangeType_Enum },
     { no: 4, name: 'transaction_ref', kind: 'message', T: () => BlockRef },
@@ -402,6 +399,7 @@ export type FSObject = Message<{
   lastChange?: FSChange
 }>
 
+// FSObject contains the message type declaration for FSObject.
 export const FSObject: MessageType<FSObject> = createMessageType({
   typeName: 'unixfs.block.FSObject',
   fields: [
@@ -427,10 +425,11 @@ export type FSHostVolume = Message<{
   volumeId?: string
 }>
 
+// FSHostVolume contains the message type declaration for FSHostVolume.
 export const FSHostVolume: MessageType<FSHostVolume> = createMessageType({
   typeName: 'unixfs.block.FSHostVolume',
   fields: [
-    { no: 1, name: 'volume_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
