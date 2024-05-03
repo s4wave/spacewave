@@ -23,7 +23,8 @@ import (
 //go:embed web/entrypoint/deps.go web/deps.go
 //go:embed web/plugin/browser/browser_srpc.pb.ts web/plugin/browser/web-plugin-browser.ts
 //go:embed web/plugin/plugin.pb.ts web/plugin/plugin_srpc.pb.ts
-//go:embed plugin/plugin.pb.ts manifest/manifest.pb.ts
+//go:embed plugin/plugin.pb.ts plugin/plugin_srpc.pb.ts
+//go:embed manifest/manifest.pb.ts manifest/manifest_srpc.pb.ts
 //go:embed devtool/deps.go devtool/web/entrypoint/web.go
 //go:embed dist/deps/deps.go dist/deps/package.json dist/deps/package-lock.json
 //go:embed .vscode/launch.json
