@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.31.1 // master
+	github.com/aperturerobotics/bifrost v0.32.0 // master
 	github.com/aperturerobotics/go-kvfile v0.7.1 // master
 )
 
@@ -61,12 +61,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.4 // latest
+	github.com/aperturerobotics/controllerbus v0.44.5 // latest
 	github.com/aperturerobotics/entitygraph v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // latest
-	github.com/aperturerobotics/starpc v0.31.14 // latest
-	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
+	github.com/aperturerobotics/starpc v0.32.2 // latest
+	github.com/aperturerobotics/util v1.23.0 // master
 )
 
 // aperture: use compatibility forks
@@ -82,7 +82,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.15.0
+	github.com/aperturerobotics/common v0.15.2
 	github.com/aperturerobotics/json-iterator-lite v1.0.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
@@ -178,7 +178,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
-	github.com/pion/ice/v3 v3.0.6 // indirect
+	github.com/pion/ice/v3 v3.0.7 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
@@ -191,8 +191,8 @@ require (
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
-	github.com/pion/turn/v3 v3.0.2 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.18 // indirect
+	github.com/pion/turn/v3 v3.0.3 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.19 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/quic-go v0.43.0 // indirect
