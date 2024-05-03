@@ -21,10 +21,10 @@
     uint8arrays "^5.0.0"
     ws "^8.4.0"
 
-"@aptre/protobuf-es-lite@^0.2.14":
-  version "0.2.14"
-  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.2.14.tgz#7f0008d91ac37769a57a7f7b98190368ed81d3fa"
-  integrity sha512-ctwZi3FVGqPrOBwDR9C1ljeg1ubppOt3nbQiCP25bw00KcxNiARP1L58AD+fUbnfWTdjWaWiFrWoTIN3MdWQkQ==
+"@aptre/protobuf-es-lite@^0.4.0", "@aptre/protobuf-es-lite@^0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.4.3.tgz#1839154a24ac19fb9f4f3bdb4fb0eccd9abdfebc"
+  integrity sha512-qiWodq4qZ6hAbgzMKHCGjaMoQr/Zj0gn8MGkZq6Pf9T93zEuafl0EijDblqRawmU7Ow9Ogzg/kq6G5bUWGvcpQ==
   dependencies:
     "@typescript/vfs" "^1.5.0"
     lz-string "^1.5.0"
@@ -207,12 +207,35 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
+"@libp2p/interface@^1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.3.1.tgz#40665a2c01fcd7c3a2eb3fba7276285c335a52ff"
+  integrity sha512-KJoYP6biAgIHUU3pxaixaaYCvIHZshzXetxfoNigadAZ3hCGuwpdFhk7IABEaI3RgadOOYUwW3MXPbL+cxnXVQ==
+  dependencies:
+    "@multiformats/multiaddr" "^12.2.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    multiformats "^13.1.0"
+    progress-events "^1.0.0"
+    uint8arraylist "^2.4.8"
+
 "@libp2p/logger@^4.0.11":
   version "4.0.11"
   resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.11.tgz#671692a0cceee73a0c0bf9b5f05ea14fde05f5e5"
   integrity sha512-WsZBup1Q+ec4C7i2YiCx0elFrejqJea3Fmkzy3t4fAek7Ofyh4GQonk3A4R7XsG5yq8+Hu1fpsGhIK8EVQsqZQ==
   dependencies:
     "@libp2p/interface" "^1.3.0"
+    "@multiformats/multiaddr" "^12.2.1"
+    debug "^4.3.4"
+    interface-datastore "^8.2.11"
+    multiformats "^13.1.0"
+
+"@libp2p/logger@^4.0.12":
+  version "4.0.12"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.12.tgz#a0b4f298596028d29b6344e0c90c312be62af770"
+  integrity sha512-eSiHY06Zijq6b1rMBob/ZuGBEavFm8IPNPEzeOU3JrBU7v/OV8Da0FesbemtkudZVPRi8mqRoOiIwmWn0mObng==
+  dependencies:
+    "@libp2p/interface" "^1.3.1"
     "@multiformats/multiaddr" "^12.2.1"
     debug "^4.3.4"
     interface-datastore "^8.2.11"
@@ -1189,16 +1212,16 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.31.5:
-  version "0.31.12"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.31.12.tgz#f33a297c63d37c0af2d7930cf2adc4dbf143beba"
-  integrity sha512-J8ccT+hS0IwTA5pubeFXbpByDOM6WAAmmL+0rU8aX9q/Z/RDzm/EUnly9YsMBQ7pX5kGX5G66Zd83eA8WGeHAQ==
+starpc@^0.32.0:
+  version "0.32.2"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.2.tgz#45c22bf59c120340b179f9936946384866ed315b"
+  integrity sha512-n0Jgf7tLzPDKpz1EL/Y6GhQQhVk5d7l5LWQn7LRZsiMs9siC6HtKGf0WcS7ScJloAPS11eWylLuIdhmca+gpfw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
-    "@aptre/protobuf-es-lite" "^0.2.14"
+    "@aptre/protobuf-es-lite" "^0.4.3"
     "@chainsafe/libp2p-yamux" "^6.0.2"
-    "@libp2p/interface" "^1.3.0"
-    "@libp2p/logger" "^4.0.11"
+    "@libp2p/interface" "^1.3.1"
+    "@libp2p/logger" "^4.0.12"
     event-iterator "^2.0.0"
     isomorphic-ws "^5.0.0"
     it-first "^3.0.6"

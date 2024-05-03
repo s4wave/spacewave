@@ -3,15 +3,15 @@ module github.com/aperturerobotics/forge
 go 1.22
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240429212903-9119033618d7 // master
-	github.com/aperturerobotics/identity v0.0.0-20240429214814-cb79e7ffec56 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240503081103-3e0a71b3b209 // master
+	github.com/aperturerobotics/identity v0.0.0-20240501215239-41068383a359 // master
 )
 
 require github.com/whilp/git-urls v1.0.1-0.20200917014145-4a18977c6eec
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.31.0 // master
+require github.com/aperturerobotics/bifrost v0.32.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -37,7 +37,7 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/Workiva/go-datastructures v1.1.3 // indirect
+	github.com/Workiva/go-datastructures v1.1.4 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.7.0 // indirect
 	github.com/cayleygraph/cayley v0.7.7
@@ -54,7 +54,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/hidal-go/hidalgo v0.3.0 // indirect
-	github.com/minio/minio-go/v7 v7.0.69 // indirect
+	github.com/minio/minio-go/v7 v7.0.70 // indirect
 	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
@@ -63,10 +63,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.3 // latest
-	github.com/aperturerobotics/entitygraph v0.8.2
-	github.com/aperturerobotics/starpc v0.31.12 // latest
-	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
+	github.com/aperturerobotics/controllerbus v0.44.5 // latest
+	github.com/aperturerobotics/entitygraph v0.9.0
+	github.com/aperturerobotics/starpc v0.32.2 // latest
+	github.com/aperturerobotics/util v1.23.0 // master
 )
 
 // aperture: use compatibility forks
@@ -82,8 +82,8 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.14.9
-	github.com/aperturerobotics/protobuf-go-lite v0.6.0
+	github.com/aperturerobotics/common v0.15.2
+	github.com/aperturerobotics/protobuf-go-lite v0.6.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cayleygraph/quad v1.2.5
 	github.com/libp2p/go-libp2p v0.33.2
@@ -102,7 +102,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // indirect
-	github.com/aperturerobotics/go-kvfile v0.7.0 // indirect
+	github.com/aperturerobotics/go-kvfile v0.7.1 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -120,6 +120,7 @@ require (
 	github.com/gobuffalo/logger v1.0.6 // indirect
 	github.com/gobuffalo/packd v1.0.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.3 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -172,7 +173,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/dtls/v2 v2.2.10 // indirect
-	github.com/pion/ice/v3 v3.0.6 // indirect
+	github.com/pion/ice/v3 v3.0.7 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
@@ -185,8 +186,8 @@ require (
 	github.com/pion/stun/v2 v2.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/transport/v3 v3.0.2 // indirect
-	github.com/pion/turn/v3 v3.0.2 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.18 // indirect
+	github.com/pion/turn/v3 v3.0.3 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.19 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/quic-go v0.43.0 // indirect
@@ -223,12 +224,12 @@ require (
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.34.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/gorm v1.25.9 // indirect
+	gorm.io/gorm v1.25.10 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
 )
