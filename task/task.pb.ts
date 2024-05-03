@@ -7,9 +7,10 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
-import { BlockRef } from '../../hydra/block/block.pb.js'
+import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
 
@@ -168,17 +169,18 @@ export type Task = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 10;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
+// Task contains the message type declaration for Task.
 export const Task: MessageType<Task> = createMessageType({
   typeName: 'forge.task.Task',
   fields: [
     { no: 1, name: 'task_state', kind: 'enum', T: State_Enum },
-    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'replicas', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 6, name: 'pass_nonce', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'replicas', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 6, name: 'pass_nonce', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 7, name: 'target_ref', kind: 'message', T: () => BlockRef },
     { no: 8, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 9, name: 'result', kind: 'message', T: () => Result },

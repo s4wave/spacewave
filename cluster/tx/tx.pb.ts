@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'cluster.tx'
@@ -49,16 +50,12 @@ export type Tx = Message<{
   clusterObjectKey?: string
 }>
 
+// Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({
   typeName: 'cluster.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
-    {
-      no: 2,
-      name: 'cluster_object_key',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 2, name: 'cluster_object_key', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

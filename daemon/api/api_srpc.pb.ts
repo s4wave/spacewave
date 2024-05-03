@@ -2,8 +2,6 @@
 // @generated from file github.com/aperturerobotics/forge/daemon/api/api.proto (package forge.api, syntax proto3)
 /* eslint-disable */
 
-import { ProtoRpc } from 'starpc'
-
 /**
  * ForgeDaemonService is the control service for a daemon, contacted by the CLI.
  *
@@ -23,12 +21,3 @@ export interface ForgeDaemonService {}
 
 export const ForgeDaemonServiceServiceName =
   ForgeDaemonServiceDefinition.typeName
-
-export class ForgeDaemonServiceClient implements ForgeDaemonService {
-  private readonly rpc: ProtoRpc
-  private readonly service: string
-  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
-    this.service = opts?.service || ForgeDaemonServiceServiceName
-    this.rpc = rpc
-  }
-}

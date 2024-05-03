@@ -3,10 +3,10 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
-import { Config as Config$1 } from '../../../../bifrost/daemon/api/api.pb.js'
-import { Config as Config$2 } from '../../../../controllerbus/bus/api/api.pb.js'
-import { Config as Config$3 } from '../../../../hydra/daemon/api/api.pb.js'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/daemon/api/api.pb.js'
+import { Config as Config$2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
+import { Config as Config$3 } from '@go/github.com/aperturerobotics/hydra/daemon/api/api.pb.js'
 import { Config as Config$4 } from '../api.pb.js'
 
 export const protobufPackage = 'forge.api.controller'
@@ -73,42 +73,18 @@ export type Config = Message<{
   forgeApiConfig?: Config$4
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'forge.api.controller.Config',
   fields: [
-    {
-      no: 1,
-      name: 'listen_addr',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 2,
-      name: 'disable_bifrost_api',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 1, name: 'listen_addr', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'disable_bifrost_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'bifrost_api_config', kind: 'message', T: () => Config$1 },
-    {
-      no: 4,
-      name: 'disable_bus_api',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 4, name: 'disable_bus_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'bus_api_config', kind: 'message', T: () => Config$2 },
-    {
-      no: 7,
-      name: 'disable_hydra_api',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 7, name: 'disable_hydra_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'hydra_api_config', kind: 'message', T: () => Config$3 },
-    {
-      no: 8,
-      name: 'disable_forge_api',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 8, name: 'disable_forge_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 9, name: 'forge_api_config', kind: 'message', T: () => Config$4 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

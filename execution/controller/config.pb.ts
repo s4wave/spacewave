@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { InputWorld, Target } from '../../target/target.pb.js'
 import { Execution } from '../execution.pb.js'
 
@@ -56,23 +56,24 @@ export type Config = Message<{
   inputWorld?: InputWorld
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'execution.controller.Config',
   fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 4,
       name: 'resolve_controller_config_timeout',
       kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
+      T: ScalarType.STRING,
     },
     {
       no: 5,
       name: 'allow_non_exec_controller',
       kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
+      T: ScalarType.BOOL,
     },
     { no: 6, name: 'input_world', kind: 'message', T: () => InputWorld },
   ] as readonly PartialFieldInfo[],
@@ -101,6 +102,7 @@ export type ExecConfig = Message<{
   target?: Target
 }>
 
+// ExecConfig contains the message type declaration for ExecConfig.
 export const ExecConfig: MessageType<ExecConfig> = createMessageType({
   typeName: 'execution.controller.ExecConfig',
   fields: [

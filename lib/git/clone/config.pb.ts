@@ -3,9 +3,12 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
-import { AuthOpts, CloneOpts } from '../../../../hydra/git/block/git.pb.js'
-import { GitCreateWorktreeOp } from '../../../../hydra/git/world/git.pb.js'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  AuthOpts,
+  CloneOpts,
+} from '@go/github.com/aperturerobotics/hydra/git/block/git.pb.js'
+import { GitCreateWorktreeOp } from '@go/github.com/aperturerobotics/hydra/git/world/git.pb.js'
 
 export const protobufPackage = 'forge.lib.git.clone'
 
@@ -48,10 +51,11 @@ export type Config = Message<{
   worktreeOpts?: GitCreateWorktreeOp
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'forge.lib.git.clone.Config',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'clone_opts', kind: 'message', T: () => CloneOpts },
     { no: 3, name: 'auth_opts', kind: 'message', T: () => AuthOpts },
     {

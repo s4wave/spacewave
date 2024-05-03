@@ -7,13 +7,14 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
 import type { State as State$1 } from '../execution/execution.pb.js'
 import { State_Enum as State_Enum$1 } from '../execution/execution.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
-import { BlockRef } from '../../hydra/block/block.pb.js'
+import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 
 export const protobufPackage = 'forge.pass'
 
@@ -105,7 +106,7 @@ export type ExecState = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
   /**
    * ValueSet is the set of inputs and outputs used in the execution.
    * Outputs are updated when the execution reaches COMPLETE state.
@@ -121,12 +122,13 @@ export type ExecState = Message<{
   result?: Result
 }>
 
+// ExecState contains the message type declaration for ExecState.
 export const ExecState: MessageType<ExecState> = createMessageType({
   typeName: 'forge.pass.ExecState',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'execution_state', kind: 'enum', T: State_Enum$1 },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     { no: 5, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 6, name: 'result', kind: 'message', T: () => Result },
@@ -223,19 +225,20 @@ export type Pass = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 9;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
+// Pass contains the message type declaration for Pass.
 export const Pass: MessageType<Pass> = createMessageType({
   typeName: 'forge.pass.Pass',
   fields: [
     { no: 1, name: 'pass_state', kind: 'enum', T: State_Enum },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'target_ref', kind: 'message', T: () => BlockRef },
     { no: 4, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 5, name: 'result', kind: 'message', T: () => Result },
-    { no: 6, name: 'replicas', kind: 'scalar', T: 13 /* ScalarType.UINT32 */ },
-    { no: 7, name: 'pass_nonce', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
+    { no: 6, name: 'replicas', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 7, name: 'pass_nonce', kind: 'scalar', T: ScalarType.UINT64 },
     {
       no: 8,
       name: 'exec_states',

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'worker.controller'
 
@@ -44,13 +44,14 @@ export type Config = Message<{
   assignSelf?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'worker.controller.Config',
   fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'assign_self', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'assign_self', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

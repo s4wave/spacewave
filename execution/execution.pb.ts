@@ -7,10 +7,11 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
 import { ValueSet } from '../target/target.pb.js'
-import { BlockRef } from '../../hydra/block/block.pb.js'
+import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
 
 export const protobufPackage = 'forge.execution'
@@ -87,7 +88,7 @@ export type Execution = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
   /**
    * ValueSet is the set of inputs and outputs used in the execution.
    * Outputs are updated while the execution is in RUNNING state.
@@ -109,11 +110,12 @@ export type Execution = Message<{
   result?: Result
 }>
 
+// Execution contains the message type declaration for Execution.
 export const Execution: MessageType<Execution> = createMessageType({
   typeName: 'forge.execution.Execution',
   fields: [
     { no: 1, name: 'execution_state', kind: 'enum', T: State_Enum },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     { no: 4, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 5, name: 'target_ref', kind: 'message', T: () => BlockRef },
@@ -151,10 +153,11 @@ export type Spec = Message<{
   targetRef?: BlockRef
 }>
 
+// Spec contains the message type declaration for Spec.
 export const Spec: MessageType<Spec> = createMessageType({
   typeName: 'forge.execution.Spec',
   fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 3, name: 'target_ref', kind: 'message', T: () => BlockRef },
   ] as readonly PartialFieldInfo[],

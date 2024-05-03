@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'forge.cluster'
 
@@ -42,11 +42,12 @@ export type Cluster = Message<{
   peerId?: string
 }>
 
+// Cluster contains the message type declaration for Cluster.
 export const Cluster: MessageType<Cluster> = createMessageType({
   typeName: 'forge.cluster.Cluster',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -79,17 +80,13 @@ export type ClusterCreateOp = Message<{
   peerId?: string
 }>
 
+// ClusterCreateOp contains the message type declaration for ClusterCreateOp.
 export const ClusterCreateOp: MessageType<ClusterCreateOp> = createMessageType({
   typeName: 'forge.cluster.ClusterCreateOp',
   fields: [
-    {
-      no: 1,
-      name: 'cluster_key',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -116,17 +113,13 @@ export type ClusterAssignPeerOp = Message<{
   peerId?: string
 }>
 
+// ClusterAssignPeerOp contains the message type declaration for ClusterAssignPeerOp.
 export const ClusterAssignPeerOp: MessageType<ClusterAssignPeerOp> =
   createMessageType({
     typeName: 'forge.cluster.ClusterAssignPeerOp',
     fields: [
-      {
-        no: 1,
-        name: 'cluster_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 2, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -151,17 +144,13 @@ export type ClusterAssignJobOp = Message<{
   jobKey?: string
 }>
 
+// ClusterAssignJobOp contains the message type declaration for ClusterAssignJobOp.
 export const ClusterAssignJobOp: MessageType<ClusterAssignJobOp> =
   createMessageType({
     typeName: 'forge.cluster.ClusterAssignJobOp',
     fields: [
-      {
-        no: 1,
-        name: 'cluster_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 2, name: 'job_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -186,22 +175,13 @@ export type ClusterAssignWorkerOp = Message<{
   workerKey?: string
 }>
 
+// ClusterAssignWorkerOp contains the message type declaration for ClusterAssignWorkerOp.
 export const ClusterAssignWorkerOp: MessageType<ClusterAssignWorkerOp> =
   createMessageType({
     typeName: 'forge.cluster.ClusterAssignWorkerOp',
     fields: [
-      {
-        no: 1,
-        name: 'cluster_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 2,
-        name: 'worker_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'worker_key', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -226,17 +206,13 @@ export type ClusterStartJobOp = Message<{
   jobKey?: string
 }>
 
+// ClusterStartJobOp contains the message type declaration for ClusterStartJobOp.
 export const ClusterStartJobOp: MessageType<ClusterStartJobOp> =
   createMessageType({
     typeName: 'forge.cluster.ClusterStartJobOp',
     fields: [
-      {
-        no: 1,
-        name: 'cluster_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 2, name: 'job_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -268,18 +244,14 @@ export type ClusterAssignTaskOp = Message<{
   taskKey?: string
 }>
 
+// ClusterAssignTaskOp contains the message type declaration for ClusterAssignTaskOp.
 export const ClusterAssignTaskOp: MessageType<ClusterAssignTaskOp> =
   createMessageType({
     typeName: 'forge.cluster.ClusterAssignTaskOp',
     fields: [
-      {
-        no: 1,
-        name: 'cluster_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 2, name: 'job_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-      { no: 3, name: 'task_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -308,17 +280,13 @@ export type ClusterCompleteJobOp = Message<{
   jobKey?: string
 }>
 
+// ClusterCompleteJobOp contains the message type declaration for ClusterCompleteJobOp.
 export const ClusterCompleteJobOp: MessageType<ClusterCompleteJobOp> =
   createMessageType({
     typeName: 'forge.cluster.ClusterCompleteJobOp',
     fields: [
-      {
-        no: 1,
-        name: 'cluster_key',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      { no: 2, name: 'job_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

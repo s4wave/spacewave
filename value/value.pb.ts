@@ -7,9 +7,10 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
-import { ObjectRef } from '../../hydra/bucket/bucket.pb.js'
-import { BlockRef } from '../../hydra/block/block.pb.js'
+import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
+import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 
 export const protobufPackage = 'forge.value'
 
@@ -100,25 +101,16 @@ export type WorldObjectSnapshot = Message<{
   objectParent?: string
 }>
 
+// WorldObjectSnapshot contains the message type declaration for WorldObjectSnapshot.
 export const WorldObjectSnapshot: MessageType<WorldObjectSnapshot> =
   createMessageType({
     typeName: 'forge.value.WorldObjectSnapshot',
     fields: [
-      { no: 1, name: 'key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+      { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-      { no: 3, name: 'rev', kind: 'scalar', T: 4 /* ScalarType.UINT64 */ },
-      {
-        no: 4,
-        name: 'object_type',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
-      {
-        no: 5,
-        name: 'object_parent',
-        kind: 'scalar',
-        T: 9 /* ScalarType.STRING */,
-      },
+      { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'object_parent', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -167,10 +159,11 @@ export type Value = Message<{
   worldObjectSnapshot?: WorldObjectSnapshot
 }>
 
+// Value contains the message type declaration for Value.
 export const Value: MessageType<Value> = createMessageType({
   typeName: 'forge.value.Value',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'value_type', kind: 'enum', T: ValueType_Enum },
     { no: 3, name: 'block_ref', kind: 'message', T: () => BlockRef },
     { no: 4, name: 'bucket_ref', kind: 'message', T: () => ObjectRef },
@@ -210,12 +203,13 @@ export type Result = Message<{
   canceled?: boolean
 }>
 
+// Result contains the message type declaration for Result.
 export const Result: MessageType<Result> = createMessageType({
   typeName: 'forge.value.Result',
   fields: [
-    { no: 1, name: 'success', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: 'fail_error', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'canceled', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 2, name: 'fail_error', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'canceled', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -19,6 +19,7 @@ export const protobufPackage = 'forge.lib.util.wait'
  */
 export type Config = Message<{}>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'forge.lib.util.wait.Config',
   fields: [] as readonly PartialFieldInfo[],

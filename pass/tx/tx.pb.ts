@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Result } from '../../value/value.pb.js'
 import { ValueSet } from '../../target/target.pb.js'
@@ -88,10 +89,11 @@ export type ExecSpec = Message<{
   peerId?: string
 }>
 
+// ExecSpec contains the message type declaration for ExecSpec.
 export const ExecSpec: MessageType<ExecSpec> = createMessageType({
   typeName: 'pass.tx.ExecSpec',
   fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -119,6 +121,7 @@ export type TxCreateExecSpecs = Message<{
   clearExisting?: boolean
 }>
 
+// TxCreateExecSpecs contains the message type declaration for TxCreateExecSpecs.
 export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
   createMessageType({
     typeName: 'pass.tx.TxCreateExecSpecs',
@@ -130,12 +133,7 @@ export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
         T: () => ExecSpec,
         repeated: true,
       },
-      {
-        no: 2,
-        name: 'clear_existing',
-        kind: 'scalar',
-        T: 8 /* ScalarType.BOOL */,
-      },
+      { no: 2, name: 'clear_existing', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -158,6 +156,7 @@ export type TxStart = Message<{
   createExecSpecs?: TxCreateExecSpecs
 }>
 
+// TxStart contains the message type declaration for TxStart.
 export const TxStart: MessageType<TxStart> = createMessageType({
   typeName: 'pass.tx.TxStart',
   fields: [
@@ -182,6 +181,7 @@ export const TxStart: MessageType<TxStart> = createMessageType({
  */
 export type TxUpdateExecStates = Message<{}>
 
+// TxUpdateExecStates contains the message type declaration for TxUpdateExecStates.
 export const TxUpdateExecStates: MessageType<TxUpdateExecStates> =
   createMessageType({
     typeName: 'pass.tx.TxUpdateExecStates',
@@ -216,6 +216,7 @@ export type TxComplete = Message<{
   valueSet?: ValueSet
 }>
 
+// TxComplete contains the message type declaration for TxComplete.
 export const TxComplete: MessageType<TxComplete> = createMessageType({
   typeName: 'pass.tx.TxComplete',
   fields: [
@@ -274,16 +275,12 @@ export type Tx = Message<{
   txComplete?: TxComplete
 }>
 
+// Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({
   typeName: 'pass.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
-    {
-      no: 2,
-      name: 'pass_object_key',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 2, name: 'pass_object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'tx_start', kind: 'message', T: () => TxStart },
     {
       no: 4,

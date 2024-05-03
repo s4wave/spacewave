@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Result, Value } from '../../value/value.pb.js'
 
@@ -71,10 +72,11 @@ export type TxStart = Message<{
   peerId?: string
 }>
 
+// TxStart contains the message type declaration for TxStart.
 export const TxStart: MessageType<TxStart> = createMessageType({
   typeName: 'execution.tx.TxStart',
   fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -102,11 +104,12 @@ export type TxSetOutputs = Message<{
   clearOld?: boolean
 }>
 
+// TxSetOutputs contains the message type declaration for TxSetOutputs.
 export const TxSetOutputs: MessageType<TxSetOutputs> = createMessageType({
   typeName: 'execution.tx.TxSetOutputs',
   fields: [
     { no: 1, name: 'outputs', kind: 'message', T: () => Value, repeated: true },
-    { no: 2, name: 'clear_old', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: 'clear_old', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -128,6 +131,7 @@ export type TxComplete = Message<{
   result?: Result
 }>
 
+// TxComplete contains the message type declaration for TxComplete.
 export const TxComplete: MessageType<TxComplete> = createMessageType({
   typeName: 'execution.tx.TxComplete',
   fields: [
@@ -171,6 +175,7 @@ export type Tx = Message<{
   txComplete?: TxComplete
 }>
 
+// Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({
   typeName: 'execution.tx.Tx',
   fields: [

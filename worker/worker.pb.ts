@@ -3,8 +3,8 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
-import { Keypair } from '../../identity/identity.pb.js'
+import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { Keypair } from '@go/github.com/aperturerobotics/identity/identity.pb.js'
 
 export const protobufPackage = 'forge.worker'
 
@@ -32,10 +32,11 @@ export type Worker = Message<{
   name?: string
 }>
 
+// Worker contains the message type declaration for Worker.
 export const Worker: MessageType<Worker> = createMessageType({
   typeName: 'forge.worker.Worker',
   fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -68,11 +69,12 @@ export type WorkerCreateOp = Message<{
   keypairs?: Keypair[]
 }>
 
+// WorkerCreateOp contains the message type declaration for WorkerCreateOp.
 export const WorkerCreateOp: MessageType<WorkerCreateOp> = createMessageType({
   typeName: 'forge.worker.WorkerCreateOp',
   fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'keypairs',

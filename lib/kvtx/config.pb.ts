@@ -7,6 +7,7 @@ import {
   createEnumType,
   createMessageType,
   Message,
+  ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Value } from '../../value/value.pb.js'
 
@@ -190,26 +191,17 @@ export type Op = Message<{
   ops?: Op[]
 }>
 
+// Op contains the message type declaration for Op.
 export const Op: MessageType<Op> = createMessageType({
   typeName: 'forge.lib.kvtx.Op',
   fields: [
     { no: 1, name: 'op_type', kind: 'enum', T: OpType_Enum },
-    { no: 2, name: 'key_input', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 6,
-      name: 'value_input',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
+    { no: 2, name: 'key_input', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 6, name: 'value_input', kind: 'scalar', T: ScalarType.STRING },
     { no: 7, name: 'value', kind: 'message', T: () => Value },
-    {
-      no: 8,
-      name: 'value_string',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    { no: 9, name: 'output', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: 'value_string', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'output', kind: 'scalar', T: ScalarType.STRING },
     { no: 10, name: 'ops', kind: 'message', T: () => Op, repeated: true },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -252,22 +244,13 @@ export type Config = Message<{
   ignoreErrors?: boolean
 }>
 
+// Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'forge.lib.kvtx.Config',
   fields: [
     { no: 1, name: 'ops', kind: 'message', T: () => Op, repeated: true },
-    {
-      no: 2,
-      name: 'config_input',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-    },
-    {
-      no: 3,
-      name: 'ignore_errors',
-      kind: 'scalar',
-      T: 8 /* ScalarType.BOOL */,
-    },
+    { no: 2, name: 'config_input', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'ignore_errors', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -286,6 +269,7 @@ export type ConfigInput = Message<{
   ops?: Op[]
 }>
 
+// ConfigInput contains the message type declaration for ConfigInput.
 export const ConfigInput: MessageType<ConfigInput> = createMessageType({
   typeName: 'forge.lib.kvtx.ConfigInput',
   fields: [

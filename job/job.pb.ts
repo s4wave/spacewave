@@ -96,9 +96,10 @@ export type Job = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
 }>
 
+// Job contains the message type declaration for Job.
 export const Job: MessageType<Job> = createMessageType({
   typeName: 'forge.job.Job',
   fields: [
