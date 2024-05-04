@@ -7,7 +7,7 @@ import (
 	forge_worker "github.com/aperturerobotics/forge/worker"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/cayleygraph/cayley"
+	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 )
 

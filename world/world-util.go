@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
-	"github.com/cayleygraph/cayley"
+	"github.com/aperturerobotics/cayley"
 )
 
 // The world is used for managing objects, i.e.:

@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
-	"github.com/cayleygraph/quad"
+	"github.com/aperturerobotics/cayley/quad"
 )
 
 const (

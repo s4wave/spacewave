@@ -15,7 +15,7 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/cayleygraph/quad"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 )
 

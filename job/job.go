@@ -7,7 +7,7 @@ import (
 	forge_value "github.com/aperturerobotics/forge/value"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/cayleygraph/quad"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 )
 

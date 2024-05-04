@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/cayleygraph/cayley"
+	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
