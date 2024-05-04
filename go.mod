@@ -3,20 +3,20 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/identity v0.0.0-20240501214820-51a57516cbe9 // master
+	github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 // master
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/manifoldco/promptui v0.9.0 // latest
 )
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240501213017-e6d4959fb959 // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240504065816-9017f2651116 // indirect; master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.31.1 // master
+require github.com/aperturerobotics/bifrost v0.32.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -29,8 +29,6 @@ replace (
 
 // aperture: use compatibility forks
 replace (
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
-	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	// https://github.com/dgraph-io/badger/pull/2048
 	github.com/dgraph-io/badger/v4 => github.com/paralin/badger/v4 v4.2.1-0.20240221040732-078580f8a58a // fix-wasm
 	// https://github.com/dgraph-io/ristretto/pull/375
@@ -43,10 +41,10 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.4 // latest
+	github.com/aperturerobotics/controllerbus v0.44.5 // latest
 	github.com/aperturerobotics/entitygraph v0.9.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.31.14 // indirect; main
-	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // indirect; master
+	github.com/aperturerobotics/starpc v0.32.2 // indirect; main
+	github.com/aperturerobotics/util v1.23.0 // indirect; master
 )
 
 // aperture: use compatibility forks
@@ -62,7 +60,7 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.15.0
+	github.com/aperturerobotics/common v0.15.2
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/libp2p/go-libp2p v0.33.2
@@ -110,7 +108,7 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.22.1-0.20240503134056-ebb717d63002 // indirect
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
