@@ -382,6 +382,7 @@ func BuildDistBundle(
 		return err
 	}
 
+	// compile runtime.wasm
 	err = gocompiler.ExecBuildEntrypoint(
 		le,
 		buildPlatform,
