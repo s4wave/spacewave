@@ -2,6 +2,9 @@ package bldr_dist_compiler
 
 import (
 	"context"
+	"encoding/base32"
+	"hash"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +38,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // BuildDistBundle builds the distribution bundle for an application.
@@ -55,6 +59,8 @@ func BuildDistBundle(
 	enableCgo bool,
 ) error {
 	isRelease := buildType.IsRelease()
+	isWebPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
+
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
@@ -248,8 +254,17 @@ func BuildDistBundle(
 		return err
 	}
 
+	var embeddedVolumeWrite io.Writer = embeddedVolFile
+	var embeddedVolumeHash hash.Hash
+	if isWebPlatform {
+		// on the web platform add a hash to the filename to cache miss when the file changes
+		embeddedVolumeHash = blake3.New()
+		_, _ = embeddedVolumeHash.Write([]byte("bldr hash " + embeddedVolumeFilename + " Fri May  3 21:35:53 PDT 2024 embedded volume"))
+		embeddedVolumeWrite = io.MultiWriter(embeddedVolFile, embeddedVolumeHash)
+	}
+
 	// build kvfile writer
-	kvfileWriter := kvfile.NewWriter(embeddedVolFile)
+	kvfileWriter := kvfile.NewWriter(embeddedVolumeWrite)
 	kvfileKvkey := store_kvkey.NewDefaultKVKey()
 	kvfileBlockPrefix := kvfileKvkey.GetBlockFullPrefix()
 
@@ -290,7 +305,6 @@ func BuildDistBundle(
 	// on the Web platform we distribute the kvfile separately
 	// we also name the entrypoint file differently
 	var outBinPath string
-	isWebPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
 	if isWebPlatform {
 		// output directory for the entrypoint
 		outEntryDir := filepath.Join(outputPath, "entrypoint")
@@ -298,13 +312,14 @@ func BuildDistBundle(
 			return err
 		}
 
-		// store the wasm file where the entrypoint expects.
-		// TODO: name it based on outBinName and add a hash to the name
-		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
+		// compute the filename hash for assets-[hash].kvfile
+		// this format matches the one used in esbuild
+		embeddedVolumeOutputFilename := strings.Join([]string{"assets-", strings.ToUpper(base32.StdEncoding.EncodeToString(embeddedVolumeHash.Sum(nil))[:8]), ".kvfile"}, "")
+		embeddedVolumeOutputPath := filepath.Join(outputPath, embeddedVolumeOutputFilename)
 
-		le.Debugf("copying %v to output directory", embeddedVolumeFilename)
+		le.Debugf("copying %v to output as %v", embeddedVolumeFilename, embeddedVolumeOutputFilename)
 		if err := fsutil.CopyFile(
-			filepath.Join(outputPath, embeddedVolumeFilename),
+			embeddedVolumeOutputPath,
 			embeddedVolumePath,
 			0o644,
 		); err != nil {
@@ -312,7 +327,7 @@ func BuildDistBundle(
 		}
 
 		// Write the URL to the kvfile
-		embeddedVolumeURL := "../" + embeddedVolumeFilename
+		embeddedVolumeURL := "../" + embeddedVolumeOutputFilename
 		outVolumeURLFilename := "assets.url"
 		outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
 		if err := os.WriteFile(outVolumeURLPath, []byte(embeddedVolumeURL), 0o644); err != nil {
@@ -349,7 +364,10 @@ func BuildDistBundle(
 		if err != nil {
 			return err
 		}
-		// TODO brotli compress
+
+		// store the wasm file where the entrypoint expects.
+		// TODO: name it based on outBinName and add a hash to the name
+		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
 	} else {
 		// otherwise we go:embed it
 		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)

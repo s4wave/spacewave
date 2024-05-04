@@ -22,7 +22,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.32.0 // master
+require github.com/aperturerobotics/bifrost v0.32.1-0.20240504050750-46079d8b87d8 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -49,8 +49,8 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.5 // master
-	github.com/aperturerobotics/entitygraph v0.9.0 // indirect
+	github.com/aperturerobotics/controllerbus v0.44.6-0.20240504050347-2116a715a7ff // master
+	github.com/aperturerobotics/entitygraph v0.9.1 // indirect
 	github.com/aperturerobotics/starpc v0.32.2 // latest
 )
 

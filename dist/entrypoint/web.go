@@ -129,16 +129,16 @@ func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose 
 			return nil, nil, errors.New("empty assets url")
 		}
 
-		// send http requests
+		// send http Range requests
 		fetchReader := fetch_range.NewFetchRangeReader(
 			le,
 			fetchUrl,
 			&fetch.Opts{
 				Method: "GET",
 
-				// Disable cache to avoid cache inconsistency issues.
-				// TODO add a hash to the URL and remove this
-				Cache: "no-store",
+				// The assets file has a hash in the filename.
+				// We can force caching since the hash change will flush the cache.
+				Cache: "force-cache",
 			},
 			verbose,
 		)
