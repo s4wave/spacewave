@@ -11,7 +11,7 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
 	identity_domain "github.com/aperturerobotics/identity/domain"
-	"github.com/cayleygraph/cayley"
+	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 )
 

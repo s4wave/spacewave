@@ -2,13 +2,13 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240501212750-eaba9aca26e5 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240504065816-9017f2651116 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.31.1 // master
+require github.com/aperturerobotics/bifrost v0.32.0 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -21,8 +21,6 @@ replace (
 
 // aperture: use compatibility forks
 replace (
-	github.com/cayleygraph/cayley => github.com/aperturerobotics/cayley v0.7.7-0.20230526013106-bcbeda7f50f0 // aperture
-	github.com/cayleygraph/quad => github.com/aperturerobotics/cayley-quad v1.2.5-0.20230524232228-dc08772d0195 // aperture
 	// https://github.com/dgraph-io/badger/pull/2048
 	github.com/dgraph-io/badger/v4 => github.com/paralin/badger/v4 v4.2.1-0.20240221040732-078580f8a58a // fix-wasm
 	// https://github.com/dgraph-io/ristretto/pull/375
@@ -32,18 +30,15 @@ replace (
 	github.com/prometheus/client_golang => github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f // aperture
 )
 
-require (
-	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
-	github.com/cayleygraph/cayley v0.7.7
-)
+require github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.4 // latest
+	github.com/aperturerobotics/controllerbus v0.44.5 // latest
 	github.com/aperturerobotics/entitygraph v0.9.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.31.14 // latest
-	github.com/aperturerobotics/util v1.22.2-0.20240429204300-8b2d5826595d // master
+	github.com/aperturerobotics/starpc v0.32.2 // latest
+	github.com/aperturerobotics/util v1.23.0 // master
 )
 
 // aperture: use compatibility forks
@@ -60,10 +55,10 @@ replace (
 )
 
 require (
-	github.com/aperturerobotics/common v0.15.0
+	github.com/aperturerobotics/cayley v0.9.0
+	github.com/aperturerobotics/common v0.15.2
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cayleygraph/quad v1.2.5
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
@@ -76,22 +71,14 @@ require (
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/gobuffalo/logger v1.0.6 // indirect
-	github.com/gobuffalo/packd v1.0.1 // indirect
-	github.com/gobuffalo/packr/v2 v2.8.3 // indirect
 	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5 // indirect
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
-	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
-	github.com/markbates/errx v1.1.0 // indirect
-	github.com/markbates/oncer v1.0.0 // indirect
-	github.com/markbates/safe v1.0.1 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
@@ -106,21 +93,16 @@ require (
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
 	github.com/quic-go/quic-go v0.43.0 // indirect
-	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
-	github.com/spf13/cobra v1.7.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.22.1-0.20240503134056-ebb717d63002 // indirect
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/protobuf v1.34.0 // indirect

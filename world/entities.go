@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	"github.com/aperturerobotics/identity"
-	"github.com/cayleygraph/quad"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 )
 
