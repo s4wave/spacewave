@@ -3,11 +3,11 @@ package world_block
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/cayleygraph/quad"
 )
 
 // CreateObject creates a object with a key and initial root ref.

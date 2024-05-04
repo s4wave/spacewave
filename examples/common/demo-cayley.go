@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -15,9 +18,6 @@ import (
 	hydra_kvtx_cayley "github.com/aperturerobotics/hydra/kvtx/cayley"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/aperturerobotics/hydra/volume"
-	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/quad"
 	"github.com/sirupsen/logrus"
 )
 

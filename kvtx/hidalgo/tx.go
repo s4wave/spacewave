@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 
+	kv "github.com/aperturerobotics/cayley/kv/flat"
+	"github.com/aperturerobotics/cayley/kv/options"
 	"github.com/aperturerobotics/hydra/kvtx"
-	kv "github.com/hidal-go/hidalgo/kv/flat"
-	"github.com/hidal-go/hidalgo/kv/options"
 )
 
 // Tx implements the hidalgo kv t/x interface with a kvtx tx.

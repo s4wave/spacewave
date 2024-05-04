@@ -5,8 +5,8 @@ package kvtx_hidalgo
 import (
 	"context"
 
+	kv "github.com/aperturerobotics/cayley/kv/flat"
 	"github.com/aperturerobotics/hydra/kvtx"
-	kv "github.com/hidal-go/hidalgo/kv/flat"
 )
 
 // KV implements the hidalgo k/v interface with a kvtx Store.

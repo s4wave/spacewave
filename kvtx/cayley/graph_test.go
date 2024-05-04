@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/graph/iterator"
+	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/cayley/query/path"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
-	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/graph/iterator"
-	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

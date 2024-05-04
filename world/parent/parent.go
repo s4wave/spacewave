@@ -3,9 +3,9 @@ package world_parent
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/quad"
 )
 
 // ParentState wraps a WorldState to implement garbage collection.

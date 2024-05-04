@@ -3,13 +3,13 @@ package kvtx_cayley
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/graph"
+	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
+	"github.com/aperturerobotics/cayley/kv/flat"
+	"github.com/aperturerobotics/cayley/writer"
 	"github.com/aperturerobotics/hydra/kvtx"
 	hidalgo "github.com/aperturerobotics/hydra/kvtx/hidalgo"
-	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/graph"
-	cayley_kv "github.com/cayleygraph/cayley/graph/kv"
-	"github.com/cayleygraph/cayley/writer"
-	"github.com/hidal-go/hidalgo/kv/flat"
 )
 
 // NewGraph builds a new graph store from a kvtx store.

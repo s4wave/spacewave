@@ -5,10 +5,10 @@ import (
 	"io"
 	"sort"
 
-	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/cayley/query/shape"
-	"github.com/cayleygraph/quad"
+	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/cayley/query/shape"
 )
 
 // QuadEqual checks if two quads are equal.

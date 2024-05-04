@@ -3,7 +3,7 @@ package kvtx_hidalgo
 import (
 	"context"
 
-	kv "github.com/hidal-go/hidalgo/kv/flat"
+	kv "github.com/aperturerobotics/cayley/kv/flat"
 )
 
 // txScanIterator implements kv.Iterator

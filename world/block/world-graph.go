@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
-	"github.com/cayleygraph/quad"
 )
 
 // AccessCayleyGraph calls a callback with a temporary Cayley graph handle.

@@ -5,6 +5,9 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/cayley/query/path"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/blob"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
@@ -14,9 +17,6 @@ import (
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/cayleygraph/cayley"
-	"github.com/cayleygraph/cayley/query/path"
-	"github.com/cayleygraph/quad"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

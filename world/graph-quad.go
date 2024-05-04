@@ -1,8 +1,8 @@
 package world
 
 import (
+	"github.com/aperturerobotics/cayley/quad"
 	bquad "github.com/aperturerobotics/hydra/block/quad"
-	"github.com/cayleygraph/quad"
 )
 
 // GraphQuad is the common graph entry interface.

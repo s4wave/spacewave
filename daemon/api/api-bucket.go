@@ -83,7 +83,6 @@ func (a *API) ListBuckets(
 	ctx context.Context,
 	req *volume.ListBucketsRequest,
 ) (*ListBucketsResponse, error) {
-
 	bucketInfos, _, ref, err := bus.ExecCollectValues[*volume.ListBucketsValue](ctx, a.bus, req, false, nil)
 	if err != nil {
 		return nil, err

@@ -3,10 +3,10 @@ package kvtx_hidalgo
 import (
 	"testing"
 
+	"github.com/aperturerobotics/cayley/kv"
+	"github.com/aperturerobotics/cayley/kv/flat"
+	"github.com/aperturerobotics/cayley/kv/kvtest"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
-	"github.com/hidal-go/hidalgo/kv"
-	"github.com/hidal-go/hidalgo/kv/flat"
-	"github.com/hidal-go/hidalgo/kv/kvtest"
 	"github.com/sirupsen/logrus"
 )
 

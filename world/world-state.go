@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/cayleygraph/cayley/graph"
-	"github.com/cayleygraph/quad"
 )
 
 // AccessWorldStateFunc is a function to access world state.
