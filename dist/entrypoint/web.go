@@ -5,7 +5,6 @@ package dist_entrypoint
 
 import (
 	"context"
-	"io"
 	"io/fs"
 	"os"
 
@@ -115,41 +114,6 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
-}
-
-// openStaticVolume opens the static volume kvfile.
-func openStaticVolume(le *logrus.Entry, assetsFS fs.FS, verbose bool) (io.ReaderAt, uint64, error) {
-	// read the URL to fetch from the assets fs
-	fetchUrlDat, err := fs.ReadFile(assetsFS, "assets.url")
-	if err != nil {
-		return nil, 0, err
-	}
-	fetchUrl := string(fetchUrlDat)
-	if len(fetchUrl) == 0 {
-		return nil, 0, errors.New("empty assets url")
-	}
-
-	// send http requests
-	fetchReader := fetch_range.NewFetchRangeReader(
-		le,
-		fetchUrl,
-		&fetch.Opts{
-			Method: "GET",
-
-			// Disable cache to avoid cache inconsistency issues.
-			// TODO add a hash to the URL and remove this
-			Cache: "no-store",
-		},
-		verbose,
-	)
-
-	totalSize, err := fetchReader.Size()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	bufferReader := buffered_reader_at.NewBufferedReaderAt(fetchReader, httpRangeMinSize)
-	return bufferReader, uint64(totalSize), nil
 }
 
 // newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader
