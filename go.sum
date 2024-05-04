@@ -18,8 +18,8 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2d
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.9.0 h1:kDKwun/XVatU6k642R4LtS4KIiPZeT2SC64+mxzS/Pg=
 github.com/aperturerobotics/cayley v0.9.0/go.mod h1:6ckQhhIqJSiCFwz7l3POHb7CGKYjUe1QkHn0bocmk+A=
-github.com/aperturerobotics/common v0.15.2 h1:94z85iuQ7/CIH29ECOKKlQ3UQYFrBXNZezGRczV6Ka0=
-github.com/aperturerobotics/common v0.15.2/go.mod h1:lbKmrcn9sYjn8LsQ+dYOUJ+wjZUCNySsce6+t8r6GFk=
+github.com/aperturerobotics/common v0.15.5 h1:6imQU3QlLFR2NW4HrJUmc1fqb9kHArtgf0FP9Ag10XI=
+github.com/aperturerobotics/common v0.15.5/go.mod h1:R76WABZ3PDLrAhScLVjnzsI8S0rhIVNowxbzv4f8ZdM=
 github.com/aperturerobotics/controllerbus v0.45.0 h1:PkuRt/2KQfrBjJ8mEWk3r+REA4FD5Nn4JASNHyOwV3E=
 github.com/aperturerobotics/controllerbus v0.45.0/go.mod h1:vj09dlGXVzXKCSYputUyq4LeltHsBuxjrO4jFypvMq8=
 github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
@@ -32,8 +32,8 @@ github.com/aperturerobotics/go-kvfile v0.7.2 h1:5aKcsHmevVwwCwrFPa/yu3XWfgKkjhjg
 github.com/aperturerobotics/go-kvfile v0.7.2/go.mod h1:D+TQEgp2JRlt1rx5LzjfQWxVbkz9rgrAlmmNiU6Cgec=
 github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be h1:PZi7dbdjWqHa0TE1lD0f5WxzshL/qPp9fZ1K55fGo1c=
 github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be/go.mod h1:gA6iEEVpQcx0xpygG/U0wkm+DfII4zoPc3EWViXC5b0=
-github.com/aperturerobotics/hydra v0.0.0-20240504082524-3e5eef1b68a4 h1:cvyGpuLYjMjbyApEEA/4591FvFDAlKBGXkjWQ+GFswE=
-github.com/aperturerobotics/hydra v0.0.0-20240504082524-3e5eef1b68a4/go.mod h1:TX3BeEZh4FsnDT7hrt/XC5hB+YYbeYDQcwth9yrMHts=
+github.com/aperturerobotics/hydra v0.0.0-20240504093012-648730997c40 h1:H6oL+eMa9idB2eIQAFJFeDoy4NZutxlzqlH5P+66yNU=
+github.com/aperturerobotics/hydra v0.0.0-20240504093012-648730997c40/go.mod h1:kjpaYvVofeJzz1jcexH15ZTg54ahhPsDPda/lR2G4RI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=

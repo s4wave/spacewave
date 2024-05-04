@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@aptre/common@^0.15.1":
-  version "0.15.2"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.2.tgz#e2ff139b6a7cd43adef734082badba7c93eea78e"
-  integrity sha512-3kQCMUYesu8Y53bBFjdphl6NFRtg+3/NUueWcF5O8Esh7wgwT1iBC2hWzDmEkJYt3TTT/mZTQBtwyR8bEUXJ7w==
+"@aptre/common@^0.15.5":
+  version "0.15.5"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.5.tgz#291816522daf5f84d2064bb4430f9a3525c9c9b6"
+  integrity sha512-zOuHMenwKXkOtntEdTPgUG7IH5XXdQGAdkVh7X0aKeR0SrQEqzi2gSX+s3dw8x503GwR7ryFC3djkDzn7WJvdA==
   dependencies:
     "@aptre/protobuf-es-lite" "^0.4.3"
     "@typescript-eslint/eslint-plugin" "^7.8.0"
     "@typescript-eslint/parser" "^7.8.0"
-    eslint "^9.1.1"
+    eslint "^9.2.0"
     eslint-config-prettier "^9.0.0"
     eslint-plugin-react-hooks "^4.6.1"
     eslint-plugin-unused-imports "^3.2.0"
-    starpc "^0.32.0"
+    starpc "^0.32.3"
 
 "@aptre/it-ws@^1.0.0":
   version "1.0.0"
@@ -102,10 +102,10 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.1.1":
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.1.1.tgz#eb0f82461d12779bbafc1b5045cde3143d350a8a"
-  integrity sha512-5WoDz3Y19Bg2BnErkZTp0en+c/i9PvgFS7MBe1+m60HjFr0hrphlAGp4yzI7pxpt4xShln4ZyYp4neJm8hmOkQ==
+"@eslint/js@9.2.0":
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.2.0.tgz#b0a9123e8e91a3d9a2eed3a04a6ed44fdab639aa"
+  integrity sha512-ESiIudvhoYni+MdsI8oD7skpprZ89qKocwRM2KEvhhBJ9nl5MRh7BXU5GTod7Mdygq+AUl+QzId6iWJKR/wABA==
 
 "@humanwhocodes/config-array@^0.13.0":
   version "0.13.0"
@@ -892,15 +892,15 @@ eslint-visitor-keys@^4.0.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-4.0.0.tgz#e3adc021aa038a2a8e0b2f8b0ce8f66b9483b1fb"
   integrity sha512-OtIRv/2GyiF6o/d8K7MYKKbXrOUBIK6SfkIRM4Z0dY3w+LiQ0vy3F57m0Z71bjbyeiWFiHJ8brqnmE6H6/jEuw==
 
-eslint@^9.1.1:
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/eslint/-/eslint-9.1.1.tgz#39ec657ccd12813cb4a1dab2f9229dcc6e468271"
-  integrity sha512-b4cRQ0BeZcSEzPpY2PjFY70VbO32K7BStTGtBsnIGdTSEEQzBi8hPBcGQmTG2zUvFr9uLe0TK42bw8YszuHEqg==
+eslint@^9.2.0:
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/eslint/-/eslint-9.2.0.tgz#0700ebc99528753315d78090876911d3cdbf19fe"
+  integrity sha512-0n/I88vZpCOzO+PQpt0lbsqmn9AsnsJAQseIqhZFI8ibQT0U1AkEKRxA3EVMos0BoHSXDQvCXY25TUjB5tr8Og==
   dependencies:
     "@eslint-community/eslint-utils" "^4.2.0"
     "@eslint-community/regexpp" "^4.6.1"
     "@eslint/eslintrc" "^3.0.2"
-    "@eslint/js" "9.1.1"
+    "@eslint/js" "9.2.0"
     "@humanwhocodes/config-array" "^0.13.0"
     "@humanwhocodes/module-importer" "^1.0.1"
     "@humanwhocodes/retry" "^0.2.3"
@@ -1966,10 +1966,10 @@ sprintf-js@^1.1.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.1.3.tgz#4914b903a2f8b685d17fdf78a70e917e872e444a"
   integrity sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==
 
-starpc@^0.32.0:
-  version "0.32.2"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.2.tgz#45c22bf59c120340b179f9936946384866ed315b"
-  integrity sha512-n0Jgf7tLzPDKpz1EL/Y6GhQQhVk5d7l5LWQn7LRZsiMs9siC6HtKGf0WcS7ScJloAPS11eWylLuIdhmca+gpfw==
+starpc@^0.32.3:
+  version "0.32.3"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.3.tgz#238ddc76ecbe28242089953101ca8db809db6006"
+  integrity sha512-TDDrk60B2WDikRtKrQ36cqI7v3w5SGIh90uFOsOg2AEk5USgb+p31bDs/IB+SvO5g7DJllA2vFkQv/lwpsTAaw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@aptre/protobuf-es-lite" "^0.4.3"

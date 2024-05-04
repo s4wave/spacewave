@@ -65,7 +65,7 @@
     "prepare": "npm run clean && rimraf ./.tools && npm run vendor && npm run setup"
   },
   "devDependencies": {
-    "@aptre/common": "^0.15.1",
+    "@aptre/common": "^0.15.5",
     "@types/lodash.isequal": "^4.5.8",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.2.79",
@@ -90,7 +90,7 @@
     "lodash.isequal": "^4.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.32.0",
+    "starpc": "^0.32.3",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {

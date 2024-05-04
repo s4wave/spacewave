@@ -2,13 +2,13 @@ module github.com/aperturerobotics/bldr
 
 go 1.22
 
-require github.com/aperturerobotics/common v0.15.2 // latest
+require github.com/aperturerobotics/common v0.15.5 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240504082524-3e5eef1b68a4 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240504093012-648730997c40 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // master
 )
 
@@ -25,8 +25,8 @@ require github.com/aperturerobotics/bifrost v0.32.1 // master
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.17.1-0.20231111110359-6e4ac609e0d7 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20231111105834-ccf9c4261495 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a // aperture
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd // aperture
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
