@@ -127,6 +127,9 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		entryBuildType = bldr_manifest.BuildType_RELEASE
 	}
 
+	// disable tinygo unless release mode
+	useTinygo := minifyEntrypoint
+
 	wasmRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
 	if err := os.MkdirAll(wasmRuntimeDir, 0o755); err != nil {
 		return err
@@ -137,7 +140,8 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		distSrcDir,
 		wasmRuntimeDir,
 		entryBuildType,
-		buildPlatform,
+		useTinygo,
+		"./runtime.wasm",
 	); err != nil {
 		return err
 	}
@@ -152,7 +156,8 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		entryBuildType,
 		entrypointGoDir,
 		runtimeOut,
-		false, // no cgo
+		false, // disable cgo
+		useTinygo,
 		nil,
 		nil,
 	); err != nil {

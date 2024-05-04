@@ -20,6 +20,7 @@ func ExecBuildEntrypoint(
 	workingPath,
 	outBinPath string,
 	enableCgo bool,
+	useTinygo bool,
 	buildTags []string,
 	ldFlags []string,
 ) error {
@@ -51,18 +52,42 @@ func ExecBuildEntrypoint(
 	}
 
 	// args
-	cmd := "go"
-	args := append([]string{
-		"build",
-		"-trimpath",
-		"-o",
-		outBinPathRel,
-	}, GetDefaultArgs()...)
-	args = append(args, "-tags="+strings.Join(buildTags, ","))
+	var cmd string
+	var args []string
+	if !useTinygo {
+		cmd = "go"
+		args = append([]string{
+			"build",
+			"-trimpath",
+			"-o",
+			outBinPathRel,
+		}, GetDefaultArgs()...)
 
-	// if release or not native platform drop debugging symbols
-	if isRelease || !isNativeBuildPlatform {
-		ldFlags = append(ldFlags, "-w", "-s")
+		// if release or not native platform drop debugging symbols
+		if isRelease || !isNativeBuildPlatform {
+			ldFlags = append(ldFlags, "-w", "-s")
+		}
+
+		args = append(args, "-tags="+strings.Join(buildTags, ","))
+	} else {
+		cmd = "tinygo"
+		tinygoPlat, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform)
+		if err != nil {
+			return err
+		}
+		args = append([]string{
+			"build",
+			"-o",
+			outBinPathRel,
+			"-target", tinygoPlat,
+		}, GetDefaultTinygoArgs()...)
+
+		// if release or not native platform drop debugging symbols
+		if isRelease || !isNativeBuildPlatform {
+			args = append(args, "-no-debug")
+		}
+
+		args = append(args, "-tags="+strings.Join(buildTags, " "))
 	}
 
 	// ldflags
@@ -76,12 +101,14 @@ func ExecBuildEntrypoint(
 	// go build
 	ecmd := NewGoCompilerCmd(cmd, args...)
 	ecmd.Dir = workingPath
-	if enableCgo {
-		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
-	} else {
-		ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
+	if !useTinygo {
+		if enableCgo {
+			ecmd.Env = append(ecmd.Env, "CGO_ENABLED=1")
+		} else {
+			ecmd.Env = append(ecmd.Env, "CGO_ENABLED=0")
+		}
+		ecmd.Env = append(ecmd.Env, platformEnv...)
 	}
-	ecmd.Env = append(ecmd.Env, platformEnv...)
 
 	err = ExecGoCompiler(le, ecmd)
 	if err != nil {

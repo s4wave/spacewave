@@ -10,6 +10,8 @@ import {
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { Enabled } from '../../util/enabled/enabled.pb.js'
+import { Enabled_Enum } from '../../util/enabled/enabled.pb.js'
 import type { EsbuildVarType } from '../../web/esbuild/esbuild.pb.js'
 import { EsbuildVarType_Enum } from '../../web/esbuild/esbuild.pb.js'
 import { WebPkgRef } from '../../web/pkg/esbuild/esbuild.pb.js'
@@ -165,15 +167,31 @@ export type Config = Message<{
    *
    * Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
    *
-   * @generated from field: bool enable_cgo = 9;
+   * @generated from field: enabled.Enabled enable_cgo = 9;
    */
-  enableCgo?: boolean
+  enableCgo?: Enabled
+  /**
+   * EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
+   * The default is to use tinygo for the web platform in release mode.
+   * Only applicable for the web platform (WebAssembly) (currently).
+   *
+   * @generated from field: enabled.Enabled enable_tinygo = 10;
+   */
+  enableTinygo?: Enabled
+  /**
+   * EnableCompression can optionally force-enable or force-disable binary compression.
+   * The default is ENABLE for release-mode only.
+   * Only applicable for the web platform (WebAssembly brotli) (currently).
+   *
+   * @generated from field: enabled.Enabled enable_compression = 11;
+   */
+  enableCompression?: Enabled
   /**
    * EsbuildFlags is a string containing additional flags to pass to esbuild.
    * Flags passed by bldr:esbuild directives can override these values.
    * E.x.: --target es2020
    *
-   * @generated from field: repeated string esbuild_flags = 10;
+   * @generated from field: repeated string esbuild_flags = 12;
    */
   esbuildFlags?: string[]
   /**
@@ -186,13 +204,13 @@ export type Config = Message<{
    * - load-web: loads the web plugin on startup
    * - observe-web-view: handle LookupWebView with incoming HandleWebView directives
    *
-   * @generated from field: string web_plugin_id = 11;
+   * @generated from field: string web_plugin_id = 13;
    */
   webPluginId?: string
   /**
    * BuildTypes contains a mapping of BuildType to Config override.
    *
-   * @generated from field: map<string, bldr.plugin.compiler.Config> build_types = 12;
+   * @generated from field: map<string, bldr.plugin.compiler.Config> build_types = 14;
    */
   buildTypes?: { [key: string]: Config }
 }>
@@ -233,17 +251,19 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'disable_fetch_assets', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'enable_cgo', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 9, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
+    { no: 10, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
+    { no: 11, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
     {
-      no: 10,
+      no: 12,
       name: 'esbuild_flags',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
     },
-    { no: 11, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 13, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
     {
-      no: 12,
+      no: 14,
       name: 'build_types',
       kind: 'map',
       K: ScalarType.STRING,

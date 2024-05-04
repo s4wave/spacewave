@@ -24,3 +24,13 @@ func PlatformToGoEnv(plat bldr_platform.Platform) ([]string, error) {
 	}
 	return vars, nil
 }
+
+// PlatformToTinyGoTarget converts the Go platform into a tinygo platform.
+func PlatformToTinyGoTarget(plat bldr_platform.Platform) (string, error) {
+	switch plat.(type) {
+	case *bldr_platform.WebPlatform:
+		return "wasm-unknown", nil
+	default:
+		return "", errors.Errorf("go-compiler platform does not support tinygo: %s", plat.GetPlatformID())
+	}
+}

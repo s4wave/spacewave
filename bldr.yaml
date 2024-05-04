@@ -111,3 +111,5 @@ manifests:
         - bldr-demo
         loadPlugins:
         - bldr-demo
+        # enableCompression: ENABLE
+        # enableTinygo: ENABLE

@@ -6,13 +6,13 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/cayley"
-	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 )

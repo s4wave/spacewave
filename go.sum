@@ -42,8 +42,8 @@ github.com/aperturerobotics/protobuf-go-lite v0.6.1 h1:dN4baS2e2qHhdpX57RJKUEuks
 github.com/aperturerobotics/protobuf-go-lite v0.6.1/go.mod h1:6Bp+C+fI1uh0NmIKpxlxyHMkKtCP9Kb3PHkhOzxG4B8=
 github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10 h1:xtQ4K5XBgTSO47KbLYYEy9Y3HWLGeVNlbJXw1RfAXt4=
 github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10/go.mod h1:IWwvw/rjosC5aPDuEgzbRPNlZSHC4b4ABztoalIe59g=
-github.com/aperturerobotics/starpc v0.32.3 h1:Xh+D5iYq/1/RxNPOCkhvvRQif3pNzncUqgu70bcfsOI=
-github.com/aperturerobotics/starpc v0.32.3/go.mod h1:FPuY3WNQbCRNzgK7QtqLWp3tze/oEPPPC/91ex5aYUI=
+github.com/aperturerobotics/starpc v0.32.4 h1:d72BujyBGz5+v3ruDRRyqr6/Gl2W7BLPyUzvg5ZgRE4=
+github.com/aperturerobotics/starpc v0.32.4/go.mod h1:55y+i/Rjh69+CxZQ3MlFu1qmmjQ0iCU2RSFAO7EXVp0=
 github.com/aperturerobotics/util v1.23.0 h1:MW2klko8UN+t1baHiwy0RsEbpz+ZSleSmvZ9M26AQgA=
 github.com/aperturerobotics/util v1.23.0/go.mod h1:NaPbGzquoyVaaCLcdxorXjDYrI9Y+FoRNqOfKGUl9EY=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
@@ -213,6 +213,8 @@ github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98 h1:8VijFMz4qJ70+ObyaByu6XZctKPhjllz/XfEoVZDQGo=
 github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98/go.mod h1:8oFwKpIFewIJ9LrnO8dib4kQjKQQx7Ukq9sNZ+k50QU=
+github.com/paralin/nhooyr-websocket v1.8.12-0.20240504231911-2358de657064 h1:JV7i3sVQ6S4YhpBmTTPuRVH9WUM1xmqApX4Ffb5rOZQ=
+github.com/paralin/nhooyr-websocket v1.8.12-0.20240504231911-2358de657064/go.mod h1:rN9OFWIUwuxg4fR5tELlYC04bXYowCP9GX47ivo2l+c=
 github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8 h1:EfAnHCpOmoIZXrAV8Ov3Z32tJw3K62rFdlQOSNYAU04=
 github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8/go.mod h1:swkazRqnUf1N62d0Nutz7KIj2UKqsm/H8tD0nBJAXqM=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
@@ -476,5 +478,3 @@ honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 lukechampine.com/blake3 v1.2.1 h1:YuqqRuaqsGV71BV/nm9xlI0MKUv4QC54jQnBChWbGnI=
 lukechampine.com/blake3 v1.2.1/go.mod h1:0OFRp7fBtAylGVCO40o87sbupkyIGgbpv1+M1k1LM6k=
-nhooyr.io/websocket v1.8.11 h1:f/qXNc2/3DpoSZkHt1DQu6rj4zGC8JmkkLkWss0MgN0=
-nhooyr.io/websocket v1.8.11/go.mod h1:rN9OFWIUwuxg4fR5tELlYC04bXYowCP9GX47ivo2l+c=

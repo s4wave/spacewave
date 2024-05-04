@@ -1,8 +1,11 @@
 package bldr_dist_compiler
 
 import (
+	"slices"
+
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
+	"github.com/aperturerobotics/bldr/util/merge"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
@@ -41,6 +44,57 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 		return false
 	}
 	return ot.EqualVT(c)
+}
+
+// Alloc allocates any nil maps.
+func (c *Config) Alloc() {
+	if c == nil {
+		return
+	}
+	if c.HostConfigSet == nil {
+		c.HostConfigSet = make(map[string]*configset_proto.ControllerConfig)
+	}
+}
+
+// Merge merges the given build config into c.
+func (c *Config) Merge(o *Config) {
+	if o == nil {
+		return
+	}
+
+	// allocate any maps
+	c.Alloc()
+
+	// merge EmbedManifests
+	merge.MergeAndSortSlices(&c.EmbedManifests, o.GetEmbedManifests())
+
+	// merge LoadPlugins
+	merge.MergeAndSortSlices(&c.LoadPlugins, o.GetLoadPlugins())
+
+	// merge config sets
+	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
+
+	// override project id
+	if cproj := o.GetProjectId(); cproj != "" {
+		c.ProjectId = cproj
+	}
+
+	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
+	c.EnableTinygo = c.EnableCgo.Merge(o.GetEnableTinygo())
+	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCgo())
+}
+
+// Normalize sorts and deduplicates the fields.
+func (c *Config) Normalize() {
+	if c == nil {
+		return
+	}
+
+	slices.Sort(c.EmbedManifests)
+	c.EmbedManifests = slices.Compact(c.EmbedManifests)
+
+	slices.Sort(c.LoadPlugins)
+	c.LoadPlugins = slices.Compact(c.LoadPlugins)
 }
 
 // _ is a type assertion

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"sort"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -99,7 +98,6 @@ func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *manifest_builder.BuildManifestArgs,
 ) (*manifest_builder.BuilderResult, error) {
-	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
@@ -135,6 +133,19 @@ func (c *Controller) BuildManifest(
 	// build output world engine
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
+	// clone the config and apply the pre-build hooks
+	conf := c.GetConfig().CloneVT()
+
+	// call any pre-build hooks
+	for _, hook := range c.preBuildHooks {
+		res, err := hook(ctx, builderConf, busEngine)
+		if err != nil {
+			return nil, err
+		}
+
+		conf.Merge(res.GetConfig())
+	}
+
 	// build base config sets
 	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetHostConfigSet()))
 	for k, v := range conf.GetHostConfigSet() {
@@ -151,34 +162,8 @@ func (c *Controller) BuildManifest(
 		projectID = cproj
 	}
 
-	// call any pre-build hooks
-	for _, hook := range c.preBuildHooks {
-		res, err := hook(ctx, builderConf, busEngine)
-		if err != nil {
-			return nil, err
-		}
-
-		// merge config sets
-		resHostConfigSet := res.GetHostConfigSet()
-		if len(resHostConfigSet) != 0 {
-			configset_proto.MergeConfigSetMaps(hostConfigSet, resHostConfigSet)
-		}
-
-		// append embed manifests list and load plugins list
-		embedManifestIDs = append(embedManifestIDs, res.GetEmbedManifests()...)
-		loadPlugins = append(loadPlugins, res.GetLoadPlugins()...)
-
-		// override project id
-		if cproj := res.GetProjectId(); cproj != "" {
-			projectID = cproj
-		}
-	}
-
-	// Cleanup lists
-	sort.Strings(embedManifestIDs)
-	embedManifestIDs = slices.Compact(embedManifestIDs)
-	sort.Strings(loadPlugins)
-	loadPlugins = slices.Compact(loadPlugins)
+	// sort and cleanup the fields
+	conf.Normalize()
 
 	le.Debug("compiling dist")
 	entrypointFilename := projectID + buildPlatform.GetExecutableExt()
@@ -300,6 +285,8 @@ func (c *Controller) BuildManifest(
 		hostConfigSet,
 		initEmbeddedWorld,
 		conf.GetEnableCgo(),
+		conf.GetEnableTinygo(),
+		conf.GetEnableCompression(),
 	)
 	if err != nil {
 		return nil, err

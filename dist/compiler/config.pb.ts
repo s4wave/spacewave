@@ -5,6 +5,8 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { Enabled } from '../../util/enabled/enabled.pb.js'
+import { Enabled_Enum } from '../../util/enabled/enabled.pb.js'
 
 export const protobufPackage = 'bldr.dist.compiler'
 
@@ -50,12 +52,31 @@ export type Config = Message<{
   projectId?: string
   /**
    * EnableCgo enables cgo in the Go compiler.
+   *
    * Cgo is disabled by default as it may cause non-reproducible builds.
    * https://github.com/golang/go/issues/57120#issuecomment-1420752516
    *
-   * @generated from field: bool enable_cgo = 5;
+   * Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
+   *
+   * @generated from field: enabled.Enabled enable_cgo = 5;
    */
-  enableCgo?: boolean
+  enableCgo?: Enabled
+  /**
+   * EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
+   * The default is to use tinygo for the web platform in release mode.
+   * Only applicable for the web platform (WebAssembly) (currently).
+   *
+   * @generated from field: enabled.Enabled enable_tinygo = 6;
+   */
+  enableTinygo?: Enabled
+  /**
+   * EnableCompression can optionally force-enable or force-disable binary compression.
+   * The default is ENABLE for release-mode only.
+   * Only applicable for the web platform (WebAssembly brotli) (currently).
+   *
+   * @generated from field: enabled.Enabled enable_compression = 7;
+   */
+  enableCompression?: Enabled
 }>
 
 // Config contains the message type declaration for Config.
@@ -84,7 +105,9 @@ export const Config: MessageType<Config> = createMessageType({
       V: { kind: 'message', T: () => ControllerConfig },
     },
     { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'enable_cgo', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
+    { no: 6, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
+    { no: 7, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -96,46 +119,12 @@ export const Config: MessageType<Config> = createMessageType({
  */
 export type PreBuildHookResult = Message<{
   /**
-   * HostConfigSet is a ConfigSet to apply to the host on plugin startup.
-   * This ConfigSet is applied to the plugin host bus.
-   * This will be included in the plugin binary.
-   * Adds a config to configSet with ID bldr/plugin/host/configset
-   * Merged with the plugin compiler HostConfigSet field.
+   * Config is the configuration for the dist build step.
+   * Merged with the existing configuration.
    *
-   * @generated from field: map<string, configset.proto.ControllerConfig> host_config_set = 1;
+   * @generated from field: bldr.dist.compiler.Config config = 1;
    */
-  hostConfigSet?: { [key: string]: ControllerConfig }
-  /**
-   * LoadPlugins is the list of plugins to load on startup.
-   * Note that plugins can also load other plugins with the LoadPlugin directive.
-   * Use this to load your entrypoint plugin which then loads other plugins.
-   * This will be included in the dist binary.
-   *
-   * @generated from field: repeated string load_plugins = 2;
-   */
-  loadPlugins?: string[]
-  /**
-   * EmbedManifests is the list of manifest IDs to embed in the dist binary.
-   * Creates a ManifestBundle with the latest versions of each manifest.
-   * The manifest contents will be embedded in the dist binary.
-   *
-   * @generated from field: repeated string embed_manifests = 3;
-   */
-  embedManifests?: string[]
-  /**
-   * ProjectId overrides the project id set in the project config.
-   *
-   * @generated from field: string project_id = 4;
-   */
-  projectId?: string
-  /**
-   * EnableCgo enables cgo in the Go compiler.
-   * Cgo is disabled by default as it may cause non-reproducible builds.
-   * https://github.com/golang/go/issues/57120#issuecomment-1420752516
-   *
-   * @generated from field: bool enable_cgo = 5;
-   */
-  enableCgo?: boolean
+  config?: Config
 }>
 
 // PreBuildHookResult contains the message type declaration for PreBuildHookResult.
@@ -143,29 +132,7 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   createMessageType({
     typeName: 'bldr.dist.compiler.PreBuildHookResult',
     fields: [
-      {
-        no: 1,
-        name: 'host_config_set',
-        kind: 'map',
-        K: ScalarType.STRING,
-        V: { kind: 'message', T: () => ControllerConfig },
-      },
-      {
-        no: 2,
-        name: 'load_plugins',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
-      {
-        no: 3,
-        name: 'embed_manifests',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
-      { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 5, name: 'enable_cgo', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

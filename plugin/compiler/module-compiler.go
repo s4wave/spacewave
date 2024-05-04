@@ -136,6 +136,7 @@ func (m *ModuleCompiler) CompilePlugin(
 	buildPlatform bldr_platform.Platform,
 	buildType bldr_manifest.BuildType,
 	enableCgo bool,
+	useTinygo bool,
 ) error {
 	workDir := m.pluginCodegenPath
 	return gocompiler.ExecBuildEntrypoint(
@@ -145,6 +146,7 @@ func (m *ModuleCompiler) CompilePlugin(
 		workDir,
 		outFile,
 		enableCgo,
+		useTinygo,
 		nil,
 		nil,
 	)

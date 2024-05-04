@@ -10,6 +10,7 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	enabled "github.com/aperturerobotics/bldr/util/enabled"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -37,9 +38,20 @@ type Config struct {
 	// ProjectId overrides the project id set in the project config.
 	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
 	// EnableCgo enables cgo in the Go compiler.
+	//
 	// Cgo is disabled by default as it may cause non-reproducible builds.
 	// https://github.com/golang/go/issues/57120#issuecomment-1420752516
-	EnableCgo bool `protobuf:"varint,5,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
+	//
+	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
+	EnableCgo enabled.Enabled `protobuf:"varint,5,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
+	// EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
+	// The default is to use tinygo for the web platform in release mode.
+	// Only applicable for the web platform (WebAssembly) (currently).
+	EnableTinygo enabled.Enabled `protobuf:"varint,6,opt,name=enable_tinygo,json=enableTinygo,proto3" json:"enableTinygo,omitempty"`
+	// EnableCompression can optionally force-enable or force-disable binary compression.
+	// The default is ENABLE for release-mode only.
+	// Only applicable for the web platform (WebAssembly brotli) (currently).
+	EnableCompression enabled.Enabled `protobuf:"varint,7,opt,name=enable_compression,json=enableCompression,proto3" json:"enableCompression,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -76,37 +88,33 @@ func (x *Config) GetProjectId() string {
 	return ""
 }
 
-func (x *Config) GetEnableCgo() bool {
+func (x *Config) GetEnableCgo() enabled.Enabled {
 	if x != nil {
 		return x.EnableCgo
 	}
-	return false
+	return enabled.Enabled(0)
+}
+
+func (x *Config) GetEnableTinygo() enabled.Enabled {
+	if x != nil {
+		return x.EnableTinygo
+	}
+	return enabled.Enabled(0)
+}
+
+func (x *Config) GetEnableCompression() enabled.Enabled {
+	if x != nil {
+		return x.EnableCompression
+	}
+	return enabled.Enabled(0)
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
 type PreBuildHookResult struct {
 	unknownFields []byte
-	// HostConfigSet is a ConfigSet to apply to the host on plugin startup.
-	// This ConfigSet is applied to the plugin host bus.
-	// This will be included in the plugin binary.
-	// Adds a config to configSet with ID bldr/plugin/host/configset
-	// Merged with the plugin compiler HostConfigSet field.
-	HostConfigSet map[string]*proto.ControllerConfig `protobuf:"bytes,1,rep,name=host_config_set,json=hostConfigSet,proto3" json:"hostConfigSet,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// LoadPlugins is the list of plugins to load on startup.
-	// Note that plugins can also load other plugins with the LoadPlugin directive.
-	// Use this to load your entrypoint plugin which then loads other plugins.
-	// This will be included in the dist binary.
-	LoadPlugins []string `protobuf:"bytes,2,rep,name=load_plugins,json=loadPlugins,proto3" json:"loadPlugins,omitempty"`
-	// EmbedManifests is the list of manifest IDs to embed in the dist binary.
-	// Creates a ManifestBundle with the latest versions of each manifest.
-	// The manifest contents will be embedded in the dist binary.
-	EmbedManifests []string `protobuf:"bytes,3,rep,name=embed_manifests,json=embedManifests,proto3" json:"embedManifests,omitempty"`
-	// ProjectId overrides the project id set in the project config.
-	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
-	// EnableCgo enables cgo in the Go compiler.
-	// Cgo is disabled by default as it may cause non-reproducible builds.
-	// https://github.com/golang/go/issues/57120#issuecomment-1420752516
-	EnableCgo bool `protobuf:"varint,5,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
+	// Config is the configuration for the dist build step.
+	// Merged with the existing configuration.
+	Config *Config `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 }
 
 func (x *PreBuildHookResult) Reset() {
@@ -115,39 +123,11 @@ func (x *PreBuildHookResult) Reset() {
 
 func (*PreBuildHookResult) ProtoMessage() {}
 
-func (x *PreBuildHookResult) GetHostConfigSet() map[string]*proto.ControllerConfig {
+func (x *PreBuildHookResult) GetConfig() *Config {
 	if x != nil {
-		return x.HostConfigSet
+		return x.Config
 	}
 	return nil
-}
-
-func (x *PreBuildHookResult) GetLoadPlugins() []string {
-	if x != nil {
-		return x.LoadPlugins
-	}
-	return nil
-}
-
-func (x *PreBuildHookResult) GetEmbedManifests() []string {
-	if x != nil {
-		return x.EmbedManifests
-	}
-	return nil
-}
-
-func (x *PreBuildHookResult) GetProjectId() string {
-	if x != nil {
-		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *PreBuildHookResult) GetEnableCgo() bool {
-	if x != nil {
-		return x.EnableCgo
-	}
-	return false
 }
 
 type Config_HostConfigSetEntry struct {
@@ -176,32 +156,6 @@ func (x *Config_HostConfigSetEntry) GetValue() *proto.ControllerConfig {
 	return nil
 }
 
-type PreBuildHookResult_HostConfigSetEntry struct {
-	unknownFields []byte
-	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *proto.ControllerConfig `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *PreBuildHookResult_HostConfigSetEntry) Reset() {
-	*x = PreBuildHookResult_HostConfigSetEntry{}
-}
-
-func (*PreBuildHookResult_HostConfigSetEntry) ProtoMessage() {}
-
-func (x *PreBuildHookResult_HostConfigSetEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *PreBuildHookResult_HostConfigSetEntry) GetValue() *proto.ControllerConfig {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -209,6 +163,8 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.ProjectId = m.ProjectId
 	r.EnableCgo = m.EnableCgo
+	r.EnableTinygo = m.EnableTinygo
+	r.EnableCompression = m.EnableCompression
 	if rhs := m.EmbedManifests; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -242,25 +198,7 @@ func (m *PreBuildHookResult) CloneVT() *PreBuildHookResult {
 		return (*PreBuildHookResult)(nil)
 	}
 	r := new(PreBuildHookResult)
-	r.ProjectId = m.ProjectId
-	r.EnableCgo = m.EnableCgo
-	if rhs := m.HostConfigSet; rhs != nil {
-		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
-		for k, v := range rhs {
-			tmpContainer[k] = v.CloneVT()
-		}
-		r.HostConfigSet = tmpContainer
-	}
-	if rhs := m.LoadPlugins; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.LoadPlugins = tmpContainer
-	}
-	if rhs := m.EmbedManifests; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.EmbedManifests = tmpContainer
-	}
+	r.Config = m.Config.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -322,6 +260,12 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.EnableCgo != that.EnableCgo {
 		return false
 	}
+	if this.EnableTinygo != that.EnableTinygo {
+		return false
+	}
+	if this.EnableCompression != that.EnableCompression {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -338,48 +282,7 @@ func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if len(this.HostConfigSet) != len(that.HostConfigSet) {
-		return false
-	}
-	for i, vx := range this.HostConfigSet {
-		vy, ok := that.HostConfigSet[i]
-		if !ok {
-			return false
-		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &proto.ControllerConfig{}
-			}
-			if q == nil {
-				q = &proto.ControllerConfig{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
-	if len(this.LoadPlugins) != len(that.LoadPlugins) {
-		return false
-	}
-	for i, vx := range this.LoadPlugins {
-		vy := that.LoadPlugins[i]
-		if vx != vy {
-			return false
-		}
-	}
-	if len(this.EmbedManifests) != len(that.EmbedManifests) {
-		return false
-	}
-	for i, vx := range this.EmbedManifests {
-		vy := that.EmbedManifests[i]
-		if vx != vy {
-			return false
-		}
-	}
-	if this.ProjectId != that.ProjectId {
-		return false
-	}
-	if this.EnableCgo != that.EnableCgo {
+	if !this.Config.EqualVT(that.Config) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -482,10 +385,20 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("projectId")
 		s.WriteString(x.ProjectId)
 	}
-	if x.EnableCgo || s.HasField("enableCgo") {
+	if x.EnableCgo != 0 || s.HasField("enableCgo") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("enableCgo")
-		s.WriteBool(x.EnableCgo)
+		x.EnableCgo.MarshalProtoJSON(s)
+	}
+	if x.EnableTinygo != 0 || s.HasField("enableTinygo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enableTinygo")
+		x.EnableTinygo.MarshalProtoJSON(s)
+	}
+	if x.EnableCompression != 0 || s.HasField("enableCompression") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enableCompression")
+		x.EnableCompression.MarshalProtoJSON(s)
 	}
 	s.WriteObjectEnd()
 }
@@ -535,67 +448,19 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			x.ProjectId = s.ReadString()
 		case "enable_cgo", "enableCgo":
 			s.AddField("enable_cgo")
-			x.EnableCgo = s.ReadBool()
+			x.EnableCgo.UnmarshalProtoJSON(s)
+		case "enable_tinygo", "enableTinygo":
+			s.AddField("enable_tinygo")
+			x.EnableTinygo.UnmarshalProtoJSON(s)
+		case "enable_compression", "enableCompression":
+			s.AddField("enable_compression")
+			x.EnableCompression.UnmarshalProtoJSON(s)
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the PreBuildHookResult_HostConfigSetEntry message to JSON.
-func (x *PreBuildHookResult_HostConfigSetEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the PreBuildHookResult_HostConfigSetEntry to JSON.
-func (x *PreBuildHookResult_HostConfigSetEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the PreBuildHookResult_HostConfigSetEntry message from JSON.
-func (x *PreBuildHookResult_HostConfigSetEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &proto.ControllerConfig{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the PreBuildHookResult_HostConfigSetEntry from JSON.
-func (x *PreBuildHookResult_HostConfigSetEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -607,37 +472,10 @@ func (x *PreBuildHookResult) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.HostConfigSet != nil || s.HasField("hostConfigSet") {
+	if x.Config != nil || s.HasField("config") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("hostConfigSet")
-		s.WriteObjectStart()
-		var wroteElement bool
-		for k, v := range x.HostConfigSet {
-			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("hostConfigSet"))
-		}
-		s.WriteObjectEnd()
-	}
-	if len(x.LoadPlugins) > 0 || s.HasField("loadPlugins") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("loadPlugins")
-		s.WriteStringArray(x.LoadPlugins)
-	}
-	if len(x.EmbedManifests) > 0 || s.HasField("embedManifests") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("embedManifests")
-		s.WriteStringArray(x.EmbedManifests)
-	}
-	if x.ProjectId != "" || s.HasField("projectId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("projectId")
-		s.WriteString(x.ProjectId)
-	}
-	if x.EnableCgo || s.HasField("enableCgo") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enableCgo")
-		s.WriteBool(x.EnableCgo)
+		s.WriteObjectField("config")
+		x.Config.MarshalProtoJSON(s.WithField("config"))
 	}
 	s.WriteObjectEnd()
 }
@@ -656,38 +494,13 @@ func (x *PreBuildHookResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "host_config_set", "hostConfigSet":
-			s.AddField("host_config_set")
+		case "config":
 			if s.ReadNil() {
-				x.HostConfigSet = nil
+				x.Config = nil
 				return
 			}
-			x.HostConfigSet = make(map[string]*proto.ControllerConfig)
-			s.ReadStringMap(func(key string) {
-				var v proto.ControllerConfig
-				v.UnmarshalProtoJSON(s)
-				x.HostConfigSet[key] = &v
-			})
-		case "load_plugins", "loadPlugins":
-			s.AddField("load_plugins")
-			if s.ReadNil() {
-				x.LoadPlugins = nil
-				return
-			}
-			x.LoadPlugins = s.ReadStringArray()
-		case "embed_manifests", "embedManifests":
-			s.AddField("embed_manifests")
-			if s.ReadNil() {
-				x.EmbedManifests = nil
-				return
-			}
-			x.EmbedManifests = s.ReadStringArray()
-		case "project_id", "projectId":
-			s.AddField("project_id")
-			x.ProjectId = s.ReadString()
-		case "enable_cgo", "enableCgo":
-			s.AddField("enable_cgo")
-			x.EnableCgo = s.ReadBool()
+			x.Config = &Config{}
+			x.Config.UnmarshalProtoJSON(s.WithField("config", true))
 		}
 	})
 }
@@ -727,13 +540,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.EnableCgo {
+	if m.EnableCompression != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableCompression))
 		i--
-		if m.EnableCgo {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
+		dAtA[i] = 0x38
+	}
+	if m.EnableTinygo != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableTinygo))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.EnableCgo != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableCgo))
 		i--
 		dAtA[i] = 0x28
 	}
@@ -817,62 +635,15 @@ func (m *PreBuildHookResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.EnableCgo {
+	if m.Config != nil {
+		size, err := m.Config.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		if m.EnableCgo {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x28
-	}
-	if len(m.ProjectId) > 0 {
-		i -= len(m.ProjectId)
-		copy(dAtA[i:], m.ProjectId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectId)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.EmbedManifests) > 0 {
-		for iNdEx := len(m.EmbedManifests) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.EmbedManifests[iNdEx])
-			copy(dAtA[i:], m.EmbedManifests[iNdEx])
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EmbedManifests[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.LoadPlugins) > 0 {
-		for iNdEx := len(m.LoadPlugins) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.LoadPlugins[iNdEx])
-			copy(dAtA[i:], m.LoadPlugins[iNdEx])
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LoadPlugins[iNdEx])))
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.HostConfigSet) > 0 {
-		for k := range m.HostConfigSet {
-			v := m.HostConfigSet[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0xa
-		}
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -912,8 +683,14 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.EnableCgo {
-		n += 2
+	if m.EnableCgo != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCgo))
+	}
+	if m.EnableTinygo != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableTinygo))
+	}
+	if m.EnableCompression != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCompression))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -925,37 +702,9 @@ func (m *PreBuildHookResult) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.HostConfigSet) > 0 {
-		for k, v := range m.HostConfigSet {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
-		}
-	}
-	if len(m.LoadPlugins) > 0 {
-		for _, s := range m.LoadPlugins {
-			l = len(s)
-			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-		}
-	}
-	if len(m.EmbedManifests) > 0 {
-		for _, s := range m.EmbedManifests {
-			l = len(s)
-			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-		}
-	}
-	l = len(m.ProjectId)
-	if l > 0 {
+	if m.Config != nil {
+		l = m.Config.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.EnableCgo {
-		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1015,9 +764,17 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString(" project_id: ")
 		sb.WriteString(strconv.Quote(x.ProjectId))
 	}
-	if x.EnableCgo {
+	if x.EnableCgo != 0 {
 		sb.WriteString(" enable_cgo: ")
-		sb.WriteString(strconv.FormatBool(x.EnableCgo))
+		sb.WriteString(enabled.Enabled(x.EnableCgo).String())
+	}
+	if x.EnableTinygo != 0 {
+		sb.WriteString(" enable_tinygo: ")
+		sb.WriteString(enabled.Enabled(x.EnableTinygo).String())
+	}
+	if x.EnableCompression != 0 {
+		sb.WriteString(" enable_compression: ")
+		sb.WriteString(enabled.Enabled(x.EnableCompression).String())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1025,63 +782,12 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
-func (x *PreBuildHookResult_HostConfigSetEntry) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("HostConfigSetEntry { ")
-	if x.Key != "" {
-		sb.WriteString(" key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		sb.WriteString(" value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-func (x *PreBuildHookResult_HostConfigSetEntry) String() string {
-	return x.MarshalProtoText()
-}
 func (x *PreBuildHookResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PreBuildHookResult { ")
-	if len(x.HostConfigSet) > 0 {
-		sb.WriteString(" host_config_set: {")
-		for k, v := range x.HostConfigSet {
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString(" }")
-	}
-	if len(x.LoadPlugins) > 0 {
-		sb.WriteString(" load_plugins: [")
-		for i, v := range x.LoadPlugins {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(strconv.Quote(v))
-		}
-		sb.WriteString("]")
-	}
-	if len(x.EmbedManifests) > 0 {
-		sb.WriteString(" embed_manifests: [")
-		for i, v := range x.EmbedManifests {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(strconv.Quote(v))
-		}
-		sb.WriteString("]")
-	}
-	if x.ProjectId != "" {
-		sb.WriteString(" project_id: ")
-		sb.WriteString(strconv.Quote(x.ProjectId))
-	}
-	if x.EnableCgo {
-		sb.WriteString(" enable_cgo: ")
-		sb.WriteString(strconv.FormatBool(x.EnableCgo))
+	if x.Config != nil {
+		sb.WriteString(" config: ")
+		sb.WriteString(x.Config.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1347,7 +1053,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
 			}
-			var v int
+			m.EnableCgo = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protobuf_go_lite.ErrIntOverflow
@@ -1357,12 +1063,49 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				m.EnableCgo |= enabled.Enabled(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.EnableCgo = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableTinygo", wireType)
+			}
+			m.EnableTinygo = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EnableTinygo |= enabled.Enabled(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableCompression", wireType)
+			}
+			m.EnableCompression = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EnableCompression |= enabled.Enabled(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1416,7 +1159,7 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HostConfigSet", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Config", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1443,222 +1186,13 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.HostConfigSet == nil {
-				m.HostConfigSet = make(map[string]*proto.ControllerConfig)
+			if m.Config == nil {
+				m.Config = &Config{}
 			}
-			var mapkey string
-			var mapvalue *proto.ControllerConfig
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protobuf_go_lite.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protobuf_go_lite.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protobuf_go_lite.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &proto.ControllerConfig{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
+			if err := m.Config.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
-			m.HostConfigSet[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LoadPlugins", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.LoadPlugins = append(m.LoadPlugins, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EmbedManifests", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EmbedManifests = append(m.EmbedManifests, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ProjectId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.EnableCgo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

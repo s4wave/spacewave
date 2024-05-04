@@ -49,7 +49,7 @@
     "gen:deps": "node -e \"const pkg = require('./package.json'); const distPkg = require('./dist/deps/package.json'); Object.entries(pkg.dependencies).forEach(([name, version]) => { if (distPkg.dependencies[name]) { distPkg.dependencies[name] = version; } }); Object.entries(pkg.resolutions).forEach(([name, version]) => { distPkg.resolutions[name] = version.replace(/^\\^/, ''); }); require('fs').writeFileSync('./dist/deps/package.json', JSON.stringify(distPkg, null, 2));\" && cd ./dist/deps && npm i --package-lock-only",
     "test": "make test && npm run check",
     "test:js": "echo No JS tests.",
-    "format": "npm run format:go && npm run format:js && npm run format:config",
+    "format": "npm run format:js && npm run format:go && npm run format:config",
     "format:config": "prettier --write tsconfig.json package.json",
     "format:go": "make format",
     "format:js": "npm run format:js:changed",

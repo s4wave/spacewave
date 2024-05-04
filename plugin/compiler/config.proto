@@ -5,6 +5,7 @@ import "github.com/aperturerobotics/controllerbus/controller/configset/proto/con
 import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
 import "github.com/aperturerobotics/bldr/web/pkg/esbuild/esbuild.proto";
 import "github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto";
+import "github.com/aperturerobotics/bldr/util/enabled/enabled.proto";
 
 // Config configures the plugin compiler controller.
 message Config {
@@ -70,12 +71,22 @@ message Config {
   // https://github.com/golang/go/issues/57120#issuecomment-1420752516
   //
   // Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
-  bool enable_cgo = 9;
+  .enabled.Enabled enable_cgo = 9;
+
+  // EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
+  // The default is to use tinygo for the web platform in release mode.
+  // Only applicable for the web platform (WebAssembly) (currently).
+  .enabled.Enabled enable_tinygo = 10;
+
+  // EnableCompression can optionally force-enable or force-disable binary compression.
+  // The default is ENABLE for release-mode only.
+  // Only applicable for the web platform (WebAssembly brotli) (currently).
+  .enabled.Enabled enable_compression = 11;
 
   // EsbuildFlags is a string containing additional flags to pass to esbuild.
   // Flags passed by bldr:esbuild directives can override these values.
   // E.x.: --target es2020
-  repeated string esbuild_flags = 10;
+  repeated string esbuild_flags = 12;
 
   // WebPluginId sets the plugin id for the web plugin.
   // If set, the compiler automatically adds these controllers to the config set:
@@ -85,10 +96,10 @@ message Config {
   // - handle-web-view: handle web views via HandleWebView
   // - load-web: loads the web plugin on startup
   // - observe-web-view: handle LookupWebView with incoming HandleWebView directives
-  string web_plugin_id = 11;
+  string web_plugin_id = 13;
 
   // BuildTypes contains a mapping of BuildType to Config override.
-  map<string, Config> build_types = 12;
+  map<string, Config> build_types = 14;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

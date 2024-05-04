@@ -16,8 +16,9 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
+	bldr_compress "github.com/aperturerobotics/bldr/util/compress"
+	"github.com/aperturerobotics/bldr/util/enabled"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
-	opt_wasm "github.com/aperturerobotics/bldr/util/opt/wasm"
 	browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -56,10 +57,20 @@ func BuildDistBundle(
 	buildPlatform bldr_platform.Platform,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
-	enableCgo bool,
+	enableCgoOpt enabled.Enabled,
+	enableTinygoOpt enabled.Enabled,
+	enableCompressionOpt enabled.Enabled,
 ) error {
 	isRelease := buildType.IsRelease()
 	isWebPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
+
+	// disable cgo on default
+	enableCgo := enableCgoOpt.IsEnabled(false)
+	// enable compression for release mode only on default
+	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
+	// enable tinygo on the web platform in release mode on default
+	tinygoSupported := false // TODO: TinyGo cannot yet build Bldr successfully.
+	enableTinygo := isWebPlatform && enableTinygoOpt.IsEnabled(isRelease && tinygoSupported)
 
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
@@ -352,6 +363,11 @@ func BuildDistBundle(
 			return err
 		}
 
+		outWasmRelPath := "./runtime.wasm"
+		if enableCompression {
+			outWasmRelPath += ".gz"
+		}
+
 		le.Info("building web wasm entrypoint script")
 		err = browser_build.BuildWasmRuntimeEntrypoint(
 			ctx,
@@ -359,7 +375,8 @@ func BuildDistBundle(
 			distSrcPath,
 			outEntryDir,
 			buildType,
-			buildPlatform,
+			enableTinygo,
+			outWasmRelPath,
 		)
 		if err != nil {
 			return err
@@ -390,6 +407,7 @@ func BuildDistBundle(
 		entrypointBuildDir,
 		outBinPath,
 		enableCgo,
+		enableTinygo,
 		nil,
 		nil,
 	)
@@ -397,10 +415,18 @@ func BuildDistBundle(
 		return err
 	}
 
-	if isRelease && isWebPlatform {
-		if err := opt_wasm.OptimizeWasmBinary(le, workingPath, outBinPath); err != nil {
+	// We must use gzip compression here since DecompressStream does not support brotli.
+	if isWebPlatform && enableCompression {
+		gzPath, err := bldr_compress.CompressGzip(le, workingPath, outBinPath)
+		if err != nil {
 			return err
 		}
+		err = os.Remove(outBinPath)
+		if err != nil {
+			return err
+		}
+		outBinPath = gzPath
+		outBinName = filepath.Base(gzPath)
 	}
 
 	return nil

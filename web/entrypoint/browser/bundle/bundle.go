@@ -123,6 +123,7 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 	rendererBuildOpts := BrowserEntrypointBuildOpts(bldrDistRoot, minify)
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true
+
 	if runtimeJsPath != "" {
 		rendererBuildOpts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
 	}

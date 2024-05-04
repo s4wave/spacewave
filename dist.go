@@ -19,6 +19,7 @@ import (
 //go:embed web/fetch/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
 //go:embed web/runtime/wasm/go-process.ts web/runtime/wasm/plugin-wasm.ts
+//go:embed web/runtime/wasm/fetch-decompress.ts web/runtime/wasm/node-stubs.js
 //go:embed web/entrypoint/browser/*.ts
 //go:embed web/entrypoint/deps.go web/deps.go
 //go:embed web/plugin/browser/browser_srpc.pb.ts web/plugin/browser/web-plugin-browser.ts

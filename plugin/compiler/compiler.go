@@ -15,8 +15,9 @@ import (
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
+	bldr_compress "github.com/aperturerobotics/bldr/util/compress"
+	"github.com/aperturerobotics/bldr/util/enabled"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
-	opt_wasm "github.com/aperturerobotics/bldr/util/opt/wasm"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
@@ -263,8 +264,6 @@ func (c *Controller) BuildManifest(
 		slices.Sort(webPkgs)
 		webPkgs = slices.Compact(webPkgs)
 
-		// Enable cgo only if flag is set (for reproducible builds)
-		enableCgo := pluginBuildConf.GetEnableCgo()
 		pluginMeta := bldr_plugin.NewPluginMeta(
 			projectID,
 			pluginID,
@@ -370,7 +369,9 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.GetDisableFetchAssets(),
 			pluginBuildConf.GetDelveAddr(),
 			configSet,
-			enableCgo,
+			pluginBuildConf.GetEnableCgo(),
+			pluginBuildConf.GetEnableTinygo(),
+			pluginBuildConf.GetEnableCompression(),
 			pluginBuildConf.GetEsbuildFlags(),
 			devInfoFile,
 		)
@@ -653,7 +654,9 @@ func (c *Controller) BuildPlugin(
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
-	enableCgo bool,
+	enableCgoOpt enabled.Enabled,
+	enableTinygoOpt enabled.Enabled,
+	enableCompressionOpt enabled.Enabled,
 	baseEsbuildFlags []string,
 	devInfoFile string,
 ) (*Analysis, *manifest_builder.InputManifest, error) {
@@ -664,6 +667,14 @@ func (c *Controller) BuildPlugin(
 	basePlatformID := buildPlatform.GetBasePlatformID()
 	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
 	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
+
+	// disable cgo on default
+	enableCgo := enableCgoOpt.IsEnabled(false)
+	// enable compression for release mode only on default
+	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
+	// enable tinygo on the web platform in release mode on default
+	tinygoSupported := false // TODO: TinyGo cannot yet build Bldr successfully.
+	enableTinygo := isWebBuildPlatform && enableTinygoOpt.IsEnabled(isRelease && tinygoSupported)
 
 	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(baseEsbuildFlags)
 	if err != nil {
@@ -903,15 +914,23 @@ func (c *Controller) BuildPlugin(
 	// only use dev wrapper if !isRelease && delveAddr != "" && platform == native
 	if isRelease || delveAddr == "" || !isNativeBuildPlatform {
 		le.Info("compiling plugin binary")
-		if err := mc.CompilePlugin(ctx, le, outDistBinary, buildPlatform, buildType, enableCgo); err != nil {
+		if err := mc.CompilePlugin(
+			ctx,
+			le,
+			outDistBinary,
+			buildPlatform,
+			buildType,
+			enableCgo,
+			enableTinygo,
+		); err != nil {
 			return nil, nil, err
 		}
 
 		// optimization pass: brotli compression
-		if isRelease && isWebBuildPlatform {
+		if enableCompression && isWebBuildPlatform {
 			le.Info("compressing plugin binary with brotli")
 
-			brPath, err := opt_wasm.CompressWasmBinary(le, workingPath, outDistBinary)
+			brPath, err := bldr_compress.CompressBrotli(le, workingPath, outDistBinary)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -946,6 +965,7 @@ func (c *Controller) BuildPlugin(
 			distSourcePath,
 			outScriptPath,
 			outBinName,
+			enableTinygo,
 			isRelease,
 		); err != nil {
 			return nil, nil, err

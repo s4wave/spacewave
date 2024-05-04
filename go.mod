@@ -2,6 +2,9 @@ module github.com/aperturerobotics/bldr
 
 go 1.22
 
+// This fork avoids importing net/http on wasm.
+replace nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.12-0.20240504231911-2358de657064 // aperture-1
+
 require github.com/aperturerobotics/common v0.15.5 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -48,7 +51,7 @@ replace (
 require (
 	github.com/aperturerobotics/controllerbus v0.45.0 // master
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect
-	github.com/aperturerobotics/starpc v0.32.3 // latest
+	github.com/aperturerobotics/starpc v0.32.4 // latest
 )
 
 // aperture: use compatibility forks

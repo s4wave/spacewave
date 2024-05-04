@@ -39,8 +39,16 @@ const webRuntime = new WebRuntime(
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url
 
+// BLDR_RUNTIME_WASM is an injected variable with the path to the runtime.wasm
+declare const BLDR_RUNTIME_WASM: string | undefined
+
 // runtimeWasmURL is the path to the bldr runtime wasm that we will use.
-const runtimeWasmURL = new URL('./runtime.wasm', baseURL)
+const runtimeWasmURL = new URL(
+  typeof BLDR_RUNTIME_WASM === 'string' && !!BLDR_RUNTIME_WASM ?
+    BLDR_RUNTIME_WASM
+  : './runtime.wasm',
+  baseURL,
+)
 
 // construct the go wasm process
 const goProcess = new GoWasmProcess(runtimeWasmURL.toString(), {

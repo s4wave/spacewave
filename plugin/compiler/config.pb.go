@@ -11,6 +11,7 @@ import (
 	strings "strings"
 
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
+	enabled "github.com/aperturerobotics/bldr/util/enabled"
 	esbuild1 "github.com/aperturerobotics/bldr/web/esbuild"
 	esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -124,11 +125,19 @@ type Config struct {
 	// https://github.com/golang/go/issues/57120#issuecomment-1420752516
 	//
 	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
-	EnableCgo bool `protobuf:"varint,9,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
+	EnableCgo enabled.Enabled `protobuf:"varint,9,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
+	// EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
+	// The default is to use tinygo for the web platform in release mode.
+	// Only applicable for the web platform (WebAssembly) (currently).
+	EnableTinygo enabled.Enabled `protobuf:"varint,10,opt,name=enable_tinygo,json=enableTinygo,proto3" json:"enableTinygo,omitempty"`
+	// EnableCompression can optionally force-enable or force-disable binary compression.
+	// The default is ENABLE for release-mode only.
+	// Only applicable for the web platform (WebAssembly brotli) (currently).
+	EnableCompression enabled.Enabled `protobuf:"varint,11,opt,name=enable_compression,json=enableCompression,proto3" json:"enableCompression,omitempty"`
 	// EsbuildFlags is a string containing additional flags to pass to esbuild.
 	// Flags passed by bldr:esbuild directives can override these values.
 	// E.x.: --target es2020
-	EsbuildFlags []string `protobuf:"bytes,10,rep,name=esbuild_flags,json=esbuildFlags,proto3" json:"esbuildFlags,omitempty"`
+	EsbuildFlags []string `protobuf:"bytes,12,rep,name=esbuild_flags,json=esbuildFlags,proto3" json:"esbuildFlags,omitempty"`
 	// WebPluginId sets the plugin id for the web plugin.
 	// If set, the compiler automatically adds these controllers to the config set:
 	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
@@ -137,9 +146,9 @@ type Config struct {
 	// - handle-web-view: handle web views via HandleWebView
 	// - load-web: loads the web plugin on startup
 	// - observe-web-view: handle LookupWebView with incoming HandleWebView directives
-	WebPluginId string `protobuf:"bytes,11,opt,name=web_plugin_id,json=webPluginId,proto3" json:"webPluginId,omitempty"`
+	WebPluginId string `protobuf:"bytes,13,opt,name=web_plugin_id,json=webPluginId,proto3" json:"webPluginId,omitempty"`
 	// BuildTypes contains a mapping of BuildType to Config override.
-	BuildTypes map[string]*Config `protobuf:"bytes,12,rep,name=build_types,json=buildTypes,proto3" json:"buildTypes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	BuildTypes map[string]*Config `protobuf:"bytes,14,rep,name=build_types,json=buildTypes,proto3" json:"buildTypes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *Config) Reset() {
@@ -204,11 +213,25 @@ func (x *Config) GetDelveAddr() string {
 	return ""
 }
 
-func (x *Config) GetEnableCgo() bool {
+func (x *Config) GetEnableCgo() enabled.Enabled {
 	if x != nil {
 		return x.EnableCgo
 	}
-	return false
+	return enabled.Enabled(0)
+}
+
+func (x *Config) GetEnableTinygo() enabled.Enabled {
+	if x != nil {
+		return x.EnableTinygo
+	}
+	return enabled.Enabled(0)
+}
+
+func (x *Config) GetEnableCompression() enabled.Enabled {
+	if x != nil {
+		return x.EnableCompression
+	}
+	return enabled.Enabled(0)
 }
 
 func (x *Config) GetEsbuildFlags() []string {
@@ -576,6 +599,8 @@ func (m *Config) CloneVT() *Config {
 	r.DisableFetchAssets = m.DisableFetchAssets
 	r.DelveAddr = m.DelveAddr
 	r.EnableCgo = m.EnableCgo
+	r.EnableTinygo = m.EnableTinygo
+	r.EnableCompression = m.EnableCompression
 	r.WebPluginId = m.WebPluginId
 	if rhs := m.ConfigSet; rhs != nil {
 		tmpContainer := make(map[string]*proto.ControllerConfig, len(rhs))
@@ -853,6 +878,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.EnableCgo != that.EnableCgo {
+		return false
+	}
+	if this.EnableTinygo != that.EnableTinygo {
+		return false
+	}
+	if this.EnableCompression != that.EnableCompression {
 		return false
 	}
 	if len(this.EsbuildFlags) != len(that.EsbuildFlags) {
@@ -1389,10 +1420,20 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("delveAddr")
 		s.WriteString(x.DelveAddr)
 	}
-	if x.EnableCgo || s.HasField("enableCgo") {
+	if x.EnableCgo != 0 || s.HasField("enableCgo") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("enableCgo")
-		s.WriteBool(x.EnableCgo)
+		x.EnableCgo.MarshalProtoJSON(s)
+	}
+	if x.EnableTinygo != 0 || s.HasField("enableTinygo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enableTinygo")
+		x.EnableTinygo.MarshalProtoJSON(s)
+	}
+	if x.EnableCompression != 0 || s.HasField("enableCompression") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enableCompression")
+		x.EnableCompression.MarshalProtoJSON(s)
 	}
 	if len(x.EsbuildFlags) > 0 || s.HasField("esbuildFlags") {
 		s.WriteMoreIf(&wroteField)
@@ -1485,7 +1526,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			x.DelveAddr = s.ReadString()
 		case "enable_cgo", "enableCgo":
 			s.AddField("enable_cgo")
-			x.EnableCgo = s.ReadBool()
+			x.EnableCgo.UnmarshalProtoJSON(s)
+		case "enable_tinygo", "enableTinygo":
+			s.AddField("enable_tinygo")
+			x.EnableTinygo.UnmarshalProtoJSON(s)
+		case "enable_compression", "enableCompression":
+			s.AddField("enable_compression")
+			x.EnableCompression.UnmarshalProtoJSON(s)
 		case "esbuild_flags", "esbuildFlags":
 			s.AddField("esbuild_flags")
 			if s.ReadNil() {
@@ -2067,7 +2114,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x62
+			dAtA[i] = 0x72
 		}
 	}
 	if len(m.WebPluginId) > 0 {
@@ -2075,7 +2122,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.WebPluginId)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebPluginId)))
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x6a
 	}
 	if len(m.EsbuildFlags) > 0 {
 		for iNdEx := len(m.EsbuildFlags) - 1; iNdEx >= 0; iNdEx-- {
@@ -2083,16 +2130,21 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.EsbuildFlags[iNdEx])
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EsbuildFlags[iNdEx])))
 			i--
-			dAtA[i] = 0x52
+			dAtA[i] = 0x62
 		}
 	}
-	if m.EnableCgo {
+	if m.EnableCompression != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableCompression))
 		i--
-		if m.EnableCgo {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
+		dAtA[i] = 0x58
+	}
+	if m.EnableTinygo != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableTinygo))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.EnableCgo != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableCgo))
 		i--
 		dAtA[i] = 0x48
 	}
@@ -2613,8 +2665,14 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.EnableCgo {
-		n += 2
+	if m.EnableCgo != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCgo))
+	}
+	if m.EnableTinygo != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableTinygo))
+	}
+	if m.EnableCompression != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCompression))
 	}
 	if len(m.EsbuildFlags) > 0 {
 		for _, s := range m.EsbuildFlags {
@@ -2906,9 +2964,17 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString(" delve_addr: ")
 		sb.WriteString(strconv.Quote(x.DelveAddr))
 	}
-	if x.EnableCgo {
+	if x.EnableCgo != 0 {
 		sb.WriteString(" enable_cgo: ")
-		sb.WriteString(strconv.FormatBool(x.EnableCgo))
+		sb.WriteString(enabled.Enabled(x.EnableCgo).String())
+	}
+	if x.EnableTinygo != 0 {
+		sb.WriteString(" enable_tinygo: ")
+		sb.WriteString(enabled.Enabled(x.EnableTinygo).String())
+	}
+	if x.EnableCompression != 0 {
+		sb.WriteString(" enable_compression: ")
+		sb.WriteString(enabled.Enabled(x.EnableCompression).String())
 	}
 	if len(x.EsbuildFlags) > 0 {
 		sb.WriteString(" esbuild_flags: [")
@@ -3584,7 +3650,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EnableCgo", wireType)
 			}
-			var v int
+			m.EnableCgo = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protobuf_go_lite.ErrIntOverflow
@@ -3594,13 +3660,50 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				m.EnableCgo |= enabled.Enabled(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.EnableCgo = bool(v != 0)
 		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableTinygo", wireType)
+			}
+			m.EnableTinygo = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EnableTinygo |= enabled.Enabled(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableCompression", wireType)
+			}
+			m.EnableCompression = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EnableCompression |= enabled.Enabled(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildFlags", wireType)
 			}
@@ -3632,7 +3735,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 11:
+		case 13:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebPluginId", wireType)
 			}
@@ -3664,7 +3767,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.WebPluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 12:
+		case 14:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BuildTypes", wireType)
 			}

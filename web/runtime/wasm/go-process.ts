@@ -1,4 +1,5 @@
 import { Retry, RetryOpts } from '../../bldr/retry.js'
+import { fetchWithDecompress } from './fetch-decompress.js'
 
 // GoWasmProcessOpts are optional parameters for GoWasmProcess.
 export interface GoWasmProcessOpts {
@@ -20,12 +21,24 @@ export type WasmSource =
   | (() => Promise<WebAssembly.Module>)
 
 // loadWebAssemblyModule loads the WebAssembly.Module from the WasmSource.
+//
+// When using fetch() (if source is a string) if the filename ends in .gz the gzip decompressor is used.
 export async function loadWebAssemblyModule(
   source: WasmSource,
 ): Promise<WebAssembly.Module> {
   switch (typeof source) {
-    case 'string':
-      return WebAssembly.compileStreaming(fetch(source))
+    case 'string': {
+      const response = await fetchWithDecompress(source)
+      if (
+        source.endsWith('.gz') &&
+        response.headers.get('content-type')?.toLowerCase() !==
+          'application/wasm'
+      ) {
+        // Set the response content type.
+        response.headers.set('content-type', 'application/wasm')
+      }
+      return WebAssembly.compileStreaming(response)
+    }
     case 'function':
       return source()
     case 'object':

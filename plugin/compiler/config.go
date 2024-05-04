@@ -1,12 +1,12 @@
 package bldr_plugin_compiler
 
 import (
-	"sort"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
+	"github.com/aperturerobotics/bldr/util/merge"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -124,26 +124,11 @@ func (c *Config) Merge(o *Config) {
 	configset_proto.MergeConfigSetMaps(c.ConfigSet, o.GetConfigSet())
 	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
 
-	mergeList := func(mergeTo *[]string, mergeFrom []string) {
-		var dirty bool
-		dest := *mergeTo
-		for _, value := range mergeFrom {
-			if value != "" && !slices.Contains(dest, value) {
-				dirty = true
-				dest = append(dest, value)
-			}
-		}
-		if dirty {
-			sort.Strings(dest)
-			*mergeTo = dest
-		}
-	}
-
 	// append and sort go packages list
-	mergeList(&c.GoPkgs, o.GetGoPkgs())
+	merge.MergeAndSortSlices(&c.GoPkgs, o.GetGoPkgs())
 
 	// append and sort web packages list
-	mergeList(&c.WebPkgs, o.GetWebPkgs())
+	merge.MergeAndSortSlices(&c.WebPkgs, o.GetWebPkgs())
 
 	// override project id
 	if cproj := o.GetProjectId(); cproj != "" {
@@ -167,9 +152,9 @@ func (c *Config) Merge(o *Config) {
 		c.DelveAddr = daddr
 	}
 
-	if o.GetEnableCgo() {
-		c.EnableCgo = true
-	}
+	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
+	c.EnableTinygo = c.EnableCgo.Merge(o.GetEnableTinygo())
+	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCgo())
 
 	if esbuildFlags := o.GetEsbuildFlags(); len(esbuildFlags) != 0 {
 		c.EsbuildFlags = append(c.EsbuildFlags, esbuildFlags...)

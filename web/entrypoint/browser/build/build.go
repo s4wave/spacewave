@@ -2,23 +2,27 @@ package browser_build
 
 import (
 	"context"
-	"os"
 	"path/filepath"
-	"runtime"
+	"strconv"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	"github.com/aperturerobotics/bldr/util/gocompiler"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // webEntrypointBrowserDir is the repo sub-dir for the browser entrypoint.
 const webEntrypointBrowserDir = "web/entrypoint/browser"
 
+// nodeStubsPath is the repo sub-dir for the node stubs
+const nodeStubsPath = "web/runtime/wasm/node-stubs.js"
+
 // BuildWasmRuntimeEntrypoint builds the wasm runtime entrypoint.
+//
+// runtimeWasmPath should be the relative path to runtime.wasm from runtime-wasm.js
+// this defaults to "./runtime.wasm"
 //
 // builds to buildDir/runtime-wasm.mjs
 func BuildWasmRuntimeEntrypoint(
@@ -27,13 +31,14 @@ func BuildWasmRuntimeEntrypoint(
 	bldrDistRoot string,
 	buildDir string,
 	buildType bldr_manifest.BuildType,
-	buildPlatform bldr_platform.Platform,
+	useTinygo bool,
+	runtimeWasmPath string,
 ) error {
 	le.Info("building runtime-wasm.mjs")
-	goRootDir := runtime.GOROOT()
-	wasmExecFile := filepath.Join(goRootDir, "misc/wasm/wasm_exec.js")
-	if _, err := os.Stat(wasmExecFile); err != nil {
-		return errors.Wrapf(err, "cannot find wasm_exec.js in goroot: %s", wasmExecFile)
+
+	wasmExecFile, err := gocompiler.GetWasmExecPath(le, useTinygo)
+	if err != nil {
+		return err
 	}
 
 	// Build runtime wasm entrypoint
@@ -43,9 +48,23 @@ func BuildWasmRuntimeEntrypoint(
 	minify := buildType.IsRelease()
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify)
 	opts.EntryPoints = []string{"runtime-wasm.ts"}
-	opts.Inject = append(opts.Inject, wasmExecFile)
 	opts.Outfile = runtimeJsOut
 	opts.Write = true
+
+	if useTinygo {
+		nodeStubsLoc := filepath.Join(bldrDistRoot, nodeStubsPath)
+		nodeStubsLoc, err = filepath.Rel(entrypointJsDir, nodeStubsLoc)
+		if err != nil {
+			return err
+		}
+		opts.Inject = append(opts.Inject, nodeStubsLoc)
+		opts.External = append(opts.External, "fs", "crypto", "util")
+	}
+	opts.Inject = append(opts.Inject, wasmExecFile)
+
+	if runtimeWasmPath != "" {
+		opts.Define["BLDR_RUNTIME_WASM"] = strconv.Quote(runtimeWasmPath)
+	}
 
 	res := esbuild_api.Build(opts)
 	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
