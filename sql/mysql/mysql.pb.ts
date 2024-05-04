@@ -340,6 +340,12 @@ export type TableRoot = Message<{
    * @generated from field: uint32 collation_id = 6;
    */
   collationId?: number
+  /**
+   * Comment is an additional comment on the table.
+   *
+   * @generated from field: string comment = 7;
+   */
+  comment?: string
 }>
 
 // TableRoot contains the message type declaration for TableRoot.
@@ -364,6 +370,7 @@ export const TableRoot: MessageType<TableRoot> = createMessageType({
     { no: 3, name: 'row_nonce', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
     { no: 6, name: 'collation_id', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 7, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

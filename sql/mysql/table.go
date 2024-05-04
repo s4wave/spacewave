@@ -90,6 +90,7 @@ func BuildTable(
 	schema sql.PrimaryKeySchema,
 	numPartitions int,
 	collationID sql.CollationID,
+	comment string,
 ) (*TableRoot, *Table, error) {
 	if numPartitions <= 0 {
 		numPartitions = 1
@@ -97,6 +98,7 @@ func BuildTable(
 	tr := &TableRoot{
 		CollationId: uint32(collationID),
 		TableSchema: NewTableSchema(schema.Schema),
+		Comment:     comment,
 	}
 	tr.PrimaryKeyOrdinals = make([]int32, len(schema.PkOrdinals))
 	for i, v := range schema.PkOrdinals {

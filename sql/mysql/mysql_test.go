@@ -67,7 +67,7 @@ func TestMysql(t *testing.T) {
 		{Name: "phone_numbers", Type: types.JSON, Nullable: false, Source: tableName},
 		{Name: "created_at", Type: types.Timestamp, Nullable: false, Source: tableName},
 	})
-	err = db.CreateTable(rctx, tableName, pkSchema, sql.Collation_Default)
+	err = db.CreateTable(rctx, tableName, pkSchema, sql.Collation_Default, "demo table")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

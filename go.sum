@@ -45,8 +45,6 @@ github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
-github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
-github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/ProtonMail/go-crypto v1.0.0 h1:LRuvITjQWX+WIfr930YHG2HNfjR1uOfyf5vE0kC2U78=
 github.com/ProtonMail/go-crypto v1.0.0/go.mod h1:EjAoLdwvbIOoOQr3ihjnSoLZRtE8azugULFRteWMNc0=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
@@ -70,8 +68,8 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2d
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.9.0 h1:kDKwun/XVatU6k642R4LtS4KIiPZeT2SC64+mxzS/Pg=
 github.com/aperturerobotics/cayley v0.9.0/go.mod h1:6ckQhhIqJSiCFwz7l3POHb7CGKYjUe1QkHn0bocmk+A=
-github.com/aperturerobotics/common v0.15.2 h1:94z85iuQ7/CIH29ECOKKlQ3UQYFrBXNZezGRczV6Ka0=
-github.com/aperturerobotics/common v0.15.2/go.mod h1:lbKmrcn9sYjn8LsQ+dYOUJ+wjZUCNySsce6+t8r6GFk=
+github.com/aperturerobotics/common v0.15.5 h1:6imQU3QlLFR2NW4HrJUmc1fqb9kHArtgf0FP9Ag10XI=
+github.com/aperturerobotics/common v0.15.5/go.mod h1:R76WABZ3PDLrAhScLVjnzsI8S0rhIVNowxbzv4f8ZdM=
 github.com/aperturerobotics/controllerbus v0.45.0 h1:PkuRt/2KQfrBjJ8mEWk3r+REA4FD5Nn4JASNHyOwV3E=
 github.com/aperturerobotics/controllerbus v0.45.0/go.mod h1:vj09dlGXVzXKCSYputUyq4LeltHsBuxjrO4jFypvMq8=
 github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
@@ -82,6 +80,8 @@ github.com/aperturerobotics/go-kvfile v0.7.2 h1:5aKcsHmevVwwCwrFPa/yu3XWfgKkjhjg
 github.com/aperturerobotics/go-kvfile v0.7.2/go.mod h1:D+TQEgp2JRlt1rx5LzjfQWxVbkz9rgrAlmmNiU6Cgec=
 github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be h1:PZi7dbdjWqHa0TE1lD0f5WxzshL/qPp9fZ1K55fGo1c=
 github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be/go.mod h1:gA6iEEVpQcx0xpygG/U0wkm+DfII4zoPc3EWViXC5b0=
+github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a h1:+rgqt70BYOAQtAU5gMgMZkKypg1W/6aPb794NXZQwxQ=
+github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a/go.mod h1:1DiSe6HqY2Pey4mmreXPlkreDmSxVkItf5lOJB5QZVk=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
@@ -94,6 +94,8 @@ github.com/aperturerobotics/starpc v0.32.3 h1:Xh+D5iYq/1/RxNPOCkhvvRQif3pNzncUqg
 github.com/aperturerobotics/starpc v0.32.3/go.mod h1:FPuY3WNQbCRNzgK7QtqLWp3tze/oEPPPC/91ex5aYUI=
 github.com/aperturerobotics/util v1.23.0 h1:MW2klko8UN+t1baHiwy0RsEbpz+ZSleSmvZ9M26AQgA=
 github.com/aperturerobotics/util v1.23.0/go.mod h1:NaPbGzquoyVaaCLcdxorXjDYrI9Y+FoRNqOfKGUl9EY=
+github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd h1:tuXYimCLwNrLpcSu/B+kVAkaSs2e+4KKEzvQiGUTPjU=
+github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
@@ -119,8 +121,6 @@ github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
-github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
@@ -168,8 +168,8 @@ github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 h1:u3PMzfF8RkKd3lB9pZ2bfn0qEG+1G
 github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2/go.mod h1:mIEZOHnFx4ZMQeawhw9rhsj+0zwQj7adVsnBX7t+eKY=
 github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e h1:kPsT4a47cw1+y/N5SSCkma7FhAPw7KeGmD6c9PBZW9Y=
 github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e/go.mod h1:KPUcpx070QOfJK1gNe0zx4pA5sicIK1GMikIGLKC168=
-github.com/dolthub/jsonpath v0.0.2-0.20230525180605-8dc13778fd72 h1:NfWmngMi1CYUWU4Ix8wM+USEhjc+mhPlT9JUR/anvbQ=
-github.com/dolthub/jsonpath v0.0.2-0.20230525180605-8dc13778fd72/go.mod h1:ZWUdY4iszqRQ8OcoXClkxiAVAoWoK3cq0Hvv4ddGRuM=
+github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 h1:bMGS25NWAGTEtT5tOBsCuCrlYnLRKpbJVJkDbrTRhwQ=
+github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71/go.mod h1:2/2zjLQ/JOOSbbSboojeg+cAwcRV0fDLzIiWch/lhqI=
 github.com/dop251/goja v0.0.0-20240220182346-e401ed450204 h1:O7I1iuzEA7SG+dK8ocOBSlYAA9jBUmCYl/Qa7ey7JAM=
 github.com/dop251/goja v0.0.0-20240220182346-e401ed450204/go.mod h1:QMWlm50DNe14hD7t24KEqZuUdC9sOTy8W6XbCU1mlw4=
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
@@ -406,8 +406,6 @@ github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceT
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/go-testing-interface v1.0.0/go.mod h1:kRemZodwjscx+RGhAo8eIhFbs2+BFgRtFPeD/KE+zxI=
 github.com/mitchellh/gox v0.4.0/go.mod h1:Sd9lOJ0+aimLBi73mGofS1ycjY8lL3uZM3JPS42BGNg=
-github.com/mitchellh/hashstructure v1.1.0 h1:P6P1hdjqAAknpY/M1CGipelZgp+4y9ja9kmUZPXP+H0=
-github.com/mitchellh/hashstructure v1.1.0/go.mod h1:xUDAozZz0Wmdiufv0uyhnHkUTN6/6d8ulp4AwfLKrmA=
 github.com/mitchellh/iochan v1.0.0/go.mod h1:JwYml1nuB7xOzsp52dPpHFffvOCDupsG0QubkSMEySY=
 github.com/mitchellh/mapstructure v0.0.0-20160808181253-ca63d7c062ee/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
@@ -469,8 +467,6 @@ github.com/paralin/go-multihash v0.2.0 h1:C66EjlMF2qJz9q61CC7erGUUB5wAEIox02PL2Y
 github.com/paralin/go-multihash v0.2.0/go.mod h1:WxoMcYG85AZVQUyRyo9s4wULvW5qrI9vb2Lt6evduFc=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 h1:UbpPeU0dNxSdVdswnjh1wr3FTU+RY+3VS1q3lBPa5Dk=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
-github.com/paralin/go-mysql-server v0.17.1-0.20231111110359-6e4ac609e0d7 h1:9F3GqxAri9zuUjyfx5k/sbu/aL4fvG0hIW0VvmA0uCs=
-github.com/paralin/go-mysql-server v0.17.1-0.20231111110359-6e4ac609e0d7/go.mod h1:VPYXS21nGtL/u/fuiRI2T9mnyZuAAOFHiZlh91l9t2Y=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=
 github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98 h1:8VijFMz4qJ70+ObyaByu6XZctKPhjllz/XfEoVZDQGo=
@@ -478,8 +474,6 @@ github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98/go.mod h1:8
 github.com/paralin/prometheus_client_golang v1.12.2-0.20220323132038-01665499027f/go.mod h1:jy1uf3Uo7qMqsCJvEZ9LRKKR5ALeY2z1w5a2+cAS2LE=
 github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8 h1:EfAnHCpOmoIZXrAV8Ov3Z32tJw3K62rFdlQOSNYAU04=
 github.com/paralin/ristretto v0.1.2-0.20240221033725-e9838e36e9d8/go.mod h1:swkazRqnUf1N62d0Nutz7KIj2UKqsm/H8tD0nBJAXqM=
-github.com/paralin/vitess v0.0.0-20231111105834-ccf9c4261495 h1:sXkbUY5zU8caQVFK1/MbOl/lzUTip8bOlmDGC8LlRMY=
-github.com/paralin/vitess v0.0.0-20231111105834-ccf9c4261495/go.mod h1:IwjNXSQPymrja5pVqmfnYdcy7Uv7eNJNBPK/MEh9OOw=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
@@ -579,7 +573,6 @@ github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1
 github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9QV7WQ/tjFTllLA=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/sony/gobreaker v0.4.1/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=
-github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 h1:7/iCYp2ii4GgbLhsT4uA8+vNHYYlSY5I5CS6/8e57hE=
 github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/spf13/afero v1.11.0 h1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=

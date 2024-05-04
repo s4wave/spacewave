@@ -135,6 +135,8 @@ type TableRoot struct {
 	AutoIncrVal *TableColumn `protobuf:"bytes,4,opt,name=auto_incr_val,json=autoIncrVal,proto3" json:"autoIncrVal,omitempty"`
 	// CollationId is the method ID of the method used to control sorting.
 	CollationId uint32 `protobuf:"varint,6,opt,name=collation_id,json=collationId,proto3" json:"collationId,omitempty"`
+	// Comment is an additional comment on the table.
+	Comment string `protobuf:"bytes,7,opt,name=comment,proto3" json:"comment,omitempty"`
 }
 
 func (x *TableRoot) Reset() {
@@ -183,6 +185,13 @@ func (x *TableRoot) GetCollationId() uint32 {
 		return x.CollationId
 	}
 	return 0
+}
+
+func (x *TableRoot) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
 }
 
 // TablePartitionRoot contains the root of a table partition.
@@ -455,6 +464,7 @@ func (m *TableRoot) CloneVT() *TableRoot {
 	r.RowNonce = m.RowNonce
 	r.AutoIncrVal = m.AutoIncrVal.CloneVT()
 	r.CollationId = m.CollationId
+	r.Comment = m.Comment
 	if rhs := m.PrimaryKeyOrdinals; rhs != nil {
 		tmpContainer := make([]int32, len(rhs))
 		copy(tmpContainer, rhs)
@@ -739,6 +749,9 @@ func (this *TableRoot) EqualVT(that *TableRoot) bool {
 		}
 	}
 	if this.CollationId != that.CollationId {
+		return false
+	}
+	if this.Comment != that.Comment {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1177,6 +1190,11 @@ func (x *TableRoot) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("collationId")
 		s.WriteUint32(x.CollationId)
 	}
+	if x.Comment != "" || s.HasField("comment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("comment")
+		s.WriteString(x.Comment)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1239,6 +1257,9 @@ func (x *TableRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "collation_id", "collationId":
 			s.AddField("collation_id")
 			x.CollationId = s.ReadUint32()
+		case "comment":
+			s.AddField("comment")
+			x.Comment = s.ReadString()
 		}
 	})
 }
@@ -1792,6 +1813,13 @@ func (m *TableRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Comment) > 0 {
+		i -= len(m.Comment)
+		copy(dAtA[i:], m.Comment)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Comment)))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.CollationId != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CollationId))
 		i--
@@ -2240,6 +2268,10 @@ func (m *TableRoot) SizeVT() (n int) {
 	if m.CollationId != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CollationId))
 	}
+	l = len(m.Comment)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2457,6 +2489,10 @@ func (x *TableRoot) MarshalProtoText() string {
 	if x.CollationId != 0 {
 		sb.WriteString(" collation_id: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.CollationId), 10))
+	}
+	if x.Comment != "" {
+		sb.WriteString(" comment: ")
+		sb.WriteString(strconv.Quote(x.Comment))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3230,6 +3266,38 @@ func (m *TableRoot) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Comment", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Comment = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -9,8 +9,8 @@ require (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/paralin/go-mysql-server v0.17.1-0.20231111110359-6e4ac609e0d7 // ext-engines
-	github.com/dolthub/vitess => github.com/paralin/vitess v0.0.0-20231111105834-ccf9c4261495 // ext-engines
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a // aperture
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd // aperture
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
@@ -37,7 +37,6 @@ require (
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.2-0.20240116140435-c67e07994f91
 	github.com/dolthub/go-mysql-server v0.18.1
-	github.com/dolthub/vitess v0.0.0-20231109003730-c0fa018b5ef6
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/genjidb/genji v0.16.0
@@ -80,10 +79,11 @@ replace (
 
 require (
 	github.com/aperturerobotics/cayley v0.9.0
-	github.com/aperturerobotics/common v0.15.2
+	github.com/aperturerobotics/common v0.15.5
 	github.com/aperturerobotics/json-iterator-lite v1.0.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
 	github.com/klauspost/compress v1.17.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/mr-tron/base58 v1.2.0
@@ -108,7 +108,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
@@ -117,7 +116,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20230524105445-af7e7991c97e // indirect
-	github.com/dolthub/jsonpath v0.0.2-0.20230525180605-8dc13778fd72 // indirect
+	github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-git-fixtures/v4 v4.3.2-0.20231010084843-55a94097c399 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
@@ -147,7 +146,6 @@ require (
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
-	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.12.3 // indirect

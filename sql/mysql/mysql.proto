@@ -52,6 +52,8 @@ message TableRoot {
   TableColumn auto_incr_val = 4;
   // CollationId is the method ID of the method used to control sorting.
   uint32 collation_id = 6;
+  // Comment is an additional comment on the table.
+  string comment = 7;
 }
 
 // TablePartitionRoot contains the root of a table partition.
