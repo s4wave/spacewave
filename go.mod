@@ -8,7 +8,7 @@ require github.com/aperturerobotics/common v0.15.2 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240504073423-47ff87d8d478 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240504082524-3e5eef1b68a4 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // master
 )
 
@@ -21,7 +21,7 @@ require (
 
 // Note: the below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.32.1-0.20240504050750-46079d8b87d8 // master
+require github.com/aperturerobotics/bifrost v0.32.1 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -46,21 +46,21 @@ replace (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.6-0.20240504050347-2116a715a7ff // master
+	github.com/aperturerobotics/controllerbus v0.45.0 // master
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect
-	github.com/aperturerobotics/starpc v0.32.2 // latest
+	github.com/aperturerobotics/starpc v0.32.3 // latest
 )
 
 // aperture: use compatibility forks
 replace (
+	github.com/libp2p/go-libp2p => github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be // aperture
 	github.com/multiformats/go-multiaddr => github.com/paralin/go-multiaddr v0.10.2-0.20230807174004-e1767541c061 // aperture
 	github.com/nats-io/jwt/v2 => github.com/nats-io/jwt/v2 v2.0.0-20200820224411-1e751ff168ab // indirect: used by bifrost-nats-server
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.41.1-0.20240125035303-1093432c45e9 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
-	nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.8-0.20220321125022-7defdf942f07 // aperture
 )
 
 require (
@@ -84,13 +84,12 @@ require (
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.22.1-0.20240503134056-ebb717d63002 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
 	nhooyr.io/websocket v1.8.11
 )
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/aperturerobotics/go-kvfile v0.7.1
+	github.com/aperturerobotics/go-kvfile v0.7.2
 	github.com/fatih/color v1.16.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/ghodss/yaml v1.0.0
