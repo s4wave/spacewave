@@ -192,6 +192,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	ws := tpt.(*transport_websocket.WebSocket)
 
 	// start the hold open controller to keep links open
+	b.GetStaticResolver().AddFactory(link_holdopen_controller.NewFactory(b.GetBus()))
 	_, _, holdOpenRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b.GetBus(),

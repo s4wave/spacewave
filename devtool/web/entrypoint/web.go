@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"syscall/js"
 
+	link_establish_controller "github.com/aperturerobotics/bifrost/link/establish"
+	link_holdopen_controller "github.com/aperturerobotics/bifrost/link/hold-open"
 	stream_srpc_client_controller "github.com/aperturerobotics/bifrost/stream/srpc/client/controller"
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	"github.com/aperturerobotics/bldr/banner"
@@ -86,6 +88,8 @@ func main() {
 		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
 		sr.AddFactory(websocket.NewFactory(b))
+		sr.AddFactory(link_establish_controller.NewFactory(b))
+		sr.AddFactory(link_holdopen_controller.NewFactory(b))
 
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)
