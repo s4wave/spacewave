@@ -128,7 +128,9 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	}
 
 	// disable tinygo unless release mode
-	useTinygo := minifyEntrypoint
+	// NOTE: we disable tinygo since it does not compile cleanly yet.
+	tinygoCompatible := false
+	useTinygo := entryBuildType.IsRelease() && minifyEntrypoint && tinygoCompatible
 
 	wasmRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
 	if err := os.MkdirAll(wasmRuntimeDir, 0o755); err != nil {
