@@ -928,9 +928,15 @@ func (c *Controller) BuildPlugin(
 
 		// optimization pass: brotli compression
 		if enableCompression && isWebBuildPlatform {
-			le.Info("compressing plugin binary with brotli")
+			le.Info("compressing plugin binary")
 
-			brPath, err := bldr_compress.CompressBrotli(le, workingPath, outDistBinary)
+			/*
+				brPath, err := bldr_compress.CompressBrotli(le, workingPath, outDistBinary)
+				if err != nil {
+					return nil, nil, err
+				}
+			*/
+			brPath, err := bldr_compress.CompressGzip(le, workingPath, outDistBinary)
 			if err != nil {
 				return nil, nil, err
 			}

@@ -43,7 +43,9 @@ func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildO
 }
 
 // BuildServiceWorkerBundle builds specifically the service worker files.
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+//
+// Returns the path to the service worker .mjs file
+func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
 	return bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
 }
 
@@ -99,7 +101,7 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath string, minify, devMode bool) error {
 	le.Debug("generating web renderer bundle")
 
 	// index.html
@@ -127,6 +129,15 @@ func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	}
 	opts.External = append(opts.External, web_pkg_esbuild.BldrExternal...)
 	opts.Write = true
+
+	if runtimeJsPath != "" {
+		opts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
+	}
+
+	if runtimeSwPath != "" {
+		opts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
+	}
+
 	if !minify {
 		opts.Sourcemap = esbuild.SourceMapLinked
 	}
@@ -161,7 +172,8 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	}
 
 	// service worker
-	if err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
+	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	if err != nil {
 		return err
 	}
 
@@ -185,8 +197,11 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 		return err
 	}
 
+	// the renderer is at /pkgs/@aptre/bldr/
+	runtimeSwPath := "../../../" + swFilename
+
 	// renderer bundle
-	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, minify, devMode); err != nil {
+	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, "", runtimeSwPath, minify, devMode); err != nil {
 		return err
 	}
 

@@ -280,6 +280,11 @@ export interface WebDocumentOptions {
   // runtimeWorkerPath is the path to the runtime-wasm.mjs
   // if unset, defaults to ./runtime-wasm.mjs
   runtimeWorkerPath?: string
+  // serviceWorkerPath is the path to the bldr sw.mjs
+  // NOTE: ServiceWorker controls the URL space below the script address!
+  // NOTE: You MUST include sw.mjs next to your index.html.
+  // if unset, defaults to /sw.mjs
+  serviceWorkerPath?: string
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -506,7 +511,7 @@ export class WebDocument {
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
     // NOTE: scope can only be narrower than paths below the script path.
-    const swUrl = '/sw.mjs'
+    const swUrl = !!opts?.serviceWorkerPath ? new URL(opts.serviceWorkerPath, baseURL).toString() : '/sw.mjs'
     console.log('WebDocument: registering service worker', swUrl)
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
@@ -697,7 +702,7 @@ export class WebDocument {
     }
     if (this.serviceWorkerPort) {
       try {
-        this.serviceWorkerPort.postMessage('close')
+        this.serviceWorkerPort.postMessage({close: true} as WebDocumentToClient)
       } finally {
         this.serviceWorkerPort.close()
         this.serviceWorkerPort = undefined

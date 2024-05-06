@@ -356,6 +356,7 @@ func BuildDistBundle(
 			outputPath,
 			// web-document is located under /pkgs/@aptre/bldr
 			"./entrypoint/runtime-wasm.mjs",
+			"../../../sw.mjs",
 			isRelease,
 			false,
 		)

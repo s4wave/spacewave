@@ -3,6 +3,7 @@ package web_runtime_wasm_build
 import (
 	"context"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,16 +21,36 @@ const webRuntimeWasmDir = "web/runtime/wasm"
 // nodeStubsPath is the repo sub-dir for the node stubs
 const nodeStubsPath = "web/runtime/wasm/node-stubs.js"
 
+// validWasmSuffixes are the set of allowed .wasm suffixes.
+var validWasmSuffixes = []string{
+	".wasm",
+	// js decompression stream
+	".wasm.gz",
+
+	// go brotli decoder
+	// NOTE: We do not bundle go-brotli-decoder currently.
+	// See: github.com/aperturerobotics/hydra/unixfs/access/http/ext
+	// This can be enabled if using the Ext version.
+	// ".wasm.br",
+}
+
+// HasValidWasmExtension checks if the path has a valid wasm extension.
+func HasValidWasmExtension(filePath string) bool {
+	return slices.ContainsFunc(validWasmSuffixes, func(sfx string) bool {
+		return strings.HasSuffix(filePath, sfx)
+	})
+}
+
 // BuildWebWasmPluginScript builds the web plugin runtime entrypoint script.
 //
 // outPath should have a .mjs suffix
 // entrypointPath should be foo.wasm (relative to script location)
 func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoot, outPath, entrypointPath string, useTinygo, minify bool) error {
-	if !strings.HasSuffix(entrypointPath, ".wasm") && !strings.HasSuffix(entrypointPath, ".wasm.br") {
+	if !HasValidWasmExtension(entrypointPath) {
 		if entrypointPath == "" {
 			entrypointPath = "<empty>"
 		}
-		return errors.Errorf("plugin-wasm: entrypoint path must end in .wasm or .wasm.br: %s", entrypointPath)
+		return errors.Errorf("plugin-wasm: entrypoint path must end in .wasm or .wasm.br or .wasm.gz: %s", entrypointPath)
 	}
 
 	wasmExecFile, err := gocompiler.GetWasmExecPath(le, useTinygo)

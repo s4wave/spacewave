@@ -14,9 +14,25 @@ brew install binaryen
 apt install binaryen
 ```
 
+## gzip
+
+For the web platform, the .wasm binary is compressed with gzip.
+
+```
+# brew
+brew install gzip
+
+# or for apt
+apt install gzip
+```
+
+# Unused
+
+These dependencies may be used in future.
+
 ## brotli
 
-For the web platform, the .wasm binary is compressed with brotli.
+For the web platform, the .wasm binary can be compressed with brotli.
 
 ```
 # brew
@@ -25,3 +41,5 @@ brew install brotli
 # or for apt
 apt install brotli
 ```
+
+NOTE: This is not currently used as DecompressionStream only supports gz.

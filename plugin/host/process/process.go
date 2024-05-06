@@ -4,6 +4,7 @@ package plugin_host_process
 
 import (
 	"context"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -260,7 +261,7 @@ func (h *ProcessHost) ExecutePlugin(
 			}
 			err = h.execPluginIPC(ctx, muxedConn, hostMux, rpcInit)
 			_ = rpcInit(nil)
-			if err != nil && err != context.Canceled {
+			if err != nil && err != context.Canceled && err != io.EOF {
 				le.WithError(err).Warn("plugin ipc exited with error")
 			}
 			_ = muxedConn.Close()

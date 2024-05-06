@@ -45,7 +45,7 @@ message Config {
 
   // EnableCompression can optionally force-enable or force-disable binary compression.
   // The default is ENABLE for release-mode only.
-  // Only applicable for the web platform (WebAssembly brotli) (currently).
+  // Only applicable for the web platform (WebAssembly) (currently).
   .enabled.Enabled enable_compression = 7;
 }
 

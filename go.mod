@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.15.5 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240504093012-648730997c40 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240506194323-f48e898d89fb // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // master
 )
 
@@ -111,7 +111,6 @@ require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/Workiva/go-datastructures v1.1.4 // indirect
-	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.7.0 // indirect

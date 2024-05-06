@@ -15,15 +15,17 @@ import (
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // EsbuildLogLevel is the log level when bundling the bundle.
 var EsbuildLogLevel = esbuild.LogLevelWarning
 
+// DefaultBanner is the default banner applied to code files.
 func DefaultBanner() map[string]string {
 	return map[string]string{
-		"js": "// github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle",
+		"js": "// © 2018-2024 Aperture Robotics, LLC. <support@aperture.us>\n// All rights reserved.",
 	}
 }
 
@@ -32,6 +34,11 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 	sourceMap := esbuild.SourceMapNone
 	if !minify {
 		sourceMap = esbuild.SourceMapLinked
+	}
+
+	var drop esbuild.Drop
+	if minify {
+		drop = esbuild.DropDebugger
 	}
 
 	return esbuild.BuildOptions{
@@ -43,6 +50,7 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 		LogLevel:    EsbuildLogLevel,
 		TreeShaking: esbuild.TreeShakingTrue,
 		Sourcemap:   sourceMap,
+		Drop:        drop,
 
 		Metafile:  false,
 		Splitting: false,
@@ -80,29 +88,43 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildO
 }
 
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker
-func ServiceWorkerBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
+func ServiceWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.BuildOptions {
 	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
+	if hash {
+		baseConfig.EntryNames = "sw-[hash]"
+	} else {
+		baseConfig.EntryNames = "sw"
+	}
 	baseConfig.EntryPoints = []string{"web/bldr/service-worker.ts"}
 	baseConfig.EntryPointsAdvanced = nil
 	return baseConfig
 }
 
 // BuildServiceWorkerBundle builds specifically the service worker files.
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+//
+// Returns the filename of the service worker output file (including the hash).
+func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
 	le.Debug("generating service-worker bundle")
-	swOut := filepath.Join(buildDir, "sw.mjs")
-	swOpts := ServiceWorkerBuildOpts(bldrDistRoot, minify)
-	swOpts.Outfile = swOut
+
+	swOpts := ServiceWorkerBuildOpts(bldrDistRoot, minify, !devMode)
+	swOpts.Outdir = buildDir
 	swOpts.Write = true
 	if !minify {
 		swOpts.Sourcemap = esbuild.SourceMapInline
 	}
 	swOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	return bldr_esbuild_build.BuildResultToErr(esbuild.Build(swOpts))
+	result := esbuild.Build(swOpts)
+	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
+		return "", err
+	}
+	if len(result.OutputFiles) != 1 {
+		return "", errors.Errorf("expected %d output files but got %d", 1, len(result.OutputFiles))
+	}
+	return filepath.Base(result.OutputFiles[0].Path), nil
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath string, minify bool) error {
+func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath string, minify bool) error {
 	le.Debug("generating web renderer bundle")
 
 	// index.html
@@ -127,6 +149,11 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 	if runtimeJsPath != "" {
 		rendererBuildOpts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
 	}
+
+	if runtimeSwPath != "" {
+		rendererBuildOpts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
+	}
+
 	if !minify {
 		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
 	}
@@ -136,16 +163,20 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 }
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
-func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath string, minify, devMode bool) error {
+func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath string, minify, devMode bool) error {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
 	}
 
 	// service worker
-	if err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
+	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	if err != nil {
 		return err
 	}
+
+	// replace the filename in runtimeSwPath with the sw filename
+	runtimeSwPath = filepath.Join(filepath.Dir(runtimeSwPath), swFilename)
 
 	// web pkgs
 	// use platform for linux -> node.js (react and react-dom don't care.)
@@ -158,7 +189,7 @@ func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bui
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, bldrDistRoot, buildDir, runtimeJsPath, minify); err != nil {
+	if err := BuildRendererBundle(le, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, minify); err != nil {
 		return err
 	}
 

@@ -1,5 +1,3 @@
-// Root file for the Web Entrypoint.
-// The Entrypoint loads & hands off control to Bldr.
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BldrRoot } from '@aptre/bldr-react'
@@ -13,6 +11,13 @@ if (typeof BLDR_RUNTIME_JS === 'string') {
   webDocumentOpts.runtimeWorkerPath = BLDR_RUNTIME_JS
 }
 
+// BLDR_SW_JS is an injected variable with the path to the sw.mjs
+declare const BLDR_SW_JS: string | undefined
+if (typeof BLDR_SW_JS === 'string') {
+  webDocumentOpts.serviceWorkerPath = BLDR_SW_JS
+}
+
+// initialize react and Bldr
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('bldr-root')
   const root = createRoot(container!)

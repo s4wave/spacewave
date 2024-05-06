@@ -110,6 +110,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		entrypointDir,
 		// web-document is located under /pkgs/@aptre/bldr
 		"../../../entrypoint/runtime-wasm.mjs",
+		"../../../sw.mjs",
 		minifyEntrypoint,
 		devMode,
 	)
