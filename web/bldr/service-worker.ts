@@ -141,34 +141,13 @@ async function swFetch(
   // 3. The request will wait forever
   // 4. Close the /p/does-not-exist tab.
   // 5. Notice the request is not canceled.
+  /*
   const requestSignal = ev.request.signal
   requestSignal.addEventListener('abort', () => {
     // This line is never printed!
     console.error('requestSignal: aborted for ' + ev.request.url.toString())
   })
-  // We can get the client id!
-  const requestClientId = ev.clientId
-  console.log(
-    `TODO: request ${ev.request.url.toString()} client id ${requestClientId}`,
-  )
-  // So, we should be able to watch the list of clients and check when the request ended:
-  const checkRequestEnded = () => {
-    const requestClient = self.clients.get(requestClientId)
-    if (requestClient == null) {
-      console.log(
-        `TODO: request ${ev.request.url.toString()} client id ${requestClientId} has gone away!`,
-      )
-      return
-    }
-    console.log(
-      `TODO: request ${ev.request.url.toString()} client id ${requestClientId} is still present`,
-      requestClient,
-    )
-    setTimeout(checkRequestEnded, 1000)
-  }
-  if (requestClientId) {
-    queueMicrotask(checkRequestEnded)
-  }
+  */
 
   const useRuntimeFetch =
     isSwOrigin(requestOrigin) &&
