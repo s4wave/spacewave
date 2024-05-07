@@ -38,7 +38,34 @@ func OptimizeWasmBinary(le *logrus.Entry, workingPath, outBinPath string) error 
 
 	// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
 	// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
-	ecmd := uexec.NewCmd("wasm-opt", "--enable-bulk-memory", "-Oz", "-o", optPathRel, outBinPathRel)
+	ecmd := uexec.NewCmd(
+		"wasm-opt",
+
+		// https://caniuse.com/?search=WebAssembly
+		// Baseline 2023: https://caniuse.com/wasm-simd
+		"--enable-simd",
+		// All browsers support: https://caniuse.com/wasm-signext
+		"--enable-sign-ext",
+		// All browsers support: https://caniuse.com/wasm-threads
+		"--enable-threads",
+		// All browsers support: https://caniuse.com/wasm-bulk-memory
+		// Required by: go
+		"--enable-bulk-memory",
+		// All browsers support: https://caniuse.com/wasm-multi-value
+		"--enable-multivalue",
+		// All browsers support: https://caniuse.com/wasm-mutable-globals
+		"--enable-mutable-globals",
+		// All browsers support: https://caniuse.com/wasm-reference-types
+		"--enable-reference-types",
+		// All browsers support: https://caniuse.com/wasm-nontrapping-fptoint
+		"--enable-nontrapping-float-to-int",
+
+		// Optimize for size (z is even smaller)
+		"-Os", // "-Oz",
+
+		"-o", optPathRel,
+		outBinPathRel,
+	)
 	ecmd.Env = os.Environ()
 	ecmd.Dir = workingPath
 	if err := uexec.ExecCmd(le, ecmd); err != nil {
