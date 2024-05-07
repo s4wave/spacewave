@@ -41,7 +41,7 @@ import { timeoutPromise } from './timeout.js'
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {
   // web browser might suspend background tabs!
-  keepAliveMs: 29500,
+  keepAliveMs: 12420,
   idleTimeoutMs: 60500,
 } as const
 

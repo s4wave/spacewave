@@ -85,7 +85,7 @@ func ExPluginLoadAccess(
 	pluginID string,
 	cb func(ctx context.Context, rp RunningPlugin) error,
 ) error {
-	routineCtr := routine.NewStateRoutineContainer[LoadPluginValue](
+	routineCtr := routine.NewStateRoutineContainer(
 		func(t1, t2 LoadPluginValue) bool { return t1 == t2 },
 	)
 	di, dirRef, err := bus.ExecOneOffWatchRoutine(

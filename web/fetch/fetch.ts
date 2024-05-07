@@ -153,10 +153,9 @@ export async function proxyFetch(
       },
     })
 
-    // start the rpc
-    // TODO: abort controller for Fetch?
-    // https://github.com/w3c/ServiceWorker/issues/1544
-    // It's not clear if this abort signal is actually canceled.
+    // TODO: Browsers do not cancel request.signal when the request is canceled.
+    // This is a long-standing browser bug and is not yet fixed.
+    // See: https://github.com/w3c/ServiceWorker/issues/1544
     const resultIterable = svc.Fetch(fetchRequestStream, request.signal)
 
     // stream the body

@@ -7,4 +7,4 @@ export const BLDR_URI_PREFIXES = [
 ] as const
 
 // BLDR_CACHE_PATHS are files to cache on sw startup.
-export const BLDR_CACHE_PATHS = ['/index.html'] as const
+export const BLDR_CACHE_PATHS = ['/', '/index.html'] as const

@@ -129,6 +129,47 @@ async function swFetch(
   const requestOrigin = requestURL.origin
   const requestPath = requestURL.pathname
 
+  // TODO: Browsers do not cancel request.signal when the request is canceled.
+  // This is a long-standing browser bug and is not yet fixed.
+  // See: https://github.com/w3c/ServiceWorker/issues/1544
+  // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
+  // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1568422
+  //
+  // To view the effect of this:
+  // 1. Browse to a bldr site in one tab.
+  // 2. Browse to /p/does-not-exist/a/ in a new tab
+  // 3. The request will wait forever
+  // 4. Close the /p/does-not-exist tab.
+  // 5. Notice the request is not canceled.
+  const requestSignal = ev.request.signal
+  requestSignal.addEventListener('abort', () => {
+    // This line is never printed!
+    console.error('requestSignal: aborted for ' + ev.request.url.toString())
+  })
+  // We can get the client id!
+  const requestClientId = ev.clientId
+  console.log(
+    `TODO: request ${ev.request.url.toString()} client id ${requestClientId}`,
+  )
+  // So, we should be able to watch the list of clients and check when the request ended:
+  const checkRequestEnded = () => {
+    const requestClient = self.clients.get(requestClientId)
+    if (requestClient == null) {
+      console.log(
+        `TODO: request ${ev.request.url.toString()} client id ${requestClientId} has gone away!`,
+      )
+      return
+    }
+    console.log(
+      `TODO: request ${ev.request.url.toString()} client id ${requestClientId} is still present`,
+      requestClient,
+    )
+    setTimeout(checkRequestEnded, 1000)
+  }
+  if (requestClientId) {
+    queueMicrotask(checkRequestEnded)
+  }
+
   const useRuntimeFetch =
     isSwOrigin(requestOrigin) &&
     matchPrefixes.some((matchPrefix) => requestPath.startsWith(matchPrefix))
