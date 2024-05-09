@@ -18,6 +18,8 @@ import { WebPluginBrowserHostClient } from './browser_srpc.pb.js'
 declare let self: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope
 const global: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope = self
 
+let plugin: Plugin;
+
 // pluginWorker contains the common worker logic.
 const pluginWorker = new PluginWorker(
   global,
@@ -65,7 +67,8 @@ class Plugin implements SRPCPlugin {
   }
 }
 
-const plugin = new Plugin()
+plugin = new Plugin()
+
 function startPlugin() {
   console.log('start web plugin for browser')
 }

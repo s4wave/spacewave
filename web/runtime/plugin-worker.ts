@@ -94,6 +94,7 @@ export class PluginWorker {
   // handleStartPlugin handles the message to start the plugin.
   private handleStartPlugin(startInfo: Uint8Array) {
     if (this.pluginStarted) return
+    this.pluginStarted = true
 
     // startInfo is b58 encoded with utf8
     const startInfoB58 = new TextDecoder().decode(startInfo)

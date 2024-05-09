@@ -58,9 +58,9 @@ func (f *ManifestFetchViaBus) FetchManifest(
 
 	meta := req.GetManifestMeta()
 	manifestID := meta.GetManifestId()
-	f.le.Infof("host requests fetching manifest: %s", manifestID)
+	f.le.Debugf("host requests fetching manifest: %s", manifestID)
 
-	return valuelist.WatchDirective[*FetchManifestValue, *FetchManifestResponse](
+	return valuelist.WatchDirective(
 		strm.Context(),
 		f.b,
 		req.ToDirective(),
