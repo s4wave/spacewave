@@ -52,7 +52,15 @@ func Run(
 	verbose := true // TODO
 	staticBlockStoreReaderBuilder := newStaticBlockStoreReaderBuilder(le, assetsFS, verbose)
 
-	distBus, err := BuildDistBus(ctx, le, distMeta, storageRoot, webRuntimeID, configSetProto, staticBlockStoreReaderBuilder)
+	distBus, err := BuildDistBus(
+		ctx,
+		le,
+		distMeta,
+		storageRoot,
+		webRuntimeID,
+		configSetProto,
+		staticBlockStoreReaderBuilder,
+	)
 	if err != nil {
 		return errors.Wrap(err, "unable to initialize")
 	}

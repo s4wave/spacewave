@@ -19,7 +19,6 @@ import (
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -295,9 +294,6 @@ func (c *Controller) buildPluginMux(
 
 	// register plugin host service
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
-
-	// register echoer (sanity test) service
-	_ = echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil))
 
 	return mux
 }
