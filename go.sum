@@ -78,8 +78,10 @@ github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRY
 github.com/aperturerobotics/go-brotli-decoder v0.1.1/go.mod h1:uGcRHycd7rIbt9Uh+6L5UXgWmRTUIE2MA1m0QKrBBQY=
 github.com/aperturerobotics/go-kvfile v0.7.2 h1:5aKcsHmevVwwCwrFPa/yu3XWfgKkjhjgDNgtMQlxh0c=
 github.com/aperturerobotics/go-kvfile v0.7.2/go.mod h1:D+TQEgp2JRlt1rx5LzjfQWxVbkz9rgrAlmmNiU6Cgec=
-github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be h1:PZi7dbdjWqHa0TE1lD0f5WxzshL/qPp9fZ1K55fGo1c=
-github.com/aperturerobotics/go-libp2p v0.33.1-0.20240504075939-591fc65373be/go.mod h1:gA6iEEVpQcx0xpygG/U0wkm+DfII4zoPc3EWViXC5b0=
+github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511033834-ffeaa02fcb76 h1:h+VBvwSKvLARXnKgLMy2WUGDJiS1eSlpGRQYkNypync=
+github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511033834-ffeaa02fcb76/go.mod h1:bffsvVccfRpqEgAZZHGzTnAxqkUvf9FaKBWh1RXSUbE=
+github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8 h1:S9prTCDvkYfJ9ATV+B1yoNESE5w5dbFM5GmriXRG0Lk=
+github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8/go.mod h1:fK2s0Xpx0LYL2YQpYGJ7H+QwrC8+EgZ4Dd4G/vaLMW8=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a h1:+rgqt70BYOAQtAU5gMgMZkKypg1W/6aPb794NXZQwxQ=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a/go.mod h1:1DiSe6HqY2Pey4mmreXPlkreDmSxVkItf5lOJB5QZVk=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
@@ -380,8 +382,6 @@ github.com/libp2p/go-buffer-pool v0.1.0 h1:oK4mSFcQz7cTQIfqbe4MIj9gLW+mnanjyFtc6
 github.com/libp2p/go-buffer-pool v0.1.0/go.mod h1:N+vh8gMqimBzdKkSMVuydVDq+UV5QTWy5HSiZacSbPg=
 github.com/libp2p/go-libp2p-testing v0.12.0 h1:EPvBb4kKMWO29qP4mZGyhVzUyR25dvfUIK5WDu6iPUA=
 github.com/libp2p/go-libp2p-testing v0.12.0/go.mod h1:KcGDRXyN7sQCllucn1cOOS+Dmm7ujhfEyXQL5lvkcPg=
-github.com/libp2p/go-msgio v0.3.0 h1:mf3Z8B1xcFN314sWX+2vOTShIE0Mmn2TXn3YCUQGNj0=
-github.com/libp2p/go-msgio v0.3.0/go.mod h1:nyRM819GmVaF9LX3l03RMh10QdOroF++NBbxAb0mmDM=
 github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 h1:KI65sCCL2h9IyCQwBhBXDgkKt3bmXoTu8T3rLVLZW4I=
 github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48/go.mod h1:PGP+3py2ZWDKABvqstBZtMnixEHNC7U/odnGylzur5o=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
@@ -421,8 +421,6 @@ github.com/multiformats/go-base36 v0.2.0 h1:lFsAbNOGeKtuKozrtBsAkSVhv1p9D0/qedU9
 github.com/multiformats/go-base36 v0.2.0/go.mod h1:qvnKE++v+2MWCfePClUEjE78Z7P2a1UV0xHgWc0hkp4=
 github.com/multiformats/go-multibase v0.2.0 h1:isdYCVLvksgWlMW9OZRYJEa9pZETFivncJHmHnnd87g=
 github.com/multiformats/go-multibase v0.2.0/go.mod h1:bFBZX4lKCA/2lyOFSAoKH5SS6oPyjtnzK/XTFDPkNuk=
-github.com/multiformats/go-multicodec v0.9.0 h1:pb/dlPnzee/Sxv/j4PmkDRxCOi3hXTz3IbPKOXWJkmg=
-github.com/multiformats/go-multicodec v0.9.0/go.mod h1:L3QTQvMIaVBkXOXXtVmYE+LI16i14xuaojr/H7Ai54k=
 github.com/multiformats/go-multistream v0.5.0 h1:5htLSLl7lvJk3xx3qT/8Zm9J4K8vEOf/QGkvOGQAyiE=
 github.com/multiformats/go-multistream v0.5.0/go.mod h1:n6tMZiwiP2wUsR8DgfDWw1dydlEqV3l6N3/GBsX6ILA=
 github.com/multiformats/go-varint v0.0.7 h1:sWSGR+f/eu5ABZA2ZpYKBILXTTs9JWpdEM/nEGOHFS8=
@@ -461,8 +459,8 @@ github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 h1:up0+JDIF/likyX
 github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40/go.mod h1:CwsSX1JZoJrMzhS3Gg39adqLevtWvQ9qdWIh5T9X1/g=
 github.com/paralin/go-indexeddb v1.1.0 h1:pVIq9VSSXqkNCV6Fp5ygjkZZXLvj+FOI4J6gkoOW/WY=
 github.com/paralin/go-indexeddb v1.1.0/go.mod h1:QqFTdYE+f4otdjFysBurd4BSjrHno7DXZnDDdE4RE1Y=
-github.com/paralin/go-multiaddr v0.10.2-0.20230807174004-e1767541c061 h1:iyLv/nZoLEQu9I/Y6CaitdPmt7GXwuiQPtkOU6E22Zo=
-github.com/paralin/go-multiaddr v0.10.2-0.20230807174004-e1767541c061/go.mod h1:1ptdpRu2LKmAmpej6l38E3ZLcNbUNHfH5ITf7Bbcbb4=
+github.com/paralin/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h1:xxzUX1AaOQWbYq/LCoJIWfju2xByAw/nWrWXMTI5O8Y=
+github.com/paralin/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/paralin/go-multihash v0.2.0 h1:C66EjlMF2qJz9q61CC7erGUUB5wAEIox02PL2YiLgxw=
 github.com/paralin/go-multihash v0.2.0/go.mod h1:WxoMcYG85AZVQUyRyo9s4wULvW5qrI9vb2Lt6evduFc=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 h1:UbpPeU0dNxSdVdswnjh1wr3FTU+RY+3VS1q3lBPa5Dk=
@@ -629,9 +627,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
+github.com/zeebo/assert v1.1.0 h1:hU1L1vLTHsnO8x8c9KAR5GmM5QscxHg5RNU5z5qbUWY=
 github.com/zeebo/assert v1.1.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
-github.com/zeebo/assert v1.3.0 h1:g7C04CbJuIDKNPFHmsk4hwZDO5O+kntRxzaUoNXj+IQ=
-github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
 github.com/zeebo/blake3 v0.2.3 h1:TFoLXsjeXqRNFxSbk35Dk4YtszE/MQQGK10BH4ptoTg=
 github.com/zeebo/blake3 v0.2.3/go.mod h1:mjJjZpnsyIVtVgTOSpJ9vmRE4wgDeyt2HU3qXvvKCaQ=
 github.com/zeebo/pcg v1.0.1 h1:lyqfGeWiv4ahac6ttHs+I5hwtH/+1mrhlCtVNQM2kHo=
