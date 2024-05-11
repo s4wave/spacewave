@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@aptre/common@^0.15.5":
-  version "0.15.5"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.5.tgz#291816522daf5f84d2064bb4430f9a3525c9c9b6"
-  integrity sha512-zOuHMenwKXkOtntEdTPgUG7IH5XXdQGAdkVh7X0aKeR0SrQEqzi2gSX+s3dw8x503GwR7ryFC3djkDzn7WJvdA==
+"@aptre/common@^0.15.6":
+  version "0.15.6"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.15.6.tgz#b608667d2329f02cd383761c98669cbe7c48e160"
+  integrity sha512-0NY2BwDMlxrlsWNGdust+Ik6R/igHgWHfm1mqjuUiq5XNgf/UvTVv/c+1ZVtwXZ78/c/5jKvsQZeFH/omZr43A==
   dependencies:
     "@aptre/protobuf-es-lite" "^0.4.3"
     "@typescript-eslint/eslint-plugin" "^7.8.0"
@@ -791,10 +791,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^30.0.2:
-  version "30.0.2"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.2.tgz#95ba019216bf8be9f3097580123e33ea37497733"
-  integrity sha512-zv7T+GG89J/hyWVkQsLH4Y/rVEfqJG5M/wOBIGNaDdqd8UV9/YZPdS7CuFeaIj0H9LhCt95xkIQNpYB/3svOkQ==
+electron@^30.0.3:
+  version "30.0.3"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.3.tgz#7c25ddb12ba89fd117991d010f1b274b1bafcb73"
+  integrity sha512-h+suwx6e0fnv/9wi0/cmCMtG+4LrPzJZa+3DEEpxcPcP+pcWnBI70t8QspxgMNIh2wzXLMD9XVqrLkEbiBAInw==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -817,10 +817,10 @@ end-of-stream@^1.1.0, end-of-stream@^1.4.1:
   dependencies:
     once "^1.4.0"
 
-enhanced-resolve@^5.16.0:
-  version "5.16.0"
-  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.16.0.tgz#65ec88778083056cb32487faa9aef82ed0864787"
-  integrity sha512-O+QWCviPNSSLAD9Ucn8Awv+poAkqn3T1XY5/N7kR7rQO9yfSGWkYZDwpJ+iKF7B8rxaQKWngSqACpgzeapSyoA==
+enhanced-resolve@^5.16.1:
+  version "5.16.1"
+  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.16.1.tgz#e8bc63d51b826d6f1cbc0a150ecb5a8b0c62e567"
+  integrity sha512-4U5pNsuDl0EhuZpq46M5xPslstkviJuhrdobaRDBk2Jy2KO37FDAJl4lb2KlNabxT0m4MTK2UHNrsAcphE8nyw==
   dependencies:
     graceful-fs "^4.2.4"
     tapable "^2.2.0"
@@ -1867,10 +1867,10 @@ reusify@^1.0.4:
   resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
   integrity sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==
 
-rimraf@^5.0.5:
-  version "5.0.5"
-  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-5.0.5.tgz#9be65d2d6e683447d2e9013da2bf451139a61ccf"
-  integrity sha512-CqDakW+hMe/Bz202FPEymy68P+G50RfMQK+Qo5YUqc9SPipvbGjCGKd0RSKEelbsfQuw3g5NZDSrlZZAJurH1A==
+rimraf@^5.0.6:
+  version "5.0.6"
+  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-5.0.6.tgz#f13b90af1794a2e8e1ecd052263bcf688742af88"
+  integrity sha512-X72SgyOf+1lFnGM6gYcmZ4+jMOwuT4E4SajKQzUIlI7EoR5eFHMhS/wf8Ll0mN+w2bxcIVldrJQ6xT7HFQywjg==
   dependencies:
     glob "^10.3.7"
 
@@ -1970,6 +1970,25 @@ starpc@^0.32.3:
   version "0.32.3"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.3.tgz#238ddc76ecbe28242089953101ca8db809db6006"
   integrity sha512-TDDrk60B2WDikRtKrQ36cqI7v3w5SGIh90uFOsOg2AEk5USgb+p31bDs/IB+SvO5g7DJllA2vFkQv/lwpsTAaw==
+  dependencies:
+    "@aptre/it-ws" "^1.0.0"
+    "@aptre/protobuf-es-lite" "^0.4.3"
+    "@chainsafe/libp2p-yamux" "^6.0.2"
+    "@libp2p/interface" "^1.3.1"
+    "@libp2p/logger" "^4.0.12"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.6"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    uint8arraylist "^2.4.7"
+    ws "^8.17.0"
+
+starpc@^0.32.7:
+  version "0.32.7"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.7.tgz#775aba6daad31f91553eec4639dbca372a97234e"
+  integrity sha512-2riwKMZvWa5pmiYxo6hHPOYoWzmmIXtkvMZsfXMDyky1A33LExwUwfPIuCteT8T0iZ/7WKdq6Wk2/JO/r9IFAw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@aptre/protobuf-es-lite" "^0.4.3"
