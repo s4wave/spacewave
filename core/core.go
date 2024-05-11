@@ -14,6 +14,7 @@ import (
 	block_store_rpc "github.com/aperturerobotics/hydra/block/store/rpc"
 	block_store_rpc_lookup "github.com/aperturerobotics/hydra/block/store/rpc/lookup"
 	block_store_rpc_server "github.com/aperturerobotics/hydra/block/store/rpc/server"
+	block_store_rpc_server_bucket "github.com/aperturerobotics/hydra/block/store/rpc/server/bucket"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
@@ -58,4 +59,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(block_store_rpc.NewFactory(b))
 	sr.AddFactory(block_store_rpc_lookup.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server.NewFactory(b))
+	sr.AddFactory(block_store_rpc_server_bucket.NewFactory(b))
 }

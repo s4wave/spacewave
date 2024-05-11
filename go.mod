@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.15.6 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240511040200-97ddfb2601a0 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240511084447-5242e658ac01 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.3 // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.3-0.20240511072921-7d5fd450d896 // master
+	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.2 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -82,9 +82,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.45.1 // latest
+	github.com/aperturerobotics/controllerbus v0.45.2 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
-	github.com/aperturerobotics/starpc v0.32.7 // latest
+	github.com/aperturerobotics/starpc v0.32.8 // latest
 	github.com/aperturerobotics/util v1.23.1 // master
 )
 
