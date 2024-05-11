@@ -5,6 +5,7 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import { WebPkgRefConfig } from '../../../plugin/compiler/config.pb.js'
 
 export const protobufPackage = 'bldr.web.pkg.compiler'
 
@@ -54,14 +55,18 @@ export type Config = Message<{
    * They will be deduplicated such that a single version is imported at a time by the app.
    * This is useful for packages that require a single instance per WebDocument.
    *
+   * On default only the imports referenced by the plugin will be compiled in.
+   * Everything else will be tree-shaken away to lower bundle size.
+   * Additional imports to reference can be specified in the config.
+   *
    * These packages will be available with the LookupWebPkg directive.
    * They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
    *
    * Note: only files & entrypoints imported by at least one js file will be included.
    *
-   * @generated from field: repeated string web_pkgs = 5;
+   * @generated from field: repeated bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 5;
    */
-  webPkgs?: string[]
+  webPkgs?: WebPkgRefConfig[]
   /**
    * DelveAddr is the address to listen for Delve remote connections.
    * If the build mode is dev and this is set, uses delve to run the plugin.
@@ -96,8 +101,8 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 5,
       name: 'web_pkgs',
-      kind: 'scalar',
-      T: ScalarType.STRING,
+      kind: 'message',
+      T: () => WebPkgRefConfig,
       repeated: true,
     },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },

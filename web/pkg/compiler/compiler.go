@@ -2,7 +2,6 @@ package bldr_web_pkg_compiler
 
 import (
 	"context"
-	"slices"
 	"strings"
 
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -13,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/blang/semver"
 )
 
@@ -60,6 +60,7 @@ func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, _, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
@@ -68,22 +69,20 @@ func (c *Controller) BuildManifest(
 	pluginID := strings.TrimSpace(meta.GetManifestId())
 
 	pluginCompilerConf := plugin_compiler.NewConfig()
-	pluginCompilerConf.ProjectId = c.GetConfig().GetProjectId()
+	pluginCompilerConf.ProjectId = conf.GetProjectId()
 	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
-	pluginCompilerConf.DelveAddr = c.GetConfig().GetDelveAddr()
-	pluginCompilerConf.ConfigSet = c.GetConfig().GetConfigSet()
+	pluginCompilerConf.DelveAddr = conf.GetDelveAddr()
+	pluginCompilerConf.ConfigSet = conf.GetConfigSet()
 
 	pluginCompilerConf.ConfigSet = map[string]*configset_proto.ControllerConfig{}
-	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, c.GetConfig().GetConfigSet())
+	configset_proto.MergeConfigSetMaps(pluginCompilerConf.ConfigSet, conf.GetConfigSet())
 
 	pluginCompilerConf.HostConfigSet = map[string]*configset_proto.ControllerConfig{}
-	configset_proto.MergeConfigSetMaps(pluginCompilerConf.HostConfigSet, c.GetConfig().GetHostConfigSet())
+	configset_proto.MergeConfigSetMaps(pluginCompilerConf.HostConfigSet, conf.GetHostConfigSet())
 
 	// Cleanup list of web packages
-	webPkgs := slices.Clone(c.GetConfig().GetWebPkgs())
-	slices.Sort(webPkgs)
-	webPkgs = slices.Compact(webPkgs)
+	webPkgs := protobuf_go_lite.CloneVTSlice(conf.GetWebPkgs())
 	pluginCompilerConf.WebPkgs = webPkgs
 
 	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
@@ -91,9 +90,9 @@ func (c *Controller) BuildManifest(
 		if _, err := configset_proto.ConfigSetMap(pluginCompilerConf.ConfigSet).ApplyConfig(
 			"handle-web-pkgs",
 			&bldr_web_plugin_handle_web_pkg.Config{
-				WebPluginId:    c.GetConfig().GetWebPluginId(),
+				WebPluginId:    conf.GetWebPluginId(),
 				HandlePluginId: pluginID,
-				WebPkgIdList:   webPkgs,
+				WebPkgIdList:   plugin_compiler.WebPkgRefConfigSlice(webPkgs).ToIdList(),
 			},
 			1,
 			false,

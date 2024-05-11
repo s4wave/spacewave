@@ -32,9 +32,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -237,32 +237,11 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.Merge(res.GetConfig())
 		}
 
-		// clone the config set maps
-		configSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetConfigSet()))
-		for k, v := range pluginBuildConf.GetConfigSet() {
-			configSet[k] = v.CloneVT()
-		}
-
-		hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(pluginBuildConf.GetHostConfigSet()))
-		for k, v := range pluginBuildConf.GetHostConfigSet() {
-			hostConfigSet[k] = v.CloneVT()
-		}
-
 		// determine project id
 		projectID := builderConf.GetProjectId()
 		if cproj := pluginBuildConf.GetProjectId(); cproj != "" {
 			projectID = cproj
 		}
-
-		// Cleanup list of go packages
-		goPkgs := slices.Clone(pluginBuildConf.GetGoPkgs())
-		slices.Sort(goPkgs)
-		goPkgs = slices.Compact(goPkgs)
-
-		// Cleanup list of web packages
-		webPkgs := slices.Clone(pluginBuildConf.GetWebPkgs())
-		slices.Sort(webPkgs)
-		webPkgs = slices.Compact(webPkgs)
 
 		pluginMeta := bldr_plugin.NewPluginMeta(
 			projectID,
@@ -270,85 +249,6 @@ func (c *Controller) BuildManifest(
 			buildPlatform.GetPlatformID(),
 			buildType.String(),
 		)
-
-		// applyToConfigSet conditionally applies the config to the config set if not already set.
-		applyToConfigSet := func(id string, conf config.Config) error {
-			if _, ok := configSet[id]; ok {
-				return nil
-			}
-
-			configBin, err := conf.MarshalJSON()
-			if err != nil {
-				if err == context.Canceled {
-					return err
-				}
-				return errors.Wrap(err, "marshal configset")
-			}
-
-			configSet[id] = &configset_proto.ControllerConfig{
-				Id:     conf.GetConfigID(),
-				Rev:    1,
-				Config: configBin,
-			}
-			return nil
-		}
-
-		// apply the config set entries for the web plugin, if applicable.
-		if webPluginID := pluginBuildConf.GetWebPluginId(); webPluginID != "" {
-			// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
-			if len(webPkgs) != 0 {
-				if err := applyToConfigSet("handle-web-pkgs", &bldr_web_plugin_handle_web_pkg.Config{
-					WebPluginId:    webPluginID,
-					HandlePluginId: pluginID,
-					WebPkgIdList:   webPkgs,
-				}); err != nil {
-					return nil, err
-				}
-			}
-
-			// - handle-web-view-rpc: handle incoming RPCs for web-view
-			if err := applyToConfigSet("handle-web-view-rpc", &bldr_web_plugin_handle_rpc.Config{
-				WebPluginId:    webPluginID,
-				HandlePluginId: pluginID,
-				ServerIdRe:     "web-view/.*",
-			}); err != nil {
-				return nil, err
-			}
-
-			// - handle-web-view-server: handle incoming RPCs for HandleWebView
-			if err := applyToConfigSet("handle-web-view-server", &web_view_handler_server.Config{}); err != nil {
-				return nil, err
-			}
-
-			// - handle-web-view: handle web views via HandleWebView
-			if err := applyToConfigSet("handle-web-view", &bldr_web_plugin_handle_web_view.Config{
-				WebPluginId:    webPluginID,
-				HandlePluginId: pluginID,
-			}); err != nil {
-				return nil, err
-			}
-
-			// - load-web: loads the web plugin on startup
-			if err := applyToConfigSet("load-web", &bldr_plugin_load.Config{
-				PluginId: webPluginID,
-			}); err != nil {
-				return nil, err
-			}
-
-			// - observe-web-view: handle LookupWebView with incoming HandleWebView directives
-			if err := applyToConfigSet("observe-web-view", &bldr_web_view_observer.Config{}); err != nil {
-				return nil, err
-			}
-		}
-
-		// apply host config set
-		if len(hostConfigSet) != 0 {
-			if err := applyToConfigSet("plugin-host-configset", &plugin_host_configset.Config{
-				ConfigSet: hostConfigSet,
-			}); err != nil {
-				return nil, err
-			}
-		}
 
 		le.Debug("compiling plugin")
 		_, updatedManifestMeta, err = c.BuildPlugin(
@@ -363,12 +263,14 @@ func (c *Controller) BuildManifest(
 			builderConf.GetDistSourcePath(),
 			outDistPath,
 			outAssetsPath,
-			goPkgs,
-			webPkgs,
+			pluginBuildConf.GetGoPkgs(),
+			pluginBuildConf.GetWebPkgs(),
+			pluginBuildConf.GetWebPluginId(),
 			pluginBuildConf.GetDisableRpcFetch(),
 			pluginBuildConf.GetDisableFetchAssets(),
 			pluginBuildConf.GetDelveAddr(),
-			configSet,
+			pluginBuildConf.GetConfigSet(),
+			pluginBuildConf.GetHostConfigSet(),
 			pluginBuildConf.GetEnableCgo(),
 			pluginBuildConf.GetEnableTinygo(),
 			pluginBuildConf.GetEnableCompression(),
@@ -636,6 +538,7 @@ func (c *Controller) FastRebuildPlugin(
 
 // BuildPlugin compiles the plugin once, committing it to the target world.
 //
+// webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
 // Returns a list of source files from the list of given goPkgs.
 // Source files list includes all files consumed by esbuild.
 func (c *Controller) BuildPlugin(
@@ -650,10 +553,13 @@ func (c *Controller) BuildPlugin(
 	distSourcePath,
 	outDistPath,
 	outAssetsPath string,
-	goPkgs, webPkgs []string,
+	goPkgs []string,
+	webPkgs []*WebPkgRefConfig,
+	webPluginID string,
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
+	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	enableCgoOpt enabled.Enabled,
 	enableTinygoOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
@@ -663,6 +569,10 @@ func (c *Controller) BuildPlugin(
 	// plugin id
 	pluginID := pluginMeta.GetPluginId()
 	isRelease := buildType.IsRelease()
+
+	// clone goPkgs and webPkgs
+	goPkgs = slices.Clone(goPkgs)
+	webPkgs = protobuf_go_lite.CloneVTSlice(webPkgs)
 
 	basePlatformID := buildPlatform.GetBasePlatformID()
 	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
@@ -683,27 +593,117 @@ func (c *Controller) BuildPlugin(
 
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
-	if !disableRpcFetch {
-		embedConfigSet["rpc-fetch"], err = configset_proto.NewControllerConfig(
-			configset.NewControllerConfig(1, web_fetch_controller.NewConfig()),
-			false,
-		)
+
+	// applyToConfigSet conditionally applies the config to the config set if not already set.
+	applyToConfigSet := func(id string, conf config.Config) error {
+		if _, ok := embedConfigSet[id]; ok {
+			return nil
+		}
+		configBin, err := conf.MarshalVT()
 		if err != nil {
+			return err
+		}
+		embedConfigSet[id] = &configset_proto.ControllerConfig{
+			Id:     conf.GetConfigID(),
+			Rev:    1,
+			Config: configBin,
+		}
+		return nil
+	}
+
+	addGoPkg := func(pkgName string) {
+		if !slices.Contains(goPkgs, pkgName) {
+			goPkgs = append(goPkgs, pkgName)
+		}
+	}
+
+	if !disableRpcFetch {
+		addGoPkg("github.com/aperturerobotics/bldr/web/fetch/service")
+		if err := applyToConfigSet(
+			"rpc-fetch",
+			web_fetch_controller.NewConfig(),
+		); err != nil {
 			return nil, nil, err
 		}
 	}
 	if !disableFetchAssets {
-		embedConfigSet["plugin-assets"], err = configset_proto.NewControllerConfig(
-			configset.NewControllerConfig(1, plugin_assets_http.NewConfig(plugin.PluginAssetsHttpPrefix, "")),
-			false,
-		)
-		if err != nil {
+		addGoPkg("github.com/aperturerobotics/bldr/plugin/assets/http")
+		if err := applyToConfigSet(
+			"plugin-assets",
+			plugin_assets_http.NewConfig(plugin.PluginAssetsHttpPrefix, ""),
+		); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// apply the config set entries for the web plugin, if applicable.
+	if webPluginID != "" {
+		// - load-web: loads the web plugin on startup
+		if err := applyToConfigSet("load-web", &bldr_plugin_load.Config{
+			PluginId: webPluginID,
+		}); err != nil {
+			return nil, nil, err
+		}
+
+		// - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+		addGoPkg("github.com/aperturerobotics/bldr/web/view/observer")
+		if err := applyToConfigSet("observe-web-view", &bldr_web_view_observer.Config{}); err != nil {
+			return nil, nil, err
+		}
+
+		// - handle-web-view-rpc: handle incoming RPCs for web-view
+		addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-rpc")
+		if err := applyToConfigSet("handle-web-view-rpc", &bldr_web_plugin_handle_rpc.Config{
+			WebPluginId:    webPluginID,
+			HandlePluginId: pluginID,
+			ServerIdRe:     "web-view/.*",
+		}); err != nil {
+			return nil, nil, err
+		}
+
+		// - handle-web-view: handle web views via HandleWebView
+		addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-view")
+		if err := applyToConfigSet("handle-web-view", &bldr_web_plugin_handle_web_view.Config{
+			WebPluginId:    webPluginID,
+			HandlePluginId: pluginID,
+		}); err != nil {
+			return nil, nil, err
+		}
+
+		// - handle-web-view-server: handle incoming RPCs for HandleWebView
+		addGoPkg("github.com/aperturerobotics/bldr/web/view/handler/server")
+		if err := applyToConfigSet("handle-web-view-server", &web_view_handler_server.Config{}); err != nil {
+			return nil, nil, err
+		}
+
+		// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+		if len(webPkgs) != 0 {
+			// NOTE: add the actual config later after we build the web pkgs
+			addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg")
+		}
+	}
+
+	// add web pkg controllers if necessary
+	if len(webPkgs) != 0 {
+		addGoPkg("github.com/aperturerobotics/bldr/web/pkg/rpc/server")
+		addGoPkg("github.com/aperturerobotics/bldr/web/pkg/fs/controller")
+	}
+
+	// apply host config set
+	if len(hostConfigSet) != 0 {
+		if err := applyToConfigSet("plugin-host-configset", &plugin_host_configset.Config{
+			ConfigSet: hostConfigSet,
+		}); err != nil {
 			return nil, nil, err
 		}
 	}
 
 	// merge configured config set entries
 	configset_proto.MergeConfigSetMaps(embedConfigSet, configSet)
+
+	// Cleanup list of go packages
+	slices.Sort(goPkgs)
+	goPkgs = slices.Compact(goPkgs)
 
 	// analyze go packages
 	le.Info("analyzing go packages")
@@ -760,7 +760,10 @@ func (c *Controller) BuildPlugin(
 	}
 
 	// track web pkg refs
-	var webPkgRefs []*web_pkg_esbuild.WebPkgRef
+	// NOTE: We specify the list of web pkgs in the parameters to BuildPlugin.
+	// NOTE: However: we only actually build the web pkgs that are referenced by the code.
+	// NOTE: This is because we need to tree-shake which imports are referenced.
+	var webPkgRefs web_pkg_esbuild.WebPkgRefSlice
 
 	// parse bldr:esbuild comments and build import path definition list
 	esbuildPkgs, err := an.FindEsbuildVariables(codeFiles)
@@ -802,7 +805,7 @@ func (c *Controller) BuildPlugin(
 			esbuildOutputMeta = append(esbuildOutputMeta, esbuildOutputs...)
 			for _, webPkgRef := range esbuildWebPkgRefs {
 				for _, impPath := range webPkgRef.Imports {
-					webPkgRefs, _ = web_pkg_esbuild.WebPkgRefSlice(webPkgRefs).AppendWebPkgRef(
+					webPkgRefs, _ = webPkgRefs.AppendWebPkgRef(
 						webPkgRef.WebPkgId,
 						webPkgRef.WebPkgRoot,
 						impPath,
@@ -840,45 +843,39 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 
+	// NOTE: we add the Go pkgs to the list earlier in this function.
 	if len(webPkgIDs) != 0 {
 		// add the web packages rpc server to the config set.
 		// resolves AccessRpcService directive
-		embedConfigSet["web-pkgs-rpc"], err = configset_proto.NewControllerConfig(
-			configset.NewControllerConfig(1, web_pkg_rpc_server.NewConfig("", webPkgIDs)),
-			false,
-		)
-		if err != nil {
+		if err := applyToConfigSet("web-pkgs-rpc", web_pkg_rpc_server.NewConfig("", webPkgIDs)); err != nil {
 			return nil, nil, err
 		}
 
 		// add the web packages UnixFS-backed resolver to the config set.
 		// we know the list of included web pkg ids, so provide it explicitly.
 		// resolves LookupWebPkg directive
-		embedConfigSet["web-pkgs-fs"], err = configset_proto.NewControllerConfig(
-			configset.NewControllerConfig(1, web_pkg_fs_controller.NewConfig(
+		if err := applyToConfigSet(
+			"web-pkgs-fs",
+			web_pkg_fs_controller.NewConfig(
 				plugin.PluginAssetsFsId,
 				plugin.PluginAssetsWebPkgsDir,
 				true,
 				webPkgIDs,
-			)),
-			false,
-		)
-		if err != nil {
+			),
+		); err != nil {
 			return nil, nil, err
 		}
 
 		// tell the web plugin to forward rpc requests to lookup web pkgs to our plugin.
-		/*
-				embedConfigSet["web-pkgs-fwd"], err = configset_proto.NewControllerConfig(
-					configset.NewControllerConfig(1, &bldr_web_plugin_handle_rpc.Config{
-			        	...,
-					}),
-					false,
-				)
-				if err != nil {
-					return nil, err
-				}
-		*/
+		if webPluginID != "" {
+			if err := applyToConfigSet("handle-web-pkgs", &bldr_web_plugin_handle_web_pkg.Config{
+				WebPluginId:    webPluginID,
+				HandlePluginId: pluginID,
+				WebPkgIdList:   webPkgIDs,
+			}); err != nil {
+				return nil, nil, err
+			}
+		}
 	}
 
 	// encode config set for embedded config set binary
@@ -1009,6 +1006,10 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 	}
+
+	// sort
+	SortWebPkgRefConfigs(webPkgs)
+	web_pkg_esbuild.SortWebPkgRefs(webPkgRefs)
 
 	// build manifest metadata
 	inputManifestMeta := &InputManifestMeta{

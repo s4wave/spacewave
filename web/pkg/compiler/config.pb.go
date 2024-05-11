@@ -10,6 +10,7 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -41,11 +42,15 @@ type Config struct {
 	// They will be deduplicated such that a single version is imported at a time by the app.
 	// This is useful for packages that require a single instance per WebDocument.
 	//
+	// On default only the imports referenced by the plugin will be compiled in.
+	// Everything else will be tree-shaken away to lower bundle size.
+	// Additional imports to reference can be specified in the config.
+	//
 	// These packages will be available with the LookupWebPkg directive.
 	// They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
 	//
 	// Note: only files & entrypoints imported by at least one js file will be included.
-	WebPkgs []string `protobuf:"bytes,5,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
+	WebPkgs []*compiler.WebPkgRefConfig `protobuf:"bytes,5,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
 	// DelveAddr is the address to listen for Delve remote connections.
 	// If the build mode is dev and this is set, uses delve to run the plugin.
 	// Ignored if build mode is not dev.
@@ -87,7 +92,7 @@ func (x *Config) GetHostConfigSet() map[string]*proto.ControllerConfig {
 	return nil
 }
 
-func (x *Config) GetWebPkgs() []string {
+func (x *Config) GetWebPkgs() []*compiler.WebPkgRefConfig {
 	if x != nil {
 		return x.WebPkgs
 	}
@@ -176,8 +181,10 @@ func (m *Config) CloneVT() *Config {
 		r.HostConfigSet = tmpContainer
 	}
 	if rhs := m.WebPkgs; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
+		tmpContainer := make([]*compiler.WebPkgRefConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
 		r.WebPkgs = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
@@ -245,8 +252,16 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	for i, vx := range this.WebPkgs {
 		vy := that.WebPkgs[i]
-		if vx != vy {
-			return false
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &compiler.WebPkgRefConfig{}
+			}
+			if q == nil {
+				q = &compiler.WebPkgRefConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
 		}
 	}
 	if this.DelveAddr != that.DelveAddr {
@@ -414,7 +429,13 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	if len(x.WebPkgs) > 0 || s.HasField("webPkgs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("webPkgs")
-		s.WriteStringArray(x.WebPkgs)
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.WebPkgs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("webPkgs"))
+		}
+		s.WriteArrayEnd()
 	}
 	if x.DelveAddr != "" || s.HasField("delveAddr") {
 		s.WriteMoreIf(&wroteField)
@@ -476,7 +497,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.WebPkgs = nil
 				return
 			}
-			x.WebPkgs = s.ReadStringArray()
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.WebPkgs = append(x.WebPkgs, nil)
+					return
+				}
+				v := &compiler.WebPkgRefConfig{}
+				v.UnmarshalProtoJSON(s.WithField("web_pkgs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.WebPkgs = append(x.WebPkgs, v)
+			})
 		case "delve_addr", "delveAddr":
 			s.AddField("delve_addr")
 			x.DelveAddr = s.ReadString()
@@ -538,9 +570,12 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.WebPkgs) > 0 {
 		for iNdEx := len(m.WebPkgs) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.WebPkgs[iNdEx])
-			copy(dAtA[i:], m.WebPkgs[iNdEx])
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebPkgs[iNdEx])))
+			size, err := m.WebPkgs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0x2a
 		}
@@ -636,8 +671,8 @@ func (m *Config) SizeVT() (n int) {
 		}
 	}
 	if len(m.WebPkgs) > 0 {
-		for _, s := range m.WebPkgs {
-			l = len(s)
+		for _, e := range m.WebPkgs {
+			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
@@ -720,7 +755,7 @@ func (x *Config) MarshalProtoText() string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			sb.WriteString(strconv.Quote(v))
+			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
 	}
@@ -1061,7 +1096,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protobuf_go_lite.ErrIntOverflow
@@ -1071,23 +1106,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.WebPkgs = append(m.WebPkgs, string(dAtA[iNdEx:postIndex]))
+			m.WebPkgs = append(m.WebPkgs, &compiler.WebPkgRefConfig{})
+			if err := m.WebPkgs[len(m.WebPkgs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {

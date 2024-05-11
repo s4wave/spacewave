@@ -128,7 +128,10 @@ func (c *Config) Merge(o *Config) {
 	merge.MergeAndSortSlices(&c.GoPkgs, o.GetGoPkgs())
 
 	// append and sort web packages list
-	merge.MergeAndSortSlices(&c.WebPkgs, o.GetWebPkgs())
+	for _, webPkgConfig := range o.GetWebPkgs() {
+		c.WebPkgs, _ = WebPkgRefConfigSlice(c.WebPkgs).AppendWebPkgRefConfig(webPkgConfig)
+	}
+	SortWebPkgRefConfigs(c.WebPkgs)
 
 	// override project id
 	if cproj := o.GetProjectId(); cproj != "" {

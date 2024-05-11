@@ -24,7 +24,7 @@ func (r *fetchManifestWatchResolver) Resolve(ctx context.Context, handler direct
 	_ = handler.ClearValues()
 
 	// emit unique manifests keyed by manifest key
-	uniqueResolver := directive.NewUniqueListXfrmResolver[string, *bldr_manifest_world.CollectedManifest, *manifest.FetchManifestValue](
+	uniqueResolver := directive.NewUniqueListXfrmResolver(
 		func(v *bldr_manifest_world.CollectedManifest) string {
 			return v.ManifestKey
 		},

@@ -230,6 +230,8 @@ func BuildWebPkgsEsbuild(
 	for _, webPkgRef := range webPkgsRefs {
 		webPkgIDs = append(webPkgIDs, webPkgRef.WebPkgId)
 	}
+	slices.Sort(webPkgIDs)
+	webPkgIDs = slices.Compact(webPkgIDs)
 
 	// NOTE: esbuild removes the named exports when bundling libraries like
 	// React which contain commonjs-like constructions for building the

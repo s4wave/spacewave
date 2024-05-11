@@ -74,6 +74,53 @@ export const InputFileKind_Enum = createEnumType(
 )
 
 /**
+ * WebPkgRefConfig configures a web pkg reference.
+ *
+ * @generated from message bldr.plugin.compiler.WebPkgRefConfig
+ */
+export type WebPkgRefConfig = Message<{
+  /**
+   * Id is the identifier of the web pkg.
+   * example: @aptre/flex-layout
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Exclude indicates we should reference this web pkg but exclude it from this bundle.
+   * This is useful if another plugin already provides this web pkg.
+   *
+   * @generated from field: bool exclude = 2;
+   */
+  exclude?: boolean
+  /**
+   * Imports is the list of imports to include in the web pkg bundle.
+   * NOTE: this will be merged with any imports the code accesses.
+   * NOTE: this is therefore optional.
+   *
+   * @generated from field: repeated string imports = 3;
+   */
+  imports?: string[]
+}>
+
+// WebPkgRefConfig contains the message type declaration for WebPkgRefConfig.
+export const WebPkgRefConfig: MessageType<WebPkgRefConfig> = createMessageType({
+  typeName: 'bldr.plugin.compiler.WebPkgRefConfig',
+  fields: [
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'exclude', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 3,
+      name: 'imports',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * Config configures the plugin compiler controller.
  *
  * @generated from message bldr.plugin.compiler.Config
@@ -121,14 +168,18 @@ export type Config = Message<{
    * They will be deduplicated such that a single version is imported at a time by the app.
    * This is useful for packages that require a single instance per WebDocument.
    *
+   * On default only the imports referenced by the plugin will be compiled in.
+   * Everything else will be tree-shaken away to lower bundle size.
+   * Additional imports to reference can be specified in the config.
+   *
    * These packages will be available with the LookupWebPkg directive.
    * They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
    *
    * Note: only files & entrypoints imported by at least one js file will be included.
    *
-   * @generated from field: repeated string web_pkgs = 5;
+   * @generated from field: repeated bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 5;
    */
-  webPkgs?: string[]
+  webPkgs?: WebPkgRefConfig[]
   /**
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by creating a directive.
@@ -181,7 +232,7 @@ export type Config = Message<{
   /**
    * EnableCompression can optionally force-enable or force-disable binary compression.
    * The default is ENABLE for release-mode only.
-   * Only applicable for the web platform (WebAssembly brotli) (currently).
+   * Only applicable for the web platform (WebAssembly) (currently).
    *
    * @generated from field: enabled.Enabled enable_compression = 11;
    */
@@ -244,8 +295,8 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 5,
       name: 'web_pkgs',
-      kind: 'scalar',
-      T: ScalarType.STRING,
+      kind: 'message',
+      T: () => WebPkgRefConfig,
       repeated: true,
     },
     { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
@@ -476,9 +527,9 @@ export type InputManifestMeta = Message<{
   /**
    * WebPkgs is the list of web pkgs that we separate from the bundle.
    *
-   * @generated from field: repeated string web_pkgs = 3;
+   * @generated from field: repeated bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 3;
    */
-  webPkgs?: string[]
+  webPkgs?: WebPkgRefConfig[]
   /**
    * EsbuildFlags are the base command-line arguments to pass to esbuild.
    *
@@ -521,8 +572,8 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
       {
         no: 3,
         name: 'web_pkgs',
-        kind: 'scalar',
-        T: ScalarType.STRING,
+        kind: 'message',
+        T: () => WebPkgRefConfig,
         repeated: true,
       },
       {

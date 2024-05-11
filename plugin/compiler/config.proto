@@ -38,11 +38,15 @@ message Config {
   // They will be deduplicated such that a single version is imported at a time by the app.
   // This is useful for packages that require a single instance per WebDocument.
   //
+  // On default only the imports referenced by the plugin will be compiled in.
+  // Everything else will be tree-shaken away to lower bundle size.
+  // Additional imports to reference can be specified in the config.
+  //
   // These packages will be available with the LookupWebPkg directive.
   // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
   //
   // Note: only files & entrypoints imported by at least one js file will be included.
-  repeated string web_pkgs = 5;
+  repeated WebPkgRefConfig web_pkgs = 5;
 
   // DisableRpcFetch disables the default Fetch RPC service handler.
   // The handler handles the Fetch service by creating a directive.
@@ -136,7 +140,7 @@ message InputManifestMeta {
   // WebPkgRefs contains the list of web pkg references.
   repeated .web.pkg.esbuild.WebPkgRef web_pkg_refs = 2;
   // WebPkgs is the list of web pkgs that we separate from the bundle.
-  repeated string web_pkgs = 3;
+  repeated WebPkgRefConfig web_pkgs = 3;
   // EsbuildFlags are the base command-line arguments to pass to esbuild.
   repeated string esbuild_flags = 4;
   // DevInfo contains the set of plugin variable definitions.
@@ -176,4 +180,18 @@ message EsbuildEntrypointVar {
   .bldr.esbuild.EsbuildVarType pkg_var_type = 4;
   // EsbuildFlags are the command-line arguments to pass to esbuild.
   repeated string esbuild_flags = 5;
+}
+
+// WebPkgRefConfig configures a web pkg reference.
+message WebPkgRefConfig {
+  // Id is the identifier of the web pkg.
+  // example: @aptre/flex-layout
+  string id = 1;
+  // Exclude indicates we should reference this web pkg but exclude it from this bundle.
+  // This is useful if another plugin already provides this web pkg.
+  bool exclude = 2;
+  // Imports is the list of imports to include in the web pkg bundle.
+  // NOTE: this will be merged with any imports the code accesses.
+  // NOTE: this is therefore optional.
+  repeated string imports = 3;
 }

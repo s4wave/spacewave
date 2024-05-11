@@ -12,10 +12,14 @@ import (
 	web_plugin_compiler "github.com/aperturerobotics/bldr/web/plugin/compiler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 )
 
 // addCommonFactories adds the factories common to all arches.
 func addCommonFactories(b bus.Bus, sr *static.Resolver) {
+	// hydra
+	sr.AddFactory(world_block_engine.NewFactory(b))
+
 	// transports
 	sr.AddFactory(websocket.NewFactory(b))
 

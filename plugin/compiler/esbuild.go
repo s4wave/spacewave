@@ -93,7 +93,7 @@ func BuildEsbuildBundle(
 	codeRootPath string,
 	meta *EsbuildBundleMeta,
 	baseEsbuildOpts *esbuild_api.BuildOptions,
-	webPkgs []string,
+	webPkgs []*WebPkgRefConfig,
 	outAssetsPath string,
 	pluginID string,
 	inlineSourcemaps bool,
@@ -216,7 +216,7 @@ func BuildEsbuildBundle(
 		buildOpts.Plugins,
 		web_pkg_esbuild.BuildEsbuildPlugin(
 			le,
-			webPkgs,
+			WebPkgRefConfigSlice(webPkgs).ToIdList(),
 			addWebPkgRef,
 		),
 	)
