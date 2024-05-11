@@ -139,8 +139,10 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 		opArgs := &bucket.BucketOpArgs{}
 		pluginHostBucketID = worldCursor.GetOpArgs().GetBucketId()
 		if refBucketID := manifestRef.GetBucketId(); refBucketID != "" {
+			// use the bucket id from the ref, if any.
 			opArgs.BucketId = refBucketID
 		} else {
+			// if there was no bucket id specified, use the plugin host bucket.
 			opArgs.BucketId = pluginHostBucketID
 		}
 
@@ -173,7 +175,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 			return nil
 		}
 
-		le.Infof("copying manifest from bucket %s to %s", manifestBucketID, pluginHostBucketID)
+		le.Infof("copying manifest contents from bucket %s to %s", manifestBucketID, pluginHostBucketID)
 		writeBaseRef := manifestCursor.GetRef().Clone()
 		writeBaseRef.BucketId = pluginHostBucketID
 
@@ -198,9 +200,9 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 			nil,
 		)
 		if err == nil {
-			le.Infof("completed copying manifest to %s", pluginHostBucketID)
+			le.Infof("completed copying manifest contents to %s", pluginHostBucketID)
 		} else {
-			le.WithError(err).Warnf("failed to copy manifest to %s", pluginHostBucketID)
+			le.WithError(err).Warnf("failed to copy manifest contents to %s", pluginHostBucketID)
 		}
 		return err
 	})
