@@ -265,6 +265,11 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 			break
 		}
 
+		// if we ran into an error, exit now.
+		if err != nil {
+			break
+		}
+
 		// if fsOps is set and not released, we are done.
 		if fsOps != nil && !fsOps.CheckReleased() {
 			break
@@ -277,6 +282,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	// err is set if anything failed.
 	rel, relErr := i.rmtx.Lock(ctx, true)
 	if relErr != nil {
+		// context canceled
 		// make sure we don't leak cursors
 		for i := len(cursorStack) - 1; i >= 0; i-- {
 			cursorStack[i].Release()
