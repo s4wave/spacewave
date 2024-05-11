@@ -10,8 +10,8 @@ github.com/Workiva/go-datastructures v1.1.4 h1:whCdB5WkcdXSRXmD6iPbkoc4tWyYoBfSj
 github.com/Workiva/go-datastructures v1.1.4/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.32.2 h1:QLUp7A9qab52X7yNPYrt4bvPhGQFmY9qwBqY5FUnNNQ=
-github.com/aperturerobotics/bifrost v0.32.2/go.mod h1:HCqwQ/gh8kag1gfLXkhzOSN5KOVi+Gn+hK0Q1E1UCBs=
+github.com/aperturerobotics/bifrost v0.32.3-0.20240511072921-7d5fd450d896 h1:8lOaOJ2Np2+lf4QzlSuKFDrkv/I+F7L/qfBGrVTFvc8=
+github.com/aperturerobotics/bifrost v0.32.3-0.20240511072921-7d5fd450d896/go.mod h1:K2zzORUokwb8ab91tnO32cHUNweql8qM+xk4EXfy18o=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -28,8 +28,8 @@ github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb h1:r9D
 github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb/go.mod h1:H0tJGD7IKs27PSF2ahGLKWgTgMxVwa3u87H6mtODtCQ=
 github.com/aperturerobotics/go-kvfile v0.7.2 h1:5aKcsHmevVwwCwrFPa/yu3XWfgKkjhjgDNgtMQlxh0c=
 github.com/aperturerobotics/go-kvfile v0.7.2/go.mod h1:D+TQEgp2JRlt1rx5LzjfQWxVbkz9rgrAlmmNiU6Cgec=
-github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511033834-ffeaa02fcb76 h1:h+VBvwSKvLARXnKgLMy2WUGDJiS1eSlpGRQYkNypync=
-github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511033834-ffeaa02fcb76/go.mod h1:bffsvVccfRpqEgAZZHGzTnAxqkUvf9FaKBWh1RXSUbE=
+github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511072027-002c32698a19 h1:ZpnWhPCmYo//h1Jx9iOGPGG1cbFRM7Ij+ms+mCK6RUo=
+github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511072027-002c32698a19/go.mod h1:/TIElEA8TzmHQTgGJQyzg0zHNZRCMYbdKyOsKwn9i6E=
 github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8 h1:S9prTCDvkYfJ9ATV+B1yoNESE5w5dbFM5GmriXRG0Lk=
 github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8/go.mod h1:fK2s0Xpx0LYL2YQpYGJ7H+QwrC8+EgZ4Dd4G/vaLMW8=
 github.com/aperturerobotics/hydra v0.0.0-20240511040200-97ddfb2601a0 h1:tb3FfXy8A93Ybqkv0ol7+yI21telDGt5RUVpwJNjA7o=
@@ -59,6 +59,8 @@ github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
+github.com/cloudflare/circl v1.3.8 h1:j+V8jJt09PoeMFIu2uh5JUyEaIHTXVOHslFoLNAKqwI=
+github.com/cloudflare/circl v1.3.8/go.mod h1:PDRU+oXvdD7KCtgKxW95M5Z8BpSCJXQORiZFnBQS5QU=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cpuguy83/go-md2man/v2 v2.0.4 h1:wfIWP927BUkWJb2NmU/kNDYIBTh/ziUX91+lVfRxZq4=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
@@ -74,10 +76,6 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c h1:pFUpOrbxDR6AkioZ1ySsx5yxlDQZ8stG2b88gTPxgJU=
 github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c/go.mod h1:6UhI8N9EjYm1c2odKpFpAYeR8dsBeM7PtzQhRgxRr9U=
-github.com/decred/dcrd/crypto/blake256 v1.0.1 h1:7PltbUIQB7u/FfZ39+DGa/ShuMyJ5ilcvdfma9wOH6Y=
-github.com/decred/dcrd/crypto/blake256 v1.0.1/go.mod h1:2OfgNZ5wDpcsFmHmCK5gZTPcCXqlm2ArzUIkw9czNJo=
-github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 h1:8UrgZ3GkP4i/CLijOJx79Yu+etlyjdBU4sfcs2WYQMs=
-github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0/go.mod h1:v57UDF4pDQJcEfFUCRop3lJL149eHGSe9Jvczhzjo/0=
 github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 h1:fAjc9m62+UWV/WAFKLNi6ZS0675eEUC9y3AlwSbQu1Y=
 github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dlclark/regexp2 v1.7.0 h1:7lJfhqlPssTb1WQx4yvTHN0uElPEv52sbaECrAQxjAo=
