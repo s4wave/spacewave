@@ -44,11 +44,9 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 
 	// Create the RPC server, handles LookupRpcService
 	serviceID := block_rpc.SRPCBlockStoreServiceID
-	bucketID := serverTb.BucketId
 	serverCtrl := NewController(serverTb.Bus, &Config{
-		BucketId:  bucketID,
-		VolumeId:  serverVol.GetID(),
-		ServiceId: serviceID,
+		BlockStoreId: serverVol.GetID(),
+		ServiceId:    serviceID,
 	})
 	serverRel, err := serverTb.Bus.AddController(ctx, serverCtrl, nil)
 	if err != nil {
