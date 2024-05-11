@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.22
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240504093012-648730997c40 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240506194323-f48e898d89fb // master
 	github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 // master
 )
 
@@ -64,12 +64,11 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.45.0 // latest
+	github.com/aperturerobotics/controllerbus v0.45.1 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
-	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // indirect; latest
-	github.com/aperturerobotics/protobuf-go-lite v0.6.1 // latest
-	github.com/aperturerobotics/starpc v0.32.3 // latest
-	github.com/aperturerobotics/util v1.23.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.2 // latest
+	github.com/aperturerobotics/starpc v0.32.4 // latest
+	github.com/aperturerobotics/util v1.23.1 // master
 )
 
 // aperture: use compatibility forks
@@ -87,7 +86,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/cayley v0.9.0
-	github.com/aperturerobotics/common v0.15.5
+	github.com/aperturerobotics/common v0.15.6
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/pkg/errors v0.9.1
@@ -95,7 +94,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.22.1-0.20240503134056-ebb717d63002
+	golang.org/x/crypto v0.23.0
 )
 
 require (
@@ -193,18 +192,18 @@ require (
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.20.0 // indirect
+	golang.org/x/tools v0.21.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
