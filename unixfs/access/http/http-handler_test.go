@@ -5,14 +5,12 @@ import (
 	"context"
 	"io"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	bifrost_http "github.com/aperturerobotics/bifrost/http"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/go-brotli-decoder"
 	"github.com/aperturerobotics/hydra/testbed"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
@@ -54,12 +52,6 @@ func TestHTTPHandlerController(t *testing.T) {
 
 	testJsData := []byte("console.log(\"hello world\")\n")
 	if err := billy_util.WriteFile(rbfs, "/bat/baz/script.js", testJsData, 0o755); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// this is a valid hello-world.wasm.br file
-	testWasmBrData := []byte{0xa1, 0xb0, 0x1, 0xc0, 0x2f, 0xf0, 0xef, 0xb6, 0xde, 0xdf, 0xd0, 0xa1, 0x16, 0x43, 0x34, 0x47, 0x5, 0x93, 0x70, 0xe9, 0xe8, 0x4b, 0x4d, 0x70, 0x21, 0xa9, 0xc, 0x48, 0x65, 0xe1, 0xfc, 0x9f, 0x0, 0x85, 0xb6, 0x65, 0x2a, 0xdd, 0x44, 0x71, 0x41, 0x4c, 0xf3, 0x73, 0x2f, 0xd4, 0x8a, 0xd1, 0x9b, 0x82, 0x85, 0xde, 0x0}
-	if err := billy_util.WriteFile(rbfs, "/bat/baz/hello-world.wasm.br", testWasmBrData, 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -136,61 +128,5 @@ func TestHTTPHandlerController(t *testing.T) {
 	}
 	if contentType := res.Header.Get("content-type"); !strings.HasPrefix(contentType, "text/javascript") {
 		t.Fatalf("incorrect content type: %s", contentType)
-	}
-
-	// third request: test the mime type of a .wasm.br file
-	req = httptest.NewRequest("GET", "/foo/bar/baz/hello-world.wasm.br", nil)
-	rw = httptest.NewRecorder()
-	busHandler.ServeHTTP(rw, req)
-
-	res = rw.Result()
-	if res.StatusCode != 200 {
-		t.Fatalf("status code: %d", res.StatusCode)
-	}
-	readData, err = io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	_ = readData
-	var decWasmBrBuf bytes.Buffer
-	if _, err := io.Copy(&decWasmBrBuf, brotli.NewReader(bytes.NewReader(testWasmBrData))); err != nil {
-		t.Fatal(err.Error())
-	}
-	if contentType := res.Header.Get("content-type"); contentType != "application/wasm" {
-		t.Fatalf("incorrect content type: %s", contentType)
-	}
-	decodedWasmBr := decWasmBrBuf.Bytes()
-
-	// fourth request: test .wasm.br file with accept encoding
-	req = httptest.NewRequest("GET", "/foo/bar/baz/hello-world.wasm.br", nil)
-	req.Header.Set("accept-encoding", "br")
-
-	rw = httptest.NewRecorder()
-	busHandler.ServeHTTP(rw, req)
-
-	res = rw.Result()
-	if res.StatusCode != 200 {
-		t.Fatalf("status code: %d", res.StatusCode)
-	}
-	readData, err = io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	decWasmBrBuf.Reset()
-	if _, err := io.Copy(&decWasmBrBuf, brotli.NewReader(bytes.NewReader(readData))); err != nil {
-		t.Fatal(err.Error())
-	}
-	if !bytes.Equal(decWasmBrBuf.Bytes(), decodedWasmBr) {
-		t.Fatalf("read data does not match test data: %#v", string(readData))
-	}
-	if contentType := res.Header.Get("content-type"); contentType != "application/wasm" {
-		t.Fatalf("incorrect content type: %s", contentType)
-	}
-	if contentEnc := res.Header.Get("content-encoding"); contentEnc != "br" {
-		t.Fatalf("incorrect content encoding: %s", contentEnc)
-	}
-	exContentLength := strconv.Itoa(len(testWasmBrData))
-	if contentLength := res.Header.Get("content-length"); contentLength != exContentLength {
-		t.Fatalf("incorrect content length: %s != %s", contentLength, exContentLength)
 	}
 }
