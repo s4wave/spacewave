@@ -1,4 +1,4 @@
-package block_store_rpc_server
+package block_store_rpc_server_bucket
 
 import (
 	"regexp"
@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/hash"
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/config"
-	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 )
@@ -15,9 +15,10 @@ import (
 const ConfigID = ControllerID
 
 // NewConfig constructs a new config.
-func NewConfig(blockStoreID string, write bool, serviceID, serverIdRe string, forceHashType hash.HashType) *Config {
+func NewConfig(bucketID, volumeID string, write bool, serviceID, serverIdRe string, forceHashType hash.HashType) *Config {
 	return &Config{
-		BlockStoreId:  blockStoreID,
+		BucketId:      bucketID,
+		VolumeId:      volumeID,
 		Write:         write,
 		ServiceId:     serviceID,
 		ServerIdRe:    serverIdRe,
@@ -27,8 +28,8 @@ func NewConfig(blockStoreID string, write bool, serviceID, serverIdRe string, fo
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if c.GetBlockStoreId() == "" {
-		return block_store.ErrBlockStoreIDEmpty
+	if c.GetBucketId() == "" {
+		return bucket.ErrBucketIDEmpty
 	}
 	if c.GetServiceId() == "" {
 		return srpc.ErrEmptyServiceID

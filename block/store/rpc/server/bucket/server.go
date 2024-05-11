@@ -1,4 +1,4 @@
-package block_store_rpc_server
+package block_store_rpc_server_bucket
 
 import (
 	"context"
@@ -8,21 +8,22 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_rpc "github.com/aperturerobotics/hydra/block/rpc"
 	block_rpc_server "github.com/aperturerobotics/hydra/block/rpc/server"
-	block_store "github.com/aperturerobotics/hydra/block/store"
+	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 )
 
 // ControllerID is the controller identifier.
-const ControllerID = "hydra/block/store/rpc/server"
+const ControllerID = "hydra/block/store/rpc/server/bucket"
 
 // Version is the controller version.
 var Version = semver.MustParse("0.0.1")
 
 // controllerDescrip is the controller description
-var controllerDescrip = "serves block store via rpc"
+var controllerDescrip = "serves bucket via rpc as block store"
 
-// Controller is the block store rpc service controller.
+// Controller is the bucket block store rpc service controller.
 //
 // Handles LookupRpcService with the block store endpoints.
 type Controller = bifrost_rpc.RpcServiceController
@@ -47,8 +48,11 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 // NewRpcServiceBuilder constructs a new rpc service builder from config.
 func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder {
 	return func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
-		// Lookup the block store.
-		bsv, _, ref, err := block_store.ExLookupFirstBlockStore(ctx, b, conf.GetBlockStoreId(), false, released)
+		// Lookup the bucket.
+		bkt, bktRel, err := bucket_lookup.StartBucketRWOperation(ctx, b, &bucket.BucketOpArgs{
+			BucketId: conf.GetBucketId(),
+			VolumeId: conf.GetVolumeId(),
+		})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -56,15 +60,15 @@ func NewRpcServiceBuilder(b bus.Bus, conf *Config) bifrost_rpc.RpcServiceBuilder
 		mux := srpc.NewMux()
 		if err := mux.Register(
 			block_rpc.NewSRPCBlockStoreHandler(
-				block_rpc_server.NewBlockStore(bsv),
+				block_rpc_server.NewBlockStore(bkt),
 				conf.GetServiceId(),
 			),
 		); err != nil {
-			ref.Release()
+			bktRel()
 			return nil, nil, err
 		}
 
 		var handler srpc.Invoker = mux
-		return handler, ref.Release, nil
+		return handler, bktRel, nil
 	}
 }

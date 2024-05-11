@@ -16,44 +16,36 @@ export const protobufPackage = 'block.store.rpc.server'
  */
 export type Config = Message<{
   /**
-   * BucketId is the bucket id to lookup on the bus.
+   * BlockStoreId is the block store id to lookup on the bus.
    *
-   * @generated from field: string bucket_id = 1;
+   * @generated from field: string block_store_id = 1;
    */
-  bucketId?: string
-  /**
-   * VolumeId is the volume id to read/write from.
-   * If unset, uses the BucketLookup API to lookup blocks.
-   * Can be empty.
-   *
-   * @generated from field: string volume_id = 2;
-   */
-  volumeId?: string
+  blockStoreId?: string
   /**
    * Write enables the write api endpoints.
    *
-   * @generated from field: bool write = 3;
+   * @generated from field: bool write = 2;
    */
   write?: boolean
   /**
    * ServiceId is the service id to serve LookupRpcService requests.
    * Cannot be empty.
    *
-   * @generated from field: string service_id = 4;
+   * @generated from field: string service_id = 3;
    */
   serviceId?: string
   /**
    * ServerIdRe is the regex of server IDs to accept for LookupRpcService.
    * If empty, will accept any.
    *
-   * @generated from field: string server_id_re = 5;
+   * @generated from field: string server_id_re = 4;
    */
   serverIdRe?: string
   /**
    * ForceHashType forces writing the given hash type to the store.
    * If unset, accepts any hash type the underlying bucket accepts.
    *
-   * @generated from field: hash.HashType force_hash_type = 6;
+   * @generated from field: hash.HashType force_hash_type = 5;
    */
   forceHashType?: HashType
 }>
@@ -62,12 +54,11 @@ export type Config = Message<{
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'block.store.rpc.server.Config',
   fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'service_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
+    { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 3, name: 'service_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
