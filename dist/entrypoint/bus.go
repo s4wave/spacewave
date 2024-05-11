@@ -295,7 +295,7 @@ func BuildDistBus(
 	rels = append(rels, nodeCtrlRef.Release)
 
 	// start world
-	engineID := "entrypoint"
+	engineID := "entrypoint/" + projectID
 	engineBucketID := engineID
 	engineObjStoreID := engineBucketID
 
@@ -324,7 +324,8 @@ func BuildDistBus(
 
 	engConf := world_block_engine.NewConfig(
 		engineID,
-		vol.GetID(), engineBucketID,
+		vol.GetID(),
+		engineBucketID,
 		engineObjStoreID,
 		initRef,
 		nil,

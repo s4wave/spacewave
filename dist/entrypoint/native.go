@@ -53,7 +53,7 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 }
 
 // newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader
-func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose bool) refcount.RefCountResolver[*kvfile.Reader] {
+func newStaticBlockStoreReaderBuilder(_ *logrus.Entry, assetsFS fs.FS, _ bool) refcount.RefCountResolver[*kvfile.Reader] {
 	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
 		f, err := assetsFS.Open("assets.kvfile")
 		if err != nil {
