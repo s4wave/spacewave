@@ -176,6 +176,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 		}
 
 		le.Infof("copying manifest contents from bucket %s to %s", manifestBucketID, pluginHostBucketID)
+
 		writeBaseRef := manifestCursor.GetRef().Clone()
 		writeBaseRef.BucketId = pluginHostBucketID
 
@@ -188,6 +189,8 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 		}
 		defer writeCursor.Release()
 
+		// TODO: This can skip some blocks required! Needs updating!
+		// TODO: see dist/compiler/bundle.go => copying block that was not part of the world state or any manifest
 		concurrentLimit := t.c.conf.GetFetchConcurrency()
 		wroteManifestRef, err = bucket_lookup.CopyObjectToBucket(
 			ctx,
@@ -204,6 +207,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 		} else {
 			le.WithError(err).Warnf("failed to copy manifest contents to %s", pluginHostBucketID)
 		}
+
 		return err
 	})
 	if err != nil {
