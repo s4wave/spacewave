@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
@@ -21,6 +22,13 @@ type FSCursorGetter struct {
 // NewFSCursorGetter constructs a new FSCursorGetter with a getter func.
 func NewFSCursorGetter(getter func(ctx context.Context) (FSCursor, error)) *FSCursorGetter {
 	return &FSCursorGetter{getter: getter}
+}
+
+// NewFSHandleCursorGetter returns a new FSCursorGetter with a FSHandle.
+func NewFSHandleCursorGetter(handle *FSHandle) *FSCursorGetter {
+	return NewFSCursorGetter(func(ctx context.Context) (unixfs.FSCursor, error) {
+		return unixfs.NewFSHandleCursor(handle, true)
+	})
 }
 
 // CheckReleased checks if the fscursor is released without locking anything.
