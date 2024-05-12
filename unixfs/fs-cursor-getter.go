@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 )
 
@@ -28,8 +27,11 @@ func NewFSCursorGetter(getter func(ctx context.Context) (FSCursor, error)) *FSCu
 //
 // Constructs a FSCursor from the FSHandle when the cursor is accessed.
 func NewFSCursorGetterWithHandle(handle *FSHandle) *FSCursorGetter {
-	return NewFSCursorGetter(func(ctx context.Context) (unixfs.FSCursor, error) {
-		return unixfs.NewFSHandleCursor(handle, true)
+	return NewFSCursorGetter(func(ctx context.Context) (FSCursor, error) {
+		if handle.CheckReleased() {
+			return nil, unixfs_errors.ErrReleased
+		}
+		return NewFSHandleCursor(handle, true), nil
 	})
 }
 
