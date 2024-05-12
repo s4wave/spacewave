@@ -92,7 +92,6 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 	t.c.rmtx.Lock()
 	pluginManifest := t.c.pluginManifests[pluginID]
 	manifest := pluginManifest.GetManifest()
-	hostMux := t.c.buildPluginMux(pluginID, pluginManifest, proxyHostVol, hostVol.info)
 	t.c.rmtx.Unlock()
 
 	// build world state handle
@@ -120,7 +119,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
 		manifest *bldr_manifest.Manifest,
-		distFS *unixfs.FSHandle,
+		distFS,
 		assetsFS *unixfs.FSHandle,
 	) error {
 		// expose the plugin dist as a unixfs on the host bus
@@ -145,6 +144,16 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 			return err
 		}
 		defer relDistAccessCtrl()
+
+		// build the mux for handling incoming RPCs from the plugin
+		hostMux := t.c.buildPluginMux(
+			pluginID,
+			pluginManifest,
+			proxyHostVol,
+			hostVol.info,
+			distFS,
+			assetsFS,
+		)
 
 		// execute the plugin
 		execErr := t.c.host.ExecutePlugin(

@@ -15,6 +15,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_rpc "github.com/aperturerobotics/hydra/unixfs/rpc"
+	unixfs_rpc_server "github.com/aperturerobotics/hydra/unixfs/rpc/server"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
@@ -181,6 +184,115 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	return c.objLoop.Execute(ctx, ws)
 }
 
+// HandleDirective asks if the handler can resolve the directive.
+// If it can, it returns a resolver. If not, returns nil.
+// Any unexpected errors are returned for logging.
+// It is safe to add a reference to the directive during this call.
+// The context tasked is canceled when the directive instance expires.
+func (c *Controller) HandleDirective(
+	ctx context.Context,
+	inst directive.Instance,
+) ([]directive.Resolver, error) {
+	switch d := inst.GetDirective().(type) {
+	case bldr_plugin.LoadPlugin:
+		return directive.R(c.resolveLoadPlugin(ctx, inst, d))
+	case bifrost_rpc.LookupRpcClient:
+		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
+	}
+	return nil, nil
+}
+
+// AddPluginReference adds a reference to the plugin, returning the RunningPlugin
+// handle and a release function.
+//
+// Returns nil, nil, err if any error occurs.
+func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
+	c.rmtx.Lock()
+	defer c.rmtx.Unlock()
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
+	var fetcherRef *keyed.KeyedRef[string, *pluginManifestFetcher]
+	if c.conf.GetAlwaysFetchManifest() {
+		fetcherRef, _, _ = c.pluginManifestFetchers.AddKeyRef(pluginID)
+	}
+	return plg, func() {
+		ref.Release()
+		if fetcherRef != nil {
+			fetcherRef.Release()
+		}
+	}
+}
+
+// Close releases any resources used by the controller.
+// Error indicates any issue encountered releasing.
+func (c *Controller) Close() error {
+	return nil
+}
+
+// WaitPluginHostClient waits for an RPC client for the plugin host.
+//
+// Released is a function to call if the client becomes invalid.
+// Returns nil, nil, err if any error.
+// Returns nil, nil, nil to skip resolving the client.
+// Otherwise returns client, releaseFunc, nil
+func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) (srpc.Client, func(), error) {
+	return c.hostClient, nil, nil
+}
+
+// WaitPluginClient waits for an RPC client for a plugin.
+//
+// if pluginID is invalid, returns an error.
+//
+// Released is a function to call if the client becomes invalid.
+// Returns nil, nil, err if any error.
+// Returns nil, nil, nil to skip resolving the client.
+// Otherwise returns client, releaseFunc, nil
+func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
+	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
+		return nil, nil, err
+	}
+
+	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, released)
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, ref.Release, nil
+}
+
+// buildPluginMux builds the rpc mux for plugins.
+func (c *Controller) buildPluginMux(
+	pluginID string,
+	manifest *bldr_manifest.ManifestSnapshot,
+	proxyHostVol *volume_rpc_server.ProxyVolume,
+	proxyHostVolInfo *volume.VolumeInfo,
+	distFS,
+	assetsFS *unixfs.FSHandle,
+) srpc.Mux {
+	mux := srpc.NewMux()
+
+	// register access host volume via rpc service
+	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
+
+	// register access web views via bus service
+	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
+
+	// register plugin host service
+	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
+
+	// register plugin assets fs service
+	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
+		unixfs_rpc_server.NewFSCursorServiceWithHandle(assetsFS),
+		bldr_plugin.PluginAssetsServiceID,
+	))
+
+	// register plugin dist fs service
+	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
+		unixfs_rpc_server.NewFSCursorServiceWithHandle(distFS),
+		bldr_plugin.PluginDistServiceID,
+	))
+
+	return mux
+}
+
 // buildWorldState builds the world state handle.
 func (c *Controller) getWorldState(ctx context.Context) (world.WorldState, error) {
 	return c.worldStateCtr.WaitValue(ctx, nil)
@@ -230,102 +342,6 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 // syncWatchPluginManifests starts/stop routines to watch the plugin manifests.
 func (c *Controller) syncWatchPluginManifests(manifestObjKeys []string) {
 	c.pluginManifestWatcher.SyncKeys(manifestObjKeys, true)
-}
-
-// HandleDirective asks if the handler can resolve the directive.
-// If it can, it returns a resolver. If not, returns nil.
-// Any unexpected errors are returned for logging.
-// It is safe to add a reference to the directive during this call.
-// The context tasked is canceled when the directive instance expires.
-func (c *Controller) HandleDirective(
-	ctx context.Context,
-	inst directive.Instance,
-) ([]directive.Resolver, error) {
-	switch d := inst.GetDirective().(type) {
-	case bldr_plugin.LoadPlugin:
-		return directive.R(c.resolveLoadPlugin(ctx, inst, d))
-	case bifrost_rpc.LookupRpcClient:
-		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
-	}
-	return nil, nil
-}
-
-// AddPluginReference adds a reference to the plugin, returning the RunningPlugin
-// handle and a release function.
-//
-// Returns nil, nil, err if any error occurs.
-func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
-	c.rmtx.Lock()
-	defer c.rmtx.Unlock()
-	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	var fetcherRef *keyed.KeyedRef[string, *pluginManifestFetcher]
-	if c.conf.GetAlwaysFetchManifest() {
-		fetcherRef, _, _ = c.pluginManifestFetchers.AddKeyRef(pluginID)
-	}
-	return plg, func() {
-		ref.Release()
-		if fetcherRef != nil {
-			fetcherRef.Release()
-		}
-	}
-}
-
-// Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
-func (c *Controller) Close() error {
-	return nil
-}
-
-// buildPluginMux builds the rpc mux for plugins.
-func (c *Controller) buildPluginMux(
-	pluginID string,
-	manifest *bldr_manifest.ManifestSnapshot,
-	proxyHostVol *volume_rpc_server.ProxyVolume,
-	proxyHostVolInfo *volume.VolumeInfo,
-) srpc.Mux {
-	// busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID)
-	mux := srpc.NewMux() // busInvoker
-
-	// register access host volume via rpc service
-	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
-
-	// register access web views via bus service
-	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
-
-	// register plugin host service
-	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
-
-	return mux
-}
-
-// WaitPluginHostClient waits for an RPC client for the plugin host.
-//
-// Released is a function to call if the client becomes invalid.
-// Returns nil, nil, err if any error.
-// Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
-func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) (srpc.Client, func(), error) {
-	return c.hostClient, nil, nil
-}
-
-// WaitPluginClient waits for an RPC client for a plugin.
-//
-// if pluginID is invalid, returns an error.
-//
-// Released is a function to call if the client becomes invalid.
-// Returns nil, nil, err if any error.
-// Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
-func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
-	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
-		return nil, nil, err
-	}
-
-	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, released)
-	if err != nil {
-		return nil, nil, err
-	}
-	return client, ref.Release, nil
 }
 
 // _ is a type assertion

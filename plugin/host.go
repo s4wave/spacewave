@@ -85,6 +85,16 @@ const PluginAssetsWebPkgsDir = "bldr-web-pkgs"
 // PluginVolumeID is an alias to the host volume (while running as a plugin).
 const PluginVolumeID = "plugin-host"
 
+// PluginAssetsServiceID is the service id for the plugin assets fs rpc service.
+//
+// This service is exposed by the plugin host to the plugin.
+const PluginAssetsServiceID = "plugin-assets/unixfs.rpc.FSCursorService"
+
+// PluginDistServiceID is the service id for the plugin dist fs rpc service.
+//
+// This service is exposed by the plugin host to the plugin.
+const PluginDistServiceID = "plugin-dist/unixfs.rpc.FSCursorService"
+
 // PluginHTTPPath adds the plugin http prefix to the given path.
 func PluginHTTPPath(pluginID, httpPath string) string {
 	var sb strings.Builder

@@ -33,9 +33,10 @@ func NewWebPkgServer(le *logrus.Entry, pkg web_pkg.WebPkg) *WebPkgServer {
 
 		return unixfs.NewFSHandleCursor(fsHandle, true), nil
 	})
-	srv := unixfs_rpc_server.NewFSCursorService(rootFSCursor)
-	_ = unixfs_rpc.SRPCRegisterFSCursorService(mux, srv)
-	// mux = srpc.NewVMux(mux, s.le, true)
+	_ = unixfs_rpc.SRPCRegisterFSCursorService(
+		mux,
+		unixfs_rpc_server.NewFSCursorService(rootFSCursor),
+	)
 	s.fsMux = mux
 	return s
 }
