@@ -2,7 +2,6 @@ package dist_entrypoint
 
 import (
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -28,11 +27,5 @@ func DetermineStorageRoot(projectID string) (string, error) {
 		return envVal, nil
 	}
 
-	configDir, err := DetermineConfigDir()
-	if err != nil {
-		return "", err
-	}
-
-	outDir := filepath.Join(configDir, projectID)
-	return outDir, nil
+	return DetermineConfigDir(projectID)
 }

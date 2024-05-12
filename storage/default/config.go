@@ -27,7 +27,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	return config.EqualsConfig[*Config](c, other)
+	return config.EqualsConfig(c, other)
 }
 
 // _ is a type assertion

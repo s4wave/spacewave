@@ -31,7 +31,7 @@ func Run(
 	storageRoot, err := DetermineStorageRoot(projectID)
 	if err != nil {
 		le.WithError(err).Warn("unable to determine storage root, using current dir")
-		storageRoot = "./state"
+		storageRoot = "./" + projectID
 	}
 
 	// mount the config set

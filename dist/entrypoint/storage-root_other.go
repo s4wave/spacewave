@@ -12,7 +12,7 @@ import (
 )
 
 // DetermineConfigDir determines the root config and storage dir.
-func DetermineConfigDir() (string, error) {
+func DetermineConfigDir(projectID string) (string, error) {
 	switch runtime.GOOS {
 	// Darwin has a limit on Unix socket names of 108 characters.
 	// Reduce the length of the path by using ~/.aperture
@@ -28,14 +28,14 @@ func DetermineConfigDir() (string, error) {
 			}
 			dir = userConfDir
 		}
-		return filepath.Join(dir, ".aperture"), nil
+		return filepath.Join(dir, "."+projectID), nil
 	case "js":
-		return "/.aperture", nil
+		return projectID, nil
 	default:
 		userConfDir, err := os.UserConfigDir()
 		if err != nil {
 			return "", err
 		}
-		return filepath.Join(userConfDir, "aperture"), nil
+		return filepath.Join(userConfDir, projectID), nil
 	}
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/go-kvfile"
-	"github.com/aperturerobotics/hydra/block"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	"github.com/aperturerobotics/hydra/bucket"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
@@ -174,12 +173,6 @@ func BuildDistBus(
 		st.AddFactories(b, sr)
 	}
 
-	// note: make sure this matches dist compiler at create the embedded manifests world part
-	distBundleBucketConf, err := bldr_dist.NewDistBucketConfig(projectID)
-	if err != nil {
-		rel()
-		return nil, err
-	}
 	distBundleWorldRootRef := distMeta.GetDistWorldRef()
 	distBundleObjKey := distMeta.GetDistObjectKey()
 
@@ -201,7 +194,8 @@ func BuildDistBus(
 	}
 	rels = append(rels, relStaticVolCtrl)
 
-	// run the distribution storage volume (used for storing dist manifests)
+	// run the distribution storage volume
+	// used for the plugin host world
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -210,11 +204,6 @@ func BuildDistBus(
 			StorageVolumeId: "dist/" + projectID,
 			VolumeConfig: &volume_controller.Config{
 				VolumeIdAlias: []string{"dist"},
-
-				// Configure static block store as fallback.
-				BlockStoreId:                  embedBlockStoreID,
-				BlockStoreOverlayMode:         block.OverlayMode_OverlayMode_READ_CACHE_LOWER,
-				BlockStoreWritebackTimeoutDur: "10s",
 
 				DisableEventBlockRm:     true,
 				DisableReconcilerQueues: true,
@@ -242,6 +231,12 @@ func BuildDistBus(
 	}
 
 	// apply the dist bucket config to the node storage
+	// note: make sure this matches dist compiler at create the embedded manifests world part
+	distBundleBucketConf, err := bldr_dist.NewDistBucketConfig(projectID)
+	if err != nil {
+		rel()
+		return nil, err
+	}
 	_, _, _, err = vol.ApplyBucketConfig(ctx, distBundleBucketConf)
 	if err != nil {
 		rel()

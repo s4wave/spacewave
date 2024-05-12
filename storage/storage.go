@@ -16,6 +16,6 @@ type Storage interface {
 	// BuildVolumeConfig creates the volume config for the store ID.
 	// Returns nil if the storage cannot produce Volume.
 	// baseVolCtrlConf can be nil
-	// NOTE: id should be checked / sanitized.
+	// NOTE: id should be checked / sanitized before calling this.
 	BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error)
 }
