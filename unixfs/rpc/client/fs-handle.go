@@ -20,3 +20,15 @@ func BuildFSHandle(rctx context.Context, fsCursorSvcClient unixfs_rpc.SRPCFSCurs
 	}
 	return fs, nil
 }
+
+// NewFSHandleBuilder constructs a new FSHandleBuilder with a FSCursorServiceClient.
+func NewFSHandleBuilder(fsCursorSvcClient unixfs_rpc.SRPCFSCursorServiceClient) unixfs.FSHandleBuilder {
+	return func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+		fs, err := BuildFSHandle(ctx, fsCursorSvcClient)
+		if err != nil {
+			return nil, nil, err
+		}
+		fs.AddReleaseCallback(released)
+		return fs, fs.Release, nil
+	}
+}

@@ -9,6 +9,7 @@ import (
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/util/cqueue"
+	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 )
@@ -24,6 +25,9 @@ type FSHandle struct {
 	// relCbs is an atomic last-in-first-out set of callbacks
 	relCbs cqueue.AtomicLIFO[func()]
 }
+
+// FSHandleBuilder satisfies the refcount resolver with a FSHandle.
+type FSHandleBuilder = refcount.RefCountResolver[*FSHandle]
 
 // NewFSHandle constructs a new FSHandle with a FSCursor.
 // Note: the FSHandle will be released if the FSCursor is released.
