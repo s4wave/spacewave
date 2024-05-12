@@ -24,8 +24,10 @@ func NewFSCursorGetter(getter func(ctx context.Context) (FSCursor, error)) *FSCu
 	return &FSCursorGetter{getter: getter}
 }
 
-// NewFSHandleCursorGetter returns a new FSCursorGetter with a FSHandle.
-func NewFSHandleCursorGetter(handle *FSHandle) *FSCursorGetter {
+// NewFSCursorGetterWithHandle returns a new FSCursorGetter with a FSHandle.
+//
+// Constructs a FSCursor from the FSHandle when the cursor is accessed.
+func NewFSCursorGetterWithHandle(handle *FSHandle) *FSCursorGetter {
 	return NewFSCursorGetter(func(ctx context.Context) (unixfs.FSCursor, error) {
 		return unixfs.NewFSHandleCursor(handle, true)
 	})

@@ -114,6 +114,13 @@ func NewFSCursorService(rootCursor unixfs.FSCursor) *FSCursorService {
 	}
 }
 
+// NewFSCursorServiceWithHandle constructs a FSCursorService with a FSHandle.
+//
+// Constructs a FSCursor from the FSHandle when the service is accessed.
+func NewFSCursorServiceWithHandle(rootHandle *unixfs.FSHandle) *FSCursorService {
+	return NewFSCursorService(unixfs.NewFSCursorGetterWithHandle(rootHandle))
+}
+
 // lookupFSCursorLocked looks up the given fs cursor handle id while locked.
 // if the cursor is released, drops the cursor from the set & transmits release notifications.
 // checks if the cursor was released before returning
