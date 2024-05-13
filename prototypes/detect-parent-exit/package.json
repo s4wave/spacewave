@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "demo": "go run -v ./"
+  }
+}
