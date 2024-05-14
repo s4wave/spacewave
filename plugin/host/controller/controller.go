@@ -278,16 +278,16 @@ func (c *Controller) buildPluginMux(
 	// register plugin host service
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
 
-	// register plugin assets fs service
-	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
-		unixfs_rpc_server.NewFSCursorServiceWithHandle(assetsFS),
-		bldr_plugin.PluginAssetsServiceID,
-	))
-
 	// register plugin dist fs service
 	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
 		unixfs_rpc_server.NewFSCursorServiceWithHandle(distFS),
 		bldr_plugin.PluginDistServiceID,
+	))
+
+	// register plugin assets fs service
+	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
+		unixfs_rpc_server.NewFSCursorServiceWithHandle(assetsFS),
+		bldr_plugin.PluginAssetsServiceID,
 	))
 
 	return mux
