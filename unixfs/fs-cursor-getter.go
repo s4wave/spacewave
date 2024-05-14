@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
+	"github.com/pkg/errors"
 )
 
 // FSCursorGetter implements a FSCursor with a getter function.
@@ -29,9 +30,13 @@ func NewFSCursorGetter(getter func(ctx context.Context) (FSCursor, error)) *FSCu
 func NewFSCursorGetterWithHandle(handle *FSHandle) *FSCursorGetter {
 	return NewFSCursorGetter(func(ctx context.Context) (FSCursor, error) {
 		if handle.CheckReleased() {
-			return nil, unixfs_errors.ErrReleased
+			// return a different error from ErrReleased to avoid an infinite loop.
+			// we do not expect the handle to be released here, there is no way to get a new one.
+			return nil, errors.Wrap(unixfs_errors.ErrReleased, "fs cursor getter handle")
 		}
-		return NewFSHandleCursor(handle, true), nil
+
+		// the "false" here indicates to not release the handle
+		return NewFSHandleCursor(handle, false), nil
 	})
 }
 
