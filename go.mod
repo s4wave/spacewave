@@ -2,13 +2,13 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240504065816-9017f2651116 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240514051122-29115ab36d6f // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
-require github.com/aperturerobotics/bifrost v0.32.0 // master
+require github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2 // master
 
 // aperture: use ext-engines forks
 replace (
@@ -35,10 +35,10 @@ require github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.44.5 // latest
-	github.com/aperturerobotics/entitygraph v0.9.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.32.2 // latest
-	github.com/aperturerobotics/util v1.23.0 // master
+	github.com/aperturerobotics/controllerbus v0.45.2 // latest
+	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
+	github.com/aperturerobotics/starpc v0.32.8 // latest
+	github.com/aperturerobotics/util v1.23.1 // master
 )
 
 // aperture: use compatibility forks
@@ -56,8 +56,8 @@ replace (
 
 require (
 	github.com/aperturerobotics/cayley v0.9.0
-	github.com/aperturerobotics/common v0.15.2
-	github.com/aperturerobotics/protobuf-go-lite v0.6.1
+	github.com/aperturerobotics/common v0.15.6
+	github.com/aperturerobotics/protobuf-go-lite v0.6.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/pkg/errors v0.9.1
@@ -92,20 +92,20 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
-	github.com/quic-go/quic-go v0.43.0 // indirect
+	github.com/quic-go/quic-go v0.43.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.22.1-0.20240503134056-ebb717d63002 // indirect
-	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
+	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/tools v0.20.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/tools v0.21.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
 )

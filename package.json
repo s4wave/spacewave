@@ -52,6 +52,6 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.0",
-    "starpc": "^0.31.6"
+    "starpc": "^0.32.0"
   }
 }
