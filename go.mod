@@ -6,7 +6,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2
 	github.com/aperturerobotics/common v0.15.6
 	github.com/aperturerobotics/controllerbus v0.45.2
-	github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce // master
+	github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e

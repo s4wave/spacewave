@@ -53,9 +53,9 @@
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.3.0",
     "@aptre/protobuf-es-lite": "^0.4.0",
-    "starpc": "^0.31.14"
+    "starpc": "^0.32.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.0"
+    "@aptre/protobuf-es-lite": "0.4.3"
   }
 }

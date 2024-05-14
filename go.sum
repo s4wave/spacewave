@@ -10,6 +10,8 @@ github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3
 github.com/aperturerobotics/entitygraph v0.9.1/go.mod h1:40VoNXSslWQieSS4V3HyzqOOZnRiGxItj/qZYSHg8Rw=
 github.com/aperturerobotics/hydra v0.0.0-20240514053552-ac3630b1283a h1:Vpv9emgaFieEvoXPCEiYgY9tGb3iujqMY7OF0PA0feY=
 github.com/aperturerobotics/hydra v0.0.0-20240514053552-ac3630b1283a/go.mod h1:vBDKdmVtgmwnruqk7tjMHfCak82SUygrHub/d1hWZBw=
+github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 h1:pt1TLJJAow0vG1nNLA5C7yUrAhVag/Ur2+BOG1j4+3I=
+github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01/go.mod h1:p2NtHKFaPfQWbNWvXZZFZQA/sne/0Po83ACllD8lgHM=
 github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce h1:72SLz9OgQQYy6D/FktThCWdmcsODxEcWIth7+JAkgkQ=
 github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce/go.mod h1:ThuGxC9L9atHsL6L/jyyfB4juM2Z3d4DeXzC1NItf2w=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
