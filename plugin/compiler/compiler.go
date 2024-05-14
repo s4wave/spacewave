@@ -701,7 +701,7 @@ func (c *Controller) BuildPlugin(
 	// merge configured config set entries
 	configset_proto.MergeConfigSetMaps(embedConfigSet, configSet)
 
-	// Cleanup list of go packages
+	// cleanup list of go packages
 	slices.Sort(goPkgs)
 	goPkgs = slices.Compact(goPkgs)
 
