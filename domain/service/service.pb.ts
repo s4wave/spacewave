@@ -61,7 +61,7 @@ export type LookupEntityReq = Message<{
    *
    * @generated from field: google.protobuf.Timestamp timestamp = 2;
    */
-  timestamp?: Timestamp
+  timestamp?: Date
   /**
    * Nonce is a random one-time uint64.
    *
