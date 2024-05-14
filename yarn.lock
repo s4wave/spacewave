@@ -1354,10 +1354,10 @@ resolve@^1.22.3:
     path-parse "^1.0.7"
     supports-preserve-symlinks-flag "^1.0.0"
 
-rimraf@^5.0.5:
-  version "5.0.6"
-  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-5.0.6.tgz#f13b90af1794a2e8e1ecd052263bcf688742af88"
-  integrity sha512-X72SgyOf+1lFnGM6gYcmZ4+jMOwuT4E4SajKQzUIlI7EoR5eFHMhS/wf8Ll0mN+w2bxcIVldrJQ6xT7HFQywjg==
+rimraf@^5.0.7:
+  version "5.0.7"
+  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-5.0.7.tgz#27bddf202e7d89cb2e0381656380d1734a854a74"
+  integrity sha512-nV6YcJo5wbLW77m+8KjH8aB/7/rxQy9SZ0HY5shnwULfS+9nmTtVXAJET5NdZmCzA4fPI/Hm1wo/Po/4mopOdg==
   dependencies:
     glob "^10.3.7"
 
@@ -1400,10 +1400,10 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
-starpc@^0.32.0:
-  version "0.32.4"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.4.tgz#5973a277d2505b5aef648280fddc5d3c29166b00"
-  integrity sha512-l9+GiC1W6zegdIJPw2g+pM2dyn99zc5qQxkB+0Ww0K13PbKdeprGUvz3nbutQJE8Mtc42kLRvdnJAOu3ZWl0Wg==
+starpc@^0.32.8:
+  version "0.32.8"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.8.tgz#a5d0ace194240d54dbd3c654adf8a1080bbfd760"
+  integrity sha512-pKD1x9YW54PI278T+b6KrqS63P7y/pojGgACgNC+RsE9QLrN1B8+fldKPZaY8ec9OEvbd0G+A7AF386GzRbRLA==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@aptre/protobuf-es-lite" "^0.4.3"
