@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/hydra/block"
 	block_rpc "github.com/aperturerobotics/hydra/block/rpc"
-	block_store_rpc_server "github.com/aperturerobotics/hydra/block/store/rpc/server"
+	block_store_rpc_server_bucket "github.com/aperturerobotics/hydra/block/store/rpc/server/bucket"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
@@ -48,9 +48,9 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	// Create the RPC server, handles LookupRpcService
 	serviceID := block_rpc.SRPCBlockStoreServiceID
 	bucketID := serverTb.BucketId
-	serverCtrl := block_store_rpc_server.NewController(serverTb.Bus, &block_store_rpc_server.Config{
-		BlockStoreId: bucketID,
-		ServiceId:    serviceID,
+	serverCtrl := block_store_rpc_server_bucket.NewController(serverTb.Bus, &block_store_rpc_server_bucket.Config{
+		BucketId:  bucketID,
+		ServiceId: serviceID,
 	})
 	serverRel, err := serverTb.Bus.AddController(ctx, serverCtrl, nil)
 	if err != nil {

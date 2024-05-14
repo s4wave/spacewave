@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_store_rpc "github.com/aperturerobotics/hydra/block/store/rpc"
+	"github.com/aperturerobotics/hydra/dex"
 	"github.com/blang/semver"
 	"github.com/sirupsen/logrus"
 )
@@ -17,7 +18,7 @@ const ControllerID = "hydra/block/store/rpc/lookup"
 // Version is the API version.
 var Version = semver.MustParse("0.0.1")
 
-// Controller looks up blocks via an RPC service for LookupBlockFromNetwork directives.
+// Controller looks up blocks via an RPC service.
 type Controller struct {
 	// conf is the config
 	conf *Config
@@ -25,8 +26,7 @@ type Controller struct {
 	blockStoreCtrl *block_store_rpc.Controller
 }
 
-// NewController constructs a controller that looks up blocks via an HTTP
-// service for LookupBlockFromNetwork directives.
+// NewController constructs a controller that serves LookupBlockFromNetwork with a block store.
 func NewController(b bus.Bus, le *logrus.Entry, conf *Config) *Controller {
 	return &Controller{
 		conf: conf,
@@ -61,7 +61,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 // It is safe to add a reference to the directive during this call.
 // The context passed is canceled when the directive instance expires.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	return c.blockStoreCtrl.HandleDirective(ctx, di)
+	switch di.GetDirective().(type) {
+	case dex.LookupBlockFromNetwork:
+		return c.blockStoreCtrl.HandleDirective(ctx, di)
+	}
+	return nil, nil
 }
 
 // Close releases any resources used by the controller.
