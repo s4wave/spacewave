@@ -91,11 +91,13 @@ func (i *fsInode) checkReleasedWithErr() (bool, error) {
 }
 
 // addReferenceLocked adds a new FSHandle pointing to this location
-// caller must have checked if the inode is released and locked waitSema
-func (i *fsInode) addReferenceLocked() (*FSHandle, error) {
-	_, relErr := i.checkReleasedWithErr()
-	if relErr != nil {
-		return nil, relErr
+// if checkReleased is false this cannot return an error.
+func (i *fsInode) addReferenceLocked(checkReleased bool) (*FSHandle, error) {
+	if checkReleased {
+		_, relErr := i.checkReleasedWithErr()
+		if relErr != nil {
+			return nil, relErr
+		}
 	}
 
 	ref := &FSHandle{}
@@ -251,107 +253,96 @@ func (i *fsInode) clearCursorsWithChildrenLocked() {
 // must be called with mtx UNLOCKED
 // returns with mtx UNLOCKED
 func (i *fsInode) lookup(ctx context.Context, name string) (*FSHandle, error) {
-	rel, err := i.rmtx.Lock(ctx, true)
-	if err != nil {
-		return nil, err
+	// lock i
+	rel, lerr := i.rmtx.Lock(ctx, true)
+	if lerr != nil {
+		return nil, lerr
 	}
 
-	// fast path: inode child already exists
-	childInode, _ := i.findChildInode(name, true)
+	// create or look up the child inode
+	var nref *FSHandle
+	var childReady bool
+
+	childInode, insertIdx := i.findChildInode(name, false)
+
+	var wasReleased bool
+	if childInode != nil && childInode.checkReleased() {
+		childInode, wasReleased = nil, true
+	}
 	if childInode != nil {
-		nref, err := childInode.addReferenceLocked()
-		rel()
-		return nref, err
-	}
-
-	// fast-ish path: ops is already resolved, access it
-	ops := i.fsOps
-	if ops != nil && ops.CheckReleased() {
-		ops = nil
-		i.fsOps = nil
-	}
-	rel()
-
-	var lcursor FSCursor
-	accessLookup := func(_ FSCursor, ops FSCursorOps) error {
-		var err error
-		lcursor, err = ops.Lookup(ctx, name)
+		// lock the child inode
+		childRel, err := childInode.rmtx.Lock(ctx, true)
 		if err != nil {
-			lcursor = nil
-		}
-		return err
-	}
-
-	if ops != nil {
-		// ignore error if this doesn't work first try.
-		_ = accessLookup(nil, ops)
-	}
-
-	if lcursor == nil || lcursor.CheckReleased() {
-		// slow path: resolve parent + this node again
-		if err := i.accessInode(ctx, accessLookup); err != nil {
-			// if cursor != nil ensure we release it
-			if lcursor != nil {
-				lcursor.Release()
-			}
+			rel()
 			return nil, err
 		}
-	}
 
-	if lcursor == nil {
-		return nil, unixfs_errors.ErrNotExist
-	}
-
-	// we have the child cursor, now create the child inode.
-	rel, err = i.rmtx.Lock(ctx, true)
-	if err != nil {
-		lcursor.Release()
-		return nil, err
-	}
-
-	// nChild is the new child inode
-	nChild := newFsInode(i, name, []FSCursor{lcursor})
-
-	// get insert idx
-	childInode, insertIdx := i.findChildInode(name, false)
-	if childInode != nil {
-		if childInode.checkReleased() {
-			// insert new inode at index
-			i.children[insertIdx] = nChild
+		// add reference to child inode & check if it was released again
+		nref, err = childInode.addReferenceLocked(true)
+		if err != nil {
+			// the only error addReferenceLocked can return is ErrReleased
+			childInode, wasReleased = nil, true
 		} else {
-			// race: inode was resolved while we were working.
-			// throw out our cop and use theirs.
-			nChild.releaseWithChildrenLocked(nil)
-			nref, err := childInode.addReferenceLocked()
-			rel()
-			return nref, err
+			// check if the child is already resolved or not
+			childReady = childInode.fsOps != nil && !childInode.fsOps.CheckReleased()
+		}
+
+		// release child inode
+		childRel()
+	}
+
+	// create the new child inode if necessary
+	if wasReleased || childInode == nil {
+		// create the new child inode
+		childInode = newFsInode(i, name, nil)
+
+		// no need to lock the child inode yet since we are the first to use it.
+		nref, _ = childInode.addReferenceLocked(false)
+		if wasReleased {
+			// insert at the old released index
+			i.children[insertIdx] = childInode
+		} else {
+			// child inode not found, insert at insertidx.
+			i.children = slices.Insert(i.children, insertIdx, childInode)
 		}
 	}
 
-	// child inode not found, insert at insertidx.
-	i.children = slices.Insert(i.children, insertIdx, nChild)
-
-	nref, err := nChild.addReferenceLocked()
+	// release lock on i
 	rel()
-	return nref, err
+
+	// if the child was already resolved, return now.
+	if childReady {
+		return nref, nil
+	}
+
+	// wait until the child inode ops are resolved
+	// this verifies that the inode actually exists.
+	if err := childInode.accessInode(ctx, nil); err != nil {
+		nref.Release()
+		return nil, err
+	}
+
+	// the reference is valid and the inode was resolved
+	return nref, nil
 }
 
 // findChildInode looks for an existing non-released child by name.
-// caller must hold waitSema
 // returns nil, insertIdx, error
 func (i *fsInode) findChildInode(name string, checkReleased bool) (*fsInode, int) {
 	idx := sort.Search(len(i.children), func(ix int) bool {
 		return i.children[ix].name >= name
 	})
-	if idx < len(i.children) && i.children[idx].name == name {
-		child := i.children[idx]
-		if checkReleased && child.checkReleased() {
-			i.removeChildInodeAtIdx(idx)
-		} else {
-			return child, idx
-		}
+	if idx >= len(i.children) || i.children[idx].name != name {
+		// not found
+		return nil, idx
 	}
-	return nil, idx
+	child := i.children[idx]
+	if checkReleased && child.checkReleased() {
+		// child already released.
+		i.removeChildInodeAtIdx(idx)
+		return nil, idx
+	}
+	return child, idx
 }
 
 // removeChildInodeAtIdx removes a child from the children array at an index.
@@ -363,7 +354,6 @@ func (i *fsInode) removeChildInodeAtIdx(idx int) {
 
 // removeRefLocked removes a ref from the refs list.
 // if the refs list is now empty, calls releaseIfNecessaryLocked.
-// caller must hold fs waitSema
 func (i *fsInode) removeRefLocked(h *FSHandle) {
 	if len(i.refs) == 0 {
 		return
@@ -383,7 +373,6 @@ func (i *fsInode) removeRefLocked(h *FSHandle) {
 }
 
 // releaseIfNecessaryLocked releases this inode if it has no refs and no children.
-// caller must hold fs waitSema
 // returns if the node was released
 func (i *fsInode) releaseIfNecessaryLocked() bool {
 	if i.checkReleased() {
@@ -430,7 +419,6 @@ func (i *fsInode) releaseLocked(err error) {
 }
 
 // releaseWithChildrenLocked releases this inode and all child inodes
-// caller must hold fs.rmtx and waitSema (in that order)
 // if err is set, sets the fs inode error to the err
 func (i *fsInode) releaseWithChildrenLocked(err error) {
 	// build list of inodes to release in depth order
@@ -449,6 +437,8 @@ func (i *fsInode) releaseWithChildrenLocked(err error) {
 			nodStk = append(nodStk, child)
 		}
 	}
+
+	// TODO: do we need to lock the child nodes as well?
 
 	// release in the correct order (bottom-up)
 	for len(toRelease) != 0 {

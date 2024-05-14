@@ -11,6 +11,7 @@ import (
 // if the callback returns ErrReleased, the operation will be retried
 // caller must NOT hold rmtx
 // cb is called with rmtx UNLOCKED!
+// cb may be nil
 func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 	var lastErr error
 	handleErr := func(err error) error {
@@ -59,6 +60,10 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 			continue
 		}
 
+		if cb == nil {
+			return nil
+		}
+
 		err = cb(opsCursor, ops)
 		if err != nil {
 			if err == unixfs_errors.ErrReleased && !ops.CheckReleased() {
@@ -69,6 +74,7 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 			}
 			continue
 		}
+
 		return nil
 	}
 
@@ -85,11 +91,13 @@ func (i *fsInode) accessInode(ctx context.Context, cb accessInodeCb) error {
 // returns with rmtx UNLOCKED
 // may return errors
 func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
+	// lock rmtx
 	rel, err := i.rmtx.Lock(ctx, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	// note: it's ok to call rel() multiple times.
+	// TODO: fast path with read-only lock
 	defer rel()
 
 	// check current ops object
@@ -132,6 +140,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 	// we will perform the lookup
 	fsWait = make(chan struct{})
 	i.fsWait = fsWait
+
 	// expects mtx to be locked on entry & released on exit.
 	i.resolveOpsRoutineLocked(ctx, fsWait, rel)
 
@@ -150,8 +159,7 @@ func (i *fsInode) resolveOps(ctx context.Context) (FSCursor, FSCursorOps, error)
 // returns with rmtx UNLOCKED
 // should be called only by resolveOps
 func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struct{}, rel func()) {
-	parent := i.parent
-	iname := i.name
+	iparent, iname := i.parent, i.name
 
 	// when returning indicate we finished our work
 	defer close(fsWait)
@@ -189,8 +197,8 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 		// if there are 0 cursors remaining use lookup to get the first one
 		if len(cursorStack) == 0 {
 			// wait for the parent to be resolved
-			if parent != nil {
-				err = parent.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
+			if iparent != nil {
+				err = iparent.accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 					// lookup this dirent
 					iCursor, err := ops.Lookup(ctx, iname)
 					if err == nil && iCursor == nil {
@@ -200,7 +208,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 						return err
 					}
 
-					// append without locking rmtx since nobody but us can touch cursorStack.
+					// append the cursor
 					cursorStack = append(cursorStack, iCursor)
 					return nil
 				})
@@ -212,8 +220,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 			if err != nil {
 				// error fetching parent cursors.
 				// lock rmtx and release this + all children
-				rel, relErr := i.rmtx.Lock(ctx, true)
-				if relErr == nil {
+				if rel, relErr := i.rmtx.Lock(ctx, true); relErr == nil {
 					i.releaseWithChildrenLocked(err)
 					i.fsWait = nil
 					rel()

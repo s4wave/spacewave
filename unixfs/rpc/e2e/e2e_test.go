@@ -62,6 +62,8 @@ func TestUnixFsRPC(t *testing.T) {
 	if err := unixfs_rpc.SRPCRegisterFSCursorService(mux, service); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// mux = srpc.NewVMux(mux, le, false) // TODO remove
 	server := srpc.NewServer(mux)
 	serverOpenConn := srpc.NewServerPipe(server)
 
@@ -70,7 +72,7 @@ func TestUnixFsRPC(t *testing.T) {
 	fsClient := unixfs_rpc.NewSRPCFSCursorServiceClient(client)
 
 	// build the client cursor
-	clientFsCursor := unixfs_rpc_client.NewFSCursor(ctx, fsClient)
+	var clientFsCursor unixfs.FSCursor = unixfs_rpc_client.NewFSCursor(ctx, fsClient)
 
 	// access the client cursor
 	clientRootRef, err := unixfs.NewFSHandle(clientFsCursor)
@@ -116,9 +118,11 @@ func TestUnixFsRPC(t *testing.T) {
 	if len(testDirHandlePts) != 1 || testDirHandlePts[0] != testDirPath {
 		t.FailNow()
 	}
+	defer testDirHandle.Release()
 
 	// run the fs tests on the dir
 	if err := unixfs_e2e.TestUnixFS(ctx, testDirHandle); err != nil {
+		// t.Fatalf("%+v", err)
 		t.Fatal(err.Error())
 	}
 }

@@ -33,7 +33,7 @@ type FSHandleBuilder = refcount.RefCountResolver[*FSHandle]
 // Note: the FSHandle will be released if the FSCursor is released.
 func NewFSHandle(cursor FSCursor) (*FSHandle, error) {
 	inode := newFsInode(nil, "", []FSCursor{cursor})
-	return inode.addReferenceLocked()
+	return inode.addReferenceLocked(true)
 }
 
 // NewFSHandleWithPrefix constructs a new FSHandle with a FSCursor and follows a prefix.
@@ -842,10 +842,7 @@ func (h *FSHandle) Clone(ctx context.Context) (*FSHandle, error) {
 	}
 	defer rel()
 
-	if inode.checkReleased() {
-		return nil, unixfs_errors.ErrReleased
-	}
-	return h.i().addReferenceLocked()
+	return inode.addReferenceLocked(true)
 }
 
 // Release releases the FSHandle.
