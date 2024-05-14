@@ -6,6 +6,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
+	github.com/aperturerobotics/go-indexeddb v0.2.0 // master
 	github.com/aperturerobotics/go-kvfile v0.7.2 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // latest
 )
@@ -49,7 +50,6 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gomodule/redigo v1.9.2
 	github.com/minio/minio-go/v7 v7.0.70
-	github.com/paralin/go-indexeddb v1.1.0
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/restic/chunker v0.4.0
@@ -115,6 +115,8 @@ require (
 	gotest.tools/v3 v3.5.1
 	nhooyr.io/websocket v1.8.11 // indirect; master
 )
+
+require github.com/hack-pad/safejs v0.1.0
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

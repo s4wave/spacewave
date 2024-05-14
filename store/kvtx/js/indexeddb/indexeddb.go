@@ -5,11 +5,10 @@ package store_kvtx_indexeddb
 
 import (
 	"context"
-	"errors"
 
+	"github.com/aperturerobotics/go-indexeddb/idb"
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_txcache "github.com/aperturerobotics/hydra/kvtx/txcache"
-	"github.com/paralin/go-indexeddb"
 )
 
 // Note that commit() doesn't normally have to be called — a transaction
@@ -33,11 +32,11 @@ var kvStoreObjectStore = "kvstore"
 type Store struct {
 	kvtx.Store
 	// db is the database
-	db *indexeddb.Database
+	db *idb.Database
 }
 
 // NewStore constructs a new key-value store from a IndexedDB reference.
-func NewStore(db *indexeddb.Database) *Store {
+func NewStore(db *idb.Database) *Store {
 	st := newKvtxStore(db)
 	return &Store{
 		Store: kvtx_txcache.NewStore(st),
@@ -45,34 +44,26 @@ func NewStore(db *indexeddb.Database) *Store {
 	}
 }
 
-// schemaUpgrader is the upgrader function.
-func schemaUpgrader(d *indexeddb.DatabaseUpdate, oldVersion int, newVersion int) error {
-	if !d.ContainsObjectStore(kvStoreObjectStore) {
-		if err := d.CreateObjectStore(kvStoreObjectStore, nil); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Open opens a IndexedDB database, upgrading the schema.
+// Open opens an IndexedDB database, upgrading the schema.
 func Open(ctx context.Context, name string) (*Store, error) {
-	gidb := indexeddb.GlobalIndexedDB()
-	if gidb == nil {
-		return nil, errors.New("indexeddb not available")
-	}
-
-	d, err := gidb.Open(ctx, name, dbSchemaVersion, schemaUpgrader)
+	openRequest, err := idb.Global().Open(ctx, name, dbSchemaVersion, func(db *idb.Database, oldVersion, newVersion uint) error {
+		db.CreateObjectStore(kvStoreObjectStore, idb.ObjectStoreOptions{})
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return NewStore(d), nil
+	db, err := openRequest.Await(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStore(db), nil
 }
 
 // GetDB returns the IndexedDB database
-func (s *Store) GetDB() *indexeddb.Database {
+func (s *Store) GetDB() *idb.Database {
 	return s.db
 }
 
@@ -81,6 +72,11 @@ func (s *Store) GetDB() *indexeddb.Database {
 // Returning an error triggers a retry with backoff.
 func (s *Store) Execute(ctx context.Context) error {
 	return nil
+}
+
+// Close closes the store db.
+func (s *Store) Close() error {
+	return s.db.Close()
 }
 
 // _ is a type assertion

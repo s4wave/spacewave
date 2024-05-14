@@ -1,12 +1,10 @@
-//go:build !js && !wasip1
-// +build !js,!wasip1
+//go:build js
+// +build js
 
-package store_kvtx_bolt
+package store_kvtx_indexeddb
 
 import (
 	"context"
-	"os"
-	"path"
 	"testing"
 
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
@@ -16,31 +14,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBolt tests all tests on top of bolt.
-func TestBolt(t *testing.T) {
+// TestIndexedDB tests all tests on top of indexeddb.
+func TestIndexedDB(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
+
 	kvkey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dir, err := os.MkdirTemp("", "hydra-test-bolt-")
+
+	st, err := Open(ctx, "hydra/test-db")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer os.RemoveAll(dir)
-	tp := path.Join(dir, "database.boltdb")
-	db, err := Open(tp, 0o644, nil, []byte("test-bucket"))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer db.db.Close()
+	defer st.db.Close()
 
 	ktx := store_kvtx.NewKVTx(
 		kvkey,
-		kvtx_vlogger.NewVLogger(le, db),
+		kvtx_vlogger.NewVLogger(le, st),
 		nil,
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ctx, ktx); err != nil {

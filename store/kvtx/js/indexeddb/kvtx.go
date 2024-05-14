@@ -6,17 +6,17 @@ package store_kvtx_indexeddb
 import (
 	"context"
 
+	"github.com/aperturerobotics/go-indexeddb/idb"
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/paralin/go-indexeddb"
 )
 
 // kvtxStore implements the underlying kvtx store.
 type kvtxStore struct {
 	// db is the database
-	db *indexeddb.Database
+	db *idb.Database
 }
 
-func newKvtxStore(db *indexeddb.Database) *kvtxStore {
+func newKvtxStore(db *idb.Database) *kvtxStore {
 	return &kvtxStore{db: db}
 }
 
@@ -24,11 +24,11 @@ func newKvtxStore(db *indexeddb.Database) *kvtxStore {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (s *kvtxStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	mode := indexeddb.READONLY
+	mode := idb.TransactionReadOnly
 	if write {
-		mode = indexeddb.READWRITE
+		mode = idb.TransactionReadWrite
 	}
-	txn, err := indexeddb.NewDurableTransaction(s.db, []string{kvStoreObjectStore}, mode)
+	txn, err := s.db.Transaction(mode, kvStoreObjectStore)
 	if err != nil {
 		return nil, err
 	}
