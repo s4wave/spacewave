@@ -16,14 +16,14 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.1
-	github.com/evanw/esbuild v0.20.2 // latest
-	github.com/fatih/color v1.7.0
+	github.com/Microsoft/go-winio v0.6.2
+	github.com/evanw/esbuild v0.21.2 // latest
+	github.com/fatih/color v1.17.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
-	github.com/tetratelabs/wazero v1.7.1 // latest
+	github.com/tetratelabs/wazero v1.7.2 // latest
 	golang.org/x/mod v0.17.0 // latest
 	golang.org/x/tools v0.21.0 // latest
 )
@@ -33,7 +33,7 @@ require (
 require (
 	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
-	github.com/aperturerobotics/go-kvfile v0.7.2 // master
+	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
 )
 
@@ -144,7 +144,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
