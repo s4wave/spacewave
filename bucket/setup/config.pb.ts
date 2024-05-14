@@ -23,7 +23,7 @@ export type ApplyBucketConfig = Message<{
   /**
    * VolumeIdRe is a regex string to match volume IDs.
    * Set to '.*' to match all volumes.
-   * If empty, will update volumes that already have the config only.
+   * If empty: updates only volumes that already have the config.
    * If VolumeIDList is set, it will override this field.
    * Cannot be specified if VolumeIDList is set.
    *
@@ -32,7 +32,8 @@ export type ApplyBucketConfig = Message<{
   volumeIdRe?: string
   /**
    * VolumeIdList is a list of volume IDs to match.
-   * Cannot be specified if VolumeIDRe is set.
+   * If the value is in this list, overrides volume_id_re.
+   * ignored if empty.
    *
    * @generated from field: repeated string volume_id_list = 3;
    */
