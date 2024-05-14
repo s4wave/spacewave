@@ -49,8 +49,8 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	serviceID := block_rpc.SRPCBlockStoreServiceID
 	bucketID := serverTb.BucketId
 	serverCtrl := block_store_rpc_server.NewController(serverTb.Bus, &block_store_rpc_server.Config{
-		BucketId:  bucketID,
-		ServiceId: serviceID,
+		BlockStoreId: bucketID,
+		ServiceId:    serviceID,
 	})
 	serverRel, err := serverTb.Bus.AddController(ctx, serverCtrl, nil)
 	if err != nil {
