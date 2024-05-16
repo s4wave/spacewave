@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20240516072617-2412868f060f // master
-	github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 // master
+	github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce // master
 )
 
 require (
@@ -16,7 +16,7 @@ require (
 
 require (
 	github.com/aperturerobotics/bifrost v0.32.3 // master
-	github.com/aperturerobotics/go-kvfile v0.7.2 // indirect; master
+	github.com/aperturerobotics/go-kvfile v0.7.3 // indirect; master
 )
 
 // aperture: use ext-engines forks
