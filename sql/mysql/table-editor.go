@@ -145,7 +145,7 @@ func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val uint64) err
 }
 
 // AcquireAutoIncrementLock acquires (if necessary) an exclusive lock on generating auto-increment values for the underlying table.
-// This is called when @@innodb_autoinc_lock_mode is set to 0 (traditional) or 1 (consecutive), in order to guarentee that insert
+// This is called when @@innodb_autoinc_lock_mode is set to 0 (traditional) or 1 (consecutive), in order to guarantee that insert
 // operations get a consecutive range of generated ids. The function returns a callback to release the lock.
 func (i *TableEditor) AcquireAutoIncrementLock(ctx *sql.Context) (func(), error) {
 	// TODO: determine if it is necessary to implement this here.

@@ -3,6 +3,7 @@ package world_block_tx
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
@@ -144,4 +145,7 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	checkRev(obj, 2)
+
+	// wait a moment before finishing the test
+	<-time.After(time.Millisecond * 100)
 }
