@@ -21,18 +21,8 @@ func newKvtxStore(db *idb.Database) *kvtxStore {
 }
 
 // NewTransaction returns a new transaction against the store.
-// Indicate write if the transaction will not be read-only.
-// Always call Discard() after you are done with the transaction.
 func (s *kvtxStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	mode := idb.TransactionReadOnly
-	if write {
-		mode = idb.TransactionReadWrite
-	}
-	txn, err := s.db.Transaction(mode, kvStoreObjectStore)
-	if err != nil {
-		return nil, err
-	}
-	return newKvtxTx(txn)
+	return newKvtxTx(s.db, write), nil
 }
 
 // _ is a type assertion
