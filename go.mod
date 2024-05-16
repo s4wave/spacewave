@@ -33,7 +33,6 @@ replace (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/Workiva/go-datastructures v1.1.4
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cespare/xxhash/v2 v2.3.0
@@ -90,6 +89,7 @@ replace (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
+	github.com/Workiva/go-datastructures v1.1.4
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.8
@@ -106,11 +106,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.43.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
+	github.com/tidwall/btree v1.7.0
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.23.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	gonum.org/v1/gonum v0.15.0
+	gotest.tools/v3 v3.5.1
 	nhooyr.io/websocket v1.8.11 // indirect; master
 )
 

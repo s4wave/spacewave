@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/tidwall/btree"
 )
 
 // TODO TODO
@@ -36,8 +36,8 @@ type Iterator struct {
 
 	// keys is a workaround to produce sorted / seekable output
 	// keys is nil until Initialize is called
-	keys *treeset.Set
-	ki   *treeset.Iterator
+	keys *btree.BTreeG[[]byte]
+	ki   btree.IterG[[]byte]
 }
 
 // NewIterator constructs a new iterator. Initial key fetch is deferred to the
@@ -60,15 +60,15 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 
 	// Primary issue: Hydra Scan does not produce sorted results
 	// Workaround here: scan all keys in advance to build a sorted set (slow, but works).
-	keys := treeset.NewWith(func(a, b interface{}) int {
-		b1 := a.([]byte)
-		b2 := b.([]byte)
-		return bytes.Compare(b1, b2)
+	less := func(a, b []byte) bool { return bytes.Compare(a, b) < 0 }
+	if i.rev {
+		less = func(a, b []byte) bool { return bytes.Compare(a, b) > 0 }
+	}
+	keys := btree.NewBTreeGOptions(less, btree.Options{
+		NoLocks: true,
 	})
 	err = i.s.ScanPrefixKeys(i.ctx, i.prefix, func(key []byte) error {
-		kb := make([]byte, len(key))
-		copy(kb, key)
-		keys.Add(kb)
+		keys.Set(key)
 		return nil
 	})
 	i.keys = keys
@@ -76,16 +76,11 @@ func (i *Iterator) Initialize() (skipNext bool, err error) {
 	if err != nil {
 		return false, err
 	}
-	ki := keys.Iterator()
-	i.ki = &ki
+	i.ki = keys.Iter()
 
 	// TODO: this means that Next() is now unnecessary.
 	// return some bool to indicate skipping Next()
-	if i.rev {
-		i.oob = !ki.Last()
-	} else {
-		i.oob = !ki.First()
-	}
+	i.oob = !i.ki.First()
 	return true, nil
 }
 
@@ -105,31 +100,9 @@ func (i *Iterator) Seek(k []byte) error {
 		return nil
 	}
 
-	i.ki.Begin()
-	for i.ki.Next() {
-		// k <= k_i
-		if bytes.Compare(k, i.ki.Value().([]byte)) <= 0 {
-			break
-		}
-	}
-	i.oob = i.ki.Index() >= i.keys.Size()
+	valid := i.ki.Seek(k)
+	i.oob = !valid
 
-	if i.rev {
-		if i.oob {
-			if !i.ki.Last() {
-				return nil
-			}
-			i.oob = false
-		}
-		// if reversed, iterate backwards while key > target
-		// this will find the key that is <= target
-		for bytes.Compare(i.ki.Value().([]byte), k) > 0 {
-			if !i.ki.Prev() {
-				i.oob = true
-				break
-			}
-		}
-	}
 	return nil
 }
 
@@ -141,20 +114,8 @@ func (i *Iterator) Next() bool {
 	}
 	i.val = nil
 	if !skipNext {
-		if i.rev {
-			if i.ki.Index() == 0 {
-				i.oob = true
-			} else {
-				i.ki.Prev()
-			}
-		} else {
-			if i.ki.Index()+1 >= i.keys.Size() {
-				// last index
-				i.oob = true
-			} else {
-				i.ki.Next()
-			}
-		}
+		valid := i.ki.Next()
+		i.oob = !valid
 	}
 	return i.Valid()
 }
@@ -175,14 +136,10 @@ func (i *Iterator) Key() []byte {
 	if _, err := i.Initialize(); err != nil {
 		return nil
 	}
-	if i.oob || i.ki == nil {
+	if i.oob {
 		return nil
 	}
-	b, ok := i.ki.Value().([]byte)
-	if ok {
-		return b
-	}
-	return nil
+	return i.ki.Item()
 }
 
 // Value returns the current value.
@@ -190,7 +147,7 @@ func (i *Iterator) Value() ([]byte, error) {
 	if _, err := i.Initialize(); err != nil {
 		return nil, err
 	}
-	if i.oob || i.ki == nil {
+	if i.oob {
 		return nil, nil
 	}
 	if len(i.val) != 0 {
@@ -207,7 +164,7 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 	if _, err := i.Initialize(); err != nil {
 		return nil, err
 	}
-	if i.oob || i.ki == nil {
+	if i.oob {
 		return nil, nil
 	}
 	var err error

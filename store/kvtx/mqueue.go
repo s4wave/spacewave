@@ -9,7 +9,7 @@ import (
 	kvtx_prefixer "github.com/aperturerobotics/hydra/kvtx/prefixer"
 	"github.com/aperturerobotics/hydra/mqueue"
 	mqueue_store "github.com/aperturerobotics/hydra/mqueue/store"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/tidwall/btree"
 )
 
 // ListMessageQueues lists message queues with a given ID prefix.
@@ -23,8 +23,8 @@ func (k *KVTx) ListMessageQueues(ctx context.Context, prefix []byte, filled bool
 		return nil, err
 	}
 	defer tx.Discard()
-	ids := treeset.NewWith(func(i, j interface{}) int {
-		return bytes.Compare(i.([]byte), j.([]byte))
+	ids := btree.NewBTreeG(func(a, b []byte) bool {
+		return bytes.Compare(a, b) < 0
 	})
 	err = tx.ScanPrefix(ctx, pr, func(key, value []byte) error {
 		meta := &MqueueMeta{}
@@ -35,18 +35,19 @@ func (k *KVTx) ListMessageQueues(ctx context.Context, prefix []byte, filled bool
 		}
 
 		id := meta.GetId()
-		if ids.Contains(id) {
+		if _, found := ids.Get(id); found {
 			return nil
 		}
-		ids.Add(id)
+		ids.Set(id)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	keys := make([][]byte, 0, ids.Size())
-	ids.Each(func(index int, value interface{}) {
-		keys = append(keys, value.([]byte))
+	keys := make([][]byte, 0, ids.Len())
+	ids.Ascend(nil, func(key []byte) bool {
+		keys = append(keys, key)
+		return true
 	})
 	return keys, nil
 }
