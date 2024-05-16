@@ -3,7 +3,7 @@ module github.com/aperturerobotics/forge
 go 1.22
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240514053552-ac3630b1283a // master
+	github.com/aperturerobotics/hydra v0.0.0-20240516072617-2412868f060f // master
 	github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 // master
 )
 
@@ -15,7 +15,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2 // master
+	github.com/aperturerobotics/bifrost v0.32.3 // master
 	github.com/aperturerobotics/go-kvfile v0.7.2 // indirect; master
 )
 
@@ -56,7 +56,6 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.70 // indirect
-	github.com/paralin/go-indexeddb v1.1.0 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 )
@@ -64,11 +63,11 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.45.2 // latest
+	github.com/aperturerobotics/controllerbus v0.45.4 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
-	github.com/aperturerobotics/protobuf-go-lite v0.6.3 // latest
-	github.com/aperturerobotics/starpc v0.32.8 // latest
-	github.com/aperturerobotics/util v1.23.1 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
+	github.com/aperturerobotics/starpc v0.32.10 // latest
+	github.com/aperturerobotics/util v1.23.3 // master
 )
 
 // aperture: use compatibility forks
@@ -86,7 +85,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/cayley v0.9.0
-	github.com/aperturerobotics/common v0.15.6
+	github.com/aperturerobotics/common v0.16.4
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/pkg/errors v0.9.1
@@ -102,6 +101,7 @@ require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
+	github.com/aperturerobotics/go-indexeddb v0.2.0 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
@@ -121,6 +121,7 @@ require (
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hack-pad/safejs v0.1.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
@@ -181,6 +182,7 @@ require (
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/tetratelabs/wazero v1.1.0 // indirect
+	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect

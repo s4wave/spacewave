@@ -23,7 +23,7 @@
     "build": "tsc --project tsconfig.json --noEmit false --outDir ./dist/",
     "check": "npm run typecheck",
     "typecheck": "tsc --noEmit",
-    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,starpc",
+    "deps": "depcheck --ignores bufferutil,utf-8-validate,ts-proto,ts-poet,starpc,@aptre/common,@go/github.com",
     "codegen": "npm run gen",
     "ci": "npm run build && npm run lint:js && npm run lint:go",
     "format": "npm run format:js && npm run format:go",
@@ -50,11 +50,10 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@aperturerobotics/ts-proto-common-types": "^0.3.0",
-    "@aptre/protobuf-es-lite": "^0.4.0",
+    "@aptre/protobuf-es-lite": "^0.4.4",
     "starpc": "^0.32.8"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.3"
+    "@aptre/protobuf-es-lite": "0.4.4"
   }
 }
