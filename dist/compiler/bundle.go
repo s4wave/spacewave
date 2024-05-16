@@ -426,8 +426,11 @@ func BuildDistBundle(
 		if err != nil {
 			return err
 		}
-		outBinPath = gzPath
+
+		// TODO: these values should be used?
 		outBinName = filepath.Base(gzPath)
+		outBinPath = gzPath
+		_, _ = outBinName, outBinPath
 	}
 
 	return nil

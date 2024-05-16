@@ -1,4 +1,4 @@
-import toIt from 'browser-readablestream-to-it'
+import toIt from './readablestream-to-it.js'
 import { Source } from 'it-stream-types'
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'

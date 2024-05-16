@@ -511,7 +511,7 @@ export class WebDocument {
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
     // NOTE: scope controls which /pages/ are covered by the worker
     // NOTE: scope can only be narrower than paths below the script path.
-    const swUrl = !!opts?.serviceWorkerPath ? new URL(opts.serviceWorkerPath, baseURL).toString() : '/sw.mjs'
+    const swUrl = opts?.serviceWorkerPath ? new URL(opts.serviceWorkerPath, baseURL).toString() : '/sw.mjs'
     console.log('WebDocument: registering service worker', swUrl)
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
