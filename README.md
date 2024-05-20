@@ -54,7 +54,7 @@ The following high-level data structures are implemented:
 - **File**: collection of written Ranges composed of Blobs of data.
 - **Git**: code revision tracking engine with go-git.
 - **Graph**: graph database w/ quads: `<subject, predicate, object, value>`
-- **Sql**: SQL data store backed by GenjiDB or go-mysql-server.
+- **Sql**: SQL data store backed by go-mysql-server.
 - **UnixFS**: directories, files, permissions, FUSE mounts.
 - **World**: key/value store coupled with a graph database + changelog. 
 

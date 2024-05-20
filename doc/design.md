@@ -39,7 +39,6 @@ These are the types of implemented data structures:
    - vlogger: log all actions to a logger handle
  - mqueue: message queue
  - sql: contains all SQL implementations
-   - genji: genjidb (based on kvtx)
    - mysql: mysql-compatible protocol (based on go-mysql-server)
  - unixfs: unix filesystem using the block-graph file + blob store
    - fstree: filesystem tree block graph implementation
@@ -245,5 +244,3 @@ reader and writer safe structure. An implementation is provided in the
 The MySQL-compatible implementation under `sql/mysql` uses the `go-mysql-server`
 project mapped to a block DAG data structure. Msgpack is used to encode field
 type information, and Blobs are used to chunk & store larger values.
-
-Bindings for the Genjidb Go-SQL database are provided as well.
