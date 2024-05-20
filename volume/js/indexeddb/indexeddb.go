@@ -35,10 +35,16 @@ func NewIndexedDB(
 		return nil, err
 	}
 
+	storeName := conf.GetStoreName()
+	if storeName == "" {
+		storeName = "hydra"
+	}
+
 	var store skvtx.Store
 	store, err = sindexeddb.Open(
 		ctx,
 		conf.GetDatabaseName(),
+		storeName,
 	)
 	if err != nil {
 		return nil, err

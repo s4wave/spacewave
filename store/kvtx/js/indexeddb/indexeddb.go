@@ -25,29 +25,31 @@ import (
 // increment whenever changing the schema.
 const dbSchemaVersion = 1
 
-// kvStoreObjectStore is the key/value flat namespace store.
-var kvStoreObjectStore = "kvstore"
-
 // Store is a indexeddb key-value store.
 type Store struct {
 	kvtx.Store
 	// db is the database
 	db *idb.Database
+	// objectStoreName is the name of the object store to use
+	objectStoreName string
 }
 
 // NewStore constructs a new key-value store from a IndexedDB reference.
-func NewStore(db *idb.Database) *Store {
-	st := newKvtxStore(db)
+func NewStore(db *idb.Database, objectStoreName string) *Store {
+	st := newKvtxStore(db, objectStoreName)
 	return &Store{
-		Store: kvtx_txcache.NewStore(st),
-		db:    db,
+		Store:           kvtx_txcache.NewStore(st),
+		db:              db,
+		objectStoreName: objectStoreName,
 	}
 }
 
-// Open opens an IndexedDB database, upgrading the schema.
-func Open(ctx context.Context, name string) (*Store, error) {
+// Open opens an IndexedDB database, creating the schema if it doesn't exist.
+//
+// The object store name will be used for the kvtx functions.
+func Open(ctx context.Context, name, objectStoreName string) (*Store, error) {
 	openRequest, err := idb.Global().Open(ctx, name, dbSchemaVersion, func(db *idb.Database, oldVersion, newVersion uint) error {
-		db.CreateObjectStore(kvStoreObjectStore, idb.ObjectStoreOptions{})
+		db.CreateObjectStore(objectStoreName, idb.ObjectStoreOptions{})
 		return nil
 	})
 	if err != nil {
@@ -59,7 +61,7 @@ func Open(ctx context.Context, name string) (*Store, error) {
 		return nil, err
 	}
 
-	return NewStore(db), nil
+	return NewStore(db, objectStoreName), nil
 }
 
 // GetDB returns the IndexedDB database

@@ -36,6 +36,7 @@ func keyForLogging(key []byte) string {
 
 // Get returns values for a key.
 func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	t.le.Debugf("Get(%s) start", keyForLogging(key))
 	defer func() {
 		t.le.Debugf(
 			"Get(%s) => data(%d) found(%v) err(%v)",
@@ -50,6 +51,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err 
 
 // Size returns number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (count uint64, err error) {
+	t.le.Debug("Size() start")
 	defer func() {
 		t.le.Debugf(
 			"Size() => count(%d) err(%v)",
@@ -62,6 +64,7 @@ func (t *Tx) Size(ctx context.Context) (count uint64, err error) {
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) (err error) {
+	t.le.Debugf("ScanPrefix(%s) start", keyForLogging(prefix))
 	ta := time.Now()
 	defer func() {
 		tb := time.Now()
@@ -91,6 +94,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 
 // ScanPrefixKeys iterates over keys with a prefix.
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) (err error) {
+	t.le.Debugf("ScanPrefixKeys(%s) start", keyForLogging(prefix))
 	ta := time.Now()
 	defer func() {
 		tb := time.Now()
@@ -136,6 +140,7 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
+	t.le.Debugf("Set(%s) start", keyForLogging(key))
 	defer func() {
 		t.le.Debugf(
 			"Set(%s) => value(%d) err(%v)",
@@ -151,6 +156,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
+	t.le.Debugf("Delete(%s) start", keyForLogging(key))
 	defer func() {
 		t.le.Debugf(
 			"Delete(%s) => err(%v)",
@@ -163,6 +169,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(ctx context.Context, key []byte) (found bool, err error) {
+	t.le.Debugf("Exists(%s) start", keyForLogging(key))
 	defer func() {
 		t.le.Debugf(
 			"Exists(%s) => found(%v) err(%v)",

@@ -24,25 +24,30 @@ type Config struct {
 	// DatabaseName is the database name to pass to indexeddb.open.
 	// Required.
 	DatabaseName string `protobuf:"bytes,1,opt,name=database_name,json=databaseName,proto3" json:"databaseName,omitempty"`
+	// StoreName is the database store name to pass to indexeddb.open.
+	// Optional, defaults to "hydra".
+	// NOTE: after changing this we must increment the schema version!
+	// This option is not exposed currently, so do not change this once set for a db name.
+	StoreName string `protobuf:"bytes,2,opt,name=store_name,json=storeName,proto3" json:"storeName,omitempty"`
 	// KvKeyOpts are key/value key constants.
-	KvKeyOpts *kvkey.Config `protobuf:"bytes,2,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kvKeyOpts,omitempty"`
+	KvKeyOpts *kvkey.Config `protobuf:"bytes,3,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kvKeyOpts,omitempty"`
 	// NoGenerateKey indicates the controller should not generate a private key if
 	// one is not already present. Setting this to false will cause the system to
 	// create a new private key if one is not present in the store at startup. If
 	// no key is in the store at startup and this is true, returns an error.
-	NoGenerateKey bool `protobuf:"varint,3,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"noGenerateKey,omitempty"`
+	NoGenerateKey bool `protobuf:"varint,4,opt,name=no_generate_key,json=noGenerateKey,proto3" json:"noGenerateKey,omitempty"`
 	// NoWriteKey indicates the controller should not write a private key to
 	// storage if it generates one. This results in an ephemeral volume peer
 	// identity if there is no key present in the store already.
 	//
 	// Has no effect if the store has a peer private key.
-	NoWriteKey bool `protobuf:"varint,7,opt,name=no_write_key,json=noWriteKey,proto3" json:"noWriteKey,omitempty"`
+	NoWriteKey bool `protobuf:"varint,5,opt,name=no_write_key,json=noWriteKey,proto3" json:"noWriteKey,omitempty"`
 	// Verbose enables verbose logging.
-	Verbose bool `protobuf:"varint,4,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	Verbose bool `protobuf:"varint,6,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// VolumeConfig is the volume controller config.
-	VolumeConfig *controller.Config `protobuf:"bytes,5,opt,name=volume_config,json=volumeConfig,proto3" json:"volumeConfig,omitempty"`
+	VolumeConfig *controller.Config `protobuf:"bytes,7,opt,name=volume_config,json=volumeConfig,proto3" json:"volumeConfig,omitempty"`
 	// StoreConfig is the store configuration for kvtx.
-	StoreConfig *kvtx.Config `protobuf:"bytes,6,opt,name=store_config,json=storeConfig,proto3" json:"storeConfig,omitempty"`
+	StoreConfig *kvtx.Config `protobuf:"bytes,8,opt,name=store_config,json=storeConfig,proto3" json:"storeConfig,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -54,6 +59,13 @@ func (*Config) ProtoMessage() {}
 func (x *Config) GetDatabaseName() string {
 	if x != nil {
 		return x.DatabaseName
+	}
+	return ""
+}
+
+func (x *Config) GetStoreName() string {
+	if x != nil {
+		return x.StoreName
 	}
 	return ""
 }
@@ -106,6 +118,7 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.DatabaseName = m.DatabaseName
+	r.StoreName = m.StoreName
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
@@ -138,10 +151,16 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DatabaseName != that.DatabaseName {
 		return false
 	}
+	if this.StoreName != that.StoreName {
+		return false
+	}
 	if !this.KvKeyOpts.EqualVT(that.KvKeyOpts) {
 		return false
 	}
 	if this.NoGenerateKey != that.NoGenerateKey {
+		return false
+	}
+	if this.NoWriteKey != that.NoWriteKey {
 		return false
 	}
 	if this.Verbose != that.Verbose {
@@ -151,9 +170,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !this.StoreConfig.EqualVT(that.StoreConfig) {
-		return false
-	}
-	if this.NoWriteKey != that.NoWriteKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -180,6 +196,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("databaseName")
 		s.WriteString(x.DatabaseName)
 	}
+	if x.StoreName != "" || s.HasField("storeName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storeName")
+		s.WriteString(x.StoreName)
+	}
 	if x.KvKeyOpts != nil || s.HasField("kvKeyOpts") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("kvKeyOpts")
@@ -189,6 +210,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("noGenerateKey")
 		s.WriteBool(x.NoGenerateKey)
+	}
+	if x.NoWriteKey || s.HasField("noWriteKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("noWriteKey")
+		s.WriteBool(x.NoWriteKey)
 	}
 	if x.Verbose || s.HasField("verbose") {
 		s.WriteMoreIf(&wroteField)
@@ -204,11 +230,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("storeConfig")
 		x.StoreConfig.MarshalProtoJSON(s.WithField("storeConfig"))
-	}
-	if x.NoWriteKey || s.HasField("noWriteKey") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("noWriteKey")
-		s.WriteBool(x.NoWriteKey)
 	}
 	s.WriteObjectEnd()
 }
@@ -230,6 +251,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "database_name", "databaseName":
 			s.AddField("database_name")
 			x.DatabaseName = s.ReadString()
+		case "store_name", "storeName":
+			s.AddField("store_name")
+			x.StoreName = s.ReadString()
 		case "kv_key_opts", "kvKeyOpts":
 			if s.ReadNil() {
 				x.KvKeyOpts = nil
@@ -240,6 +264,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "no_generate_key", "noGenerateKey":
 			s.AddField("no_generate_key")
 			x.NoGenerateKey = s.ReadBool()
+		case "no_write_key", "noWriteKey":
+			s.AddField("no_write_key")
+			x.NoWriteKey = s.ReadBool()
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
@@ -257,9 +284,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.StoreConfig = &kvtx.Config{}
 			x.StoreConfig.UnmarshalProtoJSON(s.WithField("store_config", true))
-		case "no_write_key", "noWriteKey":
-			s.AddField("no_write_key")
-			x.NoWriteKey = s.ReadBool()
 		}
 	})
 }
@@ -299,16 +323,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.NoWriteKey {
-		i--
-		if m.NoWriteKey {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x38
-	}
 	if m.StoreConfig != nil {
 		size, err := m.StoreConfig.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -317,7 +331,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x42
 	}
 	if m.VolumeConfig != nil {
 		size, err := m.VolumeConfig.MarshalToSizedBufferVT(dAtA[:i])
@@ -327,7 +341,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x3a
 	}
 	if m.Verbose {
 		i--
@@ -337,7 +351,17 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x30
+	}
+	if m.NoWriteKey {
+		i--
+		if m.NoWriteKey {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
 	}
 	if m.NoGenerateKey {
 		i--
@@ -347,7 +371,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
 	}
 	if m.KvKeyOpts != nil {
 		size, err := m.KvKeyOpts.MarshalToSizedBufferVT(dAtA[:i])
@@ -356,6 +380,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.StoreName) > 0 {
+		i -= len(m.StoreName)
+		copy(dAtA[i:], m.StoreName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StoreName)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -379,11 +410,18 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.StoreName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	if m.KvKeyOpts != nil {
 		l = m.KvKeyOpts.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	if m.NoGenerateKey {
+		n += 2
+	}
+	if m.NoWriteKey {
 		n += 2
 	}
 	if m.Verbose {
@@ -397,9 +435,6 @@ func (m *Config) SizeVT() (n int) {
 		l = m.StoreConfig.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.NoWriteKey {
-		n += 2
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -411,6 +446,10 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString(" database_name: ")
 		sb.WriteString(strconv.Quote(x.DatabaseName))
 	}
+	if x.StoreName != "" {
+		sb.WriteString(" store_name: ")
+		sb.WriteString(strconv.Quote(x.StoreName))
+	}
 	if x.KvKeyOpts != nil {
 		sb.WriteString(" kv_key_opts: ")
 		sb.WriteString(x.KvKeyOpts.MarshalProtoText())
@@ -418,6 +457,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.NoGenerateKey {
 		sb.WriteString(" no_generate_key: ")
 		sb.WriteString(strconv.FormatBool(x.NoGenerateKey))
+	}
+	if x.NoWriteKey {
+		sb.WriteString(" no_write_key: ")
+		sb.WriteString(strconv.FormatBool(x.NoWriteKey))
 	}
 	if x.Verbose {
 		sb.WriteString(" verbose: ")
@@ -430,10 +473,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.StoreConfig != nil {
 		sb.WriteString(" store_config: ")
 		sb.WriteString(x.StoreConfig.MarshalProtoText())
-	}
-	if x.NoWriteKey {
-		sb.WriteString(" no_write_key: ")
-		sb.WriteString(strconv.FormatBool(x.NoWriteKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -504,6 +543,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StoreName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StoreName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field KvKeyOpts", wireType)
 			}
 			var msglen int
@@ -538,7 +609,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NoGenerateKey", wireType)
 			}
@@ -558,7 +629,27 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.NoGenerateKey = bool(v != 0)
-		case 4:
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NoWriteKey", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NoWriteKey = bool(v != 0)
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
 			}
@@ -578,7 +669,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Verbose = bool(v != 0)
-		case 5:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field VolumeConfig", wireType)
 			}
@@ -614,7 +705,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 6:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StoreConfig", wireType)
 			}
@@ -650,26 +741,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NoWriteKey", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.NoWriteKey = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -4,26 +4,38 @@
 package store_kvtx_indexeddb
 
 import (
-	"bytes"
 	"context"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/go-indexeddb/durable"
 	"github.com/aperturerobotics/go-indexeddb/idb"
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/util/jsbuf"
-	"github.com/hack-pad/safejs"
 )
 
 // kvtxTx implements an IndexedDB transaction.
 type kvtxTx struct {
 	discarded atomic.Bool
-	db        *idb.Database
+	txn       *durable.DurableTransaction
+	store     *durable.DurableObjectStore
 	write     bool
 }
 
 // newKvtxTx constructs a new transaction from a db
-func newKvtxTx(db *idb.Database, write bool) *kvtxTx {
-	return &kvtxTx{db: db, write: write}
+func newKvtxTx(db *idb.Database, write bool, objectStoreName string) (*kvtxTx, error) {
+	mode := idb.TransactionReadOnly
+	if write {
+		mode = idb.TransactionReadWrite
+	}
+	txn, err := durable.NewDurableTransaction(db, mode, objectStoreName)
+	if err != nil {
+		return nil, err
+	}
+	store, err := txn.GetObjectStore(objectStoreName)
+	if err != nil {
+		return nil, err
+	}
+	return &kvtxTx{txn: txn, store: store, write: write}, nil
 }
 
 // Size returns the number of keys in the store.
@@ -31,42 +43,14 @@ func (t *kvtxTx) Size(ctx context.Context) (uint64, error) {
 	if t.discarded.Load() {
 		return 0, kvtx.ErrDiscarded
 	}
-
-	txn, err := t.db.Transaction(idb.TransactionReadOnly, kvStoreObjectStore)
-	if err != nil {
-		return 0, err
-	}
-	defer txn.Commit()
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return 0, err
-	}
-
-	resp, err := store.Count()
-	if err != nil {
-		return 0, err
-	}
-
-	num, err := resp.Await(ctx)
-	return uint64(num), err
+	resp, err := t.store.Count(ctx)
+	return uint64(resp), err
 }
 
 // Get returns values for a key.
 func (t *kvtxTx) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
 	if t.discarded.Load() {
 		return nil, false, kvtx.ErrDiscarded
-	}
-
-	txn, err := t.db.Transaction(idb.TransactionReadOnly, kvStoreObjectStore)
-	if err != nil {
-		return nil, false, err
-	}
-	defer txn.Commit()
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return nil, false, err
 	}
 
 	// convert []byte to js.Value
@@ -76,12 +60,7 @@ func (t *kvtxTx) Get(ctx context.Context, key []byte) (data []byte, found bool, 
 	}
 
 	// lookup
-	req, err := store.Get(keyVal)
-	if err != nil {
-		return nil, false, err
-	}
-
-	val, err := req.Await(ctx)
+	val, err := t.store.Get(ctx, keyVal)
 	if err != nil {
 		return nil, false, err
 	}
@@ -111,17 +90,6 @@ func (t *kvtxTx) Set(ctx context.Context, key, value []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 
-	txn, err := t.db.Transaction(idb.TransactionReadWrite, kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-	defer txn.Commit()
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-
 	keyVal, err := jsbuf.CopyBytesToJs(key)
 	if err != nil {
 		return err
@@ -132,13 +100,8 @@ func (t *kvtxTx) Set(ctx context.Context, key, value []byte) error {
 		return err
 	}
 
-	req, err := store.PutKey(keyVal, valVal)
-	if err != nil {
-		return err
-	}
-
-	_, err = req.Await(ctx)
-	return err
+	// NOTE: we use Put instead of Add since Add allows multiple duplicate keys
+	return t.store.PutKey(ctx, keyVal, valVal)
 }
 
 // Delete deletes a key.
@@ -153,28 +116,12 @@ func (t *kvtxTx) Delete(ctx context.Context, key []byte) error {
 		return kvtx.ErrEmptyKey
 	}
 
-	txn, err := t.db.Transaction(idb.TransactionReadWrite, kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-	defer txn.Commit()
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-
 	keyVal, err := jsbuf.CopyBytesToJs(key)
 	if err != nil {
 		return err
 	}
 
-	req, err := store.Delete(safejs.Unsafe(keyVal))
-	if err != nil {
-		return err
-	}
-
-	return req.Await(ctx)
+	return t.store.Delete(ctx, keyVal)
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
@@ -183,50 +130,19 @@ func (t *kvtxTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key 
 		return kvtx.ErrDiscarded
 	}
 
-	txn, err := t.db.Transaction(idb.TransactionReadOnly, kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-	defer txn.Commit()
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-
-	prefixVal, err := jsbuf.CopyBytesToJs(prefix)
-	if err != nil {
-		return err
-	}
-
-	keyRange, err := idb.NewKeyRangeLowerBound(prefixVal, false)
-	if err != nil {
-		return err
-	}
-
-	req, err := store.OpenKeyCursorRange(keyRange, idb.CursorNext)
-	if err != nil {
-		return err
-	}
-
-	return req.Iter(ctx, func(cursor *idb.Cursor) error {
-		keyVal, err := cursor.Key()
-		if err != nil {
+	it := t.Iterate(ctx, prefix, false, false)
+	for {
+		if err := it.Err(); err != nil {
 			return err
 		}
-
-		key, err := jsbuf.CopyBytesToGo(keyVal)
-		if err != nil {
+		if !it.Next() {
+			break
+		}
+		if err := cb(it.Key()); err != nil {
 			return err
 		}
-
-		// Stop iterating if the key no longer has the prefix
-		if !bytes.HasPrefix(key, prefix) {
-			return idb.ErrCursorStopIter
-		}
-
-		return cb(key)
-	})
+	}
+	return it.Err()
 }
 
 // ScanPrefix iterates over keys with a prefix.
@@ -235,60 +151,29 @@ func (t *kvtxTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val
 		return kvtx.ErrDiscarded
 	}
 
-	txn, err := t.db.Transaction(idb.TransactionReadOnly, kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-	defer txn.Commit()
+	it := t.Iterate(ctx, prefix, false, false)
+	for {
+		if err := it.Err(); err != nil {
+			return err
+		}
+		if !it.Next() {
+			break
+		}
+		key := it.Key()
 
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return err
-	}
-
-	prefixVal, err := jsbuf.CopyBytesToJs(prefix)
-	if err != nil {
-		return err
-	}
-
-	keyRange, err := idb.NewKeyRangeLowerBound(prefixVal, false)
-	if err != nil {
-		return err
-	}
-
-	req, err := store.OpenCursorRange(keyRange, idb.CursorNext)
-	if err != nil {
-		return err
-	}
-
-	return req.Iter(ctx, func(cursor *idb.CursorWithValue) error {
-		keyVal, err := cursor.Key()
+		val, err := it.Value()
 		if err != nil {
 			return err
 		}
 
-		key, err := jsbuf.CopyBytesToGo(keyVal)
-		if err != nil {
+		if err := cb(key, val); err != nil {
 			return err
 		}
-
-		// Stop iterating if the key no longer has the prefix
-		if !bytes.HasPrefix(key, prefix) {
-			return idb.ErrCursorStopIter
-		}
-
-		valVal, err := cursor.Value()
-		if err != nil {
-			return err
-		}
-
-		val, err := jsbuf.CopyBytesToGo(valVal)
-		if err != nil {
-			return err
-		}
-
-		return cb(key, val)
-	})
+	}
+	if err := it.Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Iterate returns an iterator with a given key prefix.
@@ -296,24 +181,14 @@ func (t *kvtxTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val
 // Should always return non-nil, with error field filled if necessary.
 // If sort, iterates in sorted order, reverse reverses the key iteration.
 // The prefix is NOT clipped from the output keys.
-// If !sort, reverse has no effect.
+// If !sort, reverse MAY have no effect.
 // Must call Next() or Seek() before valid.
 func (t *kvtxTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	if t.discarded.Load() {
 		return kvtx.NewErrIterator(kvtx.ErrDiscarded)
 	}
-
-	txn, err := t.db.Transaction(idb.TransactionReadOnly, kvStoreObjectStore)
-	if err != nil {
-		return kvtx.NewErrIterator(err)
-	}
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return kvtx.NewErrIterator(err)
-	}
-
-	return BuildKvtxIterator(ctx, store, prefix, sort, reverse)
+	// NOTE: IndexedDB cursors are always sorted.
+	return BuildKvtxIterator(ctx, t.store, prefix, reverse)
 }
 
 // Exists checks if a key exists.
@@ -324,29 +199,14 @@ func (t *kvtxTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
-
-	txn, err := t.db.Transaction(idb.TransactionReadOnly, kvStoreObjectStore)
-	if err != nil {
-		return false, err
-	}
-	defer txn.Commit()
-
-	store, err := txn.ObjectStore(kvStoreObjectStore)
-	if err != nil {
-		return false, err
-	}
-
 	keyVal, err := jsbuf.CopyBytesToJs(key)
 	if err != nil {
 		return false, err
 	}
-
-	req, err := store.CountKey(keyVal)
+	count, err := t.store.CountKey(ctx, keyVal)
 	if err != nil {
 		return false, err
 	}
-
-	count, err := req.Await(ctx)
 	return count > 0, err
 }
 
@@ -355,12 +215,13 @@ func (t *kvtxTx) Commit(ctx context.Context) error {
 	if t.discarded.Swap(true) {
 		return kvtx.ErrDiscarded
 	}
-	return nil
+	return t.txn.Commit()
 }
 
 // Discard discards the transaction.
 func (t *kvtxTx) Discard() {
 	t.discarded.Store(true)
+	_, _ = t.txn.Abort()
 }
 
 // _ is a type assertion

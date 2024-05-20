@@ -25,9 +25,18 @@ export type Config = Message<{
    */
   databaseName?: string
   /**
+   * StoreName is the database store name to pass to indexeddb.open.
+   * Optional, defaults to "hydra".
+   * NOTE: after changing this we must increment the schema version!
+   * This option is not exposed currently, so do not change this once set for a db name.
+   *
+   * @generated from field: string store_name = 2;
+   */
+  storeName?: string
+  /**
    * KvKeyOpts are key/value key constants.
    *
-   * @generated from field: store.kvkey.Config kv_key_opts = 2;
+   * @generated from field: store.kvkey.Config kv_key_opts = 3;
    */
   kvKeyOpts?: Config$1
   /**
@@ -36,7 +45,7 @@ export type Config = Message<{
    * create a new private key if one is not present in the store at startup. If
    * no key is in the store at startup and this is true, returns an error.
    *
-   * @generated from field: bool no_generate_key = 3;
+   * @generated from field: bool no_generate_key = 4;
    */
   noGenerateKey?: boolean
   /**
@@ -46,25 +55,25 @@ export type Config = Message<{
    *
    * Has no effect if the store has a peer private key.
    *
-   * @generated from field: bool no_write_key = 7;
+   * @generated from field: bool no_write_key = 5;
    */
   noWriteKey?: boolean
   /**
    * Verbose enables verbose logging.
    *
-   * @generated from field: bool verbose = 4;
+   * @generated from field: bool verbose = 6;
    */
   verbose?: boolean
   /**
    * VolumeConfig is the volume controller config.
    *
-   * @generated from field: volume.controller.Config volume_config = 5;
+   * @generated from field: volume.controller.Config volume_config = 7;
    */
   volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    *
-   * @generated from field: store.kvtx.Config store_config = 6;
+   * @generated from field: store.kvtx.Config store_config = 8;
    */
   storeConfig?: Config$3
 }>
@@ -74,12 +83,13 @@ export const Config: MessageType<Config> = createMessageType({
   typeName: 'volume.indexeddb.Config',
   fields: [
     { no: 1, name: 'database_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    { no: 3, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 7, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'volume_config', kind: 'message', T: () => Config$2 },
-    { no: 6, name: 'store_config', kind: 'message', T: () => Config$3 },
+    { no: 2, name: 'store_name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 4, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'no_write_key', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'volume_config', kind: 'message', T: () => Config$2 },
+    { no: 8, name: 'store_config', kind: 'message', T: () => Config$3 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -26,7 +26,7 @@ func TestIndexedDB(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	st, err := Open(ctx, "hydra/test-db")
+	st, err := Open(ctx, "hydra/test-db", "test-store")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

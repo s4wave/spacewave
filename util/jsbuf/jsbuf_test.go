@@ -117,6 +117,7 @@ func TestCopyBytesToJs(t *testing.T) {
 		}
 	}
 }
+
 func TestCheckIsArrayBuffer(t *testing.T) {
 	buf, _ := arrayBuffer.New(0)
 	if !CheckIsArrayBuffer(buf) {

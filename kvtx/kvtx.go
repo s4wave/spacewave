@@ -43,7 +43,7 @@ type TxOps interface {
 	// Should always return non-nil, with error field filled if necessary.
 	// If sort, iterates in sorted order, reverse reverses the key iteration.
 	// The prefix is NOT clipped from the output keys.
-	// If !sort, reverse has no effect.
+	// If !sort, reverse MAY have no effect.
 	// Must call Next() or Seek() before valid.
 	// Some implementations return BlockIterator.
 	// Context is used for the iterator and internally for iterator operations.
@@ -67,7 +67,7 @@ type Iterator interface {
 	//
 	// May cache the value between calls, copy if modifying.
 	Value() ([]byte, error)
-	// ValueCopy copies the key to the given byte slice and returns it.
+	// ValueCopy copies the value to the given byte slice and returns it.
 	// If the slice is not big enough (cap), it must create a new one and return it.
 	// May use the value cached from Value() call as the source of the data.
 	// May return nil if !Valid().

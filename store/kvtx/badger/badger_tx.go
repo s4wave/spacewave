@@ -115,6 +115,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 		}
 		it.Next()
 	}
+
 	return nil
 }
 
@@ -123,7 +124,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 // Should always return non-nil, with error field filled if necessary.
 // If sort, iterates in sorted order, reverse reverses the key iteration.
 // The prefix is NOT clipped from the output keys.
-// If !sort, reverse has no effect.
+// If !sort, reverse MAY have no effect.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	opts := bdb.DefaultIteratorOptions
 	opts.Reverse = reverse

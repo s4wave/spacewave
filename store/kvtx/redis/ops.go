@@ -97,7 +97,7 @@ func (t *txOps) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, valu
 // Should always return non-nil, with error field filled if necessary.
 // If sort, iterates in sorted order, reverse reverses the key iteration.
 // The prefix is NOT clipped from the output keys.
-// If !sort, reverse has no effect.
+// If !sort, reverse MAY have no effect.
 // Must call Next() or Seek() before valid.
 func (t *txOps) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	return NewIterator(ctx, t, prefix, sort, reverse)

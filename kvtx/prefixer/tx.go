@@ -65,6 +65,9 @@ func (t *tx) Delete(ctx context.Context, key []byte) error {
 func (t *tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	pfx := t.getKey(prefix)
 	return t.lower.ScanPrefix(ctx, pfx, func(key, value []byte) error {
+		if !bytes.HasPrefix(key, t.prefix) {
+			return nil
+		}
 		k := key[len(t.prefix):]
 		return cb(k, value)
 	})
@@ -74,6 +77,9 @@ func (t *tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 func (t *tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	pfx := t.getKey(prefix)
 	return t.lower.ScanPrefixKeys(ctx, pfx, func(key []byte) error {
+		if !bytes.HasPrefix(key, t.prefix) {
+			return nil
+		}
 		k := key[len(t.prefix):]
 		return cb(k)
 	})

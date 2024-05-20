@@ -76,8 +76,8 @@ github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3
 github.com/aperturerobotics/entitygraph v0.9.1/go.mod h1:40VoNXSslWQieSS4V3HyzqOOZnRiGxItj/qZYSHg8Rw=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1/go.mod h1:uGcRHycd7rIbt9Uh+6L5UXgWmRTUIE2MA1m0QKrBBQY=
-github.com/aperturerobotics/go-indexeddb v0.2.0 h1:RrEMZTdzfSC4IUWQQ0E3L2C2YRtEtuKStFToP15eEds=
-github.com/aperturerobotics/go-indexeddb v0.2.0/go.mod h1:8B1p0W9TFrM85Em6LTXldKyJ+IgdV/13HbONXdq3enM=
+github.com/aperturerobotics/go-indexeddb v0.2.1 h1:HAKbZD3T9jyMpOmgiTy4nNrN/EYTiNWZIDFn4oZsg94=
+github.com/aperturerobotics/go-indexeddb v0.2.1/go.mod h1:Qn67z3tPvzp7897XddY96KJKr0mKWQcU81lNO1ntiaQ=
 github.com/aperturerobotics/go-kvfile v0.7.2 h1:5aKcsHmevVwwCwrFPa/yu3XWfgKkjhjgDNgtMQlxh0c=
 github.com/aperturerobotics/go-kvfile v0.7.2/go.mod h1:D+TQEgp2JRlt1rx5LzjfQWxVbkz9rgrAlmmNiU6Cgec=
 github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511072027-002c32698a19 h1:ZpnWhPCmYo//h1Jx9iOGPGG1cbFRM7Ij+ms+mCK6RUo=
