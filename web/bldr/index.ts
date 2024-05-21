@@ -23,6 +23,13 @@ export { randomId } from './random-id.js'
 export { ItState, ItStateOpts } from './it-state.js'
 export { isElectron, isMac } from '../electron/electron.js'
 export {
+  pathSeparator,
+  splitPath,
+  joinPath,
+  navigateUpPath,
+  cleanPath,
+} from './path.js'
+export {
   RenderMode,
   SetRenderModeRequest,
   SetRenderModeResponse,

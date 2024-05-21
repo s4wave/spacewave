@@ -47,8 +47,6 @@
     "gen": "npm run gen:proto && npm run gen:deps",
     "gen:proto": "make genproto",
     "gen:deps": "node -e \"const pkg = require('./package.json'); const distPkg = require('./dist/deps/package.json'); Object.entries(pkg.dependencies).forEach(([name, version]) => { if (distPkg.dependencies[name]) { distPkg.dependencies[name] = version; } }); Object.entries(pkg.resolutions).forEach(([name, version]) => { distPkg.resolutions[name] = version.replace(/^\\^/, ''); }); require('fs').writeFileSync('./dist/deps/package.json', JSON.stringify(distPkg, null, 2));\" && cd ./dist/deps && npm i --package-lock-only",
-    "test": "make test && npm run check",
-    "test:js": "echo No JS tests.",
     "format": "npm run format:js && npm run format:go && npm run format:config",
     "format:config": "prettier --write tsconfig.json package.json",
     "format:go": "make format",
@@ -56,6 +54,9 @@
     "format:js:changed": "git diff --name-only --diff-filter=d HEAD | grep '\\(\\.ts\\|\\.tsx\\|\\.html\\|\\.css\\|\\.scss\\)$' | grep '^\\(web\\|entrypoint\\|example\\)/' | xargs -I {} prettier --write {}",
     "format:js:all": "prettier --write './{web,entrypoint,example,prototypes}/**/(*.ts|*.tsx|*.html|*.css|*.scss)'",
     "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "npm run test:js && npm run test:go",
+    "test:js": "vitest run && npm run typecheck",
+    "test:go": "make test",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
     "lint:js": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.cjs --ignore-pattern \"prototypes/**/*.js\" ./",
@@ -77,7 +78,8 @@
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.6",
     "typescript": "^5.4.5",
-    "unzip-crx-3": "^0.2.0"
+    "unzip-crx-3": "^0.2.0",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.4",

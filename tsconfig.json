@@ -8,8 +8,7 @@
     "paths": {
       "@go/*": ["vendor/*"],
       "@aptre/bldr": ["./web/bldr/index.js"],
-      "@aptre/bldr-react": ["./web/bldr-react/index.js"],
-      "electron": ["electron-nightly"]
+      "@aptre/bldr-react": ["./web/bldr-react/index.js"]
     },
     "allowSyntheticDefaultImports": true,
     "declaration": true,
