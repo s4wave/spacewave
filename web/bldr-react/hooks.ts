@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react'
-import isDeepEqual from 'lodash.isequal'
 import { Client } from 'starpc'
 import { useBldrContext } from './bldr-context.js'
 
@@ -172,7 +171,7 @@ export function useLatestRef<T>(
 
 // useMemoUint8Array memoizes a uint8array.
 export function useMemoUint8Array(value: Uint8Array | null): Uint8Array | null {
-  return useMemoDeepEqual(value)
+  return useMemoEqual(value)
 }
 
 // MouseEvent and other events satisfy this.
@@ -222,6 +221,9 @@ export function useDetailCountHandler<E extends DetailCountEvent>(
 // Returning a value identical to the previous state skips emitting an update event.
 export type GetStateFunc<T> = () => T | undefined
 
+// EqualStateFunc should compare two states for equality.
+export type EqualStateFunc<T> = (t1: T, t2: T) => boolean
+
 // useItState builds an AsyncIterable which emits the most recent state.
 //
 // When an iterator attaches to the AsyncIterable, the snapshot function is
@@ -241,6 +243,7 @@ export function useItState<T>(
   getState: GetStateFunc<T>,
   skipSnapshot?: boolean,
   latestValueOnly?: boolean,
+  cmpState?: EqualStateFunc<T>,
 ): AsyncIterable<T> {
   const latestValueOnlyRef = useLatestRef(latestValueOnly ?? false)
   const skipSnapshotRef = useLatestRef(skipSnapshot ?? false)
@@ -253,7 +256,7 @@ export function useItState<T>(
       if (
         typeof next === 'undefined' ||
         next === prev ||
-        isDeepEqual(next, prev)
+        (cmpState && typeof prev !== 'undefined' && cmpState(prev, next))
       ) {
         return prev
       }
@@ -429,15 +432,18 @@ export function useItUpdate<T>(
   )
 }
 
-// useMemoDeepEqual checks if the given value is deep equal to the memoized value
+// useMemoEqual checks if the given value is equal to the memoized value
 // and returns the memoized value if so.
-export function useMemoDeepEqual<T>(
+export function useMemoEqual<T>(
   value: T,
-  checkEqual: (v1: T, v2: T) => boolean = isDeepEqual,
+  checkEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
 ): T {
   const [memoValue, setMemoValue] = useState<T>(() => value)
   const memoEquiv = useMemo(
-    () => value === memoValue || checkEqual(value, memoValue),
+    () =>
+      value === memoValue ||
+      (value == null) === (memoValue == null) ||
+      (value != null && memoValue != null && checkEqual && checkEqual(value, memoValue)),
     [memoValue, value, checkEqual],
   )
   useEffect(() => {
@@ -448,13 +454,13 @@ export function useMemoDeepEqual<T>(
   return memoEquiv ? memoValue : value
 }
 
-// useMemoDeepEqualGetter checks if the given value is deep equal to the
-// memoized value and returns the memoized value if so. If the value is
-// different, calls the getter to return the next value.
-export function useMemoDeepEqualGetter<T, V = T>(
+// useMemoEqualGetter checks if the given value is equal to the memoized value
+// and returns the memoized value if so. If the value is different, calls the
+// getter to return the next value.
+export function useMemoEqualGetter<T, V = T>(
   value: T,
   getter: (val: T) => V,
-  checkEqual: (v1: T, v2: T) => boolean = isDeepEqual,
+  checkEqual: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
 ): V {
   const [memoState, setMemoState] = useState<{
     memoValue: T
@@ -462,7 +468,10 @@ export function useMemoDeepEqualGetter<T, V = T>(
   }>(() => ({ memoValue: value, outValue: getter(value) }))
   const memoValue = memoState.memoValue
   const memoEquiv = useMemo(
-    () => value === memoValue || checkEqual(value, memoValue),
+    () =>
+      value === memoValue ||
+      (value == null) === (memoValue == null) ||
+      (value != null && memoValue != null && checkEqual(value, memoValue)),
     [value, memoValue, checkEqual],
   )
   const outValue = memoEquiv ? memoState.outValue : getter(value)
@@ -474,11 +483,14 @@ export function useMemoDeepEqualGetter<T, V = T>(
   return outValue
 }
 
-// setDeepEqual generates a setter which checks if the two values are deep-equal.
-export function setDeepEqual<S>(next: S): (prevState: S | null) => S {
+// setIfChanged generates a setter which checks if the two values are equal and preserves the old value if not.
+export function setIfChanged<S>(
+  next: S,
+  checkEqual?: (v1: NonNullable<S>, v2: NonNullable<S>) => boolean,
+): (prevState: S | null) => S {
   return (prev: S | null): S => {
-    if (!prev) return next
-    return prev === next || isDeepEqual(prev, next) ? prev : next
+    if (prev == null || next == null) return next
+    return prev === next || (checkEqual && checkEqual(prev, next)) ? prev : next
   }
 }
 
@@ -493,10 +505,12 @@ export function useWatchStateRpc<T>(
     | undefined,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
+  checkEqual?: (v1: T, v2: T) => boolean,
 ): T | null {
   const [currValue, setCurrValue] = useState<T | null>(null)
   const handleValue = useCallback(
-    (nextValue: T) => setCurrValue(setDeepEqual<T | null>(nextValue)),
+    (nextValue: T) =>
+      setCurrValue(setIfChanged<T | null>(nextValue, checkEqual)),
     [],
   )
 
@@ -530,8 +544,9 @@ export function useSetValueRpc<T>(
     | undefined,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
+  checkEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
 ): boolean {
-  const currValue = useMemoDeepEqual(value)
+  const currValue = useMemoEqual<T | null | undefined>(value, checkEqual)
   const [wasSet, setWasSet] = useState(false)
 
   useRetryWithAbort(
