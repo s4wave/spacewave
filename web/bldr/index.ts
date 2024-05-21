@@ -1,3 +1,4 @@
+export { formatBytes } from './format.js'
 export {
   Retry,
   retryWithAbort,
