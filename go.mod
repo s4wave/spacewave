@@ -121,7 +121,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/crypto v0.23.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	gonum.org/v1/gonum v0.15.0 // indirect
 	nhooyr.io/websocket v1.8.11 // master
