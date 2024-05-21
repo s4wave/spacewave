@@ -80,7 +80,7 @@ func AnalyzePackages(
 			"github.com/aperturerobotics/controllerbus/bus":        nil,
 			"github.com/aperturerobotics/controllerbus/controller": nil,
 			"github.com/aperturerobotics/bldr/values":              types.NewPackage("github.com/aperturerobotics/bldr/values", "bldr_values"),
-			"github.com/aperturerobotics/bldr/plugin/entrypoint":   nil,
+			"github.com/aperturerobotics/bldr/plugin/entrypoint":   types.NewPackage("github.com/aperturerobotics/bldr/plugin/entrypoint", "plugin_entrypoint"),
 			"github.com/sirupsen/logrus":                           nil,
 		},
 		controllerFactories: make(map[string]*packages.Package),

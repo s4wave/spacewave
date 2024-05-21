@@ -41,6 +41,7 @@ type Config struct {
 	// If unset, defaults to reasonable defaults.
 	EndpointsBackoff *backoff.Backoff `protobuf:"bytes,8,opt,name=endpoints_backoff,json=endpointsBackoff,proto3" json:"endpointsBackoff,omitempty"`
 	// InitDistConfig is the initial distribution configuration packedmsg.
+	// If unset, uses a blank config.
 	InitDistConfig string `protobuf:"bytes,9,opt,name=init_dist_config,json=initDistConfig,proto3" json:"initDistConfig,omitempty"`
 }
 

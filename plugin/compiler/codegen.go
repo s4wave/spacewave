@@ -6,6 +6,7 @@ import (
 	"go/format"
 	"go/token"
 	"go/types"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,7 +54,9 @@ func CodegenPluginWrapperFromAnalysis(
 	for impPkg := range a.imports {
 		importStrs = append(importStrs, impPkg)
 	}
-	sort.Strings(importStrs)
+	slices.Sort(importStrs)
+	importStrs = slices.Compact(importStrs)
+
 	for _, impPath := range importStrs {
 		impPkg := a.imports[impPath]
 		// impPkg may be nil
@@ -68,7 +71,7 @@ func CodegenPluginWrapperFromAnalysis(
 					Name: impIdent,
 					Path: &gast.BasicLit{
 						Kind:  token.STRING,
-						Value: `"` + impPath + `"`,
+						Value: strconv.Quote(impPath),
 					},
 				},
 			},

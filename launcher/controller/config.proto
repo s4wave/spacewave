@@ -28,6 +28,6 @@ message Config {
   // If unset, defaults to reasonable defaults.
   .backoff.Backoff endpoints_backoff = 8;
   // InitDistConfig is the initial distribution configuration packedmsg.
-  // If unset, uses 
+  // If unset, uses a blank config.
   string init_dist_config = 9;
 }

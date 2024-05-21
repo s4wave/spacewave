@@ -70,6 +70,7 @@ export type Config = Message<{
   endpointsBackoff?: Backoff
   /**
    * InitDistConfig is the initial distribution configuration packedmsg.
+   * If unset, uses a blank config.
    *
    * @generated from field: string init_dist_config = 9;
    */
