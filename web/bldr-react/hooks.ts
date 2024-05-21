@@ -549,3 +549,68 @@ export function useSetValueRpc<T>(
 
   return wasSet
 }
+
+/**
+ * Executes a callback when the monitored value changes from a non-target value to the target value, excluding the first render.
+ * The callback can optionally return a boolean to prevent the update of the monitored value.
+ *
+ * @param value - The value to be monitored.
+ * @param targetValue - The value at which the callback should be executed.
+ * @param callback - The function to execute when the value changes to the target value. Can return boolean to control update.
+ * @param deps - Optional additional dependencies for the effect.
+ */
+export function useOnChangeToValue<T>(
+  value: T,
+  targetValue: T,
+  callback: () => void | boolean,
+  deps?: DependencyList,
+): void {
+  const [, setCurrValue] = useState<T>(() => value)
+
+  useEffect(() => {
+    setCurrValue((prev) => {
+      if (prev !== value) {
+        if (value === targetValue) {
+          const result = callback()
+          return result ?? true ? value : prev
+        } else {
+          return value
+        }
+      }
+      return prev
+    })
+  }, [
+    value,
+    targetValue,
+    callback,
+    ...(deps || []), // eslint-disable-line
+  ])
+}
+
+// Focusable-is-an-object-with-a-focus-functionh.
+type Focusable = {
+  focus: () => void
+}
+
+/**
+ * Calls the focus method on the ref's current value when a specified value changes to a target value.
+ * Ensures the ref's current value is truthy and has a focus method before attempting to focus.
+ * @param ref - A React ref object potentially containing an element with a focus method.
+ * @param value - The value to monitor for changes.
+ * @param targetValue - The value at which the focus method should be called.
+ */
+export function useFocusOnValueChange<T extends Focusable, V>(
+  ref: RefObject<T>,
+  value: V,
+  targetValue: V,
+  deps?: DependencyList,
+): void {
+  const callback = useCallback(() => {
+    if (ref.current) {
+      ref.current.focus()
+      return true // Return true to update previousValue.current
+    }
+    return false // Return false to prevent updating previousValue.current
+  }, [ref])
+  useOnChangeToValue(value, targetValue, callback, deps)
+}
