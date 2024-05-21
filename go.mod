@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.16.4 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240516072617-2412868f060f // master
+	github.com/aperturerobotics/hydra v0.0.0-20240520111703-3479900e1028 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // master
 )
 
@@ -128,7 +128,7 @@ require (
 )
 
 require (
-	github.com/aperturerobotics/go-indexeddb v0.2.0 // indirect
+	github.com/aperturerobotics/go-indexeddb v0.2.1 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect

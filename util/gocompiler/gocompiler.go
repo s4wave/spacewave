@@ -22,10 +22,36 @@ func GetDefaultArgs() []string {
 	}
 }
 
+// GetDefaultTinygoLlvmFeatures are the set of additional features to enable or disable.
+func GetDefaultTinygoLlvmFeatures() []string {
+	// https://github.com/llvm/llvm-project/blob/91423d71938d7a1dba27188e6d854148a750a3dd/clang/lib/Basic/Targets/WebAssembly.cpp#L150
+	// https://github.com/llvm/llvm-project/blob/91423d71938d7a1dba27188e6d854148a750a3dd/clang/lib/Basic/Targets/WebAssembly.cpp#L180
+	return []string{
+		// https://caniuse.com/?search=WebAssembly
+		// Baseline 2023: https://caniuse.com/wasm-simd
+		"+simd128",
+		// All browsers support: https://caniuse.com/wasm-signext
+		"+sign-ext",
+		// All browsers support: https://caniuse.com/wasm-threads
+		"+atomics",
+		// All browsers support: https://caniuse.com/wasm-bulk-memory
+		"+bulk-memory",
+		// All browsers support: https://caniuse.com/wasm-multi-value
+		"+multivalue",
+		// All browsers support: https://caniuse.com/wasm-mutable-globals
+		"+mutable-globals",
+		// All browsers support: https://caniuse.com/wasm-reference-types
+		"+reference-types",
+		// All browsers support: https://caniuse.com/wasm-nontrapping-fptoint
+		"+nontrapping-fptoint",
+	}
+}
+
 // GetDefaultTinygoArgs are the set of args we usually pass to the compiler.
 func GetDefaultTinygoArgs() []string {
 	return []string{
 		"-opt=2",
+		"-llvm-features=" + strings.Join(GetDefaultTinygoLlvmFeatures(), ","),
 	}
 }
 
