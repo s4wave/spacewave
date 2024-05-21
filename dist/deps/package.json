@@ -19,7 +19,7 @@
     "url": "git@github.com:aperturerobotics/bldr.git"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.2",
+    "@aptre/protobuf-es-lite": "^0.4.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

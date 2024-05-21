@@ -1,0 +1,74 @@
+syntax = "proto3";
+package bldr.launcher;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+
+// DistConfig is the encoded and signed object that is exposed on the
+// distribution URL endpoints. The config with the highest valid revision field
+// and valid signature is accepted as the latest config.
+//
+// Usually encoded with packedmsg(peer.SignedMsg(DistConfig))
+message DistConfig {
+  // ProjectId is the identifier of the project.
+  // usually matches the id: field in the project config.
+  // if this doesn't match the app config is ignored.
+  string project_id = 1;
+  // Rev is the revision of this app config object.
+  uint64 rev = 2;
+
+  // LauncherConfigSet is a ConfigSet to apply to the launcher.
+  // This ConfigSet is applied to the launcher plugin bus.
+  // Note: the launcher configuration itself could be overridden by this.
+  // Note: the highest revision config is used in the configset controller.
+  map<string, .configset.proto.ControllerConfig> launcher_config_set = 3;
+}
+
+// LauncherInfo contains information about the state of the launcher.
+message LauncherInfo {
+  // DistConfig contains the latest app dist config object.
+  // May be empty if the config is not known / fetched yet.
+  DistConfig dist_config = 1;
+}
+
+// Launcher is the RPC service exposed by the launcher plugin.
+service Launcher {
+  // WatchLauncherInfo returns the current state of the launcher.
+  //
+  // Watches the state of the launcher and returns a stream.
+  rpc WatchLauncherInfo(WatchLauncherInfoRequest) returns (stream LauncherInfo) {}
+  // PushDistConfigMsg pushes a signed packedmsg with an DistConfig.
+  rpc PushDistConfigMsg(PushDistConfigRequest) returns (PushDistConfigResponse) {}
+  // RecheckDistConfig checks for updates on the app dist config immediately.
+  // Starts the check but does not wait for it to complete.
+  rpc RecheckDistConfig(RecheckDistConfigRequest) returns (RecheckDistConfigResponse) {}
+}
+
+// RecheckDistConfigRequest is a request to immediately recheck for updates.
+message RecheckDistConfigRequest {}
+
+// RecheckDistConfigRequest is a response to immediately recheck for updates.
+// Returned immediately
+message RecheckDistConfigResponse {}
+
+// WatchLauncherInfoRequest is the request to get the launcher info.
+message WatchLauncherInfoRequest {}
+
+// PushDistConfigRequest is the request to push an app dist config signed message.
+message PushDistConfigRequest {
+  // Body is the block of text containing the packedmsg.
+  // We will scan the body of message for a valid signed packedmsg.
+  string body = 1;
+}
+
+// PushDistConfigResponse is the response to PushDistConfigRequest.
+message PushDistConfigResponse {
+  // Valid indicates that a valid packedmsg was found in the body.
+  bool valid = 1;
+  // Updated indicates that the found packedmsg is now the latest.
+  // Will be false if valid=false.
+  bool updated = 2;
+  // Rev was the revision of the found app config object. 0 if none.
+  uint64 rev = 3;
+  // PrevRev was the revision of the old app config object. 0 if none.
+  uint64 prev_rev = 4;
+}
