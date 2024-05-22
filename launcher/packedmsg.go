@@ -15,8 +15,6 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
-var ErrUnknownDistSigPeer = errors.New("message not signed with any recognized distribution keys")
-
 // DecodeSignedDistConfig attempts to decode a packed DistConfig.
 // The DistConfig is packed inside a SignedMsg.
 // Pass a list of acceptable signature peer IDs to accept.
@@ -29,7 +27,7 @@ func DecodeSignedDistConfig(data []byte, allowedPeerIDs []peer.ID, projectID str
 		return nil, "", err
 	}
 
-	signerPub, _, err := signedMsg.ExtractAndVerify()
+	signerPub, signerPeerID, err := signedMsg.ExtractAndVerify()
 	if err != nil {
 		return nil, "", err
 	}
@@ -41,7 +39,7 @@ func DecodeSignedDistConfig(data []byte, allowedPeerIDs []peer.ID, projectID str
 		}
 	}
 	if len(matchedPeerID) == 0 {
-		return nil, "", ErrUnknownDistSigPeer
+		return nil, "", errors.Errorf("message signer not recognized: %v", signerPeerID.String())
 	}
 
 	// Make it a bit harder for a would-be curious onlooker.
