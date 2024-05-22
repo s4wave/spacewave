@@ -28,6 +28,7 @@ func NewKvfileHTTPBlock(
 	ctx context.Context,
 	le *logrus.Entry,
 	fileURL string,
+	headers map[string]string,
 	disableCache bool,
 	kvkey *store_kvkey.KVKey,
 	httpRangeMinSize int64,
@@ -39,7 +40,7 @@ func NewKvfileHTTPBlock(
 	}
 
 	// construct the range reader
-	fetchReader, err := http_range.NewHTTPRangeReader(ctx, le, fileURL, disableCache, verbose)
+	fetchReader, err := http_range.NewHTTPRangeReader(ctx, le, fileURL, headers, disableCache, verbose)
 	if err != nil {
 		return nil, err
 	}

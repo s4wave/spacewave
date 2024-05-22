@@ -30,41 +30,47 @@ export type Config = Message<{
    */
   url?: string
   /**
+   * Headers are additional headers to set on the request.
+   *
+   * @generated from field: map<string, string> headers = 3;
+   */
+  headers?: { [key: string]: string }
+  /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
-   * @generated from field: repeated string bucket_ids = 3;
+   * @generated from field: repeated string bucket_ids = 4;
    */
   bucketIds?: string[]
   /**
    * SkipNotFound skips returning a value if the block was not found.
    *
-   * @generated from field: bool skip_not_found = 4;
+   * @generated from field: bool skip_not_found = 5;
    */
   skipNotFound?: boolean
   /**
    * Verbose enables verbose logging of the block store.
    *
-   * @generated from field: bool verbose = 5;
+   * @generated from field: bool verbose = 6;
    */
   verbose?: boolean
   /**
    * DisableCache disables the browser cache (if possible).
    *
-   * @generated from field: bool disable_cache = 6;
+   * @generated from field: bool disable_cache = 7;
    */
   disableCache?: boolean
   /**
    * KvKeyOpts are key/value key constants.
    * Optional.
    *
-   * @generated from field: store.kvkey.Config kv_key_opts = 7;
+   * @generated from field: store.kvkey.Config kv_key_opts = 8;
    */
   kvKeyOpts?: Config$1
   /**
    * MinRequestSize sets the minimum size to use for http range requests.
    * Enables buffering in memory if set.
    *
-   * @generated from field: uint64 min_request_size = 8;
+   * @generated from field: uint64 min_request_size = 9;
    */
   minRequestSize?: bigint
 }>
@@ -77,16 +83,23 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
+      name: 'headers',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'scalar', T: ScalarType.STRING },
+    },
+    {
+      no: 4,
       name: 'bucket_ids',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
     },
-    { no: 4, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 6, name: 'disable_cache', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 7, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
-    { no: 8, name: 'min_request_size', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 5, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'disable_cache', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 8, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
+    { no: 9, name: 'min_request_size', kind: 'scalar', T: ScalarType.UINT64 },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

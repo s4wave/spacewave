@@ -25,20 +25,22 @@ type Config struct {
 	BlockStoreId string `protobuf:"bytes,1,opt,name=block_store_id,json=blockStoreId,proto3" json:"blockStoreId,omitempty"`
 	// Url is the url where the kvfile is located.
 	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// Headers are additional headers to set on the request.
+	Headers map[string]string `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
-	BucketIds []string `protobuf:"bytes,3,rep,name=bucket_ids,json=bucketIds,proto3" json:"bucketIds,omitempty"`
+	BucketIds []string `protobuf:"bytes,4,rep,name=bucket_ids,json=bucketIds,proto3" json:"bucketIds,omitempty"`
 	// SkipNotFound skips returning a value if the block was not found.
-	SkipNotFound bool `protobuf:"varint,4,opt,name=skip_not_found,json=skipNotFound,proto3" json:"skipNotFound,omitempty"`
+	SkipNotFound bool `protobuf:"varint,5,opt,name=skip_not_found,json=skipNotFound,proto3" json:"skipNotFound,omitempty"`
 	// Verbose enables verbose logging of the block store.
-	Verbose bool `protobuf:"varint,5,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	Verbose bool `protobuf:"varint,6,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// DisableCache disables the browser cache (if possible).
-	DisableCache bool `protobuf:"varint,6,opt,name=disable_cache,json=disableCache,proto3" json:"disableCache,omitempty"`
+	DisableCache bool `protobuf:"varint,7,opt,name=disable_cache,json=disableCache,proto3" json:"disableCache,omitempty"`
 	// KvKeyOpts are key/value key constants.
 	// Optional.
-	KvKeyOpts *kvkey.Config `protobuf:"bytes,7,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kvKeyOpts,omitempty"`
+	KvKeyOpts *kvkey.Config `protobuf:"bytes,8,opt,name=kv_key_opts,json=kvKeyOpts,proto3" json:"kvKeyOpts,omitempty"`
 	// MinRequestSize sets the minimum size to use for http range requests.
 	// Enables buffering in memory if set.
-	MinRequestSize uint64 `protobuf:"varint,8,opt,name=min_request_size,json=minRequestSize,proto3" json:"minRequestSize,omitempty"`
+	MinRequestSize uint64 `protobuf:"varint,9,opt,name=min_request_size,json=minRequestSize,proto3" json:"minRequestSize,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -59,6 +61,13 @@ func (x *Config) GetUrl() string {
 		return x.Url
 	}
 	return ""
+}
+
+func (x *Config) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
 }
 
 func (x *Config) GetBucketIds() []string {
@@ -103,6 +112,32 @@ func (x *Config) GetMinRequestSize() uint64 {
 	return 0
 }
 
+type Config_HeadersEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *Config_HeadersEntry) Reset() {
+	*x = Config_HeadersEntry{}
+}
+
+func (*Config_HeadersEntry) ProtoMessage() {}
+
+func (x *Config_HeadersEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *Config_HeadersEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -114,6 +149,13 @@ func (m *Config) CloneVT() *Config {
 	r.Verbose = m.Verbose
 	r.DisableCache = m.DisableCache
 	r.MinRequestSize = m.MinRequestSize
+	if rhs := m.Headers; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.Headers = tmpContainer
+	}
 	if rhs := m.BucketIds; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -144,6 +186,18 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	if this.Url != that.Url {
 		return false
+	}
+	if len(this.Headers) != len(that.Headers) {
+		return false
+	}
+	for i, vx := range this.Headers {
+		vy, ok := that.Headers[i]
+		if !ok {
+			return false
+		}
+		if vx != vy {
+			return false
+		}
 	}
 	if len(this.BucketIds) != len(that.BucketIds) {
 		return false
@@ -180,6 +234,56 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the Config_HeadersEntry message to JSON.
+func (x *Config_HeadersEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Config_HeadersEntry to JSON.
+func (x *Config_HeadersEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Config_HeadersEntry message from JSON.
+func (x *Config_HeadersEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Config_HeadersEntry from JSON.
+func (x *Config_HeadersEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the Config message to JSON.
 func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -197,6 +301,18 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("url")
 		s.WriteString(x.Url)
+	}
+	if x.Headers != nil || s.HasField("headers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("headers")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.Headers {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
 	}
 	if len(x.BucketIds) > 0 || s.HasField("bucketIds") {
 		s.WriteMoreIf(&wroteField)
@@ -251,6 +367,16 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "url":
 			s.AddField("url")
 			x.Url = s.ReadString()
+		case "headers":
+			s.AddField("headers")
+			if s.ReadNil() {
+				x.Headers = nil
+				return
+			}
+			x.Headers = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.Headers[key] = s.ReadString()
+			})
 		case "bucket_ids", "bucketIds":
 			s.AddField("bucket_ids")
 			if s.ReadNil() {
@@ -319,7 +445,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.MinRequestSize != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MinRequestSize))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x48
 	}
 	if m.KvKeyOpts != nil {
 		size, err := m.KvKeyOpts.MarshalToSizedBufferVT(dAtA[:i])
@@ -329,7 +455,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x3a
+		dAtA[i] = 0x42
 	}
 	if m.DisableCache {
 		i--
@@ -339,7 +465,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x38
 	}
 	if m.Verbose {
 		i--
@@ -349,7 +475,7 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x30
 	}
 	if m.SkipNotFound {
 		i--
@@ -359,13 +485,32 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x28
 	}
 	if len(m.BucketIds) > 0 {
 		for iNdEx := len(m.BucketIds) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.BucketIds[iNdEx])
 			copy(dAtA[i:], m.BucketIds[iNdEx])
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BucketIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.Headers) > 0 {
+		for k := range m.Headers {
+			v := m.Headers[k]
+			baseI := i
+			i -= len(v)
+			copy(dAtA[i:], v)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(v)))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
 			i--
 			dAtA[i] = 0x1a
 		}
@@ -401,6 +546,14 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.Headers) > 0 {
+		for k, v := range m.Headers {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + 1 + len(v) + protobuf_go_lite.SizeOfVarint(uint64(len(v)))
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
 	if len(m.BucketIds) > 0 {
 		for _, s := range m.BucketIds {
 			l = len(s)
@@ -427,6 +580,23 @@ func (m *Config) SizeVT() (n int) {
 	return n
 }
 
+func (x *Config_HeadersEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("HeadersEntry { ")
+	if x.Key != "" {
+		sb.WriteString(" key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != "" {
+		sb.WriteString(" value: ")
+		sb.WriteString(strconv.Quote(x.Value))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *Config_HeadersEntry) String() string {
+	return x.MarshalProtoText()
+}
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config { ")
@@ -437,6 +607,16 @@ func (x *Config) MarshalProtoText() string {
 	if x.Url != "" {
 		sb.WriteString(" url: ")
 		sb.WriteString(strconv.Quote(x.Url))
+	}
+	if len(x.Headers) > 0 {
+		sb.WriteString(" headers: {")
+		for k, v := range x.Headers {
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString(" }")
 	}
 	if len(x.BucketIds) > 0 {
 		sb.WriteString(" bucket_ids: [")
@@ -569,6 +749,133 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Headers", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Headers == nil {
+				m.Headers = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protobuf_go_lite.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protobuf_go_lite.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var stringLenmapvalue uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protobuf_go_lite.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapvalue |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapvalue := int(stringLenmapvalue)
+					if intStringLenmapvalue < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+					if postStringIndexmapvalue < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapvalue > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
+					iNdEx = postStringIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Headers[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BucketIds", wireType)
 			}
 			var stringLen uint64
@@ -599,7 +906,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.BucketIds = append(m.BucketIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SkipNotFound", wireType)
 			}
@@ -619,7 +926,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SkipNotFound = bool(v != 0)
-		case 5:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
 			}
@@ -639,7 +946,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Verbose = bool(v != 0)
-		case 6:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DisableCache", wireType)
 			}
@@ -659,7 +966,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableCache = bool(v != 0)
-		case 7:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field KvKeyOpts", wireType)
 			}
@@ -695,7 +1002,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinRequestSize", wireType)
 			}

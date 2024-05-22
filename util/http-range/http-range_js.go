@@ -29,9 +29,17 @@ type HTTPRangeReader = http_range_fetch.FetchRangeReader
 //
 // if le is set, requests will be logged
 // verbose logs successful as well as errored http requests
-func NewHTTPRangeReader(ctx context.Context, le *logrus.Entry, fileUrl string, disableCache, verbose bool) (*HTTPRangeReader, error) {
+func NewHTTPRangeReader(
+	ctx context.Context,
+	le *logrus.Entry,
+	fileUrl string,
+	headers map[string]string,
+	disableCache,
+	verbose bool,
+) (*HTTPRangeReader, error) {
 	opts := &fetch.Opts{
-		Signal: ctx,
+		Signal:  ctx,
+		Headers: headers,
 	}
 	if disableCache {
 		opts.Cache = "no-store"

@@ -29,10 +29,20 @@ type HTTPRangeReader = http_range_http.HTTPRangeReader
 //
 // if le is set, requests will be logged
 // verbose logs successful as well as errored http requests
-func NewHTTPRangeReader(ctx context.Context, le *logrus.Entry, fileUrl string, disableCache, verbose bool) (*HTTPRangeReader, error) {
+func NewHTTPRangeReader(
+	ctx context.Context,
+	le *logrus.Entry,
+	fileUrl string,
+	headers map[string]string,
+	disableCache,
+	verbose bool,
+) (*HTTPRangeReader, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fileUrl, nil)
 	if err != nil {
 		return nil, err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 
 	return http_range_http.NewHTTPRangeReader(le, req, http.DefaultClient, verbose), nil

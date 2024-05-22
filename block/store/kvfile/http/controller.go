@@ -50,7 +50,16 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			return nil, nil, err
 		}
 
-		kvfileBlock, err := NewKvfileHTTPBlock(ctx, le, fileURL.String(), conf.GetDisableCache(), kvk, int64(conf.GetMinRequestSize()), verbose)
+		kvfileBlock, err := NewKvfileHTTPBlock(
+			ctx,
+			le,
+			fileURL.String(),
+			conf.GetHeaders(),
+			conf.GetDisableCache(),
+			kvk,
+			int64(conf.GetMinRequestSize()),
+			verbose,
+		)
 		if err != nil {
 			return nil, nil, err
 		}

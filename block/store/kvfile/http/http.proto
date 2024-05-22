@@ -12,18 +12,20 @@ message Config {
   string block_store_id = 1;
   // Url is the url where the kvfile is located.
   string url = 2;
+  // Headers are additional headers to set on the request.
+  map<string, string> headers = 3;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
-  repeated string bucket_ids = 3;
+  repeated string bucket_ids = 4;
   // SkipNotFound skips returning a value if the block was not found.
-  bool skip_not_found = 4;
+  bool skip_not_found = 5;
   // Verbose enables verbose logging of the block store.
-  bool verbose = 5;
+  bool verbose = 6;
   // DisableCache disables the browser cache (if possible).
-  bool disable_cache = 6;
+  bool disable_cache = 7;
   // KvKeyOpts are key/value key constants.
   // Optional.
-  .store.kvkey.Config kv_key_opts = 7;
+  .store.kvkey.Config kv_key_opts = 8;
   // MinRequestSize sets the minimum size to use for http range requests.
   // Enables buffering in memory if set.
-  uint64 min_request_size = 8;
+  uint64 min_request_size = 9;
 }
