@@ -32,4 +32,8 @@ func TestExecDetermineCjsExports(t *testing.T) {
 	t.Logf("%#v", exports)
 
 	t.Log(determine_cjs_exports.GenerateRemapExports(importPath, exports))
+
+	if len(exports.Exports) < 10 {
+		t.Fatal("expected more exports from react")
+	}
 }

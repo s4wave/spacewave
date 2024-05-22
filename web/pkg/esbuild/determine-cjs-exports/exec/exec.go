@@ -13,6 +13,7 @@ import (
 )
 
 // ExecDetermineCjsExports uses the cjs lexer to determine the list of named exports for a path.
+// TODO: don't require installing cjs-module-lexer in parent project
 func ExecDetermineCjsExports(
 	ctx context.Context,
 	le *logrus.Entry,
