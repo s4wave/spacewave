@@ -2,14 +2,14 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240514053552-ac3630b1283a // master
+require github.com/aperturerobotics/hydra v0.0.0-20240522012836-ab3a20267b41 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2 // master
+	github.com/aperturerobotics/bifrost v0.32.3 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
 )
@@ -18,7 +18,6 @@ require (
 replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a // aperture
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd // aperture
-	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
@@ -42,12 +41,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.15.6 // latest
-	github.com/aperturerobotics/controllerbus v0.45.2 // latest
+	github.com/aperturerobotics/common v0.16.6 // latest
+	github.com/aperturerobotics/controllerbus v0.45.4 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
-	github.com/aperturerobotics/protobuf-go-lite v0.6.3 // latest
-	github.com/aperturerobotics/starpc v0.32.8 // latest
-	github.com/aperturerobotics/util v1.23.1 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
+	github.com/aperturerobotics/starpc v0.32.10 // latest
+	github.com/aperturerobotics/util v1.23.4 // master
 )
 
 // aperture: use compatibility forks
