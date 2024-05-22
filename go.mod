@@ -3,11 +3,14 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.3-0.20240511073626-142e369848b2
-	github.com/aperturerobotics/common v0.15.6
-	github.com/aperturerobotics/controllerbus v0.45.2
-	github.com/aperturerobotics/identity v0.0.0-20240504070230-c5e8cecacb01 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.6.3
+	github.com/aperturerobotics/bifrost v0.32.3 // master
+	github.com/aperturerobotics/common v0.16.6 // latest
+	github.com/aperturerobotics/controllerbus v0.45.4 // latest
+	github.com/aperturerobotics/identity v0.0.0-20240522105550-a1bde762ad14 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
+)
+
+require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/keybase/go-triplesec v0.0.0-20231213205702-981541df982e
 	github.com/libp2p/go-libp2p v0.33.2
@@ -23,10 +26,10 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect
-	github.com/aperturerobotics/hydra v0.0.0-20240514053552-ac3630b1283a // indirect
+	github.com/aperturerobotics/hydra v0.0.0-20240522012836-ab3a20267b41 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
-	github.com/aperturerobotics/starpc v0.32.8 // indirect
-	github.com/aperturerobotics/util v1.23.1 // indirect
+	github.com/aperturerobotics/starpc v0.32.10 // indirect
+	github.com/aperturerobotics/util v1.23.4 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect

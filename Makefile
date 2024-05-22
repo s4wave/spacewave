@@ -5,7 +5,10 @@ MAKEFLAGS += --no-print-directory
 
 GO_VENDOR_DIR := ./vendor
 COMMON_DIR := $(GO_VENDOR_DIR)/github.com/aperturerobotics/common
+
 COMMON_MAKEFILE := $(COMMON_DIR)/Makefile
+TOOLS_DIR := .tools
+TOOLS_MAKEFILE := .tools/Makefile
 
 export GO111MODULE=on
 undefine GOARCH
@@ -21,11 +24,14 @@ $(COMMON_MAKEFILE): vendor
 		exit 1; \
 	fi
 
-$(MAKECMDGOALS): $(COMMON_MAKEFILE)
-	@$(MAKE) -C $(COMMON_DIR) PROJECT_DIR="$(PROJECT_DIR)" $@
+$(TOOLS_MAKEFILE): $(COMMON_MAKEFILE)
+	@$(MAKE) -C $(COMMON_DIR) TOOLS_DIR="$(TOOLS_DIR)" PROJECT_DIR="$(PROJECT_DIR)" tools
 
-%: $(COMMON_MAKEFILE)
-	@$(MAKE) -C $(COMMON_DIR) PROJECT_DIR="$(PROJECT_DIR)" $@
+$(MAKECMDGOALS): $(TOOLS_MAKEFILE)
+	@$(MAKE) -C $(TOOLS_DIR) TOOLS_DIR="$(TOOLS_DIR)" PROJECT_DIR="$(PROJECT_DIR)" $@
+
+%: $(TOOLS_MAKEFILE)
+	@$(MAKE) -C $(TOOLS_DIR) TOOLS_DIR="$(TOOLS_DIR)" PROJECT_DIR="$(PROJECT_DIR)" $@
 
 vendor:
 	go mod vendor
