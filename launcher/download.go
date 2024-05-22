@@ -13,11 +13,21 @@ import (
 // FetchDistConfig fetches the dist configuration from an HTTP endpoint.
 // Returns the config, the encoded config, the peer that signed the config, and any error.
 // distPeerIDs are the peer ids that we accept signed DistConfig from.
-func FetchDistConfig(ctx context.Context, le *logrus.Entry, reqURL string, projectID string, distPeerIDs []peer.ID) (*DistConfig, string, peer.ID, error) {
+func FetchDistConfig(
+	ctx context.Context,
+	le *logrus.Entry,
+	reqURL string,
+	headers map[string]string,
+	projectID string,
+	distPeerIDs []peer.ID,
+) (*DistConfig, string, peer.ID, error) {
 	le.Debugf("looking up dist config: %s", reqURL)
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
 		return nil, "", "", err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
