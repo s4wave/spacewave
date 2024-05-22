@@ -253,7 +253,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 		outDir,
 		// "./pkgs/",
 		"/pkgs/",
-		false,
+		minify,
 	)
 	if err != nil {
 		return err

@@ -230,7 +230,7 @@ func FindDistConfigUpdate(le *logrus.Entry, currRev uint64, data []byte, distPee
 			updatedAppDistConfMsg = packedMsgsSrc[i]
 			updatedAppDistConfPeer = matchedPeerID
 			if le != nil {
-				le.Info("found valid app dist config")
+				le.Debug("found valid app dist config")
 			}
 		} else {
 			if le != nil {
