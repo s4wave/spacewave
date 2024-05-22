@@ -32,6 +32,7 @@ func DecodeSignedDistConfig(data []byte, allowedPeerIDs []peer.ID, projectID str
 		return nil, "", err
 	}
 	signerPeerIDStr := signerPeerID.String()
+
 	var matchedPeerID peer.ID
 	for _, peerID := range allowedPeerIDs {
 		if signerPeerIDStr == peerID.String() || peerID.MatchesPublicKey(signerPub) {

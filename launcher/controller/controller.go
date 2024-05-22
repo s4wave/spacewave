@@ -68,7 +68,8 @@ func NewController(
 
 		launcherInfoCtr: ccontainer.NewCContainer[*bldr_launcher.LauncherInfo](nil),
 	}
-	ctrl.endps = conf.CloneSortEndpoints() // checked in Validate
+	ctrl.endps = conf.CloneSortEndpoints()        // checked in Validate
+	ctrl.distPeerIDs, _ = conf.ParseDistPeerIds() // checked in Validate
 	fetcherBackoffConf := conf.GetEndpointsBackoff()
 	if fetcherBackoffConf.GetEmpty() {
 		fetcherBackoffConf = defaultFetcherBackoffConf()
