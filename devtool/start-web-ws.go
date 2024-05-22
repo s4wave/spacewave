@@ -11,6 +11,7 @@ import (
 	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
@@ -53,27 +54,31 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// write the banner
 	writeBanner()
 
+	// HACK: set an environment variable to make the web plugin skip starting.
+	// HACK: in future we can pass this via some other kind of signal.
+	os.Setenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON", "true")
+
 	// build the plugin host controller
-	// TODO: re-enable this but make sure web plugin does not start electron
-	/*
-			_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
-				ctx,
-				b.GetBus(),
-				b.GetWorldEngineID(),
-				b.GetPluginHostObjectKey(),
-				b.GetVolume().GetID(),
-				b.GetVolume().GetPeerID().String(),
-				b.GetPluginsStateRoot(),
-				b.GetPluginsDistRoot(),
-		        "",
-			)
-			if err != nil {
-				return err
-			}
-			if relPluginHost != nil {
-				defer relPluginHost()
-			}
-	*/
+	_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
+		ctx,
+		b.GetBus(),
+		b.GetWorldEngineID(),
+		b.GetPluginHostObjectKey(),
+		b.GetVolume().GetID(),
+		b.GetVolume().GetPeerID().String(),
+		b.GetPluginsStateRoot(),
+		b.GetPluginsDistRoot(),
+		true,
+		true,
+		true,
+		"", // ignored on native platform
+	)
+	if err != nil {
+		return err
+	}
+	if relPluginHost != nil {
+		defer relPluginHost()
+	}
 
 	// execute the project controller
 	_, projCtrlRef, err := b.StartProjectController(
@@ -112,8 +117,9 @@ func (b *DevtoolBus) ExecuteWebWs(
 		le,
 		distSrcDir,
 		entrypointDir,
-		"./entrypoint/runtime-ws.mjs",
-		"./sw.mjs",
+		// web-document is located under /pkgs/@aptre/bldr
+		"../../../entrypoint/runtime-ws.mjs",
+		"../../../sw.mjs",
 		minifyEntrypoint,
 		devMode,
 	)

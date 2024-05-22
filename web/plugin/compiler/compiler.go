@@ -4,6 +4,7 @@ package bldr_web_plugin_compiler
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -124,9 +125,16 @@ func (c *Controller) BundleElectronHook(
 		return nil, nil
 	}
 
+	// HACK: This is used by start-web-ws to disable bundling electron.
+	// HACK: Replace this with something better.
+	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
+	if buildType.IsDev() && os.Getenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON") == "true" {
+		c.GetLogger().Debug("skipping bundling electron as the skip env var is set")
+		return nil, nil
+	}
+
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
-	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	minify, devMode := buildType.IsRelease(), buildType.IsDev()
 	workingDir := filepath.Join(builderConf.GetWorkingPath(), "build")
 
