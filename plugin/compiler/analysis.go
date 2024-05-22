@@ -175,6 +175,7 @@ func AnalyzePackages(
 
 		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
 		if factoryCtorObj == nil {
+			// le.Debug("no controller factories found in package")
 			continue
 		}
 

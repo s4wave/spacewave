@@ -18,8 +18,8 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2d
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.9.0 h1:kDKwun/XVatU6k642R4LtS4KIiPZeT2SC64+mxzS/Pg=
 github.com/aperturerobotics/cayley v0.9.0/go.mod h1:6ckQhhIqJSiCFwz7l3POHb7CGKYjUe1QkHn0bocmk+A=
-github.com/aperturerobotics/common v0.16.4 h1:bX/gvpoc48jFbVsVRkZZt3j2rBxijt8iLAgunhM98+k=
-github.com/aperturerobotics/common v0.16.4/go.mod h1:CNUQ4LRn9e2zwKKrWMZiKoywhWV9+Wpn3QPn9uE2E7Y=
+github.com/aperturerobotics/common v0.16.6 h1:xSeQAJkari6JHNwycngVNP5t59CSVDrpqm9xvIsVo48=
+github.com/aperturerobotics/common v0.16.6/go.mod h1:CNUQ4LRn9e2zwKKrWMZiKoywhWV9+Wpn3QPn9uE2E7Y=
 github.com/aperturerobotics/controllerbus v0.45.4 h1:tn0DiGmo30T64xWY6h4QSoDGvaMwoSeQX+Jy/Vq0Sdg=
 github.com/aperturerobotics/controllerbus v0.45.4/go.mod h1:48s2IHA9WCyP31wiAf3EjDu6FzOb6DQJnIc5RNwvRq0=
 github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
@@ -46,8 +46,8 @@ github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10 h1:xtQ
 github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10/go.mod h1:IWwvw/rjosC5aPDuEgzbRPNlZSHC4b4ABztoalIe59g=
 github.com/aperturerobotics/starpc v0.32.10 h1:Z9Y0XVMSUSg8oMywjAba2eM2N2KaFWrg2tp88kSt8Pg=
 github.com/aperturerobotics/starpc v0.32.10/go.mod h1:nc3qveJAMZJlRpHZyHm0yvESvCbU0xx38mc/nMvpb0o=
-github.com/aperturerobotics/util v1.23.4-0.20240522072910-017c7ec5d981 h1:YqkPuNN35Ea/GAt4jj8hO/ZROtxYZ9xlGmqGZoTKkNQ=
-github.com/aperturerobotics/util v1.23.4-0.20240522072910-017c7ec5d981/go.mod h1:oGiyKFTZDvIE0rk6nE1f+NkJyNtY4KpI0GXzLIPqH3Y=
+github.com/aperturerobotics/util v1.23.4 h1:IXkVoN3Cc+5U5Rhd5hC00VGgL1PainhpaTyz5IPkc8I=
+github.com/aperturerobotics/util v1.23.4/go.mod h1:y/BGl05icfllBf7l51IMJ6UOjpsDscAPt3ynhDZrwZ4=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.13.0 h1:bAQ9OPNFYbGHV6Nez0tmNI0RiEu7/hxlYJRUA0wFAVE=
 github.com/bits-and-blooms/bitset v1.13.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
