@@ -31,15 +31,16 @@ func DecodeSignedDistConfig(data []byte, allowedPeerIDs []peer.ID, projectID str
 	if err != nil {
 		return nil, "", err
 	}
+	signerPeerIDStr := signerPeerID.String()
 	var matchedPeerID peer.ID
 	for _, peerID := range allowedPeerIDs {
-		if peerID.MatchesPublicKey(signerPub) {
+		if signerPeerIDStr == peerID.String() || peerID.MatchesPublicKey(signerPub) {
 			matchedPeerID = peerID
 			break
 		}
 	}
 	if len(matchedPeerID) == 0 {
-		return nil, "", errors.Errorf("message signer not recognized: %v", signerPeerID.String())
+		return nil, "", errors.Errorf("message signer not recognized: %v", signerPeerIDStr)
 	}
 
 	// Make it a bit harder for a would-be curious onlooker.
