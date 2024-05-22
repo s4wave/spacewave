@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_project_watcher
 
 import (
@@ -25,7 +27,7 @@ var Version = semver.MustParse("0.0.1")
 var controllerDescrip = "bldr project config file watcher"
 
 // ControllerID is the ID of the controller.
-const ControllerID = "bldr/project/watcher"
+const ControllerID = ConfigID
 
 // Controller is the bldr Project Watcher controller.
 type Controller struct {

@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_manifest_builder
 
 import (

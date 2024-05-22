@@ -12,7 +12,7 @@ import (
 )
 
 // ConfigID is the config identifier.
-const ConfigID = ControllerID
+const ConfigID = "bldr/dist/compiler"
 
 // NewConfig constructs a new config.
 func NewConfig() *Config {

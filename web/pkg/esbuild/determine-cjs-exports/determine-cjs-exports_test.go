@@ -1,3 +1,5 @@
+//go:build !js
+
 package determine_cjs_exports
 
 import (

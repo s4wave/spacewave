@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_web_plugin_compiler
 
 import (

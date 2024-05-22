@@ -80,7 +80,9 @@ func (t *webPkgTracker) execute(ctx context.Context) error {
 			}
 			continue
 		case av := <-valCh:
-			val = av.GetValue()
+			if av != nil {
+				val = av.GetValue()
+			}
 			if val == nil {
 				t.srvPromise.SetPromise(nil)
 				continue

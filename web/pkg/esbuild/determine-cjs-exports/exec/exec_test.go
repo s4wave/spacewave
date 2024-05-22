@@ -1,5 +1,5 @@
-// -go:build node_tests
-// - +build node_tests
+//go:build !js
+
 package determine_cjs_exports_exec
 
 import (

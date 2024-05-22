@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_project_controller
 
 import (

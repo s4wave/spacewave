@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_dist_compiler
 
 import (

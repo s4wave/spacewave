@@ -3,6 +3,13 @@
 package bldr_core_devtool
 
 import (
+	dist_compiler "github.com/aperturerobotics/bldr/dist/compiler"
+	bldr_plugin_builder_controller "github.com/aperturerobotics/bldr/manifest/builder/controller"
+	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	bldr_project_controller "github.com/aperturerobotics/bldr/project/controller"
+	bldr_project_watcher "github.com/aperturerobotics/bldr/project/watcher"
+	web_pkg_compiler "github.com/aperturerobotics/bldr/web/pkg/compiler"
+	web_plugin_compiler "github.com/aperturerobotics/bldr/web/plugin/compiler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
@@ -14,4 +21,15 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_bolt.NewFactory(b))
 
 	addCommonFactories(b, sr)
+
+	// project
+	sr.AddFactory(bldr_project_controller.NewFactory(b))
+	sr.AddFactory(bldr_project_watcher.NewFactory(b))
+
+	// compiler
+	sr.AddFactory(bldr_plugin_builder_controller.NewFactory(b))
+	sr.AddFactory(dist_compiler.NewFactory(b))
+	sr.AddFactory(plugin_compiler.NewFactory(b))
+	sr.AddFactory(web_pkg_compiler.NewFactory(b))
+	sr.AddFactory(web_plugin_compiler.NewFactory(b))
 }

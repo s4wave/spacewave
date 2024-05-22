@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_project_controller
 
 import (
@@ -22,7 +24,7 @@ import (
 var Version = semver.MustParse("0.0.1")
 
 // ControllerID is the ID of the controller.
-const ControllerID = "bldr/project"
+const ControllerID = ConfigID
 
 // Controller is the bldr Project controller.
 type Controller struct {

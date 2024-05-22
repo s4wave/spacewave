@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_plugin_compiler
 
 import (
@@ -44,7 +46,7 @@ import (
 )
 
 // ControllerID is the compiler controller ID.
-const ControllerID = "bldr/plugin/compiler"
+const ControllerID = ConfigID
 
 // Version is the controller version
 var Version = semver.MustParse("0.0.1")

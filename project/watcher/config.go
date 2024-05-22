@@ -6,7 +6,7 @@ import (
 )
 
 // ConfigID is the identifier for the config type.
-const ConfigID = ControllerID
+const ConfigID = "bldr/project/watcher"
 
 // NewConfig constructs the configuration.
 func NewConfig(
