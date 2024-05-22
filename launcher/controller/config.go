@@ -2,7 +2,7 @@ package bldr_launcher_controller
 
 import (
 	"net/url"
-	"sort"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -36,7 +36,7 @@ func (c *Config) Validate() error {
 	if projectID == "" {
 		return errors.New("project_id: cannot be empty")
 	}
-	if _, err := c.ParseEndpointURLs(); err != nil {
+	if _, _, err := c.ParseEndpointURLs(); err != nil {
 		return errors.Wrap(err, "endpoints")
 	}
 	if _, err := c.ParseRefetchDur(); err != nil {
@@ -69,18 +69,27 @@ func (c *Config) ParseInitDistConfig(projectID string, signerPeerIDs []peer.ID) 
 	return bldr_launcher.ParseDistConfigPackedMsg(nil, []byte(initDistConfTxt), signerPeerIDs, projectID)
 }
 
-// DedupeEndpoints returns a copy of endpoints compacted + sorted.
-func (c *Config) DedupeEndpoints() []string {
+// CloneSortEndpoints returns a copy of endpoints compacted + sorted.
+func (c *Config) CloneSortEndpoints() []*HttpEndpoint {
 	endps := slices.Clone(c.GetEndpoints())
-	sort.Strings(endps)
-	endps = slices.Compact(endps)
+	slices.SortFunc(endps, func(a, b *HttpEndpoint) int {
+		return strings.Compare(a.GetUrl(), b.GetUrl())
+	})
 	return endps
 }
 
 // ParseEndpointURLs deduplicates and parses the endpoint URLs.
-func (c *Config) ParseEndpointURLs() ([]*url.URL, error) {
-	endps := c.DedupeEndpoints()
-	return confparse.ParseURLs(endps, true)
+func (c *Config) ParseEndpointURLs() ([]*url.URL, []*HttpEndpoint, error) {
+	endps := c.CloneSortEndpoints()
+	endpsUrls := make([]string, len(endps))
+	for i, endp := range endps {
+		endpsUrls[i] = endp.GetUrl()
+	}
+	urls, err := confparse.ParseURLs(endpsUrls, true)
+	if err != nil {
+		return nil, endps, err
+	}
+	return urls, endps, nil
 }
 
 // ParseRefetchDur parses the refetch duration.

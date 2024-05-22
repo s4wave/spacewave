@@ -42,14 +42,17 @@ func (c *Controller) fetchDistConfig(ctx context.Context) error {
 			failErr = err
 		}
 	}
-	for i, endpURL := range c.endps {
-		endpURLStr := endpURL.String()
+	for i, endp := range c.endps {
+		endpURLStr := endp.GetUrl()
 		c.le.Debugf("calling endpoint %d/%d: %s", i+1, len(c.endps), endpURLStr)
 		req, err := http.NewRequestWithContext(ctx, "GET", endpURLStr, nil)
 		if err != nil {
 			c.le.WithError(err).Warn("skipping invalid endpoint")
 			setFailErr(err)
 			continue
+		}
+		for k, v := range endp.GetHeaders() {
+			req.Header.Set(k, v)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err == nil && resp.StatusCode != 200 {

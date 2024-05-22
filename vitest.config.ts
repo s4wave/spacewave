@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   test: {
-    exclude: [...configDefaults.exclude, 'dist', 'vendor'],
+    exclude: [...configDefaults.exclude, 'dist', 'vendor', '.bldr'],
     alias: {
       "@go/*": resolve(__dirname, "./vendor/*"),
       "@aptre/bldr": resolve(__dirname, "./web/bldr/index.js"),

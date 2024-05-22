@@ -32,7 +32,7 @@ type Config struct {
 	// DistPeerIds are the peer IDs we accept for distribution signatures.
 	DistPeerIds []string `protobuf:"bytes,5,rep,name=dist_peer_ids,json=distPeerIds,proto3" json:"distPeerIds,omitempty"`
 	// Endpoints is the list of HTTPs endpoints to check for updates.
-	Endpoints []string `protobuf:"bytes,6,rep,name=endpoints,proto3" json:"endpoints,omitempty"`
+	Endpoints []*HttpEndpoint `protobuf:"bytes,6,rep,name=endpoints,proto3" json:"endpoints,omitempty"`
 	// RefetchDur is the frequency to re-fetch the config after success.
 	// If empty or zero disables refetch.
 	// Staggers by +/- 10%
@@ -86,7 +86,7 @@ func (x *Config) GetDistPeerIds() []string {
 	return nil
 }
 
-func (x *Config) GetEndpoints() []string {
+func (x *Config) GetEndpoints() []*HttpEndpoint {
 	if x != nil {
 		return x.Endpoints
 	}
@@ -114,6 +114,61 @@ func (x *Config) GetInitDistConfig() string {
 	return ""
 }
 
+// HttpEndpoint is an http endpoint.
+type HttpEndpoint struct {
+	unknownFields []byte
+	// Url is the url to the endpoint.
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// Headers are optional headers to add to the request.
+	Headers map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *HttpEndpoint) Reset() {
+	*x = HttpEndpoint{}
+}
+
+func (*HttpEndpoint) ProtoMessage() {}
+
+func (x *HttpEndpoint) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *HttpEndpoint) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+type HttpEndpoint_HeadersEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *HttpEndpoint_HeadersEntry) Reset() {
+	*x = HttpEndpoint_HeadersEntry{}
+}
+
+func (*HttpEndpoint_HeadersEntry) ProtoMessage() {}
+
+func (x *HttpEndpoint_HeadersEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *HttpEndpoint_HeadersEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -131,8 +186,10 @@ func (m *Config) CloneVT() *Config {
 		r.DistPeerIds = tmpContainer
 	}
 	if rhs := m.Endpoints; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
+		tmpContainer := make([]*HttpEndpoint, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
 		r.Endpoints = tmpContainer
 	}
 	if rhs := m.EndpointsBackoff; rhs != nil {
@@ -146,6 +203,30 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *HttpEndpoint) CloneVT() *HttpEndpoint {
+	if m == nil {
+		return (*HttpEndpoint)(nil)
+	}
+	r := new(HttpEndpoint)
+	r.Url = m.Url
+	if rhs := m.Headers; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.Headers = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *HttpEndpoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -181,8 +262,16 @@ func (this *Config) EqualVT(that *Config) bool {
 	}
 	for i, vx := range this.Endpoints {
 		vy := that.Endpoints[i]
-		if vx != vy {
-			return false
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &HttpEndpoint{}
+			}
+			if q == nil {
+				q = &HttpEndpoint{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
 		}
 	}
 	if this.RefetchDur != that.RefetchDur {
@@ -199,6 +288,37 @@ func (this *Config) EqualVT(that *Config) bool {
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *HttpEndpoint) EqualVT(that *HttpEndpoint) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Url != that.Url {
+		return false
+	}
+	if len(this.Headers) != len(that.Headers) {
+		return false
+	}
+	for i, vx := range this.Headers {
+		vy, ok := that.Headers[i]
+		if !ok {
+			return false
+		}
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HttpEndpoint) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HttpEndpoint)
 	if !ok {
 		return false
 	}
@@ -241,7 +361,13 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	if len(x.Endpoints) > 0 || s.HasField("endpoints") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("endpoints")
-		s.WriteStringArray(x.Endpoints)
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Endpoints {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("endpoints"))
+		}
+		s.WriteArrayEnd()
 	}
 	if x.RefetchDur != "" || s.HasField("refetchDur") {
 		s.WriteMoreIf(&wroteField)
@@ -300,7 +426,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Endpoints = nil
 				return
 			}
-			x.Endpoints = s.ReadStringArray()
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Endpoints = append(x.Endpoints, nil)
+					return
+				}
+				v := &HttpEndpoint{}
+				v.UnmarshalProtoJSON(s.WithField("endpoints", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Endpoints = append(x.Endpoints, v)
+			})
 		case "refetch_dur", "refetchDur":
 			s.AddField("refetch_dur")
 			x.RefetchDur = s.ReadString()
@@ -320,6 +457,120 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HttpEndpoint_HeadersEntry message to JSON.
+func (x *HttpEndpoint_HeadersEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HttpEndpoint_HeadersEntry to JSON.
+func (x *HttpEndpoint_HeadersEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HttpEndpoint_HeadersEntry message from JSON.
+func (x *HttpEndpoint_HeadersEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the HttpEndpoint_HeadersEntry from JSON.
+func (x *HttpEndpoint_HeadersEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HttpEndpoint message to JSON.
+func (x *HttpEndpoint) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Url != "" || s.HasField("url") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("url")
+		s.WriteString(x.Url)
+	}
+	if x.Headers != nil || s.HasField("headers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("headers")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.Headers {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HttpEndpoint to JSON.
+func (x *HttpEndpoint) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HttpEndpoint message from JSON.
+func (x *HttpEndpoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "url":
+			s.AddField("url")
+			x.Url = s.ReadString()
+		case "headers":
+			s.AddField("headers")
+			if s.ReadNil() {
+				x.Headers = nil
+				return
+			}
+			x.Headers = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.Headers[key] = s.ReadString()
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the HttpEndpoint from JSON.
+func (x *HttpEndpoint) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -379,9 +630,12 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Endpoints) > 0 {
 		for iNdEx := len(m.Endpoints) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Endpoints[iNdEx])
-			copy(dAtA[i:], m.Endpoints[iNdEx])
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Endpoints[iNdEx])))
+			size, err := m.Endpoints[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0x32
 		}
@@ -426,6 +680,65 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *HttpEndpoint) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HttpEndpoint) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HttpEndpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Headers) > 0 {
+		for k := range m.Headers {
+			v := m.Headers[k]
+			baseI := i
+			i -= len(v)
+			copy(dAtA[i:], v)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(v)))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Url) > 0 {
+		i -= len(m.Url)
+		copy(dAtA[i:], m.Url)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Url)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -455,8 +768,8 @@ func (m *Config) SizeVT() (n int) {
 		}
 	}
 	if len(m.Endpoints) > 0 {
-		for _, s := range m.Endpoints {
-			l = len(s)
+		for _, e := range m.Endpoints {
+			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
@@ -471,6 +784,28 @@ func (m *Config) SizeVT() (n int) {
 	l = len(m.InitDistConfig)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HttpEndpoint) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Url)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Headers) > 0 {
+		for k, v := range m.Headers {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + 1 + len(v) + protobuf_go_lite.SizeOfVarint(uint64(len(v)))
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -511,7 +846,7 @@ func (x *Config) MarshalProtoText() string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			sb.WriteString(strconv.Quote(v))
+			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
 	}
@@ -531,6 +866,46 @@ func (x *Config) MarshalProtoText() string {
 	return sb.String()
 }
 func (x *Config) String() string {
+	return x.MarshalProtoText()
+}
+func (x *HttpEndpoint_HeadersEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("HeadersEntry { ")
+	if x.Key != "" {
+		sb.WriteString(" key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != "" {
+		sb.WriteString(" value: ")
+		sb.WriteString(strconv.Quote(x.Value))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *HttpEndpoint_HeadersEntry) String() string {
+	return x.MarshalProtoText()
+}
+func (x *HttpEndpoint) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("HttpEndpoint { ")
+	if x.Url != "" {
+		sb.WriteString(" url: ")
+		sb.WriteString(strconv.Quote(x.Url))
+	}
+	if len(x.Headers) > 0 {
+		sb.WriteString(" headers: {")
+		for k, v := range x.Headers {
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString(" }")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+func (x *HttpEndpoint) String() string {
 	return x.MarshalProtoText()
 }
 func (m *Config) UnmarshalVT(dAtA []byte) error {
@@ -726,7 +1101,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Endpoints", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protobuf_go_lite.ErrIntOverflow
@@ -736,23 +1111,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Endpoints = append(m.Endpoints, string(dAtA[iNdEx:postIndex]))
+			m.Endpoints = append(m.Endpoints, &HttpEndpoint{})
+			if err := m.Endpoints[len(m.Endpoints)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
@@ -853,6 +1230,216 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.InitDistConfig = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HttpEndpoint) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HttpEndpoint: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HttpEndpoint: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Url = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Headers", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Headers == nil {
+				m.Headers = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protobuf_go_lite.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protobuf_go_lite.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var stringLenmapvalue uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protobuf_go_lite.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapvalue |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapvalue := int(stringLenmapvalue)
+					if intStringLenmapvalue < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+					if postStringIndexmapvalue < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapvalue > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
+					iNdEx = postStringIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Headers[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

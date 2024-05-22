@@ -19,7 +19,7 @@ message Config {
   // DistPeerIds are the peer IDs we accept for distribution signatures.
   repeated string dist_peer_ids = 5;
   // Endpoints is the list of HTTPs endpoints to check for updates.
-  repeated string endpoints = 6;
+  repeated HttpEndpoint endpoints = 6;
   // RefetchDur is the frequency to re-fetch the config after success.
   // If empty or zero disables refetch.
   // Staggers by +/- 10%
@@ -30,4 +30,12 @@ message Config {
   // InitDistConfig is the initial distribution configuration packedmsg.
   // If unset, uses a blank config.
   string init_dist_config = 9;
+}
+
+// HttpEndpoint is an http endpoint.
+message HttpEndpoint {
+  // Url is the url to the endpoint.
+  string url = 1;
+  // Headers are optional headers to add to the request.
+  map<string, string> headers = 2;
 }

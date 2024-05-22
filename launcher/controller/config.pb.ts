@@ -9,6 +9,42 @@ import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb
 export const protobufPackage = 'bldr.launcher.controller'
 
 /**
+ * HttpEndpoint is an http endpoint.
+ *
+ * @generated from message bldr.launcher.controller.HttpEndpoint
+ */
+export type HttpEndpoint = Message<{
+  /**
+   * Url is the url to the endpoint.
+   *
+   * @generated from field: string url = 1;
+   */
+  url?: string
+  /**
+   * Headers are optional headers to add to the request.
+   *
+   * @generated from field: map<string, string> headers = 2;
+   */
+  headers?: { [key: string]: string }
+}>
+
+// HttpEndpoint contains the message type declaration for HttpEndpoint.
+export const HttpEndpoint: MessageType<HttpEndpoint> = createMessageType({
+  typeName: 'bldr.launcher.controller.HttpEndpoint',
+  fields: [
+    { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 2,
+      name: 'headers',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'scalar', T: ScalarType.STRING },
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * Config configures the launcher controller.
  *
  * @generated from message bldr.launcher.controller.Config
@@ -50,9 +86,9 @@ export type Config = Message<{
   /**
    * Endpoints is the list of HTTPs endpoints to check for updates.
    *
-   * @generated from field: repeated string endpoints = 6;
+   * @generated from field: repeated bldr.launcher.controller.HttpEndpoint endpoints = 6;
    */
-  endpoints?: string[]
+  endpoints?: HttpEndpoint[]
   /**
    * RefetchDur is the frequency to re-fetch the config after success.
    * If empty or zero disables refetch.
@@ -95,8 +131,8 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 6,
       name: 'endpoints',
-      kind: 'scalar',
-      T: ScalarType.STRING,
+      kind: 'message',
+      T: () => HttpEndpoint,
       repeated: true,
     },
     { no: 7, name: 'refetch_dur', kind: 'scalar', T: ScalarType.STRING },

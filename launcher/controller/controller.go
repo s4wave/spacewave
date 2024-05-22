@@ -2,7 +2,6 @@ package bldr_launcher_controller
 
 import (
 	"context"
-	"net/url"
 	"sync"
 	"time"
 
@@ -37,7 +36,7 @@ type Controller struct {
 	mux srpc.Mux
 
 	// endps is the endpoint url list
-	endps []*url.URL
+	endps []*HttpEndpoint
 	// distPeerIDs is the list of distribution peer ids
 	distPeerIDs []peer.ID
 	// launcherInfoCtr contains the current launcher info.
@@ -69,7 +68,7 @@ func NewController(
 
 		launcherInfoCtr: ccontainer.NewCContainer[*bldr_launcher.LauncherInfo](nil),
 	}
-	ctrl.endps, _ = conf.ParseEndpointURLs() // checked in Validate
+	ctrl.endps = conf.CloneSortEndpoints() // checked in Validate
 	fetcherBackoffConf := conf.GetEndpointsBackoff()
 	if fetcherBackoffConf.GetEmpty() {
 		fetcherBackoffConf = defaultFetcherBackoffConf()
