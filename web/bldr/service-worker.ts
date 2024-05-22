@@ -171,7 +171,40 @@ async function swFetch(
         request.url.toString(),
       )
     }
-    return fetch(ev.request)
+
+    let response: Response | null = null
+    let responseErr: unknown | null = null
+    try {
+      response = await fetch(ev.request)
+    } catch (err) {
+      responseErr = err
+      console.warn(
+        'ServiceWorker: %s: native fetch failed: %s: %s',
+        serviceWorkerId,
+        request.url.toString(),
+        castToError(err, 'unknown error').message,
+      )
+      response = null
+    }
+
+    // request failed, attempt to fall back to cache.
+    if (!response || response.status < 200 || response.status >= 300) {
+      // Check the cache (for e.x. index.html)
+      const bldrCache = CACHES['bldr']
+      if (bldrCache) {
+        const cacheResp = await bldrCache.match(request)
+        if (cacheResp) {
+          return cacheResp
+        }
+      }
+    }
+
+    // finally throw err if any
+    if (responseErr) {
+      throw responseErr
+    }
+
+    return response!
   }
 
   if (BLDR_DEBUG) {
