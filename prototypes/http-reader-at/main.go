@@ -27,7 +27,7 @@ func main() {
 }
 
 func run(ctx context.Context, le *logrus.Entry) error {
-	rangeHTTP, err := http_range.NewHTTPRangeReader(ctx, le, fileUrl, false, true)
+	rangeHTTP, err := http_range.NewHTTPRangeReader(ctx, le, fileUrl, nil, false, true)
 	if err != nil {
 		return err
 	}

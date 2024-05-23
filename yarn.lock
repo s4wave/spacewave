@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@aptre/common@^0.16.5":
-  version "0.16.5"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.16.5.tgz#e33d6bb701aa5afe173dd95426ee55e446bc538f"
-  integrity sha512-PEs7pXjuf+j2Vqsvg0VKOl1IbADMBDBxQrEWdorFAumKv3lncp3ofmJezXOQT+SYlYFPQVpET7y/mFLLcncQTQ==
+"@aptre/common@^0.16.6":
+  version "0.16.6"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.16.6.tgz#a6e31cc5d255f63f6dec19262426ba43e0285122"
+  integrity sha512-5AhyprJ0zJnJrfZhj7nuLpe/vLsC3Xg6p0IF90J3Vv6TtZWERD9xkOtFBip9tnZXbredQ5QpPVGzQBCQbyWZ8w==
   dependencies:
     "@aptre/protobuf-es-lite" "^0.4.4"
     "@typescript-eslint/eslint-plugin" "^7.8.0"
@@ -15,6 +15,7 @@
     eslint-plugin-react-hooks "^4.6.1"
     eslint-plugin-unused-imports "^3.2.0"
     starpc "^0.32.10"
+    vitest "^1.6.0"
 
 "@aptre/it-ws@^1.0.0":
   version "1.0.0"
@@ -296,6 +297,18 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
+"@libp2p/interface@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.4.0.tgz#19066f29c21e6ad0d7237997f13f785e3a4fd056"
+  integrity sha512-XkbZ0NfLVnxvWgo1nVyMwCUYDQbFYFvYPA6KUPLV7/XgcxBapVZT5sJ9hgQ4kTsqSBbjQl6YDXDxCclAPZDNTQ==
+  dependencies:
+    "@multiformats/multiaddr" "^12.2.3"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    multiformats "^13.1.0"
+    progress-events "^1.0.0"
+    uint8arraylist "^2.4.8"
+
 "@libp2p/logger@^4.0.12":
   version "4.0.12"
   resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.12.tgz#a0b4f298596028d29b6344e0c90c312be62af770"
@@ -303,6 +316,17 @@
   dependencies:
     "@libp2p/interface" "^1.3.1"
     "@multiformats/multiaddr" "^12.2.1"
+    debug "^4.3.4"
+    interface-datastore "^8.2.11"
+    multiformats "^13.1.0"
+
+"@libp2p/logger@^4.0.13":
+  version "4.0.13"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.13.tgz#9a32d933c79be8854726a1d3c69d95ed69e1f677"
+  integrity sha512-z1i4Ksdr4cl96Y+VwJdhdNUkwP7189oTn0AQrAQc9WnLKqRUGXWwDf2OgdpJbPU71KteZT3UXLRQGWzXKCt2Wg==
+  dependencies:
+    "@libp2p/interface" "^1.4.0"
+    "@multiformats/multiaddr" "^12.2.3"
     debug "^4.3.4"
     interface-datastore "^8.2.11"
     multiformats "^13.1.0"
@@ -359,6 +383,19 @@
   version "12.2.1"
   resolved "https://registry.yarnpkg.com/@multiformats/multiaddr/-/multiaddr-12.2.1.tgz#d95d1590b17dbe39dcefbb4d832d14434d3fe075"
   integrity sha512-UwjoArBbv64FlaetV4DDwh+PUMfzXUBltxQwdh+uTYnGFzVa8ZfJsn1vt1RJlJ6+Xtrm3RMekF/B+K338i2L5Q==
+  dependencies:
+    "@chainsafe/is-ip" "^2.0.1"
+    "@chainsafe/netmask" "^2.0.0"
+    "@libp2p/interface" "^1.0.0"
+    "@multiformats/dns" "^1.0.3"
+    multiformats "^13.0.0"
+    uint8-varint "^2.0.1"
+    uint8arrays "^5.0.0"
+
+"@multiformats/multiaddr@^12.2.3":
+  version "12.2.3"
+  resolved "https://registry.yarnpkg.com/@multiformats/multiaddr/-/multiaddr-12.2.3.tgz#b669bb39fa6999f9a35d03471c702630771a624e"
+  integrity sha512-qUP24ZgYXnyZs0lpYBvPg8Jyn3KFOJFH3a3tAcupulYIVQpR+3/fbaAZp4dYUJxBIDTOfEIpvPKm0DOFxbCDKw==
   dependencies:
     "@chainsafe/is-ip" "^2.0.1"
     "@chainsafe/netmask" "^2.0.0"
@@ -576,10 +613,18 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@^18.2.79":
+"@types/react@*":
   version "18.3.2"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.3.2.tgz#462ae4904973bc212fa910424d901e3d137dbfcd"
   integrity sha512-Btgg89dAnqD4vV7R3hlwOxgqobUQKgx3MmrQRi0yYbs/P0ym8XozIAlkqVilPqHQwXs4e9Tf63rrCgl58BcO4w==
+  dependencies:
+    "@types/prop-types" "*"
+    csstype "^3.0.2"
+
+"@types/react@^18.3.3":
+  version "18.3.3"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.3.3.tgz#9679020895318b0915d7a3ab004d92d33375c45f"
+  integrity sha512-hti/R0pS0q1/xx+TsI73XIqk26eBsISZ2R0wUijXIngRK9R/e7Xw/cXVxQK7R5JjW+SV4zGcn5hXjudkN/pLIw==
   dependencies:
     "@types/prop-types" "*"
     csstype "^3.0.2"
@@ -1099,10 +1144,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^30.0.6:
-  version "30.0.6"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.6.tgz#9ddea5f68396ecca88ad7c2c466a30fc9c16144b"
-  integrity sha512-PkhEPFdpYcTzjAO3gMHZ+map7g2+xCrMDedo/L1i0ir2BRXvAB93IkTJX497U6Srb/09r2cFt+k20VPNVCdw3Q==
+electron@^30.0.7:
+  version "30.0.7"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.7.tgz#305e1c2e79ca2cba34b9ced08f7efcd48487e09e"
+  integrity sha512-9ypQLaIvLj9W8o6fIiZpUabXJAW3a+K6vT78Vk9UJVImKVAoFIe1Umwd2FleyMqhnFBPF58Iawu/pSV0s+wRnA==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
