@@ -79,7 +79,8 @@ export class WebRuntimeClient {
         continue
       }
 
-      console.log(`WebRuntimeClient: ${this.clientId}: opened stream with host`)
+      // very verbose
+      // console.log(`WebRuntimeClient: ${this.clientId}: opened stream with host`)
       return streamConn
     }
 
