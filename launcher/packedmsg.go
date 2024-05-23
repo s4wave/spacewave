@@ -221,7 +221,7 @@ func FindDistConfigUpdate(le *logrus.Entry, currRev uint64, data []byte, distPee
 		}
 		if distConf.GetProjectId() != projectID {
 			if le != nil {
-				le.Debugf("found valid app dist config but for different project: %s != expected %s", distConf.GetProjectId(), projectID)
+				le.Debugf("found valid dist config but for different project: %s != expected %s", distConf.GetProjectId(), projectID)
 			}
 			continue
 		}
@@ -230,11 +230,11 @@ func FindDistConfigUpdate(le *logrus.Entry, currRev uint64, data []byte, distPee
 			updatedAppDistConfMsg = packedMsgsSrc[i]
 			updatedAppDistConfPeer = matchedPeerID
 			if le != nil {
-				le.Debug("found valid app dist config")
+				le.Debug("found valid dist config")
 			}
 		} else {
 			if le != nil {
-				le.Debug("found valid but older app dist config")
+				le.Debug("found valid but older dist config")
 			}
 		}
 	}
@@ -242,7 +242,7 @@ func FindDistConfigUpdate(le *logrus.Entry, currRev uint64, data []byte, distPee
 	return updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, nil
 }
 
-// ParseDistConfigPackedMsg parses a packedmsg with an app dist config.
+// ParseDistConfigPackedMsg parses a packedmsg with an dist config.
 // Returns an error if no valid messages were found.
 // Skips any messages for a different project id.
 // Returns the config, the encoded config, the peer that signed the config, and any error.
@@ -253,7 +253,7 @@ func ParseDistConfigPackedMsg(le *logrus.Entry, data []byte, distPeerIDs []peer.
 		return nil, "", "", err
 	}
 	if conf == nil {
-		return nil, "", "", errors.New("no valid app dist config found")
+		return nil, "", "", errors.New("no valid dist config found")
 	}
 	return conf, confMsg, confPeer, err
 }

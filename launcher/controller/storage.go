@@ -115,7 +115,7 @@ func (c *Controller) storeDistConf(ctx context.Context, data []byte) error {
 // openObjectStore opens the handle to the object store api.
 func (c *Controller) openObjectStore(ctx context.Context) (volume.BuildObjectStoreAPIValue, directive.Reference, error) {
 	objStoreID := c.GetObjectStoreId()
-	volID := c.conf.GetVolumeId()
+	volID := c.GetVolumeId()
 	val, _, ref, err := volume.BuildObjectStoreAPIEx(ctx, c.bus, false, objStoreID, volID, nil)
 	return val, ref, err
 }
