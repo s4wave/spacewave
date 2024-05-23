@@ -60,8 +60,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.32.3 h1:Ay3W3s2RYB2z0IPTYU6MdqzrHo61FEhvLK/BnI7L2/I=
-github.com/aperturerobotics/bifrost v0.32.3/go.mod h1:5ANmPnADsISTKvGIPBYnwjQ2HtqLHeGig/5/U17eY4g=
+github.com/aperturerobotics/bifrost v0.32.4 h1:KUKFx6YJbhMHQMcRUs7RqLTKAakShiroTeVu2slKOSo=
+github.com/aperturerobotics/bifrost v0.32.4/go.mod h1:eK7qsFf51JTcu6MznnzVO119s0ruOqosI2b8EhvutBU=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -70,8 +70,8 @@ github.com/aperturerobotics/cayley v0.9.0 h1:kDKwun/XVatU6k642R4LtS4KIiPZeT2SC64
 github.com/aperturerobotics/cayley v0.9.0/go.mod h1:6ckQhhIqJSiCFwz7l3POHb7CGKYjUe1QkHn0bocmk+A=
 github.com/aperturerobotics/common v0.16.6 h1:xSeQAJkari6JHNwycngVNP5t59CSVDrpqm9xvIsVo48=
 github.com/aperturerobotics/common v0.16.6/go.mod h1:CNUQ4LRn9e2zwKKrWMZiKoywhWV9+Wpn3QPn9uE2E7Y=
-github.com/aperturerobotics/controllerbus v0.45.4 h1:tn0DiGmo30T64xWY6h4QSoDGvaMwoSeQX+Jy/Vq0Sdg=
-github.com/aperturerobotics/controllerbus v0.45.4/go.mod h1:48s2IHA9WCyP31wiAf3EjDu6FzOb6DQJnIc5RNwvRq0=
+github.com/aperturerobotics/controllerbus v0.45.5 h1:2gxMGx/TrelhGd8Fv1+lZ2JxNiJAN4zz98JHzB572oM=
+github.com/aperturerobotics/controllerbus v0.45.5/go.mod h1:Xa8bH9OF61SsghTXh6jxUDG71xWAXwOQGest+oI0ChI=
 github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
 github.com/aperturerobotics/entitygraph v0.9.1/go.mod h1:40VoNXSslWQieSS4V3HyzqOOZnRiGxItj/qZYSHg8Rw=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=

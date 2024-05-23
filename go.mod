@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.3 // master
+	github.com/aperturerobotics/bifrost v0.32.4 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.1 // master
@@ -64,7 +64,7 @@ require (
 
 require (
 	github.com/aperturerobotics/common v0.16.6 // latest
-	github.com/aperturerobotics/controllerbus v0.45.4 // latest
+	github.com/aperturerobotics/controllerbus v0.45.5 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 	github.com/aperturerobotics/starpc v0.32.10 // latest
@@ -91,18 +91,18 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.8
-	github.com/libp2p/go-libp2p v0.33.2
+	github.com/libp2p/go-libp2p v0.34.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.12.3 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.14 // indirect
-	github.com/nats-io/nats.go v1.34.1 // indirect
+	github.com/multiformats/go-multiaddr v0.12.4 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.16 // indirect
+	github.com/nats-io/nats.go v1.35.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/webrtc/v4 v4.0.0-beta.19 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.43.1 // indirect
+	github.com/quic-go/quic-go v0.44.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tidwall/btree v1.7.0
 	github.com/urfave/cli/v2 v2.27.2
