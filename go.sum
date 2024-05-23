@@ -68,8 +68,8 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2d
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.9.0 h1:kDKwun/XVatU6k642R4LtS4KIiPZeT2SC64+mxzS/Pg=
 github.com/aperturerobotics/cayley v0.9.0/go.mod h1:6ckQhhIqJSiCFwz7l3POHb7CGKYjUe1QkHn0bocmk+A=
-github.com/aperturerobotics/common v0.16.4 h1:bX/gvpoc48jFbVsVRkZZt3j2rBxijt8iLAgunhM98+k=
-github.com/aperturerobotics/common v0.16.4/go.mod h1:CNUQ4LRn9e2zwKKrWMZiKoywhWV9+Wpn3QPn9uE2E7Y=
+github.com/aperturerobotics/common v0.16.6 h1:xSeQAJkari6JHNwycngVNP5t59CSVDrpqm9xvIsVo48=
+github.com/aperturerobotics/common v0.16.6/go.mod h1:CNUQ4LRn9e2zwKKrWMZiKoywhWV9+Wpn3QPn9uE2E7Y=
 github.com/aperturerobotics/controllerbus v0.45.4 h1:tn0DiGmo30T64xWY6h4QSoDGvaMwoSeQX+Jy/Vq0Sdg=
 github.com/aperturerobotics/controllerbus v0.45.4/go.mod h1:48s2IHA9WCyP31wiAf3EjDu6FzOb6DQJnIc5RNwvRq0=
 github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
@@ -84,6 +84,8 @@ github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511072027-002c32698a19 h1:Z
 github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511072027-002c32698a19/go.mod h1:/TIElEA8TzmHQTgGJQyzg0zHNZRCMYbdKyOsKwn9i6E=
 github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8 h1:S9prTCDvkYfJ9ATV+B1yoNESE5w5dbFM5GmriXRG0Lk=
 github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8/go.mod h1:fK2s0Xpx0LYL2YQpYGJ7H+QwrC8+EgZ4Dd4G/vaLMW8=
+github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h1:VWOdcRKb6Y+N2SvBT9UmgxllGJTud4ya0AIc0/JVGxw=
+github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a h1:+rgqt70BYOAQtAU5gMgMZkKypg1W/6aPb794NXZQwxQ=
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a/go.mod h1:1DiSe6HqY2Pey4mmreXPlkreDmSxVkItf5lOJB5QZVk=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
@@ -96,8 +98,8 @@ github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10 h1:xtQ
 github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10/go.mod h1:IWwvw/rjosC5aPDuEgzbRPNlZSHC4b4ABztoalIe59g=
 github.com/aperturerobotics/starpc v0.32.10 h1:Z9Y0XVMSUSg8oMywjAba2eM2N2KaFWrg2tp88kSt8Pg=
 github.com/aperturerobotics/starpc v0.32.10/go.mod h1:nc3qveJAMZJlRpHZyHm0yvESvCbU0xx38mc/nMvpb0o=
-github.com/aperturerobotics/util v1.23.3 h1:WV77HyaLwgoZ54b/Wmqkz/opYaLfXHwJlXMsGmvgGbQ=
-github.com/aperturerobotics/util v1.23.3/go.mod h1:oGiyKFTZDvIE0rk6nE1f+NkJyNtY4KpI0GXzLIPqH3Y=
+github.com/aperturerobotics/util v1.23.4 h1:IXkVoN3Cc+5U5Rhd5hC00VGgL1PainhpaTyz5IPkc8I=
+github.com/aperturerobotics/util v1.23.4/go.mod h1:y/BGl05icfllBf7l51IMJ6UOjpsDscAPt3ynhDZrwZ4=
 github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd h1:tuXYimCLwNrLpcSu/B+kVAkaSs2e+4KKEzvQiGUTPjU=
 github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -451,8 +453,6 @@ github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJ
 github.com/openzipkin/zipkin-go v0.2.1/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/pact-foundation/pact-go v1.0.4/go.mod h1:uExwJY4kCzNPcHRj+hCR/HBbOOIwwtUjcrb0b5/5kLM=
-github.com/paralin/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h1:xxzUX1AaOQWbYq/LCoJIWfju2xByAw/nWrWXMTI5O8Y=
-github.com/paralin/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/paralin/go-multihash v0.2.0 h1:C66EjlMF2qJz9q61CC7erGUUB5wAEIox02PL2YiLgxw=
 github.com/paralin/go-multihash v0.2.0/go.mod h1:WxoMcYG85AZVQUyRyo9s4wULvW5qrI9vb2Lt6evduFc=
 github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 h1:UbpPeU0dNxSdVdswnjh1wr3FTU+RY+3VS1q3lBPa5Dk=
