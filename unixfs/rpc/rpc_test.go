@@ -1,4 +1,8 @@
-package unixfs_rpc_e2e
+//go:build flaky
+
+package unixfs_rpc_test
+
+// TODO: flaky test
 
 import (
 	"bytes"

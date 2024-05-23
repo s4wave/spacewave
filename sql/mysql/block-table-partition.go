@@ -22,11 +22,7 @@ func (r *TablePartitionRoot) Validate() error {
 func (r *TablePartitionRoot) ApplySubBlock(id uint32, next block.SubBlock) error {
 	switch id {
 	case 1:
-		v, ok := next.(*kvtx_block.KeyValueStore)
-		if !ok {
-			return block.ErrUnexpectedType
-		}
-		r.RowKeyValue = v
+		return block.ApplySubBlock(&r.RowKeyValue, next)
 	}
 	return nil
 }

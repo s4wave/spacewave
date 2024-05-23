@@ -4,6 +4,7 @@ package block
 
 import (
 	"context"
+	"errors"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"gonum.org/v1/gonum/graph/encoding"
@@ -45,6 +46,12 @@ type SubBlock interface {
 	IsNil() bool
 }
 
+// ComparableSubBlock is the type constraint for SubBlock.
+type ComparableSubBlock interface {
+	comparable
+	SubBlock
+}
+
 // NamedSubBlock is a sub-block with a name attached.
 type NamedSubBlock interface {
 	// SubBlock indicates this is a sub-block.
@@ -56,6 +63,37 @@ type NamedSubBlock interface {
 // SubBlockCtor constructs a sub-block.
 // If create == false, returns nil if the field is not set.
 type SubBlockCtor func(create bool) SubBlock
+
+// NewSubBlockCtor constructs a new SubBlock constructor.
+// returns nil if r is nil
+// usage: block.NewSubBlockCtor(r, func() *ChangeLogLL { return &ChangeLogLL{} })
+func NewSubBlockCtor[T ComparableSubBlock](r *T, ctor func() T) SubBlockCtor {
+	if r == nil {
+		return nil
+	}
+	var empty T
+	return func(create bool) SubBlock {
+		v := *r
+		if create && v == empty {
+			v = ctor()
+			*r = v
+		}
+		return v
+	}
+}
+
+// ApplySubBlock applies a sub-block to a field.
+func ApplySubBlock[T SubBlock](r *T, next SubBlock) error {
+	if r == nil {
+		return errors.New("apply sub block: pointer to target cannot be nil")
+	}
+	v, ok := next.(T)
+	if !ok {
+		return ErrUnexpectedType
+	}
+	*r = v
+	return nil
+}
 
 // BlockWithSubBlocks is a block containing sub-blocks as fields.
 type BlockWithSubBlocks interface {

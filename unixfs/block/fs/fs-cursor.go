@@ -174,21 +174,16 @@ func (f *FSCursor) buildChildCursor(ctx context.Context, name string, dirent *un
 	var ftree *unixfs_block.FSTree
 	var btx *block.Transaction
 	if dirent != nil { // && !dirent.GetNodeRef().GetEmpty() {
-		var bcs *block.Cursor
-
 		if childCs != nil {
-			bcs = childCs.DetachRecursive(true, true, false)
+			bcs := childCs.DetachRecursive(true, true, false)
 			btx = bcs.GetTransaction()
-		} else {
-			// build new tx using ref
-			btx, bcs = f.fs.bls.BuildTransactionAtRef(nil, dirent.GetNodeRef())
-		}
 
-		var err error
-		ftree, err = unixfs_block.NewFSTree(f.fs.ctx, bcs, dirent.GetNodeType())
-		if err != nil {
-			// ignore error here, defer to later.
-			ftree = nil
+			var err error
+			ftree, err = unixfs_block.NewFSTree(f.fs.ctx, bcs, dirent.GetNode().GetNodeType())
+			if err != nil {
+				// ignore error here, defer to later.
+				ftree = nil
+			}
 		}
 	}
 
@@ -235,10 +230,11 @@ func (f *FSCursor) resolveFsCursorOpsLocked() error {
 	}
 
 	// lookup our dirent
-	dirEnt, err := f.parent.fsCursorOps.fsTree.Lookup(f.name)
+	parentFsTree := f.parent.fsCursorOps.fsTree
+	dirEntBcs, dirEnt, err := parentFsTree.LookupFollowDirentAsCursor(f.name)
+	dirEntNode := dirEnt.GetNode()
 	if err == nil {
-		// allow empty node ref
-		err = dirEnt.GetNodeRef().Validate(true)
+		err = dirEntNode.Validate(false)
 	}
 	if err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrNotExist && f.fs.writer != nil {
@@ -247,9 +243,12 @@ func (f *FSCursor) resolveFsCursorOpsLocked() error {
 		return err
 	}
 
+	// detach our dirent
+	bcs := dirEntBcs.FollowSubBlock(2).Detach(false)
+	btx := bcs.GetTransaction()
+
 	// build initial fsops
-	btx, bcs := f.fs.bls.BuildTransactionAtRef(nil, dirEnt.GetNodeRef())
-	ftree, err := unixfs_block.NewFSTree(f.fs.ctx, bcs, dirEnt.GetNodeType())
+	ftree, err := unixfs_block.NewFSTree(f.fs.ctx, bcs, dirEntNode.GetNodeType())
 	if err != nil {
 		if err != context.Canceled && f.fs.writer != nil {
 			f.fs.writer.FilesystemError(err)

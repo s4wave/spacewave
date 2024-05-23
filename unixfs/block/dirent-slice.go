@@ -198,21 +198,21 @@ func (d *DirentSlice) FollowDirentAsCursor(didx int) (*block.Cursor, *Dirent, er
 
 	dirent := dirents[didx]
 	subRef := d.bcs.FollowSubBlock(uint32(didx))
-	nodeRef := subRef.FollowRef(2, dirent.GetNodeRef())
+	nodeRef := subRef.FollowSubBlock(2)
 	return nodeRef, dirent, nil
 }
 
 // FollowDirent follows a directory entry to its node reference.
 // bcs must be set on the dirent slice
-// ensures that the next node type is as expected
+// ensures that the next node type is as expected if expectedNodeType is not UNKNOWN.
 // may return ErrOutOfBounds
-func (d *DirentSlice) FollowDirent(ctx context.Context, didx int) (*FSTree, *Dirent, error) {
+func (d *DirentSlice) FollowDirent(ctx context.Context, didx int, expectedNodeType NodeType) (*FSTree, *Dirent, error) {
 	bcs, dirent, err := d.FollowDirentAsCursor(didx)
 	if err != nil {
 		return nil, dirent, err
 	}
 
-	dnode, err := FetchCheckFSNode(ctx, bcs, dirent.GetNodeType())
+	dnode, err := FetchCheckFSNode(ctx, bcs, expectedNodeType)
 	if err != nil {
 		return nil, dirent, err
 	}

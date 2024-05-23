@@ -85,7 +85,7 @@ func TestBasicDirectory(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if len(dirents) != 1 ||
-		dirents["test-directory"].GetNodeType() != NodeType_NodeType_DIRECTORY {
+		dirents["test-directory"].GetNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
 		t.Fail()
 	}
 }
@@ -166,7 +166,7 @@ func TestEmptyFstree(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if len(dirents) != 1 ||
-		dirents["test-directory"].GetNodeType() != NodeType_NodeType_DIRECTORY {
+		dirents["test-directory"].GetNode().GetNodeType() != NodeType_NodeType_DIRECTORY {
 		t.Fail()
 	}
 }

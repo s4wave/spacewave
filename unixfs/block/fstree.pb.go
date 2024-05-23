@@ -180,13 +180,8 @@ type Dirent struct {
 	unknownFields []byte
 	// Name is the name of the directory entry.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// NodeRef is the reference of the child FSNode.
-	// may be empty.
-	//
-	// reference id 2
-	NodeRef *block.BlockRef `protobuf:"bytes,2,opt,name=node_ref,json=nodeRef,proto3" json:"nodeRef,omitempty"`
-	// NodeType is the node type of the child FSNode.
-	NodeType NodeType `protobuf:"varint,3,opt,name=node_type,json=nodeType,proto3" json:"nodeType,omitempty"`
+	// Node is the child FSNode.
+	Node *FSNode `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"`
 }
 
 func (x *Dirent) Reset() {
@@ -202,18 +197,11 @@ func (x *Dirent) GetName() string {
 	return ""
 }
 
-func (x *Dirent) GetNodeRef() *block.BlockRef {
+func (x *Dirent) GetNode() *FSNode {
 	if x != nil {
-		return x.NodeRef
+		return x.Node
 	}
 	return nil
-}
-
-func (x *Dirent) GetNodeType() NodeType {
-	if x != nil {
-		return x.NodeType
-	}
-	return NodeType_NodeType_UNKNOWN
 }
 
 // FSSymlink contains symbolic link data.
@@ -467,10 +455,7 @@ func (m *Dirent) CloneVT() *Dirent {
 	}
 	r := new(Dirent)
 	r.Name = m.Name
-	r.NodeType = m.NodeType
-	if rhs := m.NodeRef; rhs != nil {
-		r.NodeRef = rhs.CloneVT()
-	}
+	r.Node = m.Node.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -670,10 +655,7 @@ func (this *Dirent) EqualVT(that *Dirent) bool {
 	if this.Name != that.Name {
 		return false
 	}
-	if !this.NodeRef.EqualVT(that.NodeRef) {
-		return false
-	}
-	if this.NodeType != that.NodeType {
+	if !this.Node.EqualVT(that.Node) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1070,15 +1052,10 @@ func (x *Dirent) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("name")
 		s.WriteString(x.Name)
 	}
-	if x.NodeRef != nil || s.HasField("nodeRef") {
+	if x.Node != nil || s.HasField("node") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("nodeRef")
-		x.NodeRef.MarshalProtoJSON(s.WithField("nodeRef"))
-	}
-	if x.NodeType != 0 || s.HasField("nodeType") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("nodeType")
-		x.NodeType.MarshalProtoJSON(s)
+		s.WriteObjectField("node")
+		x.Node.MarshalProtoJSON(s.WithField("node"))
 	}
 	s.WriteObjectEnd()
 }
@@ -1100,16 +1077,13 @@ func (x *Dirent) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "name":
 			s.AddField("name")
 			x.Name = s.ReadString()
-		case "node_ref", "nodeRef":
+		case "node":
 			if s.ReadNil() {
-				x.NodeRef = nil
+				x.Node = nil
 				return
 			}
-			x.NodeRef = &block.BlockRef{}
-			x.NodeRef.UnmarshalProtoJSON(s.WithField("node_ref", true))
-		case "node_type", "nodeType":
-			s.AddField("node_type")
-			x.NodeType.UnmarshalProtoJSON(s)
+			x.Node = &FSNode{}
+			x.Node.UnmarshalProtoJSON(s.WithField("node", true))
 		}
 	})
 }
@@ -1628,13 +1602,8 @@ func (m *Dirent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.NodeType != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NodeType))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.NodeRef != nil {
-		size, err := m.NodeRef.MarshalToSizedBufferVT(dAtA[:i])
+	if m.Node != nil {
+		size, err := m.Node.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -2030,12 +1999,9 @@ func (m *Dirent) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.NodeRef != nil {
-		l = m.NodeRef.SizeVT()
+	if m.Node != nil {
+		l = m.Node.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.NodeType != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.NodeType))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2214,13 +2180,9 @@ func (x *Dirent) MarshalProtoText() string {
 		sb.WriteString(" name: ")
 		sb.WriteString(strconv.Quote(x.Name))
 	}
-	if x.NodeRef != nil {
-		sb.WriteString(" node_ref: ")
-		sb.WriteString(x.NodeRef.MarshalProtoText())
-	}
-	if x.NodeType != 0 {
-		sb.WriteString(" node_type: ")
-		sb.WriteString(NodeType(x.NodeType).String())
+	if x.Node != nil {
+		sb.WriteString(" node: ")
+		sb.WriteString(x.Node.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2654,7 +2616,7 @@ func (m *Dirent) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NodeRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Node", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2681,32 +2643,13 @@ func (m *Dirent) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.NodeRef == nil {
-				m.NodeRef = &block.BlockRef{}
+			if m.Node == nil {
+				m.Node = &FSNode{}
 			}
-			if err := m.NodeRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Node.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NodeType", wireType)
-			}
-			m.NodeType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NodeType |= NodeType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

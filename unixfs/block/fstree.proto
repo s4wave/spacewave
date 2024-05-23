@@ -46,13 +46,8 @@ message FSNode {
 message Dirent {
   // Name is the name of the directory entry.
   string name = 1;
-  // NodeRef is the reference of the child FSNode.
-  // may be empty.
-  //
-  // reference id 2
-  .block.BlockRef node_ref = 2;
-  // NodeType is the node type of the child FSNode.
-  NodeType node_type = 3;
+  // Node is the child FSNode.
+  FSNode node = 2;
 }
 
 // FSSymlink contains symbolic link data.

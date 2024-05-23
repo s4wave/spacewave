@@ -44,6 +44,11 @@ func NewFSNodeBlock() block.Block {
 	return &FSNode{}
 }
 
+// NewFSNodeSubBlockCtor returns the sub-block constructor.
+func NewFSNodeSubBlockCtor(r **FSNode) block.SubBlockCtor {
+	return block.NewSubBlockCtor(r, func() *FSNode { return &FSNode{} })
+}
+
 // FetchCheckFSNode unmarshals a filesystem node and checks its type.
 // returns nil, nil if empty or nodeType is 0
 func FetchCheckFSNode(ctx context.Context, bcs *block.Cursor, nt NodeType) (*FSNode, error) {

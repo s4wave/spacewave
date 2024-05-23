@@ -12,17 +12,7 @@ func NewKeyValueStoreBlock() block.Block {
 
 // NewKeyValueStoreSubBlockCtor returns the sub-block constructor.
 func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
-	if r == nil {
-		return nil
-	}
-	return func(create bool) block.SubBlock {
-		v := *r
-		if create && v == nil {
-			v = &KeyValueStore{ImplType: DefaultKeyValueStoreImpl}
-			*r = v
-		}
-		return v
-	}
+	return block.NewSubBlockCtor(r, func() *KeyValueStore { return &KeyValueStore{} })
 }
 
 // IsNil checks if the object is nil.

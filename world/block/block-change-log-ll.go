@@ -23,17 +23,7 @@ func NewChangeLogLLBlock() block.Block {
 
 // NewChangeLogLLSubBlockCtor returns the sub-block constructor.
 func NewChangeLogLLSubBlockCtor(r **ChangeLogLL) block.SubBlockCtor {
-	if r == nil {
-		return nil
-	}
-	return func(create bool) block.SubBlock {
-		v := *r
-		if create && v == nil {
-			v = &ChangeLogLL{}
-			*r = v
-		}
-		return v
-	}
+	return block.NewSubBlockCtor(r, func() *ChangeLogLL { return &ChangeLogLL{} })
 }
 
 // UnmarshalChangeLogLL unmarshals a world change ll from a cursor.
