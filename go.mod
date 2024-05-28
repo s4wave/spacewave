@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.16.6 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240523233122-60134e44eeec // master
+	github.com/aperturerobotics/hydra v0.0.0-20240528163954-38cb10366dd9 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.4 // master
+	github.com/aperturerobotics/bifrost v0.32.5 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -59,7 +59,7 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
-	github.com/Workiva/go-datastructures v1.1.4 // indirect
+	github.com/Workiva/go-datastructures v1.1.5 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.7.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -106,7 +106,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.8
-	github.com/libp2p/go-libp2p v0.34.0
+	github.com/libp2p/go-libp2p v0.35.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.4 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.16 // indirect
@@ -122,7 +122,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.23.0
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
+	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d
 	gonum.org/v1/gonum v0.15.0 // indirect
 	nhooyr.io/websocket v1.8.11 // master
 )
@@ -138,7 +138,7 @@ require (
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hack-pad/safejs v0.1.0 // indirect
+	github.com/hack-pad/safejs v0.1.1 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect

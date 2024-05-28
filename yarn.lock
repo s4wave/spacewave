@@ -1144,10 +1144,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^30.0.7:
-  version "30.0.7"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.7.tgz#305e1c2e79ca2cba34b9ced08f7efcd48487e09e"
-  integrity sha512-9ypQLaIvLj9W8o6fIiZpUabXJAW3a+K6vT78Vk9UJVImKVAoFIe1Umwd2FleyMqhnFBPF58Iawu/pSV0s+wRnA==
+electron@^30.0.8:
+  version "30.0.8"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.8.tgz#aa54bab26ce706c9e1b244d79047a451733eb4b0"
+  integrity sha512-ivzXJJ/9gdb4oOw+5SDuaZpSInz8C+Z021dKZfFLMltKbDa4sSqt5cRBiUg7J36Z2kdus+Jai0bdHWutYE9wAA==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -2603,6 +2603,25 @@ starpc@^0.32.10:
   version "0.32.10"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.10.tgz#c3b7daf37a1d76b994100024e5c6e0d87eaca6f8"
   integrity sha512-21f92G+4gHln9H8Ho2qpkQcxVP6yZoWysfbA2iVnNuBmSQTNRTcmIRD/6EMUoQKR+7tvXxoidsUtSBSJtEZLBg==
+  dependencies:
+    "@aptre/it-ws" "^1.0.0"
+    "@aptre/protobuf-es-lite" "^0.4.4"
+    "@chainsafe/libp2p-yamux" "^6.0.2"
+    "@libp2p/interface" "^1.3.1"
+    "@libp2p/logger" "^4.0.12"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.6"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    uint8arraylist "^2.4.7"
+    ws "^8.17.0"
+
+starpc@^0.32.11:
+  version "0.32.11"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.32.11.tgz#fb0ef73b3cd9a69a26946c447732147ddcdc37fb"
+  integrity sha512-rmyGp/4s4TOmYzOWRc+x7mOrmCp/wa769EwvxyGelyQmWu3g8hDEBQ6QCQpKTNUpUI3yjG16XxJGw7Hw4juSLw==
   dependencies:
     "@aptre/it-ws" "^1.0.0"
     "@aptre/protobuf-es-lite" "^0.4.4"
