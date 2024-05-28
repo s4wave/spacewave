@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.4 // master
+	github.com/aperturerobotics/bifrost v0.32.5 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.1 // master

@@ -38,7 +38,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	addNativeFactories(b, sr)
 	bifrostcore.AddFactories(b, sr)
 
-	sr.AddFactory(nctr.NewFactory())
+	sr.AddFactory(nctr.NewFactory(b))
 	sr.AddFactory(bucket_setup.NewFactory(b))
 
 	sr.AddFactory(node_controller.NewFactory(b))
