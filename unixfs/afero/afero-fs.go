@@ -159,6 +159,9 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			return nil, syscall.EEXIST
 		}
 		if err != unixfs_errors.ErrNotExist {
+			if fileHandle != nil {
+				fileHandle.Release()
+			}
 			return nil, err
 		}
 	}
