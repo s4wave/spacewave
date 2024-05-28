@@ -5,8 +5,10 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"strconv"
 	"time"
 
+	httplog "github.com/aperturerobotics/bifrost/http/log"
 	bldr_launcher "github.com/aperturerobotics/bldr/launcher"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/routine"
@@ -44,6 +46,8 @@ func (c *Controller) fetchDistConfig(ctx context.Context) error {
 	}
 	for i, endp := range c.endps {
 		endpURLStr := endp.GetUrl()
+		t1 := time.Now()
+		endpURLStr += "#nocache=" + strconv.FormatInt(t1.UnixMilli(), 10)
 		c.le.Debugf("calling endpoint %d/%d: %s", i+1, len(c.endps), endpURLStr)
 		req, err := http.NewRequestWithContext(ctx, "GET", endpURLStr, nil)
 		if err != nil {
@@ -54,10 +58,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) error {
 		for k, v := range endp.GetHeaders() {
 			req.Header.Set(k, v)
 		}
-		resp, err := http.DefaultClient.Do(req)
-		if err == nil && resp.StatusCode != 200 {
-			err = errors.Errorf("request failed: %s (%v)", resp.Status, resp.StatusCode)
-		}
+		resp, err := httplog.DoRequest(c.le, http.DefaultClient, req, true)
 		var dat []byte
 		if resp != nil && resp.Body != nil {
 			if err == nil {
