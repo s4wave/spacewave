@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/js/indexeddb/indexeddb.proto (package volume.indexeddb, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../../controller/controller.pb.js'
 import { Config as Config$3 } from '../../../store/kvtx/kvtx.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.indexeddb'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'volume.indexeddb'
  *
  * @generated from message volume.indexeddb.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * DatabaseName is the database name to pass to indexeddb.open.
    * Required.
@@ -76,7 +76,7 @@ export type Config = Message<{
    * @generated from field: store.kvtx.Config store_config = 8;
    */
   storeConfig?: Config$3
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'object.rpc'
 
@@ -12,14 +12,14 @@ export const protobufPackage = 'object.rpc'
  *
  * @generated from message object.rpc.RmObjectStoreRequest
  */
-export type RmObjectStoreRequest = Message<{
+export interface RmObjectStoreRequest {
   /**
    * ObjectStoreId is the object store identifier to remove.
    *
    * @generated from field: string object_store_id = 1;
    */
   objectStoreId?: string
-}>
+}
 
 // RmObjectStoreRequest contains the message type declaration for RmObjectStoreRequest.
 export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> =
@@ -36,7 +36,7 @@ export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> =
  *
  * @generated from message object.rpc.RmObjectStoreResponse
  */
-export type RmObjectStoreResponse = Message<{
+export interface RmObjectStoreResponse {
   /**
    * Error is any error removing the object store.
    * Will be empty if the store did not exist.
@@ -44,7 +44,7 @@ export type RmObjectStoreResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // RmObjectStoreResponse contains the message type declaration for RmObjectStoreResponse.
 export const RmObjectStoreResponse: MessageType<RmObjectStoreResponse> =

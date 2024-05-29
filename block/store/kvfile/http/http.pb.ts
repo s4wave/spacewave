@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/kvfile/http/http.proto (package block.store.kvfile.http, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../../../store/kvkey/kvkey.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.kvfile.http'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'block.store.kvfile.http'
  *
  * @generated from message block.store.kvfile.http.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId is the block store id to use on the bus.
    *
@@ -73,7 +73,7 @@ export type Config = Message<{
    * @generated from field: uint64 min_request_size = 9;
    */
   minRequestSize?: bigint
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

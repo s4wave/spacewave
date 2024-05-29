@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'fibheap'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'fibheap'
  *
  * @generated from message fibheap.Entry
  */
-export type Entry = Message<{
+export interface Entry {
   /**
    * Degree is the degree of the entry.
    *
@@ -55,7 +55,7 @@ export type Entry = Message<{
    * @generated from field: double priority = 7;
    */
   priority?: number
-}>
+}
 
 // Entry contains the message type declaration for Entry.
 export const Entry: MessageType<Entry> = createMessageType({
@@ -77,7 +77,7 @@ export const Entry: MessageType<Entry> = createMessageType({
  *
  * @generated from message fibheap.Root
  */
-export type Root = Message<{
+export interface Root {
   /**
    * Min is the key of the current minimum item.
    *
@@ -96,7 +96,7 @@ export type Root = Message<{
    * @generated from field: uint32 size = 3;
    */
   size?: number
-}>
+}
 
 // Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({

@@ -3,11 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  Message,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
 import { Node } from './iavl/iavl.pb.js'
 
 export const protobufPackage = 'kvtx.block'
@@ -45,7 +41,7 @@ export const KVImplType_Enum = createEnumType('kvtx.block.KVImplType', [
  *
  * @generated from message kvtx.block.KeyValueStore
  */
-export type KeyValueStore = Message<{
+export interface KeyValueStore {
   /**
    * ImplType is the key value implementation type.
    *
@@ -59,7 +55,7 @@ export type KeyValueStore = Message<{
    * @generated from field: kvtx.block.iavl.Node iavl_root = 2;
    */
   iavlRoot?: Node
-}>
+}
 
 // KeyValueStore contains the message type declaration for KeyValueStore.
 export const KeyValueStore: MessageType<KeyValueStore> = createMessageType({

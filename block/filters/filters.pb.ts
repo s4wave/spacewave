@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/filters/filters.proto (package filters, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Quad } from '../quad/quad.pb.js'
 import { BloomFilter } from '../bloom/bloom.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'filters'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'filters'
  *
  * @generated from message filters.KeyFilters
  */
-export type KeyFilters = Message<{
+export interface KeyFilters {
   /**
    * KeyPrefix is the common prefix affected by all included operations.
    * Empty if the operation affected keys without a common prefix.
@@ -40,7 +40,7 @@ export type KeyFilters = Message<{
    * @generated from field: bloom.BloomFilter key_bloom = 3;
    */
   keyBloom?: BloomFilter
-}>
+}
 
 // KeyFilters contains the message type declaration for KeyFilters.
 export const KeyFilters: MessageType<KeyFilters> = createMessageType({

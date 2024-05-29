@@ -3,11 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  Message,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'transform.chksum'
 
@@ -43,14 +39,14 @@ export const ChksumType_Enum = createEnumType('transform.chksum.ChksumType', [
  *
  * @generated from message transform.chksum.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ChksumType is the type of chksum to use.
    *
    * @generated from field: transform.chksum.ChksumType chksum_type = 1;
    */
   chksumType?: ChksumType
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

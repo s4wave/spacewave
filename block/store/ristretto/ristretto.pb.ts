@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/ristretto/ristretto.proto (package block.store.ristretto, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../../store/kvtx/ristretto/ristretto.pb.js'
 import { Config as Config$2 } from '../../../store/kvkey/kvkey.pb.js'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.ristretto'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'block.store.ristretto'
  *
  * @generated from message block.store.ristretto.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId is the block store id to use on the bus.
    *
@@ -69,7 +69,7 @@ export type Config = Message<{
    * @generated from field: bool verbose = 7;
    */
   verbose?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

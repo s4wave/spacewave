@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bitset'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'bitset'
  *
  * @generated from message bitset.BitSet
  */
-export type BitSet = Message<{
+export interface BitSet {
   /**
    * Set is the set of uint64 representing the bitset.
    *
@@ -25,7 +25,7 @@ export type BitSet = Message<{
    * @generated from field: uint32 len = 2;
    */
   len?: number
-}>
+}
 
 // BitSet contains the message type declaration for BitSet.
 export const BitSet: MessageType<BitSet> = createMessageType({

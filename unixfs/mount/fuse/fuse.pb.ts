@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.mount.fuse'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'unixfs.mount.fuse'
  *
  * @generated from message unixfs.mount.fuse.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * MountPath is the destination mount path.
    *
@@ -46,7 +46,7 @@ export type Config = Message<{
    * @generated from field: bool allow_suid = 5;
    */
   allowSuid?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

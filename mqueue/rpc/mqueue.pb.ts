@@ -5,7 +5,6 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -17,14 +16,14 @@ export const protobufPackage = 'mqueue.rpc'
  *
  * @generated from message mqueue.rpc.RmMqueueRequest
  */
-export type RmMqueueRequest = Message<{
+export interface RmMqueueRequest {
   /**
    * MqueueId is the message queue to remove.
    *
    * @generated from field: bytes mqueue_id = 1;
    */
   mqueueId?: Uint8Array
-}>
+}
 
 // RmMqueueRequest contains the message type declaration for RmMqueueRequest.
 export const RmMqueueRequest: MessageType<RmMqueueRequest> = createMessageType({
@@ -40,7 +39,7 @@ export const RmMqueueRequest: MessageType<RmMqueueRequest> = createMessageType({
  *
  * @generated from message mqueue.rpc.RmMqueueResponse
  */
-export type RmMqueueResponse = Message<{
+export interface RmMqueueResponse {
   /**
    * Error is any error removing the message queue.
    * Will be empty if the queue did not exist.
@@ -48,7 +47,7 @@ export type RmMqueueResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // RmMqueueResponse contains the message type declaration for RmMqueueResponse.
 export const RmMqueueResponse: MessageType<RmMqueueResponse> =
@@ -65,7 +64,7 @@ export const RmMqueueResponse: MessageType<RmMqueueResponse> =
  *
  * @generated from message mqueue.rpc.ListMqueuesRequest
  */
-export type ListMqueuesRequest = Message<{
+export interface ListMqueuesRequest {
   /**
    * Prefix is the message queue id prefix to filter by.
    *
@@ -81,7 +80,7 @@ export type ListMqueuesRequest = Message<{
    * @generated from field: bool filled = 2;
    */
   filled?: boolean
-}>
+}
 
 // ListMqueuesRequest contains the message type declaration for ListMqueuesRequest.
 export const ListMqueuesRequest: MessageType<ListMqueuesRequest> =
@@ -99,7 +98,7 @@ export const ListMqueuesRequest: MessageType<ListMqueuesRequest> =
  *
  * @generated from message mqueue.rpc.ListMqueuesResponse
  */
-export type ListMqueuesResponse = Message<{
+export interface ListMqueuesResponse {
   /**
    * Error is any error listing message queues.
    *
@@ -112,7 +111,7 @@ export type ListMqueuesResponse = Message<{
    * @generated from field: repeated bytes mqueue_ids = 2;
    */
   mqueueIds?: Uint8Array[]
-}>
+}
 
 // ListMqueuesResponse contains the message type declaration for ListMqueuesResponse.
 export const ListMqueuesResponse: MessageType<ListMqueuesResponse> =
@@ -136,7 +135,7 @@ export const ListMqueuesResponse: MessageType<ListMqueuesResponse> =
  *
  * @generated from message mqueue.rpc.PeekRequest
  */
-export type PeekRequest = Message<{}>
+export interface PeekRequest {}
 
 // PeekRequest contains the message type declaration for PeekRequest.
 export const PeekRequest: MessageType<PeekRequest> = createMessageType({
@@ -150,7 +149,7 @@ export const PeekRequest: MessageType<PeekRequest> = createMessageType({
  *
  * @generated from message mqueue.rpc.MqueueMsg
  */
-export type MqueueMsg = Message<{
+export interface MqueueMsg {
   /**
    * Id contains the message id.
    *
@@ -169,7 +168,7 @@ export type MqueueMsg = Message<{
    * @generated from field: bytes data = 3;
    */
   data?: Uint8Array
-}>
+}
 
 // MqueueMsg contains the message type declaration for MqueueMsg.
 export const MqueueMsg: MessageType<MqueueMsg> = createMessageType({
@@ -187,7 +186,7 @@ export const MqueueMsg: MessageType<MqueueMsg> = createMessageType({
  *
  * @generated from message mqueue.rpc.PeekResponse
  */
-export type PeekResponse = Message<{
+export interface PeekResponse {
   /**
    * Error is any error accessing the key.
    * Will be empty if the key was unset.
@@ -207,7 +206,7 @@ export type PeekResponse = Message<{
    * @generated from field: mqueue.rpc.MqueueMsg msg = 3;
    */
   msg?: MqueueMsg
-}>
+}
 
 // PeekResponse contains the message type declaration for PeekResponse.
 export const PeekResponse: MessageType<PeekResponse> = createMessageType({
@@ -225,14 +224,14 @@ export const PeekResponse: MessageType<PeekResponse> = createMessageType({
  *
  * @generated from message mqueue.rpc.AckRequest
  */
-export type AckRequest = Message<{
+export interface AckRequest {
   /**
    * Id is the message id to acknowledge.
    *
    * @generated from field: uint64 id = 1;
    */
   id?: bigint
-}>
+}
 
 // AckRequest contains the message type declaration for AckRequest.
 export const AckRequest: MessageType<AckRequest> = createMessageType({
@@ -248,7 +247,7 @@ export const AckRequest: MessageType<AckRequest> = createMessageType({
  *
  * @generated from message mqueue.rpc.AckResponse
  */
-export type AckResponse = Message<{
+export interface AckResponse {
   /**
    * Error is any error acknowledging the message.
    * If empty, the operation succeeded.
@@ -256,7 +255,7 @@ export type AckResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // AckResponse contains the message type declaration for AckResponse.
 export const AckResponse: MessageType<AckResponse> = createMessageType({
@@ -272,14 +271,14 @@ export const AckResponse: MessageType<AckResponse> = createMessageType({
  *
  * @generated from message mqueue.rpc.PushRequest
  */
-export type PushRequest = Message<{
+export interface PushRequest {
   /**
    * Data is the contents of the message to push.
    *
    * @generated from field: bytes data = 1;
    */
   data?: Uint8Array
-}>
+}
 
 // PushRequest contains the message type declaration for PushRequest.
 export const PushRequest: MessageType<PushRequest> = createMessageType({
@@ -295,7 +294,7 @@ export const PushRequest: MessageType<PushRequest> = createMessageType({
  *
  * @generated from message mqueue.rpc.PushResponse
  */
-export type PushResponse = Message<{
+export interface PushResponse {
   /**
    * Error is any error pushing the message.
    * If empty, the operation succeeded.
@@ -310,7 +309,7 @@ export type PushResponse = Message<{
    * @generated from field: mqueue.rpc.MqueueMsg msg = 2;
    */
   msg?: MqueueMsg
-}>
+}
 
 // PushResponse contains the message type declaration for PushResponse.
 export const PushResponse: MessageType<PushResponse> = createMessageType({
@@ -327,7 +326,7 @@ export const PushResponse: MessageType<PushResponse> = createMessageType({
  *
  * @generated from message mqueue.rpc.WaitRequest
  */
-export type WaitRequest = Message<{
+export interface WaitRequest {
   /**
    * Ack indicates to ack the message when returning it.
    * Note: message may be dropped in transit.
@@ -336,7 +335,7 @@ export type WaitRequest = Message<{
    * @generated from field: bool ack = 1;
    */
   ack?: boolean
-}>
+}
 
 // WaitRequest contains the message type declaration for WaitRequest.
 export const WaitRequest: MessageType<WaitRequest> = createMessageType({
@@ -352,14 +351,14 @@ export const WaitRequest: MessageType<WaitRequest> = createMessageType({
  *
  * @generated from message mqueue.rpc.WaitResponse
  */
-export type WaitResponse = Message<{
+export interface WaitResponse {
   /**
    * Msg contains the message.
    *
    * @generated from field: mqueue.rpc.MqueueMsg msg = 1;
    */
   msg?: MqueueMsg
-}>
+}
 
 // WaitResponse contains the message type declaration for WaitResponse.
 export const WaitResponse: MessageType<WaitResponse> = createMessageType({
@@ -375,7 +374,7 @@ export const WaitResponse: MessageType<WaitResponse> = createMessageType({
  *
  * @generated from message mqueue.rpc.DeleteQueueRequest
  */
-export type DeleteQueueRequest = Message<{}>
+export interface DeleteQueueRequest {}
 
 // DeleteQueueRequest contains the message type declaration for DeleteQueueRequest.
 export const DeleteQueueRequest: MessageType<DeleteQueueRequest> =
@@ -390,7 +389,7 @@ export const DeleteQueueRequest: MessageType<DeleteQueueRequest> =
  *
  * @generated from message mqueue.rpc.DeleteQueueResponse
  */
-export type DeleteQueueResponse = Message<{
+export interface DeleteQueueResponse {
   /**
    * Error is any error deleting the queue.
    * If empty, the operation succeeded.
@@ -398,7 +397,7 @@ export type DeleteQueueResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // DeleteQueueResponse contains the message type declaration for DeleteQueueResponse.
 export const DeleteQueueResponse: MessageType<DeleteQueueResponse> =

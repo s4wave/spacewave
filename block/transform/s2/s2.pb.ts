@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'transform.s2'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'transform.s2'
  *
  * @generated from message transform.s2.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Better uses the "better" s2 mode.
    * This is slightly slower.
@@ -27,7 +27,7 @@ export type Config = Message<{
    * @generated from field: bool best = 2;
    */
   best?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

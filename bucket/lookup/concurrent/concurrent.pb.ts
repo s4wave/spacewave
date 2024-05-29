@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../bucket.pb.js'
@@ -118,7 +117,7 @@ export const WritebackBehavior_Enum = createEnumType(
  *
  * @generated from message lookup.concurrent.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BucketConf is the bucket configuration.
    *
@@ -169,7 +168,7 @@ export type Config = Message<{
    * @generated from field: string fallback_block_store_id = 7;
    */
   fallbackBlockStoreId?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

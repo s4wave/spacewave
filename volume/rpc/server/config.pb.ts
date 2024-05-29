@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.rpc.server'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'volume.rpc.server'
  *
  * @generated from message volume.rpc.server.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceId is the service id to listen on.
    * Usually a prefix with: rpc.volume.AccessVolumes
@@ -53,7 +53,7 @@ export type Config = Message<{
    * @generated from field: string release_delay = 5;
    */
   releaseDelay?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

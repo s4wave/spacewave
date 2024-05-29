@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { VolumeInfo } from '../volume.pb.js'
 
 export const protobufPackage = 'volume.rpc'
@@ -13,14 +13,14 @@ export const protobufPackage = 'volume.rpc'
  *
  * @generated from message volume.rpc.WatchVolumeInfoRequest
  */
-export type WatchVolumeInfoRequest = Message<{
+export interface WatchVolumeInfoRequest {
   /**
    * VolumeId is the volume id to watch.
    *
    * @generated from field: string volume_id = 1;
    */
   volumeId?: string
-}>
+}
 
 // WatchVolumeInfoRequest contains the message type declaration for WatchVolumeInfoRequest.
 export const WatchVolumeInfoRequest: MessageType<WatchVolumeInfoRequest> =
@@ -37,7 +37,7 @@ export const WatchVolumeInfoRequest: MessageType<WatchVolumeInfoRequest> =
  *
  * @generated from message volume.rpc.WatchVolumeInfoResponse
  */
-export type WatchVolumeInfoResponse = Message<{
+export interface WatchVolumeInfoResponse {
   /**
    * NotFound is set of the volume info is empty (not found).
    *
@@ -50,7 +50,7 @@ export type WatchVolumeInfoResponse = Message<{
    * @generated from field: volume.VolumeInfo volume_info = 2;
    */
   volumeInfo?: VolumeInfo
-}>
+}
 
 // WatchVolumeInfoResponse contains the message type declaration for WatchVolumeInfoResponse.
 export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> =
@@ -68,7 +68,7 @@ export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> =
  *
  * @generated from message volume.rpc.GetVolumeInfoRequest
  */
-export type GetVolumeInfoRequest = Message<{}>
+export interface GetVolumeInfoRequest {}
 
 // GetVolumeInfoRequest contains the message type declaration for GetVolumeInfoRequest.
 export const GetVolumeInfoRequest: MessageType<GetVolumeInfoRequest> =
@@ -83,14 +83,14 @@ export const GetVolumeInfoRequest: MessageType<GetVolumeInfoRequest> =
  *
  * @generated from message volume.rpc.GetVolumeInfoResponse
  */
-export type GetVolumeInfoResponse = Message<{
+export interface GetVolumeInfoResponse {
   /**
    * VolumeInfo is the volume information object.
    *
    * @generated from field: volume.VolumeInfo volume_info = 1;
    */
   volumeInfo?: VolumeInfo
-}>
+}
 
 // GetVolumeInfoResponse contains the message type declaration for GetVolumeInfoResponse.
 export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
@@ -107,7 +107,7 @@ export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
  *
  * @generated from message volume.rpc.GetPeerPrivRequest
  */
-export type GetPeerPrivRequest = Message<{}>
+export interface GetPeerPrivRequest {}
 
 // GetPeerPrivRequest contains the message type declaration for GetPeerPrivRequest.
 export const GetPeerPrivRequest: MessageType<GetPeerPrivRequest> =
@@ -122,14 +122,14 @@ export const GetPeerPrivRequest: MessageType<GetPeerPrivRequest> =
  *
  * @generated from message volume.rpc.GetPeerPrivResponse
  */
-export type GetPeerPrivResponse = Message<{
+export interface GetPeerPrivResponse {
   /**
    * PrivKey is the private key.
    *
    * @generated from field: string priv_key = 1;
    */
   privKey?: string
-}>
+}
 
 // GetPeerPrivResponse contains the message type declaration for GetPeerPrivResponse.
 export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> =

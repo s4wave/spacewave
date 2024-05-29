@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/mock/mock.proto (package block.mock, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.mock'
 
@@ -13,14 +13,14 @@ export const protobufPackage = 'block.mock'
  *
  * @generated from message block.mock.SubBlock
  */
-export type SubBlock = Message<{
+export interface SubBlock {
   /**
    * ExamplePtr is an example reference.
    *
    * @generated from field: block.BlockRef example_ptr = 1;
    */
   examplePtr?: BlockRef
-}>
+}
 
 // SubBlock contains the message type declaration for SubBlock.
 export const SubBlock: MessageType<SubBlock> = createMessageType({
@@ -36,14 +36,14 @@ export const SubBlock: MessageType<SubBlock> = createMessageType({
  *
  * @generated from message block.mock.Root
  */
-export type Root = Message<{
+export interface Root {
   /**
    * ExampleSubBlock is a sub-block.
    *
    * @generated from field: block.mock.SubBlock example_sub_block = 1;
    */
   exampleSubBlock?: SubBlock
-}>
+}
 
 // Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({
@@ -59,14 +59,14 @@ export const Root: MessageType<Root> = createMessageType({
  *
  * @generated from message block.mock.Example
  */
-export type Example = Message<{
+export interface Example {
   /**
    * Msg is a message.
    *
    * @generated from field: string msg = 1;
    */
   msg?: string
-}>
+}
 
 // Example contains the message type declaration for Example.
 export const Example: MessageType<Example> = createMessageType({

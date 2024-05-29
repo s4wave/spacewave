@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/msgpack/msgpack.proto (package msgpack, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 import { Blob } from '../blob/blob.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'msgpack'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'msgpack'
  *
  * @generated from message msgpack.MsgpackBlob
  */
-export type MsgpackBlob = Message<{
+export interface MsgpackBlob {
   /**
    * Blob contains the encoded data in a blob.
    *
@@ -25,7 +25,7 @@ export type MsgpackBlob = Message<{
    * @generated from field: blob.Blob blob = 1;
    */
   blob?: Blob
-}>
+}
 
 // MsgpackBlob contains the message type declaration for MsgpackBlob.
 export const MsgpackBlob: MessageType<MsgpackBlob> = createMessageType({

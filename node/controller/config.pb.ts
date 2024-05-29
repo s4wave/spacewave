@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/node/controller/config.proto (package node.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'node.controller'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'node.controller'
  *
  * @generated from message node.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * DisableLookup disables lookup processing entirely.
    *
@@ -36,7 +36,7 @@ export type Config = Message<{
    * @generated from field: configset.proto.ControllerConfig default_lookup = 3;
    */
   defaultLookup?: ControllerConfig
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

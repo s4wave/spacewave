@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/bucket/config.proto (package block.store.bucket, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../../bucket/bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.bucket'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'block.store.bucket'
  *
  * @generated from message block.store.bucket.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId configures the block store to use for blocks.
    * uses LookupBlockStore to lookup the block store on the bus.
@@ -43,7 +43,7 @@ export type Config = Message<{
    * @generated from field: bool not_found_if_idle = 4;
    */
   notFoundIfIdle?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

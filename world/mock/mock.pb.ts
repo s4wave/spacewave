@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'world.mock'
 
@@ -12,14 +12,14 @@ export const protobufPackage = 'world.mock'
  *
  * @generated from message world.mock.MockObjectOp
  */
-export type MockObjectOp = Message<{
+export interface MockObjectOp {
   /**
    * NextMsg sets the next message on the mock object.
    *
    * @generated from field: string next_msg = 1;
    */
   nextMsg?: string
-}>
+}
 
 // MockObjectOp contains the message type declaration for MockObjectOp.
 export const MockObjectOp: MessageType<MockObjectOp> = createMessageType({
@@ -35,7 +35,7 @@ export const MockObjectOp: MessageType<MockObjectOp> = createMessageType({
  *
  * @generated from message world.mock.MockWorldOp
  */
-export type MockWorldOp = Message<{
+export interface MockWorldOp {
   /**
    * ObjectKey is the object key to apply to.
    *
@@ -48,7 +48,7 @@ export type MockWorldOp = Message<{
    * @generated from field: string next_msg = 2;
    */
   nextMsg?: string
-}>
+}
 
 // MockWorldOp contains the message type declaration for MockWorldOp.
 export const MockWorldOp: MessageType<MockWorldOp> = createMessageType({

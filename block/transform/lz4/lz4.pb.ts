@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 
@@ -60,7 +59,7 @@ export const BlockSize_Enum = createEnumType('transform.lz4.BlockSize', [
  *
  * @generated from message transform.lz4.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockSize defines the maximum size of compressed blocks.
    * Defaults to 4MB.
@@ -88,7 +87,7 @@ export type Config = Message<{
    * @generated from field: uint32 compression_level = 4;
    */
   compressionLevel?: number
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

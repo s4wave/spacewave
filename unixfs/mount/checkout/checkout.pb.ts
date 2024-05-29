@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.mount.checkout'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'unixfs.mount.checkout'
  *
  * @generated from message unixfs.mount.checkout.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * MountPath is the destination mount path.
    *
@@ -33,7 +33,7 @@ export type Config = Message<{
    * @generated from field: repeated string skip_path_prefixes = 3;
    */
   skipPathPrefixes?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

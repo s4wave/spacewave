@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'store.kvtx.redis'
 
@@ -12,14 +12,14 @@ export const protobufPackage = 'store.kvtx.redis'
  *
  * @generated from message store.kvtx.redis.ClientConfig
  */
-export type ClientConfig = Message<{
+export interface ClientConfig {
   /**
    * Url is the redis:// url to connect to.
    *
    * @generated from field: string url = 1;
    */
   url?: string
-}>
+}
 
 // ClientConfig contains the message type declaration for ClientConfig.
 export const ClientConfig: MessageType<ClientConfig> = createMessageType({

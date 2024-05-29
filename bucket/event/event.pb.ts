@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../block/block.pb.js'
@@ -53,7 +52,7 @@ export const EventType_Enum = createEnumType('bucket.event.EventType', [
  *
  * @generated from message bucket.event.BlockCommon
  */
-export type BlockCommon = Message<{
+export interface BlockCommon {
   /**
    * BucketId is the bucket id.
    * May be unset.
@@ -85,7 +84,7 @@ export type BlockCommon = Message<{
    * @generated from field: block.BlockRef block_ref = 4;
    */
   blockRef?: BlockRef
-}>
+}
 
 // BlockCommon contains the message type declaration for BlockCommon.
 export const BlockCommon: MessageType<BlockCommon> = createMessageType({
@@ -104,14 +103,14 @@ export const BlockCommon: MessageType<BlockCommon> = createMessageType({
  *
  * @generated from message bucket.event.PutBlock
  */
-export type PutBlock = Message<{
+export interface PutBlock {
   /**
    * BlockCommon contains the common block event params.
    *
    * @generated from field: bucket.event.BlockCommon block_common = 1;
    */
   blockCommon?: BlockCommon
-}>
+}
 
 // PutBlock contains the message type declaration for PutBlock.
 export const PutBlock: MessageType<PutBlock> = createMessageType({
@@ -127,14 +126,14 @@ export const PutBlock: MessageType<PutBlock> = createMessageType({
  *
  * @generated from message bucket.event.RmBlock
  */
-export type RmBlock = Message<{
+export interface RmBlock {
   /**
    * BlockCommon contains the common block event params.
    *
    * @generated from field: bucket.event.BlockCommon block_common = 1;
    */
   blockCommon?: BlockCommon
-}>
+}
 
 // RmBlock contains the message type declaration for RmBlock.
 export const RmBlock: MessageType<RmBlock> = createMessageType({
@@ -150,7 +149,7 @@ export const RmBlock: MessageType<RmBlock> = createMessageType({
  *
  * @generated from message bucket.event.Event
  */
-export type Event = Message<{
+export interface Event {
   /**
    * EventType is the event type.
    *
@@ -169,7 +168,7 @@ export type Event = Message<{
    * @generated from field: bucket.event.RmBlock rm_block = 4;
    */
   rmBlock?: RmBlock
-}>
+}
 
 // Event contains the message type declaration for Event.
 export const Event: MessageType<Event> = createMessageType({

@@ -50,7 +50,7 @@ import {
   ReleaseFSCursorRequest,
   ReleaseFSCursorResponse,
 } from './rpc.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -349,7 +349,7 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.FSCursorClient
    */
   FSCursorClient(
-    request: Message<FSCursorClientRequest>,
+    request: FSCursorClientRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<FSCursorClientResponse>
 
@@ -359,9 +359,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.GetProxyCursor
    */
   GetProxyCursor(
-    request: Message<GetProxyCursorRequest>,
+    request: GetProxyCursorRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetProxyCursorResponse>>
+  ): Promise<GetProxyCursorResponse>
 
   /**
    * GetCursorOps resolves the FSCursorOps handle.
@@ -369,9 +369,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.GetCursorOps
    */
   GetCursorOps(
-    request: Message<GetCursorOpsRequest>,
+    request: GetCursorOpsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetCursorOpsResponse>>
+  ): Promise<GetCursorOpsResponse>
 
   /**
    * ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
@@ -380,9 +380,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
    */
   ReleaseFSCursor(
-    request: Message<ReleaseFSCursorRequest>,
+    request: ReleaseFSCursorRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ReleaseFSCursorResponse>>
+  ): Promise<ReleaseFSCursorResponse>
 
   /**
    * OpsGetPermissions returns the permissions bits of the file mode.
@@ -391,9 +391,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetPermissions
    */
   OpsGetPermissions(
-    request: Message<OpsGetPermissionsRequest>,
+    request: OpsGetPermissionsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetPermissionsResponse>>
+  ): Promise<OpsGetPermissionsResponse>
 
   /**
    * OpsSetPermissions updates the permissions bits of the file mode.
@@ -401,9 +401,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSetPermissions
    */
   OpsSetPermissions(
-    request: Message<OpsSetPermissionsRequest>,
+    request: OpsSetPermissionsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsSetPermissionsResponse>>
+  ): Promise<OpsSetPermissionsResponse>
 
   /**
    * OpsGetSize returns the size of the inode (in bytes).
@@ -411,9 +411,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetSize
    */
   OpsGetSize(
-    request: Message<OpsGetSizeRequest>,
+    request: OpsGetSizeRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetSizeResponse>>
+  ): Promise<OpsGetSizeResponse>
 
   /**
    * OpsGetModTimestamp returns the modification timestamp.
@@ -421,9 +421,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetModTimestamp
    */
   OpsGetModTimestamp(
-    request: Message<OpsGetModTimestampRequest>,
+    request: OpsGetModTimestampRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetModTimestampResponse>>
+  ): Promise<OpsGetModTimestampResponse>
 
   /**
    * OpsSetModTimestamp updates the modification timestamp of the node.
@@ -431,9 +431,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSetModTimestamp
    */
   OpsSetModTimestamp(
-    request: Message<OpsSetModTimestampRequest>,
+    request: OpsSetModTimestampRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsSetModTimestampResponse>>
+  ): Promise<OpsSetModTimestampResponse>
 
   /**
    * OpsReadAt reads from a location in a File node.
@@ -441,9 +441,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsReadAt
    */
   OpsReadAt(
-    request: Message<OpsReadAtRequest>,
+    request: OpsReadAtRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsReadAtResponse>>
+  ): Promise<OpsReadAtResponse>
 
   /**
    * OpsGetOptimalWriteSize returns the best write size to use for the Write call.
@@ -451,9 +451,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetOptimalWriteSize
    */
   OpsGetOptimalWriteSize(
-    request: Message<OpsGetOptimalWriteSizeRequest>,
+    request: OpsGetOptimalWriteSizeRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetOptimalWriteSizeResponse>>
+  ): Promise<OpsGetOptimalWriteSizeResponse>
 
   /**
    * OpsWriteAt writes to a location within a File node synchronously.
@@ -461,9 +461,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsWriteAt
    */
   OpsWriteAt(
-    request: Message<OpsWriteAtRequest>,
+    request: OpsWriteAtRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsWriteAtResponse>>
+  ): Promise<OpsWriteAtResponse>
 
   /**
    * OpsTruncate shrinks or extends a file to the specified size.
@@ -471,9 +471,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsTruncate
    */
   OpsTruncate(
-    request: Message<OpsTruncateRequest>,
+    request: OpsTruncateRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsTruncateResponse>>
+  ): Promise<OpsTruncateResponse>
 
   /**
    * OpsLookup looks up a child entry in a directory.
@@ -481,9 +481,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsLookup
    */
   OpsLookup(
-    request: Message<OpsLookupRequest>,
+    request: OpsLookupRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsLookupResponse>>
+  ): Promise<OpsLookupResponse>
 
   /**
    * OpsReaddirAll reads all directory entries.
@@ -491,7 +491,7 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsReaddirAll
    */
   OpsReaddirAll(
-    request: Message<OpsReaddirAllRequest>,
+    request: OpsReaddirAllRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<OpsReaddirAllResponse>
 
@@ -501,9 +501,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMknod
    */
   OpsMknod(
-    request: Message<OpsMknodRequest>,
+    request: OpsMknodRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsMknodResponse>>
+  ): Promise<OpsMknodResponse>
 
   /**
    * OpsSymlink creates a symbolic link from a location to a path.
@@ -511,9 +511,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSymlink
    */
   OpsSymlink(
-    request: Message<OpsSymlinkRequest>,
+    request: OpsSymlinkRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsSymlinkResponse>>
+  ): Promise<OpsSymlinkResponse>
 
   /**
    * OpsReadlink reads a symbolic link contents.
@@ -521,9 +521,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsReadlink
    */
   OpsReadlink(
-    request: Message<OpsReadlinkRequest>,
+    request: OpsReadlinkRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsReadlinkResponse>>
+  ): Promise<OpsReadlinkResponse>
 
   /**
    * OpsCopyTo performs an optimized copy of an dirent inode to another inode.
@@ -531,9 +531,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
    */
   OpsCopyTo(
-    request: Message<OpsCopyToRequest>,
+    request: OpsCopyToRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsCopyToResponse>>
+  ): Promise<OpsCopyToResponse>
 
   /**
    * OpsCopyFrom performs an optimized copy from another inode.
@@ -541,9 +541,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
    */
   OpsCopyFrom(
-    request: Message<OpsCopyFromRequest>,
+    request: OpsCopyFromRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsCopyFromResponse>>
+  ): Promise<OpsCopyFromResponse>
 
   /**
    * OpsMoveTo performs an atomic and optimized move to another inode.
@@ -551,9 +551,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
    */
   OpsMoveTo(
-    request: Message<OpsMoveToRequest>,
+    request: OpsMoveToRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsMoveToResponse>>
+  ): Promise<OpsMoveToResponse>
 
   /**
    * OpsMoveFrom performs an atomic and optimized move from another inode.
@@ -561,9 +561,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
    */
   OpsMoveFrom(
-    request: Message<OpsMoveFromRequest>,
+    request: OpsMoveFromRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsMoveFromResponse>>
+  ): Promise<OpsMoveFromResponse>
 
   /**
    * OpsRemove deletes entries from a directory.
@@ -571,9 +571,9 @@ export interface FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsRemove
    */
   OpsRemove(
-    request: Message<OpsRemoveRequest>,
+    request: OpsRemoveRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsRemoveResponse>>
+  ): Promise<OpsRemoveResponse>
 }
 
 export const FSCursorServiceServiceName = FSCursorServiceDefinition.typeName
@@ -618,7 +618,7 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.FSCursorClient
    */
   FSCursorClient(
-    request: Message<FSCursorClientRequest>,
+    request: FSCursorClientRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<FSCursorClientResponse> {
     const requestMsg = FSCursorClientRequest.create(request)
@@ -637,9 +637,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.GetProxyCursor
    */
   async GetProxyCursor(
-    request: Message<GetProxyCursorRequest>,
+    request: GetProxyCursorRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetProxyCursorResponse>> {
+  ): Promise<GetProxyCursorResponse> {
     const requestMsg = GetProxyCursorRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -656,9 +656,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.GetCursorOps
    */
   async GetCursorOps(
-    request: Message<GetCursorOpsRequest>,
+    request: GetCursorOpsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetCursorOpsResponse>> {
+  ): Promise<GetCursorOpsResponse> {
     const requestMsg = GetCursorOpsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -676,9 +676,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
    */
   async ReleaseFSCursor(
-    request: Message<ReleaseFSCursorRequest>,
+    request: ReleaseFSCursorRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ReleaseFSCursorResponse>> {
+  ): Promise<ReleaseFSCursorResponse> {
     const requestMsg = ReleaseFSCursorRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -696,9 +696,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetPermissions
    */
   async OpsGetPermissions(
-    request: Message<OpsGetPermissionsRequest>,
+    request: OpsGetPermissionsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetPermissionsResponse>> {
+  ): Promise<OpsGetPermissionsResponse> {
     const requestMsg = OpsGetPermissionsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -715,9 +715,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSetPermissions
    */
   async OpsSetPermissions(
-    request: Message<OpsSetPermissionsRequest>,
+    request: OpsSetPermissionsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsSetPermissionsResponse>> {
+  ): Promise<OpsSetPermissionsResponse> {
     const requestMsg = OpsSetPermissionsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -734,9 +734,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetSize
    */
   async OpsGetSize(
-    request: Message<OpsGetSizeRequest>,
+    request: OpsGetSizeRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetSizeResponse>> {
+  ): Promise<OpsGetSizeResponse> {
     const requestMsg = OpsGetSizeRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -753,9 +753,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetModTimestamp
    */
   async OpsGetModTimestamp(
-    request: Message<OpsGetModTimestampRequest>,
+    request: OpsGetModTimestampRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetModTimestampResponse>> {
+  ): Promise<OpsGetModTimestampResponse> {
     const requestMsg = OpsGetModTimestampRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -772,9 +772,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSetModTimestamp
    */
   async OpsSetModTimestamp(
-    request: Message<OpsSetModTimestampRequest>,
+    request: OpsSetModTimestampRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsSetModTimestampResponse>> {
+  ): Promise<OpsSetModTimestampResponse> {
     const requestMsg = OpsSetModTimestampRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -791,9 +791,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsReadAt
    */
   async OpsReadAt(
-    request: Message<OpsReadAtRequest>,
+    request: OpsReadAtRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsReadAtResponse>> {
+  ): Promise<OpsReadAtResponse> {
     const requestMsg = OpsReadAtRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -810,9 +810,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsGetOptimalWriteSize
    */
   async OpsGetOptimalWriteSize(
-    request: Message<OpsGetOptimalWriteSizeRequest>,
+    request: OpsGetOptimalWriteSizeRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsGetOptimalWriteSizeResponse>> {
+  ): Promise<OpsGetOptimalWriteSizeResponse> {
     const requestMsg = OpsGetOptimalWriteSizeRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -829,9 +829,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsWriteAt
    */
   async OpsWriteAt(
-    request: Message<OpsWriteAtRequest>,
+    request: OpsWriteAtRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsWriteAtResponse>> {
+  ): Promise<OpsWriteAtResponse> {
     const requestMsg = OpsWriteAtRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -848,9 +848,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsTruncate
    */
   async OpsTruncate(
-    request: Message<OpsTruncateRequest>,
+    request: OpsTruncateRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsTruncateResponse>> {
+  ): Promise<OpsTruncateResponse> {
     const requestMsg = OpsTruncateRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -867,9 +867,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsLookup
    */
   async OpsLookup(
-    request: Message<OpsLookupRequest>,
+    request: OpsLookupRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsLookupResponse>> {
+  ): Promise<OpsLookupResponse> {
     const requestMsg = OpsLookupRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -886,7 +886,7 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsReaddirAll
    */
   OpsReaddirAll(
-    request: Message<OpsReaddirAllRequest>,
+    request: OpsReaddirAllRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<OpsReaddirAllResponse> {
     const requestMsg = OpsReaddirAllRequest.create(request)
@@ -905,9 +905,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMknod
    */
   async OpsMknod(
-    request: Message<OpsMknodRequest>,
+    request: OpsMknodRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsMknodResponse>> {
+  ): Promise<OpsMknodResponse> {
     const requestMsg = OpsMknodRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -924,9 +924,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsSymlink
    */
   async OpsSymlink(
-    request: Message<OpsSymlinkRequest>,
+    request: OpsSymlinkRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsSymlinkResponse>> {
+  ): Promise<OpsSymlinkResponse> {
     const requestMsg = OpsSymlinkRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -943,9 +943,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsReadlink
    */
   async OpsReadlink(
-    request: Message<OpsReadlinkRequest>,
+    request: OpsReadlinkRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsReadlinkResponse>> {
+  ): Promise<OpsReadlinkResponse> {
     const requestMsg = OpsReadlinkRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -962,9 +962,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
    */
   async OpsCopyTo(
-    request: Message<OpsCopyToRequest>,
+    request: OpsCopyToRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsCopyToResponse>> {
+  ): Promise<OpsCopyToResponse> {
     const requestMsg = OpsCopyToRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -981,9 +981,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
    */
   async OpsCopyFrom(
-    request: Message<OpsCopyFromRequest>,
+    request: OpsCopyFromRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsCopyFromResponse>> {
+  ): Promise<OpsCopyFromResponse> {
     const requestMsg = OpsCopyFromRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1000,9 +1000,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
    */
   async OpsMoveTo(
-    request: Message<OpsMoveToRequest>,
+    request: OpsMoveToRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsMoveToResponse>> {
+  ): Promise<OpsMoveToResponse> {
     const requestMsg = OpsMoveToRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1019,9 +1019,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
    */
   async OpsMoveFrom(
-    request: Message<OpsMoveFromRequest>,
+    request: OpsMoveFromRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsMoveFromResponse>> {
+  ): Promise<OpsMoveFromResponse> {
     const requestMsg = OpsMoveFromRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1038,9 +1038,9 @@ export class FSCursorServiceClient implements FSCursorService {
    * @generated from rpc unixfs.rpc.FSCursorService.OpsRemove
    */
   async OpsRemove(
-    request: Message<OpsRemoveRequest>,
+    request: OpsRemoveRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<OpsRemoveResponse>> {
+  ): Promise<OpsRemoveResponse> {
     const requestMsg = OpsRemoveRequest.create(request)
     const result = await this.rpc.request(
       this.service,

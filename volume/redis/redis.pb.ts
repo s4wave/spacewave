@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/redis/redis.proto (package volume.redis, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ClientConfig } from '../../store/kvtx/redis/redis.pb.js'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.redis'
 
@@ -17,7 +17,7 @@ export const protobufPackage = 'volume.redis'
  *
  * @generated from message volume.redis.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Client configures the redis client.
    *
@@ -67,7 +67,7 @@ export type Config = Message<{
    * @generated from field: store.kvtx.Config store_config = 6;
    */
   storeConfig?: Config$3
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

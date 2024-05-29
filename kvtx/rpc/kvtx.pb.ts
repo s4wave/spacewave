@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'kvtx.rpc'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'kvtx.rpc'
  *
  * @generated from message kvtx.rpc.KvtxTransactionInit
  */
-export type KvtxTransactionInit = Message<{
+export interface KvtxTransactionInit {
   /**
    * Write indicates if this should be a write transaction.
    * If unset, the store will be read-only.
@@ -20,7 +20,7 @@ export type KvtxTransactionInit = Message<{
    * @generated from field: bool write = 1;
    */
   write?: boolean
-}>
+}
 
 // KvtxTransactionInit contains the message type declaration for KvtxTransactionInit.
 export const KvtxTransactionInit: MessageType<KvtxTransactionInit> =
@@ -37,7 +37,7 @@ export const KvtxTransactionInit: MessageType<KvtxTransactionInit> =
  *
  * @generated from message kvtx.rpc.KvtxTransactionRequest
  */
-export type KvtxTransactionRequest = Message<{
+export interface KvtxTransactionRequest {
   /**
    * Body contains the message body.
    * First message MUST contain Init.
@@ -77,7 +77,7 @@ export type KvtxTransactionRequest = Message<{
         value: boolean
         case: 'discard'
       }
-}>
+}
 
 // KvtxTransactionRequest contains the message type declaration for KvtxTransactionRequest.
 export const KvtxTransactionRequest: MessageType<KvtxTransactionRequest> =
@@ -114,7 +114,7 @@ export const KvtxTransactionRequest: MessageType<KvtxTransactionRequest> =
  *
  * @generated from message kvtx.rpc.KvtxTransactionAck
  */
-export type KvtxTransactionAck = Message<{
+export interface KvtxTransactionAck {
   /**
    * Error is any error opening the transaction.
    *
@@ -128,7 +128,7 @@ export type KvtxTransactionAck = Message<{
    * @generated from field: string transaction_id = 2;
    */
   transactionId?: string
-}>
+}
 
 // KvtxTransactionAck contains the message type declaration for KvtxTransactionAck.
 export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
@@ -146,7 +146,7 @@ export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
  *
  * @generated from message kvtx.rpc.KvtxTransactionComplete
  */
-export type KvtxTransactionComplete = Message<{
+export interface KvtxTransactionComplete {
   /**
    * Error is any error completing the transaction.
    * If this is set, usually discarded=true as well.
@@ -168,7 +168,7 @@ export type KvtxTransactionComplete = Message<{
    * @generated from field: bool discarded = 3;
    */
   discarded?: boolean
-}>
+}
 
 // KvtxTransactionComplete contains the message type declaration for KvtxTransactionComplete.
 export const KvtxTransactionComplete: MessageType<KvtxTransactionComplete> =
@@ -187,7 +187,7 @@ export const KvtxTransactionComplete: MessageType<KvtxTransactionComplete> =
  *
  * @generated from message kvtx.rpc.KvtxTransactionResponse
  */
-export type KvtxTransactionResponse = Message<{
+export interface KvtxTransactionResponse {
   /**
    * Body contains the message body.
    * First message MUST contain Ack.
@@ -218,7 +218,7 @@ export type KvtxTransactionResponse = Message<{
         value: KvtxTransactionComplete
         case: 'complete'
       }
-}>
+}
 
 // KvtxTransactionResponse contains the message type declaration for KvtxTransactionResponse.
 export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
@@ -248,7 +248,7 @@ export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
  *
  * @generated from message kvtx.rpc.KeyCountRequest
  */
-export type KeyCountRequest = Message<{}>
+export interface KeyCountRequest {}
 
 // KeyCountRequest contains the message type declaration for KeyCountRequest.
 export const KeyCountRequest: MessageType<KeyCountRequest> = createMessageType({
@@ -262,14 +262,14 @@ export const KeyCountRequest: MessageType<KeyCountRequest> = createMessageType({
  *
  * @generated from message kvtx.rpc.KeyCountResponse
  */
-export type KeyCountResponse = Message<{
+export interface KeyCountResponse {
   /**
    * KeyCount is the number of keys in the store.
    *
    * @generated from field: uint64 key_count = 1;
    */
   keyCount?: bigint
-}>
+}
 
 // KeyCountResponse contains the message type declaration for KeyCountResponse.
 export const KeyCountResponse: MessageType<KeyCountResponse> =
@@ -286,14 +286,14 @@ export const KeyCountResponse: MessageType<KeyCountResponse> =
  *
  * @generated from message kvtx.rpc.KvtxKeyRequest
  */
-export type KvtxKeyRequest = Message<{
+export interface KvtxKeyRequest {
   /**
    * Key is the key to lookup.
    *
    * @generated from field: bytes key = 1;
    */
   key?: Uint8Array
-}>
+}
 
 // KvtxKeyRequest contains the message type declaration for KvtxKeyRequest.
 export const KvtxKeyRequest: MessageType<KvtxKeyRequest> = createMessageType({
@@ -309,7 +309,7 @@ export const KvtxKeyRequest: MessageType<KvtxKeyRequest> = createMessageType({
  *
  * @generated from message kvtx.rpc.KvtxKeyDataResponse
  */
-export type KvtxKeyDataResponse = Message<{
+export interface KvtxKeyDataResponse {
   /**
    * Error is any error accessing the key.
    * Will be empty if the key was unset.
@@ -329,7 +329,7 @@ export type KvtxKeyDataResponse = Message<{
    * @generated from field: bytes data = 3;
    */
   data?: Uint8Array
-}>
+}
 
 // KvtxKeyDataResponse contains the message type declaration for KvtxKeyDataResponse.
 export const KvtxKeyDataResponse: MessageType<KvtxKeyDataResponse> =
@@ -348,7 +348,7 @@ export const KvtxKeyDataResponse: MessageType<KvtxKeyDataResponse> =
  *
  * @generated from message kvtx.rpc.KvtxKeyExistsResponse
  */
-export type KvtxKeyExistsResponse = Message<{
+export interface KvtxKeyExistsResponse {
   /**
    * Error is any error accessing the key.
    * Will be empty if the key was unset.
@@ -362,7 +362,7 @@ export type KvtxKeyExistsResponse = Message<{
    * @generated from field: bool found = 2;
    */
   found?: boolean
-}>
+}
 
 // KvtxKeyExistsResponse contains the message type declaration for KvtxKeyExistsResponse.
 export const KvtxKeyExistsResponse: MessageType<KvtxKeyExistsResponse> =
@@ -380,7 +380,7 @@ export const KvtxKeyExistsResponse: MessageType<KvtxKeyExistsResponse> =
  *
  * @generated from message kvtx.rpc.KvtxSetKeyRequest
  */
-export type KvtxSetKeyRequest = Message<{
+export interface KvtxSetKeyRequest {
   /**
    * Key is the key to set.
    *
@@ -393,7 +393,7 @@ export type KvtxSetKeyRequest = Message<{
    * @generated from field: bytes value = 2;
    */
   value?: Uint8Array
-}>
+}
 
 // KvtxSetKeyRequest contains the message type declaration for KvtxSetKeyRequest.
 export const KvtxSetKeyRequest: MessageType<KvtxSetKeyRequest> =
@@ -411,7 +411,7 @@ export const KvtxSetKeyRequest: MessageType<KvtxSetKeyRequest> =
  *
  * @generated from message kvtx.rpc.KvtxSetKeyResponse
  */
-export type KvtxSetKeyResponse = Message<{
+export interface KvtxSetKeyResponse {
   /**
    * Error is any error setting the key.
    * If empty, the operation succeeded.
@@ -419,7 +419,7 @@ export type KvtxSetKeyResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // KvtxSetKeyResponse contains the message type declaration for KvtxSetKeyResponse.
 export const KvtxSetKeyResponse: MessageType<KvtxSetKeyResponse> =
@@ -436,14 +436,14 @@ export const KvtxSetKeyResponse: MessageType<KvtxSetKeyResponse> =
  *
  * @generated from message kvtx.rpc.KvtxDeleteKeyRequest
  */
-export type KvtxDeleteKeyRequest = Message<{
+export interface KvtxDeleteKeyRequest {
   /**
    * Key is the key to delete.
    *
    * @generated from field: bytes key = 1;
    */
   key?: Uint8Array
-}>
+}
 
 // KvtxDeleteKeyRequest contains the message type declaration for KvtxDeleteKeyRequest.
 export const KvtxDeleteKeyRequest: MessageType<KvtxDeleteKeyRequest> =
@@ -460,7 +460,7 @@ export const KvtxDeleteKeyRequest: MessageType<KvtxDeleteKeyRequest> =
  *
  * @generated from message kvtx.rpc.KvtxDeleteKeyResponse
  */
-export type KvtxDeleteKeyResponse = Message<{
+export interface KvtxDeleteKeyResponse {
   /**
    * Error is any error removing the key.
    * If empty, the operation succeeded.
@@ -468,7 +468,7 @@ export type KvtxDeleteKeyResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // KvtxDeleteKeyResponse contains the message type declaration for KvtxDeleteKeyResponse.
 export const KvtxDeleteKeyResponse: MessageType<KvtxDeleteKeyResponse> =
@@ -485,7 +485,7 @@ export const KvtxDeleteKeyResponse: MessageType<KvtxDeleteKeyResponse> =
  *
  * @generated from message kvtx.rpc.KvtxScanPrefixRequest
  */
-export type KvtxScanPrefixRequest = Message<{
+export interface KvtxScanPrefixRequest {
   /**
    * Prefix is the key prefix to scan.
    * If empty, returns all key/value pairs.
@@ -499,7 +499,7 @@ export type KvtxScanPrefixRequest = Message<{
    * @generated from field: bool only_keys = 2;
    */
   onlyKeys?: boolean
-}>
+}
 
 // KvtxScanPrefixRequest contains the message type declaration for KvtxScanPrefixRequest.
 export const KvtxScanPrefixRequest: MessageType<KvtxScanPrefixRequest> =
@@ -517,7 +517,7 @@ export const KvtxScanPrefixRequest: MessageType<KvtxScanPrefixRequest> =
  *
  * @generated from message kvtx.rpc.KvtxScanPrefixResponse
  */
-export type KvtxScanPrefixResponse = Message<{
+export interface KvtxScanPrefixResponse {
   /**
    * Error is any error scanning the key/value pairs.
    * If set, this is the final message in the stream.
@@ -537,7 +537,7 @@ export type KvtxScanPrefixResponse = Message<{
    * @generated from field: bytes value = 3;
    */
   value?: Uint8Array
-}>
+}
 
 // KvtxScanPrefixResponse contains the message type declaration for KvtxScanPrefixResponse.
 export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
@@ -556,7 +556,7 @@ export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
  *
  * @generated from message kvtx.rpc.KvtxIterateInit
  */
-export type KvtxIterateInit = Message<{
+export interface KvtxIterateInit {
   /**
    * Prefix is the key prefix to filter for.
    *
@@ -575,7 +575,7 @@ export type KvtxIterateInit = Message<{
    * @generated from field: bool reverse = 3;
    */
   reverse?: boolean
-}>
+}
 
 // KvtxIterateInit contains the message type declaration for KvtxIterateInit.
 export const KvtxIterateInit: MessageType<KvtxIterateInit> = createMessageType({
@@ -593,7 +593,7 @@ export const KvtxIterateInit: MessageType<KvtxIterateInit> = createMessageType({
  *
  * @generated from message kvtx.rpc.KvtxIterateRequest
  */
-export type KvtxIterateRequest = Message<{
+export interface KvtxIterateRequest {
   /**
    * Body contains the message body.
    * First message MUST contain Init.
@@ -659,7 +659,7 @@ export type KvtxIterateRequest = Message<{
         value: boolean
         case: 'close'
       }
-}>
+}
 
 // KvtxIterateRequest contains the message type declaration for KvtxIterateRequest.
 export const KvtxIterateRequest: MessageType<KvtxIterateRequest> =
@@ -717,7 +717,7 @@ export const KvtxIterateRequest: MessageType<KvtxIterateRequest> =
  *
  * @generated from message kvtx.rpc.KvtxIterateStatus
  */
-export type KvtxIterateStatus = Message<{
+export interface KvtxIterateStatus {
   /**
    * Error indicates the iterator is released with an error.
    *
@@ -737,7 +737,7 @@ export type KvtxIterateStatus = Message<{
    * @generated from field: bytes key = 3;
    */
   key?: Uint8Array
-}>
+}
 
 // KvtxIterateStatus contains the message type declaration for KvtxIterateStatus.
 export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
@@ -756,7 +756,7 @@ export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
  *
  * @generated from message kvtx.rpc.KvtxIterateResponse
  */
-export type KvtxIterateResponse = Message<{
+export interface KvtxIterateResponse {
   /**
    * Body contains the message body.
    * First message MUST contain Ack or IteratorError.
@@ -813,7 +813,7 @@ export type KvtxIterateResponse = Message<{
         value: boolean
         case: 'closed'
       }
-}>
+}
 
 // KvtxIterateResponse contains the message type declaration for KvtxIterateResponse.
 export const KvtxIterateResponse: MessageType<KvtxIterateResponse> =

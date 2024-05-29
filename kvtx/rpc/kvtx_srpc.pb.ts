@@ -19,7 +19,7 @@ import {
   KvtxTransactionRequest,
   KvtxTransactionResponse,
 } from './kvtx.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
@@ -253,9 +253,9 @@ export interface KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.KeyCount
    */
   KeyCount(
-    request: Message<KeyCountRequest>,
+    request: KeyCountRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KeyCountResponse>>
+  ): Promise<KeyCountResponse>
 
   /**
    * KeyData returns data for a key.
@@ -263,9 +263,9 @@ export interface KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.KeyData
    */
   KeyData(
-    request: Message<KvtxKeyRequest>,
+    request: KvtxKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxKeyDataResponse>>
+  ): Promise<KvtxKeyDataResponse>
 
   /**
    * KeyExists checks if a key exists.
@@ -273,9 +273,9 @@ export interface KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.KeyExists
    */
   KeyExists(
-    request: Message<KvtxKeyRequest>,
+    request: KvtxKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxKeyExistsResponse>>
+  ): Promise<KvtxKeyExistsResponse>
 
   /**
    * SetKey sets the value of a key.
@@ -283,9 +283,9 @@ export interface KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.SetKey
    */
   SetKey(
-    request: Message<KvtxSetKeyRequest>,
+    request: KvtxSetKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxSetKeyResponse>>
+  ): Promise<KvtxSetKeyResponse>
 
   /**
    * DeleteKey removes a key from the store.
@@ -293,9 +293,9 @@ export interface KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.DeleteKey
    */
   DeleteKey(
-    request: Message<KvtxDeleteKeyRequest>,
+    request: KvtxDeleteKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxDeleteKeyResponse>>
+  ): Promise<KvtxDeleteKeyResponse>
 
   /**
    * ScanPrefix scans for key/value pairs with a key prefix.
@@ -303,7 +303,7 @@ export interface KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.ScanPrefix
    */
   ScanPrefix(
-    request: Message<KvtxScanPrefixRequest>,
+    request: KvtxScanPrefixRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<KvtxScanPrefixResponse>
 
@@ -344,9 +344,9 @@ export class KvtxOpsClient implements KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.KeyCount
    */
   async KeyCount(
-    request: Message<KeyCountRequest>,
+    request: KeyCountRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KeyCountResponse>> {
+  ): Promise<KeyCountResponse> {
     const requestMsg = KeyCountRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -363,9 +363,9 @@ export class KvtxOpsClient implements KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.KeyData
    */
   async KeyData(
-    request: Message<KvtxKeyRequest>,
+    request: KvtxKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxKeyDataResponse>> {
+  ): Promise<KvtxKeyDataResponse> {
     const requestMsg = KvtxKeyRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -382,9 +382,9 @@ export class KvtxOpsClient implements KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.KeyExists
    */
   async KeyExists(
-    request: Message<KvtxKeyRequest>,
+    request: KvtxKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxKeyExistsResponse>> {
+  ): Promise<KvtxKeyExistsResponse> {
     const requestMsg = KvtxKeyRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -401,9 +401,9 @@ export class KvtxOpsClient implements KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.SetKey
    */
   async SetKey(
-    request: Message<KvtxSetKeyRequest>,
+    request: KvtxSetKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxSetKeyResponse>> {
+  ): Promise<KvtxSetKeyResponse> {
     const requestMsg = KvtxSetKeyRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -420,9 +420,9 @@ export class KvtxOpsClient implements KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.DeleteKey
    */
   async DeleteKey(
-    request: Message<KvtxDeleteKeyRequest>,
+    request: KvtxDeleteKeyRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<KvtxDeleteKeyResponse>> {
+  ): Promise<KvtxDeleteKeyResponse> {
     const requestMsg = KvtxDeleteKeyRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -439,7 +439,7 @@ export class KvtxOpsClient implements KvtxOps {
    * @generated from rpc kvtx.rpc.KvtxOps.ScanPrefix
    */
   ScanPrefix(
-    request: Message<KvtxScanPrefixRequest>,
+    request: KvtxScanPrefixRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<KvtxScanPrefixResponse> {
     const requestMsg = KvtxScanPrefixRequest.create(request)

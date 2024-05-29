@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/mock/mock.proto (package bucket.mock, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bucket.mock'
 
@@ -13,14 +13,14 @@ export const protobufPackage = 'bucket.mock'
  *
  * @generated from message bucket.mock.Root
  */
-export type Root = Message<{
+export interface Root {
   /**
    * ExamplePtr is an example reference to a block mock Root.
    *
    * @generated from field: bucket.ObjectRef example_ptr = 1;
    */
   examplePtr?: ObjectRef
-}>
+}
 
 // Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({

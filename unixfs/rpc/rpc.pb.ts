@@ -5,7 +5,6 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -20,7 +19,7 @@ export const protobufPackage = 'unixfs.rpc'
  *
  * @generated from message unixfs.rpc.GetProxyCursorRequest
  */
-export type GetProxyCursorRequest = Message<{
+export interface GetProxyCursorRequest {
   /**
    * CursorHandleId is the handle identifier for the cursor.
    *
@@ -34,7 +33,7 @@ export type GetProxyCursorRequest = Message<{
    * @generated from field: uint64 client_handle_id = 2;
    */
   clientHandleId?: bigint
-}>
+}
 
 // GetProxyCursorRequest contains the message type declaration for GetProxyCursorRequest.
 export const GetProxyCursorRequest: MessageType<GetProxyCursorRequest> =
@@ -52,7 +51,7 @@ export const GetProxyCursorRequest: MessageType<GetProxyCursorRequest> =
  *
  * @generated from message unixfs.rpc.GetProxyCursorResponse
  */
-export type GetProxyCursorResponse = Message<{
+export interface GetProxyCursorResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -66,7 +65,7 @@ export type GetProxyCursorResponse = Message<{
    * @generated from field: uint64 cursor_handle_id = 2;
    */
   cursorHandleId?: bigint
-}>
+}
 
 // GetProxyCursorResponse contains the message type declaration for GetProxyCursorResponse.
 export const GetProxyCursorResponse: MessageType<GetProxyCursorResponse> =
@@ -84,7 +83,7 @@ export const GetProxyCursorResponse: MessageType<GetProxyCursorResponse> =
  *
  * @generated from message unixfs.rpc.FSCursorChange
  */
-export type FSCursorChange = Message<{
+export interface FSCursorChange {
   /**
    * CursorHandleId is the handle identifier for the cursor.
    *
@@ -109,7 +108,7 @@ export type FSCursorChange = Message<{
    * @generated from field: uint64 size = 4;
    */
   size?: bigint
-}>
+}
 
 // FSCursorChange contains the message type declaration for FSCursorChange.
 export const FSCursorChange: MessageType<FSCursorChange> = createMessageType({
@@ -128,7 +127,7 @@ export const FSCursorChange: MessageType<FSCursorChange> = createMessageType({
  *
  * @generated from message unixfs.rpc.FSCursorDirent
  */
-export type FSCursorDirent = Message<{
+export interface FSCursorDirent {
   /**
    * Name is the name of the directory entry.
    *
@@ -141,7 +140,7 @@ export type FSCursorDirent = Message<{
    * @generated from field: unixfs.block.NodeType node_type = 2;
    */
   nodeType?: NodeType
-}>
+}
 
 // FSCursorDirent contains the message type declaration for FSCursorDirent.
 export const FSCursorDirent: MessageType<FSCursorDirent> = createMessageType({
@@ -158,7 +157,7 @@ export const FSCursorDirent: MessageType<FSCursorDirent> = createMessageType({
  *
  * @generated from message unixfs.rpc.FSCursorClientRequest
  */
-export type FSCursorClientRequest = Message<{}>
+export interface FSCursorClientRequest {}
 
 // FSCursorClientRequest contains the message type declaration for FSCursorClientRequest.
 export const FSCursorClientRequest: MessageType<FSCursorClientRequest> =
@@ -173,7 +172,7 @@ export const FSCursorClientRequest: MessageType<FSCursorClientRequest> =
  *
  * @generated from message unixfs.rpc.FSClientInit
  */
-export type FSClientInit = Message<{
+export interface FSClientInit {
   /**
    * ClientHandleId is the handle identifier for the client.
    * The client should use this ID going forward for requests.
@@ -188,7 +187,7 @@ export type FSClientInit = Message<{
    * @generated from field: uint64 cursor_handle_id = 2;
    */
   cursorHandleId?: bigint
-}>
+}
 
 // FSClientInit contains the message type declaration for FSClientInit.
 export const FSClientInit: MessageType<FSClientInit> = createMessageType({
@@ -205,7 +204,7 @@ export const FSClientInit: MessageType<FSClientInit> = createMessageType({
  *
  * @generated from message unixfs.rpc.FSCursorClientResponse
  */
-export type FSCursorClientResponse = Message<{
+export interface FSCursorClientResponse {
   /**
    * Body is the body of the event.
    *
@@ -244,7 +243,7 @@ export type FSCursorClientResponse = Message<{
         value: UnixFSError
         case: 'unixfsError'
       }
-}>
+}
 
 // FSCursorClientResponse contains the message type declaration for FSCursorClientResponse.
 export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
@@ -281,14 +280,14 @@ export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
  *
  * @generated from message unixfs.rpc.GetCursorOpsRequest
  */
-export type GetCursorOpsRequest = Message<{
+export interface GetCursorOpsRequest {
   /**
    * CursorHandleId is the handle identifier for the cursor.
    *
    * @generated from field: uint64 cursor_handle_id = 1;
    */
   cursorHandleId?: bigint
-}>
+}
 
 // GetCursorOpsRequest contains the message type declaration for GetCursorOpsRequest.
 export const GetCursorOpsRequest: MessageType<GetCursorOpsRequest> =
@@ -305,7 +304,7 @@ export const GetCursorOpsRequest: MessageType<GetCursorOpsRequest> =
  *
  * @generated from message unixfs.rpc.GetCursorOpsResponse
  */
-export type GetCursorOpsResponse = Message<{
+export interface GetCursorOpsResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -332,7 +331,7 @@ export type GetCursorOpsResponse = Message<{
    * @generated from field: unixfs.block.NodeType node_type = 4;
    */
   nodeType?: NodeType
-}>
+}
 
 // GetCursorOpsResponse contains the message type declaration for GetCursorOpsResponse.
 export const GetCursorOpsResponse: MessageType<GetCursorOpsResponse> =
@@ -352,7 +351,7 @@ export const GetCursorOpsResponse: MessageType<GetCursorOpsResponse> =
  *
  * @generated from message unixfs.rpc.ReleaseFSCursorRequest
  */
-export type ReleaseFSCursorRequest = Message<{
+export interface ReleaseFSCursorRequest {
   /**
    * CursorHandleId is the handle identifier for the cursor.
    *
@@ -366,7 +365,7 @@ export type ReleaseFSCursorRequest = Message<{
    * @generated from field: uint64 client_handle_id = 2;
    */
   clientHandleId?: bigint
-}>
+}
 
 // ReleaseFSCursorRequest contains the message type declaration for ReleaseFSCursorRequest.
 export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> =
@@ -384,7 +383,7 @@ export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> =
  *
  * @generated from message unixfs.rpc.ReleaseFSCursorResponse
  */
-export type ReleaseFSCursorResponse = Message<{}>
+export interface ReleaseFSCursorResponse {}
 
 // ReleaseFSCursorResponse contains the message type declaration for ReleaseFSCursorResponse.
 export const ReleaseFSCursorResponse: MessageType<ReleaseFSCursorResponse> =
@@ -399,14 +398,14 @@ export const ReleaseFSCursorResponse: MessageType<ReleaseFSCursorResponse> =
  *
  * @generated from message unixfs.rpc.OpsGetPermissionsRequest
  */
-export type OpsGetPermissionsRequest = Message<{
+export interface OpsGetPermissionsRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
   opsHandleId?: bigint
-}>
+}
 
 // OpsGetPermissionsRequest contains the message type declaration for OpsGetPermissionsRequest.
 export const OpsGetPermissionsRequest: MessageType<OpsGetPermissionsRequest> =
@@ -423,7 +422,7 @@ export const OpsGetPermissionsRequest: MessageType<OpsGetPermissionsRequest> =
  *
  * @generated from message unixfs.rpc.OpsGetPermissionsResponse
  */
-export type OpsGetPermissionsResponse = Message<{
+export interface OpsGetPermissionsResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -436,7 +435,7 @@ export type OpsGetPermissionsResponse = Message<{
    * @generated from field: uint32 file_mode = 2;
    */
   fileMode?: number
-}>
+}
 
 // OpsGetPermissionsResponse contains the message type declaration for OpsGetPermissionsResponse.
 export const OpsGetPermissionsResponse: MessageType<OpsGetPermissionsResponse> =
@@ -454,7 +453,7 @@ export const OpsGetPermissionsResponse: MessageType<OpsGetPermissionsResponse> =
  *
  * @generated from message unixfs.rpc.OpsSetPermissionsRequest
  */
-export type OpsSetPermissionsRequest = Message<{
+export interface OpsSetPermissionsRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -473,7 +472,7 @@ export type OpsSetPermissionsRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
-}>
+}
 
 // OpsSetPermissionsRequest contains the message type declaration for OpsSetPermissionsRequest.
 export const OpsSetPermissionsRequest: MessageType<OpsSetPermissionsRequest> =
@@ -492,14 +491,14 @@ export const OpsSetPermissionsRequest: MessageType<OpsSetPermissionsRequest> =
  *
  * @generated from message unixfs.rpc.OpsSetPermissionsResponse
  */
-export type OpsSetPermissionsResponse = Message<{
+export interface OpsSetPermissionsResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsSetPermissionsResponse contains the message type declaration for OpsSetPermissionsResponse.
 export const OpsSetPermissionsResponse: MessageType<OpsSetPermissionsResponse> =
@@ -516,14 +515,14 @@ export const OpsSetPermissionsResponse: MessageType<OpsSetPermissionsResponse> =
  *
  * @generated from message unixfs.rpc.OpsGetSizeRequest
  */
-export type OpsGetSizeRequest = Message<{
+export interface OpsGetSizeRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
   opsHandleId?: bigint
-}>
+}
 
 // OpsGetSizeRequest contains the message type declaration for OpsGetSizeRequest.
 export const OpsGetSizeRequest: MessageType<OpsGetSizeRequest> =
@@ -540,7 +539,7 @@ export const OpsGetSizeRequest: MessageType<OpsGetSizeRequest> =
  *
  * @generated from message unixfs.rpc.OpsGetSizeResponse
  */
-export type OpsGetSizeResponse = Message<{
+export interface OpsGetSizeResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -553,7 +552,7 @@ export type OpsGetSizeResponse = Message<{
    * @generated from field: uint64 size = 2;
    */
   size?: bigint
-}>
+}
 
 // OpsGetSizeResponse contains the message type declaration for OpsGetSizeResponse.
 export const OpsGetSizeResponse: MessageType<OpsGetSizeResponse> =
@@ -571,14 +570,14 @@ export const OpsGetSizeResponse: MessageType<OpsGetSizeResponse> =
  *
  * @generated from message unixfs.rpc.OpsGetModTimestampRequest
  */
-export type OpsGetModTimestampRequest = Message<{
+export interface OpsGetModTimestampRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
   opsHandleId?: bigint
-}>
+}
 
 // OpsGetModTimestampRequest contains the message type declaration for OpsGetModTimestampRequest.
 export const OpsGetModTimestampRequest: MessageType<OpsGetModTimestampRequest> =
@@ -595,7 +594,7 @@ export const OpsGetModTimestampRequest: MessageType<OpsGetModTimestampRequest> =
  *
  * @generated from message unixfs.rpc.OpsGetModTimestampResponse
  */
-export type OpsGetModTimestampResponse = Message<{
+export interface OpsGetModTimestampResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -608,7 +607,7 @@ export type OpsGetModTimestampResponse = Message<{
    * @generated from field: google.protobuf.Timestamp mod_timestamp = 2;
    */
   modTimestamp?: Date
-}>
+}
 
 // OpsGetModTimestampResponse contains the message type declaration for OpsGetModTimestampResponse.
 export const OpsGetModTimestampResponse: MessageType<OpsGetModTimestampResponse> =
@@ -626,7 +625,7 @@ export const OpsGetModTimestampResponse: MessageType<OpsGetModTimestampResponse>
  *
  * @generated from message unixfs.rpc.OpsSetModTimestampRequest
  */
-export type OpsSetModTimestampRequest = Message<{
+export interface OpsSetModTimestampRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -639,7 +638,7 @@ export type OpsSetModTimestampRequest = Message<{
    * @generated from field: google.protobuf.Timestamp mod_timestamp = 2;
    */
   modTimestamp?: Date
-}>
+}
 
 // OpsSetModTimestampRequest contains the message type declaration for OpsSetModTimestampRequest.
 export const OpsSetModTimestampRequest: MessageType<OpsSetModTimestampRequest> =
@@ -657,14 +656,14 @@ export const OpsSetModTimestampRequest: MessageType<OpsSetModTimestampRequest> =
  *
  * @generated from message unixfs.rpc.OpsSetModTimestampResponse
  */
-export type OpsSetModTimestampResponse = Message<{
+export interface OpsSetModTimestampResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsSetModTimestampResponse contains the message type declaration for OpsSetModTimestampResponse.
 export const OpsSetModTimestampResponse: MessageType<OpsSetModTimestampResponse> =
@@ -681,7 +680,7 @@ export const OpsSetModTimestampResponse: MessageType<OpsSetModTimestampResponse>
  *
  * @generated from message unixfs.rpc.OpsReadAtRequest
  */
-export type OpsReadAtRequest = Message<{
+export interface OpsReadAtRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -701,7 +700,7 @@ export type OpsReadAtRequest = Message<{
    * @generated from field: int64 size = 3;
    */
   size?: bigint
-}>
+}
 
 // OpsReadAtRequest contains the message type declaration for OpsReadAtRequest.
 export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
@@ -720,7 +719,7 @@ export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
  *
  * @generated from message unixfs.rpc.OpsReadAtResponse
  */
-export type OpsReadAtResponse = Message<{
+export interface OpsReadAtResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -733,7 +732,7 @@ export type OpsReadAtResponse = Message<{
    * @generated from field: bytes data = 2;
    */
   data?: Uint8Array
-}>
+}
 
 // OpsReadAtResponse contains the message type declaration for OpsReadAtResponse.
 export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
@@ -751,14 +750,14 @@ export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
  *
  * @generated from message unixfs.rpc.OpsGetOptimalWriteSizeRequest
  */
-export type OpsGetOptimalWriteSizeRequest = Message<{
+export interface OpsGetOptimalWriteSizeRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
    * @generated from field: uint64 ops_handle_id = 1;
    */
   opsHandleId?: bigint
-}>
+}
 
 // OpsGetOptimalWriteSizeRequest contains the message type declaration for OpsGetOptimalWriteSizeRequest.
 export const OpsGetOptimalWriteSizeRequest: MessageType<OpsGetOptimalWriteSizeRequest> =
@@ -775,7 +774,7 @@ export const OpsGetOptimalWriteSizeRequest: MessageType<OpsGetOptimalWriteSizeRe
  *
  * @generated from message unixfs.rpc.OpsGetOptimalWriteSizeResponse
  */
-export type OpsGetOptimalWriteSizeResponse = Message<{
+export interface OpsGetOptimalWriteSizeResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -788,7 +787,7 @@ export type OpsGetOptimalWriteSizeResponse = Message<{
    * @generated from field: int64 optimal_write_size = 2;
    */
   optimalWriteSize?: bigint
-}>
+}
 
 // OpsGetOptimalWriteSizeResponse contains the message type declaration for OpsGetOptimalWriteSizeResponse.
 export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeResponse> =
@@ -811,7 +810,7 @@ export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeR
  *
  * @generated from message unixfs.rpc.OpsWriteAtRequest
  */
-export type OpsWriteAtRequest = Message<{
+export interface OpsWriteAtRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -836,7 +835,7 @@ export type OpsWriteAtRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // OpsWriteAtRequest contains the message type declaration for OpsWriteAtRequest.
 export const OpsWriteAtRequest: MessageType<OpsWriteAtRequest> =
@@ -856,14 +855,14 @@ export const OpsWriteAtRequest: MessageType<OpsWriteAtRequest> =
  *
  * @generated from message unixfs.rpc.OpsWriteAtResponse
  */
-export type OpsWriteAtResponse = Message<{
+export interface OpsWriteAtResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsWriteAtResponse contains the message type declaration for OpsWriteAtResponse.
 export const OpsWriteAtResponse: MessageType<OpsWriteAtResponse> =
@@ -880,7 +879,7 @@ export const OpsWriteAtResponse: MessageType<OpsWriteAtResponse> =
  *
  * @generated from message unixfs.rpc.OpsTruncateRequest
  */
-export type OpsTruncateRequest = Message<{
+export interface OpsTruncateRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -899,7 +898,7 @@ export type OpsTruncateRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
-}>
+}
 
 // OpsTruncateRequest contains the message type declaration for OpsTruncateRequest.
 export const OpsTruncateRequest: MessageType<OpsTruncateRequest> =
@@ -918,14 +917,14 @@ export const OpsTruncateRequest: MessageType<OpsTruncateRequest> =
  *
  * @generated from message unixfs.rpc.OpsTruncateResponse
  */
-export type OpsTruncateResponse = Message<{
+export interface OpsTruncateResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsTruncateResponse contains the message type declaration for OpsTruncateResponse.
 export const OpsTruncateResponse: MessageType<OpsTruncateResponse> =
@@ -942,7 +941,7 @@ export const OpsTruncateResponse: MessageType<OpsTruncateResponse> =
  *
  * @generated from message unixfs.rpc.OpsLookupRequest
  */
-export type OpsLookupRequest = Message<{
+export interface OpsLookupRequest {
   /**
    * CursorHandleId is the identifier for the cursor at the parent location.
    * Must match ops_handle_id or ErrReleased will be returned.
@@ -969,7 +968,7 @@ export type OpsLookupRequest = Message<{
    * @generated from field: string name = 4;
    */
   name?: string
-}>
+}
 
 // OpsLookupRequest contains the message type declaration for OpsLookupRequest.
 export const OpsLookupRequest: MessageType<OpsLookupRequest> =
@@ -989,7 +988,7 @@ export const OpsLookupRequest: MessageType<OpsLookupRequest> =
  *
  * @generated from message unixfs.rpc.OpsLookupResponse
  */
-export type OpsLookupResponse = Message<{
+export interface OpsLookupResponse {
   /**
    * CursorHandleId is the identifier for the cursor at the new location.
    *
@@ -1002,7 +1001,7 @@ export type OpsLookupResponse = Message<{
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 2;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsLookupResponse contains the message type declaration for OpsLookupResponse.
 export const OpsLookupResponse: MessageType<OpsLookupResponse> =
@@ -1020,7 +1019,7 @@ export const OpsLookupResponse: MessageType<OpsLookupResponse> =
  *
  * @generated from message unixfs.rpc.OpsReaddirAllRequest
  */
-export type OpsReaddirAllRequest = Message<{
+export interface OpsReaddirAllRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1033,7 +1032,7 @@ export type OpsReaddirAllRequest = Message<{
    * @generated from field: uint64 skip = 2;
    */
   skip?: bigint
-}>
+}
 
 // OpsReaddirAllRequest contains the message type declaration for OpsReaddirAllRequest.
 export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> =
@@ -1051,7 +1050,7 @@ export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> =
  *
  * @generated from message unixfs.rpc.OpsReaddirAllResponse
  */
-export type OpsReaddirAllResponse = Message<{
+export interface OpsReaddirAllResponse {
   /**
    * @generated from oneof unixfs.rpc.OpsReaddirAllResponse.body
    */
@@ -1087,7 +1086,7 @@ export type OpsReaddirAllResponse = Message<{
         value: FSCursorDirent
         case: 'dirent'
       }
-}>
+}
 
 // OpsReaddirAllResponse contains the message type declaration for OpsReaddirAllResponse.
 export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> =
@@ -1124,7 +1123,7 @@ export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> =
  *
  * @generated from message unixfs.rpc.OpsMknodRequest
  */
-export type OpsMknodRequest = Message<{
+export interface OpsMknodRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1161,7 +1160,7 @@ export type OpsMknodRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
   timestamp?: Date
-}>
+}
 
 // OpsMknodRequest contains the message type declaration for OpsMknodRequest.
 export const OpsMknodRequest: MessageType<OpsMknodRequest> = createMessageType({
@@ -1188,14 +1187,14 @@ export const OpsMknodRequest: MessageType<OpsMknodRequest> = createMessageType({
  *
  * @generated from message unixfs.rpc.OpsMknodResponse
  */
-export type OpsMknodResponse = Message<{
+export interface OpsMknodResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsMknodResponse contains the message type declaration for OpsMknodResponse.
 export const OpsMknodResponse: MessageType<OpsMknodResponse> =
@@ -1212,7 +1211,7 @@ export const OpsMknodResponse: MessageType<OpsMknodResponse> =
  *
  * @generated from message unixfs.rpc.OpsSymlinkRequest
  */
-export type OpsSymlinkRequest = Message<{
+export interface OpsSymlinkRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1243,7 +1242,7 @@ export type OpsSymlinkRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Date
-}>
+}
 
 // OpsSymlinkRequest contains the message type declaration for OpsSymlinkRequest.
 export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> =
@@ -1264,14 +1263,14 @@ export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> =
  *
  * @generated from message unixfs.rpc.OpsSymlinkResponse
  */
-export type OpsSymlinkResponse = Message<{
+export interface OpsSymlinkResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsSymlinkResponse contains the message type declaration for OpsSymlinkResponse.
 export const OpsSymlinkResponse: MessageType<OpsSymlinkResponse> =
@@ -1288,7 +1287,7 @@ export const OpsSymlinkResponse: MessageType<OpsSymlinkResponse> =
  *
  * @generated from message unixfs.rpc.OpsReadlinkRequest
  */
-export type OpsReadlinkRequest = Message<{
+export interface OpsReadlinkRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1301,7 +1300,7 @@ export type OpsReadlinkRequest = Message<{
    * @generated from field: string name = 2;
    */
   name?: string
-}>
+}
 
 // OpsReadlinkRequest contains the message type declaration for OpsReadlinkRequest.
 export const OpsReadlinkRequest: MessageType<OpsReadlinkRequest> =
@@ -1319,7 +1318,7 @@ export const OpsReadlinkRequest: MessageType<OpsReadlinkRequest> =
  *
  * @generated from message unixfs.rpc.OpsReadlinkResponse
  */
-export type OpsReadlinkResponse = Message<{
+export interface OpsReadlinkResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -1332,7 +1331,7 @@ export type OpsReadlinkResponse = Message<{
    * @generated from field: unixfs.block.FSSymlink symlink = 2;
    */
   symlink?: FSSymlink
-}>
+}
 
 // OpsReadlinkResponse contains the message type declaration for OpsReadlinkResponse.
 export const OpsReadlinkResponse: MessageType<OpsReadlinkResponse> =
@@ -1350,7 +1349,7 @@ export const OpsReadlinkResponse: MessageType<OpsReadlinkResponse> =
  *
  * @generated from message unixfs.rpc.OpsCopyToRequest
  */
-export type OpsCopyToRequest = Message<{
+export interface OpsCopyToRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1375,7 +1374,7 @@ export type OpsCopyToRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // OpsCopyToRequest contains the message type declaration for OpsCopyToRequest.
 export const OpsCopyToRequest: MessageType<OpsCopyToRequest> =
@@ -1400,7 +1399,7 @@ export const OpsCopyToRequest: MessageType<OpsCopyToRequest> =
  *
  * @generated from message unixfs.rpc.OpsCopyToResponse
  */
-export type OpsCopyToResponse = Message<{
+export interface OpsCopyToResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -1413,7 +1412,7 @@ export type OpsCopyToResponse = Message<{
    * @generated from field: bool done = 2;
    */
   done?: boolean
-}>
+}
 
 // OpsCopyToResponse contains the message type declaration for OpsCopyToResponse.
 export const OpsCopyToResponse: MessageType<OpsCopyToResponse> =
@@ -1431,7 +1430,7 @@ export const OpsCopyToResponse: MessageType<OpsCopyToResponse> =
  *
  * @generated from message unixfs.rpc.OpsCopyFromRequest
  */
-export type OpsCopyFromRequest = Message<{
+export interface OpsCopyFromRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1456,7 +1455,7 @@ export type OpsCopyFromRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // OpsCopyFromRequest contains the message type declaration for OpsCopyFromRequest.
 export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> =
@@ -1481,7 +1480,7 @@ export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> =
  *
  * @generated from message unixfs.rpc.OpsCopyFromResponse
  */
-export type OpsCopyFromResponse = Message<{
+export interface OpsCopyFromResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -1494,7 +1493,7 @@ export type OpsCopyFromResponse = Message<{
    * @generated from field: bool done = 2;
    */
   done?: boolean
-}>
+}
 
 // OpsCopyFromResponse contains the message type declaration for OpsCopyFromResponse.
 export const OpsCopyFromResponse: MessageType<OpsCopyFromResponse> =
@@ -1512,7 +1511,7 @@ export const OpsCopyFromResponse: MessageType<OpsCopyFromResponse> =
  *
  * @generated from message unixfs.rpc.OpsMoveToRequest
  */
-export type OpsMoveToRequest = Message<{
+export interface OpsMoveToRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1537,7 +1536,7 @@ export type OpsMoveToRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // OpsMoveToRequest contains the message type declaration for OpsMoveToRequest.
 export const OpsMoveToRequest: MessageType<OpsMoveToRequest> =
@@ -1562,7 +1561,7 @@ export const OpsMoveToRequest: MessageType<OpsMoveToRequest> =
  *
  * @generated from message unixfs.rpc.OpsMoveToResponse
  */
-export type OpsMoveToResponse = Message<{
+export interface OpsMoveToResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -1575,7 +1574,7 @@ export type OpsMoveToResponse = Message<{
    * @generated from field: bool done = 2;
    */
   done?: boolean
-}>
+}
 
 // OpsMoveToResponse contains the message type declaration for OpsMoveToResponse.
 export const OpsMoveToResponse: MessageType<OpsMoveToResponse> =
@@ -1593,7 +1592,7 @@ export const OpsMoveToResponse: MessageType<OpsMoveToResponse> =
  *
  * @generated from message unixfs.rpc.OpsMoveFromRequest
  */
-export type OpsMoveFromRequest = Message<{
+export interface OpsMoveFromRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1618,7 +1617,7 @@ export type OpsMoveFromRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // OpsMoveFromRequest contains the message type declaration for OpsMoveFromRequest.
 export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> =
@@ -1643,7 +1642,7 @@ export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> =
  *
  * @generated from message unixfs.rpc.OpsMoveFromResponse
  */
-export type OpsMoveFromResponse = Message<{
+export interface OpsMoveFromResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
@@ -1656,7 +1655,7 @@ export type OpsMoveFromResponse = Message<{
    * @generated from field: bool done = 2;
    */
   done?: boolean
-}>
+}
 
 // OpsMoveFromResponse contains the message type declaration for OpsMoveFromResponse.
 export const OpsMoveFromResponse: MessageType<OpsMoveFromResponse> =
@@ -1674,7 +1673,7 @@ export const OpsMoveFromResponse: MessageType<OpsMoveFromResponse> =
  *
  * @generated from message unixfs.rpc.OpsRemoveRequest
  */
-export type OpsRemoveRequest = Message<{
+export interface OpsRemoveRequest {
   /**
    * OpsHandleId uniquely identifies the open ops handle.
    *
@@ -1693,7 +1692,7 @@ export type OpsRemoveRequest = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
-}>
+}
 
 // OpsRemoveRequest contains the message type declaration for OpsRemoveRequest.
 export const OpsRemoveRequest: MessageType<OpsRemoveRequest> =
@@ -1718,14 +1717,14 @@ export const OpsRemoveRequest: MessageType<OpsRemoveRequest> =
  *
  * @generated from message unixfs.rpc.OpsRemoveResponse
  */
-export type OpsRemoveResponse = Message<{
+export interface OpsRemoveResponse {
   /**
    * UnixfsError contains the error returned by the call, if any.
    *
    * @generated from field: unixfs.errors.UnixFSError unixfs_error = 1;
    */
   unixfsError?: UnixFSError
-}>
+}
 
 // OpsRemoveResponse contains the message type declaration for OpsRemoveResponse.
 export const OpsRemoveResponse: MessageType<OpsRemoveResponse> =

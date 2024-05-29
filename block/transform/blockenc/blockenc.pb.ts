@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/transform/blockenc/blockenc.proto (package transform.blockenc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { BlockEnc } from '../../../util/blockenc/blockenc.pb.js'
 import { BlockEnc_Enum } from '../../../util/blockenc/blockenc.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'transform.blockenc'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'transform.blockenc'
  *
  * @generated from message transform.blockenc.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockEnc is the block encrypt method to use.
    *
@@ -27,7 +27,7 @@ export type Config = Message<{
    * @generated from field: bytes key = 2;
    */
   key?: Uint8Array
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

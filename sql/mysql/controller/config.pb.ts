@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/sql/mysql/controller/config.proto (package mysql.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Config as Config$1 } from '../../../block/transform/transform.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'mysql.controller'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'mysql.controller'
  *
  * @generated from message mysql.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * SqlDbId is the identifier used to look up the sql db on the bus.
    * If empty, LookupSqlDB will not be processed.
@@ -78,7 +78,7 @@ export type Config = Message<{
    * @generated from field: repeated string create_dbs = 9;
    */
   createDbs?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -118,14 +118,14 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message mysql.controller.HeadState
  */
-export type HeadState = Message<{
+export interface HeadState {
   /**
    * HeadRef is the reference to the current HEAD state of the database.
    *
    * @generated from field: bucket.ObjectRef head_ref = 1;
    */
   headRef?: ObjectRef
-}>
+}
 
 // HeadState contains the message type declaration for HeadState.
 export const HeadState: MessageType<HeadState> = createMessageType({

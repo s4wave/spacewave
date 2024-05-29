@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/block/volume.proto (package volume.block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Config as Config$4 } from '../../block/transform/transform.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.block'
 
@@ -17,7 +17,7 @@ export const protobufPackage = 'volume.block'
  *
  * @generated from message volume.block.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * KvKeyOpts are key/value key constants.
    *
@@ -111,7 +111,7 @@ export type Config = Message<{
    * @generated from field: block.transform.Config state_transform_conf = 12;
    */
   stateTransformConf?: Config$4
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -156,14 +156,14 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message volume.block.HeadState
  */
-export type HeadState = Message<{
+export interface HeadState {
   /**
    * HeadRef is the reference to the current HEAD state of the volume.
    *
    * @generated from field: bucket.ObjectRef head_ref = 1;
    */
   headRef?: ObjectRef
-}>
+}
 
 // HeadState contains the message type declaration for HeadState.
 export const HeadState: MessageType<HeadState> = createMessageType({

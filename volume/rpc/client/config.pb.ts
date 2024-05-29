@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'volume.rpc.client'
@@ -13,14 +13,14 @@ export const protobufPackage = 'volume.rpc.client'
  *
  * @generated from message volume.rpc.client.VolumeAliases
  */
-export type VolumeAliases = Message<{
+export interface VolumeAliases {
   /**
    * From is a list of volume IDs to alias.
    *
    * @generated from field: repeated string from = 1;
    */
   from?: string[]
-}>
+}
 
 // VolumeAliases contains the message type declaration for VolumeAliases.
 export const VolumeAliases: MessageType<VolumeAliases> = createMessageType({
@@ -43,7 +43,7 @@ export const VolumeAliases: MessageType<VolumeAliases> = createMessageType({
  *
  * @generated from message volume.rpc.client.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceId is the service id to use.
    * Must resolve to the AccessVolumes service.
@@ -105,7 +105,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff backoff = 7;
    */
   backoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

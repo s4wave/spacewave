@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/store/kvtx/kvtx.proto (package store.kvtx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../kvtx/mqueue/mqueue.pb.js'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'store.kvtx'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'store.kvtx'
  *
  * @generated from message store.kvtx.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * MqueueConfig is the kvtx mqueue configuration.
    * Note: some stores override the mqueue implementation.
@@ -40,7 +40,7 @@ export type Config = Message<{
    * @generated from field: bool disable_hash_get = 3;
    */
   disableHashGet?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -58,14 +58,14 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message store.kvtx.MqueueMeta
  */
-export type MqueueMeta = Message<{
+export interface MqueueMeta {
   /**
    * Id is the message queue id.
    *
    * @generated from field: bytes id = 1;
    */
   id?: Uint8Array
-}>
+}
 
 // MqueueMeta contains the message type declaration for MqueueMeta.
 export const MqueueMeta: MessageType<MqueueMeta> = createMessageType({
@@ -83,7 +83,7 @@ export const MqueueMeta: MessageType<MqueueMeta> = createMessageType({
  *
  * @generated from message store.kvtx.BucketReconcilerMqueueId
  */
-export type BucketReconcilerMqueueId = Message<{
+export interface BucketReconcilerMqueueId {
   /**
    * @generated from field: string bucket_id = 1;
    */
@@ -92,7 +92,7 @@ export type BucketReconcilerMqueueId = Message<{
    * @generated from field: string reconciler_id = 2;
    */
   reconcilerId?: string
-}>
+}
 
 // BucketReconcilerMqueueId contains the message type declaration for BucketReconcilerMqueueId.
 export const BucketReconcilerMqueueId: MessageType<BucketReconcilerMqueueId> =

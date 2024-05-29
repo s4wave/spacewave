@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/bloom/bloom.proto (package bloom, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BitSet } from '../bitset/bitset.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bloom'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'bloom'
  *
  * @generated from message bloom.BloomFilter
  */
-export type BloomFilter = Message<{
+export interface BloomFilter {
   /**
    * K is the number of hash functions.
    * Max: 10.
@@ -36,7 +36,7 @@ export type BloomFilter = Message<{
    * @generated from field: bitset.BitSet bit_set = 3;
    */
   bitSet?: BitSet
-}>
+}
 
 // BloomFilter contains the message type declaration for BloomFilter.
 export const BloomFilter: MessageType<BloomFilter> = createMessageType({

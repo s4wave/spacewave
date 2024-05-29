@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/kvtx/block/iavl/iavl.proto (package kvtx.block.iavl, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../../block/block.pb.js'
 import { Blob } from '../../../block/blob/blob.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'kvtx.block.iavl'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'kvtx.block.iavl'
  *
  * @generated from message kvtx.block.iavl.Node
  */
-export type Node = Message<{
+export interface Node {
   /**
    * Height contains the item's height.
    * Height is distance from the leaf.
@@ -64,7 +64,7 @@ export type Node = Message<{
    * @generated from field: block.BlockRef right_child_ref = 6;
    */
   rightChildRef?: BlockRef
-}>
+}
 
 // Node contains the message type declaration for Node.
 export const Node: MessageType<Node> = createMessageType({

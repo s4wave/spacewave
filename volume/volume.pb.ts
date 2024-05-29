@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/volume.proto (package volume, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { BucketInfo } from '../bucket/bucket.pb.js'
 
 export const protobufPackage = 'volume'
@@ -16,7 +16,7 @@ export const protobufPackage = 'volume'
  *
  * @generated from message volume.VolumeInfo
  */
-export type VolumeInfo = Message<{
+export interface VolumeInfo {
   /**
    * VolumeId is the volume ID as determined by the controller.
    *
@@ -49,7 +49,7 @@ export type VolumeInfo = Message<{
    * @generated from field: hash.HashType hash_type = 5;
    */
   hashType?: HashType
-}>
+}
 
 // VolumeInfo contains the message type declaration for VolumeInfo.
 export const VolumeInfo: MessageType<VolumeInfo> = createMessageType({
@@ -69,7 +69,7 @@ export const VolumeInfo: MessageType<VolumeInfo> = createMessageType({
  *
  * @generated from message volume.VolumeBucketInfo
  */
-export type VolumeBucketInfo = Message<{
+export interface VolumeBucketInfo {
   /**
    * BucketInfo is the bucket information.
    *
@@ -82,7 +82,7 @@ export type VolumeBucketInfo = Message<{
    * @generated from field: volume.VolumeInfo volume_info = 2;
    */
   volumeInfo?: VolumeInfo
-}>
+}
 
 // VolumeBucketInfo contains the message type declaration for VolumeBucketInfo.
 export const VolumeBucketInfo: MessageType<VolumeBucketInfo> =
@@ -100,7 +100,7 @@ export const VolumeBucketInfo: MessageType<VolumeBucketInfo> =
  *
  * @generated from message volume.ListBucketsRequest
  */
-export type ListBucketsRequest = Message<{
+export interface ListBucketsRequest {
   /**
    * BucketId limits information to a specific bucket.
    * Can be empty.
@@ -124,7 +124,7 @@ export type ListBucketsRequest = Message<{
    * @generated from field: repeated string volume_id_list = 3;
    */
   volumeIdList?: string[]
-}>
+}
 
 // ListBucketsRequest contains the message type declaration for ListBucketsRequest.
 export const ListBucketsRequest: MessageType<ListBucketsRequest> =

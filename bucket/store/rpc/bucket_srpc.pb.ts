@@ -12,7 +12,7 @@ import {
   ListBucketInfoRequest,
   ListBucketInfoResponse,
 } from './bucket.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -82,9 +82,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketConfig
    */
   GetBucketConfig(
-    request: Message<GetBucketConfigRequest>,
+    request: GetBucketConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBucketConfigResponse>>
+  ): Promise<GetBucketConfigResponse>
 
   /**
    * ApplyBucketConfig requests to apply a bucket config to this volume only.
@@ -92,9 +92,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ApplyBucketConfig
    */
   ApplyBucketConfig(
-    request: Message<ApplyBucketConfigRequest>,
+    request: ApplyBucketConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ApplyBucketConfigResponse>>
+  ): Promise<ApplyBucketConfigResponse>
 
   /**
    * GetBucketInfo returns bucket information.
@@ -102,9 +102,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketInfo
    */
   GetBucketInfo(
-    request: Message<GetBucketInfoRequest>,
+    request: GetBucketInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBucketInfoResponse>>
+  ): Promise<GetBucketInfoResponse>
 
   /**
    * ListBucketInfo returns a list of bucket infos with an optional regex.
@@ -112,9 +112,9 @@ export interface BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ListBucketInfo
    */
   ListBucketInfo(
-    request: Message<ListBucketInfoRequest>,
+    request: ListBucketInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListBucketInfoResponse>>
+  ): Promise<ListBucketInfoResponse>
 }
 
 export const BucketStoreServiceName = BucketStoreDefinition.typeName
@@ -136,9 +136,9 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketConfig
    */
   async GetBucketConfig(
-    request: Message<GetBucketConfigRequest>,
+    request: GetBucketConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBucketConfigResponse>> {
+  ): Promise<GetBucketConfigResponse> {
     const requestMsg = GetBucketConfigRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -155,9 +155,9 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ApplyBucketConfig
    */
   async ApplyBucketConfig(
-    request: Message<ApplyBucketConfigRequest>,
+    request: ApplyBucketConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ApplyBucketConfigResponse>> {
+  ): Promise<ApplyBucketConfigResponse> {
     const requestMsg = ApplyBucketConfigRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -174,9 +174,9 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.GetBucketInfo
    */
   async GetBucketInfo(
-    request: Message<GetBucketInfoRequest>,
+    request: GetBucketInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBucketInfoResponse>> {
+  ): Promise<GetBucketInfoResponse> {
     const requestMsg = GetBucketInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -193,9 +193,9 @@ export class BucketStoreClient implements BucketStore {
    * @generated from rpc bucket.store.rpc.BucketStore.ListBucketInfo
    */
   async ListBucketInfo(
-    request: Message<ListBucketInfoRequest>,
+    request: ListBucketInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListBucketInfoResponse>> {
+  ): Promise<ListBucketInfoResponse> {
     const requestMsg = ListBucketInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,

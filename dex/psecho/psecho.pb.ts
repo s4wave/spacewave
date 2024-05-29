@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
@@ -60,7 +59,7 @@ export const SyncMessageType_Enum = createEnumType('psecho.SyncMessageType', [
  *
  * @generated from message psecho.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BucketId is the bucket ID to use to serve blocks.
    *
@@ -93,7 +92,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff sync_backoff = 5;
    */
   syncBackoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -113,7 +112,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message psecho.PubSubMessage
  */
-export type PubSubMessage = Message<{
+export interface PubSubMessage {
   /**
    * WantRefs is the list of wanted blocks.
    * Blocks here have been added to the want list.
@@ -143,7 +142,7 @@ export type PubSubMessage = Message<{
    * @generated from field: bool want_empty = 4;
    */
   wantEmpty?: boolean
-}>
+}
 
 // PubSubMessage contains the message type declaration for PubSubMessage.
 export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
@@ -180,7 +179,7 @@ export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
  *
  * @generated from message psecho.SyncMessage
  */
-export type SyncMessage = Message<{
+export interface SyncMessage {
   /**
    * MessageType is the message type.
    *
@@ -216,7 +215,7 @@ export type SyncMessage = Message<{
    * @generated from field: uint32 block_size = 5;
    */
   blockSize?: number
-}>
+}
 
 // SyncMessage contains the message type declaration for SyncMessage.
 export const SyncMessage: MessageType<SyncMessage> = createMessageType({

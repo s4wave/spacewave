@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/sql/mysql/mysql.proto (package mysql, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../block/block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { MsgpackBlob } from '../../block/msgpack/msgpack.pb.js'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'mysql'
  *
  * @generated from message mysql.RootDb
  */
-export type RootDb = Message<{
+export interface RootDb {
   /**
    * Name is the unique name of the database.
    *
@@ -30,7 +30,7 @@ export type RootDb = Message<{
    * @generated from field: block.BlockRef ref = 2;
    */
   ref?: BlockRef
-}>
+}
 
 // RootDb contains the message type declaration for RootDb.
 export const RootDb: MessageType<RootDb> = createMessageType({
@@ -47,14 +47,14 @@ export const RootDb: MessageType<RootDb> = createMessageType({
  *
  * @generated from message mysql.Root
  */
-export type Root = Message<{
+export interface Root {
   /**
    * Databases contains the root set of databases, sorted by name.
    *
    * @generated from field: repeated mysql.RootDb databases = 1;
    */
   databases?: RootDb[]
-}>
+}
 
 // Root contains the message type declaration for Root.
 export const Root: MessageType<Root> = createMessageType({
@@ -76,7 +76,7 @@ export const Root: MessageType<Root> = createMessageType({
  *
  * @generated from message mysql.DatabaseRootTable
  */
-export type DatabaseRootTable = Message<{
+export interface DatabaseRootTable {
   /**
    * Name is the unique name of the table.
    *
@@ -90,7 +90,7 @@ export type DatabaseRootTable = Message<{
    * @generated from field: block.BlockRef ref = 2;
    */
   ref?: BlockRef
-}>
+}
 
 // DatabaseRootTable contains the message type declaration for DatabaseRootTable.
 export const DatabaseRootTable: MessageType<DatabaseRootTable> =
@@ -108,14 +108,14 @@ export const DatabaseRootTable: MessageType<DatabaseRootTable> =
  *
  * @generated from message mysql.DatabaseRoot
  */
-export type DatabaseRoot = Message<{
+export interface DatabaseRoot {
   /**
    * Tables contains the table list sorted by name.
    *
    * @generated from field: repeated mysql.DatabaseRootTable tables = 1;
    */
   tables?: DatabaseRootTable[]
-}>
+}
 
 // DatabaseRoot contains the message type declaration for DatabaseRoot.
 export const DatabaseRoot: MessageType<DatabaseRoot> = createMessageType({
@@ -137,7 +137,7 @@ export const DatabaseRoot: MessageType<DatabaseRoot> = createMessageType({
  *
  * @generated from message mysql.TableSchemaColumn
  */
-export type TableSchemaColumn = Message<{
+export interface TableSchemaColumn {
   /**
    * Name is the name of the column.
    *
@@ -192,7 +192,7 @@ export type TableSchemaColumn = Message<{
    * @generated from field: string extra = 9;
    */
   extra?: string
-}>
+}
 
 // TableSchemaColumn contains the message type declaration for TableSchemaColumn.
 export const TableSchemaColumn: MessageType<TableSchemaColumn> =
@@ -222,14 +222,14 @@ export const TableSchemaColumn: MessageType<TableSchemaColumn> =
  *
  * @generated from message mysql.TableSchema
  */
-export type TableSchema = Message<{
+export interface TableSchema {
   /**
    * Columns is the list of columns in the table, sorted by name.
    *
    * @generated from field: repeated mysql.TableSchemaColumn columns = 1;
    */
   columns?: TableSchemaColumn[]
-}>
+}
 
 // TableSchema contains the message type declaration for TableSchema.
 export const TableSchema: MessageType<TableSchema> = createMessageType({
@@ -251,7 +251,7 @@ export const TableSchema: MessageType<TableSchema> = createMessageType({
  *
  * @generated from message mysql.TablePartitionRoot
  */
-export type TablePartitionRoot = Message<{
+export interface TablePartitionRoot {
   /**
    * RowKeyValue is the key/value tree of objects.
    * Key: row_nonce uint64 encoded with big endian
@@ -260,7 +260,7 @@ export type TablePartitionRoot = Message<{
    * @generated from field: kvtx.block.KeyValueStore row_key_value = 1;
    */
   rowKeyValue?: KeyValueStore
-}>
+}
 
 // TablePartitionRoot contains the message type declaration for TablePartitionRoot.
 export const TablePartitionRoot: MessageType<TablePartitionRoot> =
@@ -277,7 +277,7 @@ export const TablePartitionRoot: MessageType<TablePartitionRoot> =
  *
  * @generated from message mysql.TableColumn
  */
-export type TableColumn = Message<{
+export interface TableColumn {
   /**
    * MsgpackBlob contains the data encoded with msgpack.
    * Data may be sharded into multiple blocks if necessary.
@@ -285,7 +285,7 @@ export type TableColumn = Message<{
    * @generated from field: msgpack.MsgpackBlob msgpack_blob = 1;
    */
   msgpackBlob?: MsgpackBlob
-}>
+}
 
 // TableColumn contains the message type declaration for TableColumn.
 export const TableColumn: MessageType<TableColumn> = createMessageType({
@@ -301,7 +301,7 @@ export const TableColumn: MessageType<TableColumn> = createMessageType({
  *
  * @generated from message mysql.TableRoot
  */
-export type TableRoot = Message<{
+export interface TableRoot {
   /**
    * TableSchema is the table schema.
    *
@@ -346,7 +346,7 @@ export type TableRoot = Message<{
    * @generated from field: string comment = 7;
    */
   comment?: string
-}>
+}
 
 // TableRoot contains the message type declaration for TableRoot.
 export const TableRoot: MessageType<TableRoot> = createMessageType({
@@ -380,14 +380,14 @@ export const TableRoot: MessageType<TableRoot> = createMessageType({
  *
  * @generated from message mysql.TableRow
  */
-export type TableRow = Message<{
+export interface TableRow {
   /**
    * Columns contains the set of columns.
    *
    * @generated from field: repeated mysql.TableColumn columns = 1;
    */
   columns?: TableColumn[]
-}>
+}
 
 // TableRow contains the message type declaration for TableRow.
 export const TableRow: MessageType<TableRow> = createMessageType({

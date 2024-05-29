@@ -5,7 +5,6 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -17,7 +16,7 @@ export const protobufPackage = 'kvtx.mqueue'
  *
  * @generated from message kvtx.mqueue.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * PollDur is the duration between polling checks.
    *
@@ -28,7 +27,7 @@ export type Config = Message<{
    * @generated from field: string poll_dur = 1;
    */
   pollDur?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -44,7 +43,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message kvtx.mqueue.MQQueueMeta
  */
-export type MQQueueMeta = Message<{
+export interface MQQueueMeta {
   /**
    * Head is the head position.
    *
@@ -63,7 +62,7 @@ export type MQQueueMeta = Message<{
    * @generated from field: map<string, string> meta = 3;
    */
   meta?: { [key: string]: string }
-}>
+}
 
 // MQQueueMeta contains the message type declaration for MQQueueMeta.
 export const MQQueueMeta: MessageType<MQQueueMeta> = createMessageType({
@@ -87,7 +86,7 @@ export const MQQueueMeta: MessageType<MQQueueMeta> = createMessageType({
  *
  * @generated from message kvtx.mqueue.MQMessageWrapper
  */
-export type MQMessageWrapper = Message<{
+export interface MQMessageWrapper {
   /**
    * Timestamp is the message timestamp.
    *
@@ -100,7 +99,7 @@ export type MQMessageWrapper = Message<{
    * @generated from field: bytes data = 2;
    */
   data?: Uint8Array
-}>
+}
 
 // MQMessageWrapper contains the message type declaration for MQMessageWrapper.
 export const MQMessageWrapper: MessageType<MQMessageWrapper> =

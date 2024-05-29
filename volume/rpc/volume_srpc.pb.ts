@@ -10,7 +10,7 @@ import {
   WatchVolumeInfoRequest,
   WatchVolumeInfoResponse,
 } from './volume.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
@@ -70,7 +70,7 @@ export interface AccessVolumes {
    * @generated from rpc volume.rpc.AccessVolumes.WatchVolumeInfo
    */
   WatchVolumeInfo(
-    request: Message<WatchVolumeInfoRequest>,
+    request: WatchVolumeInfoRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchVolumeInfoResponse>
 
@@ -106,7 +106,7 @@ export class AccessVolumesClient implements AccessVolumes {
    * @generated from rpc volume.rpc.AccessVolumes.WatchVolumeInfo
    */
   WatchVolumeInfo(
-    request: Message<WatchVolumeInfoRequest>,
+    request: WatchVolumeInfoRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchVolumeInfoResponse> {
     const requestMsg = WatchVolumeInfoRequest.create(request)
@@ -197,9 +197,9 @@ export interface ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetVolumeInfo
    */
   GetVolumeInfo(
-    request: Message<GetVolumeInfoRequest>,
+    request: GetVolumeInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetVolumeInfoResponse>>
+  ): Promise<GetVolumeInfoResponse>
 
   /**
    * GetPeerPriv returns the volume peer private key.
@@ -208,9 +208,9 @@ export interface ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetPeerPriv
    */
   GetPeerPriv(
-    request: Message<GetPeerPrivRequest>,
+    request: GetPeerPrivRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetPeerPrivResponse>>
+  ): Promise<GetPeerPrivResponse>
 }
 
 export const ProxyVolumeServiceName = ProxyVolumeDefinition.typeName
@@ -230,9 +230,9 @@ export class ProxyVolumeClient implements ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetVolumeInfo
    */
   async GetVolumeInfo(
-    request: Message<GetVolumeInfoRequest>,
+    request: GetVolumeInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetVolumeInfoResponse>> {
+  ): Promise<GetVolumeInfoResponse> {
     const requestMsg = GetVolumeInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -250,9 +250,9 @@ export class ProxyVolumeClient implements ProxyVolume {
    * @generated from rpc volume.rpc.ProxyVolume.GetPeerPriv
    */
   async GetPeerPriv(
-    request: Message<GetPeerPrivRequest>,
+    request: GetPeerPrivRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetPeerPrivResponse>> {
+  ): Promise<GetPeerPrivResponse> {
     const requestMsg = GetPeerPrivRequest.create(request)
     const result = await this.rpc.request(
       this.service,

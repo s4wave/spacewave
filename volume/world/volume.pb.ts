@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/world/volume.proto (package volume.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.world'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'volume.world'
  *
  * @generated from message volume.world.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * KvKeyOpts are key/value key constants.
    *
@@ -95,7 +95,7 @@ export type Config = Message<{
    * @generated from field: string volume_id = 10;
    */
   volumeId?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

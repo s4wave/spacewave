@@ -18,6 +18,7 @@ func (b *aeadCipher) Encrypt(alloc AllocFn, src []byte) ([]byte, error) {
 	outSize := nonceSize + len(src) + b.c.Overhead()
 	nonce := alloc(outSize)[:nonceSize]
 	DeriveNonceBlake3(src, nonce)
+	// note: Seal appends the data to nonce
 	encrypted := b.c.Seal(nonce, nonce, src, nil)
 	return encrypted, nil
 }

@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/rpc/block.proto (package block.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef, PutOpts } from '../block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.rpc'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'block.rpc'
  *
  * @generated from message block.rpc.PutBlockRequest
  */
-export type PutBlockRequest = Message<{
+export interface PutBlockRequest {
   /**
    * Data is the data to put into the store.
    *
@@ -26,7 +26,7 @@ export type PutBlockRequest = Message<{
    * @generated from field: block.PutOpts put_opts = 2;
    */
   putOpts?: PutOpts
-}>
+}
 
 // PutBlockRequest contains the message type declaration for PutBlockRequest.
 export const PutBlockRequest: MessageType<PutBlockRequest> = createMessageType({
@@ -43,7 +43,7 @@ export const PutBlockRequest: MessageType<PutBlockRequest> = createMessageType({
  *
  * @generated from message block.rpc.PutBlockResponse
  */
-export type PutBlockResponse = Message<{
+export interface PutBlockResponse {
   /**
    * Ref is the reference of the added block.
    *
@@ -62,7 +62,7 @@ export type PutBlockResponse = Message<{
    * @generated from field: string error = 3;
    */
   error?: string
-}>
+}
 
 // PutBlockResponse contains the message type declaration for PutBlockResponse.
 export const PutBlockResponse: MessageType<PutBlockResponse> =
@@ -81,14 +81,14 @@ export const PutBlockResponse: MessageType<PutBlockResponse> =
  *
  * @generated from message block.rpc.GetBlockRequest
  */
-export type GetBlockRequest = Message<{
+export interface GetBlockRequest {
   /**
    * Ref is the reference to the block to fetch.
    *
    * @generated from field: block.BlockRef ref = 1;
    */
   ref?: BlockRef
-}>
+}
 
 // GetBlockRequest contains the message type declaration for GetBlockRequest.
 export const GetBlockRequest: MessageType<GetBlockRequest> = createMessageType({
@@ -104,7 +104,7 @@ export const GetBlockRequest: MessageType<GetBlockRequest> = createMessageType({
  *
  * @generated from message block.rpc.GetBlockResponse
  */
-export type GetBlockResponse = Message<{
+export interface GetBlockResponse {
   /**
    * Exists indicates if the block exists or not.
    *
@@ -123,7 +123,7 @@ export type GetBlockResponse = Message<{
    * @generated from field: string error = 3;
    */
   error?: string
-}>
+}
 
 // GetBlockResponse contains the message type declaration for GetBlockResponse.
 export const GetBlockResponse: MessageType<GetBlockResponse> =
@@ -142,14 +142,14 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
  *
  * @generated from message block.rpc.GetBlockExistsRequest
  */
-export type GetBlockExistsRequest = Message<{
+export interface GetBlockExistsRequest {
   /**
    * Ref is the reference to the block to check.
    *
    * @generated from field: block.BlockRef ref = 1;
    */
   ref?: BlockRef
-}>
+}
 
 // GetBlockExistsRequest contains the message type declaration for GetBlockExistsRequest.
 export const GetBlockExistsRequest: MessageType<GetBlockExistsRequest> =
@@ -166,7 +166,7 @@ export const GetBlockExistsRequest: MessageType<GetBlockExistsRequest> =
  *
  * @generated from message block.rpc.GetBlockExistsResponse
  */
-export type GetBlockExistsResponse = Message<{
+export interface GetBlockExistsResponse {
   /**
    * Exists indicates if the block exists or not.
    *
@@ -179,7 +179,7 @@ export type GetBlockExistsResponse = Message<{
    * @generated from field: string error = 2;
    */
   error?: string
-}>
+}
 
 // GetBlockExistsResponse contains the message type declaration for GetBlockExistsResponse.
 export const GetBlockExistsResponse: MessageType<GetBlockExistsResponse> =
@@ -197,14 +197,14 @@ export const GetBlockExistsResponse: MessageType<GetBlockExistsResponse> =
  *
  * @generated from message block.rpc.RmBlockRequest
  */
-export type RmBlockRequest = Message<{
+export interface RmBlockRequest {
   /**
    * Ref is the reference to the block to remove.
    *
    * @generated from field: block.BlockRef ref = 1;
    */
   ref?: BlockRef
-}>
+}
 
 // RmBlockRequest contains the message type declaration for RmBlockRequest.
 export const RmBlockRequest: MessageType<RmBlockRequest> = createMessageType({
@@ -220,7 +220,7 @@ export const RmBlockRequest: MessageType<RmBlockRequest> = createMessageType({
  *
  * @generated from message block.rpc.RmBlockResponse
  */
-export type RmBlockResponse = Message<{
+export interface RmBlockResponse {
   /**
    * Error is any error removing the block in the store.
    * Will be empty if the block did not exist.
@@ -228,7 +228,7 @@ export type RmBlockResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // RmBlockResponse contains the message type declaration for RmBlockResponse.
 export const RmBlockResponse: MessageType<RmBlockResponse> = createMessageType({

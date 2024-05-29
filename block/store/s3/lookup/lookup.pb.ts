@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.s3.lookup'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'block.store.s3.lookup'
  *
  * @generated from message block.store.s3.lookup.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BucketId is the bucket id to serve lookups for.
    *
@@ -43,7 +43,7 @@ export type Config = Message<{
    * @generated from field: bool verbose = 4;
    */
   verbose?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

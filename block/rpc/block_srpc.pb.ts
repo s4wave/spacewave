@@ -12,7 +12,7 @@ import {
   RmBlockRequest,
   RmBlockResponse,
 } from './block.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -84,9 +84,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.PutBlock
    */
   PutBlock(
-    request: Message<PutBlockRequest>,
+    request: PutBlockRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<PutBlockResponse>>
+  ): Promise<PutBlockResponse>
 
   /**
    * GetBlock requests to lookup a block from the store.
@@ -94,9 +94,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlock
    */
   GetBlock(
-    request: Message<GetBlockRequest>,
+    request: GetBlockRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBlockResponse>>
+  ): Promise<GetBlockResponse>
 
   /**
    * GetBlockExists requests to check if a block exists in the store.
@@ -104,9 +104,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlockExists
    */
   GetBlockExists(
-    request: Message<GetBlockExistsRequest>,
+    request: GetBlockExistsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBlockExistsResponse>>
+  ): Promise<GetBlockExistsResponse>
 
   /**
    * RmBlock requests to remove a block from the store.
@@ -116,9 +116,9 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.RmBlock
    */
   RmBlock(
-    request: Message<RmBlockRequest>,
+    request: RmBlockRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RmBlockResponse>>
+  ): Promise<RmBlockResponse>
 }
 
 export const BlockStoreServiceName = BlockStoreDefinition.typeName
@@ -140,9 +140,9 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.PutBlock
    */
   async PutBlock(
-    request: Message<PutBlockRequest>,
+    request: PutBlockRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<PutBlockResponse>> {
+  ): Promise<PutBlockResponse> {
     const requestMsg = PutBlockRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -159,9 +159,9 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlock
    */
   async GetBlock(
-    request: Message<GetBlockRequest>,
+    request: GetBlockRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBlockResponse>> {
+  ): Promise<GetBlockResponse> {
     const requestMsg = GetBlockRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -178,9 +178,9 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.GetBlockExists
    */
   async GetBlockExists(
-    request: Message<GetBlockExistsRequest>,
+    request: GetBlockExistsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetBlockExistsResponse>> {
+  ): Promise<GetBlockExistsResponse> {
     const requestMsg = GetBlockExistsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -199,9 +199,9 @@ export class BlockStoreClient implements BlockStore {
    * @generated from rpc block.rpc.BlockStore.RmBlock
    */
   async RmBlock(
-    request: Message<RmBlockRequest>,
+    request: RmBlockRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RmBlockResponse>> {
+  ): Promise<RmBlockResponse> {
     const requestMsg = RmBlockRequest.create(request)
     const result = await this.rpc.request(
       this.service,

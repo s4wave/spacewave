@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.5 // master
+	github.com/aperturerobotics/bifrost v0.32.6 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.1 // master
@@ -63,12 +63,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.16.6 // latest
-	github.com/aperturerobotics/controllerbus v0.45.5 // latest
+	github.com/aperturerobotics/common v0.16.8 // latest
+	github.com/aperturerobotics/controllerbus v0.45.6 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
-	github.com/aperturerobotics/starpc v0.32.10 // latest
-	github.com/aperturerobotics/util v1.23.4 // master
+	github.com/aperturerobotics/starpc v0.32.12 // latest
+	github.com/aperturerobotics/util v1.23.5 // master
 )
 
 // aperture: use compatibility forks

@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/kvfile/kvfile.proto (package volume.kvfile, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.kvfile'
 
@@ -17,7 +17,7 @@ export const protobufPackage = 'volume.kvfile'
  *
  * @generated from message volume.kvfile.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * FilePath is the file path to open as a kvfile using os file.
    *
@@ -57,7 +57,7 @@ export type Config = Message<{
    * @generated from field: bool no_generate_key = 5;
    */
   noGenerateKey?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

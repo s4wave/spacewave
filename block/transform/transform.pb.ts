@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.transform'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'block.transform'
  *
  * @generated from message block.transform.StepConfig
  */
-export type StepConfig = Message<{
+export interface StepConfig {
   /**
    * Id contains the configuration ID.
    *
@@ -28,7 +28,7 @@ export type StepConfig = Message<{
    * @generated from field: bytes config = 2;
    */
   config?: Uint8Array
-}>
+}
 
 // StepConfig contains the message type declaration for StepConfig.
 export const StepConfig: MessageType<StepConfig> = createMessageType({
@@ -45,7 +45,7 @@ export const StepConfig: MessageType<StepConfig> = createMessageType({
  *
  * @generated from message block.transform.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Steps contains the transformation steps.
    * Index 0 is applied first when encoding and vise-versa.
@@ -53,7 +53,7 @@ export type Config = Message<{
    * @generated from field: repeated block.transform.StepConfig steps = 1;
    */
   steps?: StepConfig[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

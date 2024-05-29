@@ -2,14 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/unixfs/world/access/access.proto (package unixfs.world.access, syntax proto3)
 /* eslint-disable */
 
+import { UnixfsRef } from '../unixfs.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
-import { UnixfsRef } from '../unixfs.pb.js'
 
 export const protobufPackage = 'unixfs.world.access'
 
@@ -19,7 +18,7 @@ export const protobufPackage = 'unixfs.world.access'
  *
  * @generated from message unixfs.world.access.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * FsId is the filesystem ID to expose on the bus.
    *
@@ -64,7 +63,7 @@ export type Config = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 7;
    */
   timestamp?: Date
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

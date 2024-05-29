@@ -2,14 +2,13 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/bucket.proto (package bucket, syntax proto3)
 /* eslint-disable */
 
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
-import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { BlockRef, PutOpts } from '../block/block.pb.js'
 import { Config as Config$1 } from '../block/transform/transform.pb.js'
 
@@ -20,7 +19,7 @@ export const protobufPackage = 'bucket'
  *
  * @generated from message bucket.ReconcilerConfig
  */
-export type ReconcilerConfig = Message<{
+export interface ReconcilerConfig {
   /**
    * Id contains the reconciler id.
    *
@@ -39,7 +38,7 @@ export type ReconcilerConfig = Message<{
    * @generated from field: bool filter_put = 3;
    */
   filterPut?: boolean
-}>
+}
 
 // ReconcilerConfig contains the message type declaration for ReconcilerConfig.
 export const ReconcilerConfig: MessageType<ReconcilerConfig> =
@@ -58,7 +57,7 @@ export const ReconcilerConfig: MessageType<ReconcilerConfig> =
  *
  * @generated from message bucket.LookupConfig
  */
-export type LookupConfig = Message<{
+export interface LookupConfig {
   /**
    * Disble indicates we should not service cross-volume calls against this
    * bucket.
@@ -74,7 +73,7 @@ export type LookupConfig = Message<{
    * @generated from field: configset.proto.ControllerConfig controller = 2;
    */
   controller?: ControllerConfig
-}>
+}
 
 // LookupConfig contains the message type declaration for LookupConfig.
 export const LookupConfig: MessageType<LookupConfig> = createMessageType({
@@ -91,7 +90,7 @@ export const LookupConfig: MessageType<LookupConfig> = createMessageType({
  *
  * @generated from message bucket.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Id is the bucket identifier.
    *
@@ -125,7 +124,7 @@ export type Config = Message<{
    * @generated from field: bucket.LookupConfig lookup = 5;
    */
   lookup?: LookupConfig
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -151,14 +150,14 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message bucket.BucketInfo
  */
-export type BucketInfo = Message<{
+export interface BucketInfo {
   /**
    * Config contains the current latest bucket configuration.
    *
    * @generated from field: bucket.Config config = 1;
    */
   config?: Config
-}>
+}
 
 // BucketInfo contains the message type declaration for BucketInfo.
 export const BucketInfo: MessageType<BucketInfo> = createMessageType({
@@ -174,7 +173,7 @@ export const BucketInfo: MessageType<BucketInfo> = createMessageType({
  *
  * @generated from message bucket.ApplyBucketConfigResult
  */
-export type ApplyBucketConfigResult = Message<{
+export interface ApplyBucketConfigResult {
   /**
    * VolumeId is the volume ID for this apply event.
    *
@@ -218,7 +217,7 @@ export type ApplyBucketConfigResult = Message<{
    * @generated from field: string error = 7;
    */
   error?: string
-}>
+}
 
 // ApplyBucketConfigResult contains the message type declaration for ApplyBucketConfigResult.
 export const ApplyBucketConfigResult: MessageType<ApplyBucketConfigResult> =
@@ -244,7 +243,7 @@ export const ApplyBucketConfigResult: MessageType<ApplyBucketConfigResult> =
  *
  * @generated from message bucket.ObjectRef
  */
-export type ObjectRef = Message<{
+export interface ObjectRef {
   /**
    * RootRef is the root block ref.
    *
@@ -272,7 +271,7 @@ export type ObjectRef = Message<{
    * @generated from field: block.transform.Config transform_conf = 4;
    */
   transformConf?: Config$1
-}>
+}
 
 // ObjectRef contains the message type declaration for ObjectRef.
 export const ObjectRef: MessageType<ObjectRef> = createMessageType({
@@ -291,7 +290,7 @@ export const ObjectRef: MessageType<ObjectRef> = createMessageType({
  *
  * @generated from message bucket.BucketOpArgs
  */
-export type BucketOpArgs = Message<{
+export interface BucketOpArgs {
   /**
    * BucketId is the bucket ID to operate on.
    *
@@ -305,7 +304,7 @@ export type BucketOpArgs = Message<{
    * @generated from field: string volume_id = 2;
    */
   volumeId?: string
-}>
+}
 
 // BucketOpArgs contains the message type declaration for BucketOpArgs.
 export const BucketOpArgs: MessageType<BucketOpArgs> = createMessageType({

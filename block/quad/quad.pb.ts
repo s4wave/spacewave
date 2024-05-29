@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'quad'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'quad'
  *
  * @generated from message quad.Quad
  */
-export type Quad = Message<{
+export interface Quad {
   /**
    * Subject is the subject field.
    *
@@ -37,7 +37,7 @@ export type Quad = Message<{
    * @generated from field: string label = 4;
    */
   label?: string
-}>
+}
 
 // Quad contains the message type declaration for Quad.
 export const Quad: MessageType<Quad> = createMessageType({

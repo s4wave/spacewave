@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -155,7 +154,7 @@ export const TagMode_Enum = createEnumType('git.block.TagMode', [
  *
  * @generated from message git.block.ReferencesStore
  */
-export type ReferencesStore = Message<{
+export interface ReferencesStore {
   /**
    * KvtxRoot is the root of the reference tree.
    * Contains value type Reference.
@@ -163,7 +162,7 @@ export type ReferencesStore = Message<{
    * @generated from field: kvtx.block.KeyValueStore kvtx_root = 1;
    */
   kvtxRoot?: KeyValueStore
-}>
+}
 
 // ReferencesStore contains the message type declaration for ReferencesStore.
 export const ReferencesStore: MessageType<ReferencesStore> = createMessageType({
@@ -179,7 +178,7 @@ export const ReferencesStore: MessageType<ReferencesStore> = createMessageType({
  *
  * @generated from message git.block.ModuleReferencesStore
  */
-export type ModuleReferencesStore = Message<{
+export interface ModuleReferencesStore {
   /**
    * KvtxRoot is the root of the module reference tree.
    * Key: submodule name, value: Submodule object.
@@ -187,7 +186,7 @@ export type ModuleReferencesStore = Message<{
    * @generated from field: kvtx.block.KeyValueStore kvtx_root = 1;
    */
   kvtxRoot?: KeyValueStore
-}>
+}
 
 // ModuleReferencesStore contains the message type declaration for ModuleReferencesStore.
 export const ModuleReferencesStore: MessageType<ModuleReferencesStore> =
@@ -204,7 +203,7 @@ export const ModuleReferencesStore: MessageType<ModuleReferencesStore> =
  *
  * @generated from message git.block.EncodedObjectStore
  */
-export type EncodedObjectStore = Message<{
+export interface EncodedObjectStore {
   /**
    * KvtxRoot is the root of the object tree.
    *
@@ -217,7 +216,7 @@ export type EncodedObjectStore = Message<{
    * @generated from field: blob.ChunkerArgs chunker_args = 2;
    */
   chunkerArgs?: ChunkerArgs
-}>
+}
 
 // EncodedObjectStore contains the message type declaration for EncodedObjectStore.
 export const EncodedObjectStore: MessageType<EncodedObjectStore> =
@@ -236,7 +235,7 @@ export const EncodedObjectStore: MessageType<EncodedObjectStore> =
  *
  * @generated from message git.block.Repo
  */
-export type Repo = Message<{
+export interface Repo {
   /**
    * ReferencesStore contains the named references store.
    *
@@ -268,7 +267,7 @@ export type Repo = Message<{
    * @generated from field: string git_config = 5;
    */
   gitConfig?: string
-}>
+}
 
 // Repo contains the message type declaration for Repo.
 export const Repo: MessageType<Repo> = createMessageType({
@@ -308,14 +307,14 @@ export const Repo: MessageType<Repo> = createMessageType({
  *
  * @generated from message git.block.ShallowRefsStore
  */
-export type ShallowRefsStore = Message<{
+export interface ShallowRefsStore {
   /**
    * ShallowRefs contains the list of shallow reference hashes.
    *
    * @generated from field: repeated hash.Hash shallow_refs = 1;
    */
   shallowRefs?: Hash[]
-}>
+}
 
 // ShallowRefsStore contains the message type declaration for ShallowRefsStore.
 export const ShallowRefsStore: MessageType<ShallowRefsStore> =
@@ -338,7 +337,7 @@ export const ShallowRefsStore: MessageType<ShallowRefsStore> =
  *
  * @generated from message git.block.Submodule
  */
-export type Submodule = Message<{
+export interface Submodule {
   /**
    * Name is the name of the submodule.
    *
@@ -351,7 +350,7 @@ export type Submodule = Message<{
    * @generated from field: block.BlockRef repo_ref = 2;
    */
   repoRef?: BlockRef
-}>
+}
 
 // Submodule contains the message type declaration for Submodule.
 export const Submodule: MessageType<Submodule> = createMessageType({
@@ -369,7 +368,7 @@ export const Submodule: MessageType<Submodule> = createMessageType({
  *
  * @generated from message git.block.Reference
  */
-export type Reference = Message<{
+export interface Reference {
   /**
    * Name contains the reference name.
    * Go type: plumbing.ReferenceName
@@ -397,7 +396,7 @@ export type Reference = Message<{
    * @generated from field: string target_reference_name = 4;
    */
   targetReferenceName?: string
-}>
+}
 
 // Reference contains the message type declaration for Reference.
 export const Reference: MessageType<Reference> = createMessageType({
@@ -421,7 +420,7 @@ export const Reference: MessageType<Reference> = createMessageType({
  *
  * @generated from message git.block.EncodedObject
  */
-export type EncodedObject = Message<{
+export interface EncodedObject {
   /**
    * DataBlob is the encoded object data.
    *
@@ -441,7 +440,7 @@ export type EncodedObject = Message<{
    * @generated from field: git.block.EncodedObjectType encoded_object_type = 3;
    */
   encodedObjectType?: EncodedObjectType
-}>
+}
 
 // EncodedObject contains the message type declaration for EncodedObject.
 export const EncodedObject: MessageType<EncodedObject> = createMessageType({
@@ -464,7 +463,7 @@ export const EncodedObject: MessageType<EncodedObject> = createMessageType({
  *
  * @generated from message git.block.IndexEntry
  */
-export type IndexEntry = Message<{
+export interface IndexEntry {
   /**
    * DataHash is the hash of the index entry.
    * Note: currently, this is enforced to hash type SHA1.
@@ -547,7 +546,7 @@ export type IndexEntry = Message<{
    * @generated from field: bool intent_to_add = 13;
    */
   intentToAdd?: boolean
-}>
+}
 
 // IndexEntry contains the message type declaration for IndexEntry.
 export const IndexEntry: MessageType<IndexEntry> = createMessageType({
@@ -575,7 +574,7 @@ export const IndexEntry: MessageType<IndexEntry> = createMessageType({
  *
  * @generated from message git.block.TreeEntry
  */
-export type TreeEntry = Message<{
+export interface TreeEntry {
   /**
    * Path is the path within the parent directory.
    *
@@ -602,7 +601,7 @@ export type TreeEntry = Message<{
    * @generated from field: hash.Hash hash = 4;
    */
   hash?: Hash
-}>
+}
 
 // TreeEntry contains the message type declaration for TreeEntry.
 export const TreeEntry: MessageType<TreeEntry> = createMessageType({
@@ -622,14 +621,14 @@ export const TreeEntry: MessageType<TreeEntry> = createMessageType({
  *
  * @generated from message git.block.Tree
  */
-export type Tree = Message<{
+export interface Tree {
   /**
    * Entries are entries in the tree.
    *
    * @generated from field: repeated git.block.TreeEntry entries = 1;
    */
   entries?: TreeEntry[]
-}>
+}
 
 // Tree contains the message type declaration for Tree.
 export const Tree: MessageType<Tree> = createMessageType({
@@ -651,7 +650,7 @@ export const Tree: MessageType<Tree> = createMessageType({
  *
  * @generated from message git.block.ResolveUndoEntry
  */
-export type ResolveUndoEntry = Message<{
+export interface ResolveUndoEntry {
   /**
    * Path is the path within the parent directory.
    *
@@ -664,7 +663,7 @@ export type ResolveUndoEntry = Message<{
    * @generated from field: map<uint32, hash.Hash> stages = 2;
    */
   stages?: { [key: number]: Hash }
-}>
+}
 
 // ResolveUndoEntry contains the message type declaration for ResolveUndoEntry.
 export const ResolveUndoEntry: MessageType<ResolveUndoEntry> =
@@ -691,14 +690,14 @@ export const ResolveUndoEntry: MessageType<ResolveUndoEntry> =
  *
  * @generated from message git.block.ResolveUndo
  */
-export type ResolveUndo = Message<{
+export interface ResolveUndo {
   /**
    * Entries is the list of resolve undo entries.
    *
    * @generated from field: repeated git.block.ResolveUndoEntry entries = 1;
    */
   entries?: ResolveUndoEntry[]
-}>
+}
 
 // ResolveUndo contains the message type declaration for ResolveUndo.
 export const ResolveUndo: MessageType<ResolveUndo> = createMessageType({
@@ -721,7 +720,7 @@ export const ResolveUndo: MessageType<ResolveUndo> = createMessageType({
  *
  * @generated from message git.block.EndOfIndexEntry
  */
-export type EndOfIndexEntry = Message<{
+export interface EndOfIndexEntry {
   /**
    * Offset is the offset to the end of the index entries.
    *
@@ -734,7 +733,7 @@ export type EndOfIndexEntry = Message<{
    * @generated from field: hash.Hash hash = 2;
    */
   hash?: Hash
-}>
+}
 
 // EndOfIndexEntry contains the message type declaration for EndOfIndexEntry.
 export const EndOfIndexEntry: MessageType<EndOfIndexEntry> = createMessageType({
@@ -751,7 +750,7 @@ export const EndOfIndexEntry: MessageType<EndOfIndexEntry> = createMessageType({
  *
  * @generated from message git.block.Index
  */
-export type Index = Message<{
+export interface Index {
   /**
    * Version is the index version (usually 2).
    *
@@ -782,7 +781,7 @@ export type Index = Message<{
    * @generated from field: git.block.EndOfIndexEntry end_of_index_entry = 5;
    */
   endOfIndexEntry?: EndOfIndexEntry
-}>
+}
 
 // Index contains the message type declaration for Index.
 export const Index: MessageType<Index> = createMessageType({
@@ -813,7 +812,7 @@ export const Index: MessageType<Index> = createMessageType({
  *
  * @generated from message git.block.AuthOpts
  */
-export type AuthOpts = Message<{
+export interface AuthOpts {
   /**
    * Username is the ssh username to authenticate with.
    *
@@ -826,7 +825,7 @@ export type AuthOpts = Message<{
    * @generated from field: string peer_id = 2;
    */
   peerId?: string
-}>
+}
 
 // AuthOpts contains the message type declaration for AuthOpts.
 export const AuthOpts: MessageType<AuthOpts> = createMessageType({
@@ -843,7 +842,7 @@ export const AuthOpts: MessageType<AuthOpts> = createMessageType({
  *
  * @generated from message git.block.CloneOpts
  */
-export type CloneOpts = Message<{
+export interface CloneOpts {
   /**
    * Url is the Git URL to clone from.
    *
@@ -905,7 +904,7 @@ export type CloneOpts = Message<{
    * @generated from field: string ca_bundle = 10;
    */
   caBundle?: string
-}>
+}
 
 // CloneOpts contains the message type declaration for CloneOpts.
 export const CloneOpts: MessageType<CloneOpts> = createMessageType({
@@ -930,7 +929,7 @@ export const CloneOpts: MessageType<CloneOpts> = createMessageType({
  *
  * @generated from message git.block.CheckoutOpts
  */
-export type CheckoutOpts = Message<{
+export interface CheckoutOpts {
   /**
    * Commit is the commit hash to check out.
    * Note: currently, this is enforced to hash type SHA1.
@@ -965,7 +964,7 @@ export type CheckoutOpts = Message<{
    * @generated from field: bool keep = 5;
    */
   keep?: boolean
-}>
+}
 
 // CheckoutOpts contains the message type declaration for CheckoutOpts.
 export const CheckoutOpts: MessageType<CheckoutOpts> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'reconciler.example'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'reconciler.example'
  *
  * @generated from message reconciler.example.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BucketId is the bucket id attached.
    *
@@ -31,7 +31,7 @@ export type Config = Message<{
    * @generated from field: string reconciler_id = 3;
    */
   reconcilerId?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

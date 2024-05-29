@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -104,7 +103,7 @@ export const FSChangeType_Enum = createEnumType('unixfs.block.FSChangeType', [
  *
  * @generated from message unixfs.block.Dirent
  */
-export type Dirent = Message<{
+export interface Dirent {
   /**
    * Name is the name of the directory entry.
    *
@@ -117,7 +116,7 @@ export type Dirent = Message<{
    * @generated from field: unixfs.block.FSNode node = 2;
    */
   node?: FSNode
-}>
+}
 
 // Dirent contains the message type declaration for Dirent.
 export const Dirent: MessageType<Dirent> = createMessageType({
@@ -134,7 +133,7 @@ export const Dirent: MessageType<Dirent> = createMessageType({
  *
  * @generated from message unixfs.block.FSPath
  */
-export type FSPath = Message<{
+export interface FSPath {
   /**
    * Nodes are the node names in the path.
    *
@@ -147,7 +146,7 @@ export type FSPath = Message<{
    * @generated from field: bool absolute = 2;
    */
   absolute?: boolean
-}>
+}
 
 // FSPath contains the message type declaration for FSPath.
 export const FSPath: MessageType<FSPath> = createMessageType({
@@ -170,14 +169,14 @@ export const FSPath: MessageType<FSPath> = createMessageType({
  *
  * @generated from message unixfs.block.FSSymlink
  */
-export type FSSymlink = Message<{
+export interface FSSymlink {
   /**
    * TargetPath is the destination of the symbolic link.
    *
    * @generated from field: unixfs.block.FSPath target_path = 1;
    */
   targetPath?: FSPath
-}>
+}
 
 // FSSymlink contains the message type declaration for FSSymlink.
 export const FSSymlink: MessageType<FSSymlink> = createMessageType({
@@ -194,7 +193,7 @@ export const FSSymlink: MessageType<FSSymlink> = createMessageType({
  *
  * @generated from message unixfs.block.FSNode
  */
-export type FSNode = Message<{
+export interface FSNode {
   /**
    * NodeType marks the type of the node.
    *
@@ -236,7 +235,7 @@ export type FSNode = Message<{
    * @generated from field: unixfs.block.FSSymlink symlink = 6;
    */
   symlink?: FSSymlink
-}>
+}
 
 // FSNode contains the message type declaration for FSNode.
 export const FSNode: MessageType<FSNode> = createMessageType({
@@ -263,7 +262,7 @@ export const FSNode: MessageType<FSNode> = createMessageType({
  *
  * @generated from message unixfs.block.FSConfig
  */
-export type FSConfig = Message<{
+export interface FSConfig {
   /**
    * DisableChangelog indicates the changelog is not in use.
    * Watchers will perform a full cache flush on every block change.
@@ -271,7 +270,7 @@ export type FSConfig = Message<{
    * @generated from field: bool disable_changelog = 1;
    */
   disableChangelog?: boolean
-}>
+}
 
 // FSConfig contains the message type declaration for FSConfig.
 export const FSConfig: MessageType<FSConfig> = createMessageType({
@@ -288,7 +287,7 @@ export const FSConfig: MessageType<FSConfig> = createMessageType({
  *
  * @generated from message unixfs.block.FSChange
  */
-export type FSChange = Message<{
+export interface FSChange {
   /**
    * Seqno is the sequence number of this change.
    *
@@ -338,7 +337,7 @@ export type FSChange = Message<{
    * @generated from field: repeated block.BlockRef value_ref = 8;
    */
   valueRef?: BlockRef[]
-}>
+}
 
 // FSChange contains the message type declaration for FSChange.
 export const FSChange: MessageType<FSChange> = createMessageType({
@@ -366,7 +365,7 @@ export const FSChange: MessageType<FSChange> = createMessageType({
  *
  * @generated from message unixfs.block.FSObject
  */
-export type FSObject = Message<{
+export interface FSObject {
   /**
    * Config is the filesystem configuration.
    *
@@ -387,7 +386,7 @@ export type FSObject = Message<{
    * @generated from field: unixfs.block.FSChange last_change = 3;
    */
   lastChange?: FSChange
-}>
+}
 
 // FSObject contains the message type declaration for FSObject.
 export const FSObject: MessageType<FSObject> = createMessageType({
@@ -405,7 +404,7 @@ export const FSObject: MessageType<FSObject> = createMessageType({
  *
  * @generated from message unixfs.block.FSHostVolume
  */
-export type FSHostVolume = Message<{
+export interface FSHostVolume {
   /**
    * VolumeId is the host volume ID.
    * For example: the docker volume id.
@@ -413,7 +412,7 @@ export type FSHostVolume = Message<{
    * @generated from field: string volume_id = 1;
    */
   volumeId?: string
-}>
+}
 
 // FSHostVolume contains the message type declaration for FSHostVolume.
 export const FSHostVolume: MessageType<FSHostVolume> = createMessageType({

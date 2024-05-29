@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   AckRequest,
   AckResponse,
@@ -103,9 +103,9 @@ export interface MqueueStore {
    * @generated from rpc mqueue.rpc.MqueueStore.ListMqueues
    */
   ListMqueues(
-    request: Message<ListMqueuesRequest>,
+    request: ListMqueuesRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListMqueuesResponse>>
+  ): Promise<ListMqueuesResponse>
 
   /**
    * RmMqueue deletes the message queue and all contents by ID.
@@ -113,9 +113,9 @@ export interface MqueueStore {
    * @generated from rpc mqueue.rpc.MqueueStore.RmMqueue
    */
   RmMqueue(
-    request: Message<RmMqueueRequest>,
+    request: RmMqueueRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RmMqueueResponse>>
+  ): Promise<RmMqueueResponse>
 }
 
 export const MqueueStoreServiceName = MqueueStoreDefinition.typeName
@@ -159,9 +159,9 @@ export class MqueueStoreClient implements MqueueStore {
    * @generated from rpc mqueue.rpc.MqueueStore.ListMqueues
    */
   async ListMqueues(
-    request: Message<ListMqueuesRequest>,
+    request: ListMqueuesRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListMqueuesResponse>> {
+  ): Promise<ListMqueuesResponse> {
     const requestMsg = ListMqueuesRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -178,9 +178,9 @@ export class MqueueStoreClient implements MqueueStore {
    * @generated from rpc mqueue.rpc.MqueueStore.RmMqueue
    */
   async RmMqueue(
-    request: Message<RmMqueueRequest>,
+    request: RmMqueueRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RmMqueueResponse>> {
+  ): Promise<RmMqueueResponse> {
     const requestMsg = RmMqueueRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -271,10 +271,7 @@ export interface QueueOps {
    *
    * @generated from rpc mqueue.rpc.QueueOps.Peek
    */
-  Peek(
-    request: Message<PeekRequest>,
-    abortSignal?: AbortSignal,
-  ): Promise<Message<PeekResponse>>
+  Peek(request: PeekRequest, abortSignal?: AbortSignal): Promise<PeekResponse>
 
   /**
    * Ack acknowledges the message with the given ID.
@@ -282,30 +279,21 @@ export interface QueueOps {
    *
    * @generated from rpc mqueue.rpc.QueueOps.Ack
    */
-  Ack(
-    request: Message<AckRequest>,
-    abortSignal?: AbortSignal,
-  ): Promise<Message<AckResponse>>
+  Ack(request: AckRequest, abortSignal?: AbortSignal): Promise<AckResponse>
 
   /**
    * Push pushes a message to the queue.
    *
    * @generated from rpc mqueue.rpc.QueueOps.Push
    */
-  Push(
-    request: Message<PushRequest>,
-    abortSignal?: AbortSignal,
-  ): Promise<Message<PushResponse>>
+  Push(request: PushRequest, abortSignal?: AbortSignal): Promise<PushResponse>
 
   /**
    * Wait waits for the next message, or call cancellation.
    *
    * @generated from rpc mqueue.rpc.QueueOps.Wait
    */
-  Wait(
-    request: Message<WaitRequest>,
-    abortSignal?: AbortSignal,
-  ): Promise<Message<WaitResponse>>
+  Wait(request: WaitRequest, abortSignal?: AbortSignal): Promise<WaitResponse>
 
   /**
    * DeleteQueue deletes the messages and metadata for the queue.
@@ -313,9 +301,9 @@ export interface QueueOps {
    * @generated from rpc mqueue.rpc.QueueOps.DeleteQueue
    */
   DeleteQueue(
-    request: Message<DeleteQueueRequest>,
+    request: DeleteQueueRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<DeleteQueueResponse>>
+  ): Promise<DeleteQueueResponse>
 }
 
 export const QueueOpsServiceName = QueueOpsDefinition.typeName
@@ -338,9 +326,9 @@ export class QueueOpsClient implements QueueOps {
    * @generated from rpc mqueue.rpc.QueueOps.Peek
    */
   async Peek(
-    request: Message<PeekRequest>,
+    request: PeekRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<PeekResponse>> {
+  ): Promise<PeekResponse> {
     const requestMsg = PeekRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -358,9 +346,9 @@ export class QueueOpsClient implements QueueOps {
    * @generated from rpc mqueue.rpc.QueueOps.Ack
    */
   async Ack(
-    request: Message<AckRequest>,
+    request: AckRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<AckResponse>> {
+  ): Promise<AckResponse> {
     const requestMsg = AckRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -377,9 +365,9 @@ export class QueueOpsClient implements QueueOps {
    * @generated from rpc mqueue.rpc.QueueOps.Push
    */
   async Push(
-    request: Message<PushRequest>,
+    request: PushRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<PushResponse>> {
+  ): Promise<PushResponse> {
     const requestMsg = PushRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -396,9 +384,9 @@ export class QueueOpsClient implements QueueOps {
    * @generated from rpc mqueue.rpc.QueueOps.Wait
    */
   async Wait(
-    request: Message<WaitRequest>,
+    request: WaitRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<WaitResponse>> {
+  ): Promise<WaitResponse> {
     const requestMsg = WaitRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -415,9 +403,9 @@ export class QueueOpsClient implements QueueOps {
    * @generated from rpc mqueue.rpc.QueueOps.DeleteQueue
    */
   async DeleteQueue(
-    request: Message<DeleteQueueRequest>,
+    request: DeleteQueueRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<DeleteQueueResponse>> {
+  ): Promise<DeleteQueueResponse> {
     const requestMsg = DeleteQueueRequest.create(request)
     const result = await this.rpc.request(
       this.service,

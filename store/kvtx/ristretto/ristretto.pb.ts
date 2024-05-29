@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'store.kvtx.ristretto'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'store.kvtx.ristretto'
  *
  * @generated from message store.kvtx.ristretto.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * NumCounters is the number of 4-bit access counters to keep for admission and eviction.
    *
@@ -61,7 +61,7 @@ export type Config = Message<{
    * @generated from field: string ttl_dur = 4;
    */
   ttlDur?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

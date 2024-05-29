@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
@@ -109,7 +108,7 @@ export const TxType_Enum = createEnumType('world.block.tx.TxType', [
  *
  * @generated from message world.block.tx.TxApplyWorldOp
  */
-export type TxApplyWorldOp = Message<{
+export interface TxApplyWorldOp {
   /**
    * OperationTypeId is the operation type identifier.
    *
@@ -122,7 +121,7 @@ export type TxApplyWorldOp = Message<{
    * @generated from field: bytes operation_body = 2;
    */
   operationBody?: Uint8Array
-}>
+}
 
 // TxApplyWorldOp contains the message type declaration for TxApplyWorldOp.
 export const TxApplyWorldOp: MessageType<TxApplyWorldOp> = createMessageType({
@@ -140,7 +139,7 @@ export const TxApplyWorldOp: MessageType<TxApplyWorldOp> = createMessageType({
  *
  * @generated from message world.block.tx.TxApplyObjectOp
  */
-export type TxApplyObjectOp = Message<{
+export interface TxApplyObjectOp {
   /**
    * OperationTypeId is the operation type identifier.
    *
@@ -159,7 +158,7 @@ export type TxApplyObjectOp = Message<{
    * @generated from field: string object_key = 3;
    */
   objectKey?: string
-}>
+}
 
 // TxApplyObjectOp contains the message type declaration for TxApplyObjectOp.
 export const TxApplyObjectOp: MessageType<TxApplyObjectOp> = createMessageType({
@@ -178,7 +177,7 @@ export const TxApplyObjectOp: MessageType<TxApplyObjectOp> = createMessageType({
  *
  * @generated from message world.block.tx.TxCreateObject
  */
-export type TxCreateObject = Message<{
+export interface TxCreateObject {
   /**
    * ObjectKey is the object key to apply the operation to.
    *
@@ -191,7 +190,7 @@ export type TxCreateObject = Message<{
    * @generated from field: bucket.ObjectRef root_ref = 2;
    */
   rootRef?: ObjectRef
-}>
+}
 
 // TxCreateObject contains the message type declaration for TxCreateObject.
 export const TxCreateObject: MessageType<TxCreateObject> = createMessageType({
@@ -209,7 +208,7 @@ export const TxCreateObject: MessageType<TxCreateObject> = createMessageType({
  *
  * @generated from message world.block.tx.TxObjectSet
  */
-export type TxObjectSet = Message<{
+export interface TxObjectSet {
   /**
    * ObjectKey is the object key to apply the operation to.
    *
@@ -222,7 +221,7 @@ export type TxObjectSet = Message<{
    * @generated from field: bucket.ObjectRef root_ref = 2;
    */
   rootRef?: ObjectRef
-}>
+}
 
 // TxObjectSet contains the message type declaration for TxObjectSet.
 export const TxObjectSet: MessageType<TxObjectSet> = createMessageType({
@@ -240,14 +239,14 @@ export const TxObjectSet: MessageType<TxObjectSet> = createMessageType({
  *
  * @generated from message world.block.tx.TxObjectIncRev
  */
-export type TxObjectIncRev = Message<{
+export interface TxObjectIncRev {
   /**
    * ObjectKey is the object key to apply the operation to.
    *
    * @generated from field: string object_key = 1;
    */
   objectKey?: string
-}>
+}
 
 // TxObjectIncRev contains the message type declaration for TxObjectIncRev.
 export const TxObjectIncRev: MessageType<TxObjectIncRev> = createMessageType({
@@ -264,7 +263,7 @@ export const TxObjectIncRev: MessageType<TxObjectIncRev> = createMessageType({
  *
  * @generated from message world.block.tx.TxDeleteObject
  */
-export type TxDeleteObject = Message<{
+export interface TxDeleteObject {
   /**
    * ObjectKey is the object key to delete.
    *
@@ -277,7 +276,7 @@ export type TxDeleteObject = Message<{
    * @generated from field: bool fail_if_not_found = 2;
    */
   failIfNotFound?: boolean
-}>
+}
 
 // TxDeleteObject contains the message type declaration for TxDeleteObject.
 export const TxDeleteObject: MessageType<TxDeleteObject> = createMessageType({
@@ -295,14 +294,14 @@ export const TxDeleteObject: MessageType<TxDeleteObject> = createMessageType({
  *
  * @generated from message world.block.tx.TxSetGraphQuad
  */
-export type TxSetGraphQuad = Message<{
+export interface TxSetGraphQuad {
   /**
    * Quad is the graph quad to create.
    *
    * @generated from field: quad.Quad quad = 1;
    */
   quad?: Quad
-}>
+}
 
 // TxSetGraphQuad contains the message type declaration for TxSetGraphQuad.
 export const TxSetGraphQuad: MessageType<TxSetGraphQuad> = createMessageType({
@@ -319,14 +318,14 @@ export const TxSetGraphQuad: MessageType<TxSetGraphQuad> = createMessageType({
  *
  * @generated from message world.block.tx.TxDeleteGraphQuad
  */
-export type TxDeleteGraphQuad = Message<{
+export interface TxDeleteGraphQuad {
   /**
    * Quad is the graph quad to delete.
    *
    * @generated from field: quad.Quad quad = 1;
    */
   quad?: Quad
-}>
+}
 
 // TxDeleteGraphQuad contains the message type declaration for TxDeleteGraphQuad.
 export const TxDeleteGraphQuad: MessageType<TxDeleteGraphQuad> =
@@ -343,14 +342,14 @@ export const TxDeleteGraphQuad: MessageType<TxDeleteGraphQuad> =
  *
  * @generated from message world.block.tx.TxBatch
  */
-export type TxBatch = Message<{
+export interface TxBatch {
   /**
    * Txs is the list of transactions.
    *
    * @generated from field: repeated world.block.tx.Tx txs = 1;
    */
   txs?: Tx[]
-}>
+}
 
 // TxBatch contains the message type declaration for TxBatch.
 export const TxBatch: MessageType<TxBatch> = createMessageType({
@@ -366,7 +365,7 @@ export const TxBatch: MessageType<TxBatch> = createMessageType({
  *
  * @generated from message world.block.tx.Tx
  */
-export type Tx = Message<{
+export interface Tx {
   /**
    * TxType is the kind of transaction this is.
    *
@@ -433,7 +432,7 @@ export type Tx = Message<{
    * @generated from field: world.block.tx.TxBatch tx_batch = 10;
    */
   txBatch?: TxBatch
-}>
+}
 
 // Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({

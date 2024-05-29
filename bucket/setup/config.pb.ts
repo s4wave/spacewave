@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/setup/config.proto (package bucket.setup, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bucket.setup'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'bucket.setup'
  *
  * @generated from message bucket.setup.ApplyBucketConfig
  */
-export type ApplyBucketConfig = Message<{
+export interface ApplyBucketConfig {
   /**
    * Config is the bucket config.
    *
@@ -38,7 +38,7 @@ export type ApplyBucketConfig = Message<{
    * @generated from field: repeated string volume_id_list = 3;
    */
   volumeIdList?: string[]
-}>
+}
 
 // ApplyBucketConfig contains the message type declaration for ApplyBucketConfig.
 export const ApplyBucketConfig: MessageType<ApplyBucketConfig> =
@@ -63,7 +63,7 @@ export const ApplyBucketConfig: MessageType<ApplyBucketConfig> =
  *
  * @generated from message bucket.setup.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ApplyBucketConfigs is a list of bucket configurations to apply.
    * Note: does not apply if existing config has a higher rev number.
@@ -72,7 +72,7 @@ export type Config = Message<{
    * @generated from field: repeated bucket.setup.ApplyBucketConfig apply_bucket_configs = 1;
    */
   applyBucketConfigs?: ApplyBucketConfig[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

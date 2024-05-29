@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'unixfs.access.http'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'unixfs.access.http'
  *
  * @generated from message unixfs.access.http.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * UnixfsId is the identifier for the UnixFS on the bus.
    * The fs should be provided with the AccessUnixFS controller.
@@ -66,7 +66,7 @@ export type Config = Message<{
    * @generated from field: string path_re = 7;
    */
   pathRe?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

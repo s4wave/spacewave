@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/http/http.proto (package block.store.http, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef, PutOpts } from '../../block.pb.js'
 
 export const protobufPackage = 'block.store.http'
@@ -15,7 +15,7 @@ export const protobufPackage = 'block.store.http'
  *
  * @generated from message block.store.http.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId is the block store id to use on the bus.
    *
@@ -59,7 +59,7 @@ export type Config = Message<{
    * @generated from field: bool verbose = 7;
    */
   verbose?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -87,7 +87,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message block.store.http.PutRequest
  */
-export type PutRequest = Message<{
+export interface PutRequest {
   /**
    * Data is the data to put at the key.
    *
@@ -100,7 +100,7 @@ export type PutRequest = Message<{
    * @generated from field: block.PutOpts put_opts = 2;
    */
   putOpts?: PutOpts
-}>
+}
 
 // PutRequest contains the message type declaration for PutRequest.
 export const PutRequest: MessageType<PutRequest> = createMessageType({
@@ -117,7 +117,7 @@ export const PutRequest: MessageType<PutRequest> = createMessageType({
  *
  * @generated from message block.store.http.PutResponse
  */
-export type PutResponse = Message<{
+export interface PutResponse {
   /**
    * Ref contains the put block ref.
    *
@@ -138,7 +138,7 @@ export type PutResponse = Message<{
    * @generated from field: string err = 3;
    */
   err?: string
-}>
+}
 
 // PutResponse contains the message type declaration for PutResponse.
 export const PutResponse: MessageType<PutResponse> = createMessageType({
@@ -156,7 +156,7 @@ export const PutResponse: MessageType<PutResponse> = createMessageType({
  *
  * @generated from message block.store.http.GetResponse
  */
-export type GetResponse = Message<{
+export interface GetResponse {
   /**
    * NotFound indicates that the block did not exist in the store.
    *
@@ -176,7 +176,7 @@ export type GetResponse = Message<{
    * @generated from field: string err = 3;
    */
   err?: string
-}>
+}
 
 // GetResponse contains the message type declaration for GetResponse.
 export const GetResponse: MessageType<GetResponse> = createMessageType({
@@ -194,7 +194,7 @@ export const GetResponse: MessageType<GetResponse> = createMessageType({
  *
  * @generated from message block.store.http.ExistsResponse
  */
-export type ExistsResponse = Message<{
+export interface ExistsResponse {
   /**
    * Exists indicates that the block existed in the store.
    *
@@ -215,7 +215,7 @@ export type ExistsResponse = Message<{
    * @generated from field: string err = 3;
    */
   err?: string
-}>
+}
 
 // ExistsResponse contains the message type declaration for ExistsResponse.
 export const ExistsResponse: MessageType<ExistsResponse> = createMessageType({
@@ -233,7 +233,7 @@ export const ExistsResponse: MessageType<ExistsResponse> = createMessageType({
  *
  * @generated from message block.store.http.RmResponse
  */
-export type RmResponse = Message<{
+export interface RmResponse {
   /**
    * Removed indicates the request was processed successfully.
    * Must be set if err is empty.
@@ -247,7 +247,7 @@ export type RmResponse = Message<{
    * @generated from field: string err = 2;
    */
   err?: string
-}>
+}
 
 // RmResponse contains the message type declaration for RmResponse.
 export const RmResponse: MessageType<RmResponse> = createMessageType({

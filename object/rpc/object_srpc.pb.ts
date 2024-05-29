@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RmObjectStoreRequest, RmObjectStoreResponse } from './object.pb.js'
 import {
   buildDecodeMessageTransform,
@@ -75,9 +75,9 @@ export interface ObjectStore {
    * @generated from rpc object.rpc.ObjectStore.RmObjectStore
    */
   RmObjectStore(
-    request: Message<RmObjectStoreRequest>,
+    request: RmObjectStoreRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RmObjectStoreResponse>>
+  ): Promise<RmObjectStoreResponse>
 }
 
 export const ObjectStoreServiceName = ObjectStoreDefinition.typeName
@@ -119,9 +119,9 @@ export class ObjectStoreClient implements ObjectStore {
    * @generated from rpc object.rpc.ObjectStore.RmObjectStore
    */
   async RmObjectStore(
-    request: Message<RmObjectStoreRequest>,
+    request: RmObjectStoreRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RmObjectStoreResponse>> {
+  ): Promise<RmObjectStoreResponse> {
     const requestMsg = RmObjectStoreRequest.create(request)
     const result = await this.rpc.request(
       this.service,

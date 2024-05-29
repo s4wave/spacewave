@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Quad } from '../../block/quad/quad.pb.js'
@@ -77,7 +76,7 @@ export const WorldChangeType_Enum = createEnumType(
  *
  * @generated from message world.block.WorldChange
  */
-export type WorldChange = Message<{
+export interface WorldChange {
   /**
    * ChangeType is the type of change this is.
    *
@@ -129,7 +128,7 @@ export type WorldChange = Message<{
    * @generated from field: uint64 object_rev = 7;
    */
   objectRev?: bigint
-}>
+}
 
 // WorldChange contains the message type declaration for WorldChange.
 export const WorldChange: MessageType<WorldChange> = createMessageType({
@@ -151,7 +150,7 @@ export const WorldChange: MessageType<WorldChange> = createMessageType({
  *
  * @generated from message world.block.WorldChangeLL
  */
-export type WorldChangeLL = Message<{
+export interface WorldChangeLL {
   /**
    * Height is the index in the batch linked-list.
    * The first change in the set is at height=0.
@@ -179,7 +178,7 @@ export type WorldChangeLL = Message<{
    * @generated from field: repeated world.block.WorldChange changes = 4;
    */
   changes?: WorldChange[]
-}>
+}
 
 // WorldChangeLL contains the message type declaration for WorldChangeLL.
 export const WorldChangeLL: MessageType<WorldChangeLL> = createMessageType({
@@ -205,7 +204,7 @@ export const WorldChangeLL: MessageType<WorldChangeLL> = createMessageType({
  *
  * @generated from message world.block.ChangeLogLL
  */
-export type ChangeLogLL = Message<{
+export interface ChangeLogLL {
   /**
    * Seqno is the world sequence number after this changeset is applied.
    *
@@ -247,7 +246,7 @@ export type ChangeLogLL = Message<{
    * @generated from field: filters.KeyFilters key_filters = 5;
    */
   keyFilters?: KeyFilters
-}>
+}
 
 // ChangeLogLL contains the message type declaration for ChangeLogLL.
 export const ChangeLogLL: MessageType<ChangeLogLL> = createMessageType({
@@ -269,7 +268,7 @@ export const ChangeLogLL: MessageType<ChangeLogLL> = createMessageType({
  *
  * @generated from message world.block.World
  */
-export type World = Message<{
+export interface World {
   /**
    * ObjectKeyValue is the key/value tree of objects.
    * Key: string
@@ -301,7 +300,7 @@ export type World = Message<{
    * @generated from field: bool last_change_disable = 4;
    */
   lastChangeDisable?: boolean
-}>
+}
 
 // World contains the message type declaration for World.
 export const World: MessageType<World> = createMessageType({
@@ -325,7 +324,7 @@ export const World: MessageType<World> = createMessageType({
  *
  * @generated from message world.block.Object
  */
-export type Object$ = Message<{
+export interface Object$ {
   /**
    * Key is the unique Object key.
    *
@@ -348,7 +347,7 @@ export type Object$ = Message<{
    * @generated from field: uint64 rev = 3;
    */
   rev?: bigint
-}>
+}
 
 // Object$ contains the message type declaration for Object$.
 export const Object$: MessageType<Object$> = createMessageType({

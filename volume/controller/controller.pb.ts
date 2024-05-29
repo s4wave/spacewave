@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/controller/controller.proto (package volume.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { OverlayMode } from '../../block/block.pb.js'
 import { OverlayMode_Enum, PutOpts } from '../../block/block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.controller'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'volume.controller'
  *
  * @generated from message volume.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * DisableEventBlockRm disables the block removed event.
    *
@@ -78,7 +78,7 @@ export type Config = Message<{
    * @generated from field: block.PutOpts block_store_writeback_put_opts = 9;
    */
   blockStoreWritebackPutOpts?: PutOpts
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/dex/directive.proto (package dex, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block/block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'dex'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'dex'
  *
  * @generated from message dex.LookupBlockFromNetworkRequest
  */
-export type LookupBlockFromNetworkRequest = Message<{
+export interface LookupBlockFromNetworkRequest {
   /**
    * BucketId is the associated bucket ID with the lookup.
    *
@@ -26,7 +26,7 @@ export type LookupBlockFromNetworkRequest = Message<{
    * @generated from field: block.BlockRef ref = 2;
    */
   ref?: BlockRef
-}>
+}
 
 // LookupBlockFromNetworkRequest contains the message type declaration for LookupBlockFromNetworkRequest.
 export const LookupBlockFromNetworkRequest: MessageType<LookupBlockFromNetworkRequest> =

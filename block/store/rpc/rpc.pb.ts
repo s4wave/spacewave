@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/rpc/rpc.proto (package block.store.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.rpc'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'block.store.rpc'
  *
  * @generated from message block.store.rpc.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId is the block store id to match on the bus.
    * Combined with block_store_ids if also set.
@@ -83,7 +83,7 @@ export type Config = Message<{
    * @generated from field: bool verbose = 10;
    */
   verbose?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

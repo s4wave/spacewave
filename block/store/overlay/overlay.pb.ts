@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/block/store/overlay/overlay.proto (package block.store.overlay, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { OverlayMode } from '../../block.pb.js'
 import { OverlayMode_Enum, PutOpts } from '../../block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'block.store.overlay'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'block.store.overlay'
  *
  * @generated from message block.store.overlay.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId is the block store id to use on the bus.
    *
@@ -72,7 +72,7 @@ export type Config = Message<{
    * @generated from field: bool verbose = 9;
    */
   verbose?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

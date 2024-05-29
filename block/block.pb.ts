@@ -3,11 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  Message,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import {
   Hash,
@@ -87,14 +83,14 @@ export const OverlayMode_Enum = createEnumType('block.OverlayMode', [
  *
  * @generated from message block.BlockRef
  */
-export type BlockRef = Message<{
+export interface BlockRef {
   /**
    * Hash is the hash of the object.
    *
    * @generated from field: hash.Hash hash = 1;
    */
   hash?: Hash
-}>
+}
 
 // BlockRef contains the message type declaration for BlockRef.
 export const BlockRef: MessageType<BlockRef> = createMessageType({
@@ -110,7 +106,7 @@ export const BlockRef: MessageType<BlockRef> = createMessageType({
  *
  * @generated from message block.PutOpts
  */
-export type PutOpts = Message<{
+export interface PutOpts {
   /**
    * HashType is the hash type to use.
    * If unset (0 value) will use default for the store.
@@ -128,7 +124,7 @@ export type PutOpts = Message<{
    * @generated from field: block.BlockRef force_block_ref = 2;
    */
   forceBlockRef?: BlockRef
-}>
+}
 
 // PutOpts contains the message type declaration for PutOpts.
 export const PutOpts: MessageType<PutOpts> = createMessageType({

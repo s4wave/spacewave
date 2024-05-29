@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/http/server/config.proto (package bucket.http.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bucket.http.server'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'bucket.http.server'
  *
  * @generated from message bucket.http.server.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BucketId is the bucket id to lookup on the bus.
    *
@@ -52,7 +52,7 @@ export type Config = Message<{
    * @generated from field: hash.HashType force_hash_type = 5;
    */
   forceHashType?: HashType
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

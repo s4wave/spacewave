@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block.pb.js'
@@ -75,7 +74,7 @@ export const ChunkerType_Enum = createEnumType('blob.ChunkerType', [
  *
  * @generated from message blob.Chunk
  */
-export type Chunk = Message<{
+export interface Chunk {
   /**
    * DataRef is the reference to the data.
    * If empty, indicates a range of zeros.
@@ -96,7 +95,7 @@ export type Chunk = Message<{
    * @generated from field: uint64 start = 3;
    */
   start?: bigint
-}>
+}
 
 // Chunk contains the message type declaration for Chunk.
 export const Chunk: MessageType<Chunk> = createMessageType({
@@ -116,7 +115,7 @@ export const Chunk: MessageType<Chunk> = createMessageType({
  *
  * @generated from message blob.RabinArgs
  */
-export type RabinArgs = Message<{
+export interface RabinArgs {
   /**
    * Rabin polynomial.
    * Optional.
@@ -146,7 +145,7 @@ export type RabinArgs = Message<{
    * @generated from field: uint64 chunking_max_size = 3;
    */
   chunkingMaxSize?: bigint
-}>
+}
 
 // RabinArgs contains the message type declaration for RabinArgs.
 export const RabinArgs: MessageType<RabinArgs> = createMessageType({
@@ -165,7 +164,7 @@ export const RabinArgs: MessageType<RabinArgs> = createMessageType({
  *
  * @generated from message blob.ChunkerArgs
  */
-export type ChunkerArgs = Message<{
+export interface ChunkerArgs {
   /**
    * ChunkerType is the chunking algorithm used.
    * Defaults to ChunkerType_RABIN if not set.
@@ -180,7 +179,7 @@ export type ChunkerArgs = Message<{
    * @generated from field: blob.RabinArgs rabin_args = 2;
    */
   rabinArgs?: RabinArgs
-}>
+}
 
 // ChunkerArgs contains the message type declaration for ChunkerArgs.
 export const ChunkerArgs: MessageType<ChunkerArgs> = createMessageType({
@@ -197,7 +196,7 @@ export const ChunkerArgs: MessageType<ChunkerArgs> = createMessageType({
  *
  * @generated from message blob.ChunkIndex
  */
-export type ChunkIndex = Message<{
+export interface ChunkIndex {
   /**
    * Chunks contains the in-line list of chunks.
    * Sequential.
@@ -211,7 +210,7 @@ export type ChunkIndex = Message<{
    * @generated from field: blob.ChunkerArgs chunker_args = 2;
    */
   chunkerArgs?: ChunkerArgs
-}>
+}
 
 // ChunkIndex contains the message type declaration for ChunkIndex.
 export const ChunkIndex: MessageType<ChunkIndex> = createMessageType({
@@ -230,7 +229,7 @@ export const ChunkIndex: MessageType<ChunkIndex> = createMessageType({
  *
  * @generated from message blob.Blob
  */
-export type Blob = Message<{
+export interface Blob {
   /**
    * BlobType is the blob type.
    *
@@ -256,7 +255,7 @@ export type Blob = Message<{
    * @generated from field: blob.ChunkIndex chunk_index = 4;
    */
   chunkIndex?: ChunkIndex
-}>
+}
 
 // Blob contains the message type declaration for Blob.
 export const Blob: MessageType<Blob> = createMessageType({
@@ -275,7 +274,7 @@ export const Blob: MessageType<Blob> = createMessageType({
  *
  * @generated from message blob.BuildBlobOpts
  */
-export type BuildBlobOpts = Message<{
+export interface BuildBlobOpts {
   /**
    * RawHighWaterMark is the limit for a raw block size.
    * Defaults to 512KB if unset.
@@ -289,7 +288,7 @@ export type BuildBlobOpts = Message<{
    * @generated from field: blob.ChunkerArgs chunker_args = 2;
    */
   chunkerArgs?: ChunkerArgs
-}>
+}
 
 // BuildBlobOpts contains the message type declaration for BuildBlobOpts.
 export const BuildBlobOpts: MessageType<BuildBlobOpts> = createMessageType({

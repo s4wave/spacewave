@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/block/file/file.proto (package file, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../block.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Blob } from '../blob/blob.pb.js'
 
 export const protobufPackage = 'file'
@@ -15,7 +15,7 @@ export const protobufPackage = 'file'
  *
  * @generated from message file.Range
  */
-export type Range = Message<{
+export interface Range {
   /**
    * Nonce is the incrementing nonce of the range.
    * Ranges with a higher nonce overwrite lower nonce.
@@ -43,7 +43,7 @@ export type Range = Message<{
    * @generated from field: block.BlockRef ref = 4;
    */
   ref?: BlockRef
-}>
+}
 
 // Range contains the message type declaration for Range.
 export const Range: MessageType<Range> = createMessageType({
@@ -69,7 +69,7 @@ export const Range: MessageType<Range> = createMessageType({
  *
  * @generated from message file.File
  */
-export type File = Message<{
+export interface File {
   /**
    * TotalSize is the total size of the file.
    *
@@ -98,7 +98,7 @@ export type File = Message<{
    * @generated from field: repeated file.Range ranges = 4;
    */
   ranges?: Range[]
-}>
+}
 
 // File contains the message type declaration for File.
 export const File: MessageType<File> = createMessageType({

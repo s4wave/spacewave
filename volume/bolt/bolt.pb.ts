@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/volume/bolt/bolt.proto (package volume.bolt, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../controller/controller.pb.js'
 import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'volume.bolt'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'volume.bolt'
  *
  * @generated from message volume.bolt.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Path is the file to store the data in.
    *
@@ -77,7 +77,7 @@ export type Config = Message<{
    * @generated from field: bool freelist_sync = 9;
    */
   freelistSync?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

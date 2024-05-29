@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { VolumeBucketInfo, VolumeInfo } from '../../volume/volume.pb.js'
@@ -109,7 +108,7 @@ export const ObjectStoreOp_Enum = createEnumType('hydra.api.ObjectStoreOp', [
  *
  * @generated from message hydra.api.Config
  */
-export type Config = Message<{}>
+export interface Config {}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -123,7 +122,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message hydra.api.ListVolumesRequest
  */
-export type ListVolumesRequest = Message<{}>
+export interface ListVolumesRequest {}
 
 // ListVolumesRequest contains the message type declaration for ListVolumesRequest.
 export const ListVolumesRequest: MessageType<ListVolumesRequest> =
@@ -138,14 +137,14 @@ export const ListVolumesRequest: MessageType<ListVolumesRequest> =
  *
  * @generated from message hydra.api.ListVolumesResponse
  */
-export type ListVolumesResponse = Message<{
+export interface ListVolumesResponse {
   /**
    * Volumes is the list of volumes returned from the request.
    *
    * @generated from field: repeated volume.VolumeInfo volumes = 1;
    */
   volumes?: VolumeInfo[]
-}>
+}
 
 // ListVolumesResponse contains the message type declaration for ListVolumesResponse.
 export const ListVolumesResponse: MessageType<ListVolumesResponse> =
@@ -168,14 +167,14 @@ export const ListVolumesResponse: MessageType<ListVolumesResponse> =
  *
  * @generated from message hydra.api.ListBucketsResponse
  */
-export type ListBucketsResponse = Message<{
+export interface ListBucketsResponse {
   /**
    * Buckets is the list of buckets returned from the request.
    *
    * @generated from field: repeated volume.VolumeBucketInfo buckets = 1;
    */
   buckets?: VolumeBucketInfo[]
-}>
+}
 
 // ListBucketsResponse contains the message type declaration for ListBucketsResponse.
 export const ListBucketsResponse: MessageType<ListBucketsResponse> =
@@ -198,7 +197,7 @@ export const ListBucketsResponse: MessageType<ListBucketsResponse> =
  *
  * @generated from message hydra.api.ApplyBucketConfigRequest
  */
-export type ApplyBucketConfigRequest = Message<{
+export interface ApplyBucketConfigRequest {
   /**
    * Config is the bucket config.
    *
@@ -222,7 +221,7 @@ export type ApplyBucketConfigRequest = Message<{
    * @generated from field: repeated string volume_id_list = 3;
    */
   volumeIdList?: string[]
-}>
+}
 
 // ApplyBucketConfigRequest contains the message type declaration for ApplyBucketConfigRequest.
 export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
@@ -247,14 +246,14 @@ export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
  *
  * @generated from message hydra.api.ApplyBucketConfigResponse
  */
-export type ApplyBucketConfigResponse = Message<{
+export interface ApplyBucketConfigResponse {
   /**
    * ApplyConfResult is a result value for the application.
    *
    * @generated from field: bucket.ApplyBucketConfigResult apply_conf_result = 1;
    */
   applyConfResult?: ApplyBucketConfigResult
-}>
+}
 
 // ApplyBucketConfigResponse contains the message type declaration for ApplyBucketConfigResponse.
 export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
@@ -274,7 +273,7 @@ export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
 /**
  * @generated from message hydra.api.BucketOpRequest
  */
-export type BucketOpRequest = Message<{
+export interface BucketOpRequest {
   /**
    * Op is the operation to perform against the bucket.
    *
@@ -310,7 +309,7 @@ export type BucketOpRequest = Message<{
    * @generated from field: bytes data = 5;
    */
   data?: Uint8Array
-}>
+}
 
 // BucketOpRequest contains the message type declaration for BucketOpRequest.
 export const BucketOpRequest: MessageType<BucketOpRequest> = createMessageType({
@@ -330,7 +329,7 @@ export const BucketOpRequest: MessageType<BucketOpRequest> = createMessageType({
  *
  * @generated from message hydra.api.BucketOpResponse
  */
-export type BucketOpResponse = Message<{
+export interface BucketOpResponse {
   /**
    * Event is the bucket event, if any.
    * Used when op == BLOCK_PUT
@@ -352,7 +351,7 @@ export type BucketOpResponse = Message<{
    * @generated from field: bool found = 3;
    */
   found?: boolean
-}>
+}
 
 // BucketOpResponse contains the message type declaration for BucketOpResponse.
 export const BucketOpResponse: MessageType<BucketOpResponse> =
@@ -371,7 +370,7 @@ export const BucketOpResponse: MessageType<BucketOpResponse> =
  *
  * @generated from message hydra.api.ObjectStoreOpRequest
  */
-export type ObjectStoreOpRequest = Message<{
+export interface ObjectStoreOpRequest {
   /**
    * Op is the operation to perform against the bucket.
    *
@@ -405,7 +404,7 @@ export type ObjectStoreOpRequest = Message<{
    * @generated from field: bytes data = 5;
    */
   data?: Uint8Array
-}>
+}
 
 // ObjectStoreOpRequest contains the message type declaration for ObjectStoreOpRequest.
 export const ObjectStoreOpRequest: MessageType<ObjectStoreOpRequest> =
@@ -426,7 +425,7 @@ export const ObjectStoreOpRequest: MessageType<ObjectStoreOpRequest> =
  *
  * @generated from message hydra.api.ObjectStoreOpResponse
  */
-export type ObjectStoreOpResponse = Message<{
+export interface ObjectStoreOpResponse {
   /**
    * Data is the returned data, if any.
    * Used when op == BLOCK_GET
@@ -447,7 +446,7 @@ export type ObjectStoreOpResponse = Message<{
    * @generated from field: repeated bytes keys = 3;
    */
   keys?: Uint8Array[]
-}>
+}
 
 // ObjectStoreOpResponse contains the message type declaration for ObjectStoreOpResponse.
 export const ObjectStoreOpResponse: MessageType<ObjectStoreOpResponse> =

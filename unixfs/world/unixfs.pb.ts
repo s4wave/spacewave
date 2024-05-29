@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -66,7 +65,7 @@ export const FSType_Enum = createEnumType('unixfs.world.FSType', [
  *
  * @generated from message unixfs.world.UnixfsRef
  */
-export type UnixfsRef = Message<{
+export interface UnixfsRef {
   /**
    * ObjectKey is the object key to open as a UnixFS.
    *
@@ -88,7 +87,7 @@ export type UnixfsRef = Message<{
    * @generated from field: unixfs.block.FSPath path = 3;
    */
   path?: FSPath
-}>
+}
 
 // UnixfsRef contains the message type declaration for UnixfsRef.
 export const UnixfsRef: MessageType<UnixfsRef> = createMessageType({
@@ -107,7 +106,7 @@ export const UnixfsRef: MessageType<UnixfsRef> = createMessageType({
  *
  * @generated from message unixfs.world.FsInitOp
  */
-export type FsInitOp = Message<{
+export interface FsInitOp {
   /**
    * ObjectKey is the object key to create as a UnixFS.
    *
@@ -146,7 +145,7 @@ export type FsInitOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
   timestamp?: Date
-}>
+}
 
 // FsInitOp contains the message type declaration for FsInitOp.
 export const FsInitOp: MessageType<FsInitOp> = createMessageType({
@@ -168,7 +167,7 @@ export const FsInitOp: MessageType<FsInitOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsMknodOp
  */
-export type FsMknodOp = Message<{
+export interface FsMknodOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -208,7 +207,7 @@ export type FsMknodOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
   timestamp?: Date
-}>
+}
 
 // FsMknodOp contains the message type declaration for FsMknodOp.
 export const FsMknodOp: MessageType<FsMknodOp> = createMessageType({
@@ -230,7 +229,7 @@ export const FsMknodOp: MessageType<FsMknodOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsSymlinkOp
  */
-export type FsSymlinkOp = Message<{
+export interface FsSymlinkOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -263,7 +262,7 @@ export type FsSymlinkOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Date
-}>
+}
 
 // FsSymlinkOp contains the message type declaration for FsSymlinkOp.
 export const FsSymlinkOp: MessageType<FsSymlinkOp> = createMessageType({
@@ -285,7 +284,7 @@ export const FsSymlinkOp: MessageType<FsSymlinkOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsSetPermissionsOp
  */
-export type FsSetPermissionsOp = Message<{
+export interface FsSetPermissionsOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -318,7 +317,7 @@ export type FsSetPermissionsOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Date
-}>
+}
 
 // FsSetPermissionsOp contains the message type declaration for FsSetPermissionsOp.
 export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
@@ -346,7 +345,7 @@ export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
  *
  * @generated from message unixfs.world.FsSetModTimestampOp
  */
-export type FsSetModTimestampOp = Message<{
+export interface FsSetModTimestampOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -373,7 +372,7 @@ export type FsSetModTimestampOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // FsSetModTimestampOp contains the message type declaration for FsSetModTimestampOp.
 export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
@@ -400,7 +399,7 @@ export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
  *
  * @generated from message unixfs.world.FsWriteAtOp
  */
-export type FsWriteAtOp = Message<{
+export interface FsWriteAtOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -439,7 +438,7 @@ export type FsWriteAtOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
   timestamp?: Date
-}>
+}
 
 // FsWriteAtOp contains the message type declaration for FsWriteAtOp.
 export const FsWriteAtOp: MessageType<FsWriteAtOp> = createMessageType({
@@ -462,7 +461,7 @@ export const FsWriteAtOp: MessageType<FsWriteAtOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsTruncateOp
  */
-export type FsTruncateOp = Message<{
+export interface FsTruncateOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -495,7 +494,7 @@ export type FsTruncateOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Date
-}>
+}
 
 // FsTruncateOp contains the message type declaration for FsTruncateOp.
 export const FsTruncateOp: MessageType<FsTruncateOp> = createMessageType({
@@ -517,7 +516,7 @@ export const FsTruncateOp: MessageType<FsTruncateOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsCopyOp
  */
-export type FsCopyOp = Message<{
+export interface FsCopyOp {
   /**
    * ObjectKey is the object key to copy from.
    * Ignored if applied as an object op.
@@ -550,7 +549,7 @@ export type FsCopyOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Date
-}>
+}
 
 // FsCopyOp contains the message type declaration for FsCopyOp.
 export const FsCopyOp: MessageType<FsCopyOp> = createMessageType({
@@ -573,7 +572,7 @@ export const FsCopyOp: MessageType<FsCopyOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsRenameOp
  */
-export type FsRenameOp = Message<{
+export interface FsRenameOp {
   /**
    * ObjectKey is the object key to copy from.
    * Ignored if applied as an object op.
@@ -606,7 +605,7 @@ export type FsRenameOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Date
-}>
+}
 
 // FsRenameOp contains the message type declaration for FsRenameOp.
 export const FsRenameOp: MessageType<FsRenameOp> = createMessageType({
@@ -627,7 +626,7 @@ export const FsRenameOp: MessageType<FsRenameOp> = createMessageType({
  *
  * @generated from message unixfs.world.FsRemoveOp
  */
-export type FsRemoveOp = Message<{
+export interface FsRemoveOp {
   /**
    * ObjectKey is the object key to start at.
    * Ignored if applied as an object op.
@@ -654,7 +653,7 @@ export type FsRemoveOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // FsRemoveOp contains the message type declaration for FsRemoveOp.
 export const FsRemoveOp: MessageType<FsRemoveOp> = createMessageType({
@@ -674,7 +673,7 @@ export const FsRemoveOp: MessageType<FsRemoveOp> = createMessageType({
  *
  * @generated from message unixfs.world.MountValue
  */
-export type MountValue = Message<{
+export interface MountValue {
   /**
    * Mountpoint is the path inside the inode to mount at.
    * If empty assumes /
@@ -689,7 +688,7 @@ export type MountValue = Message<{
    * @generated from field: string prefix = 2;
    */
   prefix?: string
-}>
+}
 
 // MountValue contains the message type declaration for MountValue.
 export const MountValue: MessageType<MountValue> = createMessageType({
@@ -707,7 +706,7 @@ export const MountValue: MessageType<MountValue> = createMessageType({
  *
  * @generated from message unixfs.world.RefValue
  */
-export type RefValue = Message<{
+export interface RefValue {
   /**
    * FsType sets the expected filesystem object type at the target.
    * If unset (0) reads the type from the graph.
@@ -723,7 +722,7 @@ export type RefValue = Message<{
    * @generated from field: unixfs.block.FSPath path = 2;
    */
   path?: FSPath
-}>
+}
 
 // RefValue contains the message type declaration for RefValue.
 export const RefValue: MessageType<RefValue> = createMessageType({

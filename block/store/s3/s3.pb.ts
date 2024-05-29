@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import type { HashType } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/aperturerobotics/bifrost/hash/hash.pb.js'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'block.store.s3'
  *
  * @generated from message block.store.s3.Credentials
  */
-export type Credentials = Message<{
+export interface Credentials {
   /**
    * AccessKeyId is the authentication access key id.
    *
@@ -34,7 +34,7 @@ export type Credentials = Message<{
    * @generated from field: string token = 3;
    */
   token?: string
-}>
+}
 
 // Credentials contains the message type declaration for Credentials.
 export const Credentials: MessageType<Credentials> = createMessageType({
@@ -53,7 +53,7 @@ export const Credentials: MessageType<Credentials> = createMessageType({
  *
  * @generated from message block.store.s3.ClientConfig
  */
-export type ClientConfig = Message<{
+export interface ClientConfig {
   /**
    * Endpoint is the endpoint to access the s3 api.
    *
@@ -80,7 +80,7 @@ export type ClientConfig = Message<{
    * @generated from field: string region = 4;
    */
   region?: string
-}>
+}
 
 // ClientConfig contains the message type declaration for ClientConfig.
 export const ClientConfig: MessageType<ClientConfig> = createMessageType({
@@ -99,7 +99,7 @@ export const ClientConfig: MessageType<ClientConfig> = createMessageType({
  *
  * @generated from message block.store.s3.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BlockStoreId is the block store id to use on the bus.
    *
@@ -156,7 +156,7 @@ export type Config = Message<{
    * @generated from field: bool verbose = 9;
    */
   verbose?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

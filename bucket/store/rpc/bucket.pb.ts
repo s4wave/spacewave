@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/hydra/bucket/store/rpc/bucket.proto (package bucket.store.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BucketInfo, Config } from '../../bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bucket.store.rpc'
 
@@ -13,14 +13,14 @@ export const protobufPackage = 'bucket.store.rpc'
  *
  * @generated from message bucket.store.rpc.ApplyBucketConfigRequest
  */
-export type ApplyBucketConfigRequest = Message<{
+export interface ApplyBucketConfigRequest {
   /**
    * Config is the bucket config.
    *
    * @generated from field: bucket.Config config = 1;
    */
   config?: Config
-}>
+}
 
 // ApplyBucketConfigRequest contains the message type declaration for ApplyBucketConfigRequest.
 export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
@@ -37,7 +37,7 @@ export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
  *
  * @generated from message bucket.store.rpc.ApplyBucketConfigResponse
  */
-export type ApplyBucketConfigResponse = Message<{
+export interface ApplyBucketConfigResponse {
   /**
    * Updated indicates the configuration was updated.
    *
@@ -56,7 +56,7 @@ export type ApplyBucketConfigResponse = Message<{
    * @generated from field: bucket.Config curr = 3;
    */
   curr?: Config
-}>
+}
 
 // ApplyBucketConfigResponse contains the message type declaration for ApplyBucketConfigResponse.
 export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
@@ -75,14 +75,14 @@ export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
  *
  * @generated from message bucket.store.rpc.GetBucketConfigRequest
  */
-export type GetBucketConfigRequest = Message<{
+export interface GetBucketConfigRequest {
   /**
    * BucketId is the identifier of the bucket to look up.
    *
    * @generated from field: string bucket_id = 1;
    */
   bucketId?: string
-}>
+}
 
 // GetBucketConfigRequest contains the message type declaration for GetBucketConfigRequest.
 export const GetBucketConfigRequest: MessageType<GetBucketConfigRequest> =
@@ -99,14 +99,14 @@ export const GetBucketConfigRequest: MessageType<GetBucketConfigRequest> =
  *
  * @generated from message bucket.store.rpc.GetBucketConfigResponse
  */
-export type GetBucketConfigResponse = Message<{
+export interface GetBucketConfigResponse {
   /**
    * Config is the bucket config, if found.
    *
    * @generated from field: bucket.Config config = 1;
    */
   config?: Config
-}>
+}
 
 // GetBucketConfigResponse contains the message type declaration for GetBucketConfigResponse.
 export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> =
@@ -123,14 +123,14 @@ export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> =
  *
  * @generated from message bucket.store.rpc.GetBucketInfoRequest
  */
-export type GetBucketInfoRequest = Message<{
+export interface GetBucketInfoRequest {
   /**
    * BucketId is the identifier of the bucket to look up.
    *
    * @generated from field: string bucket_id = 1;
    */
   bucketId?: string
-}>
+}
 
 // GetBucketInfoRequest contains the message type declaration for GetBucketInfoRequest.
 export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> =
@@ -147,7 +147,7 @@ export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> =
  *
  * @generated from message bucket.store.rpc.GetBucketInfoResponse
  */
-export type GetBucketInfoResponse = Message<{
+export interface GetBucketInfoResponse {
   /**
    * BucketInfo is the bucket information, if found.
    * Otherwise returns empty.
@@ -155,7 +155,7 @@ export type GetBucketInfoResponse = Message<{
    * @generated from field: bucket.BucketInfo bucket_info = 1;
    */
   bucketInfo?: BucketInfo
-}>
+}
 
 // GetBucketInfoResponse contains the message type declaration for GetBucketInfoResponse.
 export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> =
@@ -172,14 +172,14 @@ export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> =
  *
  * @generated from message bucket.store.rpc.ListBucketInfoRequest
  */
-export type ListBucketInfoRequest = Message<{
+export interface ListBucketInfoRequest {
   /**
    * BucketIdRe is an optional regex to filter the list by.
    *
    * @generated from field: string bucket_id_re = 1;
    */
   bucketIdRe?: string
-}>
+}
 
 // ListBucketInfoRequest contains the message type declaration for ListBucketInfoRequest.
 export const ListBucketInfoRequest: MessageType<ListBucketInfoRequest> =
@@ -196,14 +196,14 @@ export const ListBucketInfoRequest: MessageType<ListBucketInfoRequest> =
  *
  * @generated from message bucket.store.rpc.ListBucketInfoResponse
  */
-export type ListBucketInfoResponse = Message<{
+export interface ListBucketInfoResponse {
   /**
    * BucketInfo is the bucket information list.
    *
    * @generated from field: repeated bucket.BucketInfo bucket_info = 1;
    */
   bucketInfo?: BucketInfo[]
-}>
+}
 
 // ListBucketInfoResponse contains the message type declaration for ListBucketInfoResponse.
 export const ListBucketInfoResponse: MessageType<ListBucketInfoResponse> =

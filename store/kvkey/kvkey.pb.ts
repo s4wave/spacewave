@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'store.kvkey'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'store.kvkey'
  *
  * @generated from message store.kvkey.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Prefix is the prefix applied to all keys.
    * Default: h/
@@ -69,7 +69,7 @@ export type Config = Message<{
    * @generated from field: bytes bucket_mqueue_prefix = 9;
    */
   bucketMqueuePrefix?: Uint8Array
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

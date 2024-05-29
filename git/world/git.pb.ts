@@ -2,15 +2,14 @@
 // @generated from file github.com/aperturerobotics/hydra/git/world/git.proto (package git.world, syntax proto3)
 /* eslint-disable */
 
+import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
+import { CheckoutOpts, Index, Reference } from '../block/git.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
-import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
-import { CheckoutOpts, Index, Reference } from '../block/git.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 
 export const protobufPackage = 'git.world'
@@ -21,7 +20,7 @@ export const protobufPackage = 'git.world'
  *
  * @generated from message git.world.GitCreateWorktreeOp
  */
-export type GitCreateWorktreeOp = Message<{
+export interface GitCreateWorktreeOp {
   /**
    * ObjectKey is the object key to create as a Worktree.
    *
@@ -64,7 +63,7 @@ export type GitCreateWorktreeOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 7;
    */
   timestamp?: Date
-}>
+}
 
 // GitCreateWorktreeOp contains the message type declaration for GitCreateWorktreeOp.
 export const GitCreateWorktreeOp: MessageType<GitCreateWorktreeOp> =
@@ -88,7 +87,7 @@ export const GitCreateWorktreeOp: MessageType<GitCreateWorktreeOp> =
  *
  * @generated from message git.world.GitInitOp
  */
-export type GitInitOp = Message<{
+export interface GitInitOp {
   /**
    * ObjectKey is the object key to create as a Repo.
    *
@@ -117,7 +116,7 @@ export type GitInitOp = Message<{
    * @generated from field: git.world.GitCreateWorktreeOp create_worktree = 4;
    */
   createWorktree?: GitCreateWorktreeOp
-}>
+}
 
 // GitInitOp contains the message type declaration for GitInitOp.
 export const GitInitOp: MessageType<GitInitOp> = createMessageType({
@@ -141,7 +140,7 @@ export const GitInitOp: MessageType<GitInitOp> = createMessageType({
  *
  * @generated from message git.world.HeadRefStore
  */
-export type HeadRefStore = Message<{
+export interface HeadRefStore {
   /**
    * SubmoduleName is the name of the submodule if this is a submodule.
    *
@@ -162,7 +161,7 @@ export type HeadRefStore = Message<{
    * @generated from field: repeated git.world.HeadRefStore submodules = 3;
    */
   submodules?: HeadRefStore[]
-}>
+}
 
 // HeadRefStore contains the message type declaration for HeadRefStore.
 export const HeadRefStore: MessageType<HeadRefStore> = createMessageType({
@@ -187,7 +186,7 @@ export const HeadRefStore: MessageType<HeadRefStore> = createMessageType({
  *
  * @generated from message git.world.Worktree
  */
-export type Worktree = Message<{
+export interface Worktree {
   /**
    * GitIndex is the git index for the worktree.
    *
@@ -200,7 +199,7 @@ export type Worktree = Message<{
    * @generated from field: git.world.HeadRefStore head_ref_store = 2;
    */
   headRefStore?: HeadRefStore
-}>
+}
 
 // Worktree contains the message type declaration for Worktree.
 export const Worktree: MessageType<Worktree> = createMessageType({
@@ -218,7 +217,7 @@ export const Worktree: MessageType<Worktree> = createMessageType({
  *
  * @generated from message git.world.GitWorktreeCheckoutOp
  */
-export type GitWorktreeCheckoutOp = Message<{
+export interface GitWorktreeCheckoutOp {
   /**
    * ObjectKey is the object key of the Worktree.
    *
@@ -243,7 +242,7 @@ export type GitWorktreeCheckoutOp = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
-}>
+}
 
 // GitWorktreeCheckoutOp contains the message type declaration for GitWorktreeCheckoutOp.
 export const GitWorktreeCheckoutOp: MessageType<GitWorktreeCheckoutOp> =

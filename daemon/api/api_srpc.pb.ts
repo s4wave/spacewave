@@ -13,7 +13,7 @@ import {
   ObjectStoreOpRequest,
   ObjectStoreOpResponse,
 } from './api.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ListBucketsRequest } from '../../volume/volume.pb.js'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
@@ -95,9 +95,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListVolumes
    */
   ListVolumes(
-    request: Message<ListVolumesRequest>,
+    request: ListVolumesRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListVolumesResponse>>
+  ): Promise<ListVolumesResponse>
 
   /**
    * ListBuckets lists buckets by the daemon.
@@ -105,9 +105,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListBuckets
    */
   ListBuckets(
-    request: Message<ListBucketsRequest>,
+    request: ListBucketsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListBucketsResponse>>
+  ): Promise<ListBucketsResponse>
 
   /**
    * ApplyBucketConfig applies a bucket config to volumes.
@@ -115,7 +115,7 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ApplyBucketConfig
    */
   ApplyBucketConfig(
-    request: Message<ApplyBucketConfigRequest>,
+    request: ApplyBucketConfigRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<ApplyBucketConfigResponse>
 
@@ -125,9 +125,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.BucketOp
    */
   BucketOp(
-    request: Message<BucketOpRequest>,
+    request: BucketOpRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<BucketOpResponse>>
+  ): Promise<BucketOpResponse>
 
   /**
    * ObjectStoreOp performs an object store operation.
@@ -135,9 +135,9 @@ export interface HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ObjectStoreOp
    */
   ObjectStoreOp(
-    request: Message<ObjectStoreOpRequest>,
+    request: ObjectStoreOpRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ObjectStoreOpResponse>>
+  ): Promise<ObjectStoreOpResponse>
 }
 
 export const HydraDaemonServiceServiceName =
@@ -161,9 +161,9 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListVolumes
    */
   async ListVolumes(
-    request: Message<ListVolumesRequest>,
+    request: ListVolumesRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListVolumesResponse>> {
+  ): Promise<ListVolumesResponse> {
     const requestMsg = ListVolumesRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -180,9 +180,9 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ListBuckets
    */
   async ListBuckets(
-    request: Message<ListBucketsRequest>,
+    request: ListBucketsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ListBucketsResponse>> {
+  ): Promise<ListBucketsResponse> {
     const requestMsg = ListBucketsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -199,7 +199,7 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ApplyBucketConfig
    */
   ApplyBucketConfig(
-    request: Message<ApplyBucketConfigRequest>,
+    request: ApplyBucketConfigRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<ApplyBucketConfigResponse> {
     const requestMsg = ApplyBucketConfigRequest.create(request)
@@ -218,9 +218,9 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.BucketOp
    */
   async BucketOp(
-    request: Message<BucketOpRequest>,
+    request: BucketOpRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<BucketOpResponse>> {
+  ): Promise<BucketOpResponse> {
     const requestMsg = BucketOpRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -237,9 +237,9 @@ export class HydraDaemonServiceClient implements HydraDaemonService {
    * @generated from rpc hydra.api.HydraDaemonService.ObjectStoreOp
    */
   async ObjectStoreOp(
-    request: Message<ObjectStoreOpRequest>,
+    request: ObjectStoreOpRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<ObjectStoreOpResponse>> {
+  ): Promise<ObjectStoreOpResponse> {
     const requestMsg = ObjectStoreOpRequest.create(request)
     const result = await this.rpc.request(
       this.service,
