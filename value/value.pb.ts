@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
@@ -62,7 +61,7 @@ export const ValueType_Enum = createEnumType('forge.value.ValueType', [
  *
  * @generated from message forge.value.WorldObjectSnapshot
  */
-export type WorldObjectSnapshot = Message<{
+export interface WorldObjectSnapshot {
   /**
    * Key is the unique Object key.
    *
@@ -99,7 +98,7 @@ export type WorldObjectSnapshot = Message<{
    * @generated from field: string object_parent = 5;
    */
   objectParent?: string
-}>
+}
 
 // WorldObjectSnapshot contains the message type declaration for WorldObjectSnapshot.
 export const WorldObjectSnapshot: MessageType<WorldObjectSnapshot> =
@@ -120,7 +119,7 @@ export const WorldObjectSnapshot: MessageType<WorldObjectSnapshot> =
  *
  * @generated from message forge.value.Value
  */
-export type Value = Message<{
+export interface Value {
   /**
    * Name is the unique name of the value in the parent set.
    * Note: for in-line values, this may be empty.
@@ -157,7 +156,7 @@ export type Value = Message<{
    * @generated from field: forge.value.WorldObjectSnapshot world_object_snapshot = 5;
    */
   worldObjectSnapshot?: WorldObjectSnapshot
-}>
+}
 
 // Value contains the message type declaration for Value.
 export const Value: MessageType<Value> = createMessageType({
@@ -182,7 +181,7 @@ export const Value: MessageType<Value> = createMessageType({
  *
  * @generated from message forge.value.Result
  */
-export type Result = Message<{
+export interface Result {
   /**
    * Success indicates the pass succeeded, if false, it failed.
    *
@@ -201,7 +200,7 @@ export type Result = Message<{
    * @generated from field: bool canceled = 3;
    */
   canceled?: boolean
-}>
+}
 
 // Result contains the message type declaration for Result.
 export const Result: MessageType<Result> = createMessageType({

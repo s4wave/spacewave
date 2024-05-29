@@ -2,12 +2,12 @@
 // @generated from file github.com/aperturerobotics/forge/daemon/api/controller/controller.proto (package forge.api.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/daemon/api/api.pb.js'
 import { Config as Config$2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
 import { Config as Config$3 } from '@go/github.com/aperturerobotics/hydra/daemon/api/api.pb.js'
 import { Config as Config$4 } from '../api.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'forge.api.controller'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'forge.api.controller'
  *
  * @generated from message forge.api.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ListenAddr is the address to listen on for connections.
    *
@@ -71,7 +71,7 @@ export type Config = Message<{
    * @generated from field: forge.api.Config forge_api_config = 9;
    */
   forgeApiConfig?: Config$4
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

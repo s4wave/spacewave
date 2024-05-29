@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
 import { Result } from '../value/value.pb.js'
@@ -75,7 +74,7 @@ export const State_Enum = createEnumType('forge.job.State', [
  *
  * @generated from message forge.job.Job
  */
-export type Job = Message<{
+export interface Job {
   /**
    * JobState is the current state of the job.
    *
@@ -97,7 +96,7 @@ export type Job = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
-}>
+}
 
 // Job contains the message type declaration for Job.
 export const Job: MessageType<Job> = createMessageType({

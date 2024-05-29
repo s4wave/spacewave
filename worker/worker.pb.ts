@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Keypair } from '@go/github.com/aperturerobotics/identity/identity.pb.js'
 
 export const protobufPackage = 'forge.worker'
@@ -21,7 +21,7 @@ export const protobufPackage = 'forge.worker'
  *
  * @generated from message forge.worker.Worker
  */
-export type Worker = Message<{
+export interface Worker {
   /**
    * Name is the human readable worker name.
    * Example: "my-worker-1"
@@ -30,7 +30,7 @@ export type Worker = Message<{
    * @generated from field: string name = 1;
    */
   name?: string
-}>
+}
 
 // Worker contains the message type declaration for Worker.
 export const Worker: MessageType<Worker> = createMessageType({
@@ -46,7 +46,7 @@ export const Worker: MessageType<Worker> = createMessageType({
  *
  * @generated from message forge.worker.WorkerCreateOp
  */
-export type WorkerCreateOp = Message<{
+export interface WorkerCreateOp {
   /**
    * ObjectKey is the object key to create the Worker.
    *
@@ -67,7 +67,7 @@ export type WorkerCreateOp = Message<{
    * @generated from field: repeated identity.Keypair keypairs = 3;
    */
   keypairs?: Keypair[]
-}>
+}
 
 // WorkerCreateOp contains the message type declaration for WorkerCreateOp.
 export const WorkerCreateOp: MessageType<WorkerCreateOp> = createMessageType({

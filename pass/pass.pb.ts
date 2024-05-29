@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -79,7 +78,7 @@ export const State_Enum = createEnumType('forge.pass.State', [
  *
  * @generated from message forge.pass.ExecState
  */
-export type ExecState = Message<{
+export interface ExecState {
   /**
    * ObjectKey is the object key of the execution instance.
    * Must exist before adding to Pass state.
@@ -120,7 +119,7 @@ export type ExecState = Message<{
    * @generated from field: forge.value.Result result = 6;
    */
   result?: Result
-}>
+}
 
 // ExecState contains the message type declaration for ExecState.
 export const ExecState: MessageType<ExecState> = createMessageType({
@@ -156,7 +155,7 @@ export const ExecState: MessageType<ExecState> = createMessageType({
  *
  * @generated from message forge.pass.Pass
  */
-export type Pass = Message<{
+export interface Pass {
   /**
    * PassState is the current state of the pass.
    *
@@ -226,7 +225,7 @@ export type Pass = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 9;
    */
   timestamp?: Date
-}>
+}
 
 // Pass contains the message type declaration for Pass.
 export const Pass: MessageType<Pass> = createMessageType({

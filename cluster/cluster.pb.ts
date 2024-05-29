@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'forge.cluster'
 
@@ -23,7 +23,7 @@ export const protobufPackage = 'forge.cluster'
  *
  * @generated from message forge.cluster.Cluster
  */
-export type Cluster = Message<{
+export interface Cluster {
   /**
    * Name is the cluster name.
    * Should be user-readable: like "my-cluster-1"
@@ -40,7 +40,7 @@ export type Cluster = Message<{
    * @generated from field: string peer_id = 2;
    */
   peerId?: string
-}>
+}
 
 // Cluster contains the message type declaration for Cluster.
 export const Cluster: MessageType<Cluster> = createMessageType({
@@ -57,7 +57,7 @@ export const Cluster: MessageType<Cluster> = createMessageType({
  *
  * @generated from message forge.cluster.ClusterCreateOp
  */
-export type ClusterCreateOp = Message<{
+export interface ClusterCreateOp {
   /**
    * ClusterKey is the object key for the new Cluster.
    *
@@ -78,7 +78,7 @@ export type ClusterCreateOp = Message<{
    * @generated from field: string peer_id = 3;
    */
   peerId?: string
-}>
+}
 
 // ClusterCreateOp contains the message type declaration for ClusterCreateOp.
 export const ClusterCreateOp: MessageType<ClusterCreateOp> = createMessageType({
@@ -97,7 +97,7 @@ export const ClusterCreateOp: MessageType<ClusterCreateOp> = createMessageType({
  *
  * @generated from message forge.cluster.ClusterAssignPeerOp
  */
-export type ClusterAssignPeerOp = Message<{
+export interface ClusterAssignPeerOp {
   /**
    * ClusterKey is the object key for the Cluster.
    *
@@ -111,7 +111,7 @@ export type ClusterAssignPeerOp = Message<{
    * @generated from field: string peer_id = 2;
    */
   peerId?: string
-}>
+}
 
 // ClusterAssignPeerOp contains the message type declaration for ClusterAssignPeerOp.
 export const ClusterAssignPeerOp: MessageType<ClusterAssignPeerOp> =
@@ -129,7 +129,7 @@ export const ClusterAssignPeerOp: MessageType<ClusterAssignPeerOp> =
  *
  * @generated from message forge.cluster.ClusterAssignJobOp
  */
-export type ClusterAssignJobOp = Message<{
+export interface ClusterAssignJobOp {
   /**
    * ClusterKey is the object key for the Cluster.
    *
@@ -142,7 +142,7 @@ export type ClusterAssignJobOp = Message<{
    * @generated from field: string job_key = 2;
    */
   jobKey?: string
-}>
+}
 
 // ClusterAssignJobOp contains the message type declaration for ClusterAssignJobOp.
 export const ClusterAssignJobOp: MessageType<ClusterAssignJobOp> =
@@ -160,7 +160,7 @@ export const ClusterAssignJobOp: MessageType<ClusterAssignJobOp> =
  *
  * @generated from message forge.cluster.ClusterAssignWorkerOp
  */
-export type ClusterAssignWorkerOp = Message<{
+export interface ClusterAssignWorkerOp {
   /**
    * ClusterKey is the object key for the Cluster.
    *
@@ -173,7 +173,7 @@ export type ClusterAssignWorkerOp = Message<{
    * @generated from field: string worker_key = 2;
    */
   workerKey?: string
-}>
+}
 
 // ClusterAssignWorkerOp contains the message type declaration for ClusterAssignWorkerOp.
 export const ClusterAssignWorkerOp: MessageType<ClusterAssignWorkerOp> =
@@ -191,7 +191,7 @@ export const ClusterAssignWorkerOp: MessageType<ClusterAssignWorkerOp> =
  *
  * @generated from message forge.cluster.ClusterStartJobOp
  */
-export type ClusterStartJobOp = Message<{
+export interface ClusterStartJobOp {
   /**
    * ClusterKey is the object key for the Cluster.
    *
@@ -204,7 +204,7 @@ export type ClusterStartJobOp = Message<{
    * @generated from field: string job_key = 2;
    */
   jobKey?: string
-}>
+}
 
 // ClusterStartJobOp contains the message type declaration for ClusterStartJobOp.
 export const ClusterStartJobOp: MessageType<ClusterStartJobOp> =
@@ -223,7 +223,7 @@ export const ClusterStartJobOp: MessageType<ClusterStartJobOp> =
  *
  * @generated from message forge.cluster.ClusterAssignTaskOp
  */
-export type ClusterAssignTaskOp = Message<{
+export interface ClusterAssignTaskOp {
   /**
    * ClusterKey is the object key for the Cluster.
    *
@@ -242,7 +242,7 @@ export type ClusterAssignTaskOp = Message<{
    * @generated from field: string task_key = 3;
    */
   taskKey?: string
-}>
+}
 
 // ClusterAssignTaskOp contains the message type declaration for ClusterAssignTaskOp.
 export const ClusterAssignTaskOp: MessageType<ClusterAssignTaskOp> =
@@ -265,7 +265,7 @@ export const ClusterAssignTaskOp: MessageType<ClusterAssignTaskOp> =
  *
  * @generated from message forge.cluster.ClusterCompleteJobOp
  */
-export type ClusterCompleteJobOp = Message<{
+export interface ClusterCompleteJobOp {
   /**
    * ClusterKey is the object key for the Cluster.
    *
@@ -278,7 +278,7 @@ export type ClusterCompleteJobOp = Message<{
    * @generated from field: string job_key = 2;
    */
   jobKey?: string
-}>
+}
 
 // ClusterCompleteJobOp contains the message type declaration for ClusterCompleteJobOp.
 export const ClusterCompleteJobOp: MessageType<ClusterCompleteJobOp> =

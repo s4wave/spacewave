@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'forge.lib.util.wait'
 
@@ -17,7 +17,7 @@ export const protobufPackage = 'forge.lib.util.wait'
  *
  * @generated from message forge.lib.util.wait.Config
  */
-export type Config = Message<{}>
+export interface Config {}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

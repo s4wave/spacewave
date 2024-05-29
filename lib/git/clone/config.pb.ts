@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/forge/lib/git/clone/config.proto (package forge.lib.git.clone, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import {
   AuthOpts,
   CloneOpts,
 } from '@go/github.com/aperturerobotics/hydra/git/block/git.pb.js'
 import { GitCreateWorktreeOp } from '@go/github.com/aperturerobotics/hydra/git/world/git.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'forge.lib.git.clone'
 
@@ -23,7 +23,7 @@ export const protobufPackage = 'forge.lib.git.clone'
  *
  * @generated from message forge.lib.git.clone.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ObjectKey is the object key to create as a Repo.
    *
@@ -49,7 +49,7 @@ export type Config = Message<{
    * @generated from field: git.world.GitCreateWorktreeOp worktree_opts = 4;
    */
   worktreeOpts?: GitCreateWorktreeOp
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

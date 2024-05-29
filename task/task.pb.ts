@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -98,7 +97,7 @@ export const State_Enum = createEnumType('forge.task.State', [
  *
  * @generated from message forge.task.Task
  */
-export type Task = Message<{
+export interface Task {
   /**
    * TaskState is the current state of the task.
    *
@@ -170,7 +169,7 @@ export type Task = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 10;
    */
   timestamp?: Date
-}>
+}
 
 // Task contains the message type declaration for Task.
 export const Task: MessageType<Task> = createMessageType({

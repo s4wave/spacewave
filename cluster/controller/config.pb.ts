@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'cluster.controller'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'cluster.controller'
  *
  * @generated from message cluster.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * EngineId is the world engine id.
    *
@@ -35,7 +35,7 @@ export type Config = Message<{
    * @generated from field: string peer_id = 3;
    */
   peerId?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

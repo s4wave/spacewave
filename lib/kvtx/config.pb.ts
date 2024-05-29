@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Value } from '../../value/value.pb.js'
@@ -116,7 +115,7 @@ export const OpType_Enum = createEnumType('forge.lib.kvtx.OpType', [
  *
  * @generated from message forge.lib.kvtx.Op
  */
-export type Op = Message<{
+export interface Op {
   /**
    * OpType is the operation type to apply.
    *
@@ -189,7 +188,7 @@ export type Op = Message<{
    * @generated from field: repeated forge.lib.kvtx.Op ops = 10;
    */
   ops?: Op[]
-}>
+}
 
 // Op contains the message type declaration for Op.
 export const Op: MessageType<Op> = createMessageType({
@@ -222,7 +221,7 @@ export const Op: MessageType<Op> = createMessageType({
  *
  * @generated from message forge.lib.kvtx.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Ops is the list of operations to apply.
    *
@@ -242,7 +241,7 @@ export type Config = Message<{
    * @generated from field: bool ignore_errors = 3;
    */
   ignoreErrors?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -260,14 +259,14 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message forge.lib.kvtx.ConfigInput
  */
-export type ConfigInput = Message<{
+export interface ConfigInput {
   /**
    * Ops is the list of operations to apply.
    *
    * @generated from field: repeated forge.lib.kvtx.Op ops = 1;
    */
   ops?: Op[]
-}>
+}
 
 // ConfigInput contains the message type declaration for ConfigInput.
 export const ConfigInput: MessageType<ConfigInput> = createMessageType({

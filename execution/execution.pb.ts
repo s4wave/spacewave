@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -67,7 +66,7 @@ export const State_Enum = createEnumType('forge.execution.State', [
  *
  * @generated from message forge.execution.Execution
  */
-export type Execution = Message<{
+export interface Execution {
   /**
    * ExecutionState is the current state of the execution.
    *
@@ -108,7 +107,7 @@ export type Execution = Message<{
    * @generated from field: forge.value.Result result = 6;
    */
   result?: Result
-}>
+}
 
 // Execution contains the message type declaration for Execution.
 export const Execution: MessageType<Execution> = createMessageType({
@@ -129,7 +128,7 @@ export const Execution: MessageType<Execution> = createMessageType({
  *
  * @generated from message forge.execution.Spec
  */
-export type Spec = Message<{
+export interface Spec {
   /**
    * PeerId is the identifier of the peer assigned to the execution.
    * Can be empty.
@@ -151,7 +150,7 @@ export type Spec = Message<{
    * @generated from field: block.BlockRef target_ref = 3;
    */
   targetRef?: BlockRef
-}>
+}
 
 // Spec contains the message type declaration for Spec.
 export const Spec: MessageType<Spec> = createMessageType({

@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Result, Value } from '../../value/value.pb.js'
@@ -61,7 +60,7 @@ export const TxType_Enum = createEnumType('execution.tx.TxType', [
  *
  * @generated from message execution.tx.TxStart
  */
-export type TxStart = Message<{
+export interface TxStart {
   /**
    * PeerId is the peer identifier to set as the executor.
    * Must be the same as the sender of the transaction.
@@ -70,7 +69,7 @@ export type TxStart = Message<{
    * @generated from field: string peer_id = 1;
    */
   peerId?: string
-}>
+}
 
 // TxStart contains the message type declaration for TxStart.
 export const TxStart: MessageType<TxStart> = createMessageType({
@@ -89,7 +88,7 @@ export const TxStart: MessageType<TxStart> = createMessageType({
  *
  * @generated from message execution.tx.TxSetOutputs
  */
-export type TxSetOutputs = Message<{
+export interface TxSetOutputs {
   /**
    * Outputs is the set of values to set.
    *
@@ -102,7 +101,7 @@ export type TxSetOutputs = Message<{
    * @generated from field: bool clear_old = 2;
    */
   clearOld?: boolean
-}>
+}
 
 // TxSetOutputs contains the message type declaration for TxSetOutputs.
 export const TxSetOutputs: MessageType<TxSetOutputs> = createMessageType({
@@ -122,14 +121,14 @@ export const TxSetOutputs: MessageType<TxSetOutputs> = createMessageType({
  *
  * @generated from message execution.tx.TxComplete
  */
-export type TxComplete = Message<{
+export interface TxComplete {
   /**
    * Result is information about the outcome of a completed execution.
    *
    * @generated from field: forge.value.Result result = 1;
    */
   result?: Result
-}>
+}
 
 // TxComplete contains the message type declaration for TxComplete.
 export const TxComplete: MessageType<TxComplete> = createMessageType({
@@ -145,7 +144,7 @@ export const TxComplete: MessageType<TxComplete> = createMessageType({
  *
  * @generated from message execution.tx.Tx
  */
-export type Tx = Message<{
+export interface Tx {
   /**
    * TxType is the kind of transaction this is.
    *
@@ -173,7 +172,7 @@ export type Tx = Message<{
    * @generated from field: execution.tx.TxComplete tx_complete = 4;
    */
   txComplete?: TxComplete
-}>
+}
 
 // Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({

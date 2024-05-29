@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Value } from '../value/value.pb.js'
@@ -107,7 +106,7 @@ export const OutputType_Enum = createEnumType('forge.target.OutputType', [
  *
  * @generated from message forge.target.InputWorld
  */
-export type InputWorld = Message<{
+export interface InputWorld {
   /**
    * EngineId is the world engine ID to lookup.
    *
@@ -123,7 +122,7 @@ export type InputWorld = Message<{
    * @generated from field: bool lookup_immediate = 2;
    */
   lookupImmediate?: boolean
-}>
+}
 
 // InputWorld contains the message type declaration for InputWorld.
 export const InputWorld: MessageType<InputWorld> = createMessageType({
@@ -141,7 +140,7 @@ export const InputWorld: MessageType<InputWorld> = createMessageType({
  *
  * @generated from message forge.target.InputWorldObject
  */
-export type InputWorldObject = Message<{
+export interface InputWorldObject {
   /**
    * World is the name of the world input to lookup on.
    * If unset, defaults to the Forge Job world.
@@ -163,7 +162,7 @@ export type InputWorldObject = Message<{
    * @generated from field: uint64 object_rev = 3;
    */
   objectRev?: bigint
-}>
+}
 
 // InputWorldObject contains the message type declaration for InputWorldObject.
 export const InputWorldObject: MessageType<InputWorldObject> =
@@ -182,7 +181,7 @@ export const InputWorldObject: MessageType<InputWorldObject> =
  *
  * @generated from message forge.target.Input
  */
-export type Input = Message<{
+export interface Input {
   /**
    * Name is the unique name of the input.
    *
@@ -230,7 +229,7 @@ export type Input = Message<{
    * @generated from field: forge.target.InputWorldObject world_object = 6;
    */
   worldObject?: InputWorldObject
-}>
+}
 
 // Input contains the message type declaration for Input.
 export const Input: MessageType<Input> = createMessageType({
@@ -253,7 +252,7 @@ export const Input: MessageType<Input> = createMessageType({
  *
  * @generated from message forge.target.Output
  */
-export type Output = Message<{
+export interface Output {
   /**
    * Name is the unique name of the output.
    *
@@ -280,7 +279,7 @@ export type Output = Message<{
    * @generated from field: forge.value.Value value = 4;
    */
   value?: Value
-}>
+}
 
 // Output contains the message type declaration for Output.
 export const Output: MessageType<Output> = createMessageType({
@@ -299,7 +298,7 @@ export const Output: MessageType<Output> = createMessageType({
  *
  * @generated from message forge.target.Exec
  */
-export type Exec = Message<{
+export interface Exec {
   /**
    * Disable is a flag to ignore the below contents and inhibit the exec step.
    *
@@ -312,7 +311,7 @@ export type Exec = Message<{
    * @generated from field: configset.proto.ControllerConfig controller = 2;
    */
   controller?: ControllerConfig
-}>
+}
 
 // Exec contains the message type declaration for Exec.
 export const Exec: MessageType<Exec> = createMessageType({
@@ -329,7 +328,7 @@ export const Exec: MessageType<Exec> = createMessageType({
  *
  * @generated from message forge.target.Target
  */
-export type Target = Message<{
+export interface Target {
   /**
    * Inputs is the mapping of inputs.
    * Not necessarily sorted or unique, later values override earlier.
@@ -350,7 +349,7 @@ export type Target = Message<{
    * @generated from field: forge.target.Exec exec = 3;
    */
   exec?: Exec
-}>
+}
 
 // Target contains the message type declaration for Target.
 export const Target: MessageType<Target> = createMessageType({
@@ -374,7 +373,7 @@ export const Target: MessageType<Target> = createMessageType({
  *
  * @generated from message forge.target.ValueSet
  */
-export type ValueSet = Message<{
+export interface ValueSet {
   /**
    * Inputs is the set of inputs.
    * Unique by the "name" field.
@@ -391,7 +390,7 @@ export type ValueSet = Message<{
    * @generated from field: repeated forge.value.Value outputs = 2;
    */
   outputs?: Value[]
-}>
+}
 
 // ValueSet contains the message type declaration for ValueSet.
 export const ValueSet: MessageType<ValueSet> = createMessageType({

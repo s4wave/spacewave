@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/forge/execution/controller/config.proto (package execution.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { InputWorld, Target } from '../../target/target.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Execution } from '../execution.pb.js'
 
 export const protobufPackage = 'execution.controller'
@@ -14,7 +14,7 @@ export const protobufPackage = 'execution.controller'
  *
  * @generated from message execution.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * EngineId is the world engine id for the forge state.
    *
@@ -54,7 +54,7 @@ export type Config = Message<{
    * @generated from field: forge.target.InputWorld input_world = 6;
    */
   inputWorld?: InputWorld
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -85,7 +85,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message execution.controller.ExecConfig
  */
-export type ExecConfig = Message<{
+export interface ExecConfig {
   /**
    * Execution is the current state of the execution.
    * NOTE: value_set and result are set to nil.
@@ -100,7 +100,7 @@ export type ExecConfig = Message<{
    * @generated from field: forge.target.Target target = 2;
    */
   target?: Target
-}>
+}
 
 // ExecConfig contains the message type declaration for ExecConfig.
 export const ExecConfig: MessageType<ExecConfig> = createMessageType({

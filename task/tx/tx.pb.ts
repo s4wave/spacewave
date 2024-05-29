@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ValueSet } from '../../target/target.pb.js'
@@ -81,7 +80,7 @@ export const TxType_Enum = createEnumType('task.tx.TxType', [
  *
  * @generated from message task.tx.TxUpdateInputs
  */
-export type TxUpdateInputs = Message<{
+export interface TxUpdateInputs {
   /**
    * UpdateTarget indicates to update the TargetRef if necessary.
    *
@@ -102,7 +101,7 @@ export type TxUpdateInputs = Message<{
    * @generated from field: forge.target.ValueSet value_set = 3;
    */
   valueSet?: ValueSet
-}>
+}
 
 // TxUpdateInputs contains the message type declaration for TxUpdateInputs.
 export const TxUpdateInputs: MessageType<TxUpdateInputs> = createMessageType({
@@ -124,14 +123,14 @@ export const TxUpdateInputs: MessageType<TxUpdateInputs> = createMessageType({
  *
  * @generated from message task.tx.TxStart
  */
-export type TxStart = Message<{
+export interface TxStart {
   /**
    * AssignSelf assigns the sender of the tx to the new Pass.
    *
    * @generated from field: bool assign_self = 1;
    */
   assignSelf?: boolean
-}>
+}
 
 // TxStart contains the message type declaration for TxStart.
 export const TxStart: MessageType<TxStart> = createMessageType({
@@ -150,7 +149,7 @@ export const TxStart: MessageType<TxStart> = createMessageType({
  *
  * @generated from message task.tx.TxUpdateWithPassState
  */
-export type TxUpdateWithPassState = Message<{}>
+export interface TxUpdateWithPassState {}
 
 // TxUpdateWithPassState contains the message type declaration for TxUpdateWithPassState.
 export const TxUpdateWithPassState: MessageType<TxUpdateWithPassState> =
@@ -169,7 +168,7 @@ export const TxUpdateWithPassState: MessageType<TxUpdateWithPassState> =
  *
  * @generated from message task.tx.TxComplete
  */
-export type TxComplete = Message<{
+export interface TxComplete {
   /**
    * Result is information about the outcome of a completed pass.
    *
@@ -185,7 +184,7 @@ export type TxComplete = Message<{
    * @generated from field: forge.target.ValueSet value_set = 2;
    */
   valueSet?: ValueSet
-}>
+}
 
 // TxComplete contains the message type declaration for TxComplete.
 export const TxComplete: MessageType<TxComplete> = createMessageType({
@@ -202,7 +201,7 @@ export const TxComplete: MessageType<TxComplete> = createMessageType({
  *
  * @generated from message task.tx.Tx
  */
-export type Tx = Message<{
+export interface Tx {
   /**
    * TxType is the kind of transaction this is.
    *
@@ -244,7 +243,7 @@ export type Tx = Message<{
    * @generated from field: task.tx.TxComplete tx_complete = 6;
    */
   txComplete?: TxComplete
-}>
+}
 
 // Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({

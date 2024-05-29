@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 
@@ -34,7 +33,7 @@ export const TxType_Enum = createEnumType('cluster.tx.TxType', [
  *
  * @generated from message cluster.tx.Tx
  */
-export type Tx = Message<{
+export interface Tx {
   /**
    * TxType is the kind of transaction this is.
    *
@@ -48,7 +47,7 @@ export type Tx = Message<{
    * @generated from field: string cluster_object_key = 2;
    */
   clusterObjectKey?: string
-}>
+}
 
 // Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({

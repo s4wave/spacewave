@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Result } from '../../value/value.pb.js'
@@ -79,7 +78,7 @@ export const TxType_Enum = createEnumType('pass.tx.TxType', [
  *
  * @generated from message pass.tx.ExecSpec
  */
-export type ExecSpec = Message<{
+export interface ExecSpec {
   /**
    * PeerId is the identifier of the peer assigned to the execution.
    * Cannot be empty.
@@ -87,7 +86,7 @@ export type ExecSpec = Message<{
    * @generated from field: string peer_id = 1;
    */
   peerId?: string
-}>
+}
 
 // ExecSpec contains the message type declaration for ExecSpec.
 export const ExecSpec: MessageType<ExecSpec> = createMessageType({
@@ -105,7 +104,7 @@ export const ExecSpec: MessageType<ExecSpec> = createMessageType({
  *
  * @generated from message pass.tx.TxCreateExecSpecs
  */
-export type TxCreateExecSpecs = Message<{
+export interface TxCreateExecSpecs {
   /**
    * ExecSpecs contains specifications for execution objects to create.
    *
@@ -119,7 +118,7 @@ export type TxCreateExecSpecs = Message<{
    * @generated from field: bool clear_existing = 2;
    */
   clearExisting?: boolean
-}>
+}
 
 // TxCreateExecSpecs contains the message type declaration for TxCreateExecSpecs.
 export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
@@ -147,14 +146,14 @@ export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
  *
  * @generated from message pass.tx.TxStart
  */
-export type TxStart = Message<{
+export interface TxStart {
   /**
    * CreateExecSpecs is the nested create exec specs transaction.
    *
    * @generated from field: pass.tx.TxCreateExecSpecs create_exec_specs = 1;
    */
   createExecSpecs?: TxCreateExecSpecs
-}>
+}
 
 // TxStart contains the message type declaration for TxStart.
 export const TxStart: MessageType<TxStart> = createMessageType({
@@ -179,7 +178,7 @@ export const TxStart: MessageType<TxStart> = createMessageType({
  *
  * @generated from message pass.tx.TxUpdateExecStates
  */
-export type TxUpdateExecStates = Message<{}>
+export interface TxUpdateExecStates {}
 
 // TxUpdateExecStates contains the message type declaration for TxUpdateExecStates.
 export const TxUpdateExecStates: MessageType<TxUpdateExecStates> =
@@ -198,7 +197,7 @@ export const TxUpdateExecStates: MessageType<TxUpdateExecStates> =
  *
  * @generated from message pass.tx.TxComplete
  */
-export type TxComplete = Message<{
+export interface TxComplete {
   /**
    * Result is information about the outcome of a completed pass.
    *
@@ -214,7 +213,7 @@ export type TxComplete = Message<{
    * @generated from field: forge.target.ValueSet value_set = 2;
    */
   valueSet?: ValueSet
-}>
+}
 
 // TxComplete contains the message type declaration for TxComplete.
 export const TxComplete: MessageType<TxComplete> = createMessageType({
@@ -231,7 +230,7 @@ export const TxComplete: MessageType<TxComplete> = createMessageType({
  *
  * @generated from message pass.tx.Tx
  */
-export type Tx = Message<{
+export interface Tx {
   /**
    * TxType is the kind of transaction this is.
    *
@@ -273,7 +272,7 @@ export type Tx = Message<{
    * @generated from field: pass.tx.TxComplete tx_complete = 6;
    */
   txComplete?: TxComplete
-}>
+}
 
 // Tx contains the message type declaration for Tx.
 export const Tx: MessageType<Tx> = createMessageType({
