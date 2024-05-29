@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/launcher/launcher.proto (package bldr.launcher, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.launcher'
 
@@ -17,7 +17,7 @@ export const protobufPackage = 'bldr.launcher'
  *
  * @generated from message bldr.launcher.DistConfig
  */
-export type DistConfig = Message<{
+export interface DistConfig {
   /**
    * ProjectId is the identifier of the project.
    * usually matches the id: field in the project config.
@@ -41,7 +41,7 @@ export type DistConfig = Message<{
    * @generated from field: map<string, configset.proto.ControllerConfig> launcher_config_set = 3;
    */
   launcherConfigSet?: { [key: string]: ControllerConfig }
-}>
+}
 
 // DistConfig contains the message type declaration for DistConfig.
 export const DistConfig: MessageType<DistConfig> = createMessageType({
@@ -65,7 +65,7 @@ export const DistConfig: MessageType<DistConfig> = createMessageType({
  *
  * @generated from message bldr.launcher.LauncherInfo
  */
-export type LauncherInfo = Message<{
+export interface LauncherInfo {
   /**
    * DistConfig contains the latest app dist config object.
    * May be empty if the config is not known / fetched yet.
@@ -73,7 +73,7 @@ export type LauncherInfo = Message<{
    * @generated from field: bldr.launcher.DistConfig dist_config = 1;
    */
   distConfig?: DistConfig
-}>
+}
 
 // LauncherInfo contains the message type declaration for LauncherInfo.
 export const LauncherInfo: MessageType<LauncherInfo> = createMessageType({
@@ -89,7 +89,7 @@ export const LauncherInfo: MessageType<LauncherInfo> = createMessageType({
  *
  * @generated from message bldr.launcher.RecheckDistConfigRequest
  */
-export type RecheckDistConfigRequest = Message<{}>
+export interface RecheckDistConfigRequest {}
 
 // RecheckDistConfigRequest contains the message type declaration for RecheckDistConfigRequest.
 export const RecheckDistConfigRequest: MessageType<RecheckDistConfigRequest> =
@@ -105,7 +105,7 @@ export const RecheckDistConfigRequest: MessageType<RecheckDistConfigRequest> =
  *
  * @generated from message bldr.launcher.RecheckDistConfigResponse
  */
-export type RecheckDistConfigResponse = Message<{}>
+export interface RecheckDistConfigResponse {}
 
 // RecheckDistConfigResponse contains the message type declaration for RecheckDistConfigResponse.
 export const RecheckDistConfigResponse: MessageType<RecheckDistConfigResponse> =
@@ -120,7 +120,7 @@ export const RecheckDistConfigResponse: MessageType<RecheckDistConfigResponse> =
  *
  * @generated from message bldr.launcher.WatchLauncherInfoRequest
  */
-export type WatchLauncherInfoRequest = Message<{}>
+export interface WatchLauncherInfoRequest {}
 
 // WatchLauncherInfoRequest contains the message type declaration for WatchLauncherInfoRequest.
 export const WatchLauncherInfoRequest: MessageType<WatchLauncherInfoRequest> =
@@ -135,7 +135,7 @@ export const WatchLauncherInfoRequest: MessageType<WatchLauncherInfoRequest> =
  *
  * @generated from message bldr.launcher.PushDistConfigRequest
  */
-export type PushDistConfigRequest = Message<{
+export interface PushDistConfigRequest {
   /**
    * Body is the block of text containing the packedmsg.
    * We will scan the body of message for a valid signed packedmsg.
@@ -143,7 +143,7 @@ export type PushDistConfigRequest = Message<{
    * @generated from field: string body = 1;
    */
   body?: string
-}>
+}
 
 // PushDistConfigRequest contains the message type declaration for PushDistConfigRequest.
 export const PushDistConfigRequest: MessageType<PushDistConfigRequest> =
@@ -160,7 +160,7 @@ export const PushDistConfigRequest: MessageType<PushDistConfigRequest> =
  *
  * @generated from message bldr.launcher.PushDistConfigResponse
  */
-export type PushDistConfigResponse = Message<{
+export interface PushDistConfigResponse {
   /**
    * Valid indicates that a valid packedmsg was found in the body.
    *
@@ -186,7 +186,7 @@ export type PushDistConfigResponse = Message<{
    * @generated from field: uint64 prev_rev = 4;
    */
   prevRev?: bigint
-}>
+}
 
 // PushDistConfigResponse contains the message type declaration for PushDistConfigResponse.
 export const PushDistConfigResponse: MessageType<PushDistConfigResponse> =

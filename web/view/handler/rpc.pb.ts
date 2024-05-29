@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.view.handler'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'web.view.handler'
  *
  * @generated from message web.view.handler.HandleWebViewRequest
  */
-export type HandleWebViewRequest = Message<{
+export interface HandleWebViewRequest {
   /**
    * Id is the unique identifier for the webview.
    *
@@ -39,7 +39,7 @@ export type HandleWebViewRequest = Message<{
    * @generated from field: bool permanent = 4;
    */
   permanent?: boolean
-}>
+}
 
 // HandleWebViewRequest contains the message type declaration for HandleWebViewRequest.
 export const HandleWebViewRequest: MessageType<HandleWebViewRequest> =
@@ -59,7 +59,7 @@ export const HandleWebViewRequest: MessageType<HandleWebViewRequest> =
  *
  * @generated from message web.view.handler.HandleWebViewResponse
  */
-export type HandleWebViewResponse = Message<{
+export interface HandleWebViewResponse {
   /**
    * Error contains any error handling the web view.
    * If empty, returns and does not retry.
@@ -67,7 +67,7 @@ export type HandleWebViewResponse = Message<{
    * @generated from field: string error = 1;
    */
   error?: string
-}>
+}
 
 // HandleWebViewResponse contains the message type declaration for HandleWebViewResponse.
 export const HandleWebViewResponse: MessageType<HandleWebViewResponse> =

@@ -5,7 +5,6 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -20,7 +19,7 @@ export const protobufPackage = 'bldr.project'
  *
  * @generated from message bldr.project.StartConfig
  */
-export type StartConfig = Message<{
+export interface StartConfig {
   /**
    * Plugins is the list of plugin IDs to load on startup.
    *
@@ -33,7 +32,7 @@ export type StartConfig = Message<{
    * @generated from field: bool disable_build = 2;
    */
   disableBuild?: boolean
-}>
+}
 
 // StartConfig contains the message type declaration for StartConfig.
 export const StartConfig: MessageType<StartConfig> = createMessageType({
@@ -56,7 +55,7 @@ export const StartConfig: MessageType<StartConfig> = createMessageType({
  *
  * @generated from message bldr.project.ManifestConfig
  */
-export type ManifestConfig = Message<{
+export interface ManifestConfig {
   /**
    * Builder is the configuration for the manifest builder.
    *
@@ -77,7 +76,7 @@ export type ManifestConfig = Message<{
    * @generated from field: uint64 rev = 2;
    */
   rev?: bigint
-}>
+}
 
 // ManifestConfig contains the message type declaration for ManifestConfig.
 export const ManifestConfig: MessageType<ManifestConfig> = createMessageType({
@@ -94,7 +93,7 @@ export const ManifestConfig: MessageType<ManifestConfig> = createMessageType({
  *
  * @generated from message bldr.project.BuildConfig
  */
-export type BuildConfig = Message<{
+export interface BuildConfig {
   /**
    * Manifests is the list of manifest IDs to build.
    *
@@ -107,7 +106,7 @@ export type BuildConfig = Message<{
    * @generated from field: repeated string platform_ids = 2;
    */
   platformIds?: string[]
-}>
+}
 
 // BuildConfig contains the message type declaration for BuildConfig.
 export const BuildConfig: MessageType<BuildConfig> = createMessageType({
@@ -136,7 +135,7 @@ export const BuildConfig: MessageType<BuildConfig> = createMessageType({
  *
  * @generated from message bldr.project.RemoteConfig
  */
-export type RemoteConfig = Message<{
+export interface RemoteConfig {
   /**
    * HostConfigSet is a ConfigSet to apply to the devtool to access the world.
    * This ConfigSet is applied to the devtool bus.
@@ -170,7 +169,7 @@ export type RemoteConfig = Message<{
    * @generated from field: repeated string link_object_keys = 5;
    */
   linkObjectKeys?: string[]
-}>
+}
 
 // RemoteConfig contains the message type declaration for RemoteConfig.
 export const RemoteConfig: MessageType<RemoteConfig> = createMessageType({
@@ -202,7 +201,7 @@ export const RemoteConfig: MessageType<RemoteConfig> = createMessageType({
  *
  * @generated from message bldr.project.PublishStorageConfig
  */
-export type PublishStorageConfig = Message<{
+export interface PublishStorageConfig {
   /**
    * TransformConfFromRef is an ObjectRef to inherit the transform config from.
    *
@@ -236,7 +235,7 @@ export type PublishStorageConfig = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
-}>
+}
 
 // PublishStorageConfig contains the message type declaration for PublishStorageConfig.
 export const PublishStorageConfig: MessageType<PublishStorageConfig> =
@@ -260,7 +259,7 @@ export const PublishStorageConfig: MessageType<PublishStorageConfig> =
  *
  * @generated from message bldr.project.PublishConfig
  */
-export type PublishConfig = Message<{
+export interface PublishConfig {
   /**
    * SourceObjectKeys is the list of object keys to collect manifests from.
    * Gathers any manifest linked to with the <manifest> tag recursively.
@@ -319,7 +318,7 @@ export type PublishConfig = Message<{
    * @generated from field: map<string, bldr.project.PublishStorageConfig> manifest_storage = 8;
    */
   manifestStorage?: { [key: string]: PublishStorageConfig }
-}>
+}
 
 // PublishConfig contains the message type declaration for PublishConfig.
 export const PublishConfig: MessageType<PublishConfig> = createMessageType({
@@ -372,7 +371,7 @@ export const PublishConfig: MessageType<PublishConfig> = createMessageType({
  *
  * @generated from message bldr.project.ProjectConfig
  */
-export type ProjectConfig = Message<{
+export interface ProjectConfig {
   /**
    * Id is the project identifier.
    * Must be a valid-dns-label.
@@ -416,7 +415,7 @@ export type ProjectConfig = Message<{
    * @generated from field: map<string, bldr.project.PublishConfig> publish = 6;
    */
   publish?: { [key: string]: PublishConfig }
-}>
+}
 
 // ProjectConfig contains the message type declaration for ProjectConfig.
 export const ProjectConfig: MessageType<ProjectConfig> = createMessageType({

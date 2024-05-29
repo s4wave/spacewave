@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/dist/dist.proto (package bldr.dist, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.dist'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.dist'
  *
  * @generated from message bldr.dist.DistMeta
  */
-export type DistMeta = Message<{
+export interface DistMeta {
   /**
    * ProjectId is the project identifier.
    * Must be a valid-dns-label.
@@ -47,7 +47,7 @@ export type DistMeta = Message<{
    * @generated from field: string dist_object_key = 5;
    */
   distObjectKey?: string
-}>
+}
 
 // DistMeta contains the message type declaration for DistMeta.
 export const DistMeta: MessageType<DistMeta> = createMessageType({

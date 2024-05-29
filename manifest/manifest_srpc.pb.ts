@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { FetchManifestRequest, FetchManifestResponse } from './manifest.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -44,7 +44,7 @@ export interface ManifestFetch {
    * @generated from rpc bldr.manifest.ManifestFetch.FetchManifest
    */
   FetchManifest(
-    request: Message<FetchManifestRequest>,
+    request: FetchManifestRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<FetchManifestResponse>
 }
@@ -67,7 +67,7 @@ export class ManifestFetchClient implements ManifestFetch {
    * @generated from rpc bldr.manifest.ManifestFetch.FetchManifest
    */
   FetchManifest(
-    request: Message<FetchManifestRequest>,
+    request: FetchManifestRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<FetchManifestResponse> {
     const requestMsg = FetchManifestRequest.create(request)

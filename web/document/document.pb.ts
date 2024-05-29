@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.document'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'web.document'
  *
  * @generated from message web.document.WatchWebDocumentStatusRequest
  */
-export type WatchWebDocumentStatusRequest = Message<{}>
+export interface WatchWebDocumentStatusRequest {}
 
 // WatchWebDocumentStatusRequest contains the message type declaration for WatchWebDocumentStatusRequest.
 export const WatchWebDocumentStatusRequest: MessageType<WatchWebDocumentStatusRequest> =
@@ -27,7 +27,7 @@ export const WatchWebDocumentStatusRequest: MessageType<WatchWebDocumentStatusRe
  *
  * @generated from message web.document.WebViewStatus
  */
-export type WebViewStatus = Message<{
+export interface WebViewStatus {
   /**
    * Id is the unique identifier for the webview.
    *
@@ -54,7 +54,7 @@ export type WebViewStatus = Message<{
    * @generated from field: bool permanent = 4;
    */
   permanent?: boolean
-}>
+}
 
 // WebViewStatus contains the message type declaration for WebViewStatus.
 export const WebViewStatus: MessageType<WebViewStatus> = createMessageType({
@@ -73,7 +73,7 @@ export const WebViewStatus: MessageType<WebViewStatus> = createMessageType({
  *
  * @generated from message web.document.WebWorkerStatus
  */
-export type WebWorkerStatus = Message<{
+export interface WebWorkerStatus {
   /**
    * Id is the unique identifier for the worker.
    *
@@ -93,7 +93,7 @@ export type WebWorkerStatus = Message<{
    * @generated from field: bool shared = 3;
    */
   shared?: boolean
-}>
+}
 
 // WebWorkerStatus contains the message type declaration for WebWorkerStatus.
 export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
@@ -111,7 +111,7 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
  *
  * @generated from message web.document.WebDocumentStatus
  */
-export type WebDocumentStatus = Message<{
+export interface WebDocumentStatus {
   /**
    * Snapshot indicates this is a full snapshot of the lists.
    *
@@ -144,7 +144,7 @@ export type WebDocumentStatus = Message<{
    * @generated from field: bool closed = 5;
    */
   closed?: boolean
-}>
+}
 
 // WebDocumentStatus contains the message type declaration for WebDocumentStatus.
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
@@ -177,14 +177,14 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
  *
  * @generated from message web.document.CreateWebViewRequest
  */
-export type CreateWebViewRequest = Message<{
+export interface CreateWebViewRequest {
   /**
    * id is the identifier for the new WebView.
    *
    * @generated from field: string id = 1;
    */
   id?: string
-}>
+}
 
 // CreateWebViewRequest contains the message type declaration for CreateWebViewRequest.
 export const CreateWebViewRequest: MessageType<CreateWebViewRequest> =
@@ -201,7 +201,7 @@ export const CreateWebViewRequest: MessageType<CreateWebViewRequest> =
  *
  * @generated from message web.document.CreateWebViewResponse
  */
-export type CreateWebViewResponse = Message<{
+export interface CreateWebViewResponse {
   /**
    * Created indicates the web view was created.
    * If this is not set, assumes we cannot create WebViews.
@@ -209,7 +209,7 @@ export type CreateWebViewResponse = Message<{
    * @generated from field: bool created = 1;
    */
   created?: boolean
-}>
+}
 
 // CreateWebViewResponse contains the message type declaration for CreateWebViewResponse.
 export const CreateWebViewResponse: MessageType<CreateWebViewResponse> =
@@ -226,7 +226,7 @@ export const CreateWebViewResponse: MessageType<CreateWebViewResponse> =
  *
  * @generated from message web.document.CreateWebWorkerRequest
  */
-export type CreateWebWorkerRequest = Message<{
+export interface CreateWebWorkerRequest {
   /**
    * Id is the identifier for the new WebWorker.
    *
@@ -253,7 +253,7 @@ export type CreateWebWorkerRequest = Message<{
    * @generated from field: bytes init_data = 4;
    */
   initData?: Uint8Array
-}>
+}
 
 // CreateWebWorkerRequest contains the message type declaration for CreateWebWorkerRequest.
 export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
@@ -273,7 +273,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
  *
  * @generated from message web.document.CreateWebWorkerResponse
  */
-export type CreateWebWorkerResponse = Message<{
+export interface CreateWebWorkerResponse {
   /**
    * Created indicates the WebWorker was created.
    * If this is not set, assumes we cannot create WebWorkers.
@@ -288,7 +288,7 @@ export type CreateWebWorkerResponse = Message<{
    * @generated from field: bool shared = 2;
    */
   shared?: boolean
-}>
+}
 
 // CreateWebWorkerResponse contains the message type declaration for CreateWebWorkerResponse.
 export const CreateWebWorkerResponse: MessageType<CreateWebWorkerResponse> =
@@ -306,14 +306,14 @@ export const CreateWebWorkerResponse: MessageType<CreateWebWorkerResponse> =
  *
  * @generated from message web.document.RemoveWebWorkerRequest
  */
-export type RemoveWebWorkerRequest = Message<{
+export interface RemoveWebWorkerRequest {
   /**
    * Id is the identifier for the removed WebWorker.
    *
    * @generated from field: string id = 1;
    */
   id?: string
-}>
+}
 
 // RemoveWebWorkerRequest contains the message type declaration for RemoveWebWorkerRequest.
 export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
@@ -330,7 +330,7 @@ export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
  *
  * @generated from message web.document.RemoveWebWorkerResponse
  */
-export type RemoveWebWorkerResponse = Message<{
+export interface RemoveWebWorkerResponse {
   /**
    * Removed indicates the WebWorker was removed.
    * If false, the worker was not found or not running.
@@ -338,7 +338,7 @@ export type RemoveWebWorkerResponse = Message<{
    * @generated from field: bool removed = 1;
    */
   removed?: boolean
-}>
+}
 
 // RemoveWebWorkerResponse contains the message type declaration for RemoveWebWorkerResponse.
 export const RemoveWebWorkerResponse: MessageType<RemoveWebWorkerResponse> =

@@ -10,7 +10,7 @@ import {
   HandleWebViewViaPluginRequest,
   HandleWebViewViaPluginResponse,
 } from './plugin.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -71,7 +71,7 @@ export interface WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
    */
   HandleWebViewViaPlugin(
-    request: Message<HandleWebViewViaPluginRequest>,
+    request: HandleWebViewViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebViewViaPluginResponse>
 
@@ -81,7 +81,7 @@ export interface WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgViaPlugin
    */
   HandleWebPkgViaPlugin(
-    request: Message<HandleWebPkgViaPluginRequest>,
+    request: HandleWebPkgViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebPkgViaPluginResponse>
 
@@ -91,7 +91,7 @@ export interface WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleRpcViaPlugin
    */
   HandleRpcViaPlugin(
-    request: Message<HandleRpcViaPluginRequest>,
+    request: HandleRpcViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleRpcViaPluginResponse>
 }
@@ -114,7 +114,7 @@ export class WebPluginClient implements WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
    */
   HandleWebViewViaPlugin(
-    request: Message<HandleWebViewViaPluginRequest>,
+    request: HandleWebViewViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebViewViaPluginResponse> {
     const requestMsg = HandleWebViewViaPluginRequest.create(request)
@@ -133,7 +133,7 @@ export class WebPluginClient implements WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgViaPlugin
    */
   HandleWebPkgViaPlugin(
-    request: Message<HandleWebPkgViaPluginRequest>,
+    request: HandleWebPkgViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleWebPkgViaPluginResponse> {
     const requestMsg = HandleWebPkgViaPluginRequest.create(request)
@@ -152,7 +152,7 @@ export class WebPluginClient implements WebPlugin {
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleRpcViaPlugin
    */
   HandleRpcViaPlugin(
-    request: Message<HandleRpcViaPluginRequest>,
+    request: HandleRpcViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleRpcViaPluginResponse> {
     const requestMsg = HandleRpcViaPluginRequest.create(request)

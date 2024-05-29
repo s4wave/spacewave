@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.entrypoint.browser'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'web.entrypoint.browser'
  *
  * @generated from message web.entrypoint.browser.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * WebRuntimeId is the unique ID of the runtime.
    *
@@ -32,7 +32,7 @@ export type Config = Message<{
    * @generated from field: string message_port = 2;
    */
   messagePort?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

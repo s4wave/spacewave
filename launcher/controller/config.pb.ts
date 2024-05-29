@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'bldr.launcher.controller'
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.launcher.controller'
  *
  * @generated from message bldr.launcher.controller.HttpEndpoint
  */
-export type HttpEndpoint = Message<{
+export interface HttpEndpoint {
   /**
    * Url is the url to the endpoint.
    *
@@ -26,7 +26,7 @@ export type HttpEndpoint = Message<{
    * @generated from field: map<string, string> headers = 2;
    */
   headers?: { [key: string]: string }
-}>
+}
 
 // HttpEndpoint contains the message type declaration for HttpEndpoint.
 export const HttpEndpoint: MessageType<HttpEndpoint> = createMessageType({
@@ -49,7 +49,7 @@ export const HttpEndpoint: MessageType<HttpEndpoint> = createMessageType({
  *
  * @generated from message bldr.launcher.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ObjectStoreId is the object store to use for state.
    * Defaults to "bldr/launcher"
@@ -111,7 +111,7 @@ export type Config = Message<{
    * @generated from field: string init_dist_config = 9;
    */
   initDistConfig?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

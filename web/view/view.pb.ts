@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 
@@ -57,7 +56,7 @@ export const RenderMode_Enum = createEnumType('web.view.RenderMode', [
  *
  * @generated from message web.view.SetRenderModeRequest
  */
-export type SetRenderModeRequest = Message<{
+export interface SetRenderModeRequest {
   /**
    * RenderMode is the new render mode.
    *
@@ -84,7 +83,7 @@ export type SetRenderModeRequest = Message<{
    * @generated from field: bool refresh = 4;
    */
   refresh?: boolean
-}>
+}
 
 // SetRenderModeRequest contains the message type declaration for SetRenderModeRequest.
 export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
@@ -104,7 +103,7 @@ export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
  *
  * @generated from message web.view.SetRenderModeResponse
  */
-export type SetRenderModeResponse = Message<{}>
+export interface SetRenderModeResponse {}
 
 // SetRenderModeResponse contains the message type declaration for SetRenderModeResponse.
 export const SetRenderModeResponse: MessageType<SetRenderModeResponse> =
@@ -119,7 +118,7 @@ export const SetRenderModeResponse: MessageType<SetRenderModeResponse> =
  *
  * @generated from message web.view.HtmlLink
  */
-export type HtmlLink = Message<{
+export interface HtmlLink {
   /**
    * Href is the URL to load.
    *
@@ -133,7 +132,7 @@ export type HtmlLink = Message<{
    * @generated from field: string rel = 2;
    */
   rel?: string
-}>
+}
 
 // HtmlLink contains the message type declaration for HtmlLink.
 export const HtmlLink: MessageType<HtmlLink> = createMessageType({
@@ -150,7 +149,7 @@ export const HtmlLink: MessageType<HtmlLink> = createMessageType({
  *
  * @generated from message web.view.SetHtmlLinksRequest
  */
-export type SetHtmlLinksRequest = Message<{
+export interface SetHtmlLinksRequest {
   /**
    * Clear clears the list of links before setting html_links.
    *
@@ -169,7 +168,7 @@ export type SetHtmlLinksRequest = Message<{
    * @generated from field: map<string, web.view.HtmlLink> set_links = 3;
    */
   setLinks?: { [key: string]: HtmlLink }
-}>
+}
 
 // SetHtmlLinksRequest contains the message type declaration for SetHtmlLinksRequest.
 export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
@@ -200,7 +199,7 @@ export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
  *
  * @generated from message web.view.SetHtmlLinksResponse
  */
-export type SetHtmlLinksResponse = Message<{}>
+export interface SetHtmlLinksResponse {}
 
 // SetHtmlLinksResponse contains the message type declaration for SetHtmlLinksResponse.
 export const SetHtmlLinksResponse: MessageType<SetHtmlLinksResponse> =
@@ -215,7 +214,7 @@ export const SetHtmlLinksResponse: MessageType<SetHtmlLinksResponse> =
  *
  * @generated from message web.view.ResetWebViewRequest
  */
-export type ResetWebViewRequest = Message<{}>
+export interface ResetWebViewRequest {}
 
 // ResetWebViewRequest contains the message type declaration for ResetWebViewRequest.
 export const ResetWebViewRequest: MessageType<ResetWebViewRequest> =
@@ -230,7 +229,7 @@ export const ResetWebViewRequest: MessageType<ResetWebViewRequest> =
  *
  * @generated from message web.view.ResetWebViewResponse
  */
-export type ResetWebViewResponse = Message<{}>
+export interface ResetWebViewResponse {}
 
 // ResetWebViewResponse contains the message type declaration for ResetWebViewResponse.
 export const ResetWebViewResponse: MessageType<ResetWebViewResponse> =
@@ -245,7 +244,7 @@ export const ResetWebViewResponse: MessageType<ResetWebViewResponse> =
  *
  * @generated from message web.view.RemoveWebViewRequest
  */
-export type RemoveWebViewRequest = Message<{}>
+export interface RemoveWebViewRequest {}
 
 // RemoveWebViewRequest contains the message type declaration for RemoveWebViewRequest.
 export const RemoveWebViewRequest: MessageType<RemoveWebViewRequest> =
@@ -260,14 +259,14 @@ export const RemoveWebViewRequest: MessageType<RemoveWebViewRequest> =
  *
  * @generated from message web.view.RemoveWebViewResponse
  */
-export type RemoveWebViewResponse = Message<{
+export interface RemoveWebViewResponse {
   /**
    * Removed indicates the web view was removed.
    *
    * @generated from field: bool removed = 1;
    */
   removed?: boolean
-}>
+}
 
 // RemoveWebViewResponse contains the message type declaration for RemoveWebViewResponse.
 export const RemoveWebViewResponse: MessageType<RemoveWebViewResponse> =

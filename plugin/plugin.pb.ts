@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { ManifestRef } from '../manifest/manifest.pb.js'
 import { VolumeInfo } from '@go/github.com/aperturerobotics/hydra/volume/volume.pb.js'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'bldr.plugin'
  *
  * @generated from message bldr.plugin.PluginStatus
  */
-export type PluginStatus = Message<{
+export interface PluginStatus {
   /**
    * PluginId is the plugin identifier.
    *
@@ -27,7 +27,7 @@ export type PluginStatus = Message<{
    * @generated from field: bool running = 2;
    */
   running?: boolean
-}>
+}
 
 // PluginStatus contains the message type declaration for PluginStatus.
 export const PluginStatus: MessageType<PluginStatus> = createMessageType({
@@ -44,7 +44,7 @@ export const PluginStatus: MessageType<PluginStatus> = createMessageType({
  *
  * @generated from message bldr.plugin.GetPluginInfoRequest
  */
-export type GetPluginInfoRequest = Message<{}>
+export interface GetPluginInfoRequest {}
 
 // GetPluginInfoRequest contains the message type declaration for GetPluginInfoRequest.
 export const GetPluginInfoRequest: MessageType<GetPluginInfoRequest> =
@@ -59,7 +59,7 @@ export const GetPluginInfoRequest: MessageType<GetPluginInfoRequest> =
  *
  * @generated from message bldr.plugin.GetPluginInfoResponse
  */
-export type GetPluginInfoResponse = Message<{
+export interface GetPluginInfoResponse {
   /**
    * PluginId is the plugin identifier.
    *
@@ -79,7 +79,7 @@ export type GetPluginInfoResponse = Message<{
    * @generated from field: volume.VolumeInfo host_volume_info = 3;
    */
   hostVolumeInfo?: VolumeInfo
-}>
+}
 
 // GetPluginInfoResponse contains the message type declaration for GetPluginInfoResponse.
 export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
@@ -98,14 +98,14 @@ export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
  *
  * @generated from message bldr.plugin.LoadPluginRequest
  */
-export type LoadPluginRequest = Message<{
+export interface LoadPluginRequest {
   /**
    * PluginId is the plugin identifier to load.
    *
    * @generated from field: string plugin_id = 1;
    */
   pluginId?: string
-}>
+}
 
 // LoadPluginRequest contains the message type declaration for LoadPluginRequest.
 export const LoadPluginRequest: MessageType<LoadPluginRequest> =
@@ -122,14 +122,14 @@ export const LoadPluginRequest: MessageType<LoadPluginRequest> =
  *
  * @generated from message bldr.plugin.LoadPluginResponse
  */
-export type LoadPluginResponse = Message<{
+export interface LoadPluginResponse {
   /**
    * PluginStatus contains the current plugin status object.
    *
    * @generated from field: bldr.plugin.PluginStatus plugin_status = 1;
    */
   pluginStatus?: PluginStatus
-}>
+}
 
 // LoadPluginResponse contains the message type declaration for LoadPluginResponse.
 export const LoadPluginResponse: MessageType<LoadPluginResponse> =
@@ -146,7 +146,7 @@ export const LoadPluginResponse: MessageType<LoadPluginResponse> =
  *
  * @generated from message bldr.plugin.PluginMeta
  */
-export type PluginMeta = Message<{
+export interface PluginMeta {
   /**
    * ProjectId is the project identifier.
    * Must be a valid-dns-label.
@@ -173,7 +173,7 @@ export type PluginMeta = Message<{
    * @generated from field: string build_type = 4;
    */
   buildType?: string
-}>
+}
 
 // PluginMeta contains the message type declaration for PluginMeta.
 export const PluginMeta: MessageType<PluginMeta> = createMessageType({
@@ -192,14 +192,14 @@ export const PluginMeta: MessageType<PluginMeta> = createMessageType({
  *
  * @generated from message bldr.plugin.PluginStartInfo
  */
-export type PluginStartInfo = Message<{
+export interface PluginStartInfo {
   /**
    * InstanceId is the plugin instance id.
    *
    * @generated from field: string instance_id = 1;
    */
   instanceId?: string
-}>
+}
 
 // PluginStartInfo contains the message type declaration for PluginStartInfo.
 export const PluginStartInfo: MessageType<PluginStartInfo> = createMessageType({
@@ -216,14 +216,14 @@ export const PluginStartInfo: MessageType<PluginStartInfo> = createMessageType({
  *
  * @generated from message bldr.plugin.PluginContextInfo
  */
-export type PluginContextInfo = Message<{
+export interface PluginContextInfo {
   /**
    * PluginMeta is the plugin metadata.
    *
    * @generated from field: bldr.plugin.PluginMeta plugin_meta = 1;
    */
   pluginMeta?: PluginMeta
-}>
+}
 
 // PluginContextInfo contains the message type declaration for PluginContextInfo.
 export const PluginContextInfo: MessageType<PluginContextInfo> =

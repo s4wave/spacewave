@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -280,7 +280,7 @@ export interface WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.WatchWebRuntimeStatus
    */
   WatchWebRuntimeStatus(
-    request: Message<WatchWebRuntimeStatusRequest>,
+    request: WatchWebRuntimeStatusRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WebRuntimeStatus>
 
@@ -292,9 +292,9 @@ export interface WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
   CreateWebDocument(
-    request: Message<CreateWebDocumentRequest>,
+    request: CreateWebDocumentRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<CreateWebDocumentResponse>>
+  ): Promise<CreateWebDocumentResponse>
 
   /**
    * RemoveWebDocument requests to delete a WebDocument.
@@ -304,9 +304,9 @@ export interface WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
   RemoveWebDocument(
-    request: Message<RemoveWebDocumentRequest>,
+    request: RemoveWebDocumentRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RemoveWebDocumentResponse>>
+  ): Promise<RemoveWebDocumentResponse>
 
   /**
    * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
@@ -355,7 +355,7 @@ export class WebRuntimeClient implements WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.WatchWebRuntimeStatus
    */
   WatchWebRuntimeStatus(
-    request: Message<WatchWebRuntimeStatusRequest>,
+    request: WatchWebRuntimeStatusRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WebRuntimeStatus> {
     const requestMsg = WatchWebRuntimeStatusRequest.create(request)
@@ -376,9 +376,9 @@ export class WebRuntimeClient implements WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
    */
   async CreateWebDocument(
-    request: Message<CreateWebDocumentRequest>,
+    request: CreateWebDocumentRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<CreateWebDocumentResponse>> {
+  ): Promise<CreateWebDocumentResponse> {
     const requestMsg = CreateWebDocumentRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -397,9 +397,9 @@ export class WebRuntimeClient implements WebRuntime {
    * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
    */
   async RemoveWebDocument(
-    request: Message<RemoveWebDocumentRequest>,
+    request: RemoveWebDocumentRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RemoveWebDocumentResponse>> {
+  ): Promise<RemoveWebDocumentResponse> {
     const requestMsg = RemoveWebDocumentRequest.create(request)
     const result = await this.rpc.request(
       this.service,

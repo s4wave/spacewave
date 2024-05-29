@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/devtool/web/web.proto (package devtool.web, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { VolumeInfo } from '@go/github.com/aperturerobotics/hydra/volume/volume.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'devtool.web'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'devtool.web'
  *
  * @generated from message devtool.web.DevtoolInitBrowser
  */
-export type DevtoolInitBrowser = Message<{
+export interface DevtoolInitBrowser {
   /**
    * AppId is the application id for browser storage.
    *
@@ -39,7 +39,7 @@ export type DevtoolInitBrowser = Message<{
    * @generated from field: repeated string start_plugins = 4;
    */
   startPlugins?: string[]
-}>
+}
 
 // DevtoolInitBrowser contains the message type declaration for DevtoolInitBrowser.
 export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =

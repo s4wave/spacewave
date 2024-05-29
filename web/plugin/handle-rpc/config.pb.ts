@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/web/plugin/handle-rpc/config.proto (package bldr.web.plugin.handle_rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.plugin.handle_rpc'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'bldr.web.plugin.handle_rpc'
  *
  * @generated from message bldr.web.plugin.handle_rpc.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * WebPluginId is the id of the web plugin.
    *
@@ -50,7 +50,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff backoff = 5;
    */
   backoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 import { WebPkgInfo } from '../pkg.pb.js'
 
 export const protobufPackage = 'web.pkg.rpc'
@@ -13,7 +13,7 @@ export const protobufPackage = 'web.pkg.rpc'
  *
  * @generated from message web.pkg.rpc.GetInfoRequest
  */
-export type GetInfoRequest = Message<{}>
+export interface GetInfoRequest {}
 
 // GetInfoRequest contains the message type declaration for GetInfoRequest.
 export const GetInfoRequest: MessageType<GetInfoRequest> = createMessageType({
@@ -27,14 +27,14 @@ export const GetInfoRequest: MessageType<GetInfoRequest> = createMessageType({
  *
  * @generated from message web.pkg.rpc.GetInfoResponse
  */
-export type GetInfoResponse = Message<{
+export interface GetInfoResponse {
   /**
    * Info contains the web package information.
    *
    * @generated from field: web.pkg.WebPkgInfo info = 1;
    */
   info?: WebPkgInfo
-}>
+}
 
 // GetInfoResponse contains the message type declaration for GetInfoResponse.
 export const GetInfoResponse: MessageType<GetInfoResponse> = createMessageType({

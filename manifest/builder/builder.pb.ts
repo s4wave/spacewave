@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/manifest/builder/builder.proto (package bldr.manifest.builder, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.manifest.builder'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.manifest.builder'
  *
  * @generated from message bldr.manifest.builder.BuilderConfig
  */
-export type BuilderConfig = Message<{
+export interface BuilderConfig {
   /**
    * ManifestMeta is the metadata of the manifest to build.
    *
@@ -71,7 +71,7 @@ export type BuilderConfig = Message<{
    * @generated from field: string project_id = 9;
    */
   projectId?: string
-}>
+}
 
 // BuilderConfig contains the message type declaration for BuilderConfig.
 export const BuilderConfig: MessageType<BuilderConfig> = createMessageType({
@@ -101,7 +101,7 @@ export const BuilderConfig: MessageType<BuilderConfig> = createMessageType({
  *
  * @generated from message bldr.manifest.builder.InputManifest.File
  */
-export type InputManifest_File = Message<{
+export interface InputManifest_File {
   /**
    * Path is the path of the file in the source directory.
    *
@@ -115,7 +115,7 @@ export type InputManifest_File = Message<{
    * @generated from field: bytes metadata = 2;
    */
   metadata?: Uint8Array
-}>
+}
 
 // InputManifest_File contains the message type declaration for InputManifest_File.
 export const InputManifest_File: MessageType<InputManifest_File> =
@@ -133,7 +133,7 @@ export const InputManifest_File: MessageType<InputManifest_File> =
  *
  * @generated from message bldr.manifest.builder.InputManifest
  */
-export type InputManifest = Message<{
+export interface InputManifest {
   /**
    * Files is the list of consumed source files.
    * Optional.
@@ -148,7 +148,7 @@ export type InputManifest = Message<{
    * @generated from field: bytes metadata = 2;
    */
   metadata?: Uint8Array
-}>
+}
 
 // InputManifest contains the message type declaration for InputManifest.
 export const InputManifest: MessageType<InputManifest> = createMessageType({
@@ -171,7 +171,7 @@ export const InputManifest: MessageType<InputManifest> = createMessageType({
  *
  * @generated from message bldr.manifest.builder.BuilderResult
  */
-export type BuilderResult = Message<{
+export interface BuilderResult {
   /**
    * Manifest is the manifest object.
    *
@@ -191,7 +191,7 @@ export type BuilderResult = Message<{
    * @generated from field: bldr.manifest.builder.InputManifest input_manifest = 3;
    */
   inputManifest?: InputManifest
-}>
+}
 
 // BuilderResult contains the message type declaration for BuilderResult.
 export const BuilderResult: MessageType<BuilderResult> = createMessageType({
@@ -209,7 +209,7 @@ export const BuilderResult: MessageType<BuilderResult> = createMessageType({
  *
  * @generated from message bldr.manifest.builder.BuildManifestArgs
  */
-export type BuildManifestArgs = Message<{
+export interface BuildManifestArgs {
   /**
    * BuilderConfig is the builder configuration.
    * Must be set.
@@ -234,7 +234,7 @@ export type BuildManifestArgs = Message<{
    * @generated from field: repeated bldr.manifest.builder.InputManifest.File changed_files = 3;
    */
   changedFiles?: InputManifest_File[]
-}>
+}
 
 // BuildManifestArgs contains the message type declaration for BuildManifestArgs.
 export const BuildManifestArgs: MessageType<BuildManifestArgs> =

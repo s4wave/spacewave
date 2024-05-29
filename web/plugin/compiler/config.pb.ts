@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.plugin.compiler'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'bldr.web.plugin.compiler'
  *
  * @generated from message bldr.web.plugin.compiler.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ProjectId overrides the project id set in the project config.
    *
@@ -37,7 +37,7 @@ export type Config = Message<{
    * @generated from field: string electron_pkg = 3;
    */
   electronPkg?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

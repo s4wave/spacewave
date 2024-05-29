@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -185,7 +185,7 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.WatchWebDocumentStatus
    */
   WatchWebDocumentStatus(
-    request: Message<WatchWebDocumentStatusRequest>,
+    request: WatchWebDocumentStatusRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WebDocumentStatus>
 
@@ -196,9 +196,9 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebView
    */
   CreateWebView(
-    request: Message<CreateWebViewRequest>,
+    request: CreateWebViewRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<CreateWebViewResponse>>
+  ): Promise<CreateWebViewResponse>
 
   /**
    * WebViewRpc opens a stream for a RPC call to a WebView.
@@ -222,9 +222,9 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebWorker
    */
   CreateWebWorker(
-    request: Message<CreateWebWorkerRequest>,
+    request: CreateWebWorkerRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<CreateWebWorkerResponse>>
+  ): Promise<CreateWebWorkerResponse>
 
   /**
    * RemoveWebWorker requests to terminate a WebWorker with the given id.
@@ -232,9 +232,9 @@ export interface WebDocument {
    * @generated from rpc web.document.WebDocument.RemoveWebWorker
    */
   RemoveWebWorker(
-    request: Message<RemoveWebWorkerRequest>,
+    request: RemoveWebWorkerRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RemoveWebWorkerResponse>>
+  ): Promise<RemoveWebWorkerResponse>
 }
 
 export const WebDocumentServiceName = WebDocumentDefinition.typeName
@@ -257,7 +257,7 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.WatchWebDocumentStatus
    */
   WatchWebDocumentStatus(
-    request: Message<WatchWebDocumentStatusRequest>,
+    request: WatchWebDocumentStatusRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WebDocumentStatus> {
     const requestMsg = WatchWebDocumentStatusRequest.create(request)
@@ -277,9 +277,9 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebView
    */
   async CreateWebView(
-    request: Message<CreateWebViewRequest>,
+    request: CreateWebViewRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<CreateWebViewResponse>> {
+  ): Promise<CreateWebViewResponse> {
     const requestMsg = CreateWebViewRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -320,9 +320,9 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.CreateWebWorker
    */
   async CreateWebWorker(
-    request: Message<CreateWebWorkerRequest>,
+    request: CreateWebWorkerRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<CreateWebWorkerResponse>> {
+  ): Promise<CreateWebWorkerResponse> {
     const requestMsg = CreateWebWorkerRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -339,9 +339,9 @@ export class WebDocumentClient implements WebDocument {
    * @generated from rpc web.document.WebDocument.RemoveWebWorker
    */
   async RemoveWebWorker(
-    request: Message<RemoveWebWorkerRequest>,
+    request: RemoveWebWorkerRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RemoveWebWorkerResponse>> {
+  ): Promise<RemoveWebWorkerResponse> {
     const requestMsg = RemoveWebWorkerRequest.create(request)
     const result = await this.rpc.request(
       this.service,

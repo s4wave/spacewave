@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'manifest.fetch.plugin'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'manifest.fetch.plugin'
  *
  * @generated from message manifest.fetch.plugin.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * PluginId is the plugin to load and use as a ManifestFetch service.
    *
@@ -28,7 +28,7 @@ export type Config = Message<{
    * @generated from field: string fetch_manifest_id_re = 2;
    */
   fetchManifestIdRe?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

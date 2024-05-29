@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/bldr/project/controller/config.proto (package bldr.project.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ProjectConfig } from '../project.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import {
   BuilderConfig,
   BuilderResult,
@@ -18,7 +18,7 @@ export const protobufPackage = 'bldr.project.controller'
  *
  * @generated from message bldr.project.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * SourcePath is the path to the source code working dir.
    *
@@ -66,7 +66,7 @@ export type Config = Message<{
    * @generated from field: string fetch_manifest_remote = 7;
    */
   fetchManifestRemote?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -93,7 +93,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message bldr.project.controller.ManifestBuilderConfig
  */
-export type ManifestBuilderConfig = Message<{
+export interface ManifestBuilderConfig {
   /**
    * ManifestId is the manifest identifier to build.
    *
@@ -118,7 +118,7 @@ export type ManifestBuilderConfig = Message<{
    * @generated from field: string remote_id = 4;
    */
   remoteId?: string
-}>
+}
 
 // ManifestBuilderConfig contains the message type declaration for ManifestBuilderConfig.
 export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
@@ -138,7 +138,7 @@ export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
  *
  * @generated from message bldr.project.controller.ManifestBuilderResult
  */
-export type ManifestBuilderResult = Message<{
+export interface ManifestBuilderResult {
   /**
    * BuilderConfig was the config passed to the builder.
    *
@@ -151,7 +151,7 @@ export type ManifestBuilderResult = Message<{
    * @generated from field: bldr.manifest.builder.BuilderResult builder_result = 2;
    */
   builderResult?: BuilderResult
-}>
+}
 
 // ManifestBuilderResult contains the message type declaration for ManifestBuilderResult.
 export const ManifestBuilderResult: MessageType<ManifestBuilderResult> =

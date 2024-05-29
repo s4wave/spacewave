@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { HandleWebViewRequest, HandleWebViewResponse } from './rpc.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -46,9 +46,9 @@ export interface HandleWebViewService {
    * @generated from rpc web.view.handler.HandleWebViewService.HandleWebView
    */
   HandleWebView(
-    request: Message<HandleWebViewRequest>,
+    request: HandleWebViewRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<HandleWebViewResponse>>
+  ): Promise<HandleWebViewResponse>
 }
 
 export const HandleWebViewServiceServiceName =
@@ -71,9 +71,9 @@ export class HandleWebViewServiceClient implements HandleWebViewService {
    * @generated from rpc web.view.handler.HandleWebViewService.HandleWebView
    */
   async HandleWebView(
-    request: Message<HandleWebViewRequest>,
+    request: HandleWebViewRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<HandleWebViewResponse>> {
+  ): Promise<HandleWebViewResponse> {
     const requestMsg = HandleWebViewRequest.create(request)
     const result = await this.rpc.request(
       this.service,

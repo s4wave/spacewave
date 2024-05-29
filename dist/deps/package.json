@@ -24,6 +24,6 @@
     "react-dom": "^18.2.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.4"
+    "@aptre/protobuf-es-lite": "0.4.5"
   }
 }

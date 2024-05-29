@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'plugin.assets.http'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'plugin.assets.http'
  *
  * @generated from message plugin.assets.http.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServePath is the path prefix to serve the FS.
    * This path is stripped from the UnixFS path lookups.
@@ -30,7 +30,7 @@ export type Config = Message<{
    * @generated from field: string fs_path = 2;
    */
   fsPath?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

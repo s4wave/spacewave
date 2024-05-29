@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/devtool/web/entrypoint/plugin-host/config.proto (package devtool.web.entrypoint.plugin_host, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'devtool.web.entrypoint.plugin_host'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'devtool.web.entrypoint.plugin_host'
  *
  * @generated from message devtool.web.entrypoint.plugin_host.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * VolumeId is the volume id to use for plugin storage (the devtool volume).
    *
@@ -34,7 +34,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff exec_backoff = 3;
    */
   execBackoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

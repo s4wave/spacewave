@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.plugin.handle_web_pkg'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'bldr.web.plugin.handle_web_pkg'
  *
  * @generated from message bldr.web.plugin.handle_web_pkg.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * WebPluginId is the id of the web plugin.
    *
@@ -50,7 +50,7 @@ export type Config = Message<{
    * @generated from field: repeated string web_pkg_id_list = 5;
    */
   webPkgIdList?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

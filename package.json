@@ -66,7 +66,7 @@
     "prepare": "npm run clean && rimraf ./.tools && npm run vendor && npm run setup"
   },
   "devDependencies": {
-    "@aptre/common": "^0.16.6",
+    "@aptre/common": "^0.16.7",
     "@types/random-string": "^0.0.31",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.2.25",
@@ -89,10 +89,10 @@
     "idb": "^8.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.32.11",
+    "starpc": "^0.32.12",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.4"
+    "@aptre/protobuf-es-lite": "0.4.5"
   }
 }

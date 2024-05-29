@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { GetInfoRequest, GetInfoResponse } from './rpc.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
@@ -59,9 +59,9 @@ export interface AccessWebPkg {
    * @generated from rpc web.pkg.rpc.AccessWebPkg.GetWebPkgInfo
    */
   GetWebPkgInfo(
-    request: Message<GetInfoRequest>,
+    request: GetInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetInfoResponse>>
+  ): Promise<GetInfoResponse>
 
   /**
    * WebPkgFsRpc exposes the web pkg fs service via RPC.
@@ -93,9 +93,9 @@ export class AccessWebPkgClient implements AccessWebPkg {
    * @generated from rpc web.pkg.rpc.AccessWebPkg.GetWebPkgInfo
    */
   async GetWebPkgInfo(
-    request: Message<GetInfoRequest>,
+    request: GetInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetInfoResponse>> {
+  ): Promise<GetInfoResponse> {
     const requestMsg = GetInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,

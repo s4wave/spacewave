@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/web/pkg/rpc/server/config.proto (package web.pkg.rpc.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.pkg.rpc.server'
 
@@ -18,7 +18,7 @@ export const protobufPackage = 'web.pkg.rpc.server'
  *
  * @generated from message web.pkg.rpc.server.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceIdPrefix is the service id prefix to listen on.
    * If empty, defaults to web.pkg.rpc.AccessWebPkg.
@@ -63,7 +63,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff backoff = 6;
    */
   backoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

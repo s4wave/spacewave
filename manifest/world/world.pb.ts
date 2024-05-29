@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/manifest/world/world.proto (package bldr.manifest.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ManifestRef } from '../manifest.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.manifest.world'
@@ -14,7 +14,7 @@ export const protobufPackage = 'bldr.manifest.world'
  *
  * @generated from message bldr.manifest.world.StoreManifestOp
  */
-export type StoreManifestOp = Message<{
+export interface StoreManifestOp {
   /**
    * ObjectKey is the object key to set.
    *
@@ -33,7 +33,7 @@ export type StoreManifestOp = Message<{
    * @generated from field: bldr.manifest.ManifestRef manifest_ref = 3;
    */
   manifestRef?: ManifestRef
-}>
+}
 
 // StoreManifestOp contains the message type declaration for StoreManifestOp.
 export const StoreManifestOp: MessageType<StoreManifestOp> = createMessageType({
@@ -58,7 +58,7 @@ export const StoreManifestOp: MessageType<StoreManifestOp> = createMessageType({
  *
  * @generated from message bldr.manifest.world.ExtractManifestBundleOp
  */
-export type ExtractManifestBundleOp = Message<{
+export interface ExtractManifestBundleOp {
   /**
    * ObjectKey is the object key to set.
    *
@@ -77,7 +77,7 @@ export type ExtractManifestBundleOp = Message<{
    * @generated from field: bucket.ObjectRef manifest_bundle = 3;
    */
   manifestBundle?: ObjectRef
-}>
+}
 
 // ExtractManifestBundleOp contains the message type declaration for ExtractManifestBundleOp.
 export const ExtractManifestBundleOp: MessageType<ExtractManifestBundleOp> =

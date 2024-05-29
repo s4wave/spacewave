@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'storage.default'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'storage.default'
  *
  * @generated from message storage.default.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * StorageId is the storage identifier to use for LookupStorage.
    *
@@ -26,7 +26,7 @@ export type Config = Message<{
    * @generated from field: string root_dir = 2;
    */
   rootDir?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

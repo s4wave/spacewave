@@ -8,7 +8,7 @@ import {
   LoadPluginRequest,
   LoadPluginResponse,
 } from './plugin.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   ExecControllerRequest,
   ExecControllerResponse,
@@ -92,9 +92,9 @@ export interface PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.GetPluginInfo
    */
   GetPluginInfo(
-    request: Message<GetPluginInfoRequest>,
+    request: GetPluginInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetPluginInfoResponse>>
+  ): Promise<GetPluginInfoResponse>
 
   /**
    * ExecController executes a controller configuration on the bus.
@@ -102,7 +102,7 @@ export interface PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.ExecController
    */
   ExecController(
-    request: Message<ExecControllerRequest>,
+    request: ExecControllerRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<ExecControllerResponse>
 
@@ -114,7 +114,7 @@ export interface PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.LoadPlugin
    */
   LoadPlugin(
-    request: Message<LoadPluginRequest>,
+    request: LoadPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<LoadPluginResponse>
 
@@ -150,9 +150,9 @@ export class PluginHostClient implements PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.GetPluginInfo
    */
   async GetPluginInfo(
-    request: Message<GetPluginInfoRequest>,
+    request: GetPluginInfoRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<GetPluginInfoResponse>> {
+  ): Promise<GetPluginInfoResponse> {
     const requestMsg = GetPluginInfoRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -169,7 +169,7 @@ export class PluginHostClient implements PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.ExecController
    */
   ExecController(
-    request: Message<ExecControllerRequest>,
+    request: ExecControllerRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<ExecControllerResponse> {
     const requestMsg = ExecControllerRequest.create(request)
@@ -190,7 +190,7 @@ export class PluginHostClient implements PluginHost {
    * @generated from rpc bldr.plugin.PluginHost.LoadPlugin
    */
   LoadPlugin(
-    request: Message<LoadPluginRequest>,
+    request: LoadPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<LoadPluginResponse> {
     const requestMsg = LoadPluginRequest.create(request)

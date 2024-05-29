@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/host/controller/config.proto (package plugin.host.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'plugin.host.controller'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'plugin.host.controller'
  *
  * @generated from message plugin.host.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * EngineId is the world engine id to attach to.
    *
@@ -89,7 +89,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff exec_backoff = 9;
    */
   execBackoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
 export const protobufPackage = 'bldr.web.plugin'
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.web.plugin'
  *
  * @generated from message bldr.web.plugin.HandleWebViewViaPluginRequest
  */
-export type HandleWebViewViaPluginRequest = Message<{
+export interface HandleWebViewViaPluginRequest {
   /**
    * HandlePluginId is the plugin the web plugin should send WebViews to.
    *
@@ -27,7 +27,7 @@ export type HandleWebViewViaPluginRequest = Message<{
    * @generated from field: string web_view_id_re = 2;
    */
   webViewIdRe?: string
-}>
+}
 
 // HandleWebViewViaPluginRequest contains the message type declaration for HandleWebViewViaPluginRequest.
 export const HandleWebViewViaPluginRequest: MessageType<HandleWebViewViaPluginRequest> =
@@ -45,7 +45,7 @@ export const HandleWebViewViaPluginRequest: MessageType<HandleWebViewViaPluginRe
  *
  * @generated from message bldr.web.plugin.HandleWebViewViaPluginResponse
  */
-export type HandleWebViewViaPluginResponse = Message<{
+export interface HandleWebViewViaPluginResponse {
   /**
    * @generated from oneof bldr.web.plugin.HandleWebViewViaPluginResponse.body
    */
@@ -63,7 +63,7 @@ export type HandleWebViewViaPluginResponse = Message<{
         value: boolean
         case: 'ready'
       }
-}>
+}
 
 // HandleWebViewViaPluginResponse contains the message type declaration for HandleWebViewViaPluginResponse.
 export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginResponse> =
@@ -86,7 +86,7 @@ export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginR
  *
  * @generated from message bldr.web.plugin.HandleWebPkgViaPluginRequest
  */
-export type HandleWebPkgViaPluginRequest = Message<{
+export interface HandleWebPkgViaPluginRequest {
   /**
    * HandlePluginId is the plugin the web plugin should send WebViews to.
    *
@@ -116,7 +116,7 @@ export type HandleWebPkgViaPluginRequest = Message<{
    * @generated from field: repeated string web_pkg_id_list = 4;
    */
   webPkgIdList?: string[]
-}>
+}
 
 // HandleWebPkgViaPluginRequest contains the message type declaration for HandleWebPkgViaPluginRequest.
 export const HandleWebPkgViaPluginRequest: MessageType<HandleWebPkgViaPluginRequest> =
@@ -148,7 +148,7 @@ export const HandleWebPkgViaPluginRequest: MessageType<HandleWebPkgViaPluginRequ
  *
  * @generated from message bldr.web.plugin.HandleWebPkgViaPluginResponse
  */
-export type HandleWebPkgViaPluginResponse = Message<{
+export interface HandleWebPkgViaPluginResponse {
   /**
    * @generated from oneof bldr.web.plugin.HandleWebPkgViaPluginResponse.body
    */
@@ -166,7 +166,7 @@ export type HandleWebPkgViaPluginResponse = Message<{
         value: boolean
         case: 'ready'
       }
-}>
+}
 
 // HandleWebPkgViaPluginResponse contains the message type declaration for HandleWebPkgViaPluginResponse.
 export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginResponse> =
@@ -189,7 +189,7 @@ export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginRes
  *
  * @generated from message bldr.web.plugin.HandleRpcViaPluginRequest
  */
-export type HandleRpcViaPluginRequest = Message<{
+export interface HandleRpcViaPluginRequest {
   /**
    * HandlePluginId is the plugin the web plugin should send Rpcs to.
    *
@@ -217,7 +217,7 @@ export type HandleRpcViaPluginRequest = Message<{
    * @generated from field: backoff.Backoff backoff = 4;
    */
   backoff?: Backoff
-}>
+}
 
 // HandleRpcViaPluginRequest contains the message type declaration for HandleRpcViaPluginRequest.
 export const HandleRpcViaPluginRequest: MessageType<HandleRpcViaPluginRequest> =
@@ -237,7 +237,7 @@ export const HandleRpcViaPluginRequest: MessageType<HandleRpcViaPluginRequest> =
  *
  * @generated from message bldr.web.plugin.HandleRpcViaPluginResponse
  */
-export type HandleRpcViaPluginResponse = Message<{
+export interface HandleRpcViaPluginResponse {
   /**
    * @generated from oneof bldr.web.plugin.HandleRpcViaPluginResponse.body
    */
@@ -255,7 +255,7 @@ export type HandleRpcViaPluginResponse = Message<{
         value: boolean
         case: 'ready'
       }
-}>
+}
 
 // HandleRpcViaPluginResponse contains the message type declaration for HandleRpcViaPluginResponse.
 export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse> =

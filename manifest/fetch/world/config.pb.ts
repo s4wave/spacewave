@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'manifest.fetch.world'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'manifest.fetch.world'
  *
  * @generated from message manifest.fetch.world.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * EngineId is the world engine id to attach to.
    *
@@ -41,7 +41,7 @@ export type Config = Message<{
    * @generated from field: bool disable_watch = 4;
    */
   disableWatch?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

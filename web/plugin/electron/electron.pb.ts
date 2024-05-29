@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'electron'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'electron'
  *
  * @generated from message electron.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ElectronPath is the path to the electron binary.
    *
@@ -49,7 +49,7 @@ export type Config = Message<{
    * @generated from field: repeated string electron_flags = 4;
    */
   electronFlags?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

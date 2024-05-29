@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/bldr/dist/compiler/config.proto (package bldr.dist.compiler, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { Enabled } from '../../util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '../../util/enabled/enabled.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.dist.compiler'
 
@@ -18,7 +18,7 @@ export const protobufPackage = 'bldr.dist.compiler'
  *
  * @generated from message bldr.dist.compiler.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * EmbedManifests is the list of manifest IDs to embed in the dist binary.
    * Creates a ManifestStore with the latest versions of each manifest.
@@ -79,7 +79,7 @@ export type Config = Message<{
    * @generated from field: enabled.Enabled enable_compression = 7;
    */
   enableCompression?: Enabled
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -119,7 +119,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message bldr.dist.compiler.PreBuildHookResult
  */
-export type PreBuildHookResult = Message<{
+export interface PreBuildHookResult {
   /**
    * Config is the configuration for the dist build step.
    * Merged with the existing configuration.
@@ -127,7 +127,7 @@ export type PreBuildHookResult = Message<{
    * @generated from field: bldr.dist.compiler.Config config = 1;
    */
   config?: Config
-}>
+}
 
 // PreBuildHookResult contains the message type declaration for PreBuildHookResult.
 export const PreBuildHookResult: MessageType<PreBuildHookResult> =

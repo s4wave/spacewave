@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/bldr/web/pkg/compiler/config.proto (package bldr.web.pkg.compiler, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { WebPkgRefConfig } from '../../../plugin/compiler/config.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.pkg.compiler'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'bldr.web.pkg.compiler'
  *
  * @generated from message bldr.web.pkg.compiler.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ProjectId overrides the project id set in the project config.
    *
@@ -76,7 +76,7 @@ export type Config = Message<{
    * @generated from field: string delve_addr = 8;
    */
   delveAddr?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

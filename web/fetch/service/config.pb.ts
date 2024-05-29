@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.fetch.service'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'web.fetch.service'
  *
  * @generated from message web.fetch.service.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceId overrides the service identifier to listen on.
    * Defaults to web.fetch.FetchService
@@ -29,7 +29,7 @@ export type Config = Message<{
    * @generated from field: bool not_found_if_idle = 2;
    */
   notFoundIfIdle?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

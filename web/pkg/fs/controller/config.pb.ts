@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.pkg.fs.controller'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'web.pkg.fs.controller'
  *
  * @generated from message web.pkg.fs.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * UnixfsId is the identifier for the UnixFS on the bus.
    * The fs should be provided with the AccessUnixFS controller.
@@ -44,7 +44,7 @@ export type Config = Message<{
    * @generated from field: repeated string web_pkg_id_list = 4;
    */
   webPkgIdList?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

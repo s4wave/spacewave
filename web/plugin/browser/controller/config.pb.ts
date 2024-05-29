@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.plugin.browser.controller'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.web.plugin.browser.controller'
  *
  * @generated from message bldr.web.plugin.browser.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceId is the service id to expose the WebPluginBrowserHost service.
    * If unset, defaults to bldr.web.plugin.browser.WebPluginBrowserHost
@@ -21,7 +21,7 @@ export type Config = Message<{
    * @generated from field: string service_id = 1;
    */
   serviceId?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

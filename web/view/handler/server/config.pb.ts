@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.view.handler.server'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'web.view.handler.server'
  *
  * @generated from message web.view.handler.server.Config
  */
-export type Config = Message<{}>
+export interface Config {}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

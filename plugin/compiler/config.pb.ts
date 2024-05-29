@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
@@ -78,7 +77,7 @@ export const InputFileKind_Enum = createEnumType(
  *
  * @generated from message bldr.plugin.compiler.WebPkgRefConfig
  */
-export type WebPkgRefConfig = Message<{
+export interface WebPkgRefConfig {
   /**
    * Id is the identifier of the web pkg.
    * example: @aptre/flex-layout
@@ -101,7 +100,7 @@ export type WebPkgRefConfig = Message<{
    * @generated from field: repeated string imports = 3;
    */
   imports?: string[]
-}>
+}
 
 // WebPkgRefConfig contains the message type declaration for WebPkgRefConfig.
 export const WebPkgRefConfig: MessageType<WebPkgRefConfig> = createMessageType({
@@ -125,7 +124,7 @@ export const WebPkgRefConfig: MessageType<WebPkgRefConfig> = createMessageType({
  *
  * @generated from message bldr.plugin.compiler.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ProjectId overrides the project id set in the project config.
    *
@@ -264,7 +263,7 @@ export type Config = Message<{
    * @generated from field: map<string, bldr.plugin.compiler.Config> build_types = 14;
    */
   buildTypes?: { [key: string]: Config }
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
@@ -329,7 +328,7 @@ export const Config: MessageType<Config> = createMessageType({
  *
  * @generated from message bldr.plugin.compiler.PreBuildHookResult
  */
-export type PreBuildHookResult = Message<{
+export interface PreBuildHookResult {
   /**
    * Config is the configuration for the plugin build step.
    * Merged with the existing configuration.
@@ -337,7 +336,7 @@ export type PreBuildHookResult = Message<{
    * @generated from field: bldr.plugin.compiler.Config config = 1;
    */
   config?: Config
-}>
+}
 
 // PreBuildHookResult contains the message type declaration for PreBuildHookResult.
 export const PreBuildHookResult: MessageType<PreBuildHookResult> =
@@ -354,14 +353,14 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
  *
  * @generated from message bldr.plugin.compiler.InputFileMeta
  */
-export type InputFileMeta = Message<{
+export interface InputFileMeta {
   /**
    * Kind is the input file kind.
    *
    * @generated from field: bldr.plugin.compiler.InputFileKind kind = 1;
    */
   kind?: InputFileKind
-}>
+}
 
 // InputFileMeta contains the message type declaration for InputFileMeta.
 export const InputFileMeta: MessageType<InputFileMeta> = createMessageType({
@@ -377,7 +376,7 @@ export const InputFileMeta: MessageType<InputFileMeta> = createMessageType({
  *
  * @generated from message bldr.plugin.compiler.EsbuildEntrypointVar
  */
-export type EsbuildEntrypointVar = Message<{
+export interface EsbuildEntrypointVar {
   /**
    * PkgImportPath is the go package import path.
    *
@@ -408,7 +407,7 @@ export type EsbuildEntrypointVar = Message<{
    * @generated from field: repeated string esbuild_flags = 5;
    */
   esbuildFlags?: string[]
-}>
+}
 
 // EsbuildEntrypointVar contains the message type declaration for EsbuildEntrypointVar.
 export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
@@ -435,7 +434,7 @@ export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
  *
  * @generated from message bldr.plugin.compiler.EsbuildBundleMeta
  */
-export type EsbuildBundleMeta = Message<{
+export interface EsbuildBundleMeta {
   /**
    * Id is the identifier of the bundle.
    *
@@ -448,7 +447,7 @@ export type EsbuildBundleMeta = Message<{
    * @generated from field: repeated bldr.plugin.compiler.EsbuildEntrypointVar entrypoint_vars = 2;
    */
   entrypointVars?: EsbuildEntrypointVar[]
-}>
+}
 
 // EsbuildBundleMeta contains the message type declaration for EsbuildBundleMeta.
 export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
@@ -472,7 +471,7 @@ export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
  *
  * @generated from message bldr.plugin.compiler.EsbuildOutputMeta
  */
-export type EsbuildOutputMeta = Message<{
+export interface EsbuildOutputMeta {
   /**
    * Path is the path to the file within the output dir.
    *
@@ -492,7 +491,7 @@ export type EsbuildOutputMeta = Message<{
    * @generated from field: string entrypoint_path = 3;
    */
   entrypointPath?: string
-}>
+}
 
 // EsbuildOutputMeta contains the message type declaration for EsbuildOutputMeta.
 export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
@@ -511,7 +510,7 @@ export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
  *
  * @generated from message bldr.plugin.compiler.InputManifestMeta
  */
-export type InputManifestMeta = Message<{
+export interface InputManifestMeta {
   /**
    * EsbuildBundles contains the set of esbuild bundles.
    *
@@ -548,7 +547,7 @@ export type InputManifestMeta = Message<{
    * @generated from field: repeated bldr.plugin.compiler.EsbuildOutputMeta esbuild_outputs = 6;
    */
   esbuildOutputs?: EsbuildOutputMeta[]
-}>
+}
 
 // InputManifestMeta contains the message type declaration for InputManifestMeta.
 export const InputManifestMeta: MessageType<InputManifestMeta> =

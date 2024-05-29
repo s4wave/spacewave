@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto (package bldr.plugin.vardef, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { EsbuildOutput } from '../../web/esbuild/esbuild.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.plugin.vardef'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.plugin.vardef'
  *
  * @generated from message bldr.plugin.vardef.PluginVar
  */
-export type PluginVar = Message<{
+export interface PluginVar {
   /**
    * PkgImportPath is the go package import path.
    *
@@ -55,7 +55,7 @@ export type PluginVar = Message<{
         value: EsbuildOutput
         case: 'esbuildOutput'
       }
-}>
+}
 
 // PluginVar contains the message type declaration for PluginVar.
 export const PluginVar: MessageType<PluginVar> = createMessageType({
@@ -86,14 +86,14 @@ export const PluginVar: MessageType<PluginVar> = createMessageType({
  *
  * @generated from message bldr.plugin.vardef.PluginDevInfo
  */
-export type PluginDevInfo = Message<{
+export interface PluginDevInfo {
   /**
    * PluginVars is the set of variables to set at init time by the development plugin.
    *
    * @generated from field: repeated bldr.plugin.vardef.PluginVar plugin_vars = 1;
    */
   pluginVars?: PluginVar[]
-}>
+}
 
 // PluginDevInfo contains the message type declaration for PluginDevInfo.
 export const PluginDevInfo: MessageType<PluginDevInfo> = createMessageType({

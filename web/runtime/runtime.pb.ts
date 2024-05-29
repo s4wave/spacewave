@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 
@@ -65,7 +64,7 @@ export const WebRuntimeClientType_Enum = createEnumType(
  *
  * @generated from message web.runtime.WebRuntimeHostInit
  */
-export type WebRuntimeHostInit = Message<{
+export interface WebRuntimeHostInit {
   /**
    * WebRuntimeId is the identifier for the WebRuntime instance.
    *
@@ -74,7 +73,7 @@ export type WebRuntimeHostInit = Message<{
    * @generated from field: string web_runtime_id = 1;
    */
   webRuntimeId?: string
-}>
+}
 
 // WebRuntimeHostInit contains the message type declaration for WebRuntimeHostInit.
 export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
@@ -91,7 +90,7 @@ export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
  *
  * @generated from message web.runtime.WatchWebRuntimeStatusRequest
  */
-export type WatchWebRuntimeStatusRequest = Message<{}>
+export interface WatchWebRuntimeStatusRequest {}
 
 // WatchWebRuntimeStatusRequest contains the message type declaration for WatchWebRuntimeStatusRequest.
 export const WatchWebRuntimeStatusRequest: MessageType<WatchWebRuntimeStatusRequest> =
@@ -106,7 +105,7 @@ export const WatchWebRuntimeStatusRequest: MessageType<WatchWebRuntimeStatusRequ
  *
  * @generated from message web.runtime.WebDocumentStatus
  */
-export type WebDocumentStatus = Message<{
+export interface WebDocumentStatus {
   /**
    * Id is the unique identifier for the WebDocument.
    *
@@ -126,7 +125,7 @@ export type WebDocumentStatus = Message<{
    * @generated from field: bool permanent = 3;
    */
   permanent?: boolean
-}>
+}
 
 // WebDocumentStatus contains the message type declaration for WebDocumentStatus.
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
@@ -145,7 +144,7 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
  *
  * @generated from message web.runtime.WebRuntimeStatus
  */
-export type WebRuntimeStatus = Message<{
+export interface WebRuntimeStatus {
   /**
    * Snapshot indicates this is a full snapshot of the lists.
    *
@@ -164,7 +163,7 @@ export type WebRuntimeStatus = Message<{
    * @generated from field: bool closed = 3;
    */
   closed?: boolean
-}>
+}
 
 // WebRuntimeStatus contains the message type declaration for WebRuntimeStatus.
 export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
@@ -189,14 +188,14 @@ export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
  *
  * @generated from message web.runtime.CreateWebDocumentRequest
  */
-export type CreateWebDocumentRequest = Message<{
+export interface CreateWebDocumentRequest {
   /**
    * id is the identifier for the new WebDocument.
    *
    * @generated from field: string id = 1;
    */
   id?: string
-}>
+}
 
 // CreateWebDocumentRequest contains the message type declaration for CreateWebDocumentRequest.
 export const CreateWebDocumentRequest: MessageType<CreateWebDocumentRequest> =
@@ -213,7 +212,7 @@ export const CreateWebDocumentRequest: MessageType<CreateWebDocumentRequest> =
  *
  * @generated from message web.runtime.CreateWebDocumentResponse
  */
-export type CreateWebDocumentResponse = Message<{
+export interface CreateWebDocumentResponse {
   /**
    * Created indicates the WebDocument was created.
    * If this is not set, assumes we cannot create WebDocuments.
@@ -221,7 +220,7 @@ export type CreateWebDocumentResponse = Message<{
    * @generated from field: bool created = 1;
    */
   created?: boolean
-}>
+}
 
 // CreateWebDocumentResponse contains the message type declaration for CreateWebDocumentResponse.
 export const CreateWebDocumentResponse: MessageType<CreateWebDocumentResponse> =
@@ -238,14 +237,14 @@ export const CreateWebDocumentResponse: MessageType<CreateWebDocumentResponse> =
  *
  * @generated from message web.runtime.RemoveWebDocumentRequest
  */
-export type RemoveWebDocumentRequest = Message<{
+export interface RemoveWebDocumentRequest {
   /**
    * Id is the identifier for the WebDocument.
    *
    * @generated from field: string id = 1;
    */
   id?: string
-}>
+}
 
 // RemoveWebDocumentRequest contains the message type declaration for RemoveWebDocumentRequest.
 export const RemoveWebDocumentRequest: MessageType<RemoveWebDocumentRequest> =
@@ -262,7 +261,7 @@ export const RemoveWebDocumentRequest: MessageType<RemoveWebDocumentRequest> =
  *
  * @generated from message web.runtime.RemoveWebDocumentResponse
  */
-export type RemoveWebDocumentResponse = Message<{
+export interface RemoveWebDocumentResponse {
   /**
    * Removed indicates the WebDocument was removed.
    * If this is not set, the document did not exist.
@@ -270,7 +269,7 @@ export type RemoveWebDocumentResponse = Message<{
    * @generated from field: bool removed = 1;
    */
   removed?: boolean
-}>
+}
 
 // RemoveWebDocumentResponse contains the message type declaration for RemoveWebDocumentResponse.
 export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
@@ -287,7 +286,7 @@ export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
  *
  * @generated from message web.runtime.WebRuntimeClientInit
  */
-export type WebRuntimeClientInit = Message<{
+export interface WebRuntimeClientInit {
   /**
    * RuntimeId is the shared identifier for the Go Runtime instance.
    *
@@ -310,7 +309,7 @@ export type WebRuntimeClientInit = Message<{
    * @generated from field: web.runtime.WebRuntimeClientType client_type = 3;
    */
   clientType?: WebRuntimeClientType
-}>
+}
 
 // WebRuntimeClientInit contains the message type declaration for WebRuntimeClientInit.
 export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =

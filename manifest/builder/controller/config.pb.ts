@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/bldr/manifest/builder/controller/config.proto (package bldr.manifest.builder.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { BuilderConfig } from '../builder.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.manifest.builder.controller'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'bldr.manifest.builder.controller'
  *
  * @generated from message bldr.manifest.builder.controller.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * BuilderConfig contains common config for the manifest builder.
    * Overridden by the project controller.
@@ -43,7 +43,7 @@ export type Config = Message<{
    * @generated from field: bool watch = 4;
    */
   watch?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

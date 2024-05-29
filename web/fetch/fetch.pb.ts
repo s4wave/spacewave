@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.fetch'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'web.fetch'
  *
  * @generated from message web.fetch.FetchRequestInfo
  */
-export type FetchRequestInfo = Message<{
+export interface FetchRequestInfo {
   /**
    * Method is the request method.
    * i.e. "GET"
@@ -96,7 +96,7 @@ export type FetchRequestInfo = Message<{
    * @generated from field: string referrer_policy = 11;
    */
   referrerPolicy?: string
-}>
+}
 
 // FetchRequestInfo contains the message type declaration for FetchRequestInfo.
 export const FetchRequestInfo: MessageType<FetchRequestInfo> =
@@ -129,7 +129,7 @@ export const FetchRequestInfo: MessageType<FetchRequestInfo> =
  *
  * @generated from message web.fetch.FetchRequestData
  */
-export type FetchRequestData = Message<{
+export interface FetchRequestData {
   /**
    * Data is the request data chunk.
    *
@@ -142,7 +142,7 @@ export type FetchRequestData = Message<{
    * @generated from field: bool done = 2;
    */
   done?: boolean
-}>
+}
 
 // FetchRequestData contains the message type declaration for FetchRequestData.
 export const FetchRequestData: MessageType<FetchRequestData> =
@@ -162,7 +162,7 @@ export const FetchRequestData: MessageType<FetchRequestData> =
  *
  * @generated from message web.fetch.FetchRequest
  */
-export type FetchRequest = Message<{
+export interface FetchRequest {
   /**
    * @generated from oneof web.fetch.FetchRequest.body
    */
@@ -189,7 +189,7 @@ export type FetchRequest = Message<{
         value: FetchRequestData
         case: 'requestData'
       }
-}>
+}
 
 // FetchRequest contains the message type declaration for FetchRequest.
 export const FetchRequest: MessageType<FetchRequest> = createMessageType({
@@ -218,7 +218,7 @@ export const FetchRequest: MessageType<FetchRequest> = createMessageType({
  *
  * @generated from message web.fetch.ResponseInfo
  */
-export type ResponseInfo = Message<{
+export interface ResponseInfo {
   /**
    * Headers is the map of response header key/value pairs.
    *
@@ -256,7 +256,7 @@ export type ResponseInfo = Message<{
    * @generated from field: string response_type = 6;
    */
   responseType?: string
-}>
+}
 
 // ResponseInfo contains the message type declaration for ResponseInfo.
 export const ResponseInfo: MessageType<ResponseInfo> = createMessageType({
@@ -283,7 +283,7 @@ export const ResponseInfo: MessageType<ResponseInfo> = createMessageType({
  *
  * @generated from message web.fetch.ResponseData
  */
-export type ResponseData = Message<{
+export interface ResponseData {
   /**
    * Data is the response data chunk.
    *
@@ -296,7 +296,7 @@ export type ResponseData = Message<{
    * @generated from field: bool done = 2;
    */
   done?: boolean
-}>
+}
 
 // ResponseData contains the message type declaration for ResponseData.
 export const ResponseData: MessageType<ResponseData> = createMessageType({
@@ -316,7 +316,7 @@ export const ResponseData: MessageType<ResponseData> = createMessageType({
  *
  * @generated from message web.fetch.FetchResponse
  */
-export type FetchResponse = Message<{
+export interface FetchResponse {
   /**
    * @generated from oneof web.fetch.FetchResponse.body
    */
@@ -343,7 +343,7 @@ export type FetchResponse = Message<{
         value: ResponseData
         case: 'responseData'
       }
-}>
+}
 
 // FetchResponse contains the message type declaration for FetchResponse.
 export const FetchResponse: MessageType<FetchResponse> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'storage'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'storage'
  *
  * @generated from message storage.StorageInfo
  */
-export type StorageInfo = Message<{
+export interface StorageInfo {
   /**
    * Isolated indicates that keys written to named stores are isolated from
    * other named stores from the same Storage source. In other words, each named
@@ -29,7 +29,7 @@ export type StorageInfo = Message<{
    * @generated from field: bool cache = 2;
    */
   cache?: boolean
-}>
+}
 
 // StorageInfo contains the message type declaration for StorageInfo.
 export const StorageInfo: MessageType<StorageInfo> = createMessageType({

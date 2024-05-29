@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/host/process/config.proto (package plugin.host.process, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../controller/config.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'plugin.host.process'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'plugin.host.process'
  *
  * @generated from message plugin.host.process.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * HostConfig configures the plugin host controller.
    *
@@ -32,7 +32,7 @@ export type Config = Message<{
    * @generated from field: string dist_dir = 3;
    */
   distDir?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

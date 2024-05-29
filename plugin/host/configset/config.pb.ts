@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/host/configset/config.proto (package plugin.host.configset, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'plugin.host.configset'
 
@@ -13,14 +13,14 @@ export const protobufPackage = 'plugin.host.configset'
  *
  * @generated from message plugin.host.configset.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ConfigSet is the config set to apply to the plugin host.
    *
    * @generated from field: map<string, configset.proto.ControllerConfig> config_set = 1;
    */
   configSet?: { [key: string]: ControllerConfig }
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/forward-rpc-service/config.proto (package bldr.plugin.forward_rpc_service, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.plugin.forward_rpc_service'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'bldr.plugin.forward_rpc_service'
  *
  * @generated from message bldr.plugin.forward_rpc_service.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * PluginId is the plugin to load and use as AccessRpcService.
    *
@@ -44,7 +44,7 @@ export type Config = Message<{
    * @generated from field: backoff.Backoff backoff = 4;
    */
   backoff?: Backoff
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.pkg.esbuild'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'web.pkg.esbuild'
  *
  * @generated from message web.pkg.esbuild.WebPkgRef
  */
-export type WebPkgRef = Message<{
+export interface WebPkgRef {
   /**
    * WebPkgId is the web pkg identifier.
    *
@@ -38,7 +38,7 @@ export type WebPkgRef = Message<{
    * @generated from field: repeated string cross_refs = 4;
    */
   crossRefs?: string[]
-}>
+}
 
 // WebPkgRef contains the message type declaration for WebPkgRef.
 export const WebPkgRef: MessageType<WebPkgRef> = createMessageType({

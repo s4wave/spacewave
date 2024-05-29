@@ -10,7 +10,7 @@ import {
   RecheckDistConfigResponse,
   WatchLauncherInfoRequest,
 } from './launcher.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -74,7 +74,7 @@ export interface Launcher {
    * @generated from rpc bldr.launcher.Launcher.WatchLauncherInfo
    */
   WatchLauncherInfo(
-    request: Message<WatchLauncherInfoRequest>,
+    request: WatchLauncherInfoRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<LauncherInfo>
 
@@ -84,9 +84,9 @@ export interface Launcher {
    * @generated from rpc bldr.launcher.Launcher.PushDistConfigMsg
    */
   PushDistConfigMsg(
-    request: Message<PushDistConfigRequest>,
+    request: PushDistConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<PushDistConfigResponse>>
+  ): Promise<PushDistConfigResponse>
 
   /**
    * RecheckDistConfig checks for updates on the app dist config immediately.
@@ -95,9 +95,9 @@ export interface Launcher {
    * @generated from rpc bldr.launcher.Launcher.RecheckDistConfig
    */
   RecheckDistConfig(
-    request: Message<RecheckDistConfigRequest>,
+    request: RecheckDistConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RecheckDistConfigResponse>>
+  ): Promise<RecheckDistConfigResponse>
 }
 
 export const LauncherServiceName = LauncherDefinition.typeName
@@ -120,7 +120,7 @@ export class LauncherClient implements Launcher {
    * @generated from rpc bldr.launcher.Launcher.WatchLauncherInfo
    */
   WatchLauncherInfo(
-    request: Message<WatchLauncherInfoRequest>,
+    request: WatchLauncherInfoRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<LauncherInfo> {
     const requestMsg = WatchLauncherInfoRequest.create(request)
@@ -139,9 +139,9 @@ export class LauncherClient implements Launcher {
    * @generated from rpc bldr.launcher.Launcher.PushDistConfigMsg
    */
   async PushDistConfigMsg(
-    request: Message<PushDistConfigRequest>,
+    request: PushDistConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<PushDistConfigResponse>> {
+  ): Promise<PushDistConfigResponse> {
     const requestMsg = PushDistConfigRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -159,9 +159,9 @@ export class LauncherClient implements Launcher {
    * @generated from rpc bldr.launcher.Launcher.RecheckDistConfig
    */
   async RecheckDistConfig(
-    request: Message<RecheckDistConfigRequest>,
+    request: RecheckDistConfigRequest,
     abortSignal?: AbortSignal,
-  ): Promise<Message<RecheckDistConfigResponse>> {
+  ): Promise<RecheckDistConfigResponse> {
     const requestMsg = RecheckDistConfigRequest.create(request)
     const result = await this.rpc.request(
       this.service,

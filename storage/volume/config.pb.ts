@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/storage/volume/config.proto (package storage.volume, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '@go/github.com/aperturerobotics/hydra/volume/controller/controller.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'storage.volume'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'storage.volume'
  *
  * @generated from message storage.volume.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * StorageId is the id to use to look up the storage on the bus.
    * usually "default"
@@ -34,7 +34,7 @@ export type Config = Message<{
    * @generated from field: volume.controller.Config volume_config = 3;
    */
   volumeConfig?: Config$1
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

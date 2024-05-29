@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.pkg.rpc.client'
 
@@ -15,7 +15,7 @@ export const protobufPackage = 'web.pkg.rpc.client'
  *
  * @generated from message web.pkg.rpc.client.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceIdPrefix is the service id prefix to use to lookup the rpc service.
    * If empty, defaults to web.pkg.rpc.AccessWebPkg.
@@ -53,7 +53,7 @@ export type Config = Message<{
    * @generated from field: repeated string web_pkg_id_list = 5;
    */
   webPkgIdList?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

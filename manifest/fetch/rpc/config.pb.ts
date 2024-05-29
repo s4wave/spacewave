@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'manifest.fetch.rpc'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'manifest.fetch.rpc'
  *
  * @generated from message manifest.fetch.rpc.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ServiceId is the service id to contact with LookupRpcClient.
    *
@@ -34,7 +34,7 @@ export type Config = Message<{
    * @generated from field: string fetch_manifest_id_re = 3;
    */
   fetchManifestIdRe?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

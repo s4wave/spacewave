@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.plugin.load'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'bldr.plugin.load'
  *
  * @generated from message bldr.plugin.load.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * PluginId is the plugin to load.
    *
@@ -26,7 +26,7 @@ export type Config = Message<{
    * @generated from field: repeated string plugin_ids = 2;
    */
   pluginIds?: string[]
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

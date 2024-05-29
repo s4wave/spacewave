@@ -5,7 +5,6 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -19,7 +18,7 @@ export const protobufPackage = 'bldr.manifest'
  *
  * @generated from message bldr.manifest.ManifestMeta
  */
-export type ManifestMeta = Message<{
+export interface ManifestMeta {
   /**
    * ManifestId is the identifier of the manifest.
    *
@@ -47,7 +46,7 @@ export type ManifestMeta = Message<{
    * @generated from field: uint64 rev = 4;
    */
   rev?: bigint
-}>
+}
 
 // ManifestMeta contains the message type declaration for ManifestMeta.
 export const ManifestMeta: MessageType<ManifestMeta> = createMessageType({
@@ -67,7 +66,7 @@ export const ManifestMeta: MessageType<ManifestMeta> = createMessageType({
  *
  * @generated from message bldr.manifest.Manifest
  */
-export type Manifest = Message<{
+export interface Manifest {
   /**
    * Meta is the manifest metadata.
    *
@@ -94,7 +93,7 @@ export type Manifest = Message<{
    * @generated from field: block.BlockRef assets_fs_ref = 4;
    */
   assetsFsRef?: BlockRef
-}>
+}
 
 // Manifest contains the message type declaration for Manifest.
 export const Manifest: MessageType<Manifest> = createMessageType({
@@ -113,7 +112,7 @@ export const Manifest: MessageType<Manifest> = createMessageType({
  *
  * @generated from message bldr.manifest.ManifestRef
  */
-export type ManifestRef = Message<{
+export interface ManifestRef {
   /**
    * Meta is the manifest metadata.
    * Must match the ManifestRef.Meta field.
@@ -127,7 +126,7 @@ export type ManifestRef = Message<{
    * @generated from field: bucket.ObjectRef manifest_ref = 2;
    */
   manifestRef?: ObjectRef
-}>
+}
 
 // ManifestRef contains the message type declaration for ManifestRef.
 export const ManifestRef: MessageType<ManifestRef> = createMessageType({
@@ -144,7 +143,7 @@ export const ManifestRef: MessageType<ManifestRef> = createMessageType({
  *
  * @generated from message bldr.manifest.ManifestBundle
  */
-export type ManifestBundle = Message<{
+export interface ManifestBundle {
   /**
    * ManifestRefs contains the set of manifest references.
    *
@@ -157,7 +156,7 @@ export type ManifestBundle = Message<{
    * @generated from field: google.protobuf.Timestamp timestamp = 2;
    */
   timestamp?: Date
-}>
+}
 
 // ManifestBundle contains the message type declaration for ManifestBundle.
 export const ManifestBundle: MessageType<ManifestBundle> = createMessageType({
@@ -180,7 +179,7 @@ export const ManifestBundle: MessageType<ManifestBundle> = createMessageType({
  *
  * @generated from message bldr.manifest.ManifestSnapshot
  */
-export type ManifestSnapshot = Message<{
+export interface ManifestSnapshot {
   /**
    * ManifestRef is the reference to the manifest.
    * Must match the manifest field.
@@ -194,7 +193,7 @@ export type ManifestSnapshot = Message<{
    * @generated from field: bldr.manifest.Manifest manifest = 2;
    */
   manifest?: Manifest
-}>
+}
 
 // ManifestSnapshot contains the message type declaration for ManifestSnapshot.
 export const ManifestSnapshot: MessageType<ManifestSnapshot> =
@@ -212,7 +211,7 @@ export const ManifestSnapshot: MessageType<ManifestSnapshot> =
  *
  * @generated from message bldr.manifest.FetchManifestRequest
  */
-export type FetchManifestRequest = Message<{
+export interface FetchManifestRequest {
   /**
    * ManifestMeta is the metadata to fetch.
    * May be partially empty.
@@ -220,7 +219,7 @@ export type FetchManifestRequest = Message<{
    * @generated from field: bldr.manifest.ManifestMeta manifest_meta = 1;
    */
   manifestMeta?: ManifestMeta
-}>
+}
 
 // FetchManifestRequest contains the message type declaration for FetchManifestRequest.
 export const FetchManifestRequest: MessageType<FetchManifestRequest> =
@@ -237,14 +236,14 @@ export const FetchManifestRequest: MessageType<FetchManifestRequest> =
  *
  * @generated from message bldr.manifest.FetchManifestValue
  */
-export type FetchManifestValue = Message<{
+export interface FetchManifestValue {
   /**
    * ManifestRef is the reference to the Manifest.
    *
    * @generated from field: bldr.manifest.ManifestRef manifest_ref = 1;
    */
   manifestRef?: ManifestRef
-}>
+}
 
 // FetchManifestValue contains the message type declaration for FetchManifestValue.
 export const FetchManifestValue: MessageType<FetchManifestValue> =
@@ -261,7 +260,7 @@ export const FetchManifestValue: MessageType<FetchManifestValue> =
  *
  * @generated from message bldr.manifest.FetchManifestResponse
  */
-export type FetchManifestResponse = Message<{
+export interface FetchManifestResponse {
   /**
    * ValueId is set to a non-zero integer w/ the value ID.
    *
@@ -289,7 +288,7 @@ export type FetchManifestResponse = Message<{
    * @generated from field: uint32 idle = 4;
    */
   idle?: number
-}>
+}
 
 // FetchManifestResponse contains the message type declaration for FetchManifestResponse.
 export const FetchManifestResponse: MessageType<FetchManifestResponse> =

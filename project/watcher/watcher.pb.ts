@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/bldr/project/watcher/watcher.proto (package bldr.project.watcher, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '../controller/config.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.project.watcher'
 
@@ -13,7 +13,7 @@ export const protobufPackage = 'bldr.project.watcher'
  *
  * @generated from message bldr.project.watcher.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * ConfigPath is the path to load the bldr.yaml configuration.
    * If the path is empty, starts the project controller with a blank config.
@@ -34,7 +34,7 @@ export type Config = Message<{
    * @generated from field: bool disable_watch = 3;
    */
   disableWatch?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

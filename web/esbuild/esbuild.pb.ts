@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 
@@ -50,7 +49,7 @@ export const EsbuildVarType_Enum = createEnumType(
  *
  * @generated from message bldr.esbuild.EsbuildOutput
  */
-export type EsbuildOutput = Message<{
+export interface EsbuildOutput {
   /**
    * EntrypointHref is the url path to the script entrypoint.
    *
@@ -68,7 +67,7 @@ export type EsbuildOutput = Message<{
    * @generated from field: string css_href = 2;
    */
   cssHref?: string
-}>
+}
 
 // EsbuildOutput contains the message type declaration for EsbuildOutput.
 export const EsbuildOutput: MessageType<EsbuildOutput> = createMessageType({
@@ -85,7 +84,7 @@ export const EsbuildOutput: MessageType<EsbuildOutput> = createMessageType({
  *
  * @generated from message bldr.esbuild.EsbuildEntrypoint
  */
-export type EsbuildEntrypoint = Message<{
+export interface EsbuildEntrypoint {
   /**
    * InputPath is the input file path.
    *
@@ -98,7 +97,7 @@ export type EsbuildEntrypoint = Message<{
    * @generated from field: string output_path = 2;
    */
   outputPath?: string
-}>
+}
 
 // EsbuildEntrypoint contains the message type declaration for EsbuildEntrypoint.
 export const EsbuildEntrypoint: MessageType<EsbuildEntrypoint> =

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'web.runtime.wasm'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'web.runtime.wasm'
  *
  * @generated from message web.runtime.wasm.WebWorkerWasmPluginInit
  */
-export type WebWorkerWasmPluginInit = Message<{
+export interface WebWorkerWasmPluginInit {
   /**
    * Entrypoint is the path to the wasm entrypoint.
    * /b/pd/{plugin-id}/{plugin-id}.wasm
@@ -32,7 +32,7 @@ export type WebWorkerWasmPluginInit = Message<{
    * @generated from field: map<string, string> env = 3;
    */
   env?: { [key: string]: string }
-}>
+}
 
 // WebWorkerWasmPluginInit contains the message type declaration for WebWorkerWasmPluginInit.
 export const WebWorkerWasmPluginInit: MessageType<WebWorkerWasmPluginInit> =
