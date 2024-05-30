@@ -46,8 +46,8 @@ func (c *Controller) fetchDistConfig(ctx context.Context) error {
 	}
 	for i, endp := range c.endps {
 		endpURLStr := endp.GetUrl()
-		t1 := time.Now()
-		endpURLStr += "?nocache=" + strconv.FormatInt(t1.UnixMilli(), 10)
+		// t1 := time.Now()
+		// endpURLStr += "?nocache=" + strconv.FormatInt(t1.UnixMilli(), 10)
 		c.le.Debugf("calling endpoint %d/%d: %s", i+1, len(c.endps), endpURLStr)
 		req, err := http.NewRequestWithContext(ctx, "GET", endpURLStr, nil)
 		if err != nil {
