@@ -6,7 +6,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.32.6 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
-	github.com/aperturerobotics/go-indexeddb v0.2.1 // master
+	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // latest
 )
