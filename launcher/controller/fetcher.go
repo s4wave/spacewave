@@ -58,6 +58,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) error {
 		for k, v := range endp.GetHeaders() {
 			req.Header.Set(k, v)
 		}
+		// TODO: use Fetch() in js with no-cache set
 		resp, err := httplog.DoRequest(c.le, http.DefaultClient, req, true)
 		var dat []byte
 		if resp != nil && resp.Body != nil {
