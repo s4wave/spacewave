@@ -116,7 +116,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		)
 	}
 	if len(refs) != 0 {
-		c.le.Infof("applied %d bucket configs", len(refs))
+		c.le.Infof("applied %d bucket configs", len(refs)/2)
 	}
 	c.mtx.Lock()
 	closed := c.closed
