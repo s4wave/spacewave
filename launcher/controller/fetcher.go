@@ -5,7 +5,6 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
-	"strconv"
 	"time"
 
 	httplog "github.com/aperturerobotics/bifrost/http/log"
