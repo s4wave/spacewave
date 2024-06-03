@@ -182,7 +182,19 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	}, nil
 }
 
-// AppendReleaseFunc appends a function to be called on release.
+// RunTest executes a test.
+func RunTest(t *testing.T, cb func(t *testing.T, tb *Testbed)) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+	tb, err := NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cb(t, tb)
+}
 
 // RunSubtest executes t.Run with a sub-test.
 //
