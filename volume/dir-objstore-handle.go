@@ -1,10 +1,10 @@
 package volume
 
 import (
-	"errors"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/object"
 )
 
 // BuildObjectStoreAPI is a directive to get API handles to object store.
@@ -41,7 +41,7 @@ func NewBuildObjectStoreAPI(objectStoreID, volumeID string) BuildObjectStoreAPI 
 // This is a cursory validation to see if the values "look correct."
 func (d *buildObjectStoreAPI) Validate() error {
 	if d.objectStoreID == "" {
-		return errors.New("object store id cannot be empty")
+		return object.ErrEmptyObjectStoreId
 	}
 
 	return nil
