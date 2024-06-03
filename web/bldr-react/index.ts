@@ -1,6 +1,6 @@
 export { BldrRoot } from './bldr-root.js'
 export { WebDocument } from './web-document.js'
-export { WebView } from './WebView.js'
+export { WebView, canCloseWindow } from './WebView.js'
 export {
   Destructor,
   WebViewHostClientEffect,

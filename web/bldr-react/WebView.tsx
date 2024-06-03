@@ -71,7 +71,7 @@ interface IWebViewState {
 
 // canCloseWindow checks if window.close will (probably) work.
 // https://stackoverflow.com/a/50593730
-function canCloseWindow() {
+export function canCloseWindow() {
   return window.opener != null || window.history.length == 1
 }
 
