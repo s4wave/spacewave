@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.6 // master
+	github.com/aperturerobotics/bifrost v0.33.0 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -64,7 +64,7 @@ require (
 
 require (
 	github.com/aperturerobotics/common v0.16.8 // latest
-	github.com/aperturerobotics/controllerbus v0.45.6 // latest
+	github.com/aperturerobotics/controllerbus v0.46.1 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 	github.com/aperturerobotics/starpc v0.32.12 // latest
@@ -107,8 +107,8 @@ require (
 	github.com/tidwall/btree v1.7.0
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.23.0
-	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d
+	golang.org/x/crypto v0.24.0
+	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
 	gonum.org/v1/gonum v0.15.0
 	gotest.tools/v3 v3.5.1
 	nhooyr.io/websocket v1.8.11 // indirect; master
@@ -198,12 +198,12 @@ require (
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.21.0 // indirect
+	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect

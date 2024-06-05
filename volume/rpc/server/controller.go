@@ -79,7 +79,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(ControllerID, Version, "rpc volume server")
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	c.proxyVolumes.SetContext(ctx, true)
 	return nil
