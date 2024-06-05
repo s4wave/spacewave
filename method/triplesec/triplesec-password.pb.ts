@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'auth.method.triplesec'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'auth.method.triplesec'
  *
  * @generated from message auth.method.triplesec.Parameters
  */
-export type Parameters = Message<{
+export interface Parameters {
   /**
    * Salt is the salt used for the keypair.
    * Should be 16 bytes.
@@ -27,7 +27,7 @@ export type Parameters = Message<{
    * @generated from field: uint32 version = 2;
    */
   version?: number
-}>
+}
 
 // Parameters contains the message type declaration for Parameters.
 export const Parameters: MessageType<Parameters> = createMessageType({
@@ -44,7 +44,7 @@ export const Parameters: MessageType<Parameters> = createMessageType({
  *
  * @generated from message auth.method.triplesec.Config
  */
-export type Config = Message<{}>
+export interface Config {}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

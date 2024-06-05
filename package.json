@@ -44,18 +44,18 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.15.0",
+    "@aptre/common": "^0.16.8",
     "depcheck": "^1.4.3",
-    "prettier": "^3.2.5",
+    "prettier": "^3.3.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5"
   },
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.3.0",
-    "@aptre/protobuf-es-lite": "^0.4.0",
-    "starpc": "^0.32.0"
+    "@aptre/protobuf-es-lite": "^0.4.5",
+    "starpc": "^0.32.12"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.4"
+    "@aptre/protobuf-es-lite": "0.4.5"
   }
 }

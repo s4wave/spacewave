@@ -42,7 +42,7 @@ func AuthMethodIdSupported(id string) bool {
 	return id == auth_method_triplesec.MethodID
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {

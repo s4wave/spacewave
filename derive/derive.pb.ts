@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'auth.derive'
 
@@ -12,14 +12,14 @@ export const protobufPackage = 'auth.derive'
  *
  * @generated from message auth.derive.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * DisablePromptPassword disables using a prompt password directive.
    *
    * @generated from field: bool disable_prompt_password = 1;
    */
   disablePromptPassword?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
