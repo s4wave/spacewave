@@ -47,7 +47,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.info.Clone()
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }

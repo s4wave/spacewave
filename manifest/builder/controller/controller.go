@@ -71,7 +71,7 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_buil
 	return c.resultPromise
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {

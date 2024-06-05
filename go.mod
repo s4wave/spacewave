@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.16.8 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240529224439-086a40da93ea // master
+	github.com/aperturerobotics/hydra v0.0.0-20240605062825-28b7f8558815 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // master
 )
 
@@ -24,14 +24,14 @@ require (
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/tetratelabs/wazero v1.7.2 // latest
-	golang.org/x/mod v0.17.0 // latest
-	golang.org/x/tools v0.21.0 // latest
+	golang.org/x/mod v0.18.0 // latest
+	golang.org/x/tools v0.22.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.6 // master
+	github.com/aperturerobotics/bifrost v0.33.0 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -81,7 +81,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.45.6 // latest
+	github.com/aperturerobotics/controllerbus v0.46.1 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
 	github.com/aperturerobotics/starpc v0.32.12 // latest
 	github.com/aperturerobotics/util v1.23.5 // master
@@ -121,14 +121,14 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.23.0
-	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d
+	golang.org/x/crypto v0.24.0
+	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
 	gonum.org/v1/gonum v0.15.0 // indirect
 	nhooyr.io/websocket v1.8.11 // master
 )
 
 require (
-	github.com/aperturerobotics/go-indexeddb v0.2.1 // indirect
+	github.com/aperturerobotics/go-indexeddb v0.2.2 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
@@ -180,8 +180,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect

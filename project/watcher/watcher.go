@@ -62,7 +62,7 @@ func (c *Controller) GetProjectController() ccontainer.Watchable[*bldr_project_c
 	return c.projCtrlCtr
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {

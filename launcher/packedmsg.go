@@ -15,9 +15,12 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
+// baseEncContext is the base encryption context for packedmsg.
+const baseEncContext = "bldr/launcher packedmsg 2024-06-05T06:38:23.313394Z project/"
+
 // DecodeSignedDistConfig attempts to decode a packed DistConfig.
 // The DistConfig is packed inside a SignedMsg.
-// Pass a list of acceptable signature peer IDs to accept.
+// Pass a list of signature peer IDs to accept.
 //
 // Data is the unpacked SignedMsg.
 // Returns ErrUnknownDistSigPeer if none of the peer IDs matched the message public key.
@@ -27,7 +30,7 @@ func DecodeSignedDistConfig(data []byte, allowedPeerIDs []peer.ID, projectID str
 		return nil, "", err
 	}
 
-	signerPub, signerPeerID, err := signedMsg.ExtractAndVerify()
+	signerPub, signerPeerID, err := signedMsg.ExtractAndVerify(baseEncContext + projectID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -103,7 +106,7 @@ func EncodeSignedDistConfig(peerPriv crypto.PrivKey, distConf *DistConfig) ([]by
 		FromPeerId: peerIDString,
 		Data:       distConfData,
 	}
-	if err := signedMsg.Sign(peerPriv, signatureHashType); err != nil {
+	if err := signedMsg.Sign(baseEncContext+distConf.GetProjectId(), peerPriv, signatureHashType); err != nil {
 		return nil, err
 	}
 
@@ -186,7 +189,13 @@ func EncryptDistConfig(data []byte, senderPeerID string, signatureHashType hash.
 // Skips any configurations with a different project id.
 // Returns nil, nil, nil if none found with rev higher than given.
 // le can be nil to disable logging
-func FindDistConfigUpdate(le *logrus.Entry, currRev uint64, data []byte, distPeerIDs []peer.ID, projectID string) (*DistConfig, string, peer.ID, error) {
+func FindDistConfigUpdate(
+	le *logrus.Entry,
+	currRev uint64,
+	data []byte,
+	distPeerIDs []peer.ID,
+	projectID string,
+) (*DistConfig, string, peer.ID, error) {
 	// replace the breaks we add in the dist server
 	dataStr := strings.TrimSpace(string(data))
 	dataStr = strings.ReplaceAll(dataStr, "<br/>", "\n")
@@ -247,6 +256,7 @@ func FindDistConfigUpdate(le *logrus.Entry, currRev uint64, data []byte, distPee
 // Skips any messages for a different project id.
 // Returns the config, the encoded config, the peer that signed the config, and any error.
 // le can be nil to disable logging
+// encContext must match what it was when calling EncodeSignedDistConfig.
 func ParseDistConfigPackedMsg(le *logrus.Entry, data []byte, distPeerIDs []peer.ID, projectID string) (*DistConfig, string, peer.ID, error) {
 	conf, confMsg, confPeer, err := FindDistConfigUpdate(le, 0, data, distPeerIDs, projectID)
 	if err != nil {

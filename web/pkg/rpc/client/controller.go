@@ -69,7 +69,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(ControllerID, Version, "web pkg server")
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
