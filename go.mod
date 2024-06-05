@@ -12,7 +12,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20240605062825-28b7f8558815 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240603034200-74a1f442e0d0 // master
 )
 
 require (
@@ -81,7 +81,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.46.1 // latest
+	github.com/aperturerobotics/controllerbus v0.46.2 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
 	github.com/aperturerobotics/starpc v0.32.12 // latest
 	github.com/aperturerobotics/util v1.23.5 // master
