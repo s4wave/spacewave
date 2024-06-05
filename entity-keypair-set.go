@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// keypairEncContext is the enc context for signing a EntityKeypair
+const keypairEncContext = "identity sign EntityKeypair 2024-06-05T06:48:39.309679Z"
+
 // AppendKeypair adds a keypair to the set.
 //
 // Signs the keypair + entity data using the private key.
@@ -41,13 +44,13 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 	if err != nil {
 		return err
 	}
-	sig, err := peer.NewSignature(privKey, hash.HashType_HashType_SHA256, kpData, true)
+	sig, err := peer.NewSignature(keypairEncContext, privKey, hash.HashType_HashType_SHA256, kpData, true)
 	if err != nil {
 		return err
 	}
 	// verify the signature matches (sanity check)
 	pubKey := privKey.GetPublic()
-	_, err = sig.VerifyWithPublic(pubKey, kpData)
+	_, err = sig.VerifyWithPublic(keypairEncContext, pubKey, kpData)
 	if err != nil {
 		return err
 	}
@@ -119,7 +122,7 @@ func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypai
 		if !peerID.MatchesPublicKey(pubKey) {
 			return nil, errors.Errorf("keypair_signatures[%d]: public key does not match peer id %s", i, peerID.String())
 		}
-		ok, err := kpSig.VerifyWithPublic(pubKey, keypairs[i])
+		ok, err := kpSig.VerifyWithPublic(keypairEncContext, pubKey, keypairs[i])
 		if err == nil && !ok {
 			err = errors.New("public key verify failed")
 		}

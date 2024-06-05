@@ -72,6 +72,8 @@ func (r *LookupEntityReq) CheckTimestamp(now time.Time) error {
 	return nil
 }
 
+const lookupEntityReqEncContext = "identity/domain/service lookup entity req 2024-06-05T06:49:58.278525Z"
+
 // SignReq signs the request to a SignedMsg.
 func (r *LookupEntityReq) SignReq(privKey crypto.PrivKey) (*peer.SignedMsg, error) {
 	if err := r.Validate(); err != nil {
@@ -82,19 +84,19 @@ func (r *LookupEntityReq) SignReq(privKey crypto.PrivKey) (*peer.SignedMsg, erro
 	if err != nil {
 		return nil, err
 	}
-	return peer.NewSignedMsg(privKey, hash.RecommendedHashType, dat)
+	return peer.NewSignedMsg(lookupEntityReqEncContext, privKey, hash.RecommendedHashType, dat)
 }
 
 // UnmarshalFrom attempts to unmarshal the request from the SignedMsg.
 func (r *LookupEntityReq) UnmarshalFrom(req *peer.SignedMsg) (crypto.PubKey, error) {
-	pubKey, _, err := req.ExtractAndVerify()
+	pubKey, _, err := req.ExtractAndVerify(lookupEntityReqEncContext)
 	if err != nil {
 		return nil, err
 	}
 	if err := r.UnmarshalBlock(req.GetData()); err != nil {
 		return pubKey, err
 	}
-	return pubKey, req.Validate()
+	return pubKey, r.Validate()
 }
 
 // MarshalBlock marshals the block to binary.

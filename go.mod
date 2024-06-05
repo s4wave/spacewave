@@ -2,14 +2,14 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240522012836-ab3a20267b41 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240605062825-28b7f8558815 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.32.3 // master
+	github.com/aperturerobotics/bifrost v0.33.0 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
 )
@@ -41,12 +41,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.16.6 // latest
-	github.com/aperturerobotics/controllerbus v0.45.4 // latest
+	github.com/aperturerobotics/common v0.16.8 // latest
+	github.com/aperturerobotics/controllerbus v0.46.1 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
-	github.com/aperturerobotics/starpc v0.32.10 // latest
-	github.com/aperturerobotics/util v1.23.4 // master
+	github.com/aperturerobotics/starpc v0.32.12 // latest
+	github.com/aperturerobotics/util v1.23.5 // master
 )
 
 // aperture: use compatibility forks
@@ -54,7 +54,7 @@ replace (
 	github.com/ipfs/go-log/v2 => github.com/paralin/ipfs-go-logrus v0.0.0-20240410105224-e24cb05f9e98 // master
 	github.com/libp2p/go-libp2p => github.com/aperturerobotics/go-libp2p v0.33.1-0.20240511072027-002c32698a19 // aperture
 	github.com/libp2p/go-msgio => github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8 // aperture
-	github.com/multiformats/go-multiaddr => github.com/paralin/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 // aperture-4
+	github.com/multiformats/go-multiaddr => github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 // aperture
 	github.com/nats-io/jwt/v2 => github.com/nats-io/jwt/v2 v2.0.0-20200820224411-1e751ff168ab // indirect: used by bifrost-nats-server
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
@@ -68,15 +68,15 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
-	github.com/libp2p/go-libp2p v0.33.2
+	github.com/libp2p/go-libp2p v0.35.0
 	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.12.3 // indirect
+	github.com/multiformats/go-multiaddr v0.12.4 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.43.1 // indirect
+	github.com/quic-go/quic-go v0.44.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.3 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect; master
 )
@@ -102,9 +102,9 @@ require (
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/tools v0.21.0 // indirect
+	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/tools v0.22.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
