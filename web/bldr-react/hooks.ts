@@ -443,7 +443,10 @@ export function useMemoEqual<T>(
     () =>
       value === memoValue ||
       (value == null) === (memoValue == null) ||
-      (value != null && memoValue != null && checkEqual && checkEqual(value, memoValue)),
+      (value != null &&
+        memoValue != null &&
+        checkEqual &&
+        checkEqual(value, memoValue)),
     [memoValue, value, checkEqual],
   )
   useEffect(() => {

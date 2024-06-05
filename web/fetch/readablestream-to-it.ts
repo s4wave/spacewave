@@ -3,7 +3,7 @@
  * MIT: https://www.opensource.org/licenses/mit
  * Apache-2.0: https://www.apache.org/licenses/license-2.0
  * Upstream: https://raw.githubusercontent.com/achingbrain/it/main/packages/browser-readablestream-to-it/src/index.ts
-*/
+ */
 
 /**
  * @packageDocumentation
@@ -58,7 +58,10 @@ export interface BrowserReadableStreamToItOptions {
  * prevent stream cancelling optional `{ preventCancel: true }` could be passed
  * as a second argument.
  */
-export default async function * browserReadableStreamToIt <T> (stream: ReadableStream<T>, options: BrowserReadableStreamToItOptions = {}): AsyncGenerator<T, void, undefined> {
+export default async function* browserReadableStreamToIt<T>(
+  stream: ReadableStream<T>,
+  options: BrowserReadableStreamToItOptions = {},
+): AsyncGenerator<T, void, undefined> {
   const reader = stream.getReader()
 
   try {
