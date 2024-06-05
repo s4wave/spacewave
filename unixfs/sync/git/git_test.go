@@ -43,8 +43,8 @@ func TestSyncFromGitWorkdir(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	repoRoot := path.Join(wd, "../../../")
-	err = SyncFromGitWorkdir(ctx, fsHandle, repoRoot, unixfs_sync.DeleteMode_DeleteMode_DURING, nil)
+	srcRoot := path.Join(wd, "../../")
+	err = SyncFromGitWorkdir(ctx, fsHandle, srcRoot, unixfs_sync.DeleteMode_DeleteMode_DURING, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
