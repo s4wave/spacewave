@@ -6,7 +6,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.33.0 // master
 	github.com/aperturerobotics/common v0.16.8 // latest
 	github.com/aperturerobotics/controllerbus v0.46.1 // latest
-	github.com/aperturerobotics/identity v0.0.0-20240605065154-eb35cbc8ae2d // master
+	github.com/aperturerobotics/identity v0.0.0-20240607013447-72600d11e4d4 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 )
 

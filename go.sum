@@ -16,8 +16,8 @@ github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/hydra v0.0.0-20240605062825-28b7f8558815 h1:6Ibmajh+TX44ZZQifa+GylA6bXG5eicjPPvEJvahKz0=
 github.com/aperturerobotics/hydra v0.0.0-20240605062825-28b7f8558815/go.mod h1:O70gzi+dGdQRqNlAWLweny441jwQHAPhR8KO4gctSpY=
-github.com/aperturerobotics/identity v0.0.0-20240605065154-eb35cbc8ae2d h1:lWnTr93WEqn6sEOYzjQ5jvhFr6/NFpp4q2ZMpFaVr8Q=
-github.com/aperturerobotics/identity v0.0.0-20240605065154-eb35cbc8ae2d/go.mod h1:yGeoWZmAnSxqWCTsYe1cwo0Ow1WDAE7vf5sqrnlZX48=
+github.com/aperturerobotics/identity v0.0.0-20240607013447-72600d11e4d4 h1:+O48hopK0PGgy7KcivLYtSD2iQakVsHN6mGbm0Gkex0=
+github.com/aperturerobotics/identity v0.0.0-20240607013447-72600d11e4d4/go.mod h1:yGeoWZmAnSxqWCTsYe1cwo0Ow1WDAE7vf5sqrnlZX48=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
