@@ -3,7 +3,7 @@
 import fs from 'fs'
 import { dirname } from 'path'
 import { promisify } from 'util'
-import { parse } from 'esm-cjs-lexer'
+import { parse } from '@aptre-cjs/esm-cjs-lexer'
 import enhancedResolve from 'enhanced-resolve'
 
 const identRegexp = /^[a-zA-Z_\$][a-zA-Z0-9_\$]*$/

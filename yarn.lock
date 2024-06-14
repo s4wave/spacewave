@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@aptre-cjs/esm-cjs-lexer@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@aptre-cjs/esm-cjs-lexer/-/esm-cjs-lexer-0.1.0.tgz#0a495aaf6aab4b74139ef8a7b039f9b1651f853b"
+  integrity sha512-SMQ7gG6ZNi7Jxq5P90W74MNpzu4A767QHxS9uXawSedrhHzUylsHhAKY/O7i90JQ3v3wj3OJoW2xLDGeIClfTA==
+
 "@aptre/common@^0.16.7":
   version "0.16.8"
   resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.16.8.tgz#70fbdb9ff7af835436ea0b9484332c28e41b5d14"
@@ -302,10 +307,10 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
-"@libp2p/interface@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.4.0.tgz#19066f29c21e6ad0d7237997f13f785e3a4fd056"
-  integrity sha512-XkbZ0NfLVnxvWgo1nVyMwCUYDQbFYFvYPA6KUPLV7/XgcxBapVZT5sJ9hgQ4kTsqSBbjQl6YDXDxCclAPZDNTQ==
+"@libp2p/interface@^1.4.1":
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.4.1.tgz#04deb26d1e8a1f251914d0d744e00ebeade8c19e"
+  integrity sha512-lYrvNn7vggL8EVN7ZcGeK4Kf03aKlSD5zW6aBu297GFyXGvpWXJ+qj+fJzmCmXhZqAyI62IXZJ2bpJgI6022IQ==
   dependencies:
     "@multiformats/multiaddr" "^12.2.3"
     it-pushable "^3.2.3"
@@ -325,12 +330,12 @@
     interface-datastore "^8.2.11"
     multiformats "^13.1.0"
 
-"@libp2p/logger@^4.0.13":
-  version "4.0.13"
-  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.13.tgz#9a32d933c79be8854726a1d3c69d95ed69e1f677"
-  integrity sha512-z1i4Ksdr4cl96Y+VwJdhdNUkwP7189oTn0AQrAQc9WnLKqRUGXWwDf2OgdpJbPU71KteZT3UXLRQGWzXKCt2Wg==
+"@libp2p/logger@^4.0.14":
+  version "4.0.14"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.14.tgz#6ecd9aa89a2d0a431f44b1a4834d695975467d80"
+  integrity sha512-EUM3gV2eC35D2Mvc7XTQFxGEX7bD1K5K9LmTMVtTzJWgC1Svdp85NMWThxj7X+tf5SC/N556h3pKSM+hbdl9Zg==
   dependencies:
-    "@libp2p/interface" "^1.4.0"
+    "@libp2p/interface" "^1.4.1"
     "@multiformats/multiaddr" "^12.2.3"
     debug "^4.3.4"
     interface-datastore "^8.2.11"
@@ -1137,10 +1142,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^30.0.9:
-  version "30.0.9"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-30.0.9.tgz#b11400e4642a4b635e79244ba365f1d401ee60b5"
-  integrity sha512-ArxgdGHVu3o5uaP+Tqj8cJDvU03R6vrGrOqiMs7JXLnvQHMqXJIIxmFKQAIdJW8VoT3ac3hD21tA7cPO10RLow==
+electron@^31.0.1:
+  version "31.0.1"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-31.0.1.tgz#0039524f8f38c24da802c3b18a42c3951acb5897"
+  integrity sha512-2eBcp4iqLkTsml6mMq+iqrS5u3kJ/2mpOLP7Mj7lo0uNK3OyfNqRS9z1ArsHjBF2/HV250Te/O9nKrwQRTX/+g==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -1306,11 +1311,6 @@ eslint@^9.3.0:
     optionator "^0.9.3"
     strip-ansi "^6.0.1"
     text-table "^0.2.0"
-
-esm-cjs-lexer@^0.10.0:
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/esm-cjs-lexer/-/esm-cjs-lexer-0.10.0.tgz#c5bd941d1f4d7fd944843c2329d941d4a3943c82"
-  integrity sha512-ECG2Roj0TpcS1JqFxjgiCFFOsGQKO70tpPHwQ6s54l+m5FUCcQgKethCgF0jayS7/MDWmwpxzDal13/o3jcHlw==
 
 espree@^10.0.1:
   version "10.0.1"
@@ -2253,10 +2253,10 @@ prelude-ls@^1.2.1:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
-prettier@^3.3.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.3.0.tgz#d173ea0524a691d4c0b1181752f2b46724328cdf"
-  integrity sha512-J9odKxERhCQ10OC2yb93583f6UnYutOeiV5i0zEDS7UGTdUt0u+y8erxl3lBKvwo/JHyyoEdXjwp4dke9oyZ/g==
+prettier@^3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.3.2.tgz#03ff86dc7c835f2d2559ee76876a3914cec4a90a"
+  integrity sha512-rAVeHYMcv8ATV5d508CFdn+8/pHPpXeIid1DdrPwXnaAdH7cqjVbpJaT5eq4yRAFU/lsbwYwSF/n5iNrdJHPQA==
 
 pretty-format@^29.7.0:
   version "29.7.0"
