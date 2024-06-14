@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20240614012751-72c90e8479bb // master
-	github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce // master
+	github.com/aperturerobotics/identity v0.0.0-20240607013447-72600d11e4d4 // master
 )
 
 require (

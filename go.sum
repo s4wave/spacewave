@@ -86,8 +86,8 @@ github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93
 github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a/go.mod h1:1DiSe6HqY2Pey4mmreXPlkreDmSxVkItf5lOJB5QZVk=
 github.com/aperturerobotics/hydra v0.0.0-20240614012751-72c90e8479bb h1:F1WNn8qXqwELx3EFdFv6bYVgOF1WAY/aIIxqnQrJruk=
 github.com/aperturerobotics/hydra v0.0.0-20240614012751-72c90e8479bb/go.mod h1:zyapKA7ZlAiO4aoNOGhNT5sJ2k16YutCGZWre286/Ag=
-github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce h1:72SLz9OgQQYy6D/FktThCWdmcsODxEcWIth7+JAkgkQ=
-github.com/aperturerobotics/identity v0.0.0-20240514054556-3d85aa8257ce/go.mod h1:ThuGxC9L9atHsL6L/jyyfB4juM2Z3d4DeXzC1NItf2w=
+github.com/aperturerobotics/identity v0.0.0-20240607013447-72600d11e4d4 h1:+O48hopK0PGgy7KcivLYtSD2iQakVsHN6mGbm0Gkex0=
+github.com/aperturerobotics/identity v0.0.0-20240607013447-72600d11e4d4/go.mod h1:yGeoWZmAnSxqWCTsYe1cwo0Ow1WDAE7vf5sqrnlZX48=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
