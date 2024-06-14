@@ -65,7 +65,7 @@ func (c *Controller) InitForgeExecController(
 	return c.conf.Validate()
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
 	// copy all objects from inputs to outputs
 	var outps forge_value.ValueSlice

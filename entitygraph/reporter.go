@@ -33,7 +33,7 @@ func NewReporter(
 	}, nil
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 func (c *Reporter) Execute(ctx context.Context) error {
 	return nil
 }

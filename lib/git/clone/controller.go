@@ -82,7 +82,7 @@ func (c *Controller) InitForgeExecController(
 	return c.conf.Validate()
 }
 
-// Execute executes the given controller.
+// Execute executes the controller goroutine.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
