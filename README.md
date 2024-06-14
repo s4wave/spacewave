@@ -228,4 +228,4 @@ This is enabled by the plugin compiler for Electron in debug builds only.
 
 ## License
 
-Copyright 2018-2024 Aperture Robotics, LLC.
+See [LICENSE](./LICENSE) for details.
