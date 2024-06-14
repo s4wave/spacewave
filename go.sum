@@ -60,8 +60,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.33.0 h1:Rb0KQ0XQ4e2mFPFliTNAXF6QlXUyJw4KvGvcmOG//pA=
-github.com/aperturerobotics/bifrost v0.33.0/go.mod h1:+l3Z8OyAFpsnksDPFayiBd5XE0Kv2MzRUoAIeR22wck=
+github.com/aperturerobotics/bifrost v0.33.1 h1:+RX0SwTskxectNcf9BmXnbyw1Mo0j+JyVkLZDKpzctc=
+github.com/aperturerobotics/bifrost v0.33.1/go.mod h1:vPNrCXkzXF9C+YfPZw3mpQQlZtpITEvfybd6niznZO0=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -70,8 +70,8 @@ github.com/aperturerobotics/cayley v0.9.0 h1:kDKwun/XVatU6k642R4LtS4KIiPZeT2SC64
 github.com/aperturerobotics/cayley v0.9.0/go.mod h1:6ckQhhIqJSiCFwz7l3POHb7CGKYjUe1QkHn0bocmk+A=
 github.com/aperturerobotics/common v0.16.8 h1:uKHIqQ+NMkn7G+dSUEvP/ZvjA0M5i/aXO/7l5GSeC/8=
 github.com/aperturerobotics/common v0.16.8/go.mod h1:CNUQ4LRn9e2zwKKrWMZiKoywhWV9+Wpn3QPn9uE2E7Y=
-github.com/aperturerobotics/controllerbus v0.46.1 h1:0akrbsgm8dl+KSTrwObgl1Qpkvj8sdOirTKfeCMqodY=
-github.com/aperturerobotics/controllerbus v0.46.1/go.mod h1:GTvrTd1ZAZ+ZdC51A5YQaZhr3tzuBBglPn70L51Coew=
+github.com/aperturerobotics/controllerbus v0.46.3 h1:oiW2hbHSiA4aijMSzFR/3kcK3yo9j3x87xIhsmuSWK4=
+github.com/aperturerobotics/controllerbus v0.46.3/go.mod h1:yMYcSzet1wL4HnlYLotnA6ECERfBq9VMCV8Lo8Xmdb4=
 github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
 github.com/aperturerobotics/entitygraph v0.9.1/go.mod h1:40VoNXSslWQieSS4V3HyzqOOZnRiGxItj/qZYSHg8Rw=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=
@@ -358,8 +358,8 @@ github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
-github.com/klauspost/compress v1.17.8 h1:YcnTYrq7MikUT7k0Yb5eceMmALQPYBW/Xltxn0NAMnU=
-github.com/klauspost/compress v1.17.8/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
+github.com/klauspost/compress v1.17.9 h1:6KIumPrER1LHsvBVuDa0r5xaG0Es51mhhB9BQB2qeMA=
+github.com/klauspost/compress v1.17.9/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
 github.com/klauspost/cpuid/v2 v2.0.1/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.0.12/go.mod h1:g2LTdtYhdyuGPqyWyv7qRAmj1WBqxuObKfj5c0PQa7c=
 github.com/klauspost/cpuid/v2 v2.2.7 h1:ZWSB3igEs+d0qvnxR/ZBzXVmxkgt8DdzP6m9pfuVLDM=
@@ -477,8 +477,8 @@ github.com/pierrec/lz4/v4 v4.1.21/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFu
 github.com/pion/datachannel v1.5.6 h1:1IxKJntfSlYkpUj8LlYRSWpYiTTC02nUrOE8T3DqGeg=
 github.com/pion/datachannel v1.5.6/go.mod h1:1eKT6Q85pRnr2mHiWHxJwO50SfZRtWHTsNIVb/NfGW4=
 github.com/pion/dtls/v2 v2.2.7/go.mod h1:8WiMkebSHFD0T+dIU+UeBaoV7kDhOW5oDCzZ7WZ/F9s=
-github.com/pion/dtls/v2 v2.2.10 h1:u2Axk+FyIR1VFTPurktB+1zoEPGIW3bmyj3LEFrXjAA=
-github.com/pion/dtls/v2 v2.2.10/go.mod h1:d9SYc9fch0CqK90mRk1dC7AkzzpwJj6u2GU3u+9pqFE=
+github.com/pion/dtls/v2 v2.2.11 h1:9U/dpCYl1ySttROPWJgqWKEylUdT0fXp/xst6JwY5Ks=
+github.com/pion/dtls/v2 v2.2.11/go.mod h1:d9SYc9fch0CqK90mRk1dC7AkzzpwJj6u2GU3u+9pqFE=
 github.com/pion/ice/v3 v3.0.7 h1:dfMViRKblENqzorR2cQiiRKWqQfqKZ9+nT/sREX3ra8=
 github.com/pion/ice/v3 v3.0.7/go.mod h1:pBRcCoJRC0vwvFsemfRIqRLYukV4bPboGb0B4b8AhrQ=
 github.com/pion/interceptor v0.1.29 h1:39fsnlP1U8gw2JzOFWdfCU82vHvhW9o0rZnZF56wF+M=
@@ -512,8 +512,8 @@ github.com/pion/transport/v3 v3.0.2 h1:r+40RJR25S9w3jbA6/5uEPTzcdn7ncyU44RWCbHkL
 github.com/pion/transport/v3 v3.0.2/go.mod h1:nIToODoOlb5If2jF9y2Igfx3PFYWfuXi37m0IlWa/D0=
 github.com/pion/turn/v3 v3.0.3 h1:1e3GVk8gHZLPBA5LqadWYV60lmaKUaHCkm9DX9CkGcE=
 github.com/pion/turn/v3 v3.0.3/go.mod h1:vw0Dz420q7VYAF3J4wJKzReLHIo2LGp4ev8nXQexYsc=
-github.com/pion/webrtc/v4 v4.0.0-beta.19 h1:qAmESbOR4C8Odv+FjGc7qS1sqhWAZJgmSjQFu8pahI8=
-github.com/pion/webrtc/v4 v4.0.0-beta.19/go.mod h1:yL80J6f59xyNERWAJXFdKZjjQXR4NchgtXr5JDA/2uQ=
+github.com/pion/webrtc/v4 v4.0.0-beta.20 h1:dt1th4CqqKV2APgPsapaskZuOKKvbYsNpgmgi8D6014=
+github.com/pion/webrtc/v4 v4.0.0-beta.20/go.mod h1:tBa/6GmW34fT7UURDdj7kwJlAW9NLEkeHKP1jAonhXY=
 github.com/piprate/json-gold v0.5.0 h1:RmGh1PYboCFcchVFuh2pbSWAZy4XJaqTMU4KQYsApbM=
 github.com/piprate/json-gold v0.5.0/go.mod h1:WZ501QQMbZZ+3pXFPhQKzNwS1+jls0oqov3uQ2WasLs=
 github.com/pjbgf/sha1cd v0.3.0 h1:4D5XXmUUBUl/xQ6IjCkEAbqXskkq/4O7LmGn0AqMDs4=
@@ -683,8 +683,8 @@ golang.org/x/exp v0.0.0-20191227195350-da58074b4299/go.mod h1:2RIsYlXP63K8oxa1u0
 golang.org/x/exp v0.0.0-20200119233911-0405dc783f0a/go.mod h1:2RIsYlXP63K8oxa1u096TMicItID8zy7Y6sNkU49FU4=
 golang.org/x/exp v0.0.0-20200207192155-f17229e696bd/go.mod h1:J/WKrq2StrnmMY6+EHIKF9dgMWnmCNThgcyBT1FY9mM=
 golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6/go.mod h1:3jZMyOhIsHpP37uCMkUooju7aAi5cS1Q23tOzKc+0MU=
-golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 h1:LoYXNGAShUG3m/ehNk4iFctuhGX/+R1ZpfJ4/ia80JM=
-golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8/go.mod h1:jj3sYF3dwk5D+ghuXyeI3r5MFf+NT2An6/9dOA95KSI=
+golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 h1:yixxcjnhBmY0nkL253HFVIm0JsFHwrHdT3Yh6szTnfY=
+golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8/go.mod h1:jj3sYF3dwk5D+ghuXyeI3r5MFf+NT2An6/9dOA95KSI=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=

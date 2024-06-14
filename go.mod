@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.33.0 // master
+	github.com/aperturerobotics/bifrost v0.33.1 // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -64,7 +64,7 @@ require (
 
 require (
 	github.com/aperturerobotics/common v0.16.8 // latest
-	github.com/aperturerobotics/controllerbus v0.46.1 // latest
+	github.com/aperturerobotics/controllerbus v0.46.3 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 	github.com/aperturerobotics/starpc v0.32.12 // latest
@@ -90,8 +90,8 @@ require (
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/klauspost/compress v1.17.8
-	github.com/libp2p/go-libp2p v0.35.0
+	github.com/klauspost/compress v1.17.9
+	github.com/libp2p/go-libp2p v0.35.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.4 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.16 // indirect
@@ -100,15 +100,15 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.19 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.20 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.44.0 // indirect
+	github.com/quic-go/quic-go v0.45.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tidwall/btree v1.7.0
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.24.0
-	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
+	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	gonum.org/v1/gonum v0.15.0
 	gotest.tools/v3 v3.5.1
 	nhooyr.io/websocket v1.8.11 // indirect; master
@@ -165,7 +165,7 @@ require (
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
-	github.com/pion/dtls/v2 v2.2.10 // indirect
+	github.com/pion/dtls/v2 v2.2.11 // indirect
 	github.com/pion/ice/v3 v3.0.7 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
