@@ -5,13 +5,13 @@ go 1.22
 // This fork avoids importing net/http on wasm.
 replace nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.12-0.20240504231911-2358de657064 // aperture-1
 
-require github.com/aperturerobotics/common v0.16.8 // latest
+require github.com/aperturerobotics/common v0.16.10 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240614012751-72c90e8479bb // master
+	github.com/aperturerobotics/hydra v0.0.0-20240620014632-3dee450b5716 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240603034200-74a1f442e0d0 // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.33.1 // master
+	github.com/aperturerobotics/bifrost v0.33.2-0.20240620013546-b1357680b72f // master
 	github.com/aperturerobotics/cayley v0.9.0 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -40,7 +40,7 @@ require (
 // aperture: use ext-engines forks
 replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a // aperture
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240504090652-3d33aa710fbd // aperture
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5 // aperture
 	github.com/genjidb/genji => github.com/paralin/genji v0.14.1-0.20230213145718-23097a679f40 // ext-engines
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
@@ -81,10 +81,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.46.3 // latest
+	github.com/aperturerobotics/controllerbus v0.46.4 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
-	github.com/aperturerobotics/starpc v0.32.12 // latest
-	github.com/aperturerobotics/util v1.23.5 // master
+	github.com/aperturerobotics/starpc v0.32.13 // latest
+	github.com/aperturerobotics/util v1.23.6 // master
 )
 
 // aperture: use compatibility forks
@@ -110,7 +110,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.12.4 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.16 // indirect
-	github.com/nats-io/nats.go v1.35.0 // indirect
+	github.com/nats-io/nats.go v1.36.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
