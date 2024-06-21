@@ -108,7 +108,8 @@ func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	handler, _, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(
 		ctx,
 		c.bus,
-		req.URL.String(),
+		req.Method,
+		req.URL,
 		"",
 		notFoundIfIdle,
 		nil,

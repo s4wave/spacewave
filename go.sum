@@ -10,8 +10,8 @@ github.com/Workiva/go-datastructures v1.1.5 h1:5YfhQ4ry7bZc2Mc7R0YZyYwpf5c6t1cEF
 github.com/Workiva/go-datastructures v1.1.5/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.33.2-0.20240620013546-b1357680b72f h1:hOuuDcwkKXe+P/vEOlnEajQVK9sZxfGTGwHnK5P8jVI=
-github.com/aperturerobotics/bifrost v0.33.2-0.20240620013546-b1357680b72f/go.mod h1:GAtwnCpdd3KwAUqyk+5jKWtRfPD6H+/k0UuHnj7IXzs=
+github.com/aperturerobotics/bifrost v0.33.2-0.20240621195728-a5f272da7bd2 h1:BE8pJmBrl7y4L/2/lIJlEC8D7bD5TYutO1uGsa26yP4=
+github.com/aperturerobotics/bifrost v0.33.2-0.20240621195728-a5f272da7bd2/go.mod h1:GAtwnCpdd3KwAUqyk+5jKWtRfPD6H+/k0UuHnj7IXzs=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
