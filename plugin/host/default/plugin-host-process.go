@@ -19,13 +19,14 @@ type PluginHostController = plugin_host_controller.Controller
 // StartBusPluginHost starts the plugin host.
 //
 // webRuntimeID is ignored on the native platform as the web runtime is bundled into the web plugin.
+// peerID is used for world transactions.
 func StartBusPluginHost(
 	ctx context.Context,
 	b bus.Bus,
 	engineID,
 	pluginHostObjectKey,
 	volID,
-	volPeerID,
+	peerID,
 	pluginsStateRoot,
 	pluginsDistRoot string,
 	alwaysFetchManifest,
@@ -38,7 +39,7 @@ func StartBusPluginHost(
 			engineID,
 			pluginHostObjectKey,
 			volID,
-			volPeerID,
+			peerID,
 			alwaysFetchManifest,
 			disableStoreManifest,
 			disableCopyManifest,

@@ -11,12 +11,14 @@ import (
 	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	entrypoint_browser_build "github.com/aperturerobotics/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
 	web_runtime_controller "github.com/aperturerobotics/bldr/web/runtime/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -54,6 +56,16 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// write the banner
 	writeBanner()
 
+	// start the plugin storage volume
+	pluginVolumeID := bldr_plugin.PluginVolumeID
+	_, pluginStorageCtrlRef, err := b.StartStorageVolume(ctx, "plugins", &volume_controller.Config{
+		VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
+	})
+	if err != nil {
+		return err
+	}
+	defer pluginStorageCtrlRef.Release()
+
 	// HACK: set an environment variable to make the web plugin skip starting.
 	// HACK: in future we can pass this via some other kind of signal.
 	os.Setenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON", "true")
@@ -64,7 +76,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 		b.GetBus(),
 		b.GetWorldEngineID(),
 		b.GetPluginHostObjectKey(),
-		b.GetVolume().GetID(),
+		pluginVolumeID,
 		b.GetVolume().GetPeerID().String(),
 		b.GetPluginsStateRoot(),
 		b.GetPluginsDistRoot(),

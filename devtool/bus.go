@@ -62,6 +62,8 @@ type DevtoolBus struct {
 	sr *static.Resolver
 	// watch enables watching for changes
 	watch bool
+	// storageID is the storage engine id
+	storageID string
 	// worldEngineID is the world engine id for the devtool world
 	worldEngineID string
 	// engineBucketID is the bucket used for world engine state storage
@@ -283,6 +285,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		le:                  le,
 		sr:                  sr,
 		watch:               watch,
+		storageID:           storageID,
 		worldEngineID:       engineID,
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
@@ -475,6 +478,11 @@ func (d *DevtoolBus) GetWorldEngineID() string {
 	return d.worldEngineID
 }
 
+// GetStorageID returns the storage controller id.
+func (d *DevtoolBus) GetStorageID() string {
+	return d.storageID
+}
+
 // GetWorldEngine returns the world engine instance.
 func (d *DevtoolBus) GetWorldEngine() world.Engine {
 	return d.worldEngine
@@ -488,6 +496,20 @@ func (d *DevtoolBus) GetWorldState() world.WorldState {
 // GetPluginHostObjectKey returns the object key for the plugin host.
 func (d *DevtoolBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
+}
+
+// StartStorageVolume starts a storage volume.
+// The ID should be unique.
+func (d *DevtoolBus) StartStorageVolume(
+	ctx context.Context,
+	storageVolumeID string,
+	ctrlConf *volume_controller.Config,
+) (volume.Controller, directive.Reference, error) {
+	return storage_volume.ExecVolumeController(ctx, d.GetBus(), &storage_volume.Config{
+		StorageId:       d.storageID,
+		StorageVolumeId: storageVolumeID,
+		VolumeConfig:    ctrlConf,
+	})
 }
 
 // StartProjectController reads the config file & starts the project controller.

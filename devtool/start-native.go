@@ -5,7 +5,9 @@ package devtool
 import (
 	"context"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
+	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 )
 
 // ExecuteNativeProject starts the project as a native app.
@@ -33,13 +35,23 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	// write the banner
 	writeBanner()
 
+	// start the plugin storage volume
+	pluginVolumeID := bldr_plugin.PluginVolumeID
+	_, pluginStorageCtrlRef, err := b.StartStorageVolume(ctx, "plugins", &volume_controller.Config{
+		VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
+	})
+	if err != nil {
+		return err
+	}
+	defer pluginStorageCtrlRef.Release()
+
 	// build the plugin host controller
 	_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
 		ctx,
 		b.GetBus(),
 		b.GetWorldEngineID(),
 		b.GetPluginHostObjectKey(),
-		b.GetVolume().GetID(),
+		pluginVolumeID,
 		b.GetVolume().GetPeerID().String(),
 		b.GetPluginsStateRoot(),
 		b.GetPluginsDistRoot(),
