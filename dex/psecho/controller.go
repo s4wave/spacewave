@@ -368,10 +368,6 @@ func (c *Controller) HandleMountedStream(
 			mpid,
 		)
 	}
-	oo := ms.GetOpenOpts()
-	if !oo.Encrypted || !oo.Reliable {
-		return errors.New("expected stream to be encrypted and reliable")
-	}
 
 	// assert establish link to hold the link open
 	_, lnkRef, err := c.b.AddDirective(

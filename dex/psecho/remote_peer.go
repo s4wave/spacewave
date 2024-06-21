@@ -290,10 +290,7 @@ func (p *remotePeer) executeSyncSessionOnce(ctx context.Context) error {
 		syncProtocolID,
 		localPeerID, remotePeerID,
 		p.c.cc.GetTransportId(),
-		stream.OpenOpts{
-			Reliable:  true,
-			Encrypted: true,
-		},
+		stream.OpenOpts{},
 	)
 	if err != nil {
 		return err
