@@ -76,7 +76,7 @@
     "prettier": "^3.3.2",
     "pumpify": "^2.0.1",
     "rimraf": "^5.0.6",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.2",
     "unzip-crx-3": "^0.2.0",
     "vitest": "^1.6.0"
   },
@@ -84,12 +84,12 @@
     "@aptre/protobuf-es-lite": "^0.4.4",
     "@libp2p/logger": "^4.0.15",
     "console": "^0.7.2",
-    "electron": "^31.0.2",
+    "electron": "^31.1.0",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.32.13",
+    "starpc": "^0.32.14",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {
