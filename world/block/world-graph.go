@@ -149,7 +149,7 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 	// Returns ErrQuadNotExist if not exists.
 	err = t.graphHd.RemoveQuad(ctx, cq)
 	if err != nil {
-		if err == graph.ErrQuadNotExist {
+		if graph.IsQuadNotExist(err) {
 			return nil
 		}
 		return err
