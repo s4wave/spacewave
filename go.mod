@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/aperturerobotics/bifrost v0.34.0 // master
-	github.com/aperturerobotics/cayley v0.9.0 // latest
+	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
@@ -63,7 +63,7 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.16.10 // latest
+	github.com/aperturerobotics/common v0.16.12 // latest
 	github.com/aperturerobotics/controllerbus v0.46.4 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest

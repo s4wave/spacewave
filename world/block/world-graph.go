@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -145,8 +146,12 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 		return err
 	}
 
+	// Returns ErrQuadNotExist if not exists.
 	err = t.graphHd.RemoveQuad(ctx, cq)
 	if err != nil {
+		if err == graph.ErrQuadNotExist {
+			return nil
+		}
 		return err
 	}
 
@@ -155,6 +160,7 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 		ChangeType: WorldChangeType_WorldChange_GRAPH_DELETE,
 		Quad:       world.GraphQuadToQuad(q),
 	})
+
 	return err
 }
 
