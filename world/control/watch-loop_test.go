@@ -1,4 +1,4 @@
-package control
+package world_control_test
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 )
 
-// TestControlLoop tests the control loop and WaitForObjectRev.
-func TestControlLoop(t *testing.T) {
+// TestWatchLoop tests the control loop and WaitForObjectRev.
+func TestWatchLoop(t *testing.T) {
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
