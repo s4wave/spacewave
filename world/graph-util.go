@@ -88,7 +88,7 @@ func IteratePathWithKeys(
 	pathCb func(p *cayley.Path) (*cayley.Path, error),
 	valueCb func(objKey string) (ctnu bool, err error),
 ) error {
-	if valueCb == nil {
+	if valueCb == nil || len(entityKeys) == 0 {
 		return nil
 	}
 
@@ -131,13 +131,19 @@ func IteratePathWithKeys(
 	})
 }
 
-// CollectPathWithKeys collects the object keys for a given path.
+// CollectPathWithKeys collects the object keys for a given path starting at entityKeys.
+//
+// If the entityKeys list is empty, returns nil, nil.
 func CollectPathWithKeys(
 	ctx context.Context,
 	ws WorldStateGraph,
 	entityKeys []string,
 	pathCb func(p *cayley.Path) (*cayley.Path, error),
 ) ([]string, error) {
+	if len(entityKeys) == 0 {
+		return nil, nil
+	}
+
 	var output []string
 	seen := make(map[string]struct{})
 	err := IteratePathWithKeys(
