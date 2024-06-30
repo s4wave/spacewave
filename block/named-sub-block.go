@@ -1,18 +1,21 @@
 package block
 
-import "sort"
+import (
+	"slices"
+	"strings"
+)
 
 // SortNamedSubBlocks sorts a set of NamedSubBlock.
 func SortNamedSubBlocks[T NamedSubBlock](namedSubBlocks []T) {
-	sort.Slice(namedSubBlocks, func(i, j int) bool {
-		return namedSubBlocks[i].GetName() < namedSubBlocks[j].GetName()
+	slices.SortFunc(namedSubBlocks, func(a, b T) int {
+		return strings.Compare(a.GetName(), b.GetName())
 	})
 }
 
 // IsNamedSubBlocksSorted checks if the set of NamedSubBlock is sorted.
 func IsNamedSubBlocksSorted[T NamedSubBlock](namedSubBlocks []T) bool {
-	return sort.SliceIsSorted(namedSubBlocks, func(i, j int) bool {
-		return namedSubBlocks[i].GetName() < namedSubBlocks[j].GetName()
+	return slices.IsSortedFunc(namedSubBlocks, func(a, b T) int {
+		return strings.Compare(a.GetName(), b.GetName())
 	})
 }
 

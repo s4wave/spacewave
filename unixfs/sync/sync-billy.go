@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"sort"
 
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -169,7 +170,7 @@ func syncToBillyOnce(
 				return &fs.PathError{Op: "readdir", Path: outPath, Err: err}
 			}
 			// sort childNames
-			sort.Strings(childNames)
+			slices.Sort(childNames)
 			// we can check if the child exists via a sorted search
 			checkChildExists := func(name string) bool {
 				idx := sort.SearchStrings(childNames, name)

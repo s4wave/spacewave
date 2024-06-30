@@ -3,7 +3,7 @@ package kvtx_txcache
 import (
 	"bytes"
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/Workiva/go-datastructures/trie/ctrie"
 )
@@ -51,8 +51,8 @@ func (t *TXCache) scanPrefixSorted(ctx context.Context, prefix []byte, cb func(k
 			value: added.Value.([]byte),
 		})
 	}
-	sort.Slice(vals, func(i int, j int) bool {
-		return bytes.Compare(vals[i].key, vals[j].key) == -1
+	slices.SortFunc(vals, func(a, b scanVal) int {
+		return bytes.Compare(a.key, b.key)
 	})
 	for i, val := range vals {
 		if err := cb(val.key, val.value); err != nil {

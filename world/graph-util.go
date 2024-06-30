@@ -3,7 +3,7 @@ package world
 import (
 	"context"
 	"io"
-	"sort"
+	"slices"
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
@@ -153,6 +153,6 @@ func CollectPathWithKeys(
 			return true, nil
 		},
 	)
-	sort.Strings(output)
+	slices.Sort(output)
 	return output, err
 }

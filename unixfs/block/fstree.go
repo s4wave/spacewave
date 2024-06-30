@@ -3,6 +3,7 @@ package unixfs_block
 import (
 	"context"
 	"io/fs"
+	"slices"
 	"sort"
 	"time"
 
@@ -327,7 +328,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 	}
 
 	// all dirs are stored in one node, so we can do this:
-	sort.Strings(dirs)
+	slices.Sort(dirs)
 	skipBitset, skipIndexes, err := f.PreMkdir(dirs)
 	if err != nil {
 		return nil, err
@@ -389,7 +390,7 @@ func (f *FSTree) Remove(
 	}
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	var namesSorted []string
-	if len(names) <= 1 || sort.StringsAreSorted(names) {
+	if len(names) <= 1 || slices.IsSorted(names) {
 		namesSorted = names
 	} else {
 		namesSorted = make([]string, len(names))
