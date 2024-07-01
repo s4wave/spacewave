@@ -60,8 +60,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.34.2-0.20240628155945-18bc2b409ad4 h1:nmWuvzc/Lx/R+rjoNx98xNni+UlfnlHhTVXa4VUp4/s=
-github.com/aperturerobotics/bifrost v0.34.2-0.20240628155945-18bc2b409ad4/go.mod h1:R+0MayYGW/Ua+5IjkZNCtZ5z/60nxKtxo69d69xsaBk=
+github.com/aperturerobotics/bifrost v0.34.2-0.20240701203750-b8ae581a6737 h1:UNHfKRYsA8xkN9hiX4kp1C8D9FwMjmFPz2WEZ8f9q0U=
+github.com/aperturerobotics/bifrost v0.34.2-0.20240701203750-b8ae581a6737/go.mod h1:NXBZo5zmLFzCI1DjOoR3CejgtkPcnEnbaOFjUiiI7mM=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -94,8 +94,8 @@ github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go-lite v0.6.5 h1:AuPPcZ7ZaJe9ZYYC4gF7/5/Xbn9Mt9uXyV3+ADWy+Ys=
 github.com/aperturerobotics/protobuf-go-lite v0.6.5/go.mod h1:YTbfnUj3feSULhs8VgepAHFnF3wUc0CPj4jd2axy21I=
-github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10 h1:xtQ4K5XBgTSO47KbLYYEy9Y3HWLGeVNlbJXw1RfAXt4=
-github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10/go.mod h1:IWwvw/rjosC5aPDuEgzbRPNlZSHC4b4ABztoalIe59g=
+github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 h1:SsM9QsfSpyWQz9sZbZ1VrluJgXbiEFE7C7//aXoMHPQ=
+github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
 github.com/aperturerobotics/starpc v0.32.13 h1:Gpq+dbPHAuwQQLj8BqbJ4Q8QweGiFxKdNlUzAIUiPUc=
 github.com/aperturerobotics/starpc v0.32.13/go.mod h1:ToTY8p+eL3BP79JuX43EUGHoTtla3hH4lgbyPrGe74w=
 github.com/aperturerobotics/util v1.23.7 h1:DERV75zYLRn4BTS0vMFkitWJhUg7VGG5UyJq2Frf3iI=
