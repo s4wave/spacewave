@@ -5,13 +5,13 @@ go 1.22
 // This fork avoids importing net/http on wasm.
 replace nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.12-0.20240504231911-2358de657064 // aperture-1
 
-require github.com/aperturerobotics/common v0.16.10 // latest
+require github.com/aperturerobotics/common v0.16.12 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240621222422-9e527ea1d5da // master
+	github.com/aperturerobotics/hydra v0.0.0-20240701203841-aa0e29d50b24 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240621222507-ddbc7f7f2f54 // master
 )
 
@@ -31,8 +31,8 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.34.0 // master
-	github.com/aperturerobotics/cayley v0.9.0 // latest
+	github.com/aperturerobotics/bifrost v0.34.2-0.20240701203750-b8ae581a6737 // master
+	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
 )
@@ -97,7 +97,7 @@ replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.43.1-0.20240504081906-25e38f065e10 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 )
 
@@ -117,7 +117,7 @@ require (
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/webrtc/v4 v4.0.0-beta.20 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.45.0 // indirect
+	github.com/quic-go/quic-go v0.45.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zeebo/blake3 v0.2.3
