@@ -130,6 +130,15 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 		return err
 	}
 
+	// test ReadFile
+	readFileDat, err := unixfs.ReadFile(ctx, fhandle)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(readFileDat, testData) {
+		return errors.New("data from ReadFile does not match expected data")
+	}
+
 	// test renaming twice in a row
 	err = dirHandle.Rename(ctx, fsHandle, "renamed-2", ts)
 	if err != nil {

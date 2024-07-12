@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
-	"github.com/pkg/errors"
 )
 
 // IoFS is the set of interfaces FS implements.
@@ -182,9 +181,9 @@ func (f *FS) ReadFile(name string) ([]byte, error) {
 	if size == 0 {
 		return nil, nil
 	}
-	// cap size at something reasonable: 4GB
-	if size > 4e9 {
-		return nil, errors.Errorf("file size too large for ReadFile: %d", size)
+	// cap size at MaxReadFileSize
+	if size > unixfs.MaxReadFileSize {
+		return nil, unixfs.NewReadFileSizeTooLargeError(size)
 	}
 	data := make([]byte, size)
 	fileHandle := NewFSFile(f.ctx, h)

@@ -29,3 +29,4 @@ __debug_bin*
 *.wasm
 .aider*
 /.tools/
+*@*.local*

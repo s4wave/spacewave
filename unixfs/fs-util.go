@@ -12,6 +12,14 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// MaxReadFileSize is the maximum size for ReadFile operations (4GB)
+const MaxReadFileSize = 4 * 1024 * 1024 * 1024
+
+// NewReadFileSizeTooLargeError returns a standardized error for when a file is too large to be read.
+func NewReadFileSizeTooLargeError(size uint64) error {
+	return errors.Errorf("file size too large for ReadFile: %d bytes", size)
+}
+
 // ReaddirAllToFileInfo calls readdir and generates FileInfo objects.
 // If skip is set, skips N entries.
 // If limit is set, limits output to N entries.
@@ -211,4 +219,43 @@ func SetModTimestampWithPath(ctx context.Context, h *FSHandle, filepath string, 
 	defer ch.Release()
 
 	return ch.SetModTimestamp(ctx, mtime)
+}
+
+// ReadFile reads the named file and returns the contents.
+// A successful call returns err == nil, not err == EOF.
+// Because ReadFile reads the whole file, it does not treat an EOF from Read
+// as an error to be reported.
+func ReadFile(ctx context.Context, h *FSHandle) ([]byte, error) {
+	var size int64
+	if info, err := h.GetFileInfo(ctx); err == nil {
+		size = info.Size()
+	}
+	if size == 0 {
+		return nil, nil
+	}
+
+	// If a file claims a small size, read at least 512 bytes.
+	if size < 512 {
+		size = 512
+	} else if size > MaxReadFileSize {
+		return nil, NewReadFileSizeTooLargeError(uint64(size))
+	} else {
+		size++ // one byte for final read at EOF
+	}
+
+	data := make([]byte, 0, size)
+	for {
+		if len(data) >= cap(data) {
+			d := append(data[:cap(data)], 0)
+			data = d[:len(data)]
+		}
+		n, err := h.ReadAt(ctx, int64(len(data)), data[len(data):cap(data)])
+		data = data[:len(data)+int(n)]
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return data, err
+		}
+	}
 }
