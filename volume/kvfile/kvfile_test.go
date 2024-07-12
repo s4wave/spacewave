@@ -48,9 +48,15 @@ func TestKvfile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	vol, err := NewKVFile(ctx, le, &Config{
-		Verbose: true,
-	}, rdr)
+	vol, err := NewKVFile(
+		ctx,
+		le,
+		&Config{
+			Verbose: true,
+		},
+		rdr,
+		func() error { buf.Reset(); return nil },
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

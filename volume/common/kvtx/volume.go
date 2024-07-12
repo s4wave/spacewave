@@ -24,6 +24,8 @@ type Volume struct {
 	kvtxStore kvtx.Store
 	// kvKey is the underlying kvkey
 	kvKey *store_kvkey.KVKey
+	// closeFn is the close func, may be nil
+	closeFn func() error
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -48,11 +50,13 @@ func NewVolume(
 	conf *store_kvtx.Config,
 	noGenerateKey,
 	noWriteKey bool,
+	closeFn func() error,
 ) (*Volume, error) {
 	v := &Volume{
 		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
 		kvtxStore: store,
 		kvKey:     kvkey,
+		closeFn:   closeFn,
 	}
 
 	peerPriv, err := v.Store.LoadPeerPriv(ctx)
@@ -120,6 +124,9 @@ func (v *Volume) GetKvKey() *store_kvkey.KVKey {
 
 // Close closes the volume, returning any errors.
 func (v *Volume) Close() error {
+	if v.closeFn != nil {
+		return v.closeFn()
+	}
 	return nil
 }
 

@@ -31,6 +31,7 @@ func NewKVFile(
 	le *logrus.Entry,
 	conf *Config,
 	rdr *kvfile.Reader,
+	closeFn func() error,
 ) (*KVFile, error) {
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
@@ -50,5 +51,6 @@ func NewKVFile(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		true,
+		closeFn,
 	)
 }

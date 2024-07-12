@@ -315,7 +315,6 @@ func (it *kvtxIterator) fetchValue() ([]byte, error) {
 // Returns false if there is no next position.
 // this is intended to be called within performOp callback
 func (it *kvtxIterator) advance(cs *idb.Cursor) (bool, error) {
-
 	// clear the existing stored value if applicable
 	it.hasVal = false
 	it.value = nil

@@ -33,7 +33,6 @@ type Volume struct {
 	le   *logrus.Entry
 	b    bus.Bus
 	conf *Config
-	rels []func()
 
 	// stateXfrm is the state transformer
 	stateXfrm *block_transform.Transformer
@@ -187,22 +186,18 @@ func NewVolume(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		func() error {
+			for _, rel := range rels {
+				rel()
+			}
+			return nil
+		},
 	)
 	if err != nil {
 		return nil, err
 	}
 	v.Volume = bvol
-	v.rels = rels
 	return v, nil
-}
-
-// Close closes the volume, returning any errors.
-func (v *Volume) Close() error {
-	err := v.Volume.Close()
-	for _, rel := range v.rels {
-		rel()
-	}
-	return err
 }
 
 // _ is a type assertion

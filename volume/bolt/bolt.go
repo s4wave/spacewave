@@ -70,6 +70,7 @@ func NewBolt(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		store.GetDB().Close,
 	)
 }
 

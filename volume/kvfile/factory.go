@@ -34,6 +34,7 @@ func NewVolumeController(
 	b bus.Bus,
 	cc *Config,
 	rdr *kvfile.Reader,
+	closeFn func() error,
 ) (*vc.Controller, error) {
 	// Construct the volume controller.
 	return vc.NewController(
@@ -54,6 +55,7 @@ func NewVolumeController(
 				le,
 				cc,
 				rdr,
+				closeFn,
 			)
 		},
 	), nil
@@ -114,6 +116,7 @@ func (t *Factory) Construct(
 				le,
 				cc,
 				rdr,
+				f.Close,
 			)
 		},
 	), nil

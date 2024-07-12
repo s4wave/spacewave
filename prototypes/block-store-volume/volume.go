@@ -168,6 +168,10 @@ func NewEncryptedVolume(
 		storeConf,
 		noGenerateKey,
 		noWriteKey,
+		func() error {
+			headCursor.Release()
+			return nil
+		},
 	)
 }
 

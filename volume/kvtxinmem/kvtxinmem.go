@@ -46,6 +46,7 @@ func NewKVTxInmem(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		nil,
 	)
 }
 

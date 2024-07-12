@@ -58,5 +58,6 @@ func NewBadger(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		false,
+		store.GetDB().Close,
 	)
 }
