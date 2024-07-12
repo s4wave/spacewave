@@ -227,8 +227,7 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		nil,
 		false,
 	)
-	// engConf.Verbose = false
-	engConf.Verbose = true
+	// engConf.Verbose = true
 
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
