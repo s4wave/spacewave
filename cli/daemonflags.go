@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -150,40 +151,48 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 
 // BuildSingleVolume builds a single volume from the given flags.
 //
+// id is optional and specifies a prefix to use for the volume.
+//
 // baseVolCtrlConf can be nil
-func (a *DaemonArgs) BuildSingleVolume(baseVolCtrlConf *volume_controller.Config) config.Config {
+func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
 	if baseVolCtrlConf == nil {
 		baseVolCtrlConf = &volume_controller.Config{}
 	}
 	baseVolCtrlConf.VolumeIdAlias = append(baseVolCtrlConf.VolumeIdAlias, CLIVolumeIDAlias)
 
-	if a.RedisURL != "" {
-		return &volume_redis.Config{
-			Client: &store_kvtx_redis.ClientConfig{
-				Url: a.RedisURL,
-			},
-			VolumeConfig: baseVolCtrlConf,
-		}
-	}
+	id = strings.TrimSpace(id)
 
-	// Load defined badger databases
+	// Load defined badger database
 	for _, bdbi := range a.BadgerDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
 		}
 
+		dir := bdb
+		if id != "" {
+			dir = filepath.Join(dir, id)
+		}
+
 		return &volume_badger.Config{
-			Dir:          bdb,
+			Dir:          dir,
 			VolumeConfig: baseVolCtrlConf,
 		}
 	}
 
-	// Load defined bolt databases
+	// Load defined bolt database
 	for _, bdbi := range a.BoltDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
+		}
+
+		if id != "" {
+			dir := filepath.Dir(bdb)
+			fileName := filepath.Base(bdb)
+			ext := filepath.Ext(fileName)
+			nameWithoutExt := strings.TrimSuffix(fileName, ext)
+			bdb = filepath.Join(dir, nameWithoutExt+"-"+id+ext)
 		}
 
 		return &volume_bolt.Config{
@@ -194,6 +203,7 @@ func (a *DaemonArgs) BuildSingleVolume(baseVolCtrlConf *volume_controller.Config
 	}
 
 	if a.RedisURL != "" {
+		// TODO: respect "id" for redis
 		return &volume_redis.Config{
 			Client: &store_kvtx_redis.ClientConfig{
 				Url: a.RedisURL,
@@ -202,5 +212,6 @@ func (a *DaemonArgs) BuildSingleVolume(baseVolCtrlConf *volume_controller.Config
 		}
 	}
 
-	return &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose}
+	// fallback to in-mem
+	return &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose, VolumeConfig: baseVolCtrlConf}
 }
