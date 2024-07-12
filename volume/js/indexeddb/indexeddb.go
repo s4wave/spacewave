@@ -40,8 +40,7 @@ func NewIndexedDB(
 		storeName = "hydra"
 	}
 
-	var store skvtx.Store
-	store, err = sindexeddb.Open(
+	istore, err := sindexeddb.Open(
 		ctx,
 		conf.GetDatabaseName(),
 		storeName,
@@ -50,6 +49,7 @@ func NewIndexedDB(
 		return nil, err
 	}
 
+	var store skvtx.Store = istore
 	if conf.GetVerbose() {
 		store = kvtx_vlogger.NewVLogger(le, store)
 	}
@@ -62,5 +62,6 @@ func NewIndexedDB(
 		conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
+		istore.Close,
 	)
 }
