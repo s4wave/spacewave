@@ -57,7 +57,7 @@ func NewLookupController(
 		bucketHandleSetCtr: ccontainer.NewCContainer[*[]bucket.BucketHandle](nil),
 	}
 	if fallbackBlockStoreID := lc.conf.GetFallbackBlockStoreId(); fallbackBlockStoreID != "" {
-		lc.fallbackBlockStoreRc = refcount.NewRefCount[block_store.Store](
+		lc.fallbackBlockStoreRc = refcount.NewRefCount(
 			nil,
 			true,
 			nil,
