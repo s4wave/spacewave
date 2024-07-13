@@ -26,27 +26,40 @@ message PutOpts {
 
 // OverlayMode controls the mode for the block store overlay.
 enum OverlayMode {
-  // OverlayMode_DIRECT is the direct block store mode.
-  // reads and writes go to the upper store bypassing the lower block store.
-  OverlayMode_DIRECT = 0;
-  // OverlayMode_CACHE uses the upper store as a cache for the lower store.
-  // reads go to the upper store, then the lower store.
-  // writes go to both stores
-  // reads that miss the upper store are written back to the upper store
-  OverlayMode_CACHE = 1;
-  // OverlayMode_CACHE_LOWER uses the lower store as a cache for the upper store.
-  // reads go to the lower store, then the upper store.
-  // writes go to both stores
-  // reads that miss the lower store are written back to the lower store
-  OverlayMode_CACHE_LOWER = 2;
-  // OverlayMode_READ_CACHE uses the upper store as a read-through cache for the lower store.
-  // reads go to the upper store, then the lower store.
+  // UPPER_ONLY uses the upper store only for reads and writes.
+  // reads go to the upper store only.
   // writes go to the upper store only.
-  // reads that miss the upper store are written back to the upper store
-  OverlayMode_READ_CACHE = 3;
-  // OverlayMode_READ_CACHE_LOWER uses the lower store as a read-through cache for the upper store.
-  // reads go to the lower store, then the upper store.
-  // writes go to lower store only
-  // reads that miss the lower store are written back to the lower store
-  OverlayMode_READ_CACHE_LOWER = 4;
+  // removes go to the upper store only.
+  // the lower store is not used.
+  UPPER_ONLY = 0;
+  // LOWER_ONLY uses the lower store only for reads and writes.
+  // reads go to the lower store only.
+  // writes go to the lower store only.
+  // removes go to the lower store only.
+  // the upper store is not used.
+  LOWER_ONLY = 1;
+  // UPPER_CACHE uses the upper store as a cache for the lower store.
+  // reads go to the upper store first, then the lower store.
+  // writes go to both stores.
+  // removes go to both stores.
+  // reads from lower are written back to upper.
+  UPPER_CACHE = 2;
+  // LOWER_CACHE uses the lower store as a cache for the upper store.
+  // reads go to the lower store first, then the upper store.
+  // writes go to both stores.
+  // removes go to both stores.
+  // reads from upper are written back to lower.
+  LOWER_CACHE = 3;
+  // UPPER_READ_CACHE uses the upper store as a read-only cache for the lower store.
+  // reads go to the upper store first, then the lower store.
+  // writes go to the lower store only.
+  // removes go to the lower store only.
+  // reads from lower are not written back to upper.
+  UPPER_READ_CACHE = 4;
+  // LOWER_READ_CACHE uses the lower store as a read-only cache for the upper store.
+  // reads go to the lower store first, then the upper store.
+  // writes go to the upper store only.
+  // removes go to the upper store only.
+  // reads from upper are not written back to lower.
+  LOWER_READ_CACHE = 5;
 }

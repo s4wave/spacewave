@@ -19,61 +19,74 @@ export const protobufPackage = 'block'
  */
 export enum OverlayMode {
   /**
-   * OverlayMode_DIRECT is the direct block store mode.
-   * reads and writes go to the upper store bypassing the lower block store.
-   *
-   * @generated from enum value: OverlayMode_DIRECT = 0;
-   */
-  OverlayMode_DIRECT = 0,
-
-  /**
-   * OverlayMode_CACHE uses the upper store as a cache for the lower store.
-   * reads go to the upper store, then the lower store.
-   * writes go to both stores
-   * reads that miss the upper store are written back to the upper store
-   *
-   * @generated from enum value: OverlayMode_CACHE = 1;
-   */
-  OverlayMode_CACHE = 1,
-
-  /**
-   * OverlayMode_CACHE_LOWER uses the lower store as a cache for the upper store.
-   * reads go to the lower store, then the upper store.
-   * writes go to both stores
-   * reads that miss the lower store are written back to the lower store
-   *
-   * @generated from enum value: OverlayMode_CACHE_LOWER = 2;
-   */
-  OverlayMode_CACHE_LOWER = 2,
-
-  /**
-   * OverlayMode_READ_CACHE uses the upper store as a read-through cache for the lower store.
-   * reads go to the upper store, then the lower store.
+   * UPPER_ONLY uses the upper store only for reads and writes.
+   * reads go to the upper store only.
    * writes go to the upper store only.
-   * reads that miss the upper store are written back to the upper store
+   * the lower store is not used.
    *
-   * @generated from enum value: OverlayMode_READ_CACHE = 3;
+   * @generated from enum value: UPPER_ONLY = 0;
    */
-  OverlayMode_READ_CACHE = 3,
+  UPPER_ONLY = 0,
 
   /**
-   * OverlayMode_READ_CACHE_LOWER uses the lower store as a read-through cache for the upper store.
-   * reads go to the lower store, then the upper store.
-   * writes go to lower store only
-   * reads that miss the lower store are written back to the lower store
+   * LOWER_ONLY uses the lower store only for reads and writes.
+   * reads go to the lower store only.
+   * writes go to the lower store only.
+   * the upper store is not used.
    *
-   * @generated from enum value: OverlayMode_READ_CACHE_LOWER = 4;
+   * @generated from enum value: LOWER_ONLY = 1;
    */
-  OverlayMode_READ_CACHE_LOWER = 4,
+  LOWER_ONLY = 1,
+
+  /**
+   * UPPER_CACHE uses the upper store as a cache for the lower store.
+   * reads go to the upper store first, then the lower store.
+   * writes go to both stores.
+   * reads from lower are written back to upper.
+   *
+   * @generated from enum value: UPPER_CACHE = 2;
+   */
+  UPPER_CACHE = 2,
+
+  /**
+   * LOWER_CACHE uses the lower store as a cache for the upper store.
+   * reads go to the lower store first, then the upper store.
+   * writes go to both stores.
+   * reads from upper are written back to lower.
+   *
+   * @generated from enum value: LOWER_CACHE = 3;
+   */
+  LOWER_CACHE = 3,
+
+  /**
+   * UPPER_READ_CACHE uses the upper store as a read-only cache for the lower store.
+   * reads go to the upper store first, then the lower store.
+   * writes go to the lower store only.
+   * reads from lower are not written back to upper.
+   *
+   * @generated from enum value: UPPER_READ_CACHE = 4;
+   */
+  UPPER_READ_CACHE = 4,
+
+  /**
+   * LOWER_READ_CACHE uses the lower store as a read-only cache for the upper store.
+   * reads go to the lower store first, then the upper store.
+   * writes go to the upper store only.
+   * reads from upper are not written back to lower.
+   *
+   * @generated from enum value: LOWER_READ_CACHE = 5;
+   */
+  LOWER_READ_CACHE = 5,
 }
 
 // OverlayMode_Enum is the enum type for OverlayMode.
 export const OverlayMode_Enum = createEnumType('block.OverlayMode', [
-  { no: 0, name: 'OverlayMode_DIRECT' },
-  { no: 1, name: 'OverlayMode_CACHE' },
-  { no: 2, name: 'OverlayMode_CACHE_LOWER' },
-  { no: 3, name: 'OverlayMode_READ_CACHE' },
-  { no: 4, name: 'OverlayMode_READ_CACHE_LOWER' },
+  { no: 0, name: 'UPPER_ONLY' },
+  { no: 1, name: 'LOWER_ONLY' },
+  { no: 2, name: 'UPPER_CACHE' },
+  { no: 3, name: 'LOWER_CACHE' },
+  { no: 4, name: 'UPPER_READ_CACHE' },
+  { no: 5, name: 'LOWER_READ_CACHE' },
 ])
 
 /**

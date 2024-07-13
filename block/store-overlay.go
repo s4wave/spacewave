@@ -50,58 +50,27 @@ func (o *StoreOverlay) GetHashType() hash.HashType {
 	return o.lower.GetHashType()
 }
 
-// PutBlock puts a block into the store.
-// The ref should not be modified after return.
-// The second return value can optionally indicate if the block already existed.
-// If the hash type is unset, use the type from GetHashType().
-func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	cacheMode := func(lower, upper StoreOps) (*BlockRef, bool, error) {
-		ref, existed, err := upper.PutBlock(ctx, data, opts)
-		if err != nil {
-			return nil, false, err
-		}
-		lowerOpts := opts.CloneVT()
-		lowerOpts.ForceBlockRef = ref
-		_, lowerExisted, err := lower.PutBlock(ctx, data, lowerOpts)
-		if err != nil {
-			return nil, false, err
-		}
-		return ref, existed && lowerExisted, nil
-	}
-
-	switch o.mode {
-	default:
-		fallthrough
-	case OverlayMode_OverlayMode_DIRECT:
-		return o.upper.PutBlock(ctx, data, opts)
-	case OverlayMode_OverlayMode_CACHE:
-		return cacheMode(o.lower, o.upper)
-	case OverlayMode_OverlayMode_CACHE_LOWER:
-		return cacheMode(o.upper, o.lower)
-	case OverlayMode_OverlayMode_READ_CACHE:
-		return o.upper.PutBlock(ctx, data, opts)
-	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
-		return o.lower.PutBlock(ctx, data, opts)
-	}
-}
-
 // GetBlock gets a block with the given reference.
 // The ref should not be modified or retained by GetBlock.
 // Returns data, found, error.
 // Returns nil, false, nil if not found.
 // Note: the block may not be in the specified bucket.
 func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
-	cacheMode := func(lower, upper StoreOps) ([]byte, bool, error) {
-		data, found, err := upper.GetBlock(ctx, ref)
+	cacheMode := func(s1, s2 StoreOps, writeBack StoreOps) ([]byte, bool, error) {
+		// Try to get the block from the first store (s1)
+		data, found, err := s1.GetBlock(ctx, ref)
 		if err != nil || found {
 			return data, found, err
 		}
-		data, found, err = lower.GetBlock(ctx, ref)
+
+		// If not found in s1, try to get it from the second store (s2)
+		data, found, err = s2.GetBlock(ctx, ref)
 		if err != nil || !found {
 			return data, found, err
 		}
 
-		if o.ctx.Err() == nil {
+		// If found in s2 and writeback is enabled, write the block back to s1
+		if writeBack != nil && o.ctx.Err() == nil {
 			var writebackCtx context.Context
 			var writebackCtxCancel context.CancelFunc
 			if o.writebackTimeout > 0 {
@@ -111,14 +80,15 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 			}
 
 			go func() {
-				// writeback
+				// Prepare writeback options
 				putOpts := o.writebackPutOpts.CloneVT()
 				if putOpts == nil {
 					putOpts = &PutOpts{}
 				}
 				putOpts.ForceBlockRef = ref.Clone()
 
-				_, _, _ = upper.PutBlock(writebackCtx, data, putOpts)
+				// Perform writeback asynchronously
+				_, _, _ = writeBack.PutBlock(writebackCtx, data, putOpts)
 				writebackCtxCancel()
 			}()
 		}
@@ -128,16 +98,28 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 	switch o.mode {
 	default:
 		fallthrough
-	case OverlayMode_OverlayMode_DIRECT:
+	case OverlayMode_UPPER_ONLY:
+		// reads go to the upper store only.
 		return o.upper.GetBlock(ctx, ref)
-	case OverlayMode_OverlayMode_READ_CACHE:
-		fallthrough
-	case OverlayMode_OverlayMode_CACHE:
-		return cacheMode(o.lower, o.upper)
-	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
-		fallthrough
-	case OverlayMode_OverlayMode_CACHE_LOWER:
-		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_ONLY:
+		// reads go to the lower store only.
+		return o.lower.GetBlock(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are written back to upper.
+		return cacheMode(o.upper, o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		// reads go to the lower store first, then the upper store.
+		// reads from upper are written back to lower.
+		return cacheMode(o.lower, o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are not written back to upper.
+		return cacheMode(o.upper, o.lower, nil)
+	case OverlayMode_LOWER_READ_CACHE:
+		// reads go to the lower store first, then the upper store.
+		// reads from upper are not written back to lower.
+		return cacheMode(o.lower, o.upper, nil)
 	}
 }
 
@@ -145,27 +127,78 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
 func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
-	cacheMode := func(lower, upper StoreOps) (bool, error) {
-		found, err := upper.GetBlockExists(ctx, ref)
+	cacheMode := func(primary, secondary StoreOps) (bool, error) {
+		found, err := primary.GetBlockExists(ctx, ref)
 		if err != nil || found {
 			return found, err
 		}
-		return lower.GetBlockExists(ctx, ref)
+		return secondary.GetBlockExists(ctx, ref)
 	}
 
 	switch o.mode {
 	default:
 		fallthrough
-	case OverlayMode_OverlayMode_DIRECT:
+	case OverlayMode_UPPER_ONLY:
+		// reads go to the upper store only.
 		return o.upper.GetBlockExists(ctx, ref)
-	case OverlayMode_OverlayMode_READ_CACHE:
-		fallthrough
-	case OverlayMode_OverlayMode_CACHE:
-		return cacheMode(o.lower, o.upper)
-	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
-		fallthrough
-	case OverlayMode_OverlayMode_CACHE_LOWER:
+	case OverlayMode_LOWER_ONLY:
+		// reads go to the lower store only.
+		return o.lower.GetBlockExists(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		// reads go to the upper store first, then the lower store.
 		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_CACHE:
+		// reads go to the lower store first, then the upper store.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_UPPER_READ_CACHE:
+		// reads go to the upper store first, then the lower store.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_READ_CACHE:
+		// reads go to the lower store first, then the upper store.
+		return cacheMode(o.lower, o.upper)
+	}
+}
+
+// PutBlock puts a block into the store.
+// The ref should not be modified after return.
+// The second return value can optionally indicate if the block already existed.
+// If the hash type is unset, use the type from GetHashType().
+func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
+	cacheMode := func(s1, s2 StoreOps) (*BlockRef, bool, error) {
+		ref, existed, err := s1.PutBlock(ctx, data, opts)
+		if err != nil {
+			return nil, false, err
+		}
+		lowerOpts := opts.CloneVT()
+		lowerOpts.ForceBlockRef = ref
+		_, lowerExisted, err := s2.PutBlock(ctx, data, lowerOpts)
+		if err != nil {
+			return nil, false, err
+		}
+		return ref, existed && lowerExisted, nil
+	}
+
+	switch o.mode {
+	default:
+		fallthrough
+	case OverlayMode_UPPER_ONLY:
+		// writes go to the upper store only.
+		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_LOWER_ONLY:
+		// writes go to the lower store only.
+		return o.lower.PutBlock(ctx, data, opts)
+	case OverlayMode_UPPER_CACHE:
+		// writes go to both stores.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		// writes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		// writes go to the lower store only.
+		return o.lower.PutBlock(ctx, data, opts)
+	case OverlayMode_LOWER_READ_CACHE:
+		// writes go to the upper store only.
+		return o.upper.PutBlock(ctx, data, opts)
 	}
 }
 
@@ -173,9 +206,9 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
 func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
-	cacheMode := func(lower, upper StoreOps) error {
-		uerr := upper.RmBlock(ctx, ref)
-		lerr := lower.RmBlock(ctx, ref)
+	cacheMode := func(primary, secondary StoreOps) error {
+		uerr := primary.RmBlock(ctx, ref)
+		lerr := secondary.RmBlock(ctx, ref)
 		if uerr != nil {
 			return uerr
 		}
@@ -185,16 +218,24 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	switch o.mode {
 	default:
 		fallthrough
-	case OverlayMode_OverlayMode_DIRECT:
+	case OverlayMode_UPPER_ONLY:
+		// removes go to the upper store only.
 		return o.upper.RmBlock(ctx, ref)
-	case OverlayMode_OverlayMode_CACHE:
-		return cacheMode(o.lower, o.upper)
-	case OverlayMode_OverlayMode_CACHE_LOWER:
-		return cacheMode(o.upper, o.lower)
-	case OverlayMode_OverlayMode_READ_CACHE:
-		return o.upper.RmBlock(ctx, ref)
-	case OverlayMode_OverlayMode_READ_CACHE_LOWER:
+	case OverlayMode_LOWER_ONLY:
+		// removes go to the lower store only.
 		return o.lower.RmBlock(ctx, ref)
+	case OverlayMode_UPPER_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_READ_CACHE:
+		// removes go to the lower store only.
+		return o.lower.RmBlock(ctx, ref)
+	case OverlayMode_LOWER_READ_CACHE:
+		// removes go to the upper store only.
+		return o.upper.RmBlock(ctx, ref)
 	}
 }
 

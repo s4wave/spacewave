@@ -131,7 +131,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		defer blkStoreRef.Release()
 
 		overlayMode := c.config.GetBlockStoreOverlayMode()
-		if overlayMode == block.OverlayMode_OverlayMode_DIRECT {
+		if overlayMode == block.OverlayMode_LOWER_ONLY {
 			v = volume.NewVolumeBlockStore(v, blkStore)
 		} else {
 			writebackTimeoutDur, err := c.config.ParseBlockStoreWritebackTimeoutDur()

@@ -19,46 +19,55 @@ import (
 type OverlayMode int32
 
 const (
-	// OverlayMode_DIRECT is the direct block store mode.
-	// reads and writes go to the upper store bypassing the lower block store.
-	OverlayMode_OverlayMode_DIRECT OverlayMode = 0
-	// OverlayMode_CACHE uses the upper store as a cache for the lower store.
-	// reads go to the upper store, then the lower store.
-	// writes go to both stores
-	// reads that miss the upper store are written back to the upper store
-	OverlayMode_OverlayMode_CACHE OverlayMode = 1
-	// OverlayMode_CACHE_LOWER uses the lower store as a cache for the upper store.
-	// reads go to the lower store, then the upper store.
-	// writes go to both stores
-	// reads that miss the lower store are written back to the lower store
-	OverlayMode_OverlayMode_CACHE_LOWER OverlayMode = 2
-	// OverlayMode_READ_CACHE uses the upper store as a read-through cache for the lower store.
-	// reads go to the upper store, then the lower store.
+	// UPPER_ONLY uses the upper store only for reads and writes.
+	// reads go to the upper store only.
 	// writes go to the upper store only.
-	// reads that miss the upper store are written back to the upper store
-	OverlayMode_OverlayMode_READ_CACHE OverlayMode = 3
-	// OverlayMode_READ_CACHE_LOWER uses the lower store as a read-through cache for the upper store.
-	// reads go to the lower store, then the upper store.
-	// writes go to lower store only
-	// reads that miss the lower store are written back to the lower store
-	OverlayMode_OverlayMode_READ_CACHE_LOWER OverlayMode = 4
+	// the lower store is not used.
+	OverlayMode_UPPER_ONLY OverlayMode = 0
+	// LOWER_ONLY uses the lower store only for reads and writes.
+	// reads go to the lower store only.
+	// writes go to the lower store only.
+	// the upper store is not used.
+	OverlayMode_LOWER_ONLY OverlayMode = 1
+	// UPPER_CACHE uses the upper store as a cache for the lower store.
+	// reads go to the upper store first, then the lower store.
+	// writes go to both stores.
+	// reads from lower are written back to upper.
+	OverlayMode_UPPER_CACHE OverlayMode = 2
+	// LOWER_CACHE uses the lower store as a cache for the upper store.
+	// reads go to the lower store first, then the upper store.
+	// writes go to both stores.
+	// reads from upper are written back to lower.
+	OverlayMode_LOWER_CACHE OverlayMode = 3
+	// UPPER_READ_CACHE uses the upper store as a read-only cache for the lower store.
+	// reads go to the upper store first, then the lower store.
+	// writes go to the lower store only.
+	// reads from lower are not written back to upper.
+	OverlayMode_UPPER_READ_CACHE OverlayMode = 4
+	// LOWER_READ_CACHE uses the lower store as a read-only cache for the upper store.
+	// reads go to the lower store first, then the upper store.
+	// writes go to the upper store only.
+	// reads from upper are not written back to lower.
+	OverlayMode_LOWER_READ_CACHE OverlayMode = 5
 )
 
 // Enum value maps for OverlayMode.
 var (
 	OverlayMode_name = map[int32]string{
-		0: "OverlayMode_DIRECT",
-		1: "OverlayMode_CACHE",
-		2: "OverlayMode_CACHE_LOWER",
-		3: "OverlayMode_READ_CACHE",
-		4: "OverlayMode_READ_CACHE_LOWER",
+		0: "UPPER_ONLY",
+		1: "LOWER_ONLY",
+		2: "UPPER_CACHE",
+		3: "LOWER_CACHE",
+		4: "UPPER_READ_CACHE",
+		5: "LOWER_READ_CACHE",
 	}
 	OverlayMode_value = map[string]int32{
-		"OverlayMode_DIRECT":           0,
-		"OverlayMode_CACHE":            1,
-		"OverlayMode_CACHE_LOWER":      2,
-		"OverlayMode_READ_CACHE":       3,
-		"OverlayMode_READ_CACHE_LOWER": 4,
+		"UPPER_ONLY":       0,
+		"LOWER_ONLY":       1,
+		"UPPER_CACHE":      2,
+		"LOWER_CACHE":      3,
+		"UPPER_READ_CACHE": 4,
+		"LOWER_READ_CACHE": 5,
 	}
 )
 
