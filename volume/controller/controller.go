@@ -148,13 +148,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, overlayMode.String())
 	}
 
-	le.Info("volume ready")
-	c.volume.SetValue(&volumeCtxPair{
-		ctx: volCtx,
-		vol: v,
-	})
-	c.bucketHandles.SetContext(ctx, true)
-
 	// load the peer to the bus
 	if !c.config.GetDisablePeer() {
 		peerWithPriv, err := v.GetPeer(ctx, true)
@@ -170,6 +163,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 			defer peerCtrlRel()
 		}
 	}
+
+	le.Info("volume ready")
+	c.volume.SetValue(&volumeCtxPair{
+		ctx: volCtx,
+		vol: v,
+	})
+	c.bucketHandles.SetContext(ctx, true)
 
 	select {
 	case <-ctx.Done():
