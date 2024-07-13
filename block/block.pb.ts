@@ -22,6 +22,7 @@ export enum OverlayMode {
    * UPPER_ONLY uses the upper store only for reads and writes.
    * reads go to the upper store only.
    * writes go to the upper store only.
+   * removes go to the upper store only.
    * the lower store is not used.
    *
    * @generated from enum value: UPPER_ONLY = 0;
@@ -32,6 +33,7 @@ export enum OverlayMode {
    * LOWER_ONLY uses the lower store only for reads and writes.
    * reads go to the lower store only.
    * writes go to the lower store only.
+   * removes go to the lower store only.
    * the upper store is not used.
    *
    * @generated from enum value: LOWER_ONLY = 1;
@@ -42,6 +44,7 @@ export enum OverlayMode {
    * UPPER_CACHE uses the upper store as a cache for the lower store.
    * reads go to the upper store first, then the lower store.
    * writes go to both stores.
+   * removes go to both stores.
    * reads from lower are written back to upper.
    *
    * @generated from enum value: UPPER_CACHE = 2;
@@ -52,6 +55,7 @@ export enum OverlayMode {
    * LOWER_CACHE uses the lower store as a cache for the upper store.
    * reads go to the lower store first, then the upper store.
    * writes go to both stores.
+   * removes go to both stores.
    * reads from upper are written back to lower.
    *
    * @generated from enum value: LOWER_CACHE = 3;
@@ -62,6 +66,7 @@ export enum OverlayMode {
    * UPPER_READ_CACHE uses the upper store as a read-only cache for the lower store.
    * reads go to the upper store first, then the lower store.
    * writes go to the lower store only.
+   * removes go to the lower store only.
    * reads from lower are not written back to upper.
    *
    * @generated from enum value: UPPER_READ_CACHE = 4;
@@ -72,11 +77,34 @@ export enum OverlayMode {
    * LOWER_READ_CACHE uses the lower store as a read-only cache for the upper store.
    * reads go to the lower store first, then the upper store.
    * writes go to the upper store only.
+   * removes go to the upper store only.
    * reads from upper are not written back to lower.
    *
    * @generated from enum value: LOWER_READ_CACHE = 5;
    */
   LOWER_READ_CACHE = 5,
+
+  /**
+   * UPPER_WRITE_CACHE uses the upper store as a write cache for the read-only lower store.
+   * reads go to the upper store first, then the lower store.
+   * writes go to the upper store only.
+   * removes go to the upper store only.
+   * reads from lower are not written back to upper.
+   *
+   * @generated from enum value: UPPER_WRITE_CACHE = 6;
+   */
+  UPPER_WRITE_CACHE = 6,
+
+  /**
+   * UPPER_WRITE_CACHE uses the lower store as a write cache for the read-only upper store.
+   * reads go to the lower store first, then the upper store.
+   * writes go to the lower store only.
+   * removes go to the lower store only.
+   * reads from upper are not written back to lower.
+   *
+   * @generated from enum value: LOWER_WRITE_CACHE = 7;
+   */
+  LOWER_WRITE_CACHE = 7,
 }
 
 // OverlayMode_Enum is the enum type for OverlayMode.
@@ -87,6 +115,8 @@ export const OverlayMode_Enum = createEnumType('block.OverlayMode', [
   { no: 3, name: 'LOWER_CACHE' },
   { no: 4, name: 'UPPER_READ_CACHE' },
   { no: 5, name: 'LOWER_READ_CACHE' },
+  { no: 6, name: 'UPPER_WRITE_CACHE' },
+  { no: 7, name: 'LOWER_WRITE_CACHE' },
 ])
 
 /**

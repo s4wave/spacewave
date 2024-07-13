@@ -26,6 +26,8 @@ func TestBlockStoreOverlay(t *testing.T) {
 		block.OverlayMode_LOWER_CACHE,
 		block.OverlayMode_UPPER_READ_CACHE,
 		block.OverlayMode_LOWER_READ_CACHE,
+		block.OverlayMode_UPPER_WRITE_CACHE,
+		block.OverlayMode_LOWER_WRITE_CACHE,
 	}
 
 	// For each test:
@@ -95,6 +97,7 @@ func TestBlockStoreOverlay(t *testing.T) {
 			}
 			defer overlayStoreRef.Release()
 
+			// Run generic tests
 			if err := block_store_test.TestAll(ctx, overlayStore, time.Millisecond*100); err != nil {
 				t.Fatal(err.Error())
 			}

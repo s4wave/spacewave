@@ -120,6 +120,14 @@ func (o *StoreOverlay) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, boo
 		// reads go to the lower store first, then the upper store.
 		// reads from upper are not written back to lower.
 		return cacheMode(o.lower, o.upper, nil)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// reads go to the upper store first, then the lower store.
+		// reads from lower are not written back to upper.
+		return cacheMode(o.upper, o.lower, nil)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// reads go to the lower store first, then the upper store.
+		// reads from upper are not written back to lower.
+		return cacheMode(o.lower, o.upper, nil)
 	}
 }
 
@@ -154,6 +162,9 @@ func (o *StoreOverlay) GetBlockExists(ctx context.Context, ref *BlockRef) (bool,
 		// reads go to the upper store first, then the lower store.
 		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_READ_CACHE:
+		// reads go to the lower store first, then the upper store.
+		return cacheMode(o.lower, o.upper)
+	case OverlayMode_LOWER_WRITE_CACHE:
 		// reads go to the lower store first, then the upper store.
 		return cacheMode(o.lower, o.upper)
 	}
@@ -199,6 +210,12 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	case OverlayMode_LOWER_READ_CACHE:
 		// writes go to the upper store only.
 		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// writes go to the upper store only.
+		return o.upper.PutBlock(ctx, data, opts)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// writes go to the lower store only.
+		return o.lower.PutBlock(ctx, data, opts)
 	}
 }
 
@@ -226,16 +243,22 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 		return o.lower.RmBlock(ctx, ref)
 	case OverlayMode_UPPER_CACHE:
 		// removes go to both stores.
-		return cacheMode(o.lower, o.upper)
+		return cacheMode(o.upper, o.lower)
 	case OverlayMode_LOWER_CACHE:
 		// removes go to both stores.
-		return cacheMode(o.upper, o.lower)
+		return cacheMode(o.lower, o.upper)
 	case OverlayMode_UPPER_READ_CACHE:
-		// removes go to the lower store only.
-		return o.lower.RmBlock(ctx, ref)
+		// removes go to both stores.
+		return cacheMode(o.lower, o.upper)
 	case OverlayMode_LOWER_READ_CACHE:
-		// removes go to the upper store only.
-		return o.upper.RmBlock(ctx, ref)
+		// removes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_UPPER_WRITE_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.upper, o.lower)
+	case OverlayMode_LOWER_WRITE_CACHE:
+		// removes go to both stores.
+		return cacheMode(o.lower, o.upper)
 	}
 }
 
