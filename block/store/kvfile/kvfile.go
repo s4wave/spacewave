@@ -7,7 +7,10 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
+	block_store_controller "github.com/aperturerobotics/hydra/block/store/controller"
+	block_store_vlogger "github.com/aperturerobotics/hydra/block/store/vlogger"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
+	"github.com/sirupsen/logrus"
 )
 
 // KvfileBlock is a read-only block store on top of a kvfile.
@@ -22,6 +25,37 @@ type KvfileBlock struct {
 // hashType can be 0 to use a default value.
 func NewKvfileBlock(ctx context.Context, kvkey *store_kvkey.KVKey, store *kvfile.Reader) *KvfileBlock {
 	return &KvfileBlock{ctx: ctx, kvkey: kvkey, store: store}
+}
+
+// NewBlockStoreBuilder constructs a new block store builder from a file open callback.
+//
+// le can be nil to disable logging
+func NewBlockStoreBuilder(
+	le *logrus.Entry,
+	blockStoreID string,
+	kvkey *store_kvkey.KVKey,
+	openFile func() (kvfile.FileReaderAt, error),
+	verbose bool,
+) block_store_controller.BlockStoreBuilder {
+	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+		fd, err := openFile()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		rdr, err := kvfile.BuildReaderWithFile(fd)
+		if err != nil {
+			_ = fd.Close()
+			return nil, nil, err
+		}
+
+		kvfileBlock := NewKvfileBlock(ctx, kvkey, rdr)
+		var blockStore block_store.Store = block_store.NewStore(blockStoreID, kvfileBlock)
+		if verbose {
+			blockStore = block_store_vlogger.NewVLoggerStore(le, blockStore)
+		}
+		return blockStore, func() { _ = fd.Close() }, nil
+	}
 }
 
 // GetHashType returns the preferred hash type for the store.
