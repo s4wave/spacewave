@@ -340,10 +340,10 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
-"@libp2p/interface@^1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.6.0.tgz#3198e81fabe1ed5ba2421ecbd0cbeec0a75e8317"
-  integrity sha512-PqcWA/wQFwk8bcevwUez5KYd0FKhKrOJOfKy+qGzDnKsPN3c0W6m/yiYXE7VJ6rAynL9ITxRddub3hEktthVCg==
+"@libp2p/interface@^1.6.1":
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.6.1.tgz#dc8f1a49da7ee81cd068e872bde3445c3b631d45"
+  integrity sha512-bpkIYTvZhGGc/ajITKvgFpaP8UtPWoSj+xHVrj6zyAN8U/cAqN0IQQt4a7daJr5VZa8B86i4d1iccdG42/mz+g==
   dependencies:
     "@multiformats/multiaddr" "^12.2.3"
     it-pushable "^3.2.3"
@@ -363,12 +363,12 @@
     interface-datastore "^8.2.11"
     multiformats "^13.1.0"
 
-"@libp2p/logger@^4.0.16":
-  version "4.0.16"
-  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.16.tgz#a513dfed7922237ee16114b988a62e0b5aec9502"
-  integrity sha512-yk+vL8QX7WoTwcfjDghvA3OZjwqiM4/VHxhr6kXfs691nE7czgdCbnBEJOwgfbR8IJpy39z9BDstoACMNmNEWQ==
+"@libp2p/logger@^4.0.17":
+  version "4.0.17"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.17.tgz#1ae663bb2dec3c7e6b29d2195756f64e5e77d939"
+  integrity sha512-NPGN27uOXFGuKkxnX39InMvxS0lMenq6/aFqQHN1N0f0S3LaG9RuTcz/VE3qyO1Ik1aAockR6qqCwbfFxJuO0g==
   dependencies:
-    "@libp2p/interface" "^1.6.0"
+    "@libp2p/interface" "^1.6.1"
     "@multiformats/multiaddr" "^12.2.3"
     debug "^4.3.4"
     interface-datastore "^8.2.11"
@@ -2228,10 +2228,10 @@ prelude-ls@^1.2.1:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
-prettier@^3.3.2:
-  version "3.3.2"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.3.2.tgz#03ff86dc7c835f2d2559ee76876a3914cec4a90a"
-  integrity sha512-rAVeHYMcv8ATV5d508CFdn+8/pHPpXeIid1DdrPwXnaAdH7cqjVbpJaT5eq4yRAFU/lsbwYwSF/n5iNrdJHPQA==
+prettier@^3.3.3:
+  version "3.3.3"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.3.3.tgz#30c54fe0be0d8d12e6ae61dbb10109ea00d53105"
+  integrity sha512-i2tDNA0O5IrMO757lfrdQZCc2jPNDVntV0m/+4whiDfWaTKfMNgR7Qz0NAeGz/nRqF4m5/6CLzbP4/liHt12Ew==
 
 process-nextick-args@~2.0.0:
   version "2.0.1"
