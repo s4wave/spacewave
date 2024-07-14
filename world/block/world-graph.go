@@ -169,8 +169,11 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	if !t.write {
 		return tx.ErrNotWrite
 	}
+	if objKey == "" {
+		return nil
+	}
 
-	value := quad.IRI(objKey)
+	value := world.KeyToGraphValue(objKey)
 	valueStr := value.String()
 
 	// find all matching quads where subject == value

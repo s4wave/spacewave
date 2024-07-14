@@ -57,6 +57,116 @@ func TestWorldEngine(t *testing.T) {
 	t.Log("tests successful")
 }
 
+// TestWorldState_DeleteObject tests the DeleteObject functionality
+func TestWorldState_DeleteObject(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create a test object
+	objKey1 := "test-obj1"
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	_, err = ws.CreateObject(ctx, objKey1, oref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey2 := "test-obj2"
+	_, err = ws.CreateObject(ctx, objKey2, oref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Add some graph quads related to the object
+	err = ws.SetGraphQuad(ctx, world.NewGraphQuad(
+		world.KeyToGraphValue(objKey1).String(),
+		"<predicate1>",
+		world.KeyToGraphValue(objKey2).String(),
+		"",
+	))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	err = ws.SetGraphQuad(ctx, world.NewGraphQuad(
+		world.KeyToGraphValue(objKey2).String(),
+		"<predicate2>",
+		world.KeyToGraphValue(objKey1).String(),
+		"",
+	))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Commit the changes
+	err = ws.Commit(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Delete the object
+	deleted, err := ws.DeleteObject(ctx, objKey1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.FailNow()
+	}
+
+	// Commit the deletion
+	err = ws.Commit(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Verify that the object no longer exists
+	_, err = world.MustGetObject(ctx, ws, objKey1)
+	if err == nil {
+		t.Fatal("Expected error when getting deleted object, but got nil")
+	}
+	if !errors.Is(err, world.ErrObjectNotFound) {
+		t.Fatalf("Expected ErrObjectNotFound, but got: %v", err)
+	}
+
+	// Verify that the quads related to the object are deleted
+	valueStr := world.KeyToGraphValue(objKey1).String()
+
+	// find all matching quads where subject == value
+	subjQuads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(valueStr, "", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// find all matching quads where object == value
+	objQuads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad("", "", valueStr, ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if len(subjQuads) != 0 || len(objQuads) != 0 {
+		t.Fatalf("expected DeleteGraphObject to delete quads for the object but got %d", len(subjQuads)+len(objQuads))
+	}
+
+	t.Log("DeleteObject test successful")
+}
+
 // TestWorldEngine_Fork tests forking the block-backed world state.
 //
 // Applies the result to the original WorldState & checks.

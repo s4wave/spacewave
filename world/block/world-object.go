@@ -3,7 +3,6 @@ package world_block
 import (
 	"context"
 
-	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
@@ -76,6 +75,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 
 	ot := t.objTree
 	k := t.buildObjectKey(key)
+
 	objState, found, err := t.GetObject(ctx, key)
 	if err != nil {
 		if err != world.ErrObjectNotFound {
@@ -85,21 +85,26 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	if !found {
 		return false, nil
 	}
+
 	objs, ok := objState.(*ObjectState)
 	if !ok {
 		return false, block.ErrUnexpectedType
 	}
 	nbcs := objs.bcs
 
-	err = t.DeleteGraphObject(ctx, quad.IRI(key).String())
+	// delete any graph links with the object as subject or object
+	err = t.DeleteGraphObject(ctx, key)
 	if err != nil {
 		return true, err
 	}
 
+	// delete the object
 	err = ot.Delete(ctx, k)
 	if err != nil {
 		return true, err
 	}
+
+	// update the changelog
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
 		Key:        key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_DELETE,
@@ -107,7 +112,9 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	if err != nil {
 		return false, err
 	}
+	// changeBcs may be nil here but this is checked in SetRef.
 	changeBcs.SetRef(7, nbcs)
+
 	// success
 	return true, nil
 }
