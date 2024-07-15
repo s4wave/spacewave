@@ -279,7 +279,7 @@ func (b *Blob) AppendData(
 ) error {
 	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
-		hwm = rawHighWaterMark
+		hwm = DefRawHighWaterMark
 	}
 
 	oldLen := b.GetTotalSize()
@@ -384,7 +384,7 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 
 	hwm := blobOpts.GetRawHighWaterMark()
 	if hwm == 0 {
-		hwm = rawHighWaterMark
+		hwm = DefRawHighWaterMark
 	}
 
 	if b.GetBlobType() == BlobType_BlobType_RAW {

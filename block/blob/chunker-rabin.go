@@ -54,10 +54,10 @@ func buildChunkIndexRabin(
 	chkSet := ci.GetChunkSet(bcs)
 	minChunkSize, maxChunkSize := rabinArgs.GetChunkingMinSize(), rabinArgs.GetChunkingMaxSize()
 	if minChunkSize == 0 {
-		minChunkSize = defChunkingMinSize
+		minChunkSize = DefChunkingMinSize
 	}
 	if maxChunkSize == 0 {
-		maxChunkSize = defChunkingMaxSize
+		maxChunkSize = DefChunkingMaxSize
 	}
 	if maxChunkSize <= minChunkSize {
 		maxChunkSize = minChunkSize + 1

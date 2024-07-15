@@ -167,7 +167,7 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 
 	// truncate to chunked blob with several chunks
-	truncateSize := int(rawHighWaterMark + 10)
+	truncateSize := int(DefRawHighWaterMark + 10)
 	if err := b1.Truncate(ctx, bcs, nil, int64(truncateSize)); err != nil {
 		t.Fatal(err.Error())
 	}

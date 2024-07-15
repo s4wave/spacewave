@@ -10,13 +10,13 @@ import (
 
 const (
 	// defChunkingMinSize is the default chunk min size.
-	defChunkingMinSize = 2048 * 125 // 256KB
+	DefChunkingMinSize = 2048 * 125 // 256KB
 	// defChunkingMaxSize is the default chunk max size.
 	// most systems have a max block size of 1MiB: use 786KB
-	defChunkingMaxSize = 4096 * (64 * 3) // 786432 bytes or ~786KB
-	// rawHighWaterMark is the default high water mark for a raw blob.
+	DefChunkingMaxSize = 4096 * (64 * 3) // 786432 bytes or ~786KB
+	// DefRawHighWaterMark is the default high water mark for a raw blob.
 	// define this to be the max size of a single chunk
-	rawHighWaterMark = defChunkingMaxSize
+	DefRawHighWaterMark = DefChunkingMaxSize
 )
 
 // NewRawBlob constructs a new Raw blob.
@@ -42,7 +42,7 @@ func BuildBlob(
 ) (*Blob, error) {
 	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
-		hwm = rawHighWaterMark
+		hwm = DefRawHighWaterMark
 	}
 
 	if dataLen <= int64(hwm) {
@@ -83,7 +83,7 @@ func BuildBlobWithReader(
 ) (*Blob, error) {
 	hwm := opts.GetRawHighWaterMark()
 	if hwm == 0 {
-		hwm = rawHighWaterMark
+		hwm = DefRawHighWaterMark
 	}
 
 	// Read at least the high water mark from the reader first.

@@ -87,7 +87,7 @@ func TestBuildBlobWithReader(t *testing.T) {
 	_, bcs := cs.BuildTransactionAtRef(nil, nil)
 	builtBlob, err := BuildBlobWithReader(
 		ctx,
-		io.LimitReader(buildReader(), rawHighWaterMark-2),
+		io.LimitReader(buildReader(), DefRawHighWaterMark-2),
 		bcs,
 		nil,
 	)
@@ -99,7 +99,7 @@ func TestBuildBlobWithReader(t *testing.T) {
 	}
 
 	// Test with data more than high water mark
-	chunkedData := make([]byte, rawHighWaterMark*2)
+	chunkedData := make([]byte, DefRawHighWaterMark*2)
 	if _, err := io.ReadAtLeast(buildReader(), chunkedData, len(chunkedData)); err != nil {
 		t.Fatal(err.Error())
 	}
