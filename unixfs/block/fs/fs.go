@@ -65,6 +65,11 @@ func (f *FS) GetContext() context.Context {
 	return f.ctx
 }
 
+// GetBucketCursor returns the lookup cursor used intetrnally.
+func (f *FS) GetBucketCursor() *bucket_lookup.Cursor {
+	return f.bls
+}
+
 // CheckReleased checks if the fscursor is released without locking anything.
 func (f *FS) CheckReleased() bool {
 	return f.isReleased.Load()
