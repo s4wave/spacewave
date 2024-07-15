@@ -143,7 +143,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 				writebackTimeoutDur = time.Second * 30
 			}
 			writebackPutOpts := c.config.GetBlockStoreWritebackPutOpts()
-			v = volume.NewVolumeBlockStore(v, block.NewOverlay(ctx, v, blkStore, overlayMode, writebackTimeoutDur, writebackPutOpts))
+			v = volume.NewVolumeBlockStore(
+				v,
+				block.NewOverlay(
+					ctx,
+					v,
+					blkStore,
+					overlayMode,
+					writebackTimeoutDur,
+					writebackPutOpts,
+				))
 		}
 		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, overlayMode.String())
 	}
