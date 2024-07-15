@@ -78,10 +78,12 @@ func BuildCursor(
 		xfrm:          xfrm,
 		transformConf: transformConf,
 	}
-	if !ref.GetEmpty() {
-		if ref.GetBucketId() == "" {
-			return nil, errors.New("reference not empty: bucket id must be specified")
-		}
+	refBucketID := ref.GetBucketId()
+	if !ref.GetEmpty() && refBucketID == "" {
+		return nil, errors.New("reference not empty: bucket id must be specified")
+	}
+	// if a bucket id is specified, FollowRef to build the stores.
+	if !ref.GetEmpty() || refBucketID != "" {
 		return c.FollowRef(ctx, ref)
 	}
 	return c, nil

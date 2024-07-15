@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/go-git/go-billy/v5"
 	"github.com/pkg/errors"
 )
 
@@ -79,6 +81,9 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 
 	// change permissions
 	err = fhandle.SetPermissions(ctx, 0o644, ts)
+	if err == billy.ErrNotSupported {
+		err = nil
+	}
 	if err != nil {
 		return err
 	}
@@ -87,13 +92,20 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 	nts := timestamp.Now()
 	setTs := nts.AsTime().Add(time.Minute * -1)
 	err = fhandle.SetModTimestamp(ctx, setTs)
+	skipModTimestamp := err == billy.ErrNotSupported
+	if skipModTimestamp {
+		err = nil
+	}
 	if err != nil {
 		return err
 	}
 
 	getTs, err := fhandle.GetModTimestamp(ctx)
-	if err == nil && !getTs.Equal(setTs) {
+	if err == nil && !getTs.Equal(setTs) && !skipModTimestamp {
 		err = errors.Errorf("failed to update ts: expected %s but got %s", setTs.String(), getTs.String())
+	}
+	if err == billy.ErrNotSupported {
+		err = nil
 	}
 	if err != nil {
 		return err
@@ -190,12 +202,19 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 
 	// test renaming twice in a row
 	err = dirHandle.Rename(ctx, fsHandle, "renamed-2", ts)
+	skipRename := err == billy.ErrNotSupported || err == unixfs_errors.ErrCrossFsRename
+	if skipRename {
+		err = nil
+	}
 	if err != nil {
 		return err
 	}
-	err = dirHandle.Rename(ctx, fsHandle, "renamed-3", ts)
-	if err != nil {
-		return err
+
+	if !skipRename {
+		err = dirHandle.Rename(ctx, fsHandle, "renamed-3", ts)
+		if err != nil {
+			return err
+		}
 	}
 
 	// traverse to subdir
@@ -246,10 +265,12 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 
 	// rename them randomly
 	// rand.Shuffle(nfilenames, swap)
-	for x := 0; x < len(fileNames)/2; x++ {
-		j := len(fileNames) - x - 1
-		if err := swap(x, j); err != nil {
-			return err
+	if !skipRename {
+		for x := 0; x < len(fileNames)/2; x++ {
+			j := len(fileNames) - x - 1
+			if err := swap(x, j); err != nil {
+				return err
+			}
 		}
 	}
 

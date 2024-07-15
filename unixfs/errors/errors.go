@@ -48,6 +48,8 @@ var (
 	ErrInvalidWrite = errors.New("invalid write result")
 	// ErrEmptyUnixFsId is returned if the filesystem id is empty.
 	ErrEmptyUnixFsId = errors.New("empty unixfs id")
+	// ErrCrossFsRename is retruned if we try to rename across two unrelated FS.
+	ErrCrossFsRename = errors.New("cross-fs rename unimplemented")
 	// ErrUnknown is returned if a remote service returned an unknown error.
 	ErrUnknown = errors.New("unknown unixfs error")
 )
@@ -118,6 +120,8 @@ func NewUnixFSError(err error) *UnixFSError {
 		uErr.ErrorType = UnixFSErrorType_INVALID_WRITE
 	case ErrEmptyUnixFsId:
 		uErr.ErrorType = UnixFSErrorType_EMPTY_UNIXFS_ID
+	case ErrCrossFsRename:
+		uErr.ErrorType = UnixFSErrorType_CROSS_FS_RENAME
 	case context.Canceled:
 		uErr.ErrorType = UnixFSErrorType_CONTEXT_CANCELED
 	case io.EOF:
@@ -176,6 +180,8 @@ func (e *UnixFSError) ToGoError() error {
 		err = ErrInvalidWrite
 	case UnixFSErrorType_EMPTY_UNIXFS_ID:
 		err = ErrEmptyUnixFsId
+	case UnixFSErrorType_CROSS_FS_RENAME:
+		err = ErrCrossFsRename
 	case UnixFSErrorType_CONTEXT_CANCELED:
 		err = context.Canceled
 	case UnixFSErrorType_EOF:

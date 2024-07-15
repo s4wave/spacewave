@@ -847,7 +847,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 				le.Warnf("TODO: cross-fs rename between locations: %#v -> %#v", srcOps, destOps)
 			}
 		*/
-		return errors.Errorf("unable to rename between these locations")
+		return unixfs_errors.ErrCrossFsRename
 	}
 
 	// successful rename: the source location has likely already been released,

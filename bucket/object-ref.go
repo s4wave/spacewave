@@ -102,12 +102,13 @@ func (o *ObjectRef) Validate() error {
 }
 
 // GetEmpty returns if the ref and transform configs are empty.
+//
+// NOTE: ignores if BucketId is empty.
 func (o *ObjectRef) GetEmpty() bool {
 	if o == nil {
 		return true
 	}
 	return o.GetRootRef().GetEmpty() &&
-		o.GetBucketId() == "" &&
 		o.GetTransformConfRef().GetEmpty() &&
 		o.GetTransformConf().GetEmpty()
 }

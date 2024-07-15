@@ -67,7 +67,7 @@ func NewTransaction(
 
 	// determine which hash type to use
 	hashType := putOpts.GetHashType()
-	if hashType == 0 {
+	if hashType == 0 && store != nil {
 		hashType = store.GetHashType()
 	}
 	if hashType == 0 {

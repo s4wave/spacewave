@@ -112,6 +112,9 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 	if !o.fi.IsDir() {
 		return unixfs_errors.ErrNotDirectory
 	}
+	if len(names) == 0 {
+		return nil
+	}
 
 	createDir := nodeType.GetIsDirectory()
 	var dirFs billy.Dir
@@ -149,6 +152,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 	}
 
 	for _, childPath := range childPaths {
+		o.released.Store(true) // release the cursor just before filesystem modification
 		if createDir {
 			if err := dirFs.MkdirAll(childPath, permissions); err != nil {
 				return err
@@ -277,6 +281,7 @@ func (o *BillyFSCursorOps) Remove(ctx context.Context, names []string, ts time.T
 	removePaths = slices.Compact(removePaths)
 
 	for _, removePath := range removePaths {
+		o.released.Store(true) // release the cursor just before filesystem modification
 		err := o.c.bfs.Remove(removePath)
 		if err != nil && !os.IsNotExist(err) && err != unixfs_errors.ErrNotExist {
 			return err
@@ -297,6 +302,7 @@ func (o *BillyFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time)
 		return billy.ErrNotSupported
 	}
 
+	o.released.Store(true) // release the cursor just before filesystem modification
 	return changeFs.Chtimes(o.c.path, mtime, mtime)
 }
 
@@ -312,6 +318,7 @@ func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.Fi
 	}
 
 	newMode := o.fi.Mode().Type() | permissions.Perm()
+	o.released.Store(true) // release the cursor just before filesystem modification
 	return changeFs.Chmod(o.c.path, newMode)
 }
 
@@ -341,6 +348,7 @@ func (o *BillyFSCursorOps) Symlink(ctx context.Context, checkExist bool, name st
 		}
 	}
 
+	o.released.Store(true) // release the cursor just before filesystem modification
 	return symlinkFs.Symlink(unixfs.JoinPath(target, targetIsAbsolute), fpath)
 }
 
@@ -361,6 +369,7 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 		return err
 	}
 
+	o.released.Store(true) // release the cursor just before filesystem modification
 	if err := f.Truncate(int64(nsize)); err != nil {
 		_ = f.Close()
 		return err
@@ -392,6 +401,7 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 		return err
 	}
 
+	o.released.Store(true) // release the cursor just before filesystem modification
 	for len(data) != 0 {
 		n, err := f.Write(data)
 		if err != nil {

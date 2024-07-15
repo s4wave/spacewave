@@ -151,6 +151,13 @@ export enum UnixFSErrorType {
   EMPTY_UNIXFS_ID = 18,
 
   /**
+   * CROSS_FS_RENAME corresponds to unixfs_errors.ErrCrossFsRename.
+   *
+   * @generated from enum value: CROSS_FS_RENAME = 21;
+   */
+  CROSS_FS_RENAME = 21,
+
+  /**
    * CONTEXT_CANCELED corresponds to context.Canceled.
    *
    * @generated from enum value: CONTEXT_CANCELED = 19;
@@ -188,6 +195,7 @@ export const UnixFSErrorType_Enum = createEnumType(
     { no: 16, name: 'MOVE_TO_SELF' },
     { no: 17, name: 'INVALID_WRITE' },
     { no: 18, name: 'EMPTY_UNIXFS_ID' },
+    { no: 21, name: 'CROSS_FS_RENAME' },
     { no: 19, name: 'CONTEXT_CANCELED' },
     { no: 20, name: 'EOF' },
   ],

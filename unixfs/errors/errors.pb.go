@@ -56,6 +56,8 @@ const (
 	UnixFSErrorType_INVALID_WRITE UnixFSErrorType = 17
 	// EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId.
 	UnixFSErrorType_EMPTY_UNIXFS_ID UnixFSErrorType = 18
+	// CROSS_FS_RENAME corresponds to unixfs_errors.ErrCrossFsRename.
+	UnixFSErrorType_CROSS_FS_RENAME UnixFSErrorType = 21
 	// CONTEXT_CANCELED corresponds to context.Canceled.
 	UnixFSErrorType_CONTEXT_CANCELED UnixFSErrorType = 19
 	// EOF corresponds to io.EOF.
@@ -84,6 +86,7 @@ var (
 		16: "MOVE_TO_SELF",
 		17: "INVALID_WRITE",
 		18: "EMPTY_UNIXFS_ID",
+		21: "CROSS_FS_RENAME",
 		19: "CONTEXT_CANCELED",
 		20: "EOF",
 	}
@@ -107,6 +110,7 @@ var (
 		"MOVE_TO_SELF":       16,
 		"INVALID_WRITE":      17,
 		"EMPTY_UNIXFS_ID":    18,
+		"CROSS_FS_RENAME":    21,
 		"CONTEXT_CANCELED":   19,
 		"EOF":                20,
 	}

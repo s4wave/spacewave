@@ -41,6 +41,8 @@ enum UnixFSErrorType {
   INVALID_WRITE = 17;
   // EMPTY_UNIXFS_ID corresponds to unixfs_errors.ErrEmptyUnixFsId.
   EMPTY_UNIXFS_ID = 18;
+  // CROSS_FS_RENAME corresponds to unixfs_errors.ErrCrossFsRename.
+  CROSS_FS_RENAME = 21;
   // CONTEXT_CANCELED corresponds to context.Canceled.
   CONTEXT_CANCELED = 19;
   // EOF corresponds to io.EOF.
