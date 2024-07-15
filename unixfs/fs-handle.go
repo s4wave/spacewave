@@ -542,17 +542,16 @@ func (h *FSHandle) MkdirAllLookup(ctx context.Context, dirPath []string, perm fs
 	if len(dirPath) == 0 {
 		return currHandle, nil
 	}
-	defer currHandle.Release()
 
 	for _, pname := range dirPath {
 		if pname == "." {
 			continue
 		}
 		newHandle, err := currHandle.MkdirLookup(ctx, pname, perm, ts)
+		currHandle.Release()
 		if err != nil {
 			return nil, err
 		}
-		currHandle.Release()
 		currHandle = newHandle
 	}
 
