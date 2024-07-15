@@ -45,15 +45,15 @@
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
-    "prettier": "^3.3.2",
-    "rimraf": "^5.0.7",
-    "typescript": "^5.4.5"
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.4",
-    "starpc": "^0.32.12"
+    "@aptre/protobuf-es-lite": "^0.4.6",
+    "starpc": "^0.32.16"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.5"
+    "@aptre/protobuf-es-lite": "0.4.6"
   }
 }
