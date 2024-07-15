@@ -160,13 +160,12 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 	defer newFileHandle.Release()
 
 	// Write data to the new file
-	err = unixfs.WriteFile(ctx, newFileHandle, newTestData, 0644, ts)
+	err = unixfs.WriteFile(ctx, newFileHandle, newTestData, ts)
 	if err != nil {
 		return errors.Wrap(err, "WriteFile failed")
 	}
 
 	// Verify the file contains the correct data
-
 	verifyData, err := unixfs.ReadFile(ctx, newFileHandle)
 	if err != nil {
 		return errors.Wrap(err, "failed to read new file")

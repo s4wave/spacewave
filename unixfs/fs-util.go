@@ -261,12 +261,11 @@ func ReadFile(ctx context.Context, h *FSHandle) ([]byte, error) {
 	}
 }
 
-// WriteFile writes data to the named file, creating it if necessary.
-// If the file does not exist, WriteFile creates it with permissions perm (before umask);
-// otherwise WriteFile truncates it before writing, without changing permissions.
+// WriteFile writes data to the filesystem handle, which must be a file.
+//
 // Since WriteFile requires multiple system calls to complete, a failure mid-operation
 // can leave the file in a partially written state.
-func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, perm fs.FileMode, ts time.Time) error {
+func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) error {
 	optimalWriteSize, err := fsh.GetOptimalWriteSize(ctx)
 	if err != nil {
 		return err
@@ -277,12 +276,6 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, perm fs.FileMode
 
 	// Truncate the file
 	err = fsh.Truncate(ctx, 0, ts)
-	if err != nil {
-		return err
-	}
-
-	// Set file permissions
-	err = fsh.SetPermissions(ctx, perm, ts)
 	if err != nil {
 		return err
 	}
