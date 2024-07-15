@@ -26,7 +26,7 @@ type Cursor struct {
 	// contains the current transform config ref
 	ref *bucket.ObjectRef
 	// bkt is the store handle
-	bkt bucket.Bucket
+	bkt bucket.BucketOps
 	// opArgs is the bucket ID / volume ID pair used for bkt
 	opArgs *bucket.BucketOpArgs
 	// xfrm is the transformer handle
@@ -61,7 +61,7 @@ func NewCursor(
 	b bus.Bus,
 	le *logrus.Entry,
 	sfs *block_transform.StepFactorySet,
-	bkt bucket.Bucket,
+	bkt bucket.BucketOps,
 	xfrm block.Transformer,
 	ref *bucket.ObjectRef,
 	opArgs *bucket.BucketOpArgs,
@@ -383,7 +383,7 @@ func (c *Cursor) SetRootRefBucket(b string) {
 }
 
 // GetBucket returns the bucket. Note: transform config is not applied.
-func (c *Cursor) GetBucket() bucket.Bucket {
+func (c *Cursor) GetBucket() bucket.BucketOps {
 	return c.bkt
 }
 

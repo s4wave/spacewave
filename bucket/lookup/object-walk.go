@@ -113,7 +113,7 @@ func WalkObjectBlocks(
 	ctx context.Context,
 	root *WalkObjectBlocksEntry,
 	cb WalkObjectBlocksCb,
-	readBkt bucket.Bucket,
+	readBkt bucket.BucketOps,
 	readXfrm block.Transformer,
 	maxConcurrency int,
 	alwaysDecode bool,
@@ -141,7 +141,7 @@ func WalkObjectBlocks(
 
 // walkState contains state for walking a tree of blocks.
 type walkState struct {
-	readBkt      bucket.Bucket
+	readBkt      bucket.BucketOps
 	readXfrm     block.Transformer
 	enqueue      func(...func())
 	handleErr    func(err error)
@@ -154,7 +154,7 @@ func (e *WalkObjectBlocksEntry) BuildConcurrentQueue(
 	ctx context.Context,
 	handleErr func(err error),
 	cb WalkObjectBlocksCb,
-	readBkt bucket.Bucket,
+	readBkt bucket.BucketOps,
 	readXfrm block.Transformer,
 	maxConcurrency int,
 	alwaysDecode bool,
