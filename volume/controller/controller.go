@@ -123,7 +123,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// check the cache mode & wrap the volume if necessary
 	if blockStoreID := c.config.GetBlockStoreId(); blockStoreID != "" {
 		blkStore, _, blkStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, c.bus, blockStoreID, false, func() {
-			pushErr(errors.New("block store released"))
+			if ctx.Err() == nil {
+				pushErr(errors.New("block store released"))
+			}
 		})
 		if err != nil {
 			return err
