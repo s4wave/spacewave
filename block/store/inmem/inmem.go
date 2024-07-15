@@ -8,22 +8,22 @@ import (
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 )
 
-// RistrettoBlock is a block store on top of a Ristretto cache.
+// InmemBlock is a block store on top of a Ristretto cache.
 // Stores blocks at {objectPrefix}/{block ref}
-type RistrettoBlock = block_store_kvtx.KVTxBlock
+type InmemBlock = block_store_kvtx.KVTxBlock
 
-// NewRistrettoBlock builds a new block store on top of a Ristretto cache.
+// NewInmemBlock builds a new block store on top of a Ristretto cache.
 //
 // forceHashType can be 0 to use the default hash type.
 // hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
-func NewRistrettoBlock(
+func NewInmemBlock(
 	kvk *kvkey.KVKey,
 	st *store_kvtx_inmem.Store,
 	forceHashType hash.HashType,
 	hashGet bool,
-) *RistrettoBlock {
+) *InmemBlock {
 	return block_store_kvtx.NewKVTxBlock(kvk, st, forceHashType, hashGet)
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*RistrettoBlock)(nil))
+var _ block.StoreOps = ((*InmemBlock)(nil))

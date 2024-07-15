@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_controller "github.com/aperturerobotics/hydra/block/store/controller"
-	block_store_kvtx "github.com/aperturerobotics/hydra/block/store/kvtx"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
 	"github.com/blang/semver"
@@ -44,7 +43,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 			return nil, nil, err
 		}
 		st := store_kvtx_inmem.NewStore()
-		storeOps := block_store_kvtx.NewKVTxBlock(kvk, st, conf.GetForceHashType(), conf.GetHashGet())
+		storeOps := NewInmemBlock(kvk, st, conf.GetForceHashType(), conf.GetHashGet())
 		store := block_store.NewStore(conf.GetBlockStoreId(), storeOps)
 		return store, nil, nil
 	}
