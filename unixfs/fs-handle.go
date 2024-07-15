@@ -499,6 +499,77 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 	return nil
 }
 
+// MkdirLookup performs a lookup for a directory in the handle, creates it if it doesn't exist,
+// then looks up again and returns the new handle.
+func (h *FSHandle) MkdirLookup(ctx context.Context, name string, perm fs.FileMode, ts time.Time) (*FSHandle, error) {
+	dir, err := h.Lookup(ctx, name)
+	if err == unixfs_errors.ErrNotExist {
+		// Create directory
+		err = h.Mknod(ctx, false, []string{name}, NewFSCursorNodeType_Dir(), perm, ts)
+		if err != nil {
+			return nil, err
+		}
+		// Lookup again
+		dir, err = h.Lookup(ctx, name)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if it's a directory
+	nt, err := dir.GetNodeType(ctx)
+	if err != nil {
+		dir.Release()
+		return nil, err
+	}
+	if !nt.GetIsDirectory() {
+		dir.Release()
+		return nil, unixfs_errors.ErrNotDirectory
+	}
+
+	return dir, nil
+}
+
+// MkdirAllLookup creates a directory named path, along with any necessary parents,
+// and returns the handle to the last created or existing directory, or else returns an error.
+// The permission bits perm are used for all directories that MkdirAllLookup creates.
+// If path is already a directory, MkdirAllLookup returns the handle to that directory.
+func (h *FSHandle) MkdirAllLookup(ctx context.Context, dirPath []string, perm fs.FileMode, ts time.Time) (*FSHandle, error) {
+	currHandle, err := h.Clone(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(dirPath) == 0 {
+		return currHandle, nil
+	}
+	defer currHandle.Release()
+
+	for _, pname := range dirPath {
+		if pname == "." {
+			continue
+		}
+		newHandle, err := currHandle.MkdirLookup(ctx, pname, perm, ts)
+		if err != nil {
+			return nil, err
+		}
+		currHandle.Release()
+		currHandle = newHandle
+	}
+
+	return currHandle, nil
+}
+
+// MkdirAllPathLookup is similar to MkdirAllLookup but takes a string path instead of a slice of path components.
+func (h *FSHandle) MkdirAllPathLookup(ctx context.Context, filepath string, perm fs.FileMode, ts time.Time) (*FSHandle, error) {
+	if filepath == "" || filepath == "." {
+		return h.Clone(ctx)
+	}
+
+	// ignore absolute paths: treat them as relative to ./
+	dirPath, _ := SplitPath(filepath)
+	return h.MkdirAllLookup(ctx, dirPath, perm, ts)
+}
+
 // Symlink creates a symbolic link from a location to a path.
 func (h *FSHandle) Symlink(ctx context.Context, checkExist bool, name string, target []string, targetIsAbsolute bool, ts time.Time) error {
 	if len(name) == 0 || len(target) == 0 {
