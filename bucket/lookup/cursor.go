@@ -66,7 +66,7 @@ func NewCursor(
 	ref *bucket.ObjectRef,
 	opArgs *bucket.BucketOpArgs,
 	transformConf *block_transform.Config,
-) (*Cursor, error) {
+) *Cursor {
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
 	}
@@ -82,7 +82,7 @@ func NewCursor(
 		ref:           ref,
 		opArgs:        opArgs,
 		transformConf: transformConf,
-	}, nil
+	}
 }
 
 // BuildCursor constructs a new cursor with an initial object ref, configuration,
