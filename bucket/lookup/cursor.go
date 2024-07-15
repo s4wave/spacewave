@@ -37,6 +37,54 @@ type Cursor struct {
 	rel func()
 }
 
+// NewCursor constructs a new Cursor with the provided parameters.
+//
+// This function allows the caller to create a Cursor with specific details,
+// providing more control over the Cursor's initial state compared to BuildCursor.
+//
+// NOTE: it is almost always recommended to use BuildCursor or BuildEmptyCursor instead.
+//
+// Parameters:
+// - ctx: The context for the operation
+// - b: The controller bus
+// - le: The logger entry
+// - sfs: The step factory set
+// - bkt: The bucket to use
+// - xfrm: The transformer to use (can be nil)
+// - ref: The initial object reference (can be nil)
+// - opArgs: The bucket operation arguments
+// - transformConf: The transform configuration (can be nil)
+//
+// Returns a new Cursor instance and any error encountered during creation.
+func NewCursor(
+	ctx context.Context,
+	b bus.Bus,
+	le *logrus.Entry,
+	sfs *block_transform.StepFactorySet,
+	bkt bucket.Bucket,
+	xfrm block.Transformer,
+	ref *bucket.ObjectRef,
+	opArgs *bucket.BucketOpArgs,
+	transformConf *block_transform.Config,
+) (*Cursor, error) {
+	if ref == nil {
+		ref = &bucket.ObjectRef{}
+	}
+	if opArgs == nil {
+		opArgs = &bucket.BucketOpArgs{}
+	}
+	return &Cursor{
+		le:            le,
+		bus:           b,
+		sfs:           sfs,
+		bkt:           bkt,
+		xfrm:          xfrm,
+		ref:           ref,
+		opArgs:        opArgs,
+		transformConf: transformConf,
+	}, nil
+}
+
 // BuildCursor constructs a new cursor with an initial object ref, configuration,
 // an initial operation configuration (bucket and volume ID), and a controller
 // bus to acquire handles. Constructing the cursor will also acquire a lookup
