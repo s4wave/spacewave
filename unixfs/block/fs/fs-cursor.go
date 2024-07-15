@@ -174,16 +174,21 @@ func (f *FSCursor) buildChildCursor(ctx context.Context, name string, dirent *un
 	var ftree *unixfs_block.FSTree
 	var btx *block.Transaction
 	if dirent != nil { // && !dirent.GetNodeRef().GetEmpty() {
-		if childCs != nil {
-			bcs := childCs.DetachRecursive(true, true, false)
-			btx = bcs.GetTransaction()
+		var bcs *block.Cursor
 
-			var err error
-			ftree, err = unixfs_block.NewFSTree(f.fs.ctx, bcs, dirent.GetNode().GetNodeType())
-			if err != nil {
-				// ignore error here, defer to later.
-				ftree = nil
-			}
+		if childCs != nil {
+			bcs = childCs.DetachRecursive(true, true, false)
+			btx = bcs.GetTransaction()
+		} else {
+			// build new tx using ref
+			btx, bcs = f.fs.bls.BuildTransactionAtRef(nil, dirent.GetNodeRef())
+		}
+
+		var err error
+		ftree, err = unixfs_block.NewFSTree(f.fs.ctx, bcs, dirent.GetNodeType())
+		if err != nil {
+			// ignore error here, defer to later.
+			ftree = nil
 		}
 	}
 
@@ -230,11 +235,10 @@ func (f *FSCursor) resolveFsCursorOpsLocked() error {
 	}
 
 	// lookup our dirent
-	parentFsTree := f.parent.fsCursorOps.fsTree
-	dirEntBcs, dirEnt, err := parentFsTree.LookupFollowDirentAsCursor(f.name)
-	dirEntNode := dirEnt.GetNode()
+	dirEnt, err := f.parent.fsCursorOps.fsTree.Lookup(f.name)
 	if err == nil {
-		err = dirEntNode.Validate(false)
+		// allow empty node ref
+		err = dirEnt.GetNodeRef().Validate(true)
 	}
 	if err != nil {
 		if err != context.Canceled && err != unixfs_errors.ErrNotExist && f.fs.writer != nil {
@@ -243,12 +247,9 @@ func (f *FSCursor) resolveFsCursorOpsLocked() error {
 		return err
 	}
 
-	// detach our dirent
-	bcs := dirEntBcs.FollowSubBlock(2).Detach(false)
-	btx := bcs.GetTransaction()
-
 	// build initial fsops
-	ftree, err := unixfs_block.NewFSTree(f.fs.ctx, bcs, dirEntNode.GetNodeType())
+	btx, bcs := f.fs.bls.BuildTransactionAtRef(nil, dirEnt.GetNodeRef())
+	ftree, err := unixfs_block.NewFSTree(f.fs.ctx, bcs, dirEnt.GetNodeType())
 	if err != nil {
 		if err != context.Canceled && f.fs.writer != nil {
 			f.fs.writer.FilesystemError(err)

@@ -22,66 +22,71 @@ func (d *Dirent) Validate() error {
 	if err := ValidateDirentName(name); err != nil {
 		return err
 	}
-	if err := d.GetNode().Validate(false); err != nil {
-		return errors.Wrap(err, "dirent node")
+	if !d.GetNodeRef().GetEmpty() {
+		if err := d.GetNodeRef().Validate(false); err != nil {
+			return errors.Wrap(err, "dirent node_ref")
+		}
+	}
+	if err := d.GetNodeType().Validate(false); err != nil {
+		return err
 	}
 	return nil
 }
 
-// FollowNode follows the inode sub-block.
-// may return nil, bcs if empty
-func (d *Dirent) FollowNode(ctx context.Context, bcs *block.Cursor) (*FSNode, *block.Cursor) {
-	subRef := bcs.FollowSubBlock(2)
-	nod := d.GetNode()
-	return nod, subRef
+// FollowNodeRef follows the inode reference.
+// returns nil, bcs, nil if not found
+func (d *Dirent) FollowNodeRef(ctx context.Context, bcs *block.Cursor) (*FSNode, *block.Cursor, error) {
+	subRef := bcs.FollowRef(2, d.GetNodeRef())
+	fn, err := FetchCheckFSNode(ctx, subRef, d.GetNodeType())
+	return fn, subRef, err
+}
+
+// ApplyBlockRef applies a ref change with a field id.
+// The reference may be nil if the child block is nil.
+func (d *Dirent) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+	switch id {
+	case 2:
+		d.NodeRef = ptr
+	}
+	return nil
+}
+
+// GetBlockRefs returns all block references by ID.
+// May return nil, and values may also be nil.
+// Note: this does not include pending references (in a cursor)
+func (d *Dirent) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	m := make(map[uint32]*block.BlockRef)
+	m[2] = d.GetNodeRef()
+	return m, nil
+}
+
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID or unknown.
+func (d *Dirent) GetBlockRefCtor(id uint32) block.Ctor {
+	switch id {
+	case 2:
+		return NewFSNodeBlock
+	}
+	return nil
 }
 
 // GetIsDirectory returns if the cursor points to a directory.
 func (d *Dirent) GetIsDirectory() bool {
-	return d.GetNode().GetNodeType().GetIsDirectory()
+	return d.GetNodeType().GetIsDirectory()
 }
 
 // GetIsFile returns if the cursor points to a file.
 func (d *Dirent) GetIsFile() bool {
-	return d.GetNode().GetNodeType().GetIsFile()
+	return d.GetNodeType().GetIsFile()
 }
 
 // GetIsSymlink returns if the cursor points to a symlink.
 func (d *Dirent) GetIsSymlink() bool {
-	return d.GetNode().GetNodeType().GetIsSymlink()
-}
-
-// ApplySubBlock applies a sub-block change with a field id.
-func (d *Dirent) ApplySubBlock(id uint32, next block.SubBlock) error {
-	switch id {
-	case 2:
-		return block.ApplySubBlock(&d.Node, next)
-	}
-	return nil
-}
-
-// GetSubBlocks returns all constructed sub-blocks by ID.
-// May return nil, and values may also be nil.
-func (d *Dirent) GetSubBlocks() map[uint32]block.SubBlock {
-	m := make(map[uint32]block.SubBlock)
-	if nod := d.GetNode(); nod != nil {
-		m[2] = nod
-	}
-	return m
-}
-
-// GetSubBlockCtor returns a function which creates or returns the existing
-// sub-block at reference id. Can return nil to indicate invalid reference id.
-func (d *Dirent) GetSubBlockCtor(id uint32) block.SubBlockCtor {
-	switch id {
-	case 2:
-		return NewFSNodeSubBlockCtor(&d.Node)
-	}
-	return nil
+	return d.GetNodeType().GetIsSymlink()
 }
 
 // _ is a type assertion
 var (
-	_ block.BlockWithSubBlocks = ((*Dirent)(nil))
-	_ unixfs.FSCursorDirent    = ((*Dirent)(nil))
+	_ block.BlockWithRefs   = ((*Dirent)(nil))
+	_ unixfs.FSCursorDirent = ((*Dirent)(nil))
 )

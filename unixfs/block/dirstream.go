@@ -50,10 +50,9 @@ func (d *DirStream) GetEntry() *Dirent {
 }
 
 // FollowEntry returns a new handle at the entry position.
-// ensures that the next node type is as expected if expectedNodeType is not UNKNOWN.
-func (d *DirStream) FollowEntry(expectedNodeType NodeType) (*FSTree, *Dirent, error) {
+func (d *DirStream) FollowEntry() (*FSTree, *Dirent, error) {
 	if d.idx < 0 || d.idx >= d.dirs.Len() {
 		return nil, nil, unixfs_errors.ErrOutOfBounds
 	}
-	return d.ft.FollowDirent(d.idx, expectedNodeType)
+	return d.ft.FollowDirent(d.idx)
 }

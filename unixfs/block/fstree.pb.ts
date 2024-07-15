@@ -9,8 +9,8 @@ import {
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
-import { File } from '../../block/file/file.pb.js'
 import { BlockRef } from '../../block/block.pb.js'
+import { File } from '../../block/file/file.pb.js'
 
 export const protobufPackage = 'unixfs.block'
 
@@ -111,11 +111,20 @@ export interface Dirent {
    */
   name?: string
   /**
-   * Node is the child FSNode.
+   * NodeRef is the reference of the child FSNode.
+   * may be empty.
    *
-   * @generated from field: unixfs.block.FSNode node = 2;
+   * reference id 2
+   *
+   * @generated from field: block.BlockRef node_ref = 2;
    */
-  node?: FSNode
+  nodeRef?: BlockRef
+  /**
+   * NodeType is the node type of the child FSNode.
+   *
+   * @generated from field: unixfs.block.NodeType node_type = 3;
+   */
+  nodeType?: NodeType
 }
 
 // Dirent contains the message type declaration for Dirent.
@@ -123,7 +132,8 @@ export const Dirent: MessageType<Dirent> = createMessageType({
   typeName: 'unixfs.block.Dirent',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'node', kind: 'message', T: () => FSNode },
+    { no: 2, name: 'node_ref', kind: 'message', T: () => BlockRef },
+    { no: 3, name: 'node_type', kind: 'enum', T: NodeType_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

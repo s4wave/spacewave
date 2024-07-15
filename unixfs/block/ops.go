@@ -258,10 +258,12 @@ func CopyOrRename(root *FSTree, srcPath, destPath []string, isMove bool, ts *tim
 		return err
 	}
 
+	srcNodeType := srcNode.GetFSNode().GetNodeType()
+
 	// if moving, set the destination cursor to the src cursor & remove src
 	nbcs := srcNode.bcs.DetachRecursive(true, true, true)
 
-	if err := destParentNode.SetDirent(destName, nbcs); err != nil {
+	if err := destParentNode.SetDirent(destName, srcNodeType, nbcs); err != nil {
 		return err
 	}
 

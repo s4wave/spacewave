@@ -133,35 +133,41 @@ func (f *FSTree) Mknod(
 
 	// fetch+check the reference first
 	initRefEmpty := initRef.GetEmpty()
-	var dnode *FSNode
-	dnodeCs := f.bcs.Detach(false)
 	if !initRefEmpty {
-		dnodeCs.SetRefAtCursor(initRef, true)
-		dnode, err = FetchCheckFSNode(f.ctx, dnodeCs, nodeType)
+		checkCs := f.bcs.DetachTransaction()
+		checkCs.SetRefAtCursor(initRef, true)
+		_, err := FetchCheckFSNode(f.ctx, checkCs, nodeType)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// if dnode is empty create it
-	if dnode.GetNodeType() == 0 {
-		dnode = NewFSNode(nodeType, permissions, ts)
-		dnodeCs.SetBlock(dnode, true)
-	}
-
 	// create new entry
 	dirent = &Dirent{
-		Name: name,
-		Node: dnode,
+		Name:     name,
+		NodeType: nodeType,
+		NodeRef:  initRef,
 	}
 
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dcs := dslice.AppendDirent(dirent)
 	dslice.SortDirents()
 
-	// set as sub-block
-	if err := dnodeCs.SetAsSubBlock(2, dcs); err != nil {
-		return nil, err
+	var dnode *FSNode
+	var dnodeCs *block.Cursor
+	if !initRefEmpty {
+		// follow the given ref to the node
+		dnode, dnodeCs, err = dirent.FollowNodeRef(f.ctx, dcs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// if the node is empty, create it.
+	if dnode == nil {
+		dnode = NewFSNode(nodeType, permissions, ts)
+		dnodeCs = dcs.FollowRef(2, nil)
+		dnodeCs.SetBlock(dnode, true)
 	}
 
 	return newTxFSTree(f.ctx, dnodeCs, dnode), nil
@@ -190,11 +196,19 @@ func (f *FSTree) Symlink(
 			return nil, unixfs_errors.ErrExist
 		}
 
-		// follow sub-block to dirent
-		dcs = dslice.bcs.FollowSubBlock(uint32(direntIdx))
+		// clear old dirent refs
+		dcs := dslice.bcs.FollowSubBlock(uint32(direntIdx))
+		dirent.NodeRef = nil
+		dcs.ClearAllRefs()
+
+		// update dirent type
+		dirent.NodeType = NodeType_NodeType_SYMLINK
 	} else {
 		// create new entry
-		dirent = &Dirent{Name: name}
+		dirent = &Dirent{
+			Name:     name,
+			NodeType: NodeType_NodeType_SYMLINK,
+		}
 		dcs = dslice.AppendDirent(dirent)
 		dslice.SortDirents()
 	}
@@ -202,9 +216,8 @@ func (f *FSTree) Symlink(
 	dnode := NewFSNode(NodeType_NodeType_SYMLINK, DefaultPermissions(NodeType_NodeType_SYMLINK), ts)
 	dnode.Symlink = lnk
 
-	dnodeCs := dcs.FollowSubBlock(2)
+	dnodeCs := dcs.FollowRef(2, nil)
 	dnodeCs.SetBlock(dnode, true)
-	dirent.Node = dnode
 
 	return newTxFSTree(f.ctx, dnodeCs, dnode), nil
 }
@@ -253,7 +266,7 @@ func (f *FSTree) LookupFollowDirent(name string) (*FSTree, *Dirent, error) {
 	if dirent == nil {
 		return nil, nil, nil
 	}
-	nfs, dirent, err := ds.FollowDirent(f.ctx, didx, dirent.GetNode().GetNodeType())
+	nfs, dirent, err := ds.FollowDirent(f.ctx, didx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -301,7 +314,7 @@ func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
 		}
 		if match {
 			indexes[i] = didx + 1
-			if !nodeDirs[didx].GetIsDirectory() {
+			if nodeDirs[didx].GetNodeType() != NodeType_NodeType_DIRECTORY {
 				return nil, indexes, unixfs_errors.ErrExist
 			}
 		}
@@ -339,7 +352,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 		// note: didx is idx + 1
 		if didx != 0 {
 			dirName := dirs[i]
-			outputCursors[dirName], _, err = dslice.FollowDirent(f.ctx, didx-1, 0)
+			outputCursors[dirName], _, err = dslice.FollowDirent(f.ctx, didx-1)
 			if err != nil {
 				return nil, err
 			}
@@ -355,19 +368,18 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 			// already created
 			continue
 		}
+		dirent := &Dirent{
+			Name:     dirs[i],
+			NodeType: NodeType_NodeType_DIRECTORY,
+		}
 
-		dirent := &Dirent{Name: dirs[i]}
 		dcs := dslice.AppendDirent(dirent)
-
-		dnode := NewFSNode(NodeType_NodeType_DIRECTORY, permissions, ts)
-		dnodeCs := dcs.FollowSubBlock(2)
+		dnode := NewFSNode(dirent.GetNodeType(), permissions, ts)
+		dnodeCs := dcs.FollowRef(2, nil)
 		dnodeCs.SetBlock(dnode, true)
-		dirent.Node = dnode
 
 		outputCursors[dirs[i]] = newTxFSTree(f.ctx, dnodeCs, dnode)
 	}
-
-	// sort dirents
 	dslice.SortDirents()
 
 	// update mod timestamp for parent node
@@ -406,44 +418,34 @@ func (f *FSTree) Remove(
 }
 
 // FollowDirent follows a dirent with a parent cursor.
-// ensures that the next node type is as expected if expectedNodeType is not UNKNOWN.
-func (f *FSTree) FollowDirent(didx int, expectedNodeType NodeType) (*FSTree, *Dirent, error) {
+func (f *FSTree) FollowDirent(didx int) (*FSTree, *Dirent, error) {
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
-	return ds.FollowDirent(f.ctx, didx, NodeType_NodeType_UNKNOWN)
+	return ds.FollowDirent(f.ctx, didx)
 }
 
 // SetDirent creates or overrides a directory pointing to the node.
-//
-// bcs is the block cursor for the FSNode.
-func (f *FSTree) SetDirent(name string, bcs *block.Cursor) error {
+func (f *FSTree) SetDirent(name string, nodeType NodeType, bcs *block.Cursor) error {
 	if err := ValidateDirentName(name); err != nil {
 		return err
-	}
-
-	fsNode, err := UnmarshalFSNode(f.ctx, bcs)
-	if err != nil {
-		return err
-	}
-	if fsNode.GetNodeType() == 0 {
-		return errors.New("cannot set dirent with empty fs node")
 	}
 
 	ds := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
 	dirent, idx := ds.LookupDirent(name)
 	var direntCs *block.Cursor
 	if dirent != nil {
+		dirent.NodeRef = bcs.GetRef().Clone()
+		dirent.NodeType = nodeType
 		direntCs = ds.bcs.FollowSubBlock(uint32(idx))
-		bcs.SetAsSubBlock(2, direntCs)
-		dirent.Node = fsNode
 	} else {
 		direntCs = ds.AppendDirent(&Dirent{
-			Name: name,
-			Node: fsNode,
+			Name:     name,
+			NodeType: nodeType,
+			NodeRef:  bcs.GetRef().Clone(),
 		})
-		bcs.SetAsSubBlock(2, direntCs)
 		ds.SortDirents()
 	}
 
+	direntCs.SetRef(2, bcs)
 	direntCs.MarkDirty()
 	return nil
 }
