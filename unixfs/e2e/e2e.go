@@ -139,6 +139,56 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 		return errors.New("data from ReadFile does not match expected data")
 	}
 
+	// test WriteFile with 500KB of data
+	newTestData := make([]byte, 500*1024) // 500KB
+	for i := range newTestData {
+		newTestData[i] = byte(i % 256) // Fill with repeating pattern
+	}
+	newFileName := "writefile_test.txt"
+
+	// Create a new file
+	err = dirHandle.Mknod(ctx, true, []string{newFileName}, unixfs.NewFSCursorNodeType_File(), 0644, ts)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new file")
+	}
+
+	// Get a handle to the new file
+	newFileHandle, err := dirHandle.Lookup(ctx, newFileName)
+	if err != nil {
+		return errors.Wrap(err, "failed to lookup new file")
+	}
+	defer newFileHandle.Release()
+
+	// Write data to the new file
+	err = unixfs.WriteFile(ctx, newFileHandle, newTestData, 0644, ts)
+	if err != nil {
+		return errors.Wrap(err, "WriteFile failed")
+	}
+
+	// Verify the file contains the correct data
+
+	verifyData, err := unixfs.ReadFile(ctx, newFileHandle)
+	if err != nil {
+		return errors.Wrap(err, "failed to read new file")
+	}
+	if !bytes.Equal(verifyData, newTestData) {
+		return errors.New("data from WriteFile does not match expected data")
+	}
+
+	// Verify file size
+	newFileInfo, err := newFileHandle.GetFileInfo(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get file info for new file")
+	}
+	if newFileInfo.Size() != int64(len(newTestData)) {
+		return errors.Errorf("unexpected file size: got %d, want %d", newFileInfo.Size(), len(newTestData))
+	}
+
+	// Verify file permissions
+	if newFileInfo.Mode().Perm() != 0644 {
+		return errors.Errorf("unexpected file permissions: got %v, want %v", newFileInfo.Mode().Perm(), 0644)
+	}
+
 	// test renaming twice in a row
 	err = dirHandle.Rename(ctx, fsHandle, "renamed-2", ts)
 	if err != nil {

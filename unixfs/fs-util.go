@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/aperturerobotics/hydra/block/blob"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
@@ -258,4 +259,47 @@ func ReadFile(ctx context.Context, h *FSHandle) ([]byte, error) {
 			return data, err
 		}
 	}
+}
+
+// WriteFile writes data to the named file, creating it if necessary.
+// If the file does not exist, WriteFile creates it with permissions perm (before umask);
+// otherwise WriteFile truncates it before writing, without changing permissions.
+// Since WriteFile requires multiple system calls to complete, a failure mid-operation
+// can leave the file in a partially written state.
+func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, perm fs.FileMode, ts time.Time) error {
+	optimalWriteSize, err := fsh.GetOptimalWriteSize(ctx)
+	if err != nil {
+		return err
+	}
+	if optimalWriteSize == 0 {
+		optimalWriteSize = blob.DefChunkingMinSize
+	}
+
+	// Truncate the file
+	err = fsh.Truncate(ctx, 0, ts)
+	if err != nil {
+		return err
+	}
+
+	// Set file permissions
+	err = fsh.SetPermissions(ctx, perm, ts)
+	if err != nil {
+		return err
+	}
+
+	// Write data in chunks
+	for offset := int64(0); offset < int64(len(data)); offset += int64(optimalWriteSize) {
+		end := offset + int64(optimalWriteSize)
+		if end > int64(len(data)) {
+			end = int64(len(data))
+		}
+		chunk := data[offset:end]
+
+		err = fsh.WriteAt(ctx, offset, chunk, ts)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
