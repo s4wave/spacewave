@@ -504,6 +504,7 @@ export function setIfChanged<S>(
 export function useWatchStateRpc<T>(
   watchStateRpc:
     | ((abortSignal: AbortSignal) => AsyncIterable<T>)
+    | ((abortSignal: AbortSignal) => (AsyncIterable<T> | null))
     | null
     | undefined,
   retryOpts?: RetryOpts,
@@ -524,6 +525,10 @@ export function useWatchStateRpc<T>(
         return
       }
       const stream = watchStateRpc(signal)
+      if (!stream) {
+        setCurrValue(null)
+        return
+      }
       for await (const resp of stream) {
         handleValue(resp)
       }

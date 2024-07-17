@@ -78,18 +78,18 @@
     "rimraf": "^6.0.1",
     "typescript": "^5.5.3",
     "unzip-crx-3": "^0.2.0",
-    "vitest": "^2.0.2"
+    "vitest": "^2.0.3"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.6",
     "@libp2p/logger": "^4.0.17",
     "console": "^0.7.2",
-    "electron": "^31.2.0",
+    "electron": "^31.2.1",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.32.16",
+    "starpc": "^0.32.18",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {
