@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/hydra/util/mbuffer"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/go-git/go-billy/v5"
+	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/pkg/errors"
 )
 
@@ -216,7 +217,8 @@ func syncToBillyOnce(
 							}
 						}
 
-						err = bfs.Remove(path.Join(outPath, entryName))
+						// Remove recursive
+						err = billy_util.RemoveAll(bfs, path.Join(outPath, entryName))
 						if err != nil {
 							releaseElem(nelem)
 							return err
