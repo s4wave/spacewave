@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/bldr/util/pipesock"
@@ -71,7 +72,9 @@ func Main(
 
 		return nil
 	}(); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+		le.WithError(err).Error("exiting with fatal error")
+		ctxCancel()
+		<-time.After(time.Millisecond * 100)
 		os.Exit(1)
 	}
 }

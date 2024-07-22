@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -47,7 +48,9 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 		}
 		return nil
 	}(); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+		le.WithError(err).Error("exiting with fatal error")
+		ctxCancel()
+		<-time.After(time.Millisecond * 100)
 		os.Exit(1)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"time"
 
 	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	"github.com/aperturerobotics/bldr/banner"
@@ -111,7 +112,9 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 		}
 		return nil
 	}(); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+		le.WithError(err).Error("exiting with fatal error")
+		ctxCancel()
+		<-time.After(time.Millisecond * 100)
 		os.Exit(1)
 	}
 }
