@@ -38,18 +38,19 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return ot.EqualVT(c)
 }
 
-// GetConfigID returns the unique string for this configuration type.
-
 // UpdateRelativeGoPackagePaths applies the root module path to the go_packages list.
-func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) []string {
+// Returns the updated packages list and the mappings from goPkg to goPkgName.
+func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) ([]string, map[string]string) {
+	mappings := make(map[string]string, len(goPkgsList))
 	pkgs := make([]string, len(goPkgsList))
 	for i, goPkgName := range goPkgsList {
 		if strings.HasPrefix(goPkgName, "./") {
 			goPkgName = strings.Join([]string{rootModule, goPkgName[2:]}, "/")
 		}
 		pkgs[i] = goPkgName
+		mappings[goPkgsList[i]] = goPkgName
 	}
-	return pkgs
+	return pkgs, mappings
 }
 
 // Validate validates the configuration.

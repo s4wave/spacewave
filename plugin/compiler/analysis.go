@@ -28,6 +28,8 @@ type Analysis struct {
 	fset *token.FileSet
 	// packagePaths are the resolved root package paths.
 	packagePaths []string
+	// packagePathMappings are mappings from the provided go pkg path to the resolved one.
+	packagePathMappings map[string]string
 	// packages are the imported packages
 	// keyed by package path
 	packages map[string]*packages.Package
@@ -67,12 +69,13 @@ func AnalyzePackages(
 	}
 
 	// update relative module paths (./)
-	packagePaths = UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
+	packagePaths, packagePathMappings := UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
 
 	res := &Analysis{
-		baseModFile:  baseModFile,
-		packagePaths: packagePaths,
-		workDir:      workDir,
+		baseModFile:         baseModFile,
+		packagePaths:        packagePaths,
+		packagePathMappings: packagePathMappings,
+		workDir:             workDir,
 		imports: map[string]*types.Package{
 			// "context": nil,
 			"embed":   nil,
@@ -208,6 +211,16 @@ func AnalyzePackages(
 	}
 
 	return res, nil
+}
+
+// GetPackagePaths returns the resolved root package paths.
+func (a *Analysis) GetPackagePaths() []string {
+	return a.packagePaths
+}
+
+// GetPackagePathMappings returns the mappings from the provided go pkg path to the resolved one.
+func (a *Analysis) GetPackagePathMappings() map[string]string {
+	return a.packagePathMappings
 }
 
 // GetLoadedPackages returns the loaded packages.

@@ -715,6 +715,13 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 
+	// ensure all go packages were found.
+	for srcPkg, dstPkg := range an.GetPackagePathMappings() {
+		if _, ok := an.GetLoadedPackages()[dstPkg]; !ok {
+			return nil, nil, errors.Errorf("go package not found: make sure it is imported in at least one Go file: %v", srcPkg)
+		}
+	}
+
 	// mapping between go.package.path.Variable and value
 	// for the Go compiler linker flags
 	var goVariableDefs []*vardef.PluginVar
