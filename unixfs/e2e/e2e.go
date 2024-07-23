@@ -159,7 +159,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 	newFileName := "writefile_test.txt"
 
 	// Create a new file
-	err = dirHandle.Mknod(ctx, true, []string{newFileName}, unixfs.NewFSCursorNodeType_File(), 0644, ts)
+	err = dirHandle.Mknod(ctx, true, []string{newFileName}, unixfs.NewFSCursorNodeType_File(), 0o644, ts)
 	if err != nil {
 		return errors.Wrap(err, "failed to create new file")
 	}
@@ -196,8 +196,8 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 	}
 
 	// Verify file permissions
-	if newFileInfo.Mode().Perm() != 0644 {
-		return errors.Errorf("unexpected file permissions: got %v, want %v", newFileInfo.Mode().Perm(), 0644)
+	if newFileInfo.Mode().Perm() != 0o644 {
+		return errors.Errorf("unexpected file permissions: got %v, want %v", newFileInfo.Mode().Perm(), 0o644)
 	}
 
 	// test renaming twice in a row

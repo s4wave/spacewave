@@ -13,7 +13,7 @@ import (
 func TestBillyFSCursor(t *testing.T) {
 	// we have to create the root of the fs or we get "not found"
 	bfs := memfs.New()
-	if err := bfs.MkdirAll("./", 0755); err != nil {
+	if err := bfs.MkdirAll("./", 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
 

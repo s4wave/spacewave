@@ -9,6 +9,33 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ExecTransaction executes a transaction inside a function callback.
+//
+// If a write transaction, calls Commit if the callback return nil.
+// Otherwise, discards the transaction.
+func ExecTransaction(
+	ctx context.Context,
+	eng Engine,
+	write bool,
+	cb func(ctx context.Context, wtx WorldState) error,
+) error {
+	wtx, err := eng.NewTransaction(ctx, write)
+	if err != nil {
+		return err
+	}
+	defer wtx.Discard()
+
+	if err := cb(ctx, wtx); err != nil {
+		return err
+	}
+
+	if !write {
+		return nil
+	}
+
+	return wtx.Commit(ctx)
+}
+
 // AssertObjectRev asserts that an object is at a given rev.
 func AssertObjectRev(ctx context.Context, obj ObjectState, expected uint64) error {
 	_, rev, err := obj.GetRootRef(ctx)

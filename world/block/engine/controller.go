@@ -209,7 +209,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	le.Info("world engine ready")
+	seqno, err := engine.GetSeqno(ctx)
+	if err != nil {
+		return err
+	}
+
+	le.WithField("world-seqno", seqno).Info("world engine ready")
 	var wengine world.Engine = engine
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)

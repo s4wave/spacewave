@@ -271,13 +271,13 @@ func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 	}
 	readTx := NewTx(world)
 	nseqno, err := readTx.GetSeqno(ctx)
-	if err == nil {
-		e.procWaiters(nseqno)
-	}
 	if err != nil {
 		readTx.Discard()
 		return err
 	}
+	// proc waiters
+	// call before discarding e.readTx
+	e.procWaiters(nseqno)
 	// cancel the old write tx if active
 	if e.writeTx != nil {
 		e.writeTx.Discard()

@@ -35,7 +35,7 @@ func (e *FSCursorOps) GetIsSymlink() bool {
 }
 
 func (e *FSCursorOps) GetPermissions(ctx context.Context) (fs.FileMode, error) {
-	return fs.ModeDir | 0755, nil
+	return fs.ModeDir | 0o755, nil
 }
 
 func (e *FSCursorOps) SetPermissions(ctx context.Context, permissions fs.FileMode, ts time.Time) error {
