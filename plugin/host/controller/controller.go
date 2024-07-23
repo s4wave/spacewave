@@ -111,7 +111,7 @@ func NewController(
 	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newWatchWorldManifest, le.WithField("tracker", "manifest-watcher"))
 	c.downloadManifests = keyed.NewKeyedRefCountWithLogger(c.newDownloadManifest, le.WithField("tracker", "manifest-downloader"))
 	c.watchFetchManifests = keyed.NewKeyedRefCountWithLogger(c.newWatchFetchManifest, le.WithField("tracker", "fetch-manifest-watcher"))
-	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "plugin-instances"))
+	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "running-plugin"))
 	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "plugin-host-controller"),
 		c.objKey,
@@ -138,6 +138,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.pluginManifestWatcher.ClearContext()
 	defer c.pluginInstances.ClearContext()
 	defer c.downloadManifests.ClearContext()
+	defer c.watchFetchManifests.ClearContext()
 	defer c.hostPluginPlatformID.SetPromise(nil)
 
 	// get the platform id

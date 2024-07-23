@@ -47,6 +47,7 @@ func (w *watchFetchManifest) execute(ctx context.Context) error {
 	defer fetchRef.Release()
 
 	var prevResult *bldr_manifest.FetchManifestValue
+	le := w.c.le.WithField("plugin-id", w.pluginID)
 	return bus.ExecOneOffWatchLatestCb(
 		ctx,
 		w.c.bus,
@@ -54,13 +55,14 @@ func (w *watchFetchManifest) execute(ctx context.Context) error {
 		nil,
 		func(tval directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) error {
 			if tval == nil || tval.GetValue() == nil {
+				le.Debug("directive has no value currently")
 				return nil
 			}
 			val := tval.GetValue()
 
 			// Manifest has changed, trigger a restart of downloadManifest
+			le.Debugf("got manifest with rev %v", val.GetManifestRef().GetMeta().GetRev())
 			if prevResult != nil && !val.EqualVT(prevResult) && !w.c.conf.GetDisableStoreManifest() {
-				le := w.c.le.WithField("plugin-id", w.pluginID)
 				le.Debug("manifest changed, triggering fetcher restart")
 				if _, reset := w.c.downloadManifests.RestartRoutine(w.pluginID); reset {
 					le.Info("restarted outdated plugin fetcher")
