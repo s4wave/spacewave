@@ -102,15 +102,18 @@ func (t *executePlugin) execPlugin(ctx context.Context) error {
 
 	// fetch the manifest if it doesn't exist in the cache
 	emptyManifest := manifest.GetMeta().GetManifestId() == ""
-	if emptyManifest || t.c.conf.GetWatchFetchManifest() {
-		ref, fetcher, _ := t.c.downloadManifests.AddKeyRef(pluginID)
+	if t.c.conf.GetWatchFetchManifest() {
+		ref, _, _ := t.c.watchFetchManifests.AddKeyRef(pluginID)
 		defer ref.Release()
+	}
 
-		if emptyManifest {
-			// expect that we will be reset by the changing plugin manifest
-			_, err := fetcher.resultPromise.Await(ctx)
-			return err
-		}
+	downloadRef, downloader, _ := t.c.downloadManifests.AddKeyRef(pluginID)
+	defer downloadRef.Release()
+
+	if emptyManifest {
+		// expect that we will be reset by the changing plugin manifest
+		_, err := downloader.resultPromise.Await(ctx)
+		return err
 	}
 
 	le.Infof("starting plugin with manifest: %s", pluginManifest.GetManifestRef().MarshalString())

@@ -65,6 +65,10 @@ type Controller struct {
 	// key: plugin ID
 	// controlled by pluginInstances
 	downloadManifests *keyed.KeyedRefCount[string, *downloadManifest]
+	// watchFetchManifests manages watching FetchManifest directives.
+	// key: plugin ID
+	// controlled by pluginInstances
+	watchFetchManifests *keyed.KeyedRefCount[string, *watchFetchManifest]
 	// pluginManifestWatcher manages watching any matched PluginManifest.
 	// key: objKey of matched PluginManifest
 	// controlled by pluginInstances
@@ -106,6 +110,7 @@ func NewController(
 	}
 	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newWatchWorldManifest, le.WithField("tracker", "manifest-watcher"))
 	c.downloadManifests = keyed.NewKeyedRefCountWithLogger(c.newDownloadManifest, le.WithField("tracker", "manifest-downloader"))
+	c.watchFetchManifests = keyed.NewKeyedRefCountWithLogger(c.newWatchFetchManifest, le.WithField("tracker", "fetch-manifest-watcher"))
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "plugin-instances"))
 	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "plugin-host-controller"),
@@ -179,6 +184,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	c.pluginManifestWatcher.SetContext(ctx, true)
 	c.pluginInstances.SetContext(ctx, true)
 	c.downloadManifests.SetContext(ctx, true)
+	c.watchFetchManifests.SetContext(ctx, true)
 
 	// watch the plugin host for changes
 	return c.objLoop.Execute(ctx, ws)
@@ -211,13 +217,16 @@ func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPlu
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
 	var downloadRef *keyed.KeyedRef[string, *downloadManifest]
+	var watchFetchRef *keyed.KeyedRef[string, *watchFetchManifest]
+	downloadRef, _, _ = c.downloadManifests.AddKeyRef(pluginID)
 	if c.conf.GetWatchFetchManifest() {
-		downloadRef, _, _ = c.downloadManifests.AddKeyRef(pluginID)
+		watchFetchRef, _, _ = c.watchFetchManifests.AddKeyRef(pluginID)
 	}
 	return plg, func() {
 		ref.Release()
-		if downloadRef != nil {
-			downloadRef.Release()
+		downloadRef.Release()
+		if watchFetchRef != nil {
+			watchFetchRef.Release()
 		}
 	}
 }

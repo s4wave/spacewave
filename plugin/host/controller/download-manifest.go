@@ -47,16 +47,6 @@ func (t *downloadManifest) execute(ctx context.Context) error {
 		PlatformId: hostPluginPlatformID,
 	}
 
-	// If WatchFetchManifest is enabled, keep a FetchManifest directive running.
-	// If the manifest is updated, the plugin fetcher will be restarted.
-	watchFetchManifest := t.c.conf.GetWatchFetchManifest()
-	if watchFetchManifest {
-		_, fetchRef, err := t.c.bus.AddDirective(bldr_manifest.NewFetchManifest(meta), nil)
-		if err != nil {
-			return err
-		}
-		defer fetchRef.Release()
-	}
 
 	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
 	if backoffConf == nil {
@@ -83,11 +73,6 @@ func (t *downloadManifest) execute(ctx context.Context) error {
 			}
 			if err != context.Canceled {
 				resultProm.SetResult(resp, err)
-			}
-			if err == nil && watchFetchManifest {
-				// Keep the FetchManifest directive running until the context is canceled.
-				<-ctx.Done()
-				err = context.Canceled
 			}
 			return err
 		},
