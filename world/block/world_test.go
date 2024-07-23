@@ -1,4 +1,4 @@
-package world_block
+package world_block_test
 
 import (
 	"context"
