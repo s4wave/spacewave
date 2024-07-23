@@ -372,7 +372,7 @@ func BuildDistBus(
 		vol.GetPeerID().String(),
 		pluginsStateRoot,
 		pluginsDistRoot,
-		true,  // Always run FetchManifest on the bus so we can do auto-update.
+		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
 		false, // Enable copying the manifest root to the plugin host storage.
 		true,  // Disable copying the manifest contents to the plugin host storage.
 		webRuntimeID,

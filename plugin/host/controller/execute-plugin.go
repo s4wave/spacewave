@@ -20,8 +20,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// pluginTracker manages a running plugin instance
-type pluginTracker struct {
+// executePlugin manages a running plugin instance
+type executePlugin struct {
 	// c is the controller
 	c *Controller
 	// le is the logger
@@ -34,13 +34,13 @@ type pluginTracker struct {
 
 // GetRunningPluginCtr returns the current running plugin instance.
 // May be changed (or set to nil) when the instance changes.
-func (t *pluginTracker) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.RunningPlugin] {
+func (t *executePlugin) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.RunningPlugin] {
 	return t.runningPluginCtr
 }
 
 // newRunningPlugin constructs a new running plugin routine.
-func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *pluginTracker) {
-	tr := &pluginTracker{
+func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *executePlugin) {
+	tr := &executePlugin{
 		c:                c,
 		le:               c.le.WithField("plugin-id", key),
 		pluginID:         key,
@@ -50,7 +50,7 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *pluginTracker
 }
 
 // execute executes the routine.
-func (t *pluginTracker) execute(ctx context.Context) error {
+func (t *executePlugin) execute(ctx context.Context) error {
 	backoffConf := t.c.conf.GetExecBackoff().CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
@@ -78,7 +78,7 @@ func (t *pluginTracker) execute(ctx context.Context) error {
 }
 
 // execPlugin executes the plugin.
-func (t *pluginTracker) execPlugin(ctx context.Context) error {
+func (t *executePlugin) execPlugin(ctx context.Context) error {
 	pluginID, le := t.pluginID, t.le
 
 	// build proxy volume
@@ -102,8 +102,8 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 
 	// fetch the manifest if it doesn't exist in the cache
 	emptyManifest := manifest.GetMeta().GetManifestId() == ""
-	if emptyManifest || t.c.conf.GetAlwaysFetchManifest() {
-		ref, fetcher, _ := t.c.pluginManifestFetchers.AddKeyRef(pluginID)
+	if emptyManifest || t.c.conf.GetWatchFetchManifest() {
+		ref, fetcher, _ := t.c.downloadManifests.AddKeyRef(pluginID)
 		defer ref.Release()
 
 		if emptyManifest {
@@ -186,7 +186,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 }
 
 // updateRpcClient is called by the plugin when the RPC client changes.
-func (t *pluginTracker) updateRpcClient(client srpc.Client) {
+func (t *executePlugin) updateRpcClient(client srpc.Client) {
 	_ = t.runningPluginCtr.SwapValue(func(rp bldr_plugin.RunningPlugin) bldr_plugin.RunningPlugin {
 		var val srpc.Client
 		if rp != nil {
@@ -206,4 +206,4 @@ func (t *pluginTracker) updateRpcClient(client srpc.Client) {
 }
 
 // _ is a type assertion
-var _ bldr_plugin.RunningPluginRef = ((*pluginTracker)(nil))
+var _ bldr_plugin.RunningPluginRef = ((*executePlugin)(nil))

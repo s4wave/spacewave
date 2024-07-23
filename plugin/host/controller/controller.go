@@ -60,15 +60,15 @@ type Controller struct {
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
-	pluginInstances *keyed.KeyedRefCount[string, *pluginTracker]
-	// pluginManifestFetchers manages fetching plugin manifests.
+	pluginInstances *keyed.KeyedRefCount[string, *executePlugin]
+	// downloadManifests manages fetching plugin manifests.
 	// key: plugin ID
 	// controlled by pluginInstances
-	pluginManifestFetchers *keyed.KeyedRefCount[string, *pluginManifestFetcher]
+	downloadManifests *keyed.KeyedRefCount[string, *downloadManifest]
 	// pluginManifestWatcher manages watching any matched PluginManifest.
 	// key: objKey of matched PluginManifest
 	// controlled by pluginInstances
-	pluginManifestWatcher *keyed.Keyed[string, *pluginManifestTracker]
+	pluginManifestWatcher *keyed.Keyed[string, *watchWorldManifest]
 	// rmtx guards below fields
 	rmtx sync.RWMutex
 	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
@@ -104,8 +104,8 @@ func NewController(
 		worldStateCtr:        ccontainer.NewCContainer[world.WorldState](nil),
 		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
 	}
-	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newPluginManifestTracker, le.WithField("tracker", "manifest-watcher"))
-	c.pluginManifestFetchers = keyed.NewKeyedRefCountWithLogger(c.newPluginManifestFetcher, le.WithField("tracker", "manifest-fetcher"))
+	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newWatchWorldManifest, le.WithField("tracker", "manifest-watcher"))
+	c.downloadManifests = keyed.NewKeyedRefCountWithLogger(c.newDownloadManifest, le.WithField("tracker", "manifest-downloader"))
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "plugin-instances"))
 	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "plugin-host-controller"),
@@ -132,7 +132,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	// shutdown all plugin instances when exiting
 	defer c.pluginManifestWatcher.ClearContext()
 	defer c.pluginInstances.ClearContext()
-	defer c.pluginManifestFetchers.ClearContext()
+	defer c.downloadManifests.ClearContext()
 	defer c.hostPluginPlatformID.SetPromise(nil)
 
 	// get the platform id
@@ -178,7 +178,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	// startup manifest watchers & plugin instances
 	c.pluginManifestWatcher.SetContext(ctx, true)
 	c.pluginInstances.SetContext(ctx, true)
-	c.pluginManifestFetchers.SetContext(ctx, true)
+	c.downloadManifests.SetContext(ctx, true)
 
 	// watch the plugin host for changes
 	return c.objLoop.Execute(ctx, ws)
@@ -210,14 +210,14 @@ func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPlu
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	var fetcherRef *keyed.KeyedRef[string, *pluginManifestFetcher]
-	if c.conf.GetAlwaysFetchManifest() {
-		fetcherRef, _, _ = c.pluginManifestFetchers.AddKeyRef(pluginID)
+	var downloadRef *keyed.KeyedRef[string, *downloadManifest]
+	if c.conf.GetWatchFetchManifest() {
+		downloadRef, _, _ = c.downloadManifests.AddKeyRef(pluginID)
 	}
 	return plg, func() {
 		ref.Release()
-		if fetcherRef != nil {
-			fetcherRef.Release()
+		if downloadRef != nil {
+			downloadRef.Release()
 		}
 	}
 }

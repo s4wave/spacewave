@@ -15,7 +15,7 @@ func NewConfig(
 	objectKey,
 	volumeID,
 	peerID string,
-	alwaysFetchManifest,
+	watchFetchManifest,
 	disableStoreManifest,
 	disableCopyManifest bool,
 ) *Config {
@@ -25,7 +25,7 @@ func NewConfig(
 		PeerId:    peerID,
 		VolumeId:  volumeID,
 
-		AlwaysFetchManifest:  alwaysFetchManifest,
+		WatchFetchManifest:   watchFetchManifest,
 		DisableStoreManifest: disableStoreManifest,
 		DisableCopyManifest:  disableCopyManifest,
 	}

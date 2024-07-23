@@ -43,15 +43,14 @@ export interface Config {
    */
   volumeId?: string
   /**
-   * AlwaysFetchManifest will always create a FetchManifest directive even if
-   * the manifest already exists. Used in dev mode.
+   * WatchFetchManifest will watch the FetchManifest directive for changes.
    *
-   * @generated from field: bool always_fetch_manifest = 5;
+   * @generated from field: bool watch_fetch_manifest = 5;
    */
-  alwaysFetchManifest?: boolean
+  watchFetchManifest?: boolean
   /**
    * DisableStoreManifest disables storing manifests fetched with FetchManifest.
-   * This is used if we are watching the same world as the manifest compiler.
+   * This is used if we are watching the same world as the FetchManifest resolver.
    *
    * @generated from field: bool disable_store_manifest = 6;
    */
@@ -99,12 +98,7 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'always_fetch_manifest',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
-    },
+    { no: 5, name: 'watch_fetch_manifest', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 6,
       name: 'disable_store_manifest',

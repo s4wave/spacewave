@@ -30,11 +30,10 @@ type Config struct {
 	// VolumeId is the identifier of the volume on the plugin host bus.
 	// This volume is available for the plugin to use via the volume proxy.
 	VolumeId string `protobuf:"bytes,4,opt,name=volume_id,json=volumeId,proto3" json:"volumeId,omitempty"`
-	// AlwaysFetchManifest will always create a FetchManifest directive even if
-	// the manifest already exists. Used in dev mode.
-	AlwaysFetchManifest bool `protobuf:"varint,5,opt,name=always_fetch_manifest,json=alwaysFetchManifest,proto3" json:"alwaysFetchManifest,omitempty"`
+	// WatchFetchManifest will watch the FetchManifest directive for changes.
+	WatchFetchManifest bool `protobuf:"varint,5,opt,name=watch_fetch_manifest,json=watchFetchManifest,proto3" json:"watchFetchManifest,omitempty"`
 	// DisableStoreManifest disables storing manifests fetched with FetchManifest.
-	// This is used if we are watching the same world as the manifest compiler.
+	// This is used if we are watching the same world as the FetchManifest resolver.
 	DisableStoreManifest bool `protobuf:"varint,6,opt,name=disable_store_manifest,json=disableStoreManifest,proto3" json:"disableStoreManifest,omitempty"`
 	// DisableCopyManifest disables copying manifests to the plugin host world bucket.
 	// This is used if the manifest bucket is always accessible and locally cached.
@@ -89,9 +88,9 @@ func (x *Config) GetVolumeId() string {
 	return ""
 }
 
-func (x *Config) GetAlwaysFetchManifest() bool {
+func (x *Config) GetWatchFetchManifest() bool {
 	if x != nil {
-		return x.AlwaysFetchManifest
+		return x.WatchFetchManifest
 	}
 	return false
 }
@@ -140,7 +139,7 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectKey = m.ObjectKey
 	r.PeerId = m.PeerId
 	r.VolumeId = m.VolumeId
-	r.AlwaysFetchManifest = m.AlwaysFetchManifest
+	r.WatchFetchManifest = m.WatchFetchManifest
 	r.DisableStoreManifest = m.DisableStoreManifest
 	r.DisableCopyManifest = m.DisableCopyManifest
 	r.FetchConcurrency = m.FetchConcurrency
@@ -179,7 +178,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.VolumeId != that.VolumeId {
 		return false
 	}
-	if this.AlwaysFetchManifest != that.AlwaysFetchManifest {
+	if this.WatchFetchManifest != that.WatchFetchManifest {
 		return false
 	}
 	if this.DisableStoreManifest != that.DisableStoreManifest {
@@ -236,10 +235,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("volumeId")
 		s.WriteString(x.VolumeId)
 	}
-	if x.AlwaysFetchManifest || s.HasField("alwaysFetchManifest") {
+	if x.WatchFetchManifest || s.HasField("watchFetchManifest") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("alwaysFetchManifest")
-		s.WriteBool(x.AlwaysFetchManifest)
+		s.WriteObjectField("watchFetchManifest")
+		s.WriteBool(x.WatchFetchManifest)
 	}
 	if x.DisableStoreManifest || s.HasField("disableStoreManifest") {
 		s.WriteMoreIf(&wroteField)
@@ -295,9 +294,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "volume_id", "volumeId":
 			s.AddField("volume_id")
 			x.VolumeId = s.ReadString()
-		case "always_fetch_manifest", "alwaysFetchManifest":
-			s.AddField("always_fetch_manifest")
-			x.AlwaysFetchManifest = s.ReadBool()
+		case "watch_fetch_manifest", "watchFetchManifest":
+			s.AddField("watch_fetch_manifest")
+			x.WatchFetchManifest = s.ReadBool()
 		case "disable_store_manifest", "disableStoreManifest":
 			s.AddField("disable_store_manifest")
 			x.DisableStoreManifest = s.ReadBool()
@@ -405,9 +404,9 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x30
 	}
-	if m.AlwaysFetchManifest {
+	if m.WatchFetchManifest {
 		i--
-		if m.AlwaysFetchManifest {
+		if m.WatchFetchManifest {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -468,7 +467,7 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.AlwaysFetchManifest {
+	if m.WatchFetchManifest {
 		n += 2
 	}
 	if m.DisableStoreManifest {
@@ -511,9 +510,9 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString(" volume_id: ")
 		sb.WriteString(strconv.Quote(x.VolumeId))
 	}
-	if x.AlwaysFetchManifest {
-		sb.WriteString(" always_fetch_manifest: ")
-		sb.WriteString(strconv.FormatBool(x.AlwaysFetchManifest))
+	if x.WatchFetchManifest {
+		sb.WriteString(" watch_fetch_manifest: ")
+		sb.WriteString(strconv.FormatBool(x.WatchFetchManifest))
 	}
 	if x.DisableStoreManifest {
 		sb.WriteString(" disable_store_manifest: ")
@@ -700,7 +699,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AlwaysFetchManifest", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field WatchFetchManifest", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
@@ -717,7 +716,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-			m.AlwaysFetchManifest = bool(v != 0)
+			m.WatchFetchManifest = bool(v != 0)
 		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DisableStoreManifest", wireType)

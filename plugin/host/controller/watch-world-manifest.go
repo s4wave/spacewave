@@ -13,9 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// pluginManifestTracker tracks matched PluginManifest objects.
+// watchWorldManifest tracks matched PluginManifest objects in the world.
 // updates the in-memory cache & restarts plugin if the manifest changes.
-type pluginManifestTracker struct {
+type watchWorldManifest struct {
 	// c is the controller
 	c *Controller
 	// objKey is the object key
@@ -28,14 +28,14 @@ type pluginManifestTracker struct {
 	prevObjRef *bucket.ObjectRef
 }
 
-// newPluginManifestTracker constructs a new plugin manifest tracker routine.
-func (c *Controller) newPluginManifestTracker(key string) (keyed.Routine, *pluginManifestTracker) {
-	tr := &pluginManifestTracker{
+// newWatchWorldManifest constructs a new plugin manifest tracker routine.
+func (c *Controller) newWatchWorldManifest(key string) (keyed.Routine, *watchWorldManifest) {
+	tr := &watchWorldManifest{
 		c:      c,
 		objKey: key,
 	}
 	tr.objLoop = world_control.NewWatchLoop(
-		c.le.WithField("object-loop", "plugin-manifest-tracker"),
+		c.le.WithField("object-loop", "watch-world-manifest"),
 		key,
 		tr.processState,
 	)
@@ -43,10 +43,10 @@ func (c *Controller) newPluginManifestTracker(key string) (keyed.Routine, *plugi
 }
 
 // execute executes the tracker.
-func (t *pluginManifestTracker) execute(ctx context.Context) error {
+func (t *watchWorldManifest) execute(ctx context.Context) error {
 	objKey, le := t.objKey, t.c.le
 
-	le.Debugf("starting plugin manifest tracker: %s", objKey)
+	le.Debugf("starting watch world manifest: %s", objKey)
 	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		t.c.bus,
@@ -57,7 +57,7 @@ func (t *pluginManifestTracker) execute(ctx context.Context) error {
 }
 
 // processState processes the state for the PluginManifest.
-func (t *pluginManifestTracker) processState(
+func (t *watchWorldManifest) processState(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
@@ -122,4 +122,4 @@ func (t *pluginManifestTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*pluginManifestTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = ((*watchWorldManifest)(nil)).processState

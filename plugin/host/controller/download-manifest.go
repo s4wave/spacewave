@@ -14,8 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// pluginManifestFetcher tracks fetching plugin manifests.
-type pluginManifestFetcher struct {
+// downloadManifest tracks fetching plugin manifests.
+type downloadManifest struct {
 	// c is the controller
 	c *Controller
 	// pluginID is the plugin id
@@ -24,9 +24,9 @@ type pluginManifestFetcher struct {
 	resultPromise *promise.PromiseContainer[*bldr_manifest.FetchManifestValue]
 }
 
-// newPluginManifestFetcher constructs a new plugin manifest fetcher routine.
-func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *pluginManifestFetcher) {
-	tr := &pluginManifestFetcher{
+// newDownloadManifest constructs a new plugin manifest fetcher routine.
+func (c *Controller) newDownloadManifest(pluginID string) (keyed.Routine, *downloadManifest) {
+	tr := &downloadManifest{
 		c:             c,
 		pluginID:      pluginID,
 		resultPromise: promise.NewPromiseContainer[*bldr_manifest.FetchManifestValue](),
@@ -34,8 +34,8 @@ func (c *Controller) newPluginManifestFetcher(pluginID string) (keyed.Routine, *
 	return tr.execute, tr
 }
 
-// execute executes the plugin fetcher.
-func (t *pluginManifestFetcher) execute(ctx context.Context) error {
+// execute executes the manifest downloader.
+func (t *downloadManifest) execute(ctx context.Context) error {
 	// determine host plugin platform id
 	hostPluginPlatformID, err := t.c.hostPluginPlatformID.Await(ctx)
 	if err != nil {
@@ -47,10 +47,10 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 		PlatformId: hostPluginPlatformID,
 	}
 
-	// If AlwaysFetchManifest is enabled, keep a FetchManifest directive running.
+	// If WatchFetchManifest is enabled, keep a FetchManifest directive running.
 	// If the manifest is updated, the plugin fetcher will be restarted.
-	alwaysFetchManifest := t.c.conf.GetAlwaysFetchManifest()
-	if alwaysFetchManifest {
+	watchFetchManifest := t.c.conf.GetWatchFetchManifest()
+	if watchFetchManifest {
 		_, fetchRef, err := t.c.bus.AddDirective(bldr_manifest.NewFetchManifest(meta), nil)
 		if err != nil {
 			return err
@@ -84,7 +84,7 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 			if err != context.Canceled {
 				resultProm.SetResult(resp, err)
 			}
-			if err == nil && alwaysFetchManifest {
+			if err == nil && watchFetchManifest {
 				// Keep the FetchManifest directive running until the context is canceled.
 				<-ctx.Done()
 				err = context.Canceled
@@ -96,7 +96,7 @@ func (t *pluginManifestFetcher) execute(ctx context.Context) error {
 }
 
 // fetchManifest attempts to fetch the manifest.
-func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestValue, error) {
+func (t *downloadManifest) fetchManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestValue, error) {
 	le := t.c.le
 	le.Debugf("starting plugin manifest fetcher: %s", meta.GetManifestId())
 
@@ -112,6 +112,7 @@ func (t *pluginManifestFetcher) fetchManifest(ctx context.Context, meta *bldr_ma
 	if err != nil {
 		return nil, err
 	}
+
 	pluginManifestRef := res.GetManifestRef()
 	if err := pluginManifestRef.Validate(); err != nil {
 		return nil, errors.Wrap(err, "fetch plugin returned invalid manifest ref")

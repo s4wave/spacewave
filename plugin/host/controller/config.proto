@@ -17,11 +17,10 @@ message Config {
   // VolumeId is the identifier of the volume on the plugin host bus.
   // This volume is available for the plugin to use via the volume proxy.
   string volume_id = 4;
-  // AlwaysFetchManifest will always create a FetchManifest directive even if
-  // the manifest already exists. Used in dev mode.
-  bool always_fetch_manifest = 5;
+  // WatchFetchManifest will watch the FetchManifest directive for changes.
+  bool watch_fetch_manifest = 5;
   // DisableStoreManifest disables storing manifests fetched with FetchManifest.
-  // This is used if we are watching the same world as the manifest compiler.
+  // This is used if we are watching the same world as the FetchManifest resolver.
   bool disable_store_manifest = 6;
   // DisableCopyManifest disables copying manifests to the plugin host world bucket.
   // This is used if the manifest bucket is always accessible and locally cached.
