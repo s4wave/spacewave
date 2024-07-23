@@ -22,7 +22,10 @@ func ToTimestamp(ts time.Time, fillPlaceholder bool) *timestamppb.Timestamp {
 // FillPlaceholderTimestamp fills a timestamp with a placeholder if nil.
 func FillPlaceholderTimestamp(ts *timestamppb.Timestamp) *timestamppb.Timestamp {
 	if ts == nil {
-		ts = timestamppb.New(TodoMtime)
+		// placeholderMtime is a placeholder used for mtime, ctime, atime
+		var placeholderMtime = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
+		ts = timestamppb.New(placeholderMtime)
 	}
+
 	return ts
 }

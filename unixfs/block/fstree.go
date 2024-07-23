@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"slices"
 	"sort"
-	"time"
 
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
@@ -14,9 +13,6 @@ import (
 	"github.com/bits-and-blooms/bitset"
 	"github.com/pkg/errors"
 )
-
-// TodoMtime is a placeholder used for mtime, ctime, atime
-var TodoMtime = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 // FSTree is a handle to a filesystem tree.
 // The handle can be used to manipulate the tree.
