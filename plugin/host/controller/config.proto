@@ -17,7 +17,7 @@ message Config {
   // VolumeId is the identifier of the volume on the plugin host bus.
   // This volume is available for the plugin to use via the volume proxy.
   string volume_id = 4;
-  // WatchFetchManifest will watch the FetchManifest directive for changes.
+  // WatchFetchManifest will watch the FetchManifest directive while a plugin is running.
   bool watch_fetch_manifest = 5;
   // DisableStoreManifest disables storing manifests fetched with FetchManifest.
   // This is used if we are watching the same world as the FetchManifest resolver.

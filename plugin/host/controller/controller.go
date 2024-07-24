@@ -217,19 +217,7 @@ func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPlu
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	var downloadRef *keyed.KeyedRef[string, *downloadManifest]
-	var watchFetchRef *keyed.KeyedRef[string, *watchFetchManifest]
-	downloadRef, _, _ = c.downloadManifests.AddKeyRef(pluginID)
-	if c.conf.GetWatchFetchManifest() {
-		watchFetchRef, _, _ = c.watchFetchManifests.AddKeyRef(pluginID)
-	}
-	return plg, func() {
-		ref.Release()
-		downloadRef.Release()
-		if watchFetchRef != nil {
-			watchFetchRef.Release()
-		}
-	}
+	return plg, ref.Release
 }
 
 // Close releases any resources used by the controller.

@@ -43,7 +43,7 @@ export interface Config {
    */
   volumeId?: string
   /**
-   * WatchFetchManifest will watch the FetchManifest directive for changes.
+   * WatchFetchManifest will watch the FetchManifest directive while a plugin is running.
    *
    * @generated from field: bool watch_fetch_manifest = 5;
    */

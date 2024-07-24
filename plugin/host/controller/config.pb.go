@@ -30,7 +30,7 @@ type Config struct {
 	// VolumeId is the identifier of the volume on the plugin host bus.
 	// This volume is available for the plugin to use via the volume proxy.
 	VolumeId string `protobuf:"bytes,4,opt,name=volume_id,json=volumeId,proto3" json:"volumeId,omitempty"`
-	// WatchFetchManifest will watch the FetchManifest directive for changes.
+	// WatchFetchManifest will watch the FetchManifest directive while a plugin is running.
 	WatchFetchManifest bool `protobuf:"varint,5,opt,name=watch_fetch_manifest,json=watchFetchManifest,proto3" json:"watchFetchManifest,omitempty"`
 	// DisableStoreManifest disables storing manifests fetched with FetchManifest.
 	// This is used if we are watching the same world as the FetchManifest resolver.

@@ -88,6 +88,12 @@ func (t *executePlugin) execPlugin(ctx context.Context) error {
 	}
 	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, hostVol.vol, false)
 
+	// register the FetchManifest directive if necessary
+	if t.c.conf.GetWatchFetchManifest() {
+		watchFetchRef, _, _ := t.c.watchFetchManifests.AddKeyRef(pluginID)
+		defer watchFetchRef.Release()
+	}
+
 	// build mux
 	t.c.rmtx.Lock()
 	pluginManifest := t.c.pluginManifests[pluginID]
@@ -100,13 +106,8 @@ func (t *executePlugin) execPlugin(ctx context.Context) error {
 		return err
 	}
 
-	// fetch the manifest if it doesn't exist in the cache
+	// download the manifest if it doesn't exist in the cache
 	emptyManifest := manifest.GetMeta().GetManifestId() == ""
-	if t.c.conf.GetWatchFetchManifest() {
-		ref, _, _ := t.c.watchFetchManifests.AddKeyRef(pluginID)
-		defer ref.Release()
-	}
-
 	downloadRef, downloader, _ := t.c.downloadManifests.AddKeyRef(pluginID)
 	defer downloadRef.Release()
 

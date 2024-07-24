@@ -47,7 +47,6 @@ func (t *downloadManifest) execute(ctx context.Context) error {
 		PlatformId: hostPluginPlatformID,
 	}
 
-
 	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
@@ -67,7 +66,7 @@ func (t *downloadManifest) execute(ctx context.Context) error {
 		func(ctx context.Context, success func()) error {
 			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestValue]()
 			t.resultPromise.SetPromise(resultProm)
-			resp, err := t.fetchManifest(ctx, meta)
+			resp, err := t.downloadManifest(ctx, meta)
 			if err == nil {
 				success()
 			}
@@ -80,10 +79,10 @@ func (t *downloadManifest) execute(ctx context.Context) error {
 	)
 }
 
-// fetchManifest attempts to fetch the manifest.
-func (t *downloadManifest) fetchManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestValue, error) {
+// downloadManifest attempts to fetch the manifest.
+func (t *downloadManifest) downloadManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestValue, error) {
 	le := t.c.le
-	le.Debugf("starting plugin manifest fetcher: %s", meta.GetManifestId())
+	le.Debugf("starting plugin manifest downloader: %s", meta.GetManifestId())
 
 	// get world state handle
 	ws, err := t.c.getWorldState(ctx)
@@ -100,15 +99,15 @@ func (t *downloadManifest) fetchManifest(ctx context.Context, meta *bldr_manifes
 
 	pluginManifestRef := res.GetManifestRef()
 	if err := pluginManifestRef.Validate(); err != nil {
-		return nil, errors.Wrap(err, "fetch plugin returned invalid manifest ref")
+		return nil, errors.Wrap(err, "download plugin returned invalid manifest ref")
 	}
 	manifestRef := pluginManifestRef.ManifestRef
 	if pluginManifestRef.GetEmpty() || manifestRef.GetEmpty() {
-		return nil, errors.New("fetch plugin returned empty manifest ref")
+		return nil, errors.New("download plugin returned empty manifest ref")
 	}
 
 	if t.c.conf.GetDisableStoreManifest() {
-		pluginManifestRef.Meta.Logger(le).Debug("skipping storing fetched manifest")
+		pluginManifestRef.Meta.Logger(le).Debug("skipping storing downloaded manifest")
 		return bldr_manifest.NewFetchManifestValue(pluginManifestRef), nil
 	}
 
@@ -120,6 +119,7 @@ func (t *downloadManifest) fetchManifest(ctx context.Context, meta *bldr_manifes
 	var pluginManifest *bldr_manifest.Manifest
 	var manifestBucketID string
 	var wroteManifestRef *bucket.ObjectRef
+
 	le.Debug("accessing fetched manifest")
 	err = ws.AccessWorldState(ctx, nil, func(worldCursor *bucket_lookup.Cursor) error {
 		opArgs := &bucket.BucketOpArgs{}
