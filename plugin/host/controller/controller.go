@@ -216,8 +216,23 @@ func (c *Controller) HandleDirective(
 func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
 	c.rmtx.Lock()
 	defer c.rmtx.Unlock()
+
+	// We add references to all three of these to keep them running if plugin-instances restarts.
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	return plg, ref.Release
+	downloadRef, _, _ := c.downloadManifests.AddKeyRef(pluginID)
+
+	var watchFetchRef *keyed.KeyedRef[string, *watchFetchManifest]
+	if c.conf.GetWatchFetchManifest() {
+		watchFetchRef, _, _ = c.watchFetchManifests.AddKeyRef(pluginID)
+	}
+
+	return plg, func() {
+		ref.Release()
+		downloadRef.Release()
+		if watchFetchRef != nil {
+			watchFetchRef.Release()
+		}
+	}
 }
 
 // Close releases any resources used by the controller.
