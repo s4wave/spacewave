@@ -36,8 +36,8 @@ github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8 h
 github.com/aperturerobotics/go-libp2p-msgio v0.0.0-20240511033615-1b69178aa5c8/go.mod h1:fK2s0Xpx0LYL2YQpYGJ7H+QwrC8+EgZ4Dd4G/vaLMW8=
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h1:VWOdcRKb6Y+N2SvBT9UmgxllGJTud4ya0AIc0/JVGxw=
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
-github.com/aperturerobotics/hydra v0.0.0-20240717223245-31588582de95 h1:Ivpj8Iqoew68rKe4lEU7eFbJon3Ks61YRpiNsUDWaXA=
-github.com/aperturerobotics/hydra v0.0.0-20240717223245-31588582de95/go.mod h1:F+oe3FrNbg9p4L/Ey2JztaZJATJkwRophJsymOlDH4g=
+github.com/aperturerobotics/hydra v0.0.0-20240724013115-cb17564d71bf h1:MeDWZz5C+ENcFGy3/b8HJbPQtGLIpGmkoFEjQPa7i80=
+github.com/aperturerobotics/hydra v0.0.0-20240724013115-cb17564d71bf/go.mod h1:Q9uuOGoKVfA0b1pJIF/L2rHSIjX1yZwxc4FEjT1trwA=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
@@ -46,10 +46,10 @@ github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240719061611-5ddf185f544
 github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240719061611-5ddf185f5440/go.mod h1:MSCkd3x0MtN1WbG5abldAa55AVKHJlOgbZGPDcBauLM=
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 h1:SsM9QsfSpyWQz9sZbZ1VrluJgXbiEFE7C7//aXoMHPQ=
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
-github.com/aperturerobotics/starpc v0.32.18 h1:JDP1FPAjZPCKw7F71bNGTH1xP1kjzrqI3Z64wX7WSqQ=
-github.com/aperturerobotics/starpc v0.32.18/go.mod h1:3Kyy2P5QDO+tGZ8i7mb3tri1it4dgiqoGng2TkTTURE=
-github.com/aperturerobotics/util v1.23.10 h1:igX3/8E6bCp9DSQApn+Kkz4MoltnsadiIgX2AWJ+mjM=
-github.com/aperturerobotics/util v1.23.10/go.mod h1:QiSWcOha1HhCI4f48w6rd3gia9jIMGpfoeJiZMU+jLM=
+github.com/aperturerobotics/starpc v0.33.0 h1:gCOPVcj4Zd/Dc66aGN/xNaWfMn9si1FXAgX7EjmcJZI=
+github.com/aperturerobotics/starpc v0.33.0/go.mod h1:4IYcbulEzqhPT5jKaDeL1BJPFd8WVWZ7Ugu0/348/Is=
+github.com/aperturerobotics/util v1.24.0 h1:QIZ2Fr9H+pV9uYs7JHMQPL4+Lz/2BagdrQq09Kru3mQ=
+github.com/aperturerobotics/util v1.24.0/go.mod h1:QiSWcOha1HhCI4f48w6rd3gia9jIMGpfoeJiZMU+jLM=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.13.0 h1:bAQ9OPNFYbGHV6Nez0tmNI0RiEu7/hxlYJRUA0wFAVE=
 github.com/bits-and-blooms/bitset v1.13.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

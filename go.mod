@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.18.0 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240717223245-31588582de95 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240724013115-cb17564d71bf // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240719061611-5ddf185f5440 // master
 )
 
@@ -83,8 +83,8 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.46.6 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
-	github.com/aperturerobotics/starpc v0.32.18 // latest
-	github.com/aperturerobotics/util v1.23.10 // master
+	github.com/aperturerobotics/starpc v0.33.0 // latest
+	github.com/aperturerobotics/util v1.24.0 // master
 )
 
 // aperture: use compatibility forks
