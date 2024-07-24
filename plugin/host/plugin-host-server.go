@@ -104,6 +104,7 @@ func (s *PluginHostServer) ExecController(
 ) error {
 	ctx := strm.Context()
 	s.le.Debugf("plugin %q is applying a configset", s.pluginID)
+	defer s.le.Debugf("plugin %q exited applying a configset", s.pluginID)
 	return req.Execute(ctx, s.b, true, strm.Send)
 }
 
