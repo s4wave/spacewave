@@ -40,25 +40,15 @@ func (w *watchFetchManifest) execute(ctx context.Context) error {
 		PlatformId: hostPluginPlatformID,
 	}
 
-	// Add FetchManifest directive
-	_, fetchRef, err := w.c.bus.AddDirective(bldr_manifest.NewFetchManifest(meta), nil)
-	if err != nil {
-		return err
-	}
-	defer fetchRef.Release()
-
-	var prevResult *bldr_manifest.FetchManifestValue
 	le := w.c.le.WithField("plugin-id", w.pluginID)
 	le.Debug("starting to watch FetchManifest")
-	return bus.ExecOneOffWatchLatestCb(
-		ctx,
-		w.c.bus,
-		bldr_manifest.NewFetchManifest(meta),
-		nil,
-		func(tval directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) error {
+
+	var prevResult *bldr_manifest.FetchManifestValue
+	_, fetchRef, err := bus.ExecOneOffWatchCb(
+		func(tval directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) bool {
 			if tval == nil || tval.GetValue() == nil {
 				le.Debug("FetchManifest directive has no value currently")
-				return nil
+				return true
 			}
 
 			// Manifest has changed, trigger a restart of downloadManifest
@@ -72,7 +62,44 @@ func (w *watchFetchManifest) execute(ctx context.Context) error {
 			}
 
 			prevResult = val
-			return nil
+			return true
 		},
+		w.c.bus,
+		bldr_manifest.NewFetchManifest(meta),
 	)
+	if err != nil {
+		return err
+	}
+	defer fetchRef.Release()
+
+	<-ctx.Done()
+	return context.Canceled
+
+	/*
+		return bus.ExecOneOffWatchLatestCb(
+			ctx,
+			w.c.bus,
+			bldr_manifest.NewFetchManifest(meta),
+			nil,
+			func(tval directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) error {
+				if tval == nil || tval.GetValue() == nil {
+					le.Debug("FetchManifest directive has no value currently")
+					return nil
+				}
+
+				// Manifest has changed, trigger a restart of downloadManifest
+				val := tval.GetValue()
+				le.Debugf("FetchManifest returned manifest with rev %v", val.GetManifestRef().GetMeta().GetRev())
+				if prevResult != nil && !val.EqualVT(prevResult) && !w.c.conf.GetDisableStoreManifest() {
+					le.Debug("manifest changed, triggering fetcher restart")
+					if _, reset := w.c.downloadManifests.RestartRoutine(w.pluginID); reset {
+						le.Info("restarted outdated plugin fetcher and instance")
+					}
+				}
+
+				prevResult = val
+				return nil
+			},
+		)
+	*/
 }
