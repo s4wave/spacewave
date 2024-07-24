@@ -68,7 +68,7 @@ require (
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 	github.com/aperturerobotics/starpc v0.32.16 // latest
-	github.com/aperturerobotics/util v1.23.12-0.20240724011635-af885ae8b3c0 // master
+	github.com/aperturerobotics/util v1.24.0 // master
 )
 
 // aperture: use compatibility forks

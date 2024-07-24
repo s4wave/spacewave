@@ -98,8 +98,8 @@ github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 h1:SsM
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
 github.com/aperturerobotics/starpc v0.32.16 h1:12p7BKkwDTYQptQWnra1eZPcsZtWGBxyPfj4XK1G6vY=
 github.com/aperturerobotics/starpc v0.32.16/go.mod h1:vLbHp496Q8mihUJtOiVWn4qW85Wuxlx86O1wJ94oMn4=
-github.com/aperturerobotics/util v1.23.12-0.20240724011635-af885ae8b3c0 h1:KP6FGxtxb+lnX6kudSG3VFxGvAJcTD2C/3rbL5FUBWQ=
-github.com/aperturerobotics/util v1.23.12-0.20240724011635-af885ae8b3c0/go.mod h1:QiSWcOha1HhCI4f48w6rd3gia9jIMGpfoeJiZMU+jLM=
+github.com/aperturerobotics/util v1.24.0 h1:QIZ2Fr9H+pV9uYs7JHMQPL4+Lz/2BagdrQq09Kru3mQ=
+github.com/aperturerobotics/util v1.24.0/go.mod h1:QiSWcOha1HhCI4f48w6rd3gia9jIMGpfoeJiZMU+jLM=
 github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5 h1:D7ffLHiSdFuCpwfAe5+Kp9ZbM48d0sDEtIPmjEdg+wU=
 github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
