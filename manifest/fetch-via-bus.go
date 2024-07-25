@@ -58,14 +58,22 @@ func (f *ManifestFetchViaBus) FetchManifest(
 
 	meta := req.GetManifestMeta()
 	manifestID := meta.GetManifestId()
-	f.le.Debugf("host requests fetching manifest: %s", manifestID)
+	f.le.Debugf("host is fetching manifest: %s", manifestID)
+	defer f.le.Debugf("exited host is fetching manifest: %s", manifestID)
 
 	return valuelist.WatchDirective(
 		strm.Context(),
 		f.b,
 		req.ToDirective(),
 		func() *FetchManifestResponse { return &FetchManifestResponse{} },
-		strm.Send,
+		func(msg *FetchManifestResponse) error {
+			dat, err := msg.MarshalJSON()
+			if err != nil {
+				return err
+			}
+			f.le.Debugf("host is fetching manifest: %s => sending %s", manifestID, string(dat))
+			return strm.Send(msg)
+		},
 		nil,
 	)
 }

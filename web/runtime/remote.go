@@ -302,9 +302,9 @@ func (r *Remote) GetWebWorkerOpenStream(webWorkerID string) srpc.OpenStreamFunc 
 	}
 }
 
-// WebWorkerOpenStream opens a stream with the given WebDocument ID.
+// WebWorkerOpenStream opens a stream with the given WebWorker ID.
 //
-// note: when opening the stream, waits for the given web document to exist.
+// note: when opening the stream, waits for the given web worker to exist.
 func (r *Remote) WebWorkerOpenStream(
 	ctx context.Context,
 	msgHandler srpc.PacketDataHandler,

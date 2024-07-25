@@ -90,6 +90,8 @@ func (c *Controller) FetchManifest(
 
 	engineID := c.conf.GetEngineId()
 	c.le.Debugf("fetching manifest %s via world %s", manifestMeta.GetManifestId(), engineID)
+	defer c.le.Debugf("exited fetching manifest %s via world %s", manifestMeta.GetManifestId(), engineID)
+
 	worldEngine, _, worldEngineRef, err := world.ExLookupWorldEngine(ctx, c.bus, returnIfIdle, engineID, ctxCancel)
 	if err != nil {
 		return nil, err

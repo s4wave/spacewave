@@ -42,6 +42,8 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 			_ = handler.ClearValues()
 
 			r.c.le.Debugf("fetching manifest %s via plugin %s", r.manifestMeta.GetManifestId(), r.c.conf.GetPluginId())
+			defer r.c.le.Debugf("exited fetching manifest %s via plugin %s", r.manifestMeta.GetManifestId(), r.c.conf.GetPluginId())
+
 			fetchClient := manifest.NewSRPCManifestFetchClient(client)
 			return manifest.FetchManifestViaRpc(
 				ctx,

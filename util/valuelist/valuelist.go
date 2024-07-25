@@ -141,6 +141,7 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 //
 // T is the type of the value and R is the type of the response message.
 // idle is an optional callback when the result is marked idle
+// the stream will be closed on return
 // returnOnIdle returns nil if the result is marked idle
 func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 	ctx context.Context,
@@ -148,7 +149,14 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 	hnd directive.ValueHandler,
 	idle func(isIdle bool),
 	returnOnIdle bool,
-) error {
+) (rerr error) {
+	defer func() {
+		_ = strm.CloseSend()
+		if err := strm.Close(); rerr == nil && err != nil {
+			rerr = err
+		}
+	}()
+
 	for {
 		if ctx.Err() != nil {
 			return context.Canceled

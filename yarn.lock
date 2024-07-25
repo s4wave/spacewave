@@ -1196,10 +1196,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^31.2.1:
-  version "31.2.1"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-31.2.1.tgz#cfd7de576520d5c02d7c1f979bac85ad6b26d78d"
-  integrity sha512-g3CLKjl4yuXt6VWm/KpgEjYYhFiCl19RgUn8lOC8zV/56ZXAS3+mqV4wWzicE/7vSYXs6GRO7vkYRwrwhX3Gaw==
+electron@^31.3.0:
+  version "31.3.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-31.3.0.tgz#4a084a8229d5bd829c33b8b65073381d0e925093"
+  integrity sha512-3LMRMmK4UK0A+jYSLGLYdfhc20TgY2v5jD3iGmhRZlDYj0gn7xBj/waRjlNalysZ0D2rgPvoes0wHuf5e/Bguw==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -2626,10 +2626,10 @@ starpc@^0.32.16:
     uint8arraylist "^2.4.7"
     ws "^8.17.0"
 
-starpc@^0.33.0:
-  version "0.33.0"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.33.0.tgz#fe75909c8edbb95f26e0d828cf19b4533b73742c"
-  integrity sha512-FlycXuGZl2ABaMVMJ7pIytnvDX3pALUTHNK6jHcrLRQysLnSvfTUPnteTrb/PyzAvOiu36brGRCleFmknzaARA==
+starpc@^0.33.3:
+  version "0.33.3"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.33.3.tgz#7d8f0ef52f5958ad84f476efd3ed1f201332aeca"
+  integrity sha512-6vomlriv9aVH4R7TbU3DlVCgoDi/3eeBIb3/hEEddHRfNmpcleeUrMqQMYb9Ux2GEuyP1WuqxHhFejvCUnfNkw==
   dependencies:
     "@aptre/it-ws" "^1.0.1"
     "@aptre/protobuf-es-lite" "^0.4.6"

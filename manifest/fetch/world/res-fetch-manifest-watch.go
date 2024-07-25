@@ -39,7 +39,9 @@ func (r *fetchManifestWatchResolver) Resolve(ctx context.Context, handler direct
 
 	// Watch the world state and re-check the manifests list when it changes.
 	le := r.manifestMeta.Logger(r.c.le).WithField("engine-id", r.c.conf.GetEngineId())
-	le.Debug("starting to watch world for manifest details")
+	le.Debug("starting watch world for manifest details")
+	defer le.Debug("exiting watch world for manifest details")
+
 	watchLoop := world_control.NewWatchLoop(r.c.le, "", world_control.NewWaitForStateHandler(func(
 		ctx context.Context,
 		ws world.WorldState,
@@ -47,6 +49,8 @@ func (r *fetchManifestWatchResolver) Resolve(ctx context.Context, handler direct
 		rootCs *block.Cursor,
 		rev uint64,
 	) (bool, error) {
+		handler.MarkIdle(false)
+
 		manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
 			ctx,
 			ws,
@@ -62,7 +66,12 @@ func (r *fetchManifestWatchResolver) Resolve(ctx context.Context, handler direct
 			r.c.le.WithError(err).Warn("ignoring invalid manifest")
 		}
 
-		le.Debugf("got %v manifests from world", len(manifests))
+		manifestStrs := make([]string, len(manifests))
+		for i := range manifestStrs {
+			manifestStrs[i] = manifests[i].ManifestRef.MarshalB58()
+		}
+		le.Debugf("fetched %v manifest(s) from world: %v", len(manifests), manifestStrs)
+
 		uniqueResolver.SetValues(manifests...)
 		handler.MarkIdle(true)
 		return true, nil
