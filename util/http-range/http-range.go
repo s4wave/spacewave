@@ -33,7 +33,7 @@ func NewHTTPRangeReader(
 	ctx context.Context,
 	le *logrus.Entry,
 	fileUrl string,
-	headers map[string]string,
+	headers map[string][]string,
 	disableCache,
 	verbose bool,
 ) (*HTTPRangeReader, error) {
@@ -42,7 +42,9 @@ func NewHTTPRangeReader(
 		return nil, err
 	}
 	for k, v := range headers {
-		req.Header.Set(k, v)
+		for _, v := range v {
+			req.Header.Add(k, v)
+		}
 	}
 
 	return http_range_http.NewHTTPRangeReader(le, req, http.DefaultClient, verbose), nil

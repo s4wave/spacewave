@@ -33,13 +33,13 @@ func NewHTTPRangeReader(
 	ctx context.Context,
 	le *logrus.Entry,
 	fileUrl string,
-	headers map[string]string,
+	headers map[string][]string,
 	disableCache,
 	verbose bool,
 ) (*HTTPRangeReader, error) {
 	opts := &fetch.Opts{
-		Signal:  ctx,
-		Headers: headers,
+		Signal: ctx,
+		Header: headers,
 	}
 	if disableCache {
 		opts.Cache = "no-store"

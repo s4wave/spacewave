@@ -28,7 +28,7 @@ func NewKvfileHTTPBlock(
 	ctx context.Context,
 	le *logrus.Entry,
 	fileURL string,
-	headers map[string]string,
+	headers map[string][]string,
 	disableCache bool,
 	kvkey *store_kvkey.KVKey,
 	httpRangeMinSize int64,

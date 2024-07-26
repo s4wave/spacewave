@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.35.0 // master
+	github.com/aperturerobotics/bifrost v0.35.2-0.20240726215526-39107bfd00de // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -63,11 +63,11 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.17.2 // latest
+	github.com/aperturerobotics/common v0.18.0 // latest
 	github.com/aperturerobotics/controllerbus v0.46.6 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
-	github.com/aperturerobotics/starpc v0.32.16 // latest
+	github.com/aperturerobotics/starpc v0.33.6 // latest
 	github.com/aperturerobotics/util v1.24.0 // master
 )
 
@@ -91,24 +91,24 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.9
-	github.com/libp2p/go-libp2p v0.35.2
+	github.com/libp2p/go-libp2p v0.35.4
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.13.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.17 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.18 // indirect
 	github.com/nats-io/nats.go v1.36.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.8 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.21 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.26 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.45.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tidwall/btree v1.7.0
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/urfave/cli/v2 v2.27.3
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.25.0
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	gonum.org/v1/gonum v0.15.0
 	gotest.tools/v3 v3.5.1
 	nhooyr.io/websocket v1.8.11 // indirect; master
@@ -164,19 +164,20 @@ require (
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
-	github.com/pion/dtls/v2 v2.2.11 // indirect
-	github.com/pion/ice/v3 v3.0.7 // indirect
+	github.com/pion/dtls/v2 v2.2.12 // indirect
+	github.com/pion/dtls/v3 v3.0.0 // indirect
+	github.com/pion/ice/v3 v3.0.13 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
-	github.com/pion/rtp v1.8.6 // indirect
-	github.com/pion/sctp v1.8.18 // indirect
-	github.com/pion/srtp/v3 v3.0.1 // indirect
+	github.com/pion/rtp v1.8.7 // indirect
+	github.com/pion/sctp v1.8.19 // indirect
+	github.com/pion/srtp/v3 v3.0.3 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
-	github.com/pion/transport/v2 v2.2.4 // indirect
-	github.com/pion/transport/v3 v3.0.2 // indirect
+	github.com/pion/transport/v2 v2.2.8 // indirect
+	github.com/pion/transport/v3 v3.0.6 // indirect
 	github.com/pion/turn/v3 v3.0.3 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -191,8 +192,9 @@ require (
 	github.com/tetratelabs/wazero v1.1.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/wlynxg/anet v0.0.3 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect

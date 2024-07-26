@@ -2,6 +2,7 @@ package block_store_kvfile_http
 
 import (
 	"context"
+	"net/textproto"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_store "github.com/aperturerobotics/hydra/block/store"
@@ -50,11 +51,18 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 			return nil, nil, err
 		}
 
+		var headers map[string][]string
+		if cheaders := conf.GetHeaders(); len(cheaders) != 0 {
+			for key, value := range cheaders {
+				headers[textproto.CanonicalMIMEHeaderKey(key)] = []string{value}
+			}
+		}
+
 		kvfileBlock, err := NewKvfileHTTPBlock(
 			ctx,
 			le,
 			fileURL.String(),
-			conf.GetHeaders(),
+			headers,
 			conf.GetDisableCache(),
 			kvk,
 			int64(conf.GetMinRequestSize()),

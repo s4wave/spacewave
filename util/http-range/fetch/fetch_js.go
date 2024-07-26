@@ -82,10 +82,10 @@ func (r *FetchRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, 
 	}
 
 	req := r.opts.Clone()
-	if req.Headers == nil {
-		req.Headers = make(map[string]string, 1)
+	if req.Header == nil {
+		req.Header = make(map[string][]string, 1)
 	}
-	req.Headers["Range"] = fmtRange(offset, length)
+	req.Header.Set("range", fmtRange(offset, length))
 
 	resp, err := httplog_fetch.Fetch(r.le, r.fetchUrl, req, r.verbose)
 	if err != nil {
