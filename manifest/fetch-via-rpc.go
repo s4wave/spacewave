@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/valuelist"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/sirupsen/logrus"
 )
 
 // FetchManifestViaRpc resolves FetchManifest calling an RPC service.
@@ -17,6 +18,7 @@ func FetchManifestViaRpc(
 	clientFn func(ctx context.Context, in *FetchManifestRequest) (SRPCManifestFetch_FetchManifestClient, error),
 	hnd directive.ResolverHandler,
 	returnOnIdle bool,
+	le *logrus.Entry,
 ) error {
 	strm, err := clientFn(ctx, NewFetchManifestRequest(dir))
 	if err != nil {
@@ -30,6 +32,7 @@ func FetchManifestViaRpc(
 		hnd,
 		hnd.MarkIdle,
 		returnOnIdle,
+		le,
 	)
 }
 
@@ -43,6 +46,7 @@ func FetchManifestViaRpcLookupClientSet(
 	waitOneClient bool,
 	hnd directive.ResolverHandler,
 	returnOnIdle bool,
+	le *logrus.Entry,
 ) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
@@ -61,5 +65,5 @@ func FetchManifestViaRpcLookupClientSet(
 	defer ref.Release()
 
 	srv := NewSRPCManifestFetchClientWithServiceID(clientSet, serviceID)
-	return FetchManifestViaRpc(ctx, dir, srv.FetchManifest, hnd, returnOnIdle)
+	return FetchManifestViaRpc(ctx, dir, srv.FetchManifest, hnd, returnOnIdle, le)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/sirupsen/logrus"
 )
 
 // WatchDirectiveResponse is a response message type.
@@ -137,6 +138,8 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	}
 }
 
+var debugInst atomic.Int32
+
 // WatchDirectiveViaStream resolves a directive by watching a value stream.
 //
 // T is the type of the value and R is the type of the response message.
@@ -149,6 +152,7 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 	hnd directive.ValueHandler,
 	idle func(isIdle bool),
 	returnOnIdle bool,
+	le *logrus.Entry,
 ) (rerr error) {
 	defer func() {
 		_ = strm.CloseSend()
@@ -156,6 +160,10 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 			rerr = err
 		}
 	}()
+
+	instID := debugInst.Add(1)
+	le.Infof("WatchDirectiveViaStream: starting %v", instID)
+	defer le.Infof("WatchDirectiveViaStream: exiting %v", instID)
 
 	for {
 		if ctx.Err() != nil {
@@ -166,6 +174,8 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 		if err != nil {
 			return err
 		}
+
+		le.Infof("WatchDirectiveViaStream: got msg %v: valueID(%v) removed(%v) idle(%v)", instID, msg.GetValueId(), msg.GetRemoved(), msg.GetIdle())
 
 		valueID := msg.GetValueId()
 		if valueID != 0 {

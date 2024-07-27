@@ -93,6 +93,7 @@ func (c *Controller) FetchManifest(
 		true,
 		hnd,
 		returnOnIdle,
+		c.le,
 	)
 }
 

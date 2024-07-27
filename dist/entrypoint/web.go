@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	"github.com/aperturerobotics/bldr/banner"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
@@ -20,6 +19,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
 	fetch_range "github.com/aperturerobotics/hydra/util/http-range/fetch"
+	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -139,9 +139,11 @@ func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose 
 			&fetch.Opts{
 				Method: "GET",
 
-				// The assets file has a hash in the filename.
-				// We can force caching since the hash change will flush the cache.
-				Cache: "force-cache",
+				CommonOpts: fetch.CommonOpts{
+					// The assets file has a hash in the filename.
+					// We can force caching since the hash change will flush the cache.
+					Cache: "force-cache",
+				},
 			},
 			verbose,
 		)

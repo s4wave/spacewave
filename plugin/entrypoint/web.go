@@ -5,13 +5,14 @@ package plugin_entrypoint
 
 import (
 	"context"
+	"io"
 	"os"
 	"time"
 
-	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	web_runtime_wasm "github.com/aperturerobotics/bldr/web/runtime/wasm"
 	"github.com/aperturerobotics/starpc/srpc"
+	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -104,13 +105,15 @@ func Run(
 func readFile(filePath string) ([]byte, error) {
 	resp, err := fetch.Fetch(filePath, &fetch.Opts{
 		Method: fetch.MethodGet,
-		Cache:  "no-store",
+		CommonOpts: fetch.CommonOpts{
+			Cache: "no-store",
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
-	if resp.Status < 200 || resp.Status >= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, errors.Errorf("request returned status %v: %s", resp.Status, filePath)
 	}
-	return resp.Body, nil
+	return io.ReadAll(resp.Body)
 }

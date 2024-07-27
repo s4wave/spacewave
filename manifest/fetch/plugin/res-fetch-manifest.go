@@ -51,6 +51,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 				fetchClient.FetchManifest,
 				handler,
 				false,
+				r.c.le,
 			)
 		},
 	)

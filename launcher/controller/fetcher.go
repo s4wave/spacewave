@@ -4,11 +4,10 @@ import (
 	"context"
 	"io"
 	"math/rand/v2"
-	"net/http"
 	"time"
 
-	httplog "github.com/aperturerobotics/bifrost/http/log"
 	bldr_launcher "github.com/aperturerobotics/bldr/launcher"
+	"github.com/aperturerobotics/bldr/util/http"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
@@ -58,7 +57,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) error {
 			req.Header.Set(k, v)
 		}
 		// TODO: use Fetch() in js with no-cache set
-		resp, err := httplog.DoRequest(c.le, http.DefaultClient, req, true)
+		resp, err := http.DoRequest(c.le, http.DefaultClient, req, true)
 		var dat []byte
 		if resp != nil && resp.Body != nil {
 			if err == nil {

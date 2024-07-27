@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.18.0 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240724013115-cb17564d71bf // master
+	github.com/aperturerobotics/hydra v0.0.0-20240727081919-24f5897cbec1 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240719061611-5ddf185f5440 // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.35.1-0.20240722213244-bca67789e959 // master
+	github.com/aperturerobotics/bifrost v0.35.3-0.20240727081805-dd6e4dd90cbc // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -84,7 +84,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.46.6 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
 	github.com/aperturerobotics/starpc v0.33.6 // latest
-	github.com/aperturerobotics/util v1.24.0 // master
+	github.com/aperturerobotics/util v1.25.2 // master
 )
 
 // aperture: use compatibility forks
@@ -113,11 +113,11 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.8 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.24 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.26 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.45.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/urfave/cli/v2 v2.27.3
 	github.com/zeebo/blake3 v0.2.3
 	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
@@ -162,7 +162,8 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
-	github.com/pion/ice/v3 v3.0.10 // indirect
+	github.com/pion/dtls/v3 v3.0.0 // indirect
+	github.com/pion/ice/v3 v3.0.13 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
@@ -172,15 +173,16 @@ require (
 	github.com/pion/sctp v1.8.19 // indirect
 	github.com/pion/srtp/v3 v3.0.3 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
-	github.com/pion/transport/v2 v2.2.5 // indirect
-	github.com/pion/transport/v3 v3.0.2 // indirect
+	github.com/pion/transport/v2 v2.2.8 // indirect
+	github.com/pion/transport/v3 v3.0.6 // indirect
 	github.com/pion/turn/v3 v3.0.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
+	github.com/wlynxg/anet v0.0.3 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/net v0.27.0 // indirect

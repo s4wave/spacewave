@@ -6,10 +6,10 @@ import (
 	"encoding/binary"
 	"os"
 
-	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
 	"github.com/aperturerobotics/go-kvfile"
 	buffered_reader_at "github.com/aperturerobotics/hydra/util/buffered-reader-at"
 	fetch_range "github.com/aperturerobotics/hydra/util/http-range/fetch"
+	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -29,8 +29,10 @@ func run(le *logrus.Entry) error {
 	keepAliveHTTP := true
 	verbose := true
 	rangeReader := fetch_range.NewFetchRangeReader(le, fileUrl, &fetch.Opts{
-		Method:    "GET",
-		KeepAlive: &keepAliveHTTP,
+		Method: "GET",
+		CommonOpts: fetch.CommonOpts{
+			KeepAlive: &keepAliveHTTP,
+		},
 	}, verbose)
 	size, err := rangeReader.Size()
 	if err != nil {
