@@ -5,7 +5,6 @@ package http
 import (
 	"context"
 	"io"
-	"net/http"
 	"net/url"
 
 	"github.com/aperturerobotics/bldr/util/cloneurl"
@@ -22,6 +21,9 @@ type Opts = fetch.CommonOpts
 // Values set on the Request override values set on Client.
 type Client struct {
 	Opts
+
+	// Logger is the default logger, none if nil.
+	Logger *logrus.Entry
 }
 
 // Request is the http request type (struct).
@@ -40,8 +42,6 @@ var DefaultClient *Client = &Client{}
 
 // NewRequest constructs a new http request.
 func NewRequest(method, urlStr string, body io.Reader) (*Request, error) {
-	var req http.Request
-	req.Context()
 	urlo, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, err
@@ -66,10 +66,16 @@ func NewRequestWithContext(ctx context.Context, method, url string, body io.Read
 	return req, nil
 }
 
+// Do performs the request with the client.
+func (c *Client) Do(r *Request) (*Response, error) {
+	return DoRequest(c.Logger, c, r, false)
+}
+
 // DoRequest performs a request with logging.
 //
 // If verbose=true, logs successful cases as well as errors.
 // le can be nil to disable logging
+// client can be nil
 func DoRequest(le *logrus.Entry, client *Client, req *Request, verbose bool) (*Response, error) {
 	var urlStr string
 	var opts fetch.Opts

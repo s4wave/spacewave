@@ -48,8 +48,8 @@ github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 h1:SsM
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
 github.com/aperturerobotics/starpc v0.33.6 h1:noc/MnmIMTek9bdEvd88QiD1p9KzEV8CUOBIoKmGgm0=
 github.com/aperturerobotics/starpc v0.33.6/go.mod h1:4IYcbulEzqhPT5jKaDeL1BJPFd8WVWZ7Ugu0/348/Is=
-github.com/aperturerobotics/util v1.25.2 h1:VaP+wLtb28wP1zlwd6idN77tNZJTHTJwswraHsBPJjg=
-github.com/aperturerobotics/util v1.25.2/go.mod h1:m/paprtgaTiGfc4X3LkXpeseK9hfQA7QBI3cKsE/h3Y=
+github.com/aperturerobotics/util v1.25.3-0.20240727082835-d10c9f87f75e h1:EE+XiSFNNAnhud+wEt5hlhWrYcsCKtd0kuZzAVzfFB0=
+github.com/aperturerobotics/util v1.25.3-0.20240727082835-d10c9f87f75e/go.mod h1:m/paprtgaTiGfc4X3LkXpeseK9hfQA7QBI3cKsE/h3Y=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.13.0 h1:bAQ9OPNFYbGHV6Nez0tmNI0RiEu7/hxlYJRUA0wFAVE=
 github.com/bits-and-blooms/bitset v1.13.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

@@ -25,8 +25,7 @@ var DefaultClient *Client = http.DefaultClient
 
 // NewRequest constructs a new http request.
 func NewRequest(method, url string, body io.Reader) (*Request, error) {
-	r, _ := http.NewRequest(method, url, body)
-	r.URL
+	return http.NewRequest(method, url, body)
 }
 
 // NewRequestWithContext constructs a new http request with a context.

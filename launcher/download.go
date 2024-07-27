@@ -3,9 +3,9 @@ package bldr_launcher
 import (
 	"context"
 	io "io"
-	"net/http"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/bldr/util/http"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,17 +26,23 @@ func FetchDistConfig(
 	if err != nil {
 		return nil, "", "", err
 	}
+
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
+
+	setFetchDistConfigHttpOpts(req)
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, "", "", err
 	}
+
 	if resp.StatusCode != 200 {
 		_ = resp.Body.Close()
 		return nil, "", "", errors.Errorf("unsuccessful status code: %v: %s", resp.StatusCode, resp.Status)
 	}
+
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, "", "", err
