@@ -169,6 +169,9 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 			// range returned was after the requested starting point
 			return n, errors.New("incorrect range of data returned")
 		}
+		if len(matchedRange.data) <= copyStart {
+			return n, errors.New("shorter range of data returned than expected")
+		}
 
 		copied := copy(p[n:], matchedRange.data[copyStart:])
 		n += copied
