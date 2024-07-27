@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	httplog_fetch "github.com/aperturerobotics/bifrost/http/log/fetch"
-	fetch "github.com/aperturerobotics/bifrost/util/js-fetch"
+	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -92,17 +92,25 @@ func (r *FetchRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, 
 		return 0, nil, err
 	}
 
-	switch resp.Status {
+	switch resp.StatusCode {
 	case 200:
 		// If the response is 200, the server does not support Range.
 		// The entire file was returned, handle that here.
-		if int64(len(resp.Body)) < offset+1 {
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return 0, nil, err
+		}
+		if int64(len(data)) < offset+1 {
 			return 0, nil, io.EOF
 		}
-		return 0, resp.Body, io.EOF
+		return 0, data, io.EOF
 	case 206:
 		// partial response, as expected.
-		return offset, resp.Body, nil
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return 0, nil, err
+		}
+		return offset, data, nil
 	case 416:
 		// Requested Range Not Satisfiable
 		return 0, nil, errors.New("requested range not satisfiable")
@@ -113,7 +121,7 @@ func (r *FetchRangeReader) SliceReadAt(offset, length int64) (dataOffset int64, 
 		// Not Found
 		return 0, nil, errors.New("not found")
 	default:
-		return 0, nil, errors.Errorf("unexpected response status: %d", resp.Status)
+		return 0, nil, errors.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
 }
 
@@ -197,7 +205,7 @@ func (r *FetchRangeReader) Size() (uint64, error) {
 		return 0, err
 	}
 
-	switch resp.Status {
+	switch resp.StatusCode {
 	case 200, 206, 204, 304:
 		// success case
 	case 416:
@@ -210,10 +218,10 @@ func (r *FetchRangeReader) Size() (uint64, error) {
 		// Not Found
 		return 0, errors.New("not found")
 	default:
-		return 0, errors.Errorf("unexpected response status: %d", resp.Status)
+		return 0, errors.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
 
-	contentLengthStr := resp.Headers.Get("content-length")
+	contentLengthStr := resp.Header.Get("content-length")
 	if len(contentLengthStr) == 0 {
 		return 0, errors.New("no content length returned by HEAD request")
 	}
