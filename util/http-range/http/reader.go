@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	httplog "github.com/aperturerobotics/bifrost/http/log"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

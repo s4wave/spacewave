@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	httplog_fetch "github.com/aperturerobotics/bifrost/http/log/fetch"
+	httplog_fetch "github.com/aperturerobotics/util/httplog/fetch"
 	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/aperturerobotics/bifrost/hash"
-	httplog "github.com/aperturerobotics/bifrost/http/log"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/aperturerobotics/hydra/block"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/pkg/errors"

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	httplog "github.com/aperturerobotics/bifrost/http/log"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"

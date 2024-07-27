@@ -9,7 +9,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/hash"
 	bifrost_http "github.com/aperturerobotics/bifrost/http"
-	httplog "github.com/aperturerobotics/bifrost/http/log"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"

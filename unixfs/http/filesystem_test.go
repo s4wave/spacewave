@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	httplog "github.com/aperturerobotics/bifrost/http/log"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	iofs_mock "github.com/aperturerobotics/hydra/unixfs/iofs/mock"

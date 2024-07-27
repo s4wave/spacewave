@@ -60,8 +60,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.35.2 h1:wqKqIQ/LHPhvIWsFw48mF/QozEdwXd/lqxQbpYoj5lc=
-github.com/aperturerobotics/bifrost v0.35.2/go.mod h1:AUpyuES1HINNrqkc6pOrvX2eCa2Q3Fz4NcjxFhrRzoQ=
+github.com/aperturerobotics/bifrost v0.35.3-0.20240727081805-dd6e4dd90cbc h1:1+xOIbfasjaDZj3HPrusRP8zuaJbq0T66wZAELr19GE=
+github.com/aperturerobotics/bifrost v0.35.3-0.20240727081805-dd6e4dd90cbc/go.mod h1:5/nqbAQMa+GuC8QJA3/yD0GYJqr9M/N28soMnD7vMzI=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -98,8 +98,8 @@ github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 h1:SsM
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
 github.com/aperturerobotics/starpc v0.33.6 h1:noc/MnmIMTek9bdEvd88QiD1p9KzEV8CUOBIoKmGgm0=
 github.com/aperturerobotics/starpc v0.33.6/go.mod h1:4IYcbulEzqhPT5jKaDeL1BJPFd8WVWZ7Ugu0/348/Is=
-github.com/aperturerobotics/util v1.25.1 h1:LOIygQIpwBNPwQDWcVT0MPuJxhJsPhPyO/YTJINy83A=
-github.com/aperturerobotics/util v1.25.1/go.mod h1:m/paprtgaTiGfc4X3LkXpeseK9hfQA7QBI3cKsE/h3Y=
+github.com/aperturerobotics/util v1.25.2 h1:VaP+wLtb28wP1zlwd6idN77tNZJTHTJwswraHsBPJjg=
+github.com/aperturerobotics/util v1.25.2/go.mod h1:m/paprtgaTiGfc4X3LkXpeseK9hfQA7QBI3cKsE/h3Y=
 github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5 h1:D7ffLHiSdFuCpwfAe5+Kp9ZbM48d0sDEtIPmjEdg+wU=
 github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
