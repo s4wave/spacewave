@@ -2626,10 +2626,10 @@ starpc@^0.32.16:
     uint8arraylist "^2.4.7"
     ws "^8.17.0"
 
-starpc@^0.33.3:
-  version "0.33.3"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.33.3.tgz#7d8f0ef52f5958ad84f476efd3ed1f201332aeca"
-  integrity sha512-6vomlriv9aVH4R7TbU3DlVCgoDi/3eeBIb3/hEEddHRfNmpcleeUrMqQMYb9Ux2GEuyP1WuqxHhFejvCUnfNkw==
+starpc@^0.33.6:
+  version "0.33.6"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.33.6.tgz#17aff6d4322215c4e098b95ab66957daa9758605"
+  integrity sha512-tNUi+fkTia6bkm8cyEDCD6vHzwNZYQa2x4ht/yVhDysb+vXWU5AsDCckBky45wR5ag+o8yR/TChkvhu9YBP01w==
   dependencies:
     "@aptre/it-ws" "^1.0.1"
     "@aptre/protobuf-es-lite" "^0.4.6"
