@@ -62,7 +62,7 @@ func TestStorage_References(t *testing.T) {
 	}
 
 	// write
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

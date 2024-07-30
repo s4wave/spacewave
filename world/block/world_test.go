@@ -424,7 +424,7 @@ func TestWorldState_Basic(t *testing.T) {
 	oref.BucketId = ""
 	obtx, obcs := objRefCs.BuildTransaction(nil)
 	obcs.SetBlock(block_mock.NewExampleBlock(), true)
-	oref.RootRef, obcs, err = obtx.Write(true)
+	oref.RootRef, obcs, err = obtx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -460,7 +460,7 @@ func TestWorldState_Basic(t *testing.T) {
 
 	// adjust object ref
 	obcs.SetBlock(&block_mock.SubBlock{ExamplePtr: oref.GetRootRef()}, true)
-	oref.RootRef, obcs, err = obtx.Write(true)
+	oref.RootRef, obcs, err = obtx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

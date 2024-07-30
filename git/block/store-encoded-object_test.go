@@ -106,7 +106,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 
 	// commit the tx
 	var storeRef *block.BlockRef
-	storeRef, _, err = btx.Write(true)
+	storeRef, _, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

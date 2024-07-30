@@ -144,7 +144,7 @@ func (f *FSWriter) applyOp(
 
 	// write block transaction
 	oldRoot := bcs.GetRef()
-	nroot, _, err := btx.Write(true)
+	nroot, _, err := btx.Write(ctx, true)
 	if err != nil {
 		return err
 	}

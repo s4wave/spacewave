@@ -70,7 +70,7 @@ func TestBasicDirectory(t *testing.T) {
 		t.Fatal("modification time was zero after making fstree")
 	}
 
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -151,7 +151,7 @@ func TestEmptyFstree(t *testing.T) {
 		t.Fail()
 	}
 
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -202,7 +202,7 @@ func TestBasicFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -225,7 +225,7 @@ func TestBasicFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

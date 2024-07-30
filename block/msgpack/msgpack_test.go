@@ -41,7 +41,7 @@ func TestMsgpackBlob(t *testing.T) {
 	}
 	// obj is the container for the data, stored in bcs as well.
 	_ = obj
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

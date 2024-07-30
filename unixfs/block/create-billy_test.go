@@ -36,7 +36,7 @@ func TestCreateBilly(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		var ref *block.BlockRef
-		ref, bcs, err = btx.Write(true)
+		ref, bcs, err = btx.Write(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

@@ -75,7 +75,7 @@ func (r *Store) Commit() error {
 		return nil
 	}
 
-	_, bcs, err := r.btx.Write(true)
+	_, bcs, err := r.btx.Write(r.ctx, true)
 	if err != nil {
 		return err
 	}

@@ -40,7 +40,7 @@ func TestBasicReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	rootRef, _, err := btx.Write(true)
+	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -72,7 +72,7 @@ func TestInlineRootBlobReader(t *testing.T) {
 		RootBlob:  blob.NewRawBlob(testBuf),
 	}
 	bcs.SetBlock(rootFile, true)
-	rootRef, _, err := btx.Write(true)
+	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -165,7 +165,7 @@ func TestMultiRangeReader(t *testing.T) {
 	buildRangeData(1, r2Data)
 	buildRangeData(2, r3Data)
 
-	rootRef, _, err := btx.Write(true)
+	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -208,7 +208,7 @@ func TestRandomReads(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

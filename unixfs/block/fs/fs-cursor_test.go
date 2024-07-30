@@ -112,7 +112,7 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	res, _, err := btx.Write(true)
+	res, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -194,7 +194,7 @@ func TestFSHandle(t *testing.T) {
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
 
-	res, _, err := btx.Write(true)
+	res, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

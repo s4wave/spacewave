@@ -118,7 +118,7 @@ func (t *Transaction) SetRoot(cursor *Cursor) error {
 // referenced by the root directly or indirectly are "cut" and removed.
 //
 // Note: after Write with clearTree, use the new returned rcursor only.
-func (t *Transaction) Write(clearTree bool) (
+func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 	res *BlockRef,
 	rcursor *Cursor,
 	rerr error,
@@ -142,6 +142,10 @@ func (t *Transaction) Write(clearTree bool) (
 		return t.root.ref, nil, nil
 	}
 
+	// create a sub-context
+	ctx, subCtxCancel := context.WithCancel(ctx)
+	defer subCtxCancel()
+
 	type reachableNode struct {
 		// from is the list of nodes that we can reach from this node
 		// (child nodes)
@@ -153,20 +157,13 @@ func (t *Transaction) Write(clearTree bool) (
 	// mark blocks reachable from root. we will drop (cut) unreachable blocks.
 	// create a channel for each that is closed when we've written the block.
 	reachable := make(map[int64]reachableNode, 1)
-	rootID := t.root.ID()
-	reachable[rootID] = reachableNode{
-		from:       []int64{},
-		encodeDone: make(chan struct{}),
-	}
-
 	{
-		// Ensure the root is always in the reachable map
 		nodStack := []graph.Node{t.root}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
 			nnID := nn.ID()
-			if _, ok := reachable[nnID]; ok && nnID != rootID {
+			if _, ok := reachable[nnID]; ok {
 				continue
 			}
 			fromNn := t.blockGraph.From(nnID)
@@ -203,9 +200,6 @@ func (t *Transaction) Write(clearTree bool) (
 	encodeQueue := conc.NewConcurrentQueue(maxEncodeConcurrency)
 	// writeQueue is the job queue to write blocks to the store.
 	writeQueue := conc.NewConcurrentQueue(maxWriteConcurrency)
-
-	ctx, subCtxCancel := context.WithCancel(context.Background())
-	defer subCtxCancel()
 
 	// mtx is locked while updating parents, as this may result in concurrent map writes otherwise.
 	var mtx sync.Mutex

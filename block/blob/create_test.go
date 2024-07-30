@@ -36,7 +36,7 @@ func TestBuildBlobWithBytes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	bref, _, err := btx.Write(true)
+	bref, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -116,7 +116,7 @@ func TestBuildBlobWithReader(t *testing.T) {
 	if builtBlob.GetBlobType() != BlobType_BlobType_CHUNKED {
 		t.Fatalf("Expected chunked blob but got %v", builtBlob.GetBlobType().String())
 	}
-	ref, _, err := btx.Write(true)
+	ref, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

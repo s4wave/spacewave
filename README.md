@@ -345,7 +345,7 @@ func TestWorld(t *testing.T) {
 	// can use bcs.SetRef ....
 
 	// Write the block structure to storage.
-	rootRef, bcs, err = obtx.Write(true)
+	rootRef, bcs, err = obtx.Write(ctx, true)
 }
 ```
 

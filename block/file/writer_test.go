@@ -17,7 +17,7 @@ func TestBasicWriter(t *testing.T) {
 	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
 	rootFile := &File{}
 	bcs.SetBlock(rootFile, true)
-	rootRef, _, err := btx.Write(true)
+	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -115,7 +115,7 @@ func TestAppend(t *testing.T) {
 	_ = fw.WriteBytes(0, []byte("test"))
 	fh.Close()
 
-	rootRef, _, err := btx.Write(true)
+	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -196,7 +196,7 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 	_ = fw.WriteBytes(0, []byte("test"))
 	fh.Close()
 
-	rootRef, _, err := btx.Write(true)
+	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

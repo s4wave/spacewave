@@ -45,7 +45,7 @@ func TestUnixFsRPC(t *testing.T) {
 	// build the test filesystem
 	btx, bcs := oc.BuildTransaction(nil)
 	bcs.SetBlock(unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, nil), true)
-	resRef, _, err := btx.Write(true)
+	resRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

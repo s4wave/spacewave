@@ -164,7 +164,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		worldRoot := world_block.NewWorld(c.conf.GetDisableChangelog())
 		bcs.ClearAllRefs()
 		bcs.SetBlock(worldRoot, true)
-		nrootRef, _, err := btx.Write(true)
+		nrootRef, _, err := btx.Write(ctx, true)
 		if err != nil {
 			return err
 		}

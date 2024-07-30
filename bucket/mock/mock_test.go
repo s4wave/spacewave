@@ -175,7 +175,7 @@ func TestCursor(t *testing.T) {
 	btx, bcs := nc.BuildTransaction(nil)
 	testStr := "testing"
 	bcs.SetBlock(block_mock.NewExample(testStr), true)
-	nrootRef, _, err := btx.Write(true)
+	nrootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

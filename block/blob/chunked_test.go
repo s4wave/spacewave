@@ -49,7 +49,7 @@ func TestBlob_Chunked(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	*/
-	rootRef, bcs, err := btx.Write(true)
+	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -143,7 +143,7 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 
 	// write
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

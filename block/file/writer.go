@@ -44,7 +44,7 @@ func CommitWriter(w *Writer) (*block.BlockRef, *block.Cursor, error) {
 	if w.btx == nil {
 		return nil, nil, tx.ErrNotWrite
 	}
-	ref, ncs, err := w.btx.Write(true)
+	ref, ncs, err := w.btx.Write(w.ctx, true)
 	if err == nil {
 		w.bcs = ncs
 	}

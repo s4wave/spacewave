@@ -49,7 +49,7 @@ func TestFile_Basic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

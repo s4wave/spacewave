@@ -243,7 +243,7 @@ func AccessObject(
 			return berr
 		}
 		outRef = bls.GetRef().Clone()
-		outRef.RootRef, _, berr = btx.Write(true)
+		outRef.RootRef, _, berr = btx.Write(ctx, true)
 		return berr
 	})
 	return outRef, err

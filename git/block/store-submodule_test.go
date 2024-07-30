@@ -47,7 +47,7 @@ func TestStorage_Submodule(t *testing.T) {
 	}
 	_ = subm
 
-	_, bcs, err = btx.Write(true)
+	_, bcs, err = btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

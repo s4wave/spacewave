@@ -60,7 +60,7 @@ func TestCopyObjectToBucket(t *testing.T) {
 	exampleBlk := block_mock.NewExample("test block")
 	refBcs.SetBlock(exampleBlk, true)
 
-	srcRef, _, err := btx.Write(true)
+	srcRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

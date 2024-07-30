@@ -60,7 +60,7 @@ func (s *storeTx) Commit(ctx context.Context) error {
 	// commit block transaction
 	var nroot *block.BlockRef
 	if commitErr == nil {
-		nroot, _, commitErr = s.writeBtx.Write(true)
+		nroot, _, commitErr = s.writeBtx.Write(ctx, true)
 		if commitErr == nil {
 			// expect a non-nil ref
 			commitErr = nroot.Validate(false)

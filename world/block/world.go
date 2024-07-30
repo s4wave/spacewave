@@ -316,7 +316,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	if err != nil || t.btx == nil {
 		return err
 	}
-	_, bcs, err := t.btx.Write(true)
+	_, bcs, err := t.btx.Write(ctx, true)
 	if err != nil {
 		return err
 	}

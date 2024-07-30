@@ -61,7 +61,7 @@ func TestSimple(t *testing.T) {
 		btx, bcs := oc.BuildTransaction(nil)
 		kvs := NewKeyValueStore(impl)
 		bcs.SetBlock(kvs, true)
-		_, bcs, err = btx.Write(true)
+		_, bcs, err = btx.Write(ctx, true)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

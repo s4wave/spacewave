@@ -36,7 +36,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 	}
 	t.commitOnce.Do(func() {
 		defer t.t.rmtx.Unlock()
-		res, _, err := t.tx.Write(true)
+		res, _, err := t.tx.Write(ctx, true)
 		if err != nil {
 			cerr = err
 		} else {

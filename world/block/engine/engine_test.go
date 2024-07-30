@@ -305,7 +305,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 	if err := func() error {
 		btx, bcs := bls.BuildTransaction(nil)
 		bcs.SetBlock(world_block.NewWorld(false), true)
-		nroot, bcs, err := btx.Write(true)
+		nroot, bcs, err := btx.Write(ctx, true)
 		if err != nil {
 			return err
 		}
@@ -432,7 +432,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 		wblk.LastChange.Seqno = 100
 		bcs.MarkDirty()
 
-		nref, bcs, err := btx.Write(true)
+		nref, bcs, err := btx.Write(ctx, true)
 		if err != nil {
 			return err
 		}
