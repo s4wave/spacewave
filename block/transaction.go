@@ -391,6 +391,15 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 		return nil, nil, err
 	}
 
+	// check there are no remaining queued errors
+	select {
+	case <-ctx.Done():
+		return nil, nil, context.Canceled
+	case err := <-errCh:
+		return nil, nil, err
+	default:
+	}
+
 	// note: defer func builds new root cursor (second field)
 	return t.root.ref, nil, nil
 }
