@@ -6,10 +6,11 @@ package app
 
 import (
 	fmt "fmt"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	io "io"
 	strings "strings"
+
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Config configures the app controller.

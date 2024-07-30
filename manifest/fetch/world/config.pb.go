@@ -29,6 +29,9 @@ type Config struct {
 	FetchManifestIdRe string `protobuf:"bytes,3,opt,name=fetch_manifest_id_re,json=fetchManifestIdRe,proto3" json:"fetchManifestIdRe,omitempty"`
 	// DisableWatch disables watching the world for changes for FetchManifest.
 	DisableWatch bool `protobuf:"varint,4,opt,name=disable_watch,json=disableWatch,proto3" json:"disableWatch,omitempty"`
+	// OverrideManifestRev overrides the manifest revision in the returned metadata.
+	// Ignored if unset or zero.
+	OverrideManifestRev uint64 `protobuf:"varint,5,opt,name=override_manifest_rev,json=overrideManifestRev,proto3" json:"overrideManifestRev,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -65,6 +68,13 @@ func (x *Config) GetDisableWatch() bool {
 	return false
 }
 
+func (x *Config) GetOverrideManifestRev() uint64 {
+	if x != nil {
+		return x.OverrideManifestRev
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -73,6 +83,7 @@ func (m *Config) CloneVT() *Config {
 	r.EngineId = m.EngineId
 	r.FetchManifestIdRe = m.FetchManifestIdRe
 	r.DisableWatch = m.DisableWatch
+	r.OverrideManifestRev = m.OverrideManifestRev
 	if rhs := m.ObjectKeys; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -111,6 +122,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DisableWatch != that.DisableWatch {
+		return false
+	}
+	if this.OverrideManifestRev != that.OverrideManifestRev {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -152,6 +166,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableWatch")
 		s.WriteBool(x.DisableWatch)
 	}
+	if x.OverrideManifestRev != 0 || s.HasField("overrideManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("overrideManifestRev")
+		s.WriteUint64(x.OverrideManifestRev)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -185,6 +204,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_watch", "disableWatch":
 			s.AddField("disable_watch")
 			x.DisableWatch = s.ReadBool()
+		case "override_manifest_rev", "overrideManifestRev":
+			s.AddField("override_manifest_rev")
+			x.OverrideManifestRev = s.ReadUint64()
 		}
 	})
 }
@@ -223,6 +245,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.OverrideManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OverrideManifestRev))
+		i--
+		dAtA[i] = 0x28
 	}
 	if m.DisableWatch {
 		i--
@@ -283,6 +310,9 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableWatch {
 		n += 2
 	}
+	if m.OverrideManifestRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.OverrideManifestRev))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -311,6 +341,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.DisableWatch {
 		sb.WriteString(" disable_watch: ")
 		sb.WriteString(strconv.FormatBool(x.DisableWatch))
+	}
+	if x.OverrideManifestRev != 0 {
+		sb.WriteString(" override_manifest_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.OverrideManifestRev), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -463,6 +497,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableWatch = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OverrideManifestRev", wireType)
+			}
+			m.OverrideManifestRev = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.OverrideManifestRev |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

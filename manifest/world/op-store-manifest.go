@@ -7,6 +7,7 @@ import (
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -84,7 +85,7 @@ func (o *StoreManifestOp) ApplyWorldOp(
 	}
 
 	// store the object for the manifest
-	_, err = SetManifest(ctx, ws, sender, o.GetObjectKey(), manifestRef)
+	_, changed, err := SetManifest(ctx, ws, sender, o.GetObjectKey(), manifestRef)
 	if err != nil {
 		return false, err
 	}
@@ -94,6 +95,25 @@ func (o *StoreManifestOp) ApplyWorldOp(
 		quad := NewManifestQuad(objKey, o.GetObjectKey(), out.GetMeta().GetManifestId())
 		if err := ws.SetGraphQuad(ctx, quad); err != nil {
 			return false, err
+		}
+	}
+
+	// increment version of the linked objects if the manifest changed
+	if changed {
+		for _, objKey := range o.GetLinkObjectKeys() {
+			// get the object with objKey
+			obj, err := world.MustGetObject(ctx, ws, objKey)
+			if err != nil {
+				if err == context.Canceled {
+					return false, err
+				}
+				return false, errors.Wrap(err, objKey)
+			}
+
+			_, err = obj.IncrementRev(ctx)
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 

@@ -374,7 +374,15 @@ func BuildDistBus(
 		pluginsDistRoot,
 		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
 		false, // Enable copying the manifest root to the plugin host storage.
-		true,  // Disable copying the manifest contents to the plugin host storage.
+
+		// Enable copying the manifest contents to the plugin host storage.
+		//
+		// This is particularly necessary since the plugin that provided the
+		// manifest might exit before being restarted, thereby creating a
+		// situation where we depend on that plugin for the data to start it,
+		// but that plugin is not running, so nothing happens (stuck).
+		false,
+
 		webRuntimeID,
 	)
 	if err != nil {

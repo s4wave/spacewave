@@ -377,6 +377,9 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 	if err := os.WriteFile(bldrGoModPath, updatedBldrGoMod, 0o644); err != nil {
 		return err
 	}
+
+	// If bldrSum is set, we are using bldr as a Go module.
+	// In this case we can skip "go mod tidy" (much faster) by updating go.sum.
 	if bldrSum != "" {
 		// go.sum expects the module hash and the go.mod hash.
 		// we expect the go.mod to match the bldrGoModData above.

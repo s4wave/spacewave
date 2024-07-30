@@ -5,6 +5,7 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/pkg/errors"
@@ -12,9 +13,9 @@ import (
 
 // execDownloadManifest executes downloading the manifest fetched from FetchManifest to the world.
 func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue *bldr_manifest.FetchManifestValue) error {
-	le := t.c.le
 	meta := manifestValue.GetManifestRef().GetMeta()
-	le.Debugf("starting plugin manifest downloader: %s", meta.GetManifestId())
+	le := meta.Logger(t.le)
+	le.Debug("starting plugin manifest downloader")
 
 	// get world state handle
 	ws, err := t.c.getWorldState(ctx)
@@ -36,10 +37,6 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 		return nil
 	}
 
-	// use an empty volume ID to allow cross-volume lookup of manifest contents
-	var pluginHostBucketID string
-	le = pluginManifestRef.Meta.Logger(le)
-
 	// access manifest
 	var pluginManifest *bldr_manifest.Manifest
 	var manifestBucketID string
@@ -47,23 +44,27 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 
 	le.Debug("accessing fetched manifest")
 	err = ws.AccessWorldState(ctx, nil, func(worldCursor *bucket_lookup.Cursor) error {
-		opArgs := &bucket.BucketOpArgs{}
-		pluginHostBucketID = worldCursor.GetOpArgs().GetBucketId()
+		opArgs := worldCursor.GetOpArgs().CloneVT()
+
+		// use an empty volume ID to allow cross-volume lookup of manifest contents
+		opArgs.VolumeId = ""
+
+		// modify the bucket id if necessary
+		pluginHostBucketID := worldCursor.GetOpArgs().GetBucketId()
 		if refBucketID := manifestRef.GetBucketId(); refBucketID != "" {
 			// use the bucket id from the ref, if any.
 			opArgs.BucketId = refBucketID
-		} else {
-			// if there was no bucket id specified, use the plugin host bucket.
-			opArgs.BucketId = pluginHostBucketID
 		}
 
+		// Build a cursor to the manifest
 		manifestCursor, err := worldCursor.FollowRefWithOpArgs(ctx, manifestRef, opArgs)
 		if err != nil {
 			return err
 		}
 		defer manifestCursor.Release()
 
-		_, bcs := manifestCursor.BuildTransaction(nil)
+		// Unmarshal the manifest
+		btx, bcs := manifestCursor.BuildTransaction(nil)
 		pluginManifest, err = bldr_manifest.UnmarshalManifest(ctx, bcs)
 		if err != nil {
 			return err
@@ -75,6 +76,36 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 				manifestID,
 			)
 		}
+
+		if platformID := pluginManifest.GetMeta().GetPlatformId(); platformID != meta.GetPlatformId() {
+			return errors.Errorf(
+				"tried to fetch manifest %s for platform %s but returned for platform %s",
+				meta.GetManifestId(),
+				meta.GetPlatformId(),
+				platformID,
+			)
+		}
+
+		// modify the manifest rev to have the same metadata as the value we got from the directive.
+		// some controllers will override manifest revs.
+		if metaRev := meta.GetRev(); metaRev != pluginManifest.Meta.Rev {
+			oldRev := pluginManifest.Meta.Rev
+			pluginManifest.Meta.Rev = metaRev
+			bcs.SetBlock(pluginManifest, true)
+
+			var bref *block.BlockRef
+			oldBref := manifestCursor.GetRef().GetRootRef()
+
+			bref, bcs, err = btx.Write(ctx, true)
+			if err != nil {
+				return err
+			}
+			manifestCursor.SetRootRef(bref)
+
+			le.Debugf("updated manifest rev in bucket %s: from %v -> %v: ref %v -> %v", manifestCursor.GetOpArgs().GetBucketId(), oldRev, metaRev, oldBref.MarshalLog(), bref.MarshalLog())
+		}
+
+		// validate the manifest
 		if err := pluginManifest.Validate(); err != nil {
 			return err
 		}
@@ -82,7 +113,7 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 
 		// if the manifest is located in a different bucket, copy it over.
 		if manifestBucketID == pluginHostBucketID || t.c.conf.GetDisableCopyManifest() {
-			wroteManifestRef = manifestRef.Clone()
+			wroteManifestRef = manifestCursor.GetRef().Clone()
 			return nil
 		}
 
@@ -100,7 +131,7 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 		}
 		defer writeCursor.Release()
 
-		// TODO: This can skip some blocks required! Needs updating!
+		// TODO: this can skip some blocks required, we workaround this below.
 		// TODO: see dist/compiler/bundle.go => copying block that was not part of the world state or any manifest
 		concurrentLimit := t.c.conf.GetFetchConcurrency()
 		wroteManifestRef, err = bucket_lookup.CopyObjectToBucket(
@@ -109,8 +140,9 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 			manifestCursor,
 			bldr_manifest.NewManifestBlock,
 			int(concurrentLimit),
-			// set true to skip block sub-graphs if they already existed
-			true,
+			// NOTE: We must set this to false since we write the root ref earlier.
+			// It will skip writing everything below that root ref unless we set this false.
+			false,
 			nil,
 		)
 		if err == nil {
@@ -159,6 +191,8 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 		if err != nil {
 			return err
 		}
+
+		// stuck here
 	}
 
 	le.Infof("successfully fetched manifest for plugin: %s", t.pluginID)

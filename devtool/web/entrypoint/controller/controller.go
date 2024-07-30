@@ -254,14 +254,12 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 // The passed context is canceled when the directive instance expires.
 // NOTE: the passed context is not canceled when the handler is removed.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	// TODO
 	return nil, nil
 }
 
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	// TODO
 	return nil
 }
 

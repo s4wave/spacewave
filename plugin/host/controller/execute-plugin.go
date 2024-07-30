@@ -65,13 +65,22 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *executePlugin
 
 	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()
 
-	tr.watchWorldManifestRoutine = routine.NewRoutineContainer(routine.WithRetry(fetchBackoff))
+	tr.watchWorldManifestRoutine = routine.NewRoutineContainerWithLogger(le, routine.WithRetry(fetchBackoff))
 	tr.watchWorldManifestRoutine.SetRoutine(tr.execWatchWorldManifest)
 
-	tr.downloadManifestRoutine = routine.NewStateRoutineContainerVT[*bldr_manifest.FetchManifestValue]()
+	tr.downloadManifestRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.FetchManifestValue](le)
 	tr.downloadManifestRoutine.SetStateRoutine(tr.execDownloadManifest)
 
-	tr.executePluginRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](
+	tr.executePluginRoutine = routine.NewStateRoutineContainerWithLogger(
+		func(v1, v2 *bldr_manifest.ManifestSnapshot) bool {
+			// Ignore the manifest rev, just compare the root ref.
+			//
+			// This is to avoid an unnecessary refresh when we overwrite the
+			// entrypoint manifest w/ rev 0 with the launcher-provided manifest.
+			return v1.GetManifest().GetAssetsFsRef().EqualVT(v2.GetManifest().GetAssetsFsRef()) &&
+				v1.GetManifest().GetDistFsRef().EqualVT(v2.GetManifest().GetDistFsRef()) &&
+				v1.GetManifest().GetEntrypoint() == v2.GetManifest().GetEntrypoint()
+		},
 		le,
 		routine.WithRetry(execBackoff),
 	)

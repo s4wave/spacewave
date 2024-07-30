@@ -3,6 +3,7 @@ package bldr_manifest
 import (
 	"context"
 	"io/fs"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/bifrost/util/labels"
@@ -75,7 +76,13 @@ func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
 	if buildType == "" {
 		buildType = string(BuildType_DEV)
 	}
-	manifestKeyPts := []string{baseObjKey, "manifest", manifestMeta.GetManifestId(), buildType}
+	manifestKeyPts := []string{
+		baseObjKey,
+		"manifest",
+		manifestMeta.GetManifestId(),
+		buildType,
+		strconv.FormatUint(manifestMeta.GetRev(), 10),
+	}
 	if platformID := manifestMeta.GetPlatformId(); platformID != "" {
 		manifestKeyPts = append(manifestKeyPts, platformID)
 	}

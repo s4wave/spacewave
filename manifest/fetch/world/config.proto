@@ -15,4 +15,7 @@ message Config {
   string fetch_manifest_id_re = 3;
   // DisableWatch disables watching the world for changes for FetchManifest.
   bool disable_watch = 4;
+  // OverrideManifestRev overrides the manifest revision in the returned metadata.
+  // Ignored if unset or zero.
+  uint64 override_manifest_rev = 5;
 }

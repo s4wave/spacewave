@@ -32,7 +32,12 @@ func (r *fetchManifestWatchResolver) Resolve(ctx context.Context, handler direct
 			return a.Manifest.EqualVT(b.Manifest)
 		},
 		func(k string, v *bldr_manifest_world.CollectedManifest) (*manifest.FetchManifestValue, bool) {
-			return manifest.NewFetchManifestValue(manifest.NewManifestRef(v.Manifest.GetMeta(), v.ManifestRef)), true
+			// override the revision if necessary
+			manifestMeta, manifestRef := v.Manifest.GetMeta().CloneVT(), v.ManifestRef.CloneVT()
+			if overrideManifestRev := r.c.conf.GetOverrideManifestRev(); overrideManifestRev != 0 {
+				manifestMeta.Rev = overrideManifestRev
+			}
+			return manifest.NewFetchManifestValue(manifest.NewManifestRef(manifestMeta, manifestRef)), true
 		},
 		handler,
 	)

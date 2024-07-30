@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
+	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -134,7 +135,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	defer c.hostVolumeCtr.SetValue(nil)
 
 	// construct the world engine handle
-	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
+	busEngine := world_vlogger.NewEngine(c.le, world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId()))
 	ws := world.NewEngineWorldState(busEngine, true)
 
 	c.worldStateCtr.SetValue(ws)

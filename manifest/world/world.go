@@ -105,25 +105,31 @@ func SetManifest(
 	sender peer.ID,
 	objKey string,
 	rootRef *bucket.ObjectRef,
-) (world.ObjectState, error) {
+) (world.ObjectState, bool, error) {
+	var changed bool
 	obj, objOk, err := ws.GetObject(ctx, objKey)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if objOk {
 		var currRootRef *bucket.ObjectRef
 		currRootRef, _, err = obj.GetRootRef(ctx)
-		if err != nil || !currRootRef.EqualVT(rootRef) {
+		if err != nil {
+			return nil, false, err
+		}
+		if !currRootRef.EqualVT(rootRef) {
 			_, err = obj.SetRootRef(ctx, rootRef)
+			changed = err == nil
 		}
 	} else {
 		_, err = ws.CreateObject(ctx, objKey, rootRef)
 		if err == nil {
 			// create the <type> ref
 			err = world_types.SetObjectType(ctx, ws, objKey, ManifestTypeID)
+			changed = err == nil
 		}
 	}
-	return nil, err
+	return nil, changed, err
 }
 
 // LookupManifest looks up a Manifest in the world.
@@ -410,7 +416,7 @@ func ExtractManifestBundle(
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		_, err = SetManifest(ctx, ws, sender, manifestObjKey, manifestRef.GetManifestRef())
+		_, _, err = SetManifest(ctx, ws, sender, manifestObjKey, manifestRef.GetManifestRef())
 		if err != nil {
 			return nil, nil, nil, err
 		}
