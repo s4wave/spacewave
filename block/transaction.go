@@ -153,13 +153,20 @@ func (t *Transaction) Write(clearTree bool) (
 	// mark blocks reachable from root. we will drop (cut) unreachable blocks.
 	// create a channel for each that is closed when we've written the block.
 	reachable := make(map[int64]reachableNode, 1)
+	rootID := t.root.ID()
+	reachable[rootID] = reachableNode{
+		from:       []int64{},
+		encodeDone: make(chan struct{}),
+	}
+
 	{
+		// Ensure the root is always in the reachable map
 		nodStack := []graph.Node{t.root}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
 			nnID := nn.ID()
-			if _, ok := reachable[nnID]; ok {
+			if _, ok := reachable[nnID]; ok && nnID != rootID {
 				continue
 			}
 			fromNn := t.blockGraph.From(nnID)
@@ -228,21 +235,20 @@ func (t *Transaction) Write(clearTree bool) (
 			continue
 		}
 
-		// skip if not reachable or not dirty
+		// skip if not reachable
 		reachableNod, blkReachable := reachable[nodID]
 		if !blkReachable {
-			/*
-				if !bn.ref.GetEmpty() {
-					pushCut(bn)
-				}
-			*/
 			if clearTree {
 				bn.blk = nil
 				bn.ref = nil
 				t.blockGraph.RemoveNode(bn.ID())
 			}
+
+			// we can skip closing encodeDone here since nobody waits on this node.
 			continue
 		}
+
+		// skip if not dirty
 		if !bn.dirty {
 			close(reachableNod.encodeDone)
 			continue
