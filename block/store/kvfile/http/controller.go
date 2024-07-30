@@ -53,6 +53,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config, verbose bool) block_st
 
 		var headers map[string][]string
 		if cheaders := conf.GetHeaders(); len(cheaders) != 0 {
+			headers = make(map[string][]string, len(cheaders))
 			for key, value := range cheaders {
 				headers[textproto.CanonicalMIMEHeaderKey(key)] = []string{value}
 			}
