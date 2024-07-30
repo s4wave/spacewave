@@ -7,20 +7,25 @@ import (
 	manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
-	backoff "github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/aperturerobotics/util/retry"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/sirupsen/logrus"
 )
 
 // executePlugin manages a running plugin instance
+//
+// downloadManifestRoutine: given a manifest from FetchManfest, downloads + stores in the world.
+//
+// watchWorldManifestRoutine: watches the world for the latest manifest for the plugin.
+// executePluginRoutine: with a ManifestSnapshot from watchWorldManifestRoutine, executes the plugin.
 type executePlugin struct {
 	// c is the controller
 	c *Controller
@@ -30,6 +35,16 @@ type executePlugin struct {
 	pluginID string
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
+
+	// downloadManifestRoutine is the routine to download a manifest and store it in the world.
+	// this routine only runs if watchFetchManifestRoutine triggers it.
+	downloadManifestRoutine *routine.StateRoutineContainer[*bldr_manifest.FetchManifestValue]
+
+	// watchWorldManifestRoutine watches the world for the latest manifest for the plugin.
+	// updates executePluginRoutine state
+	watchWorldManifestRoutine *routine.RoutineContainer
+	// executePluginRoutine is the routine to execute a plugin with a manifest.
+	executePluginRoutine *routine.StateRoutineContainer[*bldr_manifest.ManifestSnapshot]
 }
 
 // GetRunningPluginCtr returns the current running plugin instance.
@@ -40,45 +55,90 @@ func (t *executePlugin) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.R
 
 // newRunningPlugin constructs a new running plugin routine.
 func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *executePlugin) {
+	le := c.le.WithField("plugin-id", key)
 	tr := &executePlugin{
 		c:                c,
-		le:               c.le.WithField("plugin-id", key),
+		le:               le,
 		pluginID:         key,
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 	}
+
+	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()
+
+	tr.watchWorldManifestRoutine = routine.NewRoutineContainer(routine.WithRetry(fetchBackoff))
+	tr.watchWorldManifestRoutine.SetRoutine(tr.execWatchWorldManifest)
+
+	tr.downloadManifestRoutine = routine.NewStateRoutineContainerVT[*bldr_manifest.FetchManifestValue]()
+	tr.downloadManifestRoutine.SetStateRoutine(tr.execDownloadManifest)
+
+	tr.executePluginRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](
+		le,
+		routine.WithRetry(execBackoff),
+	)
+	tr.executePluginRoutine.SetStateRoutine(tr.execPlugin)
+
 	return tr.execute, tr
 }
 
 // execute executes the routine.
 func (t *executePlugin) execute(ctx context.Context) error {
-	backoffConf := t.c.conf.GetExecBackoff().CloneVT()
-	if backoffConf == nil {
-		backoffConf = &backoff.Backoff{}
-	}
-	if backoffConf.BackoffKind == 0 {
-		if backoffConf.Exponential == nil {
-			backoffConf.Exponential = &backoff.Exponential{}
-		}
-		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
-		backoffConf.Exponential.MaxInterval = 4200
-	}
-	bo := backoffConf.Construct()
-	return retry.Retry(
-		ctx,
-		t.c.le.WithField("plugin-id", t.pluginID),
-		func(ctx context.Context, success func()) error {
-			err := t.execPlugin(ctx)
-			if err == nil {
-				success()
-			}
+	// Keep the FetchManifest directive running if requested
+	le := t.le
+	if t.c.conf.GetWatchFetchManifest() {
+		// determine host plugin platform id
+		hostPluginPlatformID, err := t.c.hostPluginPlatformID.Await(ctx)
+		if err != nil {
 			return err
-		},
-		bo,
-	)
+		}
+
+		fetchMeta := &bldr_manifest.ManifestMeta{
+			ManifestId: t.pluginID,
+			PlatformId: hostPluginPlatformID,
+		}
+		fetchMeta.Logger(le).Debug("starting to watch FetchManifest")
+		_, fetchManifestRef, err := bldr_manifest.WatchLatestManifestValue(
+			t.c.bus,
+			fetchMeta,
+			func(tval directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
+				if tval == nil || tval.GetValue() == nil {
+					le.Debug("FetchManifest directive has no value currently")
+					t.downloadManifestRoutine.SetState(nil)
+					return
+				}
+
+				// Manifest has changed, trigger a restart of downloadManifest
+				val := tval.GetValue()
+				le.Debugf("FetchManifest returned manifest with rev %v", val.GetManifestRef().GetMeta().GetRev())
+				t.downloadManifestRoutine.SetState(val)
+			},
+		)
+		if err != nil {
+			// we should be able to create this directive
+			return err
+		}
+		defer fetchManifestRef.Release()
+	}
+
+	// Download manifests when the FetchManifest directive above changes values.
+	// This compares the downloaded manifest with the one in storage and keeps the higher rev.
+	t.downloadManifestRoutine.SetContext(ctx, true)
+	defer t.downloadManifestRoutine.ClearContext()
+
+	// Watch the world state for the latest fully-downloaded manifest.
+	t.watchWorldManifestRoutine.SetContext(ctx, true)
+	defer t.watchWorldManifestRoutine.ClearContext()
+
+	// Set the context for the execute plugin routine.
+	t.executePluginRoutine.SetContext(ctx, true)
+	defer t.executePluginRoutine.ClearContext()
+
+	// TODO set manifest on StateRoutine
+	<-ctx.Done()
+	return nil
 }
 
 // execPlugin executes the plugin.
-func (t *executePlugin) execPlugin(ctx context.Context) error {
+func (t *executePlugin) execPlugin(ctx context.Context, pluginManifest *bldr_manifest.ManifestSnapshot) error {
 	pluginID, le := t.pluginID, t.le
 
 	// build proxy volume
@@ -88,32 +148,9 @@ func (t *executePlugin) execPlugin(ctx context.Context) error {
 	}
 	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, hostVol.vol, false)
 
-	// register the FetchManifest directive if necessary
-	if t.c.conf.GetWatchFetchManifest() {
-		watchFetchRef, _, _ := t.c.watchFetchManifests.AddKeyRef(pluginID)
-		defer watchFetchRef.Release()
-	}
-
-	// build mux
-	t.c.rmtx.Lock()
-	pluginManifest := t.c.pluginManifests[pluginID]
-	manifest := pluginManifest.GetManifest()
-	t.c.rmtx.Unlock()
-
 	// build world state handle
 	ws, err := t.c.getWorldState(ctx)
 	if err != nil {
-		return err
-	}
-
-	// download the manifest if it doesn't exist in the cache
-	emptyManifest := manifest.GetMeta().GetManifestId() == ""
-	downloadRef, downloader, _ := t.c.downloadManifests.AddKeyRef(pluginID)
-	defer downloadRef.Release()
-
-	if emptyManifest {
-		// expect that we will be reset by the changing plugin manifest
-		_, err := downloader.resultPromise.Await(ctx)
 		return err
 	}
 

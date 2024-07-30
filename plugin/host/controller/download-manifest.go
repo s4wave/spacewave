@@ -7,108 +7,33 @@ import (
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/util/backoff"
-	"github.com/aperturerobotics/util/keyed"
-	"github.com/aperturerobotics/util/promise"
-	"github.com/aperturerobotics/util/retry"
 	"github.com/pkg/errors"
 )
 
-// downloadManifest tracks fetching plugin manifests.
-type downloadManifest struct {
-	// c is the controller
-	c *Controller
-	// pluginID is the plugin id
-	pluginID string
-	// resultPromise contains the result of the fetcher
-	resultPromise *promise.PromiseContainer[*bldr_manifest.FetchManifestValue]
-}
-
-// newDownloadManifest constructs a new plugin manifest fetcher routine.
-func (c *Controller) newDownloadManifest(pluginID string) (keyed.Routine, *downloadManifest) {
-	tr := &downloadManifest{
-		c:             c,
-		pluginID:      pluginID,
-		resultPromise: promise.NewPromiseContainer[*bldr_manifest.FetchManifestValue](),
-	}
-	return tr.execute, tr
-}
-
-// execute executes the manifest downloader.
-func (t *downloadManifest) execute(ctx context.Context) error {
-	// determine host plugin platform id
-	hostPluginPlatformID, err := t.c.hostPluginPlatformID.Await(ctx)
-	if err != nil {
-		return err
-	}
-
-	meta := &bldr_manifest.ManifestMeta{
-		ManifestId: t.pluginID,
-		PlatformId: hostPluginPlatformID,
-	}
-
-	backoffConf := t.c.conf.GetFetchBackoff().CloneVT()
-	if backoffConf == nil {
-		backoffConf = &backoff.Backoff{}
-	}
-	if backoffConf.BackoffKind == 0 {
-		if backoffConf.Exponential == nil {
-			backoffConf.Exponential = &backoff.Exponential{}
-		}
-		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
-		backoffConf.Exponential.MaxInterval = 4200
-	}
-
-	bo := backoffConf.Construct()
-	return retry.Retry(
-		ctx,
-		t.c.le.WithField("plugin-id", t.pluginID),
-		func(ctx context.Context, success func()) error {
-			resultProm := promise.NewPromise[*bldr_manifest.FetchManifestValue]()
-			t.resultPromise.SetPromise(resultProm)
-			resp, err := t.downloadManifest(ctx, meta)
-			if err == nil {
-				success()
-			}
-			if err != context.Canceled {
-				resultProm.SetResult(resp, err)
-			}
-			return err
-		},
-		bo,
-	)
-}
-
-// downloadManifest attempts to fetch the manifest.
-func (t *downloadManifest) downloadManifest(ctx context.Context, meta *bldr_manifest.ManifestMeta) (*bldr_manifest.FetchManifestValue, error) {
+// execDownloadManifest executes downloading the manifest fetched from FetchManifest to the world.
+func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue *bldr_manifest.FetchManifestValue) error {
 	le := t.c.le
+	meta := manifestValue.GetManifestRef().GetMeta()
 	le.Debugf("starting plugin manifest downloader: %s", meta.GetManifestId())
 
 	// get world state handle
 	ws, err := t.c.getWorldState(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// fetch the manifest for this plugin
-	// wait until the plugin has been fetched
-	res, err := bldr_manifest.ExFetchManifest(ctx, t.c.bus, meta, false)
-	if err != nil {
-		return nil, err
-	}
-
-	pluginManifestRef := res.GetManifestRef()
+	pluginManifestRef := manifestValue.GetManifestRef()
 	if err := pluginManifestRef.Validate(); err != nil {
-		return nil, errors.Wrap(err, "download plugin returned invalid manifest ref")
+		return errors.Wrap(err, "download plugin returned invalid manifest ref")
 	}
 	manifestRef := pluginManifestRef.ManifestRef
 	if pluginManifestRef.GetEmpty() || manifestRef.GetEmpty() {
-		return nil, errors.New("download plugin returned empty manifest ref")
+		return errors.New("download plugin returned empty manifest ref")
 	}
 
 	if t.c.conf.GetDisableStoreManifest() {
 		pluginManifestRef.Meta.Logger(le).Debug("skipping storing downloaded manifest")
-		return bldr_manifest.NewFetchManifestValue(pluginManifestRef), nil
+		return nil
 	}
 
 	// use an empty volume ID to allow cross-volume lookup of manifest contents
@@ -197,7 +122,7 @@ func (t *downloadManifest) downloadManifest(ctx context.Context, meta *bldr_mani
 		return err
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// update the manifestRef with the new root reference
@@ -208,13 +133,14 @@ func (t *downloadManifest) downloadManifest(ctx context.Context, meta *bldr_mani
 	manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, pluginManifest.GetMeta())
 	prevManifestState, prevManifestFound, err := ws.GetObject(ctx, manifestKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
+
 	var skipRegisterManifest bool
 	if prevManifestFound {
 		prevRootRef, _, err := prevManifestState.GetRootRef(ctx)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		skipRegisterManifest = prevRootRef.EqualsRef(wroteManifestRef)
 	}
@@ -231,10 +157,10 @@ func (t *downloadManifest) downloadManifest(ctx context.Context, meta *bldr_mani
 			storedManifestRef,
 		)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	le.Infof("successfully fetched manifest for plugin: %s", t.pluginID)
-	return bldr_manifest.NewFetchManifestValue(storedManifestRef), nil
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
 )
 
@@ -61,4 +62,36 @@ func (c *Config) Validate() error {
 // ParsePeerID parses the peer ID field.
 func (c *Config) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
+}
+
+// BuildExecBackoff gets the ExecBackoff and fills defaults if applicable.
+func (c *Config) BuildExecBackoff() *backoff.Backoff {
+	backoffConf := c.GetExecBackoff().CloneVT()
+	if backoffConf == nil {
+		backoffConf = &backoff.Backoff{}
+	}
+	if backoffConf.BackoffKind == 0 {
+		if backoffConf.Exponential == nil {
+			backoffConf.Exponential = &backoff.Exponential{}
+		}
+		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
+		backoffConf.Exponential.MaxInterval = 2100
+	}
+	return backoffConf
+}
+
+// BuildFetchBackoff gets the FetchBackoff and fills defaults if applicable.
+func (c *Config) BuildFetchBackoff() *backoff.Backoff {
+	backoffConf := c.GetFetchBackoff().CloneVT()
+	if backoffConf == nil {
+		backoffConf = &backoff.Backoff{}
+	}
+	if backoffConf.BackoffKind == 0 {
+		if backoffConf.Exponential == nil {
+			backoffConf.Exponential = &backoff.Exponential{}
+		}
+		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
+		backoffConf.Exponential.MaxInterval = 1200
+	}
+	return backoffConf
 }

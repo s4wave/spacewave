@@ -2,7 +2,6 @@ package bldr_manifest
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -41,25 +40,34 @@ func NewFetchManifestValue(manifestRef *ManifestRef) *FetchManifestValue {
 }
 
 // ExFetchManifest executes the FetchManifest directive waiting for a single result.
+//
+// Selects the most recent result from the available set (highest revision).
 func ExFetchManifest(
 	ctx context.Context,
 	b bus.Bus,
 	manifestMeta *ManifestMeta,
 	returnIfIdle bool,
 ) (*FetchManifestValue, error) {
-	av, _, avRef, err := bus.ExecOneOff(ctx, b, NewFetchManifest(manifestMeta), bus.ReturnIfIdle(returnIfIdle), nil)
+	vals, _, ref, err := bus.ExecCollectValues[*FetchManifestValue](
+		ctx,
+		b,
+		NewFetchManifest(manifestMeta),
+		!returnIfIdle,
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
-	if avRef == nil {
-		return nil, errors.New("fetch manifest returned empty result")
+	defer ref.Release()
+
+	var selected *FetchManifestValue
+	for _, val := range vals {
+		if selected == nil || selected.GetManifestRef().GetMeta().GetRev() < val.GetManifestRef().GetMeta().GetRev() {
+			selected = val
+		}
 	}
-	avRef.Release()
-	val, ok := av.GetValue().(*FetchManifestValue)
-	if !ok {
-		return nil, errors.New("fetch manifest directive returned invalid result type")
-	}
-	return val, nil
+
+	return selected, nil
 }
 
 // NewTransformFetchManifestValueToSnapshot transforms *FetchManifestValue to *ManifestSnapshot.
@@ -140,6 +148,37 @@ func FetchLatestManifestEffect(
 		b,
 		NewFetchManifest(manifestMeta),
 		keyedOpts...,
+	)
+}
+
+// SelectLatestFetchManifestValue selects the FetchManifestValue with the highest rev.
+//
+// If there are no manifests, returns -1.
+func SelectLatestFetchManifestValue(vals []directive.TypedAttachedValue[*FetchManifestValue]) int {
+	var latestRev uint64
+	var latestIdx int = -1
+	for i, aval := range vals {
+		val := aval.GetValue()
+		rev := val.GetManifestRef().GetMeta().GetRev()
+		if latestIdx == -1 || rev > latestRev {
+			latestIdx, latestRev = i, rev
+		}
+	}
+	return latestIdx
+}
+
+// WatchLatestManifestValue executes FetchManifest and calls the callback with the FetchManifestValue with the highest rev.
+// If there is no value, calls callback with latest=nil.
+func WatchLatestManifestValue(
+	b bus.Bus,
+	manifestMeta *ManifestMeta,
+	cb func(latest directive.TypedAttachedValue[*FetchManifestValue]),
+) (directive.Instance, directive.Reference, error) {
+	return bus.ExecOneOffWatchSelectCb[*FetchManifestValue](
+		b,
+		NewFetchManifest(manifestMeta),
+		SelectLatestFetchManifestValue,
+		cb,
 	)
 }
 

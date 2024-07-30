@@ -2,7 +2,6 @@ package plugin_host_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
@@ -21,7 +20,6 @@ import (
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/hydra/world"
-	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -51,9 +49,6 @@ type Controller struct {
 	peerID peer.ID
 	// peerIDStr is the parsed peer id string
 	peerIDStr string
-	// objLoop is the object watcher loop
-	// watches the PluginHost object
-	objLoop *world_control.WatchLoop
 	// worldStateCtr contains the world state handle
 	worldStateCtr *ccontainer.CContainer[world.WorldState]
 	// hostVolumeCtr is a container with the host volume.
@@ -61,22 +56,6 @@ type Controller struct {
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[string, *executePlugin]
-	// downloadManifests manages fetching plugin manifests.
-	// key: plugin ID
-	// controlled by pluginInstances
-	downloadManifests *keyed.KeyedRefCount[string, *downloadManifest]
-	// watchFetchManifests manages watching FetchManifest directives.
-	// key: plugin ID
-	// controlled by pluginInstances
-	watchFetchManifests *keyed.KeyedRefCount[string, *watchFetchManifest]
-	// pluginManifestWatcher manages watching any matched PluginManifest.
-	// key: objKey of matched PluginManifest
-	// controlled by pluginInstances
-	pluginManifestWatcher *keyed.Keyed[string, *watchWorldManifest]
-	// rmtx guards below fields
-	rmtx sync.RWMutex
-	// pluginManifests contains the latest known manifest objKey for the loaded plugins.
-	pluginManifests map[string]*bldr_manifest.ManifestSnapshot
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -104,19 +83,10 @@ func NewController(
 		objKey:               conf.GetObjectKey(),
 		peerID:               peerID,
 		peerIDStr:            peerID.String(),
-		pluginManifests:      make(map[string]*bldr_manifest.ManifestSnapshot),
 		worldStateCtr:        ccontainer.NewCContainer[world.WorldState](nil),
 		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
 	}
-	c.pluginManifestWatcher = keyed.NewKeyedWithLogger(c.newWatchWorldManifest, le.WithField("tracker", "manifest-watcher"))
-	c.downloadManifests = keyed.NewKeyedRefCountWithLogger(c.newDownloadManifest, le.WithField("tracker", "manifest-downloader"))
-	c.watchFetchManifests = keyed.NewKeyedRefCountWithLogger(c.newWatchFetchManifest, le.WithField("tracker", "fetch-manifest-watcher"))
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "running-plugin"))
-	c.objLoop = world_control.NewWatchLoop(
-		le.WithField("control-loop", "plugin-host-controller"),
-		c.objKey,
-		c.ProcessState,
-	)
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
 	return c
 }
@@ -133,13 +103,6 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	c.le.Info("starting plugin host")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
-
-	// shutdown all plugin instances when exiting
-	defer c.pluginManifestWatcher.ClearContext()
-	defer c.pluginInstances.ClearContext()
-	defer c.downloadManifests.ClearContext()
-	defer c.watchFetchManifests.ClearContext()
-	defer c.hostPluginPlatformID.SetPromise(nil)
 
 	// get the platform id
 	pluginPlatformID, err := c.host.GetPlatformId(ctx)
@@ -173,6 +136,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	// construct the world engine handle
 	busEngine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
 	ws := world.NewEngineWorldState(busEngine, true)
+
 	c.worldStateCtr.SetValue(ws)
 	defer c.worldStateCtr.SetValue(ws)
 
@@ -182,13 +146,12 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	}
 
 	// startup manifest watchers & plugin instances
-	c.pluginManifestWatcher.SetContext(ctx, true)
 	c.pluginInstances.SetContext(ctx, true)
-	c.downloadManifests.SetContext(ctx, true)
-	c.watchFetchManifests.SetContext(ctx, true)
+	defer c.pluginInstances.ClearContext()
 
-	// watch the plugin host for changes
-	return c.objLoop.Execute(ctx, ws)
+	// wait for context cancel
+	<-ctx.Done()
+	return context.Canceled
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -214,25 +177,8 @@ func (c *Controller) HandleDirective(
 //
 // Returns nil, nil, err if any error occurs.
 func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
-	c.rmtx.Lock()
-	defer c.rmtx.Unlock()
-
-	// We add references to all three of these to keep them running if plugin-instances restarts.
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	downloadRef, _, _ := c.downloadManifests.AddKeyRef(pluginID)
-
-	var watchFetchRef *keyed.KeyedRef[string, *watchFetchManifest]
-	if c.conf.GetWatchFetchManifest() {
-		watchFetchRef, _, _ = c.watchFetchManifests.AddKeyRef(pluginID)
-	}
-
-	return plg, func() {
-		ref.Release()
-		downloadRef.Release()
-		if watchFetchRef != nil {
-			watchFetchRef.Release()
-		}
-	}
+	return plg, ref.Release
 }
 
 // Close releases any resources used by the controller.
@@ -350,11 +296,6 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 	}
 
 	return nil
-}
-
-// syncWatchPluginManifests starts/stop routines to watch the plugin manifests.
-func (c *Controller) syncWatchPluginManifests(manifestObjKeys []string) {
-	c.pluginManifestWatcher.SyncKeys(manifestObjKeys, true)
 }
 
 // _ is a type assertion
