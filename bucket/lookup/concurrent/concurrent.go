@@ -284,7 +284,7 @@ func (c *LookupController) PutBlock(
 	case PutBlockBehavior_PutBlockBehavior_ALL:
 		return c.putBlockAllVolumes(reqCtx, data, opts)
 	default:
-		return nil, false, nil
+		return nil, false, block_store.ErrReadOnly
 	}
 }
 
