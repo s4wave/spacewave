@@ -38,7 +38,24 @@ func (l *lookupBucket) GetHashType() hash.HashType {
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, ErrNotImplemented
+	lb, err := l.h.GetLookup(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	if lb == nil {
+		return nil, false, bucket.ErrBucketNotFound
+	}
+
+	var blockRef *block.BlockRef
+	objRefs, existed, err := lb.PutBlock(ctx, data, opts)
+	for _, objRef := range objRefs {
+		rootRef := objRef.GetRootRef()
+		if !rootRef.GetEmpty() {
+			blockRef = rootRef
+			break
+		}
+	}
+	return blockRef, existed, err
 }
 
 // GetBlock gets a block with a cid reference.
@@ -50,7 +67,7 @@ func (l *lookupBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 		return nil, false, err
 	}
 	if lb == nil {
-		return nil, false, errors.New("bucket config not found")
+		return nil, false, bucket.ErrBucketNotFound
 	}
 	return lb.LookupBlock(ctx, ref)
 }
@@ -63,7 +80,7 @@ func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 		return false, err
 	}
 	if lb == nil {
-		return false, errors.New("bucket config not found")
+		return false, bucket.ErrBucketNotFound
 	}
 	_, ok, err := lb.LookupBlock(ctx, ref, WithLocalOnly())
 	return ok, err
