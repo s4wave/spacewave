@@ -2,6 +2,7 @@ package plugin_host_web
 
 import (
 	"context"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -16,6 +17,7 @@ import (
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	web_runtime "github.com/aperturerobotics/bldr/web/runtime"
+	web_worker "github.com/aperturerobotics/bldr/web/worker"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -266,14 +268,17 @@ func (h *WebHost) ExecutePlugin(
 		return nil
 	}
 
-	removeWorkerInstances := func(ctx context.Context, doc web_document.WebDocument) error {
+	removeWorkerInstances := func(ctx context.Context, doc web_document.WebDocument) (map[string]web_worker.WebWorker, error) {
 		// Remove any old instances of the web worker.
 		docWebWorkers, err := doc.GetWebWorkers(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		for _, worker := range docWebWorkers {
+
+		docWebWorkers = maps.Clone(docWebWorkers)
+		for id, worker := range docWebWorkers {
 			if worker.GetId() != pluginWebWorkerID {
+				delete(docWebWorkers, id)
 				continue
 			}
 
@@ -289,7 +294,8 @@ func (h *WebHost) ExecutePlugin(
 				h.le.WithError(err).Warn("unable to remove old web worker instance")
 			}
 		}
-		return nil
+
+		return docWebWorkers, nil
 	}
 
 	// Track web document is called for each of the running web documents.
@@ -301,7 +307,8 @@ func (h *WebHost) ExecutePlugin(
 		}
 
 		// Remove any old instances of the web worker.
-		if err := removeWorkerInstances(ctx, doc); err != nil {
+		_, err = removeWorkerInstances(ctx, doc)
+		if err != nil {
 			return err
 		}
 
@@ -340,17 +347,40 @@ func (h *WebHost) ExecutePlugin(
 		ctx, ctxCancel := context.WithTimeout(context.WithoutCancel(rctx), time.Second*3)
 		defer ctxCancel()
 
-		docs, err := webRuntime.GetWebDocuments(ctx)
-		if err != nil {
-			return err
-		}
-		var retErr error
-		for _, doc := range docs {
-			if err := removeWorkerInstances(ctx, doc); err != nil {
-				retErr = err
+		for {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+
+			docs, err := webRuntime.GetWebDocuments(ctx)
+			if err != nil {
+				return err
+			}
+
+			var retErr error
+			var nOldInstances int
+			for _, doc := range docs {
+				oldInstances, err := removeWorkerInstances(ctx, doc)
+				if err != nil {
+					retErr = err
+				}
+				nOldInstances += len(oldInstances)
+			}
+			if retErr != nil {
+				return retErr
+			}
+
+			if nOldInstances == 0 {
+				// success
+				return nil
+			}
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(time.Millisecond * 100):
 			}
 		}
-		return retErr
 	}
 	defer func() {
 		ctxCancel()
