@@ -119,7 +119,7 @@ func TestMultiNodeDEX(
 	{
 		bridges[0].ConnectToInproc(ctx, bridges[len(bridges)-1])
 		bridges[len(bridges)-1].ConnectToInproc(ctx, bridges[0])
-		if err := tptControllers[0].PushDialer(
+		if _, err := tptControllers[0].DialPeerAddr(
 			ctx,
 			bridges[len(bridges)-1].GetPeerID(),
 			&dialer.DialerOpts{
@@ -137,7 +137,7 @@ func TestMultiNodeDEX(
 			bridges[i].LocalAddr().String(),
 			bridges[i+1].LocalAddr().String(),
 		)
-		if err := tptControllers[i].PushDialer(
+		if _, err := tptControllers[i].DialPeerAddr(
 			ctx,
 			bridges[i+1].GetPeerID(),
 			&dialer.DialerOpts{

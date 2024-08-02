@@ -1,4 +1,4 @@
-package e2e
+package psecho_test
 
 import (
 	"testing"

@@ -113,7 +113,7 @@ func TestTransaction(t *testing.T) {
 	}
 	ex.Msg = "test data"
 	cptr.SetBlock(ex, true)
-	blockRef, _, err := tr.Write(true)
+	blockRef, _, err := tr.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

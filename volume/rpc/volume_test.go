@@ -1,4 +1,4 @@
-package volume_rpc_e2e
+package volume_rpc_test
 
 import (
 	"context"

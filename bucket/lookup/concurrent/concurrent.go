@@ -3,7 +3,6 @@ package lookup_concurrent
 import (
 	"context"
 	"runtime"
-	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -219,58 +218,60 @@ func (c *LookupController) LookupBlock(
 
 	// perform concurrent lookup
 	var bcast broadcast.Broadcast
-	var mtx sync.Mutex
 	var rdata *[]byte
 	var rerr error
+	var waitCh <-chan struct{}
 
-	mtx.Lock()
-	waitCh := bcast.GetWaitCh()
-	var running int
-	for _, hx := range bh {
-		h := hx
-		if !h.GetExists() {
-			continue
+	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		var running int
+		queue := make([]func(), 0, len(bh))
+		for _, hx := range bh {
+			h := hx
+			if !h.GetExists() {
+				continue
+			}
+			running++
+
+			queue = append(queue, func() {
+				d, ok, err := h.GetBucket().GetBlock(reqCtx, ref)
+				bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+					if err != nil {
+						// prioritize non context canceled errors
+						if rerr == nil || err != context.Canceled {
+							rerr = err
+						}
+					} else if ok && rdata == nil {
+						rdata = &d
+					}
+					running--
+					if running == 0 || rerr != nil || rdata != nil {
+						broadcast()
+					}
+				})
+			})
 		}
-		running++
-		go func() {
-			d, ok, err := h.GetBucket().GetBlock(reqCtx, ref)
-			mtx.Lock()
-			if err != nil {
-				// prioritize non context canceled errors
-				if rerr == nil || err != context.Canceled {
-					rerr = err
-				}
-			} else if ok && rdata == nil {
-				rdata = &d
-			}
-			running--
-			if running == 0 || rerr != nil || rdata != nil {
-				bcast.Broadcast()
-			}
-			mtx.Unlock()
-		}()
-	}
-	mtx.Unlock()
 
+		for _, fn := range queue {
+			go fn()
+		}
+
+		waitCh = getWaitCh()
+	})
+
+	// wait for running == 0
 	select {
 	case <-reqCtx.Done():
 		return nil, false, context.Canceled
 	case <-waitCh:
 	}
 
-	mtx.Lock()
 	if rerr != nil {
-		err := rerr
-		mtx.Unlock()
-		return nil, false, err
+		return nil, false, rerr
 	}
 	if rdata == nil {
-		mtx.Unlock()
 		return notFound()
 	}
-	rd := *rdata
-	mtx.Unlock()
-	return rd, true, nil
+	return *rdata, true, nil
 }
 
 // PutBlock writes a block using the bucket lookup controller.

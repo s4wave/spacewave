@@ -61,7 +61,9 @@ func NewFSWatcher(cb FSWatcherCb, access unixfs_access.AccessUnixFSFunc) *FSWatc
 
 // Wake forces a re-check of the FSWatcher state.
 func (w *FSWatcher) Wake() {
-	w.bcast.Broadcast()
+	w.bcast.HoldLockMaybeAsync(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		broadcast()
+	})
 }
 
 // SetPath updates the path as a string.

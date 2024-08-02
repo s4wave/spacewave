@@ -2,7 +2,6 @@ package store_kvtx_inmem
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/util/broadcast"
@@ -16,10 +15,8 @@ type Store struct {
 	// key is encoded with base58
 	m map[uint64]valType
 
-	// bcast is broadcast when below fields change
+	// bcast guards below fields
 	bcast broadcast.Broadcast
-	// mtx guards the below fields
-	mtx sync.Mutex
 	// nreaders is the number of active readers
 	nreaders int
 	// writing indicates there's a write tx active
@@ -39,30 +36,36 @@ func NewStore() *Store {
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	for {
 		var tx kvtx.Tx
-		s.mtx.Lock()
-		if write {
-			if s.nreaders != 0 || s.writing {
-				s.writeWaiting = true
+		var waitCh <-chan struct{}
+		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if write {
+				if s.nreaders != 0 || s.writing {
+					s.writeWaiting = true
+				} else {
+					s.writing = true
+					s.writeWaiting = false
+					tx = newTx(s, true)
+				}
 			} else {
-				s.writing = true
-				s.writeWaiting = false
-				tx = newTx(s, true)
+				if !s.writing && !s.writeWaiting {
+					s.nreaders++
+					tx = newTx(s, false)
+				}
 			}
-		} else {
-			if !s.writing && !s.writeWaiting {
-				s.nreaders++
-				tx = newTx(s, false)
+			if tx == nil {
+				waitCh = getWaitCh()
 			}
-		}
-		var bcastCh <-chan struct{}
-		if tx == nil {
-			bcastCh = s.bcast.GetWaitCh()
-		}
-		s.mtx.Unlock()
+		})
+
 		if tx != nil {
 			return tx, nil
 		}
-		<-bcastCh
+
+		select {
+		case <-ctx.Done():
+			return nil, context.Canceled
+		case <-waitCh:
+		}
 	}
 }
 

@@ -2,7 +2,6 @@ package node_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -24,9 +23,8 @@ type loadedBucket struct {
 
 	stateCtr  *ccontainer.CContainer[*loadedBucketState]
 	lookupCtr *ccontainer.CContainer[bucket_lookup.Lookup]
-	wake      broadcast.Broadcast
 
-	mtx                   sync.Mutex
+	bcast                 broadcast.Broadcast
 	lastState             *loadedBucketState
 	bucketConf            *bucket.Config
 	lookupCtrlRef         bucket_lookup.Controller
@@ -100,69 +98,68 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 	}()
 
 	// startup
-	var wakeCh <-chan struct{}
+	var waitCh <-chan struct{}
 	b.blockStores.SetContext(ctx, true)
 
 	var lookupCtrCancel context.CancelFunc
 	for {
 		var stDirty bool
 
-		if wakeCh != nil {
+		if waitCh != nil {
 			select {
 			case <-ctx.Done():
 				if lookupCtrCancel != nil {
 					lookupCtrCancel()
 				}
 				return ctx.Err()
-			case <-wakeCh:
+			case <-waitCh:
 			}
 		}
 
-		b.mtx.Lock()
-		wakeCh = b.wake.GetWaitCh()
-		if !st.info.GetConfig().EqualVT(b.bucketConf) {
-			stDirty = true
-			st.info = bucket.NewBucketInfo(b.bucketConf)
-			if lookupCtrCancel != nil {
-				b.lookupCtrlRef = nil
-				lookupCtrCancel()
-				lookupCtrCancel = nil
-				b.clearLookup()
-			}
-		}
-
-		if b.bucketHandleSetDirty && b.lookupCtrlRef != nil {
-			vols := b.blockStores.GetKeysWithData()
-			handles := make([]bucket.BucketHandle, 0, len(vols))
-			for _, vdat := range vols {
-				v := vdat.Data
-				if v != nil && v.bh != nil && v.bh.GetExists() {
-					handles = append(handles, v.bh)
+		b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+			if !st.info.GetConfig().EqualVT(b.bucketConf) {
+				stDirty = true
+				st.info = bucket.NewBucketInfo(b.bucketConf)
+				if lookupCtrCancel != nil {
+					b.lookupCtrlRef = nil
+					lookupCtrCancel()
+					lookupCtrCancel = nil
+					b.clearLookup()
 				}
 			}
-			if len(handles) != 0 || b.bucketHandleSetPushed {
-				b.bucketHandleSetPushed = true
-				b.lookupCtrlRef.PushBucketHandles(ctx, handles)
+
+			if b.bucketHandleSetDirty && b.lookupCtrlRef != nil {
+				vols := b.blockStores.GetKeysWithData()
+				handles := make([]bucket.BucketHandle, 0, len(vols))
+				for _, vdat := range vols {
+					v := vdat.Data
+					if v != nil && v.bh != nil && v.bh.GetExists() {
+						handles = append(handles, v.bh)
+					}
+				}
+				if len(handles) != 0 || b.bucketHandleSetPushed {
+					b.bucketHandleSetPushed = true
+					b.lookupCtrlRef.PushBucketHandles(ctx, handles)
+				}
+				b.bucketHandleSetDirty = false
 			}
-			b.bucketHandleSetDirty = false
-		}
 
-		if stDirty {
-			emitState()
-		}
+			if stDirty {
+				emitState()
+			}
 
-		// if necessary, start the lookup controller.
-		if bc := b.bucketConf; bc != nil &&
-			lookupCtrCancel == nil &&
-			!bc.GetLookup().GetDisable() {
-			var lookupCtrCtx context.Context
-			lookupCtrCtx, lookupCtrCancel = context.WithCancel(ctx)
-			go func() {
-				_ = b.execLookupController(lookupCtrCtx, bc)
-			}()
-		}
-
-		b.mtx.Unlock()
+			// if necessary, start the lookup controller.
+			if bc := b.bucketConf; bc != nil &&
+				lookupCtrCancel == nil &&
+				!bc.GetLookup().GetDisable() {
+				var lookupCtrCtx context.Context
+				lookupCtrCtx, lookupCtrCancel = context.WithCancel(ctx)
+				go func() {
+					_ = b.execLookupController(lookupCtrCtx, bc)
+				}()
+			}
+		})
 	}
 }
 
@@ -170,23 +167,23 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 //
 // if reset is set, resets the routine if it already existed.
 func (b *loadedBucket) PushBlockStore(blockStoreID string, reset bool) {
-	b.mtx.Lock()
-	_, existed := b.blockStores.SetKey(blockStoreID, true)
-	if existed && reset {
-		_, _ = b.blockStores.ResetRoutine(blockStoreID)
-	}
-	b.mtx.Unlock()
+	b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		_, existed := b.blockStores.SetKey(blockStoreID, true)
+		if existed && reset {
+			_, _ = b.blockStores.ResetRoutine(blockStoreID)
+		}
+	})
 }
 
 // ClearBlockStore clears a block store ID if it was previously pushed with PushBlockStore.
 func (b *loadedBucket) ClearBlockStore(blockStoreID string) {
-	b.mtx.Lock()
-	removed := b.blockStores.RemoveKey(blockStoreID)
-	if removed {
-		b.bucketHandleSetDirty = true
-		b.wake.Broadcast()
-	}
-	b.mtx.Unlock()
+	b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		removed := b.blockStores.RemoveKey(blockStoreID)
+		if removed {
+			b.bucketHandleSetDirty = true
+			broadcast()
+		}
+	})
 }
 
 // GetLookup waits for the lookup.
@@ -269,20 +266,20 @@ func (b *loadedBucket) execLookupController(
 				if lvErr == nil {
 					lc, _ = lv.GetController().(bucket_lookup.Controller)
 				}
-				b.mtx.Lock()
-				if b.bucketConf == bc && b.lookupCtrlRef != lc {
-					b.lookupCtrlRef = lc
-					b.bucketHandleSetPushed = false
-					if lc != nil {
-						b.le.Debug("lookup controller ready")
-						b.pushLookup(lc)
-					} else {
-						b.le.Debug("lookup controller exited")
-						b.clearLookup()
+				b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+					if b.bucketConf == bc && b.lookupCtrlRef != lc {
+						b.lookupCtrlRef = lc
+						b.bucketHandleSetPushed = false
+						if lc != nil {
+							b.le.Debug("lookup controller ready")
+							b.pushLookup(lc)
+						} else {
+							b.le.Debug("lookup controller exited")
+							b.clearLookup()
+						}
+						broadcast()
 					}
-					b.wake.Broadcast()
-				}
-				b.mtx.Unlock()
+				})
 			}, func(av directive.AttachedValue) {
 				lv, ok := av.GetValue().(resolver.LoadControllerWithConfigValue)
 				if !ok {
@@ -292,14 +289,14 @@ func (b *loadedBucket) execLookupController(
 				if !ok || lc == nil {
 					return
 				}
-				b.mtx.Lock()
-				if b.lookupCtrlRef == lc {
-					b.le.Debug("lookup controller exited")
-					b.lookupCtrlRef = nil
-					b.clearLookup()
-					b.wake.Broadcast()
-				}
-				b.mtx.Unlock()
+				b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+					if b.lookupCtrlRef == lc {
+						b.le.Debug("lookup controller exited")
+						b.lookupCtrlRef = nil
+						b.clearLookup()
+						broadcast()
+					}
+				})
 			},
 			subCtxCancel,
 		),

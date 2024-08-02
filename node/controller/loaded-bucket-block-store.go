@@ -53,26 +53,26 @@ func (l *loadedBucketBlockStore) HandleValueAdded(_ directive.Instance, av direc
 	if !ok {
 		return
 	}
-	l.b.mtx.Lock()
-	if lbv, exists := l.b.blockStores.GetKey(l.blockStoreID); exists && lbv == l {
-		if val.GetExists() {
-			nbc := val.GetBucketConfig().CloneVT()
-			if l.b.bucketConf == nil || nbc.GetRev() > l.b.bucketConf.GetRev() {
-				l.le.
-					WithField("bucket-rev", nbc.GetRev()).
-					Debug("updated bucket config")
-				l.b.bucketConf = nbc
+	l.b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if lbv, exists := l.b.blockStores.GetKey(l.blockStoreID); exists && lbv == l {
+			if val.GetExists() {
+				nbc := val.GetBucketConfig().CloneVT()
+				if l.b.bucketConf == nil || nbc.GetRev() > l.b.bucketConf.GetRev() {
+					l.le.
+						WithField("bucket-rev", nbc.GetRev()).
+						Debug("updated bucket config")
+					l.b.bucketConf = nbc
+				}
+			} else {
+				l.le.Debug("bucket not in block store")
 			}
-		} else {
-			l.le.Debug("bucket not in block store")
+			if l.bh != val {
+				l.bh = val
+				l.b.bucketHandleSetDirty = true
+			}
+			broadcast()
 		}
-		if l.bh != val {
-			l.bh = val
-			l.b.bucketHandleSetDirty = true
-		}
-		l.b.wake.Broadcast()
-	}
-	l.b.mtx.Unlock()
+	})
 }
 
 // HandleValueRemoved is called when a value is removed from the directive.
@@ -82,28 +82,28 @@ func (l *loadedBucketBlockStore) HandleValueRemoved(_ directive.Instance, av dir
 	if !ok || !val.GetExists() {
 		return
 	}
-	l.b.mtx.Lock()
-	if lbv, exists := l.b.blockStores.GetKey(l.blockStoreID); exists && lbv == l {
-		l.bh = nil
-		l.b.bucketHandleSetDirty = true
-		l.b.wake.Broadcast()
-	}
-	l.b.mtx.Unlock()
+	l.b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if lbv, exists := l.b.blockStores.GetKey(l.blockStoreID); exists && lbv == l {
+			l.bh = nil
+			l.b.bucketHandleSetDirty = true
+			broadcast()
+		}
+	})
 }
 
 // HandleInstanceDisposed is called when a directive instance is disposed.
 // This will occur if Close() is called on the directive instance.
 func (l *loadedBucketBlockStore) HandleInstanceDisposed(_ directive.Instance) {
-	l.b.mtx.Lock()
-	existed, reset := l.b.blockStores.ResetRoutine(l.blockStoreID, func(_ string, other *loadedBucketBlockStore) bool {
-		return l == other
+	l.b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		existed, reset := l.b.blockStores.ResetRoutine(l.blockStoreID, func(_ string, other *loadedBucketBlockStore) bool {
+			return l == other
+		})
+		if existed && reset && l.bh != nil {
+			l.bh = nil
+			l.b.bucketHandleSetDirty = true
+			broadcast()
+		}
 	})
-	if existed && reset && l.bh != nil {
-		l.bh = nil
-		l.b.bucketHandleSetDirty = true
-		l.b.wake.Broadcast()
-	}
-	l.b.mtx.Unlock()
 }
 
 // _ is a type assertion

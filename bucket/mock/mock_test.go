@@ -81,7 +81,7 @@ func TestCursor(t *testing.T) {
 	tsb1 := tcc.FollowSubBlock(1)
 	tcc2 := tsb1.FollowRef(1, nil)
 	tcc2.SetBlock(&block_mock.Example{Msg: "hello world"}, true)
-	nrb, _, err := txc.Write(true)
+	nrb, _, err := txc.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -90,7 +90,7 @@ func TestCursor(t *testing.T) {
 	txc, tcc = oc.BuildTransaction(nil)
 	tcc.SetBlock(&Root{ExamplePtr: oc.GetRef()}, true)
 
-	nrb, _, err = txc.Write(true)
+	nrb, _, err = txc.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

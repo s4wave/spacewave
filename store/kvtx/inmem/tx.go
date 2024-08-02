@@ -232,18 +232,18 @@ func (t *Tx) Commit(ctx context.Context) error {
 		return kvtx.ErrDiscarded
 	}
 
-	t.s.mtx.Lock()
-	for key, val := range t.added {
-		t.s.m[key] = val
-	}
-	t.added = nil
-	for key := range t.deleted {
-		delete(t.s.m, key)
-	}
-	t.deleted = nil
-	t.s.writing = false
-	t.s.bcast.Broadcast()
-	t.s.mtx.Unlock()
+	t.s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		for key, val := range t.added {
+			t.s.m[key] = val
+		}
+		t.added = nil
+		for key := range t.deleted {
+			delete(t.s.m, key)
+		}
+		t.deleted = nil
+		t.s.writing = false
+		broadcast()
+	})
 	return nil
 }
 
@@ -259,14 +259,15 @@ func (t *Tx) Discard() {
 		return
 	}
 	t.added, t.deleted = nil, nil
-	t.s.mtx.Lock()
-	if t.write {
-		t.s.writing = false
-	} else {
-		t.s.nreaders--
-	}
-	t.s.bcast.Broadcast()
-	t.s.mtx.Unlock()
+
+	t.s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if t.write {
+			t.s.writing = false
+		} else {
+			t.s.nreaders--
+		}
+		broadcast()
+	})
 }
 
 // _ is a type assertion

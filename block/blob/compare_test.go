@@ -46,7 +46,7 @@ func TestCompareBlobs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, bcs2, err = btx2.Write(true)
+	_, bcs2, err = btx2.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
