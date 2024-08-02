@@ -15,7 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ccontainer"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 )

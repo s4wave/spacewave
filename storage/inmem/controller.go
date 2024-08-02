@@ -4,7 +4,7 @@ import (
 	"github.com/aperturerobotics/bldr/storage"
 	storage_controller "github.com/aperturerobotics/bldr/storage/controller"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller identifier.

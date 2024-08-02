@@ -15,7 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller ID.

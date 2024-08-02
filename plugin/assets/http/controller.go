@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller ID for the plugin assets HTTP fetcher.

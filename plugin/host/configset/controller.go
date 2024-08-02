@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller ID.

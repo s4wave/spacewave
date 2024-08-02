@@ -30,7 +30,7 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

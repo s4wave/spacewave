@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	iofs_mock "github.com/aperturerobotics/hydra/unixfs/iofs/mock"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

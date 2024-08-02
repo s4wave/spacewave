@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller id.

@@ -13,7 +13,7 @@ import (
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

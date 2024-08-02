@@ -14,7 +14,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	cbackoff "github.com/cenkalti/backoff"
 	"github.com/sirupsen/logrus"
 )

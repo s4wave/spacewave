@@ -21,7 +21,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

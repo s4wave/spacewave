@@ -11,8 +11,8 @@ require github.com/aperturerobotics/common v0.18.3 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240802092213-c6b6a86a3b49 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240719061611-5ddf185f5440 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240802164455-e0e2d1d46bbe // master
+	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240727094317-39016a9c9662 // master
 )
 
 require (
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.36.4 // master
+	github.com/aperturerobotics/bifrost v0.37.0 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -81,10 +81,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.47.2 // latest
-	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
+	github.com/aperturerobotics/controllerbus v0.47.3 // latest
+	github.com/aperturerobotics/entitygraph v0.10.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.33.6 // latest
-	github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f // master
+	github.com/aperturerobotics/util v1.25.7 // master
 )
 
 // aperture: use compatibility forks
@@ -115,7 +115,7 @@ require (
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/webrtc/v4 v4.0.0-beta.26 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.45.1 // indirect
+	github.com/quic-go/quic-go v0.45.2 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.3
 	github.com/zeebo/blake3 v0.2.3
@@ -126,7 +126,7 @@ require (
 )
 
 require (
-	github.com/blang/semver v3.5.1+incompatible
+	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 )
 

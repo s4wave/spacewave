@@ -20,7 +20,7 @@ import (
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )

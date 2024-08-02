@@ -24,7 +24,7 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 )

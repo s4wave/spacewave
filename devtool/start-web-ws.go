@@ -20,7 +20,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 	"nhooyr.io/websocket"

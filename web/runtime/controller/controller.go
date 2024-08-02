@@ -15,7 +15,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

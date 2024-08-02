@@ -20,7 +20,7 @@ import (
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller id.

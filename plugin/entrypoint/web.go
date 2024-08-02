@@ -13,7 +13,7 @@ import (
 	web_runtime_wasm "github.com/aperturerobotics/bldr/web/runtime/wasm"
 	"github.com/aperturerobotics/starpc/srpc"
 	fetch "github.com/aperturerobotics/util/js/fetch"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

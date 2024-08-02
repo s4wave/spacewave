@@ -26,7 +26,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 

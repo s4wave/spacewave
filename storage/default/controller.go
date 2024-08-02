@@ -4,7 +4,7 @@ import (
 	storage_controller "github.com/aperturerobotics/bldr/storage/controller"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // StorageID is the storage id usually used for the default storage.

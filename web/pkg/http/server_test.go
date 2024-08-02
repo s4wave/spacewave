@@ -15,7 +15,7 @@ import (
 	web_pkg_controller "github.com/aperturerobotics/bldr/web/pkg/controller"
 	web_pkg_mock "github.com/aperturerobotics/bldr/web/pkg/mock"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

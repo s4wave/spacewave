@@ -13,7 +13,7 @@ import (
 	block_store_kvfile "github.com/aperturerobotics/hydra/block/store/kvfile"
 	store_kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

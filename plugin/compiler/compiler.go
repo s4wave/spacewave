@@ -38,7 +38,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
