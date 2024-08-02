@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	identity_domain "github.com/aperturerobotics/identity/domain"
 	identity_domain_controller "github.com/aperturerobotics/identity/domain/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

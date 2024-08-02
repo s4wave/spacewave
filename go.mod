@@ -2,14 +2,14 @@ module github.com/aperturerobotics/identity
 
 go 1.22
 
-require github.com/aperturerobotics/hydra v0.0.0-20240802092213-c6b6a86a3b49 // master
+require github.com/aperturerobotics/hydra v0.0.0-20240802165027-eac0d36c0392 // master
 
 require github.com/satori/go.uuid v1.2.0
 
 // Note: The below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.36.3-0.20240802091924-3bd1db447d26 // master
+	github.com/aperturerobotics/bifrost v0.37.0 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
 )
@@ -42,11 +42,11 @@ require (
 
 require (
 	github.com/aperturerobotics/common v0.18.3 // latest
-	github.com/aperturerobotics/controllerbus v0.47.2 // latest
-	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
+	github.com/aperturerobotics/controllerbus v0.47.3 // latest
+	github.com/aperturerobotics/entitygraph v0.10.0 // indirect; latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 	github.com/aperturerobotics/starpc v0.33.6 // latest
-	github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f // latest
+	github.com/aperturerobotics/util v1.25.7 // latest
 )
 
 // aperture: use compatibility forks
@@ -66,14 +66,13 @@ replace (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/libp2p/go-libp2p v0.35.4
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.13.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.45.1 // indirect
+	github.com/quic-go/quic-go v0.45.2 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
@@ -81,6 +80,8 @@ require (
 	gonum.org/v1/gonum v0.15.0 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect; master
 )
+
+require github.com/blang/semver/v4 v4.0.0
 
 require (
 	github.com/cloudflare/circl v1.3.8 // indirect
@@ -90,7 +91,7 @@ require (
 	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect

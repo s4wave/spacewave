@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/identity"
 	identity_domain_service "github.com/aperturerobotics/identity/domain/service"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
