@@ -307,9 +307,31 @@ func (h *WebHost) ExecutePlugin(
 		}
 
 		// Remove any old instances of the web worker.
-		_, err = removeWorkerInstances(ctx, doc)
-		if err != nil {
-			return err
+		cleanupCtx, cleanupCtxCancel := context.WithTimeout(ctx, time.Second*3)
+		defer cleanupCtxCancel()
+
+		for {
+			if cleanupCtx.Err() != nil {
+				break
+			}
+
+			removedInstances, err := removeWorkerInstances(ctx, doc)
+			if err != nil {
+				return err
+			}
+			if len(removedInstances) == 0 {
+				break
+			}
+
+			select {
+			case <-cleanupCtx.Done():
+			case <-time.After(time.Millisecond * 100):
+			}
+		}
+
+		cleanupCtxCancel()
+		if ctx.Err() != nil {
+			return context.Canceled
 		}
 
 		// Watch the list of web workers to ensure ours is running.
