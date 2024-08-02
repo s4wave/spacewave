@@ -13,7 +13,7 @@ import (
 	sql_mysql "github.com/aperturerobotics/hydra/sql/mysql"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

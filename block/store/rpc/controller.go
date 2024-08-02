@@ -10,7 +10,7 @@ import (
 	block_rpc_client "github.com/aperturerobotics/hydra/block/rpc/client"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_controller "github.com/aperturerobotics/hydra/block/store/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

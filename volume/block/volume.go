@@ -16,7 +16,7 @@ import (
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	"github.com/aperturerobotics/hydra/volume"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

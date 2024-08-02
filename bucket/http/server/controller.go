@@ -10,7 +10,7 @@ import (
 	block_store_http_server "github.com/aperturerobotics/hydra/block/store/http/server"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller identifier.

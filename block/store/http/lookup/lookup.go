@@ -12,7 +12,7 @@ import (
 	block_store_vlogger "github.com/aperturerobotics/hydra/block/store/vlogger"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

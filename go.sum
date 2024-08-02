@@ -60,8 +60,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.36.3-0.20240802091924-3bd1db447d26 h1:754Kh+7awbUlvqy1wYxhvfxXLT+5qZhBHuH0iF5dpfk=
-github.com/aperturerobotics/bifrost v0.36.3-0.20240802091924-3bd1db447d26/go.mod h1:D7+NbIBaohxgquQ9ROaCPqhNSMd4QSzXoxrSkH2v4Ww=
+github.com/aperturerobotics/bifrost v0.37.0 h1:FkIc/yEFSp9p40XXIWyj0/2y7JquPshHHQ+D3UzBqfw=
+github.com/aperturerobotics/bifrost v0.37.0/go.mod h1:bIBmp+8CiVLLjghBaTxp9aVh+3UQaYlV2ERU2WIXnYg=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -70,10 +70,10 @@ github.com/aperturerobotics/cayley v0.9.1 h1:fPW0kYZamDbRVzBfpHNou5uqFlLIIF/JFeh
 github.com/aperturerobotics/cayley v0.9.1/go.mod h1:jAi3MXAWz07Ds2rERJd13auScsyt4Vkf2Mbqi4Tx/40=
 github.com/aperturerobotics/common v0.18.3 h1:DicdT7Yi9xlHMgJOiH1ypkRGt/TOctWWgVfdgh4p+H4=
 github.com/aperturerobotics/common v0.18.3/go.mod h1:qLWqm2T9MQmxDtE1ddNdWCHnUj1Z66GzNxllkZ3Fj7Y=
-github.com/aperturerobotics/controllerbus v0.47.2 h1:BKPoRY5FRhS0AWTe0DgpsyvKy+invnFgC8ZHSuz8W9M=
-github.com/aperturerobotics/controllerbus v0.47.2/go.mod h1:bbLYOlppStRVjtRbbXSB72W4aFrPMKx7oUb814A8/dI=
-github.com/aperturerobotics/entitygraph v0.9.1 h1:bCl0Q9N1hkQnOtdCYz7pNSYqH+5CY3EUCuD19dQmJeI=
-github.com/aperturerobotics/entitygraph v0.9.1/go.mod h1:40VoNXSslWQieSS4V3HyzqOOZnRiGxItj/qZYSHg8Rw=
+github.com/aperturerobotics/controllerbus v0.47.3 h1:aAV3V2AtNB9QPZLVt0EXFrDtx7b6wJY1Dn6tvDqTSBQ=
+github.com/aperturerobotics/controllerbus v0.47.3/go.mod h1:xC8DSXk0J5Q/Cc5G4MxAlseJEuJpoeuld6R44lYw074=
+github.com/aperturerobotics/entitygraph v0.10.0 h1:fotjtv+XWqWA6LbIrGsjiP/FLa/QdROfQ1/URAH2zhE=
+github.com/aperturerobotics/entitygraph v0.10.0/go.mod h1:wg3nnABfmWPasK0FZzwU2lSq3CD6bvDHf8eEqHrDuBc=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1 h1:4+gAyIhICgHgF59q1G8OHRRYzmNkk3u6philYbobUNY=
 github.com/aperturerobotics/go-brotli-decoder v0.1.1/go.mod h1:uGcRHycd7rIbt9Uh+6L5UXgWmRTUIE2MA1m0QKrBBQY=
 github.com/aperturerobotics/go-indexeddb v0.2.2 h1:AEImqmCLQjTm+Of8omzd4UVy8MPtM2Vfe/yIWain2Ow=
@@ -100,8 +100,8 @@ github.com/aperturerobotics/quic-go v0.45.1-0.20240802054753-f83427ffc2c6 h1:MZN
 github.com/aperturerobotics/quic-go v0.45.1-0.20240802054753-f83427ffc2c6/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
 github.com/aperturerobotics/starpc v0.33.6 h1:noc/MnmIMTek9bdEvd88QiD1p9KzEV8CUOBIoKmGgm0=
 github.com/aperturerobotics/starpc v0.33.6/go.mod h1:4IYcbulEzqhPT5jKaDeL1BJPFd8WVWZ7Ugu0/348/Is=
-github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f h1:YIqFbDLHyly/Nmwo0+EYA/W8YEkopcMHDWhih0BNajw=
-github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f/go.mod h1:DdflF5HvWF01S4MNnSV9O5LR0SGajkx0wDIiXTsNtFc=
+github.com/aperturerobotics/util v1.25.7 h1:e9fdF3W/E7IHdl7YAJC0jjuxGph7yzE3a5zZoLFJ3G0=
+github.com/aperturerobotics/util v1.25.7/go.mod h1:G5ybyxaL62Rdv0K5ZGqu+D1NfqlZCLYPQhdfiYhxlAg=
 github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5 h1:D7ffLHiSdFuCpwfAe5+Kp9ZbM48d0sDEtIPmjEdg+wU=
 github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5/go.mod h1:7ryirwbMX1JXYNYvHe2IBydDw4DZ7g3rq+mdnxJL6Uo=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -120,8 +120,8 @@ github.com/bits-and-blooms/bitset v1.13.0 h1:bAQ9OPNFYbGHV6Nez0tmNI0RiEu7/hxlYJR
 github.com/bits-and-blooms/bitset v1.13.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bloom/v3 v3.7.0 h1:VfknkqV4xI+PsaDIsoHueyxVDZrfvMn56jeWUzvzdls=
 github.com/bits-and-blooms/bloom/v3 v3.7.0/go.mod h1:VKlUSvp0lFIYqxJjzdnSsZEw4iHb1kOL2tfHTgyJBHg=
-github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
-github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
+github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
+github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bwesterb/go-ristretto v1.2.3/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=

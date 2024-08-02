@@ -16,7 +16,7 @@ import (
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

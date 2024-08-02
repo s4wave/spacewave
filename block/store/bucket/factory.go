@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_store "github.com/aperturerobotics/hydra/block/store"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // Factory constructs the controller.

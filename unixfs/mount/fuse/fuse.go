@@ -14,7 +14,7 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs/fuse"
 	unixfs_mount "github.com/aperturerobotics/hydra/unixfs/mount"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

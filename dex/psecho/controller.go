@@ -16,7 +16,7 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/dex"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

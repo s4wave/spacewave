@@ -7,7 +7,7 @@ import (
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	block_store_controller "github.com/aperturerobotics/hydra/block/store/controller"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

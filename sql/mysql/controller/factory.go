@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // Factory constructs a mysql engine

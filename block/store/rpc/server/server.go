@@ -10,7 +10,7 @@ import (
 	block_rpc_server "github.com/aperturerobotics/hydra/block/rpc/server"
 	block_store "github.com/aperturerobotics/hydra/block/store"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller identifier.

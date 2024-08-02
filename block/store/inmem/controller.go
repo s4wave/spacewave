@@ -8,7 +8,7 @@ import (
 	block_store_controller "github.com/aperturerobotics/hydra/block/store/controller"
 	kvkey "github.com/aperturerobotics/hydra/store/kvkey"
 	store_kvtx_inmem "github.com/aperturerobotics/hydra/store/kvtx/inmem"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

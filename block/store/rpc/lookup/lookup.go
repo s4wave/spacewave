@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_store_rpc "github.com/aperturerobotics/hydra/block/store/rpc"
 	"github.com/aperturerobotics/hydra/dex"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,7 +3,7 @@ package hydra_entitygraph
 import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/entitygraph/reporter"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // Version is the version of the controller implementation.

@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	volume "github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

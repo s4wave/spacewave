@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	rc "github.com/aperturerobotics/hydra/reconciler/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // Factory constructs a example reconciler controller.

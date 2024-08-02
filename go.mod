@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.36.3-0.20240802091924-3bd1db447d26 // master
+	github.com/aperturerobotics/bifrost v0.37.0 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -63,11 +63,11 @@ require (
 
 require (
 	github.com/aperturerobotics/common v0.18.3 // latest
-	github.com/aperturerobotics/controllerbus v0.47.2 // latest
-	github.com/aperturerobotics/entitygraph v0.9.1 // latest
+	github.com/aperturerobotics/controllerbus v0.47.3 // latest
+	github.com/aperturerobotics/entitygraph v0.10.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 	github.com/aperturerobotics/starpc v0.33.6 // latest
-	github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f // latest
+	github.com/aperturerobotics/util v1.25.7 // latest
 )
 
 // aperture: use compatibility forks
@@ -87,7 +87,6 @@ replace (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.9
 	github.com/libp2p/go-libp2p v0.35.4
@@ -101,7 +100,7 @@ require (
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/webrtc/v4 v4.0.0-beta.26 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.45.1 // indirect
+	github.com/quic-go/quic-go v0.45.2 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.3
 	github.com/zeebo/blake3 v0.2.3
@@ -113,6 +112,7 @@ require (
 
 require (
 	github.com/Workiva/go-datastructures v1.1.5
+	github.com/blang/semver/v4 v4.0.0
 	github.com/hack-pad/safejs v0.1.0
 	github.com/tidwall/btree v1.7.0
 	gotest.tools/v3 v3.5.1

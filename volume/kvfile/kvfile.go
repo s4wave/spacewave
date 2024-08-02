@@ -9,7 +9,7 @@ import (
 	store_kvtx_kvfile "github.com/aperturerobotics/hydra/store/kvtx/kvfile"
 	kvtx_vlogger "github.com/aperturerobotics/hydra/store/kvtx/vlogger"
 	common_kvtx "github.com/aperturerobotics/hydra/volume/common/kvtx"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 
