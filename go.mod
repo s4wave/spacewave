@@ -3,10 +3,10 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.36.3-0.20240802091924-3bd1db447d26 // master
+	github.com/aperturerobotics/bifrost v0.37.0 // master
 	github.com/aperturerobotics/common v0.18.3 // latest
-	github.com/aperturerobotics/controllerbus v0.47.2 // latest
-	github.com/aperturerobotics/identity v0.0.0-20240802092441-f73d35496e41 // master
+	github.com/aperturerobotics/controllerbus v0.47.3 // latest
+	github.com/aperturerobotics/identity v0.0.0-20240802165109-023788fbaa71 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 )
 
@@ -24,10 +24,10 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
-	github.com/aperturerobotics/entitygraph v0.9.1 // indirect
+	github.com/aperturerobotics/entitygraph v0.10.0 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
 	github.com/aperturerobotics/starpc v0.33.6 // indirect
-	github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f // indirect
+	github.com/aperturerobotics/util v1.25.7 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
@@ -39,7 +39,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.2-0.20240322071716-53ef5820bd48 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
-	github.com/quic-go/quic-go v0.45.1 // indirect
+	github.com/quic-go/quic-go v0.45.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
@@ -69,7 +69,7 @@ require (
 
 // Note: the below is from the identity go.mod
 
-require github.com/aperturerobotics/hydra v0.0.0-20240802092213-c6b6a86a3b49 // indirect; master
+require github.com/aperturerobotics/hydra v0.0.0-20240802165027-eac0d36c0392 // indirect; master
 
 // Note: The below is from the Hydra go.mod
 
@@ -110,6 +110,6 @@ replace (
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 )
 
-require github.com/blang/semver v3.5.1+incompatible
+require github.com/blang/semver/v4 v4.0.0
 
 require github.com/cloudflare/circl v1.3.8 // indirect
