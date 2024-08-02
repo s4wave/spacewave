@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/client/client.proto (package identity.domain.client, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { DomainInfo } from '../../domain.pb.js'
 import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/client/client.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'identity.domain.client'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'identity.domain.client'
  *
  * @generated from message identity.domain.client.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * DomainInfo is the identity domain information object.
    *
@@ -41,7 +41,7 @@ export type Config = Message<{
    * @generated from field: bool resolve_select_identity_domain = 4;
    */
   resolveSelectIdentityDomain?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -6,7 +6,6 @@ import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createEnumType,
   createMessageType,
-  Message,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Signature } from '../bifrost/peer/peer.pb.js'
@@ -50,7 +49,7 @@ export const EntityChangeType_Enum = createEnumType(
  *
  * @generated from message identity.EntityKeypairSet
  */
-export type EntityKeypairSet = Message<{
+export interface EntityKeypairSet {
   /**
    * EntityKeypairs contains marshalled EntityKeypair objects.
    *
@@ -65,7 +64,7 @@ export type EntityKeypairSet = Message<{
    * @generated from field: repeated peer.Signature entity_keypair_signatures = 2;
    */
   entityKeypairSignatures?: Signature[]
-}>
+}
 
 // EntityKeypairSet contains the message type declaration for EntityKeypairSet.
 export const EntityKeypairSet: MessageType<EntityKeypairSet> =
@@ -98,7 +97,7 @@ export const EntityKeypairSet: MessageType<EntityKeypairSet> =
  *
  * @generated from message identity.Entity
  */
-export type Entity = Message<{
+export interface Entity {
   /**
    * EntityId is the user-specified entity identifier, akin to a username.
    * The entity id is not necessarily unique in all domains.
@@ -138,7 +137,7 @@ export type Entity = Message<{
    * @generated from field: identity.EntityKeypairSet entity_keypair_set = 5;
    */
   entityKeypairSet?: EntityKeypairSet
-}>
+}
 
 // Entity contains the message type declaration for Entity.
 export const Entity: MessageType<Entity> = createMessageType({
@@ -163,7 +162,7 @@ export const Entity: MessageType<Entity> = createMessageType({
  *
  * @generated from message identity.Keypair
  */
-export type Keypair = Message<{
+export interface Keypair {
   /**
    * PeerId is the peer id of the keypair (derived from pubkey).
    * Must match the pub_key field.
@@ -193,7 +192,7 @@ export type Keypair = Message<{
    * @generated from field: bytes auth_method_params = 4;
    */
   authMethodParams?: Uint8Array
-}>
+}
 
 // Keypair contains the message type declaration for Keypair.
 export const Keypair: MessageType<Keypair> = createMessageType({
@@ -212,7 +211,7 @@ export const Keypair: MessageType<Keypair> = createMessageType({
  *
  * @generated from message identity.EntityKeypair
  */
-export type EntityKeypair = Message<{
+export interface EntityKeypair {
   /**
    * EntityId is the entity_id field of the Entity.
    * Must match the entity_id specified in the Entity object.
@@ -234,7 +233,7 @@ export type EntityKeypair = Message<{
    * @generated from field: identity.Keypair keypair = 3;
    */
   keypair?: Keypair
-}>
+}
 
 // EntityKeypair contains the message type declaration for EntityKeypair.
 export const EntityKeypair: MessageType<EntityKeypair> = createMessageType({
@@ -252,7 +251,7 @@ export const EntityKeypair: MessageType<EntityKeypair> = createMessageType({
  *
  * @generated from message identity.EntityRef
  */
-export type EntityRef = Message<{
+export interface EntityRef {
   /**
    * EntityId is the entity_id field of the Entity.
    * Must match the entity_id specified in the Entity object.
@@ -267,7 +266,7 @@ export type EntityRef = Message<{
    * @generated from field: string domain_id = 2;
    */
   domainId?: string
-}>
+}
 
 // EntityRef contains the message type declaration for EntityRef.
 export const EntityRef: MessageType<EntityRef> = createMessageType({
@@ -291,7 +290,7 @@ export const EntityRef: MessageType<EntityRef> = createMessageType({
  *
  * @generated from message identity.PendingEntityChange
  */
-export type PendingEntityChange = Message<{
+export interface PendingEntityChange {
   /**
    * ChangePeerId is the peer id of the transactor submitting the change.
    *
@@ -326,7 +325,7 @@ export type PendingEntityChange = Message<{
    * @generated from field: string entity_change_data = 5;
    */
   entityChangeData?: string
-}>
+}
 
 // PendingEntityChange contains the message type declaration for PendingEntityChange.
 export const PendingEntityChange: MessageType<PendingEntityChange> =
@@ -364,7 +363,7 @@ export const PendingEntityChange: MessageType<PendingEntityChange> =
  *
  * @generated from message identity.RegisterKeypair
  */
-export type RegisterKeypair = Message<{
+export interface RegisterKeypair {
   /**
    * The public key is derivable from the peer ID.
    * Only one Keypair with this public key / peer ID can be used.
@@ -386,7 +385,7 @@ export type RegisterKeypair = Message<{
    * @generated from field: bytes auth_method_state = 3;
    */
   authMethodState?: Uint8Array
-}>
+}
 
 // RegisterKeypair contains the message type declaration for RegisterKeypair.
 export const RegisterKeypair: MessageType<RegisterKeypair> = createMessageType({
@@ -406,14 +405,14 @@ export const RegisterKeypair: MessageType<RegisterKeypair> = createMessageType({
  *
  * @generated from message identity.RemoveKeypair
  */
-export type RemoveKeypair = Message<{
+export interface RemoveKeypair {
   /**
    * PeerId is the peer ID to remove from the existing keypairs.
    *
    * @generated from field: string peer_id = 1;
    */
   peerId?: string
-}>
+}
 
 // RemoveKeypair contains the message type declaration for RemoveKeypair.
 export const RemoveKeypair: MessageType<RemoveKeypair> = createMessageType({

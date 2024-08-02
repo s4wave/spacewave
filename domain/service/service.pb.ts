@@ -5,7 +5,6 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import {
   createMessageType,
-  Message,
   ScalarType,
   Timestamp,
 } from '@aptre/protobuf-es-lite'
@@ -18,7 +17,7 @@ export const protobufPackage = 'identity.domain.service'
  *
  * @generated from message identity.domain.service.EntityLookupIdentifier
  */
-export type EntityLookupIdentifier = Message<{
+export interface EntityLookupIdentifier {
   /**
    * DomainId is the id of the domain to search.
    *
@@ -31,7 +30,7 @@ export type EntityLookupIdentifier = Message<{
    * @generated from field: string entity_id = 2;
    */
   entityId?: string
-}>
+}
 
 // EntityLookupIdentifier contains the message type declaration for EntityLookupIdentifier.
 export const EntityLookupIdentifier: MessageType<EntityLookupIdentifier> =
@@ -49,7 +48,7 @@ export const EntityLookupIdentifier: MessageType<EntityLookupIdentifier> =
  *
  * @generated from message identity.domain.service.LookupEntityReq
  */
-export type LookupEntityReq = Message<{
+export interface LookupEntityReq {
   /**
    * Identifier is the id to lookup.
    *
@@ -68,7 +67,7 @@ export type LookupEntityReq = Message<{
    * @generated from field: uint64 nonce = 3;
    */
   nonce?: bigint
-}>
+}
 
 // LookupEntityReq contains the message type declaration for LookupEntityReq.
 export const LookupEntityReq: MessageType<LookupEntityReq> = createMessageType({
@@ -91,7 +90,7 @@ export const LookupEntityReq: MessageType<LookupEntityReq> = createMessageType({
  *
  * @generated from message identity.domain.service.LookupEntityResp
  */
-export type LookupEntityResp = Message<{
+export interface LookupEntityResp {
   /**
    * Identifier is the echoed id of the request.
    *
@@ -116,7 +115,7 @@ export type LookupEntityResp = Message<{
    * @generated from field: identity.Entity lookup_entity = 4;
    */
   lookupEntity?: Entity
-}>
+}
 
 // LookupEntityResp contains the message type declaration for LookupEntityResp.
 export const LookupEntityResp: MessageType<LookupEntityResp> =

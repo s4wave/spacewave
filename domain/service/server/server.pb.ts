@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/identity/domain/service/server/server.proto (package identity.domain.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { Config as Config$1 } from '@go/github.com/aperturerobotics/bifrost/stream/srpc/server/server.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'identity.domain.server'
 
@@ -14,7 +14,7 @@ export const protobufPackage = 'identity.domain.server'
  *
  * @generated from message identity.domain.server.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * Server configures the peer ids and protocol ids to listen on.
    * If the protocol IDs list is empty, uses the default protocol id.
@@ -35,7 +35,7 @@ export type Config = Message<{
    * @generated from field: string request_timeout = 3;
    */
   requestTimeout?: string
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'identity.domain'
 
@@ -12,7 +12,7 @@ export const protobufPackage = 'identity.domain'
  *
  * @generated from message identity.domain.DomainInfo
  */
-export type DomainInfo = Message<{
+export interface DomainInfo {
   /**
    * DomainId is the domain identifier.
    * (not human readable)
@@ -32,7 +32,7 @@ export type DomainInfo = Message<{
    * @generated from field: string description = 3;
    */
   description?: string
-}>
+}
 
 // DomainInfo contains the message type declaration for DomainInfo.
 export const DomainInfo: MessageType<DomainInfo> = createMessageType({

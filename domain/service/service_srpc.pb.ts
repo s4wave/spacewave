@@ -4,7 +4,7 @@
 
 import { SignedMsg } from '@go/github.com/aperturerobotics/bifrost/peer/peer.pb.js'
 import { LookupEntityResp } from './service.pb.js'
-import { Message, MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**
@@ -41,9 +41,9 @@ export interface IdentityDomain {
    * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
    */
   LookupEntity(
-    request: Message<SignedMsg>,
+    request: SignedMsg,
     abortSignal?: AbortSignal,
-  ): Promise<Message<LookupEntityResp>>
+  ): Promise<LookupEntityResp>
 }
 
 export const IdentityDomainServiceName = IdentityDomainDefinition.typeName
@@ -62,9 +62,9 @@ export class IdentityDomainClient implements IdentityDomain {
    * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
    */
   async LookupEntity(
-    request: Message<SignedMsg>,
+    request: SignedMsg,
     abortSignal?: AbortSignal,
-  ): Promise<Message<LookupEntityResp>> {
+  ): Promise<LookupEntityResp> {
     const requestMsg = SignedMsg.create(request)
     const result = await this.rpc.request(
       this.service,

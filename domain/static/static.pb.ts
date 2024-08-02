@@ -2,10 +2,10 @@
 // @generated from file github.com/aperturerobotics/identity/domain/static/static.proto (package identity.domain.static, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message, ScalarType } from '@aptre/protobuf-es-lite'
 import { DomainInfo } from '../domain.pb.js'
 import { Entity } from '../../identity.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'identity.domain.static'
 
@@ -16,7 +16,7 @@ export const protobufPackage = 'identity.domain.static'
  *
  * @generated from message identity.domain.static.Config
  */
-export type Config = Message<{
+export interface Config {
   /**
    * DomainInfo is the identity domain information object.
    *
@@ -42,7 +42,7 @@ export type Config = Message<{
    * @generated from field: bool resolve_select_identity_domain = 4;
    */
   resolveSelectIdentityDomain?: boolean
-}>
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({

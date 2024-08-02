@@ -2,9 +2,9 @@
 // @generated from file github.com/aperturerobotics/identity/world/world.proto (package identity.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, Message } from '@aptre/protobuf-es-lite'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'identity.world'
 
@@ -17,14 +17,14 @@ export const protobufPackage = 'identity.world'
  *
  * @generated from message identity.world.EntityUpdateOp
  */
-export type EntityUpdateOp = Message<{
+export interface EntityUpdateOp {
   /**
    * EntityRef is the reference to the latest Entity object.
    *
    * @generated from field: bucket.ObjectRef entity_ref = 1;
    */
   entityRef?: ObjectRef
-}>
+}
 
 // EntityUpdateOp contains the message type declaration for EntityUpdateOp.
 export const EntityUpdateOp: MessageType<EntityUpdateOp> = createMessageType({
@@ -40,14 +40,14 @@ export const EntityUpdateOp: MessageType<EntityUpdateOp> = createMessageType({
  *
  * @generated from message identity.world.KeypairUpdateOp
  */
-export type KeypairUpdateOp = Message<{
+export interface KeypairUpdateOp {
   /**
    * KeypairRef is the reference to the Keypair object.
    *
    * @generated from field: bucket.ObjectRef keypair_ref = 1;
    */
   keypairRef?: ObjectRef
-}>
+}
 
 // KeypairUpdateOp contains the message type declaration for KeypairUpdateOp.
 export const KeypairUpdateOp: MessageType<KeypairUpdateOp> = createMessageType({
@@ -63,14 +63,14 @@ export const KeypairUpdateOp: MessageType<KeypairUpdateOp> = createMessageType({
  *
  * @generated from message identity.world.DomainInfoUpdateOp
  */
-export type DomainInfoUpdateOp = Message<{
+export interface DomainInfoUpdateOp {
   /**
    * DomainInfoRef is the reference to the DomainInfo object.
    *
    * @generated from field: bucket.ObjectRef domain_info_ref = 1;
    */
   domainInfoRef?: ObjectRef
-}>
+}
 
 // DomainInfoUpdateOp contains the message type declaration for DomainInfoUpdateOp.
 export const DomainInfoUpdateOp: MessageType<DomainInfoUpdateOp> =
