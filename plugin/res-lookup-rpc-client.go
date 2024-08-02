@@ -3,11 +3,11 @@ package bldr_plugin
 import (
 	"context"
 	"strings"
+	"sync"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 )
 
@@ -119,7 +119,6 @@ func (r *LookupRpcClientResolver) Resolve(rctx context.Context, handler directiv
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	var released broadcast.Broadcast
 	for {
 		_ = handler.ClearValues()
 		r.rpcClientCtr.SetValue(nil)
@@ -132,10 +131,15 @@ func (r *LookupRpcClientResolver) Resolve(rctx context.Context, handler directiv
 		var client srpc.Client
 		var rel func()
 		var err error
-		releasedWaitCh := released.GetWaitCh()
+
+		releasedWaitCh := make(chan struct{})
+		var releasedOnce sync.Once
 		releasedFn := func() {
-			released.Broadcast()
+			releasedOnce.Do(func() {
+				close(releasedWaitCh)
+			})
 		}
+
 		if pluginID == "" {
 			client, rel, err = r.h.WaitPluginHostClient(ctx, releasedFn)
 		} else {

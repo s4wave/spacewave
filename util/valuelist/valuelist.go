@@ -2,7 +2,6 @@ package valuelist
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -54,23 +53,26 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 	send func(msg R) error,
 	errCh <-chan error,
 ) error {
-	var mtx sync.Mutex
 	var bcast broadcast.Broadcast
 	var sendQueue []R
-	waitCh := bcast.GetWaitCh()
+
+	var waitCh <-chan struct{}
+	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+	})
 
 	queueSend := func(msg R) {
-		mtx.Lock()
-		for i := 0; i < len(sendQueue); i++ {
-			// remove any referring to the same value id
-			smsg := sendQueue[i]
-			if smsg.GetValueId() == msg.GetValueId() {
-				sendQueue = append(sendQueue[:i], sendQueue[i+1:]...)
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			for i := 0; i < len(sendQueue); i++ {
+				// remove any referring to the same value id
+				smsg := sendQueue[i]
+				if smsg.GetValueId() == msg.GetValueId() {
+					sendQueue = append(sendQueue[:i], sendQueue[i+1:]...)
+				}
 			}
-		}
-		sendQueue = append(sendQueue, msg)
-		bcast.Broadcast()
-		mtx.Unlock()
+			sendQueue = append(sendQueue, msg)
+			broadcast()
+		})
 	}
 
 	di, dirRef, err := b.AddDirective(
@@ -125,11 +127,12 @@ func WatchDirective[T any, R WatchDirectiveResponse[T]](
 		case <-waitCh:
 		}
 
-		mtx.Lock()
-		writeQueue := sendQueue
-		sendQueue = nil
-		waitCh = bcast.GetWaitCh()
-		mtx.Unlock()
+		var writeQueue []R
+		bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			writeQueue = sendQueue
+			sendQueue = nil
+			waitCh = getWaitCh()
+		})
 		for _, msg := range writeQueue {
 			if err := send(msg); err != nil {
 				return err

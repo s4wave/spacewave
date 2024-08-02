@@ -5,13 +5,13 @@ go 1.22
 // This fork avoids importing net/http on wasm.
 replace nhooyr.io/websocket => github.com/paralin/nhooyr-websocket v1.8.12-0.20240504231911-2358de657064 // aperture-1
 
-require github.com/aperturerobotics/common v0.18.1 // latest
+require github.com/aperturerobotics/common v0.18.3 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240730134416-4cd9cf97c427 // master
+	github.com/aperturerobotics/hydra v0.0.0-20240802092213-c6b6a86a3b49 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240719061611-5ddf185f5440 // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.35.4-0.20240729052133-e74d2de2f2de // master
+	github.com/aperturerobotics/bifrost v0.36.3-0.20240802091924-3bd1db447d26 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -81,10 +81,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.47.1 // latest
+	github.com/aperturerobotics/controllerbus v0.47.2 // latest
 	github.com/aperturerobotics/entitygraph v0.9.1 // indirect; latest
 	github.com/aperturerobotics/starpc v0.33.6 // latest
-	github.com/aperturerobotics/util v1.25.4 // master
+	github.com/aperturerobotics/util v1.25.7-0.20240802075949-372f05d3a13f // master
 )
 
 // aperture: use compatibility forks
