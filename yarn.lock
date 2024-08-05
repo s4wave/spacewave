@@ -330,10 +330,10 @@
     progress-events "^1.0.0"
     uint8arraylist "^2.4.8"
 
-"@libp2p/interface@^1.6.2":
-  version "1.6.2"
-  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.6.2.tgz#08eb91a4042465246ced52c0203d8e04fe629c54"
-  integrity sha512-DmjrEyz0Zfz3mDx7f18Jr18E1QDteYYVI4QXWGW0nMcyZQDWyf5WU4DW7MrqglwS00lpHKKtOyBPATVhjI/JAQ==
+"@libp2p/interface@^1.6.3":
+  version "1.6.3"
+  resolved "https://registry.yarnpkg.com/@libp2p/interface/-/interface-1.6.3.tgz#3673e05d5bfc139e4fc81d8ce44468ce9a98ffc4"
+  integrity sha512-Tm8W5Q2FsjcSdeA5BvP/GTUq/lp3SjeW6GPmWbbIasBJdv67UGHahu8YDFTME90IxTijnikkfGNkOPsd/4UuvA==
   dependencies:
     "@multiformats/multiaddr" "^12.2.3"
     it-pushable "^3.2.3"
@@ -353,16 +353,16 @@
     interface-datastore "^8.2.11"
     multiformats "^13.1.0"
 
-"@libp2p/logger@^4.0.18":
-  version "4.0.18"
-  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.18.tgz#aa4343adda83c1c35ed2ff720b9d3c2407bc642f"
-  integrity sha512-pRf0+9BqqTw8GSLrIYMxsdkYh6O7hgBxV78/F7zPpbFmhN4mqTCaHSZ+WPSyDNTWiyDCujfonNq9iAWutYmo9w==
+"@libp2p/logger@^4.0.19":
+  version "4.0.19"
+  resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-4.0.19.tgz#055364d719d3db2e45764ce04b4644e047a29c3b"
+  integrity sha512-VKpIMbjzs60AaTezh55iEDPJ0W2icbkJkBXSlAMycCT4C+RYxOTRgevasw3mDB6+Lj9etM0nfa4vutoG4fsYCw==
   dependencies:
-    "@libp2p/interface" "^1.6.2"
+    "@libp2p/interface" "^1.6.3"
     "@multiformats/multiaddr" "^12.2.3"
-    debug "^4.3.4"
     interface-datastore "^8.2.11"
     multiformats "^13.1.0"
+    weald "^1.0.2"
 
 "@libp2p/utils@^5.2.5":
   version "5.4.0"
@@ -2119,6 +2119,11 @@ ms@2.1.2:
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
 
+ms@^3.0.0-canary.1:
+  version "3.0.0-canary.1"
+  resolved "https://registry.yarnpkg.com/ms/-/ms-3.0.0-canary.1.tgz#c7b34fbce381492fd0b345d1cf56e14d67b77b80"
+  integrity sha512-kh8ARjh8rMN7Du2igDRO9QJnqCb2xYTJxyQYK7vJJS4TvLLmsbyhiKpSW+t+y26gyOyMd0riphX0GeWKU3ky5g==
+
 multiformats@^13.0.0, multiformats@^13.1.0:
   version "13.1.0"
   resolved "https://registry.yarnpkg.com/multiformats/-/multiformats-13.1.0.tgz#5aa9d2175108a448fc3bdb54ba8a3d0b6cab3ac3"
@@ -2607,10 +2612,29 @@ stackback@0.0.2:
   resolved "https://registry.yarnpkg.com/stackback/-/stackback-0.0.2.tgz#1ac8a0d9483848d1695e418b6d031a3c3ce68e3b"
   integrity sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==
 
-starpc@^0.33.0, starpc@^0.33.6:
+starpc@^0.33.0:
   version "0.33.6"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.33.6.tgz#17aff6d4322215c4e098b95ab66957daa9758605"
   integrity sha512-tNUi+fkTia6bkm8cyEDCD6vHzwNZYQa2x4ht/yVhDysb+vXWU5AsDCckBky45wR5ag+o8yR/TChkvhu9YBP01w==
+  dependencies:
+    "@aptre/it-ws" "^1.0.1"
+    "@aptre/protobuf-es-lite" "^0.4.6"
+    "@chainsafe/libp2p-yamux" "^6.0.2"
+    "@libp2p/interface" "^1.3.1"
+    "@libp2p/logger" "^4.0.12"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.6"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.1"
+    uint8arraylist "^2.4.7"
+    ws "^8.17.0"
+
+starpc@^0.33.8:
+  version "0.33.8"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.33.8.tgz#d842f98dba594e595cd6ca0f300439d319bfccc5"
+  integrity sha512-KbVAma1gQVckVYiPFxTKT8IOwd44C6/Xt5qKAJpUHiI87KkXoEEhE29q59JK4FN9nS48oGHro7ekC4GHLhrNKw==
   dependencies:
     "@aptre/it-ws" "^1.0.1"
     "@aptre/protobuf-es-lite" "^0.4.6"
@@ -2721,6 +2745,11 @@ supports-color@^7.1.0:
   integrity sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==
   dependencies:
     has-flag "^4.0.0"
+
+supports-color@^9.4.0:
+  version "9.4.0"
+  resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-9.4.0.tgz#17bfcf686288f531db3dea3215510621ccb55954"
+  integrity sha512-VL+lNrEoIXww1coLPOmiEmK/0sGigko5COxI09KzHc2VJXJsQ37UaQ+8quuxjDeA7+KnLGTWRyOXSLLR2Wb4jw==
 
 tapable@^2.2.0:
   version "2.2.1"
@@ -2926,6 +2955,14 @@ vitest@^2.0.5:
     vite "^5.0.0"
     vite-node "2.0.5"
     why-is-node-running "^2.3.0"
+
+weald@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/weald/-/weald-1.0.2.tgz#a51fb3a8dbf5fa2b71ef09f9a267c86a46742238"
+  integrity sha512-iG5cIuBwsPe1ZcoGGd4X6QYlepU1vLr4l4oWpzQWqeJPSo9B8bxxyE6xlnj3TCmThtha7gyVL+uuZgUFkPyfDg==
+  dependencies:
+    ms "^3.0.0-canary.1"
+    supports-color "^9.4.0"
 
 which@^2.0.1:
   version "2.0.2"

@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.37.0 // master
+	github.com/aperturerobotics/bifrost v0.37.1 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
@@ -83,7 +83,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.47.3 // latest
 	github.com/aperturerobotics/entitygraph v0.10.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.33.6 // latest
+	github.com/aperturerobotics/starpc v0.33.8 // latest
 	github.com/aperturerobotics/util v1.25.7 // master
 )
 

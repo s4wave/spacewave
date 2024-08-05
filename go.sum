@@ -10,8 +10,8 @@ github.com/Workiva/go-datastructures v1.1.5 h1:5YfhQ4ry7bZc2Mc7R0YZyYwpf5c6t1cEF
 github.com/Workiva/go-datastructures v1.1.5/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207 h1:euqPjK2s336U2VGUATfOQBixGYjN0rLXd6GAxNyQuAU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20240504073313-17dd2ae7e207/go.mod h1:s8dANwWyft5N/X4GZXwJD3wh6qF2MDRjP4zs/eanb/0=
-github.com/aperturerobotics/bifrost v0.37.0 h1:FkIc/yEFSp9p40XXIWyj0/2y7JquPshHHQ+D3UzBqfw=
-github.com/aperturerobotics/bifrost v0.37.0/go.mod h1:bIBmp+8CiVLLjghBaTxp9aVh+3UQaYlV2ERU2WIXnYg=
+github.com/aperturerobotics/bifrost v0.37.1 h1:pqRiU3w0jQdZpLWYQN+8FS8hmOnwhIP5FclhbWpVQhg=
+github.com/aperturerobotics/bifrost v0.37.1/go.mod h1:+I+YAoT5azaKWNrpsm6FrIAiYrO7FvomIipOevwc1rg=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -46,8 +46,8 @@ github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240727094317-39016a9c966
 github.com/aperturerobotics/protobuf-go-lite v0.6.6-0.20240727094317-39016a9c9662/go.mod h1:MSCkd3x0MtN1WbG5abldAa55AVKHJlOgbZGPDcBauLM=
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5 h1:SsM9QsfSpyWQz9sZbZ1VrluJgXbiEFE7C7//aXoMHPQ=
 github.com/aperturerobotics/quic-go v0.45.1-0.20240701203707-0aef2ede4ea5/go.mod h1:X095EBMI8M7riYQRvUgegHFkEkgM2QKLvyGHyAcOw/Q=
-github.com/aperturerobotics/starpc v0.33.6 h1:noc/MnmIMTek9bdEvd88QiD1p9KzEV8CUOBIoKmGgm0=
-github.com/aperturerobotics/starpc v0.33.6/go.mod h1:4IYcbulEzqhPT5jKaDeL1BJPFd8WVWZ7Ugu0/348/Is=
+github.com/aperturerobotics/starpc v0.33.8 h1:MHzG9OhYx43g3lsWTw/HQJqG+jPhXUgnrG1d/sasajk=
+github.com/aperturerobotics/starpc v0.33.8/go.mod h1:U2Shid7XklzmLroUoParSrghpFhxfY/N3vlHqT4tvBE=
 github.com/aperturerobotics/util v1.25.7 h1:e9fdF3W/E7IHdl7YAJC0jjuxGph7yzE3a5zZoLFJ3G0=
 github.com/aperturerobotics/util v1.25.7/go.mod h1:G5ybyxaL62Rdv0K5ZGqu+D1NfqlZCLYPQhdfiYhxlAg=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

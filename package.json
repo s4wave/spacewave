@@ -82,14 +82,14 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.6",
-    "@libp2p/logger": "^4.0.18",
+    "@libp2p/logger": "^4.0.19",
     "console": "^0.7.2",
     "electron": "^31.3.1",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.33.6",
+    "starpc": "^0.33.8",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {
