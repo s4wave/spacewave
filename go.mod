@@ -3,10 +3,10 @@ module github.com/aperturerobotics/auth
 go 1.22
 
 require (
-	github.com/aperturerobotics/bifrost v0.37.0 // master
+	github.com/aperturerobotics/bifrost v0.37.1 // master
 	github.com/aperturerobotics/common v0.18.3 // latest
 	github.com/aperturerobotics/controllerbus v0.47.3 // latest
-	github.com/aperturerobotics/identity v0.0.0-20240802165109-023788fbaa71 // master
+	github.com/aperturerobotics/identity v0.0.0-20240808002529-b69a67fe8955 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
 )
 
@@ -26,7 +26,7 @@ require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/aperturerobotics/entitygraph v0.10.0 // indirect
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect
-	github.com/aperturerobotics/starpc v0.33.6 // indirect
+	github.com/aperturerobotics/starpc v0.33.8 // indirect
 	github.com/aperturerobotics/util v1.25.7 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
