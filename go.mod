@@ -1,6 +1,8 @@
 module github.com/aperturerobotics/hydra
 
-go 1.22
+go 1.22.2
+
+toolchain go1.23.0
 
 require (
 	github.com/aperturerobotics/bifrost v0.37.2 // master
@@ -13,8 +15,8 @@ require (
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240504092329-d5909fc5a93a // aperture
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240620014413-0cd132024ea5 // aperture
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.18.2-0.20240821042240-d51583de8ec0 // aperture
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20240821040752-39ac045ae8fe // aperture
 	github.com/go-sql-driver/mysql => github.com/paralin/go-mysql-driver v1.7.1-0.20230216081317-8a59f6dde100 // ext-engines
 	xorm.io/xorm => github.com/paralin/go-xorm v1.3.3-0.20230216084813-0cd923e7ced6 // ext-engines
 )
@@ -36,22 +38,20 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/dgraph-io/badger/v4 v4.2.0
-	github.com/dgraph-io/ristretto v0.1.2-0.20240116140435-c67e07994f91
+	github.com/dgraph-io/ristretto v0.1.2-0.20240804172952-c783199b729d
 	github.com/dolthub/go-mysql-server v0.18.1
-	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/gomodule/redigo v1.9.2
-	github.com/minio/minio-go/v7 v7.0.74
+	github.com/minio/minio-go/v7 v7.0.75
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/restic/chunker v0.4.0
 	github.com/spf13/afero v1.11.0
-	github.com/spf13/cast v1.6.0
+	github.com/spf13/cast v1.7.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.etcd.io/bbolt v1.3.10
 	golang.org/x/sync v0.8.0
@@ -87,7 +87,6 @@ replace (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.17.9
 	github.com/libp2p/go-libp2p v0.36.2
 	github.com/mr-tron/base58 v1.2.0
@@ -112,6 +111,9 @@ require (
 require (
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/blang/semver/v4 v4.0.0
+	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
+	github.com/gomodule/redigo v1.9.2
 	github.com/hack-pad/safejs v0.1.1
 	github.com/tidwall/btree v1.7.0
 	gotest.tools/v3 v3.5.1

@@ -146,7 +146,7 @@ func TestMysql(t *testing.T) {
 	printQuery := func(e *sqle.Engine, query string) int {
 		sqlCtx := buildSqlCtx()
 		t.Logf("QUERY: %s", query)
-		_, r, err := e.Query(sqlCtx, query)
+		_, r, _, err := e.Query(sqlCtx, query)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
