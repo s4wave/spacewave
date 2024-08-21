@@ -21,9 +21,9 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	"github.com/coder/websocket"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
-	"nhooyr.io/websocket"
 )
 
 // DevtoolWsVersion is the version to report for the ws-backed devtool runtime.
