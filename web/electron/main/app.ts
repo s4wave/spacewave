@@ -1,7 +1,7 @@
 import os from 'os'
 import path from 'path'
 import net from 'net'
-import electron, { ipcMain } from 'electron'
+import electron, { ipcMain, nativeTheme } from 'electron'
 import {
   Client as SRPCClient,
   OpenStreamCtr,
@@ -30,6 +30,7 @@ export const isMac = os.platform() === 'darwin'
 declare const BLDR_DEBUG: boolean | undefined
 export const isDebug = BLDR_DEBUG ?? false
 
+// BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
   // app contains the reference to the bldr electron app
   public readonly app: Electron.App
@@ -80,6 +81,10 @@ export class BldrElectronApp {
     const app = this.app
 
     app.on('ready', this.onAppReady.bind(this))
+
+    // dark mode
+    nativeTheme.themeSource = "dark" // TODO: allow overriding this
+
     /*
     app.on('window-all-closed', () => {
       // TODO: notify web runtime that all windows were closed
