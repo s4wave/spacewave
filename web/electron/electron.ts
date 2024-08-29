@@ -34,11 +34,26 @@ declare const BLDR_ELECTRON: BldrElectron | undefined
 // isElectron indicates this is electron.
 export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 
+// NOTE: uesrAgentData: https://wicg.github.io/ua-client-hints/#dom-navigatoruadata-platform
+// "Android", "Chrome OS", "Fuchsia", "iOS", "Linux", "macOS", "Windows", or "Unknown".
+
 // isMac indicates this is a MacOS platform.
 // WICG Spec: https://wicg.github.io/ua-client-hints
 // Only expected to work reliably under Electron (where we test it).
 export const isMac =
   (navigator as any)?.userAgentData?.platform === 'macOS' || false
+
+// isLinux indicates this is a Linux platform.
+// WICG Spec: https://wicg.github.io/ua-client-hints
+// Only expected to work reliably under Electron (where we test it).
+export const isLinux =
+  (navigator as any)?.userAgentData?.platform === 'Linux' || false
+
+// isWindows indicates this is a Windows platform.
+// WICG Spec: https://wicg.github.io/ua-client-hints
+// Only expected to work reliably under Electron (where we test it).
+export const isWindows =
+  (navigator as any)?.userAgentData?.platform === 'Windows' || false
 
 // openElectronPort connects a MessagePort to the remote Electron main WebRuntime.
 export async function openElectronPort(

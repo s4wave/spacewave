@@ -83,7 +83,7 @@ export class BldrElectronApp {
     app.on('ready', this.onAppReady.bind(this))
 
     // dark mode
-    nativeTheme.themeSource = "dark" // TODO: allow overriding this
+    nativeTheme.themeSource = 'dark' // TODO: allow overriding this
 
     /*
     app.on('window-all-closed', () => {

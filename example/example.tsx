@@ -7,7 +7,13 @@ import {
   BldrDebug,
   useWebViewHostServiceClient,
 } from '@aptre/bldr-react'
-import { retryWithAbort, isMac, isElectron } from '@aptre/bldr'
+import {
+  retryWithAbort,
+  isMac,
+  isElectron,
+  isLinux,
+  isWindows,
+} from '@aptre/bldr'
 
 import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 import { ExampleProps } from './example.pb.js'
@@ -46,6 +52,10 @@ const Example: React.FC<ExampleProps> = (props) => {
         isElectron: {JSON.stringify(isElectron)}
         <br />
         isMac: {JSON.stringify(isMac)}
+        <br />
+        isLinux: {JSON.stringify(isLinux)}
+        <br />
+        isWindows: {JSON.stringify(isWindows)}
       </DebugInfo>
       <div className="example-message">{message || 'Loading...'}</div>
     </DebugInfoProvider>

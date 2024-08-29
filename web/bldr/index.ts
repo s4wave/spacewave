@@ -21,7 +21,7 @@ export {
 } from './web-document.js'
 export { randomId } from './random-id.js'
 export { ItState, ItStateOpts } from './it-state.js'
-export { isElectron, isMac } from '../electron/electron.js'
+export { isElectron, isMac, isLinux, isWindows } from '../electron/electron.js'
 export {
   pathSeparator,
   splitPath,

@@ -504,7 +504,7 @@ export function setIfChanged<S>(
 export function useWatchStateRpc<T>(
   watchStateRpc:
     | ((abortSignal: AbortSignal) => AsyncIterable<T>)
-    | ((abortSignal: AbortSignal) => (AsyncIterable<T> | null))
+    | ((abortSignal: AbortSignal) => AsyncIterable<T> | null)
     | null
     | undefined,
   retryOpts?: RetryOpts,
@@ -595,7 +595,7 @@ export function useOnChangeToValue<T>(
       if (prev !== value) {
         if (value === targetValue) {
           const result = callback()
-          return result ?? true ? value : prev
+          return (result ?? true) ? value : prev
         } else {
           return value
         }
