@@ -499,17 +499,22 @@ export function setIfChanged<S>(
 
 // useWatchStateRpc uses a RPC function which returns an updated value when the state changes.
 // Returns the latest message returned by the RPC call.
-// If the rpc function passed is null, returns null for the value.
-// Restarts the RPC if the rpc function changes.
-export function useWatchStateRpc<T>(
+// If the rpc function or request message passed is null, returns null for the value.
+// Restarts the RPC if the rpc function or the request argument changes.
+// checkEqual checks if two response objects are equal.
+//
+// T is the response type.
+// R is the request type.
+export function useWatchStateRpc<T, R = {}>(
   watchStateRpc:
-    | ((abortSignal: AbortSignal) => AsyncIterable<T>)
-    | ((abortSignal: AbortSignal) => AsyncIterable<T> | null)
+    | ((req: R, abortSignal: AbortSignal) => AsyncIterable<T>)
+    | ((req: R, abortSignal: AbortSignal) => AsyncIterable<T> | null)
     | null
     | undefined,
+  req: R | null | undefined,
+  checkEqual?: (v1: T, v2: T) => boolean,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
-  checkEqual?: (v1: T, v2: T) => boolean,
 ): T | null {
   const [currValue, setCurrValue] = useState<T | null>(null)
   const handleValue = useCallback(
@@ -520,24 +525,28 @@ export function useWatchStateRpc<T>(
 
   useRetryWithAbort(
     async (signal) => {
-      if (!watchStateRpc) {
+      if (watchStateRpc == null || req == null) {
         setCurrValue(null)
         return
       }
-      const stream = watchStateRpc(signal)
+
+      const stream = watchStateRpc(req, signal)
       if (!stream) {
         setCurrValue(null)
         return
       }
+
       for await (const resp of stream) {
         handleValue(resp)
       }
     },
     retryOpts,
-    [watchStateRpc, ...(deps ?? [])],
+    [watchStateRpc, req, ...(deps ?? [])],
   )
 
-  return currValue == null || !watchStateRpc ? null : currValue
+  return currValue == null || watchStateRpc == null || req == null ?
+      null
+    : currValue
 }
 
 // useSetValueRpc uses a RPC function which sets the given value via an rpc when it changes.
