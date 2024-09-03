@@ -59,8 +59,10 @@ import {
   WebDocumentToWebRuntime,
   WebDocumentToWorker,
 } from '../runtime/runtime.js'
+
 import { ItState } from './it-state.js'
 import { randomId } from './random-id.js'
+import { SimpleEventEmitter } from './simple-event-emitter.js'
 import { WebRuntimeClient } from './web-runtime-client.js'
 
 // CreateWebViewFunc is a function to create a WebView.
@@ -293,6 +295,12 @@ export interface WebDocumentOptions {
   watchVisibility?: (cb: (hidden: boolean) => void) => DisposeCallback | null
 }
 
+// WebDocumentEvents is the set of events that WebDocument can emit.
+type WebDocumentEvents = {
+  visibilitychange: (hidden: boolean) => void
+  webdocumentstatuschange: (snapshot: WebDocumentStatus) => void
+}
+
 // WebDocument tracks a tree of WebView associated with a WebRuntime.
 //
 // Attaches to or mounts the root WebRuntime and provides an RPC API.
@@ -308,12 +316,13 @@ export interface WebDocumentOptions {
 // Note: to put libp2p into debugging mode:
 //  - Node: set the environment variable DEBUG="*"
 //  - Browser: set localStorage.debug = '*'
-export class WebDocument {
+export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // webRuntimeId is the ID of the WebRuntime.
   public readonly webRuntimeId: string
   // webDocumentUuid is the unique id of this instance & attached worker.
   // this ID identifies this TypeScript WebDocument class object.
   public readonly webDocumentUuid: string
+
   // isElectron indicates this is electron and we will use ipcRenderer.
   private isElectron?: boolean
   // disableStoragePersist disables requesting persistent storage permission
@@ -368,6 +377,7 @@ export class WebDocument {
   }
 
   constructor(opts?: WebDocumentOptions) {
+    super()
     this.webRuntimeId = opts?.webRuntimeId || 'default'
     this.webDocumentUuid = randomId()
     this.hidden = false
@@ -716,7 +726,7 @@ export class WebDocument {
     if (this.serviceWorker) {
       this.serviceWorker = undefined
     }
-    this.webStatusStream.pushChangeEvent({
+    this.pushChangeEvent({
       snapshot: true,
       closed: true,
       hidden: false,
@@ -796,7 +806,7 @@ export class WebDocument {
       webWorkers: [],
       webViews: [buildWebViewStatus(webViewId, webView)],
     }
-    this.webStatusStream.pushChangeEvent(webStatus)
+    this.pushChangeEvent(webStatus)
   }
 
   // notifyWebWorkerUpdated notifies all subscribers that the web worker was updated.
@@ -821,7 +831,7 @@ export class WebDocument {
         },
       ],
     }
-    this.webStatusStream.pushChangeEvent(webStatus)
+    this.pushChangeEvent(webStatus)
   }
 
   // unregisterWebView removes the web-view and notifies the runtime if necessary.
@@ -884,6 +894,17 @@ export class WebDocument {
     this.server.handlePacketStream(ch)
   }
 
+  // pushChangeEvent pushes a change event to the webStatusStream
+  private async pushChangeEvent(status: WebDocumentStatus) {
+    this.webStatusStream.pushChangeEvent(status)
+    if (this.hasListener('webdocumentstatuschange')) {
+      const snap = await this.webStatusStream.snapshot
+      if (snap != null) {
+        this.emit('webdocumentstatuschange', snap)
+      }
+    }
+  }
+
   // onVisibilityChange handles page visibility changing
   private onVisibilityChange(hidden: boolean) {
     hidden = hidden || false
@@ -901,13 +922,16 @@ export class WebDocument {
       return
     }
 
-    this.webStatusStream.pushChangeEvent({
+    this.pushChangeEvent({
       snapshot: false,
       closed: false,
       hidden,
       webViews: [],
       webWorkers: [],
     })
+
+    // Emit the visibilitychange event
+    this.emit('visibilitychange', hidden)
   }
 
   // onWebWorkerMessage handles an incoming web worker message.

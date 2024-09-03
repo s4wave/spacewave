@@ -36,6 +36,11 @@ export class ItState<T> extends EventTarget {
     this.getSnapshot = getSnapshot || (async () => undefined)
   }
 
+  // snapshot returns a snapshot or undefined
+  public get snapshot(): Promise<T | undefined> {
+    return this.getSnapshot()
+  }
+
   // getIterable builds the initial snapshot and returns the iterable.
   public getIterable(): AsyncIterable<T> {
     return new EventIterator<T>((queue) => {
