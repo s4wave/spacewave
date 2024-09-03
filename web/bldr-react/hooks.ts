@@ -525,7 +525,7 @@ export function useWatchStateRpc<T, R = {}>(
 
   useRetryWithAbort(
     async (signal) => {
-      if (watchStateRpc == null || req == null) {
+      if (watchStateRpc == null || req == null || signal.aborted) {
         setCurrValue(null)
         return
       }

@@ -19,6 +19,12 @@ export interface RetryOpts {
   errorCb?: (err: unknown) => void
   // abortSignal is an optional signal to use to cancel retries.
   abortSignal?: AbortSignal
+  // setTimeout is an optional function to use for setting timeouts.
+  // defaults to global setTimeout.
+  setTimeout?: typeof setTimeout
+  // clearTimeout is an optional function to use for clearing timeouts.
+  // defaults to global clearTimeout.
+  clearTimeout?: typeof clearTimeout
 }
 
 // Retry attempts to call a function until the function returns success.
@@ -46,8 +52,13 @@ export class Retry<T = void> {
   private _reject?: (err: unknown) => void
   // _currError contains the current error.
   private _currError?: unknown
-  // _currRetry is the current scheduled retry timeout.
-  private _currRetry?: NodeJS.Timeout
+  // _cancelRetry is a function to cancel the current retry attempt.
+  private _cancelRetry?: () => void
+
+  // _setTimeout is the function to use for setting timeouts.
+  private _setTimeout: typeof setTimeout
+  // _clearTimeout is the function to use for clearing timeouts.
+  private _clearTimeout: typeof clearTimeout
 
   constructor(
     private fn: () => Promise<T>,
@@ -59,61 +70,71 @@ export class Retry<T = void> {
     this._backoffFn = opts?.backoffFn || constantBackoff()
     this._errorCb = opts?.errorCb
 
+    this._setTimeout = opts?.setTimeout || setTimeout
+    this._clearTimeout = opts?.clearTimeout || clearTimeout
+
     this.result = new Promise<T>((resolve, reject) => {
       this._resolve = resolve
       this._reject = reject
     })
     // prevent unhandled rejection error in node.js
     this.result.catch(() => {})
-    // call _start on next tick
-    queueMicrotask(this._start.bind(this))
+    // call _execute on next tick
+    queueMicrotask(this._execute.bind(this))
   }
 
   // cancel prevents further retrying of the function.
   public cancel() {
     this._canceled = true
+    if (this._cancelRetry) {
+      this._cancelRetry()
+    }
     if (this._reject) {
       this._reject(this._currError)
     }
-    if (this._currRetry) {
-      clearTimeout(this._currRetry)
-      delete this._currRetry
-    }
   }
 
-  private _start() {
-    if (this._currRetry) {
-      clearTimeout(this._currRetry)
-      delete this._currRetry
-    }
-    if (this._canceled || this._abortSignal?.aborted) {
-      return
-    }
-    this.fn()
-      .then((res) => {
+  private async _execute() {
+    do {
+      try {
+        if (this._canceled || this._abortSignal?.aborted) {
+          this.cancel()
+          return
+        }
+
+        const res = await this.fn()
         if (this._resolve) {
           this._resolve(res)
         }
-      })
-      .catch((err) => {
+        return
+      } catch (err) {
         this._currError = err
-        if (this._canceled) {
+        if (this._errorCb) {
+          this._errorCb(err)
+        }
+        if (this._canceled || this._abortSignal?.aborted) {
           if (this._reject) {
             this._reject(err)
           }
-        } else {
-          if (this._errorCb) {
-            this._errorCb(err)
-          }
-          this._scheduleRetry()
+          return
         }
-      })
-  }
-
-  // _scheduleRetry schedules the next retry.
-  private _scheduleRetry() {
-    const backoffMs = this._backoffFn()
-    this._currRetry = setTimeout(this._start.bind(this), backoffMs)
+        await new Promise<void>((resolve) => {
+          let timeoutId: NodeJS.Timeout
+          if (this._abortSignal?.aborted) {
+            resolve()
+            return
+          }
+          this._cancelRetry = () => {
+            this._clearTimeout(timeoutId)
+            resolve()
+          }
+          timeoutId = this._setTimeout(() => {
+            this._cancelRetry = undefined
+            resolve()
+          }, this._backoffFn())
+        })
+      }
+    } while (true)
   }
 }
 
@@ -131,13 +152,5 @@ export async function retryWithAbort<T = void>(
     ...opts,
     abortSignal,
   })
-  return new Promise<void>((resolve) => {
-    retry.result
-      .then(() => {
-        resolve()
-      })
-      .catch(() => {
-        resolve()
-      })
-  })
+  return retry.result.then(() => {}).catch(() => {})
 }
