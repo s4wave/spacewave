@@ -512,25 +512,27 @@ export function useWatchStateRpc<T, R = {}>(
     | null
     | undefined,
   req: R | null | undefined,
-  checkEqual?: (v1: T, v2: T) => boolean,
+  checkReqEqual: (v1: R, v2: R) => boolean,
+  checkRespEqual?: (v1: T, v2: T) => boolean,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
 ): T | null {
   const [currValue, setCurrValue] = useState<T | null>(null)
   const handleValue = useCallback(
     (nextValue: T) =>
-      setCurrValue(setIfChanged<T | null>(nextValue, checkEqual)),
+      setCurrValue(setIfChanged<T | null>(nextValue, checkRespEqual)),
     [],
   )
+  const memoizedReq = useMemoEqual(req, checkReqEqual)
 
   useRetryWithAbort(
     async (signal) => {
-      if (watchStateRpc == null || req == null || signal.aborted) {
+      if (watchStateRpc == null || memoizedReq == null || signal.aborted) {
         setCurrValue(null)
         return
       }
 
-      const stream = watchStateRpc(req, signal)
+      const stream = watchStateRpc(memoizedReq, signal)
       if (!stream) {
         setCurrValue(null)
         return
@@ -541,10 +543,10 @@ export function useWatchStateRpc<T, R = {}>(
       }
     },
     retryOpts,
-    [watchStateRpc, req, ...(deps ?? [])],
+    [watchStateRpc, memoizedReq, ...(deps ?? [])],
   )
 
-  return currValue == null || watchStateRpc == null || req == null ?
+  return currValue == null || watchStateRpc == null || memoizedReq == null ?
       null
     : currValue
 }
