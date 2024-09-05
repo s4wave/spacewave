@@ -119,13 +119,13 @@ export class Retry<T = void> {
           return
         }
         await new Promise<void>((resolve) => {
-          let timeoutId: NodeJS.Timeout
+          let timeoutId: NodeJS.Timeout | null = null
           if (this._abortSignal?.aborted) {
             resolve()
             return
           }
           this._cancelRetry = () => {
-            this._clearTimeout(timeoutId)
+            if (timeoutId) this._clearTimeout(timeoutId)
             resolve()
           }
           timeoutId = this._setTimeout(() => {
