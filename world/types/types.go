@@ -213,3 +213,21 @@ func IterateObjectsWithType(
 		return it.Err()
 	})
 }
+
+// ListObjectsWithType returns the list of object keys with the given type id.
+//
+// If objKeyPrefix is set, limits the object keys to those with the given prefix.
+func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID, objKeyPrefix string) ([]string, error) {
+	var objKeys []string
+	err := IterateObjectsWithType(ctx, ws, typeID, func(objKey string) (bool, error) {
+		if !strings.HasPrefix(objKey, objKeyPrefix) {
+			return true, nil
+		}
+		objKeys = append(objKeys, objKey)
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return objKeys, nil
+}
