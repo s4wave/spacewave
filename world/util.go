@@ -91,7 +91,7 @@ func LookupObject[T block.Block](
 	ws WorldState,
 	objKey string,
 	ctor func() block.Block,
-) (out T, objState ObjectState, err error) {
+) (out T, objRef ObjectState, err error) {
 	obj, err := MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		return out, nil, err
@@ -104,8 +104,8 @@ func LookupObject[T block.Block](
 	return out, obj, err
 }
 
-// LookupObjectState looks up & unmarshals an object ref from the world.
-func LookupObjectState[T block.Block](
+// LookupObjectRef looks up & unmarshals an object ref from the world.
+func LookupObjectRef[T block.Block](
 	ctx context.Context,
 	access AccessWorldStateFunc,
 	ref *bucket.ObjectRef,
@@ -117,4 +117,36 @@ func LookupObjectState[T block.Block](
 		return err
 	})
 	return out, err
+}
+
+// CollectObjectBodies looks up and unmarshals the objects with the given keys.
+//
+// ctor must return an object of type T
+// returns two slices of length objKeys
+// if any objects are not found, returns nil for that object state / value and objs, objsStates, ErrNotFound
+// returns nil, nil, err for any other error
+func CollectObjectBodies[T block.Block](
+	ctx context.Context,
+	ws WorldState,
+	objKeys []string,
+	ctor func() block.Block,
+) ([]T, []ObjectState, error) {
+	objs := make([]T, len(objKeys))
+	objStates := make([]ObjectState, len(objKeys))
+	var retErr error
+	for i, objKey := range objKeys {
+		obj, objState, err := LookupObject[T](ctx, ws, objKey, ctor)
+		if err != nil {
+			if err == ErrObjectNotFound {
+				retErr = err
+				continue
+			}
+			return nil, nil, err
+		}
+		objs[i] = obj
+		objStates[i] = objState
+	}
+
+	return objs, objStates, retErr
+
 }
