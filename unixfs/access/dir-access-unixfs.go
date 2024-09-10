@@ -48,7 +48,8 @@ func ExAccessUnixFS(
 	if err != nil {
 		return nil, nil, err
 	}
-	if avRef == nil {
+	if av == nil {
+		avRef.Release()
 		return nil, nil, nil
 	}
 	val, valOk := av.GetValue().(AccessUnixFSValue)
