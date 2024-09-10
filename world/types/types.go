@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/path"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/pkg/errors"
 )
@@ -230,4 +231,23 @@ func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID, objKe
 		return nil, err
 	}
 	return objKeys, nil
+}
+
+// ListCollectObjectsWithType returns the list of object keys with the given type id.
+// Unmarshals the bodies of the matched objects.
+//
+// If objKeyPrefix is set, limits the object keys to those with the given prefix.
+//
+// ctor must return an object of type T
+// returns two slices of length objKeys
+// if any objects are not found, returns nil for that object state / value and objs, objsStates, ErrNotFound
+// returns nil, nil, err for any other error
+func ListCollectObjectsWithType[T block.Block](ctx context.Context, ws world.WorldState, typeID, objKeyPrefix string, ctor func() block.Block) ([]T, []string, error) {
+	objKeys, err := ListObjectsWithType(ctx, ws, typeID, objKeyPrefix)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	objs, _, err := world.CollectObjectBodies[T](ctx, ws, objKeys, ctor)
+	return objs, objKeys, err
 }
