@@ -66,7 +66,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.47.4 // latest
 	github.com/aperturerobotics/entitygraph v0.10.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.6.5 // latest
-	github.com/aperturerobotics/starpc v0.33.9 // latest
+	github.com/aperturerobotics/starpc v0.33.10 // latest
 	github.com/aperturerobotics/util v1.25.8 // latest
 )
 
@@ -212,5 +212,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	nhooyr.io/websocket v1.8.17 // indirect
 )
