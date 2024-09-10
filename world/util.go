@@ -91,17 +91,17 @@ func LookupObject[T block.Block](
 	ws WorldState,
 	objKey string,
 	ctor func() block.Block,
-) (out T, err error) {
+) (out T, objState ObjectState, err error) {
 	obj, err := MustGetObject(ctx, ws, objKey)
 	if err != nil {
-		return out, err
+		return out, nil, err
 	}
 	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
 	})
-	return out, err
+	return out, obj, err
 }
 
 // LookupObjectState looks up & unmarshals an object ref from the world.
