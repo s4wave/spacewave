@@ -1,4 +1,4 @@
-package worker_controller_testing
+package worker_controller_test
 
 import (
 	"context"

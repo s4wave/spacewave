@@ -21,7 +21,7 @@ func ListWorkers(ctx context.Context, ws world.WorldState) ([]string, error) {
 }
 
 // LookupWorker looks up a worker in the world.
-func LookupWorker(ctx context.Context, ws world.WorldState, objKey string) (*Worker, error) {
+func LookupWorker(ctx context.Context, ws world.WorldState, objKey string) (*Worker, world.ObjectState, error) {
 	return world.LookupObject[*Worker](ctx, ws, objKey, NewWorkerBlock)
 }
 

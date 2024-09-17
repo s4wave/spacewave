@@ -3,11 +3,11 @@ package forge_task
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley"
 	forge_pass "github.com/aperturerobotics/forge/pass"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +17,7 @@ func CheckTaskType(ctx context.Context, ws world.WorldState, objKey string) erro
 }
 
 // LookupTask looks up a task in the world.
-func LookupTask(ctx context.Context, ws world.WorldState, objKey string) (*Task, error) {
+func LookupTask(ctx context.Context, ws world.WorldState, objKey string) (*Task, world.ObjectState, error) {
 	return world.LookupObject[*Task](ctx, ws, objKey, NewTaskBlock)
 }
 

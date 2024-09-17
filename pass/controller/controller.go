@@ -15,7 +15,7 @@ import (
 	pass_transaction "github.com/aperturerobotics/forge/pass/tx"
 	"github.com/aperturerobotics/hydra/block"
 	world_control "github.com/aperturerobotics/hydra/world/control"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

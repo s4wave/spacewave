@@ -16,7 +16,7 @@ import (
 	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

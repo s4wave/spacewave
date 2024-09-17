@@ -16,7 +16,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -136,7 +136,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 	// lookup the task and make sure it is still in RUNNING state
 	// ... and peer id matches
 	taskObjKey := c.objKey
-	taskObj, err := forge_task.LookupTask(ctx, wtx, taskObjKey)
+	taskObj, _, err := forge_task.LookupTask(ctx, wtx, taskObjKey)
 	if err != nil {
 		return errors.Wrap(err, "lookup task")
 	}

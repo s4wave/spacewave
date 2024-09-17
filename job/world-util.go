@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/cayley"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_task "github.com/aperturerobotics/forge/task"
 	"github.com/aperturerobotics/hydra/block"
@@ -13,13 +14,12 @@ import (
 	world_parent "github.com/aperturerobotics/hydra/world/parent"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // LookupJob looks up a Job in the world.
-func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, error) {
+func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, world.ObjectState, error) {
 	return world.LookupObject[*Job](ctx, ws, objKey, NewJobBlock)
 }
 
@@ -86,7 +86,6 @@ func CreateJobWithTasks(
 	}
 
 	// create the tasks & targets & links
-	parentState := world_parent.NewParentState(ws)
 	for taskName, taskTgt := range tasks {
 		if err := forge_task.ValidateName(taskName); err != nil {
 			return nil, nil, errors.Wrapf(err, "tasks[%s]", taskName)
@@ -99,7 +98,7 @@ func CreateJobWithTasks(
 		}
 
 		// create parent link
-		err = parentState.SetObjectParent(ctx, taskKey, objKey, false)
+		err = world_parent.SetObjectParent(ctx, ws, taskKey, objKey, false)
 		if err != nil {
 			return objState, rootRef, err
 		}
@@ -184,7 +183,7 @@ func CollectJobTasks(
 
 	tasks := make([]*forge_task.Task, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		tasks[i], err = forge_task.LookupTask(ctx, ws, objKey)
+		tasks[i], _, err = forge_task.LookupTask(ctx, ws, objKey)
 		if err != nil {
 			return nil, nil, err
 		}

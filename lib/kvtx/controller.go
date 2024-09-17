@@ -13,7 +13,7 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	kvtx_block "github.com/aperturerobotics/hydra/kvtx/block"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -154,7 +154,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			if berr != nil {
 				return berr
 			}
-			nextRootRef, _, berr = btx.Write(true)
+			nextRootRef, _, berr = btx.Write(ctx, true)
 			return berr
 		},
 	)

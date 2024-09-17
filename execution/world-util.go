@@ -11,7 +11,7 @@ import (
 )
 
 // LookupExecution looks up an execution in the world.
-func LookupExecution(ctx context.Context, ws world.WorldState, objKey string) (*Execution, error) {
+func LookupExecution(ctx context.Context, ws world.WorldState, objKey string) (*Execution, world.ObjectState, error) {
 	return world.LookupObject[*Execution](ctx, ws, objKey, NewExecutionBlock)
 }
 

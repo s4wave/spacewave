@@ -128,8 +128,7 @@ func (t *TxStart) ExecuteTx(
 	}
 
 	// set the parent of the pass to the task
-	parentState := world_parent.NewParentState(worldState)
-	err = parentState.SetObjectParent(ctx, passKey, objKey, false)
+	err = world_parent.SetObjectParent(ctx, worldState, passKey, objKey, false)
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ import (
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

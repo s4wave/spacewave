@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	rctr "github.com/aperturerobotics/entitygraph/reporter/controller"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // Factory constructs a EntityGraph reporter controller.

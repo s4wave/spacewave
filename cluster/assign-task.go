@@ -83,7 +83,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	}
 
 	// unmarshal the cluster
-	cluster, err := LookupCluster(ctx, worldHandle, clusterKey)
+	cluster, _, err := LookupCluster(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
@@ -109,7 +109,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	}
 
 	// unmarshal the job
-	job, err := forge_job.LookupJob(ctx, worldHandle, jobKey)
+	job, _, err := forge_job.LookupJob(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}

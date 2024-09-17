@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/labels"
+	"github.com/aperturerobotics/cayley/quad"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -15,7 +16,6 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 )
 
@@ -127,8 +127,7 @@ func CreateTaskWithTarget(
 	}
 
 	// link target -> parent -> task
-	parentState := world_parent.NewParentState(ws)
-	err = parentState.SetObjectParent(ctx, tgtObjKey, objKey, false)
+	err = world_parent.SetObjectParent(ctx, ws, tgtObjKey, objKey, false)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -15,7 +15,7 @@ import (
 	forge_api "github.com/aperturerobotics/forge/daemon/api"
 	hydra_api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

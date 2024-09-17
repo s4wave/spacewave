@@ -103,7 +103,6 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 	}
 
 	// create / overwrite the execution objects
-	parentState := world_parent.NewParentState(worldState)
 	for i, spec := range t.GetExecSpecs() {
 		specPeerID, err := spec.ParsePeerID()
 		if err != nil {
@@ -125,7 +124,7 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 			)
 			if err == nil {
 				// set the parent of the execution object to the pass
-				err = parentState.SetObjectParent(ctx, execObjKey, objKey, true)
+				err = world_parent.SetObjectParent(ctx, worldState, execObjKey, objKey, true)
 			}
 			if err != nil {
 				return errors.Wrapf(err, "exec_specs[%d]", i)

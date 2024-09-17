@@ -32,8 +32,7 @@ func NewWorldObjectSnapshot(ctx context.Context, obj world.ObjectState, ws world
 		}
 		snap.ObjectType = objType
 
-		objParentState := world_parent.NewParentState(ws)
-		objParent, err := objParentState.GetObjectParent(ctx, snap.Key)
+		objParent, err := world_parent.GetObjectParent(ctx, ws, snap.Key)
 		if err != nil {
 			return nil, err
 		}

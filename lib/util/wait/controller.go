@@ -9,7 +9,7 @@ import (
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,16 +3,16 @@ package forge_cluster
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley"
 	forge_job "github.com/aperturerobotics/forge/job"
 	forge_worker "github.com/aperturerobotics/forge/worker"
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 )
 
 // LookupCluster looks up a cluster in the world.
-func LookupCluster(ctx context.Context, ws world.WorldState, objKey string) (*Cluster, error) {
+func LookupCluster(ctx context.Context, ws world.WorldState, objKey string) (*Cluster, world.ObjectState, error) {
 	return world.LookupObject[*Cluster](ctx, ws, objKey, NewClusterBlock)
 }
 
@@ -47,7 +47,7 @@ func CollectClusterJobs(
 
 	states := make([]*forge_job.Job, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], err = forge_job.LookupJob(ctx, ws, objKey)
+		states[i], _, err = forge_job.LookupJob(ctx, ws, objKey)
 		if err == nil {
 			err = states[i].Validate()
 		}
@@ -108,7 +108,7 @@ func CollectClusterWorkers(
 
 	states := make([]*forge_worker.Worker, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], err = forge_worker.LookupWorker(ctx, ws, objKey)
+		states[i], _, err = forge_worker.LookupWorker(ctx, ws, objKey)
 		if err != nil {
 			return nil, nil, err
 		}

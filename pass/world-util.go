@@ -3,13 +3,13 @@ package forge_pass
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_target "github.com/aperturerobotics/forge/target"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	world_control "github.com/aperturerobotics/hydra/world/control"
 	world_types "github.com/aperturerobotics/hydra/world/types"
-	"github.com/aperturerobotics/cayley"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -108,7 +108,7 @@ func CollectPassExecutions(
 
 	states := make([]*forge_execution.Execution, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], err = forge_execution.LookupExecution(ctx, ws, objKey)
+		states[i], _, err = forge_execution.LookupExecution(ctx, ws, objKey)
 		if err != nil {
 			return nil, nil, err
 		}
