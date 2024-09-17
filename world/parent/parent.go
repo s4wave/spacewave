@@ -8,31 +8,17 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// ParentState wraps a WorldState to implement garbage collection.
-// Objects have a single <parent> edge to their parent object.
-type ParentState struct {
-	// world is the underlying world state handle.
-	world world.WorldState
-	// parentPred is the parent predicate field.
-	parentPred quad.Value
-}
-
-// NewParentState constructs a new ParentState interface.
-func NewParentState(w world.WorldState) *ParentState {
-	return &ParentState{
-		world:      w,
-		parentPred: quad.IRI("parent"),
-	}
-}
+// ParentPred is the parent predicate field.
+var ParentPred = quad.IRI("parent")
 
 // GetObjectParent returns the parent of a given object.
 // Returns "" if the object has no parent.
-func (p *ParentState) GetObjectParent(ctx context.Context, key string) (string, error) {
-	gq, err := p.world.LookupGraphQuads(
+func GetObjectParent(ctx context.Context, ws world.WorldState, key string) (string, error) {
+	gq, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuad(
 			world.KeyToGraphValue(key).String(),
-			p.parentPred.String(),
+			ParentPred.String(),
 			"",
 			"",
 		), 1,
@@ -44,12 +30,12 @@ func (p *ParentState) GetObjectParent(ctx context.Context, key string) (string, 
 }
 
 // BuildParentQuad returns a parent quad for a key -> parent object key.
-func (p *ParentState) BuildParentQuad(objKey, parentKey string) quad.Quad {
+func BuildParentQuad(objKey, parentKey string) quad.Quad {
 	subjVal := world.KeyToGraphValue(objKey)
 	parentVal := world.KeyToGraphValue(parentKey)
 	return quad.Quad{
 		Subject:   subjVal,
-		Predicate: p.parentPred,
+		Predicate: ParentPred,
 		Object:    parentVal,
 	}
 }
@@ -57,14 +43,14 @@ func (p *ParentState) BuildParentQuad(objKey, parentKey string) quad.Quad {
 // SetObjectParent sets the parent of a given object by writing a graph quad.
 // If reset is set, deletes any non-matching <parent> quad in the same transaction.
 // If parentKey is empty, clears the parent.
-func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string, reset bool) error {
+func SetObjectParent(ctx context.Context, ws world.WorldState, key, parentKey string, reset bool) error {
 	if key == "" {
 		return world.ErrEmptyObjectKey
 	}
 	// note: nextQuad.Object will be nil if parentKey is empty
-	nextQuad := p.BuildParentQuad(key, parentKey)
+	nextQuad := BuildParentQuad(key, parentKey)
 	var delta []graph.Delta
-	if err := p.world.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
+	if err := ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
 		var exists bool
 		var err error
 		if reset {
@@ -97,17 +83,17 @@ func (p *ParentState) SetObjectParent(ctx context.Context, key, parentKey string
 		return err
 	}
 
-	return world.ApplyGraphDeltas(ctx, p.world, delta)
+	return world.ApplyGraphDeltas(ctx, ws, delta)
 }
 
 // ClearObjectParent removes all <parent> quads from an object.
-func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
+func ClearObjectParent(ctx context.Context, ws world.WorldState, key string) error {
 	if key == "" {
 		return world.ErrEmptyObjectKey
 	}
-	lookupQuad := p.BuildParentQuad(key, "")
+	lookupQuad := BuildParentQuad(key, "")
 	var delta []graph.Delta
-	if err := p.world.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
+	if err := ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
 		err := world.FilterIterateQuads(ctx, h, lookupQuad, func(q quad.Quad) error {
 			delta = append(delta, graph.Delta{
 				Quad:   q,
@@ -123,7 +109,5 @@ func (p *ParentState) ClearObjectParent(ctx context.Context, key string) error {
 		return err
 	}
 
-	return world.ApplyGraphDeltas(ctx, p.world, delta)
+	return world.ApplyGraphDeltas(ctx, ws, delta)
 }
-
-// TODO: Given a Path (or Shape?), determine which Objects have no <parent>.

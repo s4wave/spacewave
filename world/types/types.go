@@ -187,12 +187,14 @@ func IterateObjectsWithType(
 
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
+
 	return ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		it := path.StartPath(h, BuildTypeQuadValue(typeID)).
 			In(TypePred).
 			BuildIterator(ctx).
 			Iterate(ctx)
 		defer it.Close()
+
 		for it.Next(ctx) {
 			ref, err := it.Result(ctx)
 			if err != nil {

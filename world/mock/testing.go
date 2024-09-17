@@ -240,8 +240,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	if err != nil {
 		return err
 	}
-	ps := world_parent.NewParentState(ws2)
-	parentStr, err := ps.GetObjectParent(ctx, objKey)
+	parentStr, err := world_parent.GetObjectParent(ctx, ws2, objKey)
 	if err != nil {
 		ws2.Discard()
 		return err
@@ -253,11 +252,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			objKey, obj2Key, parentStr,
 		)
 	}
-	if err := ps.ClearObjectParent(ctx, objKey); err != nil {
+	if err := world_parent.ClearObjectParent(ctx, ws2, objKey); err != nil {
 		ws2.Discard()
 		return err
 	}
-	parentStr, err = ps.GetObjectParent(ctx, objKey)
+	parentStr, err = world_parent.GetObjectParent(ctx, ws2, objKey)
 	if err != nil {
 		ws2.Discard()
 		return err

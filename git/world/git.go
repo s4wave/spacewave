@@ -360,8 +360,7 @@ func CreateWorldObjectWorktree(
 	}
 
 	// worktree parent -> repo
-	parentsState := world_parent.NewParentState(ws)
-	err = parentsState.SetObjectParent(ctx, worktreeObjKey, repoObjKey, false)
+	err = world_parent.SetObjectParent(ctx, ws, worktreeObjKey, repoObjKey, false)
 	if err != nil {
 		return err
 	}
