@@ -61,7 +61,7 @@ func (b *BusObjectStore) NewTransaction(ctx context.Context, write bool) (kvtx.T
 //
 // May return nil, nil, nil, if returnIfIdle is set.
 func (b *BusObjectStore) BuildObjectStore(ctx context.Context, disposeCb func()) (BuildObjectStoreAPIValue, directive.Reference, error) {
-	val, _, ref, err := BuildObjectStoreAPIEx(ctx, b.b, b.returnIfIdle, b.storeID, b.storeVolumeID, nil)
+	val, _, ref, err := ExBuildObjectStoreAPI(ctx, b.b, b.returnIfIdle, b.storeID, b.storeVolumeID, nil)
 	return val, ref, err
 }
 

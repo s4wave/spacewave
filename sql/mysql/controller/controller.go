@@ -89,7 +89,7 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 
 	var stateStore object.ObjectStore
 	if stateStoreID != "" {
-		storeVal, _, storeRef, err := volume.BuildObjectStoreAPIEx(ctx, c.b, false, stateStoreID, stateStoreVol, nil)
+		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, c.b, false, stateStoreID, stateStoreVol, nil)
 		if err != nil {
 			return err
 		}

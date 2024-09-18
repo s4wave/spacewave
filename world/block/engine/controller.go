@@ -103,7 +103,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	var stateStore object.ObjectStore
 	if stateStoreID != "" {
-		storeVal, _, storeRef, err := volume.BuildObjectStoreAPIEx(ctx, c.bus, false, stateStoreID, stateStoreVol, nil)
+		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, c.bus, false, stateStoreID, stateStoreVol, nil)
 		if err != nil {
 			return err
 		}

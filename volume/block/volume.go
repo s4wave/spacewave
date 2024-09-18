@@ -100,7 +100,7 @@ func NewVolume(
 
 	var stateStore object.ObjectStore
 	if stateStoreID != "" {
-		storeVal, _, storeRef, err := volume.BuildObjectStoreAPIEx(ctx, b, false, stateStoreID, stateStoreVol, nil)
+		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, b, false, stateStoreID, stateStoreVol, nil)
 		if err != nil {
 			return nil, err
 		}

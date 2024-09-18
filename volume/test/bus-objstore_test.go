@@ -45,7 +45,7 @@ func TestBuildObjectStoreAPI(t *testing.T) {
 
 	storeID := "test-store"
 	storeVolume := tb.Volume.GetID()
-	val, _, ref, err := volume.BuildObjectStoreAPIEx(ctx, tb.Bus, false, storeID, storeVolume, nil)
+	val, _, ref, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, storeID, storeVolume, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
