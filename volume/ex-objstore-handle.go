@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
-// ExBuildObjectStoreAPI executes building an object store api.
+// ExBuildObjectStoreAPI executes building the object store api.
 func ExBuildObjectStoreAPI(
 	ctx context.Context,
 	b bus.Bus,
@@ -27,10 +27,6 @@ func ExBuildObjectStoreAPI(
 		nil,
 	)
 	if err != nil {
-		return nil, nil, nil, err
-	}
-	if err := objs.GetError(); err != nil {
-		osRef.Release()
 		return nil, nil, nil, err
 	}
 	return objs, di, osRef, nil

@@ -16,7 +16,8 @@ func (a *API) ObjectStoreOp(
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	av, _, diRef, err := bus.ExecOneOff(
+
+	av, _, diRef, err := bus.ExecOneOffTyped[volume.BuildObjectStoreAPIValue](
 		ctx,
 		a.bus,
 		volume.NewBuildObjectStoreAPI(
@@ -30,15 +31,9 @@ func (a *API) ObjectStoreOp(
 		return nil, err
 	}
 	defer diRef.Release()
-	bv, ok := av.GetValue().(volume.BuildObjectStoreAPIValue)
-	if !ok {
-		return nil, errors.New("object store api value was invalid")
-	}
-	if err := bv.GetError(); err != nil {
-		return nil, err
-	}
-	os := bv.GetObjectStore()
-	if os == nil {
+
+	objStore := av.GetValue().GetObjectStore()
+	if objStore == nil {
 		return nil, errors.New("object store value was empty")
 	}
 
@@ -50,7 +45,7 @@ func (a *API) ObjectStoreOp(
 		write = true
 	}
 
-	tx, err := os.NewTransaction(ctx, write)
+	tx, err := objStore.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}

@@ -8,9 +8,12 @@ import (
 
 // Store implements the object store.
 type Store interface {
-	// OpenObjectStore opens a object store by ID.
+	// AccessObjectStore accesses a object store by ID.
 	// The context is used for the API calls.
-	OpenObjectStore(ctx context.Context, id string) (object.ObjectStore, error)
-	// RmObjectStore deletes a object store and all contents by ID.
-	RmObjectStore(ctx context.Context, id string) error
+	// Returns theh object store, a release function.
+	// Accepts a function to call if the ObjectStore is released.
+	AccessObjectStore(ctx context.Context, id string, released func()) (object.ObjectStore, func(), error)
+	// DeleteObjectStore deletes a object store and all contents by ID.
+	// Existing object store handles will be released.
+	DeleteObjectStore(ctx context.Context, id string) error
 }

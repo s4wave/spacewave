@@ -8,11 +8,11 @@ import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 export const protobufPackage = 'object.rpc'
 
 /**
- * RmObjectStoreRequest requests to remove an object store and all contents.
+ * DeleteObjectStoreRequest requests to remove an object store and all contents.
  *
- * @generated from message object.rpc.RmObjectStoreRequest
+ * @generated from message object.rpc.DeleteObjectStoreRequest
  */
-export interface RmObjectStoreRequest {
+export interface DeleteObjectStoreRequest {
   /**
    * ObjectStoreId is the object store identifier to remove.
    *
@@ -21,10 +21,10 @@ export interface RmObjectStoreRequest {
   objectStoreId?: string
 }
 
-// RmObjectStoreRequest contains the message type declaration for RmObjectStoreRequest.
-export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> =
+// DeleteObjectStoreRequest contains the message type declaration for DeleteObjectStoreRequest.
+export const DeleteObjectStoreRequest: MessageType<DeleteObjectStoreRequest> =
   createMessageType({
-    typeName: 'object.rpc.RmObjectStoreRequest',
+    typeName: 'object.rpc.DeleteObjectStoreRequest',
     fields: [
       { no: 1, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
@@ -32,11 +32,11 @@ export const RmObjectStoreRequest: MessageType<RmObjectStoreRequest> =
   })
 
 /**
- * RmObjectStoreResponse is the response to removing an object store.
+ * DeleteObjectStoreResponse is the response to removing an object store.
  *
- * @generated from message object.rpc.RmObjectStoreResponse
+ * @generated from message object.rpc.DeleteObjectStoreResponse
  */
-export interface RmObjectStoreResponse {
+export interface DeleteObjectStoreResponse {
   /**
    * Error is any error removing the object store.
    * Will be empty if the store did not exist.
@@ -46,10 +46,10 @@ export interface RmObjectStoreResponse {
   error?: string
 }
 
-// RmObjectStoreResponse contains the message type declaration for RmObjectStoreResponse.
-export const RmObjectStoreResponse: MessageType<RmObjectStoreResponse> =
+// DeleteObjectStoreResponse contains the message type declaration for DeleteObjectStoreResponse.
+export const DeleteObjectStoreResponse: MessageType<DeleteObjectStoreResponse> =
   createMessageType({
-    typeName: 'object.rpc.RmObjectStoreResponse',
+    typeName: 'object.rpc.DeleteObjectStoreResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],

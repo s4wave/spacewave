@@ -94,9 +94,7 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 			return err
 		}
 		defer storeRef.Release()
-		if err := storeVal.GetError(); err != nil {
-			return err
-		}
+
 		stateStore = storeVal.GetObjectStore()
 	}
 	var headState *HeadState

@@ -81,10 +81,12 @@ func NewEncryptedVolume(
 	}
 
 	// Lookup HEAD ref from object store.
-	objStore, err := vol.OpenObjectStore(ctx, "hydra/toys/encrypted-volume/store")
+	// TODO
+	objStore, relObjStore, err := vol.AccessObjectStore(ctx, "hydra/toys/encrypted-volume/store", nil)
 	if err != nil {
 		return nil, err
 	}
+	_ = relObjStore
 
 	// encryption transform types
 	sfs := transform_all.BuildFactorySet()

@@ -9,14 +9,14 @@ import (
 	object_store "github.com/aperturerobotics/hydra/object/store"
 )
 
-// OpenObjectStore opens a object store by ID.
-func (k *KVTx) OpenObjectStore(ctx context.Context, id string) (object.ObjectStore, error) {
+// AccessObjectStore accesses an object store by ID.
+func (k *KVTx) AccessObjectStore(ctx context.Context, id string, released func()) (object.ObjectStore, func(), error) {
 	prefix := k.kvkey.GetObjectStorePrefixByID(id)
-	return kvtx_prefixer.NewPrefixer(k.store, prefix), nil
+	return kvtx_prefixer.NewPrefixer(k.store, prefix), func() {}, nil
 }
 
-// RmObjectStore deletes a object store and all contents by ID.
-func (k *KVTx) RmObjectStore(ctx context.Context, id string) error {
+// DeleteObjectStore deletes a object store and all contents by ID.
+func (k *KVTx) DeleteObjectStore(ctx context.Context, id string) error {
 	prefix := k.kvkey.GetObjectStorePrefixByID(id)
 	return purge(ctx, kvtx_prefixer.NewPrefixer(k.store, prefix))
 }

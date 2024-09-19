@@ -19,14 +19,18 @@ func BuildTestStore(t *testing.T) (object.ObjectStore, *testbed.Testbed) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(tb.Release)
 
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
 
-	objs, err := vol.OpenObjectStore(ctx, "test-store")
+	// pass a no-op released func
+	objs, objsRel, err := vol.AccessObjectStore(ctx, "test-store", func() {})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(objsRel)
+
 	return objs, tb
 }

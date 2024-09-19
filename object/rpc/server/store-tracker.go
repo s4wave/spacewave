@@ -4,8 +4,8 @@ import (
 	"context"
 
 	rpc_kvtx_server "github.com/aperturerobotics/hydra/kvtx/rpc/server"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/promise"
 )
 
 // kvtxStoreTracker tracks a kvtx.Store
@@ -16,9 +16,7 @@ type kvtxStoreTracker struct {
 	objectStoreID string
 	// storeCtr contains the proxy object store
 	// set when the store is ready to use
-	storeCtr *ccontainer.CContainer[*rpc_kvtx_server.Store]
-	// errCtr contains any error fetching the store.
-	errCtr *ccontainer.CContainer[*error]
+	storeCtr *promise.PromiseContainer[*rpc_kvtx_server.Store]
 }
 
 // newKvtxStoreTracker constructs a new tracker routine.
@@ -26,52 +24,39 @@ func (s *ObjectStore) newKvtxStoreTracker(key string) (keyed.Routine, *kvtxStore
 	tr := &kvtxStoreTracker{
 		s:             s,
 		objectStoreID: key,
-		storeCtr:      ccontainer.NewCContainer[*rpc_kvtx_server.Store](nil),
-		errCtr:        ccontainer.NewCContainer[*error](nil),
+		storeCtr:      promise.NewPromiseContainer[*rpc_kvtx_server.Store](),
 	}
 	return tr.execute, tr
 }
 
-// kvtxStoreTrackerExited handles execute() returning an error.
+// kvtxStoreTrackerExited handles kvStoreTracker returning an unexpected error.
 func (s *ObjectStore) kvtxStoreTrackerExited(key string, routine keyed.Routine, t *kvtxStoreTracker, err error) {
 	if err != nil {
-		t.errCtr.SetValue(&err)
+		t.storeCtr.SetResult(nil, err)
 	}
 }
 
 // execute executes the proxy volume tracker.
 func (t *kvtxStoreTracker) execute(ctx context.Context) error {
 	objectStoreID := t.objectStoreID
-	objStore, err := t.s.store.OpenObjectStore(ctx, objectStoreID)
+	sctx, sctxCancel := context.WithCancel(ctx)
+	objStore, relObjStore, err := t.s.store.AccessObjectStore(ctx, objectStoreID, sctxCancel)
 	if err != nil {
 		return err
 	}
+	if relObjStore != nil {
+		defer relObjStore()
+	}
+
 	objStoreRpc := rpc_kvtx_server.NewStore(objStore)
-	t.storeCtr.SetValue(objStoreRpc)
-	return nil
+	t.storeCtr.SetResult(objStoreRpc, nil)
+	defer t.storeCtr.SetPromise(nil)
+
+	<-sctx.Done()
+	return context.Canceled
 }
 
 // waitStore waits for the ObjectStore to be opened or an error to occur.
-func (t *kvtxStoreTracker) waitStore(rctx context.Context) (*rpc_kvtx_server.Store, error) {
-	ctx, ctxCancel := context.WithCancel(rctx)
-	defer ctxCancel()
-
-	errCh := make(chan error, 1)
-	go func() {
-		rerr, err := t.errCtr.WaitValue(ctx, nil)
-		if err == nil && rerr != nil {
-			err = *rerr
-		}
-		if err != nil {
-			errCh <- err
-		}
-	}()
-	val, err := t.storeCtr.WaitValue(ctx, errCh)
-	if err != nil {
-		return nil, err
-	}
-	if val == nil {
-		return nil, nil
-	}
-	return val, nil
+func (t *kvtxStoreTracker) waitStore(ctx context.Context) (*rpc_kvtx_server.Store, error) {
+	return t.storeCtr.Await(ctx)
 }

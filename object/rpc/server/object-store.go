@@ -39,17 +39,17 @@ func (s *ObjectStore) ObjectStoreRpc(
 	return rpcstream.HandleRpcStream(strm, s.GetObjectStoreMux)
 }
 
-// RmObjectStore removes an object store by id.
-func (s *ObjectStore) RmObjectStore(
+// DeleteObjectStore removes an object store by id.
+func (s *ObjectStore) DeleteObjectStore(
 	ctx context.Context,
-	req *object_rpc.RmObjectStoreRequest,
-) (*object_rpc.RmObjectStoreResponse, error) {
-	err := s.store.RmObjectStore(ctx, req.GetObjectStoreId())
+	req *object_rpc.DeleteObjectStoreRequest,
+) (*object_rpc.DeleteObjectStoreResponse, error) {
+	err := s.store.DeleteObjectStore(ctx, req.GetObjectStoreId())
 	var errStr string
 	if err != nil {
 		errStr = err.Error()
 	}
-	return &object_rpc.RmObjectStoreResponse{Error: errStr}, nil
+	return &object_rpc.DeleteObjectStoreResponse{Error: errStr}, nil
 }
 
 // GetObjectStoreMux returns the srpc.Mux for an object store.

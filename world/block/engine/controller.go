@@ -108,9 +108,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return err
 		}
 		defer storeRef.Release()
-		if err := storeVal.GetError(); err != nil {
-			return err
-		}
 		stateStore = storeVal.GetObjectStore()
 	}
 	var headState *HeadState

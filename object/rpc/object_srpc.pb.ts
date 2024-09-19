@@ -4,7 +4,10 @@
 
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { RmObjectStoreRequest, RmObjectStoreResponse } from './object.pb.js'
+import {
+  DeleteObjectStoreRequest,
+  DeleteObjectStoreResponse,
+} from './object.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -36,14 +39,14 @@ export const ObjectStoreDefinition = {
       kind: MethodKind.BiDiStreaming,
     },
     /**
-     * RmObjectStore deletes the object store and all contents by ID.
+     * DeleteObjectStore deletes the object store and all contents by ID.
      *
-     * @generated from rpc object.rpc.ObjectStore.RmObjectStore
+     * @generated from rpc object.rpc.ObjectStore.DeleteObjectStore
      */
-    RmObjectStore: {
-      name: 'RmObjectStore',
-      I: RmObjectStoreRequest,
-      O: RmObjectStoreResponse,
+    DeleteObjectStore: {
+      name: 'DeleteObjectStore',
+      I: DeleteObjectStoreRequest,
+      O: DeleteObjectStoreResponse,
       kind: MethodKind.Unary,
     },
   },
@@ -70,14 +73,14 @@ export interface ObjectStore {
   ): MessageStream<RpcStreamPacket>
 
   /**
-   * RmObjectStore deletes the object store and all contents by ID.
+   * DeleteObjectStore deletes the object store and all contents by ID.
    *
-   * @generated from rpc object.rpc.ObjectStore.RmObjectStore
+   * @generated from rpc object.rpc.ObjectStore.DeleteObjectStore
    */
-  RmObjectStore(
-    request: RmObjectStoreRequest,
+  DeleteObjectStore(
+    request: DeleteObjectStoreRequest,
     abortSignal?: AbortSignal,
-  ): Promise<RmObjectStoreResponse>
+  ): Promise<DeleteObjectStoreResponse>
 }
 
 export const ObjectStoreServiceName = ObjectStoreDefinition.typeName
@@ -89,7 +92,7 @@ export class ObjectStoreClient implements ObjectStore {
     this.service = opts?.service || ObjectStoreServiceName
     this.rpc = rpc
     this.ObjectStoreRpc = this.ObjectStoreRpc.bind(this)
-    this.RmObjectStore = this.RmObjectStore.bind(this)
+    this.DeleteObjectStore = this.DeleteObjectStore.bind(this)
   }
   /**
    * ObjectStoreRpc is a rpc request for an ObjectStore Kvtx service by ID.
@@ -114,21 +117,21 @@ export class ObjectStoreClient implements ObjectStore {
   }
 
   /**
-   * RmObjectStore deletes the object store and all contents by ID.
+   * DeleteObjectStore deletes the object store and all contents by ID.
    *
-   * @generated from rpc object.rpc.ObjectStore.RmObjectStore
+   * @generated from rpc object.rpc.ObjectStore.DeleteObjectStore
    */
-  async RmObjectStore(
-    request: RmObjectStoreRequest,
+  async DeleteObjectStore(
+    request: DeleteObjectStoreRequest,
     abortSignal?: AbortSignal,
-  ): Promise<RmObjectStoreResponse> {
-    const requestMsg = RmObjectStoreRequest.create(request)
+  ): Promise<DeleteObjectStoreResponse> {
+    const requestMsg = DeleteObjectStoreRequest.create(request)
     const result = await this.rpc.request(
       this.service,
-      ObjectStoreDefinition.methods.RmObjectStore.name,
-      RmObjectStoreRequest.toBinary(requestMsg),
+      ObjectStoreDefinition.methods.DeleteObjectStore.name,
+      DeleteObjectStoreRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return RmObjectStoreResponse.fromBinary(result)
+    return DeleteObjectStoreResponse.fromBinary(result)
   }
 }

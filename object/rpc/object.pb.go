@@ -15,52 +15,52 @@ import (
 	_ "github.com/aperturerobotics/starpc/rpcstream"
 )
 
-// RmObjectStoreRequest requests to remove an object store and all contents.
-type RmObjectStoreRequest struct {
+// DeleteObjectStoreRequest requests to remove an object store and all contents.
+type DeleteObjectStoreRequest struct {
 	unknownFields []byte
 	// ObjectStoreId is the object store identifier to remove.
 	ObjectStoreId string `protobuf:"bytes,1,opt,name=object_store_id,json=objectStoreId,proto3" json:"objectStoreId,omitempty"`
 }
 
-func (x *RmObjectStoreRequest) Reset() {
-	*x = RmObjectStoreRequest{}
+func (x *DeleteObjectStoreRequest) Reset() {
+	*x = DeleteObjectStoreRequest{}
 }
 
-func (*RmObjectStoreRequest) ProtoMessage() {}
+func (*DeleteObjectStoreRequest) ProtoMessage() {}
 
-func (x *RmObjectStoreRequest) GetObjectStoreId() string {
+func (x *DeleteObjectStoreRequest) GetObjectStoreId() string {
 	if x != nil {
 		return x.ObjectStoreId
 	}
 	return ""
 }
 
-// RmObjectStoreResponse is the response to removing an object store.
-type RmObjectStoreResponse struct {
+// DeleteObjectStoreResponse is the response to removing an object store.
+type DeleteObjectStoreResponse struct {
 	unknownFields []byte
 	// Error is any error removing the object store.
 	// Will be empty if the store did not exist.
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 }
 
-func (x *RmObjectStoreResponse) Reset() {
-	*x = RmObjectStoreResponse{}
+func (x *DeleteObjectStoreResponse) Reset() {
+	*x = DeleteObjectStoreResponse{}
 }
 
-func (*RmObjectStoreResponse) ProtoMessage() {}
+func (*DeleteObjectStoreResponse) ProtoMessage() {}
 
-func (x *RmObjectStoreResponse) GetError() string {
+func (x *DeleteObjectStoreResponse) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-func (m *RmObjectStoreRequest) CloneVT() *RmObjectStoreRequest {
+func (m *DeleteObjectStoreRequest) CloneVT() *DeleteObjectStoreRequest {
 	if m == nil {
-		return (*RmObjectStoreRequest)(nil)
+		return (*DeleteObjectStoreRequest)(nil)
 	}
-	r := new(RmObjectStoreRequest)
+	r := new(DeleteObjectStoreRequest)
 	r.ObjectStoreId = m.ObjectStoreId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -69,15 +69,15 @@ func (m *RmObjectStoreRequest) CloneVT() *RmObjectStoreRequest {
 	return r
 }
 
-func (m *RmObjectStoreRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DeleteObjectStoreRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *RmObjectStoreResponse) CloneVT() *RmObjectStoreResponse {
+func (m *DeleteObjectStoreResponse) CloneVT() *DeleteObjectStoreResponse {
 	if m == nil {
-		return (*RmObjectStoreResponse)(nil)
+		return (*DeleteObjectStoreResponse)(nil)
 	}
-	r := new(RmObjectStoreResponse)
+	r := new(DeleteObjectStoreResponse)
 	r.Error = m.Error
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -86,11 +86,11 @@ func (m *RmObjectStoreResponse) CloneVT() *RmObjectStoreResponse {
 	return r
 }
 
-func (m *RmObjectStoreResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DeleteObjectStoreResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (this *RmObjectStoreRequest) EqualVT(that *RmObjectStoreRequest) bool {
+func (this *DeleteObjectStoreRequest) EqualVT(that *DeleteObjectStoreRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -102,14 +102,14 @@ func (this *RmObjectStoreRequest) EqualVT(that *RmObjectStoreRequest) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *RmObjectStoreRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*RmObjectStoreRequest)
+func (this *DeleteObjectStoreRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeleteObjectStoreRequest)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
-func (this *RmObjectStoreResponse) EqualVT(that *RmObjectStoreResponse) bool {
+func (this *DeleteObjectStoreResponse) EqualVT(that *DeleteObjectStoreResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -121,16 +121,16 @@ func (this *RmObjectStoreResponse) EqualVT(that *RmObjectStoreResponse) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *RmObjectStoreResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*RmObjectStoreResponse)
+func (this *DeleteObjectStoreResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeleteObjectStoreResponse)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-// MarshalProtoJSON marshals the RmObjectStoreRequest message to JSON.
-func (x *RmObjectStoreRequest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DeleteObjectStoreRequest message to JSON.
+func (x *DeleteObjectStoreRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -145,13 +145,13 @@ func (x *RmObjectStoreRequest) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the RmObjectStoreRequest to JSON.
-func (x *RmObjectStoreRequest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DeleteObjectStoreRequest to JSON.
+func (x *DeleteObjectStoreRequest) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the RmObjectStoreRequest message from JSON.
-func (x *RmObjectStoreRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DeleteObjectStoreRequest message from JSON.
+func (x *DeleteObjectStoreRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -166,13 +166,13 @@ func (x *RmObjectStoreRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the RmObjectStoreRequest from JSON.
-func (x *RmObjectStoreRequest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DeleteObjectStoreRequest from JSON.
+func (x *DeleteObjectStoreRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the RmObjectStoreResponse message to JSON.
-func (x *RmObjectStoreResponse) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DeleteObjectStoreResponse message to JSON.
+func (x *DeleteObjectStoreResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -187,13 +187,13 @@ func (x *RmObjectStoreResponse) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the RmObjectStoreResponse to JSON.
-func (x *RmObjectStoreResponse) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DeleteObjectStoreResponse to JSON.
+func (x *DeleteObjectStoreResponse) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the RmObjectStoreResponse message from JSON.
-func (x *RmObjectStoreResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DeleteObjectStoreResponse message from JSON.
+func (x *DeleteObjectStoreResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -208,12 +208,12 @@ func (x *RmObjectStoreResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the RmObjectStoreResponse from JSON.
-func (x *RmObjectStoreResponse) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DeleteObjectStoreResponse from JSON.
+func (x *DeleteObjectStoreResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-func (m *RmObjectStoreRequest) MarshalVT() (dAtA []byte, err error) {
+func (m *DeleteObjectStoreRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -226,12 +226,12 @@ func (m *RmObjectStoreRequest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RmObjectStoreRequest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DeleteObjectStoreRequest) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *RmObjectStoreRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DeleteObjectStoreRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -253,7 +253,7 @@ func (m *RmObjectStoreRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-func (m *RmObjectStoreResponse) MarshalVT() (dAtA []byte, err error) {
+func (m *DeleteObjectStoreResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -266,12 +266,12 @@ func (m *RmObjectStoreResponse) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RmObjectStoreResponse) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DeleteObjectStoreResponse) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *RmObjectStoreResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DeleteObjectStoreResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -293,7 +293,7 @@ func (m *RmObjectStoreResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *RmObjectStoreRequest) SizeVT() (n int) {
+func (m *DeleteObjectStoreRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -307,7 +307,7 @@ func (m *RmObjectStoreRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *RmObjectStoreResponse) SizeVT() (n int) {
+func (m *DeleteObjectStoreResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -321,9 +321,9 @@ func (m *RmObjectStoreResponse) SizeVT() (n int) {
 	return n
 }
 
-func (x *RmObjectStoreRequest) MarshalProtoText() string {
+func (x *DeleteObjectStoreRequest) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("RmObjectStoreRequest { ")
+	sb.WriteString("DeleteObjectStoreRequest { ")
 	if x.ObjectStoreId != "" {
 		sb.WriteString(" object_store_id: ")
 		sb.WriteString(strconv.Quote(x.ObjectStoreId))
@@ -331,12 +331,12 @@ func (x *RmObjectStoreRequest) MarshalProtoText() string {
 	sb.WriteString("}")
 	return sb.String()
 }
-func (x *RmObjectStoreRequest) String() string {
+func (x *DeleteObjectStoreRequest) String() string {
 	return x.MarshalProtoText()
 }
-func (x *RmObjectStoreResponse) MarshalProtoText() string {
+func (x *DeleteObjectStoreResponse) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("RmObjectStoreResponse { ")
+	sb.WriteString("DeleteObjectStoreResponse { ")
 	if x.Error != "" {
 		sb.WriteString(" error: ")
 		sb.WriteString(strconv.Quote(x.Error))
@@ -344,10 +344,10 @@ func (x *RmObjectStoreResponse) MarshalProtoText() string {
 	sb.WriteString("}")
 	return sb.String()
 }
-func (x *RmObjectStoreResponse) String() string {
+func (x *DeleteObjectStoreResponse) String() string {
 	return x.MarshalProtoText()
 }
-func (m *RmObjectStoreRequest) UnmarshalVT(dAtA []byte) error {
+func (m *DeleteObjectStoreRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -370,10 +370,10 @@ func (m *RmObjectStoreRequest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RmObjectStoreRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: DeleteObjectStoreRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RmObjectStoreRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DeleteObjectStoreRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -430,7 +430,7 @@ func (m *RmObjectStoreRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *RmObjectStoreResponse) UnmarshalVT(dAtA []byte) error {
+func (m *DeleteObjectStoreResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -453,10 +453,10 @@ func (m *RmObjectStoreResponse) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RmObjectStoreResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: DeleteObjectStoreResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RmObjectStoreResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DeleteObjectStoreResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

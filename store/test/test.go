@@ -33,15 +33,24 @@ func WithVLogger(le *logrus.Entry) func(objStore object.ObjectStore) (object.Obj
 	}
 }
 
+// TestObjectStoreFn is a test function for TestObjectStore.
+type TestObjectStoreFn func(objStore object.ObjectStore) (object.ObjectStore, error)
+
 // TestObjectStore tests the object store.
-func TestObjectStore(rctx context.Context, ktx store.Store, cbs ...func(objStore object.ObjectStore) (object.ObjectStore, error)) error {
+func TestObjectStore(
+	rctx context.Context,
+	ktx store.Store,
+	cbs ...TestObjectStoreFn,
+) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	obj, err := ktx.OpenObjectStore(ctx, "test-store-2")
+	obj, relObj, err := ktx.AccessObjectStore(ctx, "test-store-2", ctxCancel)
 	if err != nil {
 		return err
 	}
+	defer relObj()
+
 	for _, cb := range cbs {
 		nextStore, err := cb(obj)
 		if err != nil {
@@ -56,7 +65,7 @@ func TestObjectStore(rctx context.Context, ktx store.Store, cbs ...func(objStore
 		return err
 	}
 
-	if err := ktx.RmObjectStore(ctx, "test-store-2"); err != nil {
+	if err := ktx.DeleteObjectStore(ctx, "test-store-2"); err != nil {
 		return err
 	}
 

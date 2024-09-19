@@ -33,29 +33,16 @@ func (o *buildObjectStoreAPIResolver) Resolve(
 		return nil
 	}
 
-	for {
-		handler.ClearValues()
-		storeID := o.dir.BuildObjectStoreAPIStoreID()
-		os, err := vol.OpenObjectStore(ctx, storeID)
-		h := newObjectStoreHandle(ctx, o.c, vol, os, err, storeID)
-		vid, accepted := handler.AddValue(h)
-		if !accepted {
-			return nil
+	storeID := o.dir.BuildObjectStoreAPIStoreID()
+	resolve := directive.NewAccessResolver(func(ctx context.Context, released func()) (volume.BuildObjectStoreAPIValue, func(), error) {
+		objStore, rel, err := vol.AccessObjectStore(ctx, storeID, released)
+		if err != nil {
+			return nil, rel, err
 		}
-		select {
-		case <-ctx.Done():
-			h.ctxCancel()
-			return ctx.Err()
-		case <-h.GetContext().Done():
-			h.ctxCancel()
-		}
-		handler.RemoveValue(vid)
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-	}
+
+		return newObjectStoreHandle(o.c, vol, objStore, storeID), rel, nil
+	})
+	return resolve.Resolve(ctx, handler)
 }
 
 // resolveBuildObjectStoreAPI returns a resolver for building a object store API handle.

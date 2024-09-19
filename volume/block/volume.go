@@ -105,9 +105,6 @@ func NewVolume(
 			return nil, err
 		}
 		rels = append(rels, storeRef.Release)
-		if err := storeVal.GetError(); err != nil {
-			return nil, err
-		}
 		stateStore = storeVal.GetObjectStore()
 	}
 	var headState *HeadState

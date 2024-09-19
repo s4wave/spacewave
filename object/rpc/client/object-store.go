@@ -24,19 +24,19 @@ func NewObjectStore(client object_rpc.SRPCObjectStoreClient) *ObjectStore {
 	return &ObjectStore{client: client}
 }
 
-// OpenObjectStore opens a object store by ID.
+// AccessObjectStore opens a object store by ID.
 // The context is used for the API calls.
-func (s *ObjectStore) OpenObjectStore(ctx context.Context, id string) (object.ObjectStore, error) {
+func (s *ObjectStore) AccessObjectStore(ctx context.Context, id string, released func()) (object.ObjectStore, func(), error) {
 	openStream := rpcstream.NewRpcStreamOpenStream(s.client.ObjectStoreRpc, id, false)
 	rpcClient := srpc.NewClient(openStream)
 	storeClient := rpc_kvtx.NewSRPCKvtxClient(rpcClient)
 	objStoreClient := rpc_kvtx_client.NewStore(storeClient)
-	return objStoreClient, nil
+	return objStoreClient, func() {}, nil
 }
 
-// RmObjectStore deletes a object store and all contents by ID.
-func (s *ObjectStore) RmObjectStore(ctx context.Context, id string) error {
-	resp, err := s.client.RmObjectStore(ctx, &object_rpc.RmObjectStoreRequest{
+// DeleteObjectStore deletes a object store and all contents by ID.
+func (s *ObjectStore) DeleteObjectStore(ctx context.Context, id string) error {
+	resp, err := s.client.DeleteObjectStore(ctx, &object_rpc.DeleteObjectStoreRequest{
 		ObjectStoreId: id,
 	})
 	if err != nil {
