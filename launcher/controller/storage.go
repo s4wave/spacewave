@@ -116,6 +116,6 @@ func (c *Controller) storeDistConf(ctx context.Context, data []byte) error {
 func (c *Controller) openObjectStore(ctx context.Context) (volume.BuildObjectStoreAPIValue, directive.Reference, error) {
 	objStoreID := c.GetObjectStoreId()
 	volID := c.GetVolumeId()
-	val, _, ref, err := volume.BuildObjectStoreAPIEx(ctx, c.bus, false, objStoreID, volID, nil)
+	val, _, ref, err := volume.ExBuildObjectStoreAPI(ctx, c.bus, false, objStoreID, volID, nil)
 	return val, ref, err
 }
