@@ -262,7 +262,7 @@ export function useItState<T>(
       }
       return next
     })
-  }, [])
+  }, [cmpState])
 
   useLatestRef(getState, update)
 
@@ -438,24 +438,22 @@ export function useMemoEqual<T>(
   value: T,
   checkEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
 ): T {
-  const [memoValue, setMemoValue] = useState<T>(() => value)
-  const memoEquiv = useMemo(
-    () =>
-      value === memoValue ||
-      (value == null) === (memoValue == null) ||
-      (value != null &&
-        memoValue != null &&
-        checkEqual &&
-        checkEqual(value, memoValue)),
-    [memoValue, value, checkEqual],
-  )
-  useEffect(() => {
-    if (!memoEquiv) {
-      setMemoValue(value)
-    }
-  }, [memoEquiv, value])
-  return memoEquiv ? memoValue : value
+  const ref = useRef<T>(value);
+
+  const isEqual =
+    value === ref.current ||
+    (value != null &&
+      ref.current != null &&
+      checkEqual &&
+      checkEqual(value as NonNullable<T>, ref.current as NonNullable<T>));
+
+  if (!isEqual) {
+    ref.current = value;
+  }
+
+  return ref.current;
 }
+
 
 // useMemoEqualGetter checks if the given value is equal to the memoized value
 // and returns the memoized value if so. If the value is different, calls the
@@ -505,7 +503,7 @@ export function setIfChanged<S>(
 //
 // T is the response type.
 // R is the request type.
-export function useWatchStateRpc<T, R = {}>(
+export function useWatchStateRpc<T, R = unknown>(
   watchStateRpc:
     | ((req: R, abortSignal: AbortSignal) => AsyncIterable<T>)
     | ((req: R, abortSignal: AbortSignal) => AsyncIterable<T> | null)
@@ -521,7 +519,7 @@ export function useWatchStateRpc<T, R = {}>(
   const handleValue = useCallback(
     (nextValue: T) =>
       setCurrValue(setIfChanged<T | null>(nextValue, checkRespEqual)),
-    [],
+    [checkRespEqual],
   )
   const memoizedReq = useMemoEqual(req, checkReqEqual)
 
