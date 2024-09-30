@@ -68,8 +68,8 @@
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
     "@aptre/common": "^0.18.6",
-    "@types/random-string": "^0.0.31",
-    "@types/react": "^18.3.8",
+    "@types/random-string": "^0.2.0",
+    "@types/react": "^18.3.10",
     "@types/react-dom": "^18.2.25",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.17.1",
@@ -82,9 +82,9 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.6",
-    "@libp2p/logger": "^5.0.1",
+    "@libp2p/logger": "^5.1.0",
     "console": "^0.7.2",
-    "electron": "^32.1.1",
+    "electron": "^32.1.2",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "react": "^18.2.0",
