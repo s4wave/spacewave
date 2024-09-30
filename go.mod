@@ -13,7 +13,7 @@ require github.com/aperturerobotics/common v0.18.6 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20240919231447-5f27479a79be // master
+	github.com/aperturerobotics/hydra v0.0.0-20240930075402-c44bdd74d747 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.7.0 // master
 )
 
@@ -33,7 +33,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.37.3-0.20240909073708-4670eb8569c0 // master
+	github.com/aperturerobotics/bifrost v0.37.3 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
@@ -80,10 +80,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.47.6 // latest
+	github.com/aperturerobotics/controllerbus v0.47.7 // latest
 	github.com/aperturerobotics/entitygraph v0.10.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.33.11 // latest
-	github.com/aperturerobotics/util v1.25.8 // latest
+	github.com/aperturerobotics/util v1.25.9 // latest
 )
 
 // aperture: use compatibility forks
@@ -97,23 +97,23 @@ replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.45.1-0.20240802054753-f83427ffc2c6 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.47.1-0.20240930074049-d9f13f608464 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 )
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
-	github.com/klauspost/compress v1.17.9
-	github.com/libp2p/go-libp2p v0.36.3
+	github.com/klauspost/compress v1.17.10
+	github.com/libp2p/go-libp2p v0.36.4
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.13.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.20 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.21 // indirect
 	github.com/nats-io/nats.go v1.37.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.9 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.29 // indirect
+	github.com/pion/webrtc/v4 v4.0.0-beta.30 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.47.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
@@ -127,7 +127,7 @@ require (
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/coder/websocket v1.8.13-0.20240822081019-3dd723ae69f0
+	github.com/coder/websocket v1.8.13-0.20240919094401-cef8e11d00b0
 )
 
 require (
@@ -161,7 +161,7 @@ require (
 	github.com/nats-io/jwt/v2 v2.4.1 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
-	github.com/pion/dtls/v3 v3.0.1 // indirect
+	github.com/pion/dtls/v3 v3.0.2 // indirect
 	github.com/pion/ice/v4 v4.0.1 // indirect
 	github.com/pion/interceptor v0.1.30 // indirect
 	github.com/pion/logging v0.2.2 // indirect

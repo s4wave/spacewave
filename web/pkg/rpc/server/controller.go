@@ -164,7 +164,6 @@ func (c *Controller) HandleDirective(
 		return directive.R(directive.NewKeyedRefCountResolver(
 			c.webPkgs,
 			webPkgID,
-			true,
 			func(ctx context.Context, val *webPkgTracker) (directive.Value, error) {
 				if val == nil {
 					return nil, nil
