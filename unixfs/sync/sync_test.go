@@ -3,6 +3,9 @@ package unixfs_sync
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"io"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,6 +13,7 @@ import (
 	"github.com/aperturerobotics/hydra/testbed"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_billy "github.com/aperturerobotics/hydra/unixfs/billy"
+	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	unixfs_world_testbed "github.com/aperturerobotics/hydra/unixfs/world/testbed"
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	"github.com/go-git/go-billy/v5"
@@ -164,6 +168,85 @@ func TestSyncDeleteModes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestSyncLargeFileWithAppend tests syncing a large file and then appending to it
+func TestSyncLargeFileWithAppend(t *testing.T) {
+	ctx, rref, _ := setupTestbed(t)
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "hydra-test-unixfs-sync_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a temporary file within the temporary directory
+	tempFile, err := os.CreateTemp(tempDir, "large_file_*.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempFile.Close()
+
+	// Write 1M of random data
+	data := make([]byte, 1024*1024)
+	_, err = rand.Read(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tempFile.Write(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempFile.Close()
+
+	// Sync the directory to the testbed FSHandle
+	err = SyncFromDisk(ctx, rref, tempDir, DeleteMode_DeleteMode_DURING, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Append 1M bytes to the on-disk file
+	appendData := make([]byte, 1024*1024)
+	_, err = rand.Read(appendData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(tempFile.Name(), appendData, os.ModeAppend)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Sync again
+	err = SyncFromDisk(ctx, rref, tempDir, DeleteMode_DeleteMode_DURING, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that the synced file matches the on-disk file
+	tmpFilename := filepath.Base(tempFile.Name())
+	tmpFileFsh, err := rref.Lookup(ctx, tmpFilename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmpFileFsh.Release()
+
+	syncedFile := unixfs_iofs.NewFSFile(ctx, tmpFileFsh)
+	defer syncedFile.Close()
+
+	originalData, err := os.ReadFile(tempFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	syncedData, err := io.ReadAll(syncedFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(originalData, syncedData) {
+		t.Fatalf("Synced file does not match the original file. Original size: %d, Synced size: %d", len(originalData), len(syncedData))
 	}
 }
 

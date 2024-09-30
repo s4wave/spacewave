@@ -124,7 +124,6 @@ func (c *Controller) HandleDirective(
 		return directive.R(
 			directive.NewRefCountResolverWithXfrm(
 				c.rc,
-				true,
 				func(ctx context.Context, store block_store.Store) (directive.Value, error) {
 					if store == nil {
 						return nil, nil
