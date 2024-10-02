@@ -67,7 +67,7 @@
   },
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
-    "@aptre/common": "^0.18.6",
+    "@aptre/common": "^0.18.7",
     "@types/random-string": "^0.2.0",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.2.25",
