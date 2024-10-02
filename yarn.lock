@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@aptre/common@^0.18.6":
-  version "0.18.6"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.18.6.tgz#fdc64a0680d79926a39d7783c9eabf31c38f9fe2"
-  integrity sha512-QenlXnukfyVw3gj8t1W0zVOSh9AIkUG1WtjE6Ges2o9NHmmO2Ge1d3Pagt42ff4CqPV7riV0C02WyiBdMzo2LA==
+"@aptre/common@^0.18.7":
+  version "0.18.7"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.18.7.tgz#fa7af04c8ec683d9e838acd44a262887b0871345"
+  integrity sha512-VQXULU9x7OQu52EPwuVOFxOP5kBb/loGwv8a8r4TwRXgppe+6Ffh9hIeOmVC3uf747r+srRLNAUOn4csm7jf9A==
   dependencies:
     "@aptre/protobuf-es-lite" "^0.4.7"
     "@typescript-eslint/eslint-plugin" "^8.2.0"
