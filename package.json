@@ -44,15 +44,15 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.18.7",
+    "@aptre/common": "^0.18.8",
     "depcheck": "^1.4.7",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.5",
-    "starpc": "^0.33.11"
+    "@aptre/protobuf-es-lite": "^0.4.8",
+    "starpc": "^0.35.0"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "0.4.7"
