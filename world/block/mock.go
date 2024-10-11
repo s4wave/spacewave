@@ -3,6 +3,7 @@ package world_block
 import (
 	"context"
 
+	"github.com/aperturerobotics/hydra/block"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -60,4 +61,17 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 		return nil, errors.New("expected to find object after create")
 	}
 	return objState, nil
+}
+
+// MockObject is the mock object block.
+type MockObject = block_mock.Example
+
+// NewMockObjectBlock constructs a new mock object block.
+func NewMockObjectBlock() block.Block {
+	return block_mock.NewExampleBlock()
+}
+
+// UnmarshalMockObject unmarshals a block from a block cursor.
+func UnmarshalMockObject(ctx context.Context, bcs *block.Cursor) (*block_mock.Example, error) {
+	return block.UnmarshalBlock[*block_mock.Example](ctx, bcs, block_mock.NewExampleBlock)
 }

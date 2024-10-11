@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/filters"
 	block_mock "github.com/aperturerobotics/hydra/block/mock"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -55,6 +56,75 @@ func TestWorldEngine(t *testing.T) {
 
 	// success
 	t.Log("tests successful")
+}
+
+// TestNewAccessWatchableObjectState tests the NewAccessWatchableObjectState function
+func TestNewAccessWatchableObjectState(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create a test object
+	objKey := "test-watchable-obj"
+	obj, err := world_block.BuildMockObject(ctx, ws, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create the access function
+	unmarshal := func(ctx context.Context, bcs *block.Cursor) (*world_block.MockObject, error) {
+		return world_block.UnmarshalMockObject(ctx, bcs)
+	}
+	accessFunc := world.NewAccessWatchableObjectState(obj, unmarshal)
+
+	// Use the access function
+	watchable, release, err := accessFunc(ctx, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer release()
+
+	// Get the initial state
+	initialState := watchable.GetValue()
+	if initialState.GetMsg() == "" {
+		t.Fatal("Unexpected empty initial state")
+	}
+
+	// Update the object state
+	nextMsg := "updated value"
+	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(&world_block.MockObject{Msg: nextMsg}, true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Check the updated state
+	updatedState, err := watchable.WaitValueChange(ctx, initialState, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if updMsg := updatedState.GetMsg(); updMsg != nextMsg {
+		t.Fatalf("Expected updated state %s, got: %s", nextMsg, updMsg)
+	}
 }
 
 // TestWorldState_DeleteObject tests the DeleteObject functionality
