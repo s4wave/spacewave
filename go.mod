@@ -6,7 +6,7 @@ toolchain go1.23.1
 
 require (
 	github.com/aperturerobotics/bifrost v0.38.3 // master
-	github.com/aperturerobotics/common v0.18.7 // latest
+	github.com/aperturerobotics/common v0.18.8 // latest
 	github.com/aperturerobotics/controllerbus v0.47.8 // latest
 	github.com/aperturerobotics/identity v0.0.0-20241011012448-973508220b25 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.7.0 // latest

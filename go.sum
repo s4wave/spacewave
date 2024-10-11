@@ -2,8 +2,8 @@ filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 h1:ECYJICBhjZosOOEi
 filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/aperturerobotics/bifrost v0.38.3 h1:OEXLC3qgEwsf2u+FumEWEv+V6PQZHNPpKceOtzoESUo=
 github.com/aperturerobotics/bifrost v0.38.3/go.mod h1:k5bEm5wc6MZ2YfxpAPzd1QZ89vnmtEbEKSeTNMR4Lvs=
-github.com/aperturerobotics/common v0.18.7 h1:Le/Z5EG8a/kHo8+enTvesxeEhw+b4tJUemV5Xs/vrjY=
-github.com/aperturerobotics/common v0.18.7/go.mod h1:4zW3CCNdnXnUBUFfex47ekzxZuqBmNYEVAMYGwSSYJw=
+github.com/aperturerobotics/common v0.18.8 h1:HDlrxI9akJYHqQJHgBDnYXU6aH3qbmuX73NrthpcBdc=
+github.com/aperturerobotics/common v0.18.8/go.mod h1:Qdib1/Sv+9IqX4woA2gRNQGwElxJ9WdNu7poY1oz6cA=
 github.com/aperturerobotics/controllerbus v0.47.8 h1:KX59Ul3M+18MJ6r1lXG66ZEfuYE8zl9emYQsl7dUO5c=
 github.com/aperturerobotics/controllerbus v0.47.8/go.mod h1:vheShpO3+9hkYTFFQFqj5/GEqMFCuUpgakrACPWRkao=
 github.com/aperturerobotics/entitygraph v0.10.0 h1:fotjtv+XWqWA6LbIrGsjiP/FLa/QdROfQ1/URAH2zhE=
