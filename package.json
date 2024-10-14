@@ -67,32 +67,32 @@
   },
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
-    "@aptre/common": "^0.18.7",
+    "@aptre/common": "^0.18.8",
     "@types/random-string": "^0.2.0",
-    "@types/react": "^18.3.10",
-    "@types/react-dom": "^18.2.25",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.17.1",
     "prettier": "^3.3.3",
     "pumpify": "^2.0.1",
     "rimraf": "^6.0.1",
-    "typescript": "^5.6.2",
+    "typescript": "^5.6.3",
     "unzip-crx-3": "^0.2.0",
-    "vitest": "^2.1.1"
+    "vitest": "^2.1.2"
   },
   "dependencies": {
-    "@aptre/protobuf-es-lite": "^0.4.6",
-    "@libp2p/logger": "^5.1.0",
+    "@aptre/protobuf-es-lite": "^0.4.8",
+    "@libp2p/logger": "^5.1.1",
     "console": "^0.7.2",
-    "electron": "^32.1.2",
+    "electron": "^32.2.0",
     "event-iterator": "^2.0.0",
     "idb": "^8.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "starpc": "^0.33.11",
+    "starpc": "^0.35.0",
     "workbox-window": "^7.1.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.7"
+    "@aptre/protobuf-es-lite": "0.4.8"
   }
 }
