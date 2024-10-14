@@ -134,7 +134,7 @@ export class Retry<T = void> {
           }, this._backoffFn())
         })
       }
-    } while (true)
+    } while (true) /* eslint-disable-line */
   }
 }
 

@@ -12,7 +12,8 @@ describe('Retry', () => {
   })
 
   test('should retry on failure and then succeed', async () => {
-    const fn = vi.fn()
+    const fn = vi
+      .fn()
       .mockRejectedValueOnce(new Error('fail'))
       .mockResolvedValueOnce('success')
 
@@ -31,7 +32,7 @@ describe('Retry', () => {
     const retry = new Retry(fn, { backoffFn: constantBackoff(10), errorCb })
 
     // Wait for a short time to allow the first retry attempt
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise((resolve) => setTimeout(resolve, 20))
 
     expect(errorCb).toHaveBeenCalledWith(error)
     retry.cancel() // Cancel to stop further retries
@@ -49,7 +50,8 @@ describe('Retry', () => {
   })
 
   test('should retry multiple times before succeeding', async () => {
-    const fn = vi.fn()
+    const fn = vi
+      .fn()
       .mockRejectedValueOnce(new Error('fail1'))
       .mockRejectedValueOnce(new Error('fail2'))
       .mockRejectedValueOnce(new Error('fail3'))
@@ -76,7 +78,10 @@ describe('Retry', () => {
   test('should stop retrying when abortSignal is triggered', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('fail'))
     const abortController = new AbortController()
-    const retry = new Retry(fn, { backoffFn: constantBackoff(10), abortSignal: abortController.signal })
+    const retry = new Retry(fn, {
+      backoffFn: constantBackoff(10),
+      abortSignal: abortController.signal,
+    })
 
     setTimeout(() => abortController.abort(), 25)
 
@@ -90,7 +95,10 @@ describe('Retry', () => {
     const abortController = new AbortController()
     abortController.abort() // Cancel before creating Retry instance
 
-    const retry = new Retry(fn, { backoffFn: constantBackoff(10), abortSignal: abortController.signal })
+    const retry = new Retry(fn, {
+      backoffFn: constantBackoff(10),
+      abortSignal: abortController.signal,
+    })
 
     await expect(retry.result).rejects.toThrow('fail')
     expect(fn).toHaveBeenCalledTimes(0)

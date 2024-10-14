@@ -250,19 +250,22 @@ export function useItState<T>(
 
   const [state, setState] = useState<T | undefined>(undefined)
 
-  const update = useCallback((getNextState: GetStateFunc<T>) => {
-    setState((prev) => {
-      const next = getNextState()
-      if (
-        typeof next === 'undefined' ||
-        next === prev ||
-        (cmpState && typeof prev !== 'undefined' && cmpState(prev, next))
-      ) {
-        return prev
-      }
-      return next
-    })
-  }, [cmpState])
+  const update = useCallback(
+    (getNextState: GetStateFunc<T>) => {
+      setState((prev) => {
+        const next = getNextState()
+        if (
+          typeof next === 'undefined' ||
+          next === prev ||
+          (cmpState && typeof prev !== 'undefined' && cmpState(prev, next))
+        ) {
+          return prev
+        }
+        return next
+      })
+    },
+    [cmpState],
+  )
 
   useLatestRef(getState, update)
 
@@ -438,22 +441,21 @@ export function useMemoEqual<T>(
   value: T,
   checkEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
 ): T {
-  const ref = useRef<T>(value);
+  const ref = useRef<T>(value)
 
   const isEqual =
     value === ref.current ||
     (value != null &&
       ref.current != null &&
       checkEqual &&
-      checkEqual(value as NonNullable<T>, ref.current as NonNullable<T>));
+      checkEqual(value as NonNullable<T>, ref.current as NonNullable<T>))
 
   if (!isEqual) {
-    ref.current = value;
+    ref.current = value
   }
 
-  return ref.current;
+  return ref.current
 }
-
 
 // useMemoEqualGetter checks if the given value is equal to the memoized value
 // and returns the memoized value if so. If the value is different, calls the
