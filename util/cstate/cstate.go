@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"golang.org/x/sync/semaphore"
+	"github.com/aperturerobotics/util/csync"
 )
 
 // CState maintains an operation queue and a set of watchers.
@@ -19,7 +19,7 @@ type CState[T any] struct {
 	// used whenever mtx needs to be locked
 	opQueue chan *queuedOp[T]
 	// mtx guards below fields
-	mtx semaphore.Weighted
+	mtx csync.Mutex
 	// watchers contains the list of watchers.
 	watchers []*watcher[T]
 	// obj contains the state object
@@ -38,7 +38,6 @@ func NewCState[T any](obj T) *CState[T] {
 		wake:    make(chan bool, 1),
 		opQueue: make(chan *queuedOp[T], 1),
 		obj:     obj,
-		mtx:     *semaphore.NewWeighted(1),
 	}
 }
 
@@ -51,21 +50,22 @@ func (c *CState[T]) Obj() T {
 func (c *CState[T]) View(
 	ctx context.Context,
 	cb func(ctx context.Context, value T) error,
-) (err error) {
-	err = c.mtx.Acquire(ctx, 1)
+) (rerr error) {
+	var unlock func()
+	unlock, err := c.mtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if perr := recover(); perr != nil {
-			if err == nil {
-				err, _ = perr.(error)
+			if rerr == nil {
+				rerr, _ = perr.(error)
 			}
-			if err == nil {
-				err = errors.New("view callback paniced")
+			if rerr == nil {
+				rerr = errors.New("view callback paniced")
 			}
 		}
-		c.mtx.Release(1)
+		unlock()
 	}()
 	return cb(ctx, c.obj)
 }
@@ -124,10 +124,13 @@ func (c *CState[T]) AddWatcher(
 			// cb is nil, no-op
 		}, nil
 	}
-	err := c.mtx.Acquire(ctx, 1)
+
+	unlock, err := c.mtx.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer unlock()
+
 	wt := &watcher[T]{
 		ctx:     ctx,
 		changed: cb,
@@ -137,10 +140,11 @@ func (c *CState[T]) AddWatcher(
 	if initial {
 		cb(ctx, c.obj)
 	}
-	c.mtx.Release(1)
+
 	return func() {
 		removeOnce.Do(func() {
-			_ = c.mtx.Acquire(context.Background(), 1)
+			unlock, _ := c.mtx.Lock(context.Background())
+			defer unlock()
 			for i, exw := range c.watchers {
 				if exw == wt {
 					c.watchers[i] = c.watchers[len(c.watchers)-1]
@@ -149,7 +153,6 @@ func (c *CState[T]) AddWatcher(
 					break
 				}
 			}
-			c.mtx.Release(1)
 		})
 	}, nil
 }
@@ -185,7 +188,7 @@ func (c *CState[T]) Execute(ctx context.Context, errCh <-chan error) error {
 	var dirty bool
 	for {
 		// lock mtx
-		err := c.mtx.Acquire(ctx, 1)
+		unlock, err := c.mtx.Lock(ctx)
 		if err != nil {
 			return err
 		}
@@ -246,7 +249,7 @@ func (c *CState[T]) Execute(ctx context.Context, errCh <-chan error) error {
 		}
 
 		// unlock
-		c.mtx.Release(1)
+		unlock()
 
 		select {
 		case <-ctx.Done():
