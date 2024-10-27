@@ -137,15 +137,17 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 
 	for {
 		t.mtx.Lock()
+
 		w, err := t.GetRoot(ctx)
 		if err != nil {
 			t.mtx.Unlock()
 			return 0, err
 		}
+
 		seqno := w.GetLastChange().GetSeqno()
 		var waitCh chan uint64
 		tooOld := seqno < value
-		if err == nil && tooOld {
+		if tooOld {
 			waitCh = make(chan uint64, 1)
 			t.waiters = append(t.waiters, func(seqno uint64) {
 				select {
@@ -155,9 +157,7 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 			})
 		}
 		t.mtx.Unlock()
-		if err != nil {
-			return 0, err
-		}
+
 		if !tooOld {
 			return seqno, nil
 		}
