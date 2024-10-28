@@ -57,22 +57,7 @@ func (t *Tx) IsNil() bool {
 
 // Clone clones the tx object.
 func (t *Tx) Clone() *Tx {
-	if t == nil {
-		return nil
-	}
-	return &Tx{
-		TxType: t.GetTxType(),
-
-		TxApplyObjectOp:   t.GetTxApplyObjectOp().Clone(),
-		TxApplyWorldOp:    t.GetTxApplyWorldOp().Clone(),
-		TxCreateObject:    t.GetTxCreateObject().Clone(),
-		TxObjectIncRev:    t.GetTxObjectIncRev().Clone(),
-		TxObjectSet:       t.GetTxObjectSet().Clone(),
-		TxDeleteObject:    t.GetTxDeleteObject().Clone(),
-		TxSetGraphQuad:    t.GetTxSetGraphQuad().Clone(),
-		TxDeleteGraphQuad: t.GetTxDeleteGraphQuad().Clone(),
-		TxBatch:           t.GetTxBatch().Clone(),
-	}
+	return t.CloneVT()
 }
 
 // Validate performs cursory validation of the Tx.
