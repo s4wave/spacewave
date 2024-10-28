@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
@@ -56,10 +55,9 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	}
 
 	// commit
-	commitErr := e.writeTx.Commit(ctx)
+	nroot, commitErr := e.writeTx.CommitBlockTransaction(ctx)
 
 	// validate the new root
-	var nroot *block.BlockRef
 	if commitErr == nil {
 		nroot = e.writeTx.state.GetRootRef()
 		// expect a non-nil ref

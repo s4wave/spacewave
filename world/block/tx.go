@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/tx"
@@ -116,22 +117,35 @@ func (t *Tx) ApplyWorldOp(
 	return t.state.ApplyWorldOp(ctx, op, opSender)
 }
 
+// CommitBlockTransaction implements Commit but additionally returns the updated BlockRef.
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
-func (t *Tx) Commit(ctx context.Context) error {
+func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error) {
 	unlock, err := t.rmtx.Lock(ctx, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	defer unlock()
+
 	discarded := t.discarded
 	if !discarded {
 		t.discarded = true
 		err = t.state.Commit(ctx)
 	}
-	unlock()
 	if discarded {
-		return tx.ErrDiscarded
+		return nil, tx.ErrDiscarded
 	}
+	if err != nil {
+		return nil, err
+	}
+
+	return t.state.GetRootRef(), nil
+}
+
+// Commit commits the transaction to storage.
+// Can return an error to indicate tx failure.
+func (t *Tx) Commit(ctx context.Context) error {
+	_, err := t.CommitBlockTransaction(ctx)
 	return err
 }
 
