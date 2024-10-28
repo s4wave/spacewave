@@ -11,8 +11,7 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 )
 
-// WorldState implements a WorldState backed by a read state & a forked write
-// state. Buffers applied operations into TxBatch objects.
+// WorldState implements a WorldState which tracks applied operations as a TxBatch.
 type WorldState struct {
 	// ctx is the world state context
 	ctx context.Context

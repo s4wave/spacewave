@@ -30,3 +30,4 @@ __debug_bin*
 .aider*
 /.tools/
 *@*.local*
+.env

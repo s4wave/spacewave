@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/block"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
@@ -34,16 +35,24 @@ func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
 // Can return an error to indicate tx failure.
 // If not write, returns ErrNotWrite.
 func (e *EngineTx) Commit(ctx context.Context) error {
+	_, err := e.CommitBlockTransaction(ctx)
+	return err
+}
+
+// CommitBlockTransaction implements Commit but additionally returns the updated ObjectRef.
+// Commit commits the transaction to storage.
+// Can return an error to indicate tx failure.
+// If not write, returns ErrNotWrite.
+func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, error) {
 	if e.writeTx == nil {
 		e.Discard()
-		return tx.ErrNotWrite
+		return nil, tx.ErrNotWrite
 	}
 
 	// ensure tx is not already discarded
 	// also marks the tx as discarded
-	// NOTE: we MUST call wmtx.Release below!
 	if !e.release() {
-		return tx.ErrDiscarded
+		return nil, tx.ErrDiscarded
 	}
 
 	// commit
@@ -57,6 +66,7 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 		commitErr = nroot.Validate(false)
 	}
 
+	var nextRootRef *bucket.ObjectRef
 	// apply committed changes or rollback
 	e.engine.rmtx.Lock()
 	if e.engine.writeTx != e {
@@ -67,7 +77,7 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	} else {
 		// call commitFn if set
 		if commitErr == nil {
-			nextRootRef := e.engine.root.GetRef().Clone()
+			nextRootRef = e.engine.root.GetRef().Clone()
 			// do nothing if nothing changed
 			if !nroot.EqualVT(nextRootRef.RootRef) {
 				nextRootRef.RootRef = nroot
@@ -85,7 +95,10 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 	e.engine.rmtx.Unlock()
 	e.engine.wmtx.Release(1)
 
-	return commitErr
+	if commitErr != nil {
+		return nil, commitErr
+	}
+	return nextRootRef, nil
 }
 
 // Discard cancels the transaction.
