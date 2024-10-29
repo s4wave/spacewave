@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.38.3 // master
+	github.com/aperturerobotics/bifrost v0.39.0 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -62,12 +62,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.18.7 // latest
-	github.com/aperturerobotics/controllerbus v0.47.8 // latest
-	github.com/aperturerobotics/entitygraph v0.10.0 // latest
-	github.com/aperturerobotics/protobuf-go-lite v0.7.0 // latest
-	github.com/aperturerobotics/starpc v0.35.0 // latest
-	github.com/aperturerobotics/util v1.25.10 // latest
+	github.com/aperturerobotics/common v0.19.1 // latest
+	github.com/aperturerobotics/controllerbus v0.48.0 // latest
+	github.com/aperturerobotics/entitygraph v0.10.1 // latest
+	github.com/aperturerobotics/protobuf-go-lite v0.8.0 // latest
+	github.com/aperturerobotics/starpc v0.35.2 // latest
+	github.com/aperturerobotics/util v1.26.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -81,27 +81,27 @@ replace (
 	github.com/nats-io/nats-server/v2 => github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f // aperture-2.0
 	github.com/nats-io/nats.go => github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 // aperture-2.0
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.3.0 // indirect: used by bifrost-nats-server
-	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.47.1-0.20240930074049-d9f13f608464 // aperture
+	github.com/quic-go/quic-go => github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89 // aperture
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 // aperture
 )
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
-	github.com/klauspost/compress v1.17.10
-	github.com/libp2p/go-libp2p v0.36.5
+	github.com/klauspost/compress v1.17.11
+	github.com/libp2p/go-libp2p v0.37.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.13.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.21 // indirect
+	github.com/nats-io/nats-server/v2 v2.10.22 // indirect
 	github.com/nats-io/nats.go v1.37.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.9 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
-	github.com/pion/webrtc/v4 v4.0.0-beta.34 // indirect
+	github.com/pion/webrtc/v4 v4.0.1 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.47.0 // indirect
+	github.com/quic-go/quic-go v0.48.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli/v2 v2.27.4
+	github.com/urfave/cli/v2 v2.27.5
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.28.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
@@ -125,7 +125,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/coder/websocket v1.8.13-0.20240919094401-cef8e11d00b0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
