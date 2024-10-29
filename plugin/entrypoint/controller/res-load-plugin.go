@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/retry"
-	cbackoff "github.com/cenkalti/backoff"
+	cbackoff "github.com/cenkalti/backoff/v4"
 )
 
 // resolveLoadPlugin resolves a LoadPlugin directive.

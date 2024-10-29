@@ -2,7 +2,7 @@ package plugin_entrypoint_controller
 
 import (
 	"github.com/aperturerobotics/util/backoff"
-	cbackoff "github.com/cenkalti/backoff"
+	cbackoff "github.com/cenkalti/backoff/v4"
 )
 
 func buildBackoff() cbackoff.BackOff {

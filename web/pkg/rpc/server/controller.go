@@ -15,7 +15,7 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
-	cbackoff "github.com/cenkalti/backoff"
+	cbackoff "github.com/cenkalti/backoff/v4"
 	"github.com/sirupsen/logrus"
 )
 
