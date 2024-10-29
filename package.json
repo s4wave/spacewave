@@ -55,6 +55,6 @@
     "starpc": "^0.35.2"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.4.7"
+    "@aptre/protobuf-es-lite": "0.4.8"
   }
 }

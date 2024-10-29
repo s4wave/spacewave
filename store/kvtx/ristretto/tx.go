@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 )
 
 // Tx implements a transaction on top of the cache.

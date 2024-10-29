@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 )
 
 // Store is a ristretto cache backed kvtx store.
