@@ -253,6 +253,15 @@ func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 
 // SetGraphQuad sets a quad in the graph store.
 func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	if !w.write {
+		return tx.ErrNotWrite
+	}
+
+	t, err := NewTxSetGraphQuad(world.GraphQuadToQuad(q))
+	if err != nil {
+		return err
+	}
+
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -260,12 +269,27 @@ func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 		return tx.ErrDiscarded
 	}
 
-	return w.world.SetGraphQuad(ctx, q)
+	if err := w.world.SetGraphQuad(ctx, q); err != nil {
+		return err
+	}
+
+	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	w.seqno++
+	return nil
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	if !w.write {
+		return tx.ErrNotWrite
+	}
+
+	t, err := NewTxDeleteGraphQuad(world.GraphQuadToQuad(q))
+	if err != nil {
+		return err
+	}
+
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -273,7 +297,13 @@ func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 		return tx.ErrDiscarded
 	}
 
-	return w.world.DeleteGraphQuad(ctx, q)
+	if err := w.world.DeleteGraphQuad(ctx, q); err != nil {
+		return err
+	}
+
+	w.txBatch.Txs = append(w.txBatch.Txs, t)
+	w.seqno++
+	return nil
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.

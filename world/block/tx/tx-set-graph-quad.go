@@ -31,7 +31,7 @@ func (t *TxSetGraphQuad) IsNil() bool {
 
 // GetTxType returns the type of transaction this is.
 func (t *TxSetGraphQuad) GetTxType() TxType {
-	return TxType_TxType_CREATE_OBJECT
+	return TxType_TxType_SET_GRAPH_QUAD
 }
 
 // GetEmpty checks if the tx is empty.
