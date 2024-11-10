@@ -1155,10 +1155,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-electron@^33.0.2:
-  version "33.0.2"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-33.0.2.tgz#db31b105bf0edd7c8600dfb70c2dfc214e3789f1"
-  integrity sha512-C2WksfP0COsMHbYXSJG68j6S3TjuGDrw/YT42B526yXalIlNQZ2GeAYKryg6AEMkIp3p8TUfDRD0+HyiyCt/nw==
+electron@^33.2.0:
+  version "33.2.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-33.2.0.tgz#2a7098653eaf1a53c7311a01d5636783019f2354"
+  integrity sha512-PVw1ICAQDPsnnsmpNFX/b1i/49h67pbSPxuIENd9K9WpGO1tsRaQt+K2bmXqTuoMJsbzIc75Ce8zqtuwBPqawA==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -2484,10 +2484,10 @@ starpc@^0.35.0:
     uint8arraylist "^2.4.7"
     ws "^8.17.0"
 
-starpc@^0.35.2:
-  version "0.35.2"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.35.2.tgz#4f5385fe2a36eb1c2c11e179ebc257213b7d0d7f"
-  integrity sha512-WeHEhnc6ADPDzxXZm96t0huN5q8Z471fCYYpMnvDHLIau25oyMnPedsD+/Wn8S+vqlZgCR6LXCFhCs1foBm9zw==
+starpc@^0.35.3:
+  version "0.35.3"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.35.3.tgz#abdd81fee22065bbecdac8e5508611b071e204d9"
+  integrity sha512-9joAmZVyv2UIESBW6UPVYITXiBML5rLuBkEQRRoOt0IdpoB3qV1aJ+ps7p2XBOUXCiZjGDY45KtdfG/vOr7vJg==
   dependencies:
     "@aptre/it-ws" "^1.0.1"
     "@aptre/protobuf-es-lite" "^0.4.6"
@@ -2841,18 +2841,18 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workbox-core@7.1.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/workbox-core/-/workbox-core-7.1.0.tgz#1867576f994f20d9991b71a7d0b2581af22db170"
-  integrity sha512-5KB4KOY8rtL31nEF7BfvU7FMzKT4B5TkbYa2tzkS+Peqj0gayMT9SytSFtNzlrvMaWgv6y/yvP9C0IbpFjV30Q==
+workbox-core@7.3.0:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/workbox-core/-/workbox-core-7.3.0.tgz#f24fb92041a0b7482fe2dd856544aaa9fa105248"
+  integrity sha512-Z+mYrErfh4t3zi7NVTvOuACB0A/jA3bgxUN3PwtAVHvfEsZxV9Iju580VEETug3zYJRc0Dmii/aixI/Uxj8fmw==
 
-workbox-window@^7.1.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/workbox-window/-/workbox-window-7.1.0.tgz#58a90ba89ca35d26f2b322223ee575c750bac7a1"
-  integrity sha512-ZHeROyqR+AS5UPzholQRDttLFqGMwP0Np8MKWAdyxsDETxq3qOAyXvqessc3GniohG6e0mAqSQyKOHmT8zPF7g==
+workbox-window@^7.3.0:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/workbox-window/-/workbox-window-7.3.0.tgz#e71bb0b4d880d2295c96bf1ccadb6cea0df51c07"
+  integrity sha512-qW8PDy16OV1UBaUNGlTVcepzrlzyzNW/ZJvFQQs2j2TzGsg6IKjcpZC1RSquqQnTOafl5pCj5bGfAHlCjOOjdA==
   dependencies:
     "@types/trusted-types" "^2.0.2"
-    workbox-core "7.1.0"
+    workbox-core "7.3.0"
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
   version "7.0.0"

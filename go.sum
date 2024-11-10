@@ -48,8 +48,8 @@ github.com/aperturerobotics/protobuf-go-lite v0.8.0 h1:SoiTAVArmOrNTX31e6CC5Bem6
 github.com/aperturerobotics/protobuf-go-lite v0.8.0/go.mod h1:y49wVEezRHg78uQ2OzLLZbtTTWuox+ChmaTuh6FLJW8=
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89 h1:MUXLrLDjCw36dx8OeBwF/B7YP5akyoU6Ps+v50qR5Lo=
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89/go.mod h1:vhhkHYq2i9lb0bOllqKhOdtg/3i7r4o/7zc8XI/T4lo=
-github.com/aperturerobotics/starpc v0.35.2 h1:ZoA5f4QuXQV2zYlrikE99js14DimZhp1PA7LEGjqQyQ=
-github.com/aperturerobotics/starpc v0.35.2/go.mod h1:+pq40XoDNQWsoi2HECCXSyn9RvM/jdSa4BVbSIG+fYA=
+github.com/aperturerobotics/starpc v0.35.3 h1:DrKJBLtmjaT4O9AxxYK4q/NpgljFslAWsE6slfIeo/o=
+github.com/aperturerobotics/starpc v0.35.3/go.mod h1:5vbBYPdxiATQBgBRMWG58kczFZf52byOZq/aX50iaQA=
 github.com/aperturerobotics/util v1.26.2 h1:PrBgJ3ydAwSD59o7s5zRfL+mbphIC6xo2Inor7/K+ok=
 github.com/aperturerobotics/util v1.26.2/go.mod h1:jp9+cf8cTlX5Jf0F9RlXmKtEw0yXC6gU92V9lXoZ74M=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

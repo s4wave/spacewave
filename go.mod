@@ -79,7 +79,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.48.1 // latest
 	github.com/aperturerobotics/entitygraph v0.10.1 // indirect; latest
-	github.com/aperturerobotics/starpc v0.35.2 // latest
+	github.com/aperturerobotics/starpc v0.35.3 // latest
 	github.com/aperturerobotics/util v1.26.2 // latest
 )
 
