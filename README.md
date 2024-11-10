@@ -11,13 +11,14 @@
  - **Identity**: each volume has an identity independent from the host.
  - **Replication**: bucket policies implement data replication behaviors.
 
-Stores peer-to-peer data structures on pluggable storage backends like [bbolt]
-and [IPFS], as well as over 40 cloud storage providers (via [rclone]). Supports
-nested and peer-to-peer block-graph backed volumes.
+Stores peer-to-peer data structures (similar to IPLD) on pluggable storage
+backends like [bbolt], [BadgerDB], [Valkey], [IndexedDB] and more. Any K/V store
+can be used as a storage backend.
 
 [bbolt]: https://github.com/etcd-io/bbolt
-[IPFS]: https://ipfs.io/
-[rclone]: https://github.com/rclone/rclone
+[BadgerDB]: https://github.com/dgraph-io/badger
+[Valkey]: https://github.com/valkey-io/valkey
+[IndexedDB]: https://github.com/aperturerobotics/go-indexeddb
 
 ## Overview
 
