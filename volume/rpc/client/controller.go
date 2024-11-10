@@ -2,7 +2,9 @@ package volume_rpc_client
 
 import (
 	"context"
+	"errors"
 	"regexp"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -102,6 +104,35 @@ func (c *Controller) HandleDirective(
 	}
 
 	return nil, nil
+}
+
+// LoadProxyVolume loads the proxy volume by ID.
+// Returns a function to release the volume reference.
+// Returns an error if the volume id does not match this controller.
+func (c *Controller) LoadProxyVolume(ctx context.Context, volumeID string) (volume.Controller, func(), error) {
+	var matched bool
+	if volumeID, matched = c.checkVolumeID(volumeID); !matched {
+		return nil, nil, errors.New("volume id does not match this rpc client")
+	}
+
+	le := c.le.WithField("volume-id", volumeID)
+	le.Debug("adding proxy volume reference")
+	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
+	var relOnce sync.Once
+	rel := func() {
+		relOnce.Do(func() {
+			le.Debug("removed proxy volume reference")
+			ref.Release()
+		})
+	}
+
+	proxyVol, err := tracker.proxyVolCtr.WaitValue(ctx, nil)
+	if err != nil {
+		rel()
+		return nil, nil, err
+	}
+
+	return proxyVol, rel, nil
 }
 
 // Close releases any resources used by the controller.
