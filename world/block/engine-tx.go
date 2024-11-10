@@ -67,14 +67,12 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	var nextRootRef *bucket.ObjectRef
 	// apply committed changes or rollback
 	e.engine.rmtx.Lock()
-	if e.engine.writeTx != e {
-		// discarded mid-write
-		if commitErr == nil {
+	if commitErr == nil {
+		if e.engine.writeTx != e {
+			// discarded mid-write
 			commitErr = tx.ErrDiscarded
-		}
-	} else {
-		// call commitFn if set
-		if commitErr == nil {
+		} else {
+			// call commitFn if set
 			nextRootRef = e.engine.root.GetRef().Clone()
 			// do nothing if nothing changed
 			if !nroot.EqualVT(nextRootRef.RootRef) {
