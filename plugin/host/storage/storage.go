@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
-	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
 )
 

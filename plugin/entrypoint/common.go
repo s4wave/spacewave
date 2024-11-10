@@ -247,9 +247,11 @@ func ExecutePlugin(
 	}
 
 	// start the plugin host storage controller and use the default storage id
+	hostStorage := plugin_host_storage.NewPluginHostStorage()
+	hostStorage.AddFactories(b, sr)
 	hostStorageCtrl := storage_controller.BuildStorageController(
 		bldr_plugin.HostStorageID,
-		[]storage.Storage{plugin_host_storage.NewPluginHostStorage()},
+		[]storage.Storage{hostStorage},
 		controller.NewInfo(
 			"plugin/host/storage",
 			Version,
