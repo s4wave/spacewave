@@ -7,7 +7,6 @@ package storage
 import (
 	fmt "fmt"
 	io "io"
-	strconv "strconv"
 	strings "strings"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
@@ -17,14 +16,6 @@ import (
 // StorageInfo is information about an available storage method.
 type StorageInfo struct {
 	unknownFields []byte
-	// Isolated indicates that keys written to named stores are isolated from
-	// other named stores from the same Storage source. In other words, each named
-	// store is backed by a separate database. If false, each named store should
-	// be separated with a key prefix (or similar).
-	Isolated bool `protobuf:"varint,1,opt,name=isolated,proto3" json:"isolated,omitempty"`
-	// Cache indicates this is cache storage where keys may be evicted. However,
-	// cache storage is expected to be faster than non-cache storage.
-	Cache bool `protobuf:"varint,2,opt,name=cache,proto3" json:"cache,omitempty"`
 }
 
 func (x *StorageInfo) Reset() {
@@ -33,27 +24,11 @@ func (x *StorageInfo) Reset() {
 
 func (*StorageInfo) ProtoMessage() {}
 
-func (x *StorageInfo) GetIsolated() bool {
-	if x != nil {
-		return x.Isolated
-	}
-	return false
-}
-
-func (x *StorageInfo) GetCache() bool {
-	if x != nil {
-		return x.Cache
-	}
-	return false
-}
-
 func (m *StorageInfo) CloneVT() *StorageInfo {
 	if m == nil {
 		return (*StorageInfo)(nil)
 	}
 	r := new(StorageInfo)
-	r.Isolated = m.Isolated
-	r.Cache = m.Cache
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -69,12 +44,6 @@ func (this *StorageInfo) EqualVT(that *StorageInfo) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Isolated != that.Isolated {
-		return false
-	}
-	if this.Cache != that.Cache {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -95,17 +64,6 @@ func (x *StorageInfo) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
-	var wroteField bool
-	if x.Isolated || s.HasField("isolated") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("isolated")
-		s.WriteBool(x.Isolated)
-	}
-	if x.Cache || s.HasField("cache") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("cache")
-		s.WriteBool(x.Cache)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -119,18 +77,6 @@ func (x *StorageInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "isolated":
-			s.AddField("isolated")
-			x.Isolated = s.ReadBool()
-		case "cache":
-			s.AddField("cache")
-			x.Cache = s.ReadBool()
-		}
-	})
 }
 
 // UnmarshalJSON unmarshals the StorageInfo from JSON.
@@ -168,26 +114,6 @@ func (m *StorageInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.Cache {
-		i--
-		if m.Cache {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Isolated {
-		i--
-		if m.Isolated {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x8
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -197,12 +123,6 @@ func (m *StorageInfo) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Isolated {
-		n += 2
-	}
-	if m.Cache {
-		n += 2
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -210,20 +130,6 @@ func (m *StorageInfo) SizeVT() (n int) {
 func (x *StorageInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("StorageInfo {")
-	if x.Isolated != false {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("isolated: ")
-		sb.WriteString(strconv.FormatBool(x.Isolated))
-	}
-	if x.Cache != false {
-		if sb.Len() > 13 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("cache: ")
-		sb.WriteString(strconv.FormatBool(x.Cache))
-	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -260,46 +166,6 @@ func (m *StorageInfo) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: StorageInfo: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Isolated", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Isolated = bool(v != 0)
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Cache", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Cache = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

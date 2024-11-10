@@ -30,10 +30,7 @@ func NewBoltDB(verbose bool, rootDir string) storage.Storage {
 
 // GetStorageInfo returns StorageInfo.
 func (i *BoltDB) GetStorageInfo() *storage.StorageInfo {
-	return &storage.StorageInfo{
-		Isolated: true,
-		Cache:    false,
-	}
+	return &storage.StorageInfo{}
 }
 
 // AddFactories adds the factories to the resolver.

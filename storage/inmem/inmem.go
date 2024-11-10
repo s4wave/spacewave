@@ -19,10 +19,7 @@ func NewInmemStorage() *InmemStorage {
 
 // GetStorageInfo returns StorageInfo.
 func (s *InmemStorage) GetStorageInfo() *storage.StorageInfo {
-	return &storage.StorageInfo{
-		Isolated: false,
-		Cache:    false,
-	}
+	return &storage.StorageInfo{}
 }
 
 // AddFactories adds the factories to the resolver.

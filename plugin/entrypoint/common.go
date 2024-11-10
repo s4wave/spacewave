@@ -13,7 +13,11 @@ import (
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
+	plugin_host_storage "github.com/aperturerobotics/bldr/plugin/host/storage"
+	plugin_host_storage_volume "github.com/aperturerobotics/bldr/plugin/host/storage/volume"
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
+	"github.com/aperturerobotics/bldr/storage"
+	storage_controller "github.com/aperturerobotics/bldr/storage/controller"
 	web_fetch_service "github.com/aperturerobotics/bldr/web/fetch/service"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -70,6 +74,7 @@ func ExecutePlugin(
 	// add built-in factories
 	sr.AddFactory(plugin_assets_http.NewFactory(b))
 	sr.AddFactory(plugin_host_configset.NewFactory(b))
+	sr.AddFactory(plugin_host_storage_volume.NewFactory(b))
 
 	// add provided factories
 	for _, fn := range addFactoryFuncs {
@@ -240,6 +245,22 @@ func ExecutePlugin(
 			}
 		}()
 	}
+
+	// start the plugin host storage controller and use the default storage id
+	hostStorageCtrl := storage_controller.BuildStorageController(
+		bldr_plugin.HostStorageID,
+		[]storage.Storage{plugin_host_storage.NewPluginHostStorage()},
+		controller.NewInfo(
+			"plugin/host/storage",
+			Version,
+			"plugin host storage controller",
+		),
+	)
+	relHostStorageCtrl, err := b.AddController(ctx, hostStorageCtrl, handleErr)
+	if err != nil {
+		return err
+	}
+	defer relHostStorageCtrl()
 
 	// we have to use a separate goroutine because AcceptMuxedConn might not
 	// notice ctx is canceled until after a connection arrives.

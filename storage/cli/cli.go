@@ -24,10 +24,7 @@ func NewCliStorage(args *hcli.DaemonArgs) *CliStorage {
 
 // GetStorageInfo returns StorageInfo.
 func (s *CliStorage) GetStorageInfo() *storage.StorageInfo {
-	return &storage.StorageInfo{
-		Isolated: false,
-		Cache:    false,
-	}
+	return &storage.StorageInfo{}
 }
 
 // AddFactories adds the factories to the resolver.

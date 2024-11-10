@@ -31,10 +31,7 @@ func NewIndexedDB(prefix string, verbose bool) storage.Storage {
 
 // GetStorageInfo returns StorageInfo.
 func (i *IndexedDB) GetStorageInfo() *storage.StorageInfo {
-	return &storage.StorageInfo{
-		Isolated: true,
-		Cache:    false,
-	}
+	return &storage.StorageInfo{}
 }
 
 // AddFactories adds the factories to the resolver.

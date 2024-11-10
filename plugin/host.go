@@ -51,6 +51,9 @@ const PluginServiceIDPrefix = "plugin/"
 // HostVolumeServiceIDPrefix is the service ID prefix for the host ProxyVolume.
 const HostVolumeServiceIDPrefix = "host-volume/"
 
+// HostStorageID is the storage ID to use for the plugin host within a plugin.
+const HostStorageID = "default"
+
 // PluginAssetsFsId is the identifier to use for the plugin assets fs on the plugin bus.
 const PluginAssetsFsId = "plugin-assets"
 

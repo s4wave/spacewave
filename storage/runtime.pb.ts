@@ -3,40 +3,23 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { createMessageType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'storage'
 
 /**
  * StorageInfo is information about an available storage method.
  *
+ * TODO: The following fields will be necessary eventually.
+ * TODO: Since they are not yet used or accessed anywhere, comment them out for now.
+ *
  * @generated from message storage.StorageInfo
  */
-export interface StorageInfo {
-  /**
-   * Isolated indicates that keys written to named stores are isolated from
-   * other named stores from the same Storage source. In other words, each named
-   * store is backed by a separate database. If false, each named store should
-   * be separated with a key prefix (or similar).
-   *
-   * @generated from field: bool isolated = 1;
-   */
-  isolated?: boolean
-  /**
-   * Cache indicates this is cache storage where keys may be evicted. However,
-   * cache storage is expected to be faster than non-cache storage.
-   *
-   * @generated from field: bool cache = 2;
-   */
-  cache?: boolean
-}
+export interface StorageInfo {}
 
 // StorageInfo contains the message type declaration for StorageInfo.
 export const StorageInfo: MessageType<StorageInfo> = createMessageType({
   typeName: 'storage.StorageInfo',
-  fields: [
-    { no: 1, name: 'isolated', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'cache', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  fields: [] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
