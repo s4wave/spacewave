@@ -5,6 +5,7 @@ import (
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 )
 
@@ -18,4 +19,7 @@ func addCommonFactories(b bus.Bus, sr *static.Resolver) {
 
 	// plugin host
 	sr.AddFactory(plugin_host_default.NewPluginHostControllerFactory(b))
+
+	// volume rpc server
+	sr.AddFactory(volume_rpc_server.NewFactory(b))
 }

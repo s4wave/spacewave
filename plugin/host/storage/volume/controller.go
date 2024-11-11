@@ -79,9 +79,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 	hostVolumeConf.DisableReconcilerQueues = true
 	hostVolumeConf.DisableEventBlockRm = true
 
+	// Host storage ID defaults
+	hostStorageID := c.GetConfig().GetStorageId()
+	if hostStorageID == "" {
+		hostStorageID = "default"
+	}
+
 	// Start via the plugin host.
 	hostStorageVolumeConf := &storage_volume.Config{
-		StorageId:       c.GetConfig().GetStorageId(),
+		StorageId:       hostStorageID,
 		StorageVolumeId: storageVolumeID,
 		VolumeConfig:    hostVolumeConf,
 	}
@@ -117,13 +123,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		VolumeIdList:  []string{hostVolumeID},
 		LoadOnStartup: true,
 		VolumeAliases: map[string]*volume_rpc_client.VolumeAliases{
-			hostVolumeID: &volume_rpc_client.VolumeAliases{
+			hostVolumeID: {
 				From: c.GetConfig().GetVolumeConfig().GetVolumeIdAlias(),
 			},
 		},
-	}
-	if err != nil {
-		return err
 	}
 	rpcClient, _, rpcClientRef, err := loader.WaitExecControllerRunningTyped[*volume_rpc_client.Controller](ctx, c.GetBus(), resolver.NewLoadControllerWithConfig(volumeRpcClientConf), nil)
 	if err != nil {

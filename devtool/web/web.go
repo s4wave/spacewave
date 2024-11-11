@@ -4,13 +4,14 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/protocol"
 	"github.com/aperturerobotics/bifrost/util/confparse"
+	"github.com/aperturerobotics/bldr/plugin"
 	"github.com/pkg/errors"
 )
 
 // HostServiceIDPrefix is the prefix used for the devtool RPC services. This
 // ID can be prepended to RPC service IDs to indicate the service is located on
 // the devtool (while running within the web runtime).
-const HostServiceIDPrefix = "devtool/"
+const HostServiceIDPrefix = bldr_plugin.HostServiceIDPrefix // "devtool/"
 
 // HostServerID is the server ID used for devtool-host originating RPC calls.
 const HostServerID = "devtool/web"
