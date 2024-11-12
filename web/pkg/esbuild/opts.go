@@ -91,6 +91,27 @@ func BuildEsbuildBuildOpts(
 	// https://esbuild.github.io/content-types/#local-css
 	addLoader(".module.css", esbuild_api.LoaderLocalCSS)
 
+	// add text loaders for common text file types
+	textLoaderExts := []string{
+		".txt",
+		".md",
+		".csv",
+		".tsv",
+		".yaml",
+		".yml",
+		".json",
+		".toml",
+		".ini",
+		".env",
+		".rst",
+		".log",
+		".conf",
+		".cfg",
+	}
+	for _, ext := range textLoaderExts {
+		addLoader(ext, esbuild_api.LoaderText)
+	}
+
 	// bldr provides itself and react via an importmap
 	buildOpts.External = append(buildOpts.External, BldrExternal...)
 
