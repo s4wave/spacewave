@@ -68,7 +68,7 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *executePlugin
 	tr.watchWorldManifestRoutine = routine.NewRoutineContainerWithLogger(le, routine.WithRetry(fetchBackoff))
 	tr.watchWorldManifestRoutine.SetRoutine(tr.execWatchWorldManifest)
 
-	tr.downloadManifestRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.FetchManifestValue](le)
+	tr.downloadManifestRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.FetchManifestValue](le, routine.WithRetry(fetchBackoff))
 	tr.downloadManifestRoutine.SetStateRoutine(tr.execDownloadManifest)
 
 	tr.executePluginRoutine = routine.NewStateRoutineContainerWithLogger(
