@@ -111,7 +111,6 @@ func (t *executePlugin) execute(ctx context.Context) error {
 			func(tval directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
 				if tval == nil || tval.GetValue() == nil {
 					le.Debug("FetchManifest directive has no value currently")
-					t.downloadManifestRoutine.SetState(nil)
 					return
 				}
 
