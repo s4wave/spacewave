@@ -192,51 +192,89 @@ func (r *FetchRangeReader) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Size uses an HTTP HEAD request to find out the total available bytes.
+// If the HEAD request does not return a Content-Length, it attempts a GET request.
+// If the GET request also lacks a Content-Length, it reads the entire body to determine the size.
 func (r *FetchRangeReader) Size() (uint64, error) {
 	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {
 		return *knownSizePtr, nil
 	}
 
+	// First, try HEAD request
+	size, err := r.getSizeFromRequest("HEAD")
+	if err != nil {
+		if err.Error() == "no content length returned by HEAD request" {
+			// Try GET request
+			size, err = r.getSizeFromRequest("GET")
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return 0, err
+		}
+	}
+
+	r.knownSize.Store(&size)
+	return size, nil
+}
+
+// getSizeFromRequest makes a fetch request with the specified method and attempts to determine the content length.
+// If the Content-Length header is missing in a GET response, it reads and discards the response body to calculate the size.
+func (r *FetchRangeReader) getSizeFromRequest(method string) (uint64, error) {
 	req := r.opts.Clone()
-	req.Method = "HEAD"
+	req.Method = method
 
 	resp, err := fetch.Fetch(r.fetchUrl, req)
 	if err != nil {
 		return 0, err
 	}
+	defer resp.Body.Close()
 
+	// Handle response status codes
 	switch resp.StatusCode {
 	case 200, 206, 204, 304:
-		// success case
+		// Success cases
 	case 416:
-		// Requested Range Not Satisfiable
 		return 0, errors.New("requested range not satisfiable")
 	case 403:
-		// Forbidden
 		return 0, errors.New("forbidden")
 	case 404:
-		// Not Found
 		return 0, errors.New("not found")
 	default:
 		return 0, errors.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
 
-	contentLengthStr := resp.Header.Get("content-length")
-	if len(contentLengthStr) == 0 {
-		return 0, errors.New("no content length returned by HEAD request")
+	contentLengthStr := resp.Header.Get("Content-Length")
+	if len(contentLengthStr) != 0 {
+		contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
+		if err != nil {
+			return 0, errors.Wrap(err, "invalid content length header returned by "+method+" request")
+		}
+		if contentLength < 0 {
+			return 0, errors.Errorf("negative content length returned by "+method+" request: %v", contentLength)
+		}
+		return uint64(contentLength), nil
 	}
 
-	contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
-	if err != nil {
-		return 0, errors.Wrap(err, "invalid content length header returned by HEAD request")
-	}
-	if contentLength < 0 {
-		return 0, errors.Errorf("invalid negative length header returned by HEAD request: %v", contentLength)
+	// If Content-Length is missing in a GET response, read and discard the response body to calculate the size
+	if method == "GET" {
+		var totalSize uint64
+		buffer := make([]byte, 4096) // Buffer for reading in chunks
+		for {
+			n, err := resp.Body.Read(buffer)
+			if n > 0 {
+				totalSize += uint64(n)
+			}
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return 0, errors.Wrap(err, "failed to read response body")
+			}
+		}
+		return totalSize, nil
 	}
 
-	contentLengthU64 := uint64(contentLength)
-	r.knownSize.Store(&contentLengthU64)
-	return contentLengthU64, nil
+	return 0, errors.New("no content length returned by " + method + " request")
 }
 
 func fmtRange(from, length int64) string {

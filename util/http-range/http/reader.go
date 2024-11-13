@@ -190,14 +190,11 @@ func (r *HTTPRangeReader) Seek(offset int64, whence int) (int64, error) {
 	return seek, nil
 }
 
-// Size uses an HTTP HEAD request to find out the total available bytes.
-func (r *HTTPRangeReader) Size() (uint64, error) {
-	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {
-		return *knownSizePtr, nil
-	}
-
+// getSizeFromRequest makes an HTTP request with the specified method and attempts to determine the content length.
+// If the Content-Length header is missing in a GET response, it reads the entire body to calculate the size.
+func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 	req := r.request.Clone(r.request.Context())
-	req.Method = "HEAD"
+	req.Method = method
 
 	resp, err := httplog.DoRequestWithClient(r.le, r.client, req, r.verbose)
 	if err != nil {
@@ -205,43 +202,86 @@ func (r *HTTPRangeReader) Size() (uint64, error) {
 	}
 	defer resp.Body.Close()
 
-	// handle error cases
+	// Handle response status codes
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent, http.StatusNoContent, http.StatusNotModified:
-		// success case
-	case 416:
-		// Requested Range Not Satisfiable
+		// Success cases
+	case http.StatusRequestedRangeNotSatisfiable:
 		return 0, errors.New("requested range not satisfiable")
-	case 403:
-		// Forbidden
+	case http.StatusForbidden:
 		return 0, errors.New("forbidden")
-	case 404:
-		// Not Found
+	case http.StatusNotFound:
 		return 0, errors.New("not found")
 	default:
 		return 0, errors.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
 
-	contentLengthStr := resp.Header.Get("content-length")
-	if len(contentLengthStr) == 0 {
-		return 0, errors.New("no content length returned by HEAD request")
+	contentLengthStr := resp.Header.Get("Content-Length")
+	if len(contentLengthStr) != 0 {
+		contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
+		if err != nil {
+			return 0, errors.Wrap(err, "invalid content length header returned by "+method+" request")
+		}
+		if contentLength < 0 {
+			return 0, errors.Errorf("negative content length returned by "+method+" request: %v", contentLength)
+		}
+		return uint64(contentLength), nil
 	}
 
-	contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
+	// If Content-Length is missing in a GET response, read the entire body
+	if method == http.MethodGet {
+		var totalSize uint64
+		buffer := make([]byte, 4096) // Buffer for reading in chunks
+		for {
+			n, err := resp.Body.Read(buffer)
+			if n > 0 {
+				totalSize += uint64(n)
+			}
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return 0, errors.Wrap(err, "failed to read response body")
+			}
+		}
+		return totalSize, nil
+	}
+
+	return 0, errors.New("no content length returned by " + method + " request")
+}
+
+// Size uses an HTTP HEAD request to find out the total available bytes.
+// If the HEAD request does not return a Content-Length, it attempts a GET request.
+// If the GET request also lacks a Content-Length, it reads the entire body to determine the size.
+func (r *HTTPRangeReader) Size() (uint64, error) {
+	if knownSizePtr := r.knownSize.Load(); knownSizePtr != nil {
+		return *knownSizePtr, nil
+	}
+
+	// First, try HEAD request
+	size, err := r.getSizeFromRequest("HEAD")
 	if err != nil {
-		return 0, errors.Wrap(err, "invalid content length header returned by HEAD request")
-	}
-	if contentLength < 0 {
-		return 0, errors.Errorf("invalid negative length header returned by HEAD request: %v", contentLength)
+		if err.Error() == "no content length returned by HEAD request" {
+			// Try GET request
+			size, err = r.getSizeFromRequest("GET")
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return 0, err
+		}
 	}
 
-	contentLengthU64 := uint64(contentLength)
-	r.knownSize.Store(&contentLengthU64)
-	return contentLengthU64, nil
+	r.knownSize.Store(&size)
+	return size, nil
 }
 
 func fmtRange(from, length int64) string {
-	// range is inclusive, to is last index to fetch
-	to := from + length - 1
+	var to int64
+	if length > 0 {
+		to = from + length - 1
+	} else {
+		to = from
+	}
 	return "bytes=" + strconv.FormatInt(from, 10) + "-" + strconv.FormatInt(to, 10)
 }
