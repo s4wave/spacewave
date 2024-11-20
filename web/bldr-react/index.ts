@@ -1,4 +1,4 @@
-export { BldrRoot } from './bldr-root.js'
+export { BldrRoot, IBldrRootProps } from './bldr-root.js'
 export { WebDocument } from './web-document.js'
 export { WebView, canCloseWindow } from './WebView.js'
 export {
