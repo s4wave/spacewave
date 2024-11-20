@@ -10,6 +10,7 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
+	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/util/exec"
@@ -124,24 +125,69 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath string, minify bool) error {
+//
+// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+// entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
+func BuildRendererBundle(
+	le *logrus.Entry,
+	bldrDistRoot,
+	buildDir,
+	runtimeJsPath,
+	runtimeSwPath,
+	runtimeStartupPath,
+	entrypointHash string,
+	minify bool,
+) error {
 	le.Debug("generating web renderer bundle")
 
-	// index.html
-	webSrcDir := filepath.Join(bldrDistRoot, "web")
-	indexHtmlPath := filepath.Join(webSrcDir, "index.html")
-	ihtml, err := os.ReadFile(indexHtmlPath)
+	// entrypoint import path
+	entrypointImportPath := "./entrypoint"
+	if entrypointHash != "" {
+		entrypointImportPath += "/" + entrypointHash
+	}
+	entrypointImportPath += "/entrypoint.mjs"
+
+	// pkgsPathPrefix is the path prefix to ./pkgs relative to index.html
+	pkgsPathPrefix := "./entrypoint"
+	if entrypointHash != "" {
+		pkgsPathPrefix += "/" + entrypointHash
+	}
+	pkgsPathPrefix += "/pkgs/"
+
+	// build the import map
+	importMap := web_entrypoint_index.ImportMap{
+		Imports: map[string]string{
+			"react":                   pkgsPathPrefix + "react/index.mjs",
+			"react/jsx-runtime":       pkgsPathPrefix + "react/jsx-runtime.mjs",
+			"react-dom":               pkgsPathPrefix + "react-dom/index.mjs",
+			"react-dom/client":        pkgsPathPrefix + "react-dom/client.mjs",
+			"react-dom/test-utils":    pkgsPathPrefix + "react-dom/test-utils.mjs",
+			"@aptre/bldr":             pkgsPathPrefix + "@aptre/bldr/index.mjs",
+			"@aptre/bldr-react":       pkgsPathPrefix + "@aptre/bldr-react/index.mjs",
+			"@aptre/protobuf-es-lite": pkgsPathPrefix + "@aptre/protobuf-es-lite/index.mjs",
+		},
+	}
+
+	// render index.html
+	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
+		ImportMap:      importMap,
+		EntrypointPath: entrypointImportPath,
+	})
 	if err != nil {
 		return err
 	}
 	rendererHtmlOut := filepath.Join(buildDir, "index.html")
-	err = os.WriteFile(rendererHtmlOut, ihtml, 0o644)
+	err = os.WriteFile(rendererHtmlOut, []byte(indexHtml), 0o644)
 	if err != nil {
 		return err
 	}
 
 	// entrypoint
 	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
+	if entrypointHash != "" {
+		webEntrypointOut = filepath.Join(webEntrypointOut, entrypointHash)
+	}
+
 	rendererBuildOpts := BrowserEntrypointBuildOpts(bldrDistRoot, minify)
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true
@@ -154,6 +200,10 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 		rendererBuildOpts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
 	}
 
+	if runtimeStartupPath != "" {
+		rendererBuildOpts.Define["BLDR_STARTUP_JS"] = strconv.Quote(runtimeStartupPath)
+	}
+
 	if !minify {
 		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
 	}
@@ -163,7 +213,21 @@ func BuildRendererBundle(le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath
 }
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
-func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath string, minify, devMode bool) error {
+//
+// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+// entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
+func BuildBrowserBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot,
+	buildDir,
+	runtimeJsPath,
+	runtimeSwPath,
+	runtimeStartupPath string,
+	entrypointHash string,
+	minify,
+	devMode bool,
+) error {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
@@ -184,12 +248,21 @@ func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bui
 	if err != nil {
 		return err
 	}
-	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, minify, devMode); err != nil {
+
+	pkgsPathPrefix := "/entrypoint"
+	if entrypointHash != "" {
+		pkgsPathPrefix += "/" + entrypointHash
+	}
+	entrypointDir := filepath.Join(buildDir, "entrypoint")
+	if entrypointHash != "" {
+		entrypointDir = filepath.Join(entrypointDir, entrypointHash)
+	}
+	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode); err != nil {
 		return err
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, minify); err != nil {
+	if err := BuildRendererBundle(le, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeStartupPath, entrypointHash, minify); err != nil {
 		return err
 	}
 
@@ -197,7 +270,8 @@ func BuildBrowserBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bui
 }
 
 // BuildWebPkgsBundle builds the web pkg bundle files.
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir string, minify, devMode bool) error {
+// pathPrefix is the prefix to prepend to /pkgs/ for pkg paths
+func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, devMode bool) error {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
@@ -251,8 +325,8 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 		buildDir,
 		refs,
 		outDir,
-		// "./pkgs/",
-		"/pkgs/",
+		// pkgsPathPrefix+"",
+		pathPrefix+"/pkgs/",
 		minify,
 	)
 	if err != nil {

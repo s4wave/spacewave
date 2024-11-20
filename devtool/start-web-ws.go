@@ -121,6 +121,12 @@ func (b *DevtoolBus) ExecuteWebWs(
 	entrypointDataDir := filepath.Join(stateDir, "entry")
 	entrypointDir := filepath.Join(entrypointDataDir, "web/ws")
 
+	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
+	entrypointToRootPrefix := "../../../../"
+
+	// TODO: set runtimeStartupPath to control the root component in the WebView.
+	var runtimeStartupPath string
+
 	// run esbuild to compile the web entrypoint
 	le.Info("building websocket entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
@@ -130,8 +136,10 @@ func (b *DevtoolBus) ExecuteWebWs(
 		distSrcDir,
 		entrypointDir,
 		// web-document is located under /pkgs/@aptre/bldr
-		"../../../entrypoint/runtime-ws.mjs",
-		"../../../sw.mjs",
+		entrypointToRootPrefix+"entrypoint/runtime-ws.mjs",
+		entrypointToRootPrefix+"sw.mjs",
+		runtimeStartupPath,
+		"",
 		minifyEntrypoint,
 		devMode,
 	)

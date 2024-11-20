@@ -15,9 +15,10 @@ import (
 //go:embed web/bldr-react/*.ts web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
 //go:embed web/document/*.ts web/view/*.ts
-//go:embed web/electron web/entrypoint web/runtime/wasm web/index.html
+//go:embed web/electron web/entrypoint web/entrypoint/index/index.html
 //go:embed web/fetch/*.ts
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
+//go:embed web/runtime/wasm
 //go:embed web/runtime/wasm/go-process.ts web/runtime/wasm/plugin-wasm.ts
 //go:embed web/runtime/wasm/fetch-decompress.ts web/runtime/wasm/node-stubs.js
 //go:embed web/entrypoint/browser/*.ts

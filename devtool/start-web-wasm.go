@@ -102,6 +102,12 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	entrypointDataDir := filepath.Join(stateDir, "entry")
 	entrypointDir := filepath.Join(entrypointDataDir, "web/wasm")
 
+	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
+	entrypointToRootPrefix := "../../../../"
+
+	// TODO: set runtimeStartupPath to control the root component in the WebView.
+	var runtimeStartupPath string
+
 	// run esbuild to compile the web entrypoint
 	le.Info("building web wasm entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
@@ -111,8 +117,10 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		distSrcDir,
 		entrypointDir,
 		// web-document is located under /pkgs/@aptre/bldr
-		"../../../entrypoint/runtime-wasm.mjs",
-		"../../../sw.mjs",
+		entrypointToRootPrefix+"entrypoint/runtime-wasm.mjs",
+		entrypointToRootPrefix+"sw.mjs",
+		runtimeStartupPath,
+		"",
 		minifyEntrypoint,
 		devMode,
 	)

@@ -101,7 +101,20 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
-func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath string, minify, devMode bool) error {
+//
+// runtimeSwPath is the path to the service worker js for the entrypoint to load.
+// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+func BuildRendererBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot,
+	buildDir,
+	runtimeJsPath,
+	runtimeSwPath,
+	runtimeStartupPath string,
+	minify,
+	devMode bool,
+) error {
 	le.Debug("generating web renderer bundle")
 
 	// index.html
@@ -138,6 +151,10 @@ func BuildRendererBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 		opts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
 	}
 
+	if runtimeStartupPath != "" {
+		opts.Define["BLDR_STARTUP_JS"] = strconv.Quote(runtimeStartupPath)
+	}
+
 	if !minify {
 		opts.Sourcemap = esbuild.SourceMapLinked
 	}
@@ -163,9 +180,11 @@ func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
 
 // BuildElectronBundle builds and outputs the web & service worker files.
 //
+// startupFilename is the path to the react component to load on startup (can be empty).
 // minify enables file minification in esbuild
 // devMode enables devMode extensions in Electron
-func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+// entrypointHash, if set, uses /entrypoint/{entrypointHash}/pkgs/...
+func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir, startupFilename string, minify, devMode bool) error {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
@@ -193,15 +212,24 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	if err != nil {
 		return err
 	}
-	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, minify, devMode); err != nil {
+
+	// set entrypointHash to empty string as we do not add a hash to the entrypoint for the electron bundle.
+	var entrypointHash string
+	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, entrypointHash, minify, devMode); err != nil {
 		return err
 	}
 
 	// the renderer is at /pkgs/@aptre/bldr/
-	runtimeSwPath := "../../../" + swFilename
+	runtimePathPrefix := "../../../"
+	runtimeSwPath := runtimePathPrefix + swFilename
+
+	var runtimeStartupPath string
+	if startupFilename != "" {
+		runtimeStartupPath = runtimePathPrefix + startupFilename
+	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, "", runtimeSwPath, minify, devMode); err != nil {
+	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, "", runtimeSwPath, runtimeStartupPath, minify, devMode); err != nil {
 		return err
 	}
 

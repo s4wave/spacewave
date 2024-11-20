@@ -319,18 +319,17 @@ func BuildDistBundle(
 	// we also name the entrypoint file differently
 	var outBinPath string
 	if isWebPlatform {
-		// output directory for the entrypoint
-		outEntryDir := filepath.Join(outputPath, "entrypoint")
+		// compute the hash for the path
+		entrypointHash := strings.ToLower(base32.StdEncoding.EncodeToString(embeddedVolumeHash.Sum(nil))[:8])
+
+		// output directory for the entrypoint with hash
+		outEntryDir := filepath.Join(outputPath, "entrypoint", entrypointHash)
 		if err := os.MkdirAll(outEntryDir, 0o755); err != nil {
 			return err
 		}
 
-		// compute the filename hash for assets-[hash].kvfile
-		// this format matches the one used in esbuild
-		embeddedVolumeOutputFilename := strings.Join([]string{"assets-", strings.ToUpper(base32.StdEncoding.EncodeToString(embeddedVolumeHash.Sum(nil))[:8]), ".kvfile"}, "")
-		embeddedVolumeOutputPath := filepath.Join(outputPath, embeddedVolumeOutputFilename)
-
-		le.Debugf("copying %v to output as %v", embeddedVolumeFilename, embeddedVolumeOutputFilename)
+		embeddedVolumeOutputPath := filepath.Join(outEntryDir, "assets.kvfile")
+		le.Debugf("copying %v to output as %v", embeddedVolumeFilename, embeddedVolumeOutputPath)
 		if err := fsutil.CopyFile(
 			embeddedVolumeOutputPath,
 			embeddedVolumePath,
@@ -339,14 +338,20 @@ func BuildDistBundle(
 			return err
 		}
 
-		// Write the URL to the kvfile
-		embeddedVolumeURL := "../" + embeddedVolumeOutputFilename
+		// Write the URL to the kvfile - adjust path to include hash
+		embeddedVolumeURL := "../" + entrypointHash + "/assets.kvfile"
 		outVolumeURLFilename := "assets.url"
 		outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
 		if err := os.WriteFile(outVolumeURLPath, []byte(embeddedVolumeURL), 0o644); err != nil {
 			return err
 		}
 		embedAssetsFS = append(embedAssetsFS, outVolumeURLFilename)
+
+		// entrypoint is located under /entrypoint/{hash}/pkgs/@aptre/bldr
+		entrypointToRootPrefix := "../../../../../"
+
+		// TODO: set runtimeStartupPath to control the root component in the WebView.
+		var runtimeStartupPath string
 
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
@@ -356,11 +361,12 @@ func BuildDistBundle(
 			le,
 			distSrcPath,
 			outputPath,
-			// web-document is located under /pkgs/@aptre/bldr
-			"./entrypoint/runtime-wasm.mjs",
-			"../../../sw.mjs",
-			isRelease,
-			false,
+			"./entrypoint/"+entrypointHash+"/runtime-wasm.mjs",
+			entrypointToRootPrefix+"sw.mjs",
+			runtimeStartupPath, // startupPath
+			entrypointHash,
+			isRelease, // minify
+			false,     // devMode
 		)
 		if err != nil {
 			return err
@@ -386,7 +392,6 @@ func BuildDistBundle(
 		}
 
 		// store the wasm file where the entrypoint expects.
-		// TODO: name it based on outBinName and add a hash to the name
 		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
 	} else {
 		// otherwise we go:embed it
@@ -402,7 +407,7 @@ func BuildDistBundle(
 		return err
 	}
 
-	// compile runtime.wasm
+	// compile runtime.wasm or the native entrypoint
 	err = gocompiler.ExecBuildEntrypoint(
 		le,
 		buildPlatform,

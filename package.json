@@ -34,6 +34,7 @@
     "start:web:release:debug": "npm run build:release:web:debug && npm run bldr -- static --path ./.bldr/build/web/bldr-demo-release/dist",
     "debug:native": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start native",
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
+    "debug:web:wasm": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web --wasm",
     "build": "npm run bldr -- --build-type=debug build -b native",
     "build:web": "npm run bldr -- --build-type=debug build -b web",
     "build:release": "npm run bldr -- --build-type=release build -b release",

@@ -83,6 +83,9 @@ func (c *Controller) newRunningPlugin(key string) (keyed.Routine, *executePlugin
 		},
 		le,
 		routine.WithRetry(execBackoff),
+		routine.WithExitCb(func(err error) {
+			// TODO: Detect issues copying entrypoint manifests.
+		}),
 	)
 	tr.executePluginRoutine.SetStateRoutine(tr.execPlugin)
 
