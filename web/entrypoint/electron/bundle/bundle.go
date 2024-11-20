@@ -118,15 +118,7 @@ func BuildRendererBundle(
 	le.Debug("generating web renderer bundle")
 
 	// index.html
-	distSrcDir := filepath.Join(bldrDistRoot, "web")
-	indexHtmlPath := filepath.Join(distSrcDir, "index.html")
-	ihtml, err := os.ReadFile(indexHtmlPath)
-	if err != nil {
-		return err
-	}
-	rendererHtmlOut := filepath.Join(buildDir, "index.html")
-	err = os.WriteFile(rendererHtmlOut, ihtml, 0o644)
-	if err != nil {
+	if err := entrypoint_browser_bundle.BuildRendererIndex(buildDir, ""); err != nil {
 		return err
 	}
 
@@ -215,12 +207,15 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 
 	// set entrypointHash to empty string as we do not add a hash to the entrypoint for the electron bundle.
 	var entrypointHash string
-	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, buildDir, entrypointHash, minify, devMode); err != nil {
+
+	// build to the entrypoint dir
+	entrypointDir := filepath.Join(buildDir, "entrypoint")
+	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, entrypointDir, entrypointHash, minify, devMode); err != nil {
 		return err
 	}
 
-	// the renderer is at /pkgs/@aptre/bldr/
-	runtimePathPrefix := "../../../"
+	// the renderer is at /entrypoint/pkgs/@aptre/bldr/
+	runtimePathPrefix := "../../../../"
 	runtimeSwPath := runtimePathPrefix + swFilename
 
 	var runtimeStartupPath string

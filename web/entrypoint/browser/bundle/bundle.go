@@ -124,22 +124,8 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 	return filepath.Base(result.OutputFiles[0].Path), nil
 }
 
-// BuildRendererBundle builds the web renderer bundle files.
-//
-// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
-// entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
-func BuildRendererBundle(
-	le *logrus.Entry,
-	bldrDistRoot,
-	buildDir,
-	runtimeJsPath,
-	runtimeSwPath,
-	runtimeStartupPath,
-	entrypointHash string,
-	minify bool,
-) error {
-	le.Debug("generating web renderer bundle")
-
+// BuildRendererIndex builds the web renderer index.html.
+func BuildRendererIndex(buildDir, entrypointHash string) error {
 	// entrypoint import path
 	entrypointImportPath := "./entrypoint"
 	if entrypointHash != "" {
@@ -177,8 +163,26 @@ func BuildRendererBundle(
 		return err
 	}
 	rendererHtmlOut := filepath.Join(buildDir, "index.html")
-	err = os.WriteFile(rendererHtmlOut, []byte(indexHtml), 0o644)
-	if err != nil {
+	return os.WriteFile(rendererHtmlOut, []byte(indexHtml), 0o644)
+}
+
+// BuildRendererBundle builds the web renderer bundle files.
+//
+// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+// entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
+func BuildRendererBundle(
+	le *logrus.Entry,
+	bldrDistRoot,
+	buildDir,
+	runtimeJsPath,
+	runtimeSwPath,
+	runtimeStartupPath,
+	entrypointHash string,
+	minify bool,
+) error {
+	le.Debug("generating web renderer bundle")
+
+	if err := BuildRendererIndex(buildDir, entrypointHash); err != nil {
 		return err
 	}
 
