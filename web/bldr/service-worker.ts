@@ -155,6 +155,8 @@ async function swFetch(
 
   if (!useRuntimeFetch) {
     // Check the cache (for e.x. index.html)
+    // NOTE: We do not want this, we want the latest index.html if possible.
+    /*
     const bldrCache = CACHES['bldr']
     if (bldrCache) {
       const cacheResp = await bldrCache.match(request)
@@ -162,6 +164,7 @@ async function swFetch(
         return cacheResp
       }
     }
+    */
 
     // Use the built-in browser fetch.
     if (BLDR_DEBUG) {

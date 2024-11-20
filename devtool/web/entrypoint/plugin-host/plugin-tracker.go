@@ -81,7 +81,6 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 	pluginManifestSnapshot := t.c.pluginManifests[pluginID]
 	manifestRef := pluginManifestSnapshot.GetManifestRef()
 	manifest := pluginManifestSnapshot.GetManifest()
-	hostMux := t.c.buildPluginMux(pluginID, pluginManifestSnapshot, proxyHostVol, hostVol.info)
 	t.c.mtx.Unlock()
 
 	// fetch the manifest
@@ -152,6 +151,16 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 				return err
 			}
 			defer relDistAccessCtrl()
+
+			// build the mux for handling incoming RPCs from the plugin
+			hostMux := t.c.buildPluginMux(
+				pluginID,
+				pluginManifestSnapshot,
+				proxyHostVol,
+				hostVol.info,
+				distFS,
+				assetsFS,
+			)
 
 			// execute the plugin
 			execErr := t.c.host.ExecutePlugin(

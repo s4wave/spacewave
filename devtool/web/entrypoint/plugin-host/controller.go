@@ -15,6 +15,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	block_transform "github.com/aperturerobotics/hydra/block/transform"
 	transform_all "github.com/aperturerobotics/hydra/block/transform/all"
+	"github.com/aperturerobotics/hydra/unixfs"
+	unixfs_rpc "github.com/aperturerobotics/hydra/unixfs/rpc"
+	unixfs_rpc_server "github.com/aperturerobotics/hydra/unixfs/rpc/server"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -193,6 +196,8 @@ func (c *Controller) buildPluginMux(
 	manifest *bldr_manifest.ManifestSnapshot,
 	proxyHostVol *volume_rpc_server.ProxyVolume,
 	proxyHostVolInfo *volume.VolumeInfo,
+	distFS,
+	assetsFS *unixfs.FSHandle,
 ) srpc.Mux {
 	// busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID)
 	mux := srpc.NewMux() // busInvoker
@@ -205,6 +210,18 @@ func (c *Controller) buildPluginMux(
 
 	// register plugin host service
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
+
+	// register plugin dist fs service
+	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
+		unixfs_rpc_server.NewFSCursorServiceWithHandle(distFS),
+		bldr_plugin.PluginDistServiceID,
+	))
+
+	// register plugin assets fs service
+	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
+		unixfs_rpc_server.NewFSCursorServiceWithHandle(assetsFS),
+		bldr_plugin.PluginAssetsServiceID,
+	))
 
 	return mux
 }
