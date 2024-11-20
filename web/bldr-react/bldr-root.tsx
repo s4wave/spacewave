@@ -15,6 +15,8 @@ export interface IBldrRootProps {
   // webDocumentOpts are options to pass to WebDocument.
   // ignored if webDocument is set
   webDocumentOpts?: WebDocumentOptions
+  // disableRootWebView disables the default root web view.
+  disableRootWebView?: boolean
 }
 
 // BldrRoot contains a WebDocument and a root web view.
@@ -24,7 +26,9 @@ export const BldrRoot: React.FC<IBldrRootProps> = React.memo((props) => {
       webDocument={props.webDocument || undefined}
       webDocumentOpts={props.webDocumentOpts}
     >
-      <WebView isPermanent={true} />
+      {!props.disableRootWebView ?
+        <WebView isPermanent={true} />
+      : undefined}
       {props.children}
     </WebDocument>
   )
