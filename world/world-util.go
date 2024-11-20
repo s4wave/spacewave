@@ -3,6 +3,7 @@ package forge_world
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley"
 	forge_cluster "github.com/aperturerobotics/forge/cluster"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_job "github.com/aperturerobotics/forge/job"
@@ -11,7 +12,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
-	"github.com/aperturerobotics/cayley"
 )
 
 // The world is used for managing objects, i.e.:

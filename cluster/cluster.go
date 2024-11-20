@@ -5,10 +5,10 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/identity"
-	"github.com/aperturerobotics/cayley/quad"
 )
 
 const (

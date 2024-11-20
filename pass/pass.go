@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
+	"github.com/aperturerobotics/cayley/quad"
 	forge_execution "github.com/aperturerobotics/forge/execution"
 	forge_target "github.com/aperturerobotics/forge/target"
 	forge_value "github.com/aperturerobotics/forge/value"
@@ -14,7 +15,6 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	identity_world "github.com/aperturerobotics/identity/world"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 )
 
