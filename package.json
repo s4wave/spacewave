@@ -44,7 +44,7 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@aptre/common": "^0.18.8",
+    "@aptre/common": "^0.19.1",
     "depcheck": "^1.4.3",
     "prettier": "^3.3.1",
     "rimraf": "^6.0.0",
@@ -53,7 +53,7 @@
   "dependencies": {
     "@aperturerobotics/ts-proto-common-types": "^0.3.0",
     "@aptre/protobuf-es-lite": "^0.4.8",
-    "starpc": "^0.35.0"
+    "starpc": "^0.35.4"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "0.4.8"
