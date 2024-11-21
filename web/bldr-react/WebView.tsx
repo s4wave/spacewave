@@ -114,6 +114,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     htmlLinks: [],
     refreshNonce: 0,
   }))
+  const [isComponentReady, setIsComponentReady] = useState(false)
+
+  useEffect(() => {
+    setIsComponentReady(false)
+  }, [webViewState.scriptPath, webViewState.refreshNonce])
 
   // onRemoveRef is a ref to the latest onRemove callback
   const onRemoveRef = useLatestRef(props.onRemove)
@@ -279,7 +284,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           : undefined}
         </DebugInfo>
       : undefined}
-      {!webViewState.ready && !!props.loading ? props.loading : undefined}
+      {(!webViewState.ready || !isComponentReady) && props.loading ? props.loading : null}
       {(
         webViewState.ready &&
         (webViewState.renderMode ?? 0) === RenderMode.RenderMode_NONE &&
@@ -301,7 +306,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
             scriptPath={webViewState.scriptPath}
             componentProps={webViewState.props}
-            renderLoading={props.loading}
+            onReady={() => setIsComponentReady(true)}
           />
         )}
       {(

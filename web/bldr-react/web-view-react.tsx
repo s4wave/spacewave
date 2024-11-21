@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from 'react'
+import React, { Suspense, useMemo, useEffect } from 'react'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import type {
   LoadedProtoComponent,
@@ -12,8 +12,8 @@ export interface IReactComponentContainerProps {
   scriptPath: string
   // componentProps is an optional props message to the component.
   componentProps?: Uint8Array
-  // renderLoading renders the fallback when loading the content.
-  renderLoading?: React.ReactNode
+  // onReady is called when the component is ready
+  onReady?: () => void
 }
 
 // ReactComponentContainer imports and initializes a ReactComponent script.
@@ -28,15 +28,30 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
   )
 
   const componentProps = useMemoUint8Array(props.componentProps ?? null)
-  const loadedComponent = useMemo(
-    () => <LoadedComponent componentProps={componentProps ?? undefined} />,
-    [LoadedComponent, componentProps],
-  )
+
+  const InnerComponent = ({
+    componentProps,
+    onReady,
+  }: {
+    componentProps?: Uint8Array
+    onReady?: () => void
+  }) => {
+    useEffect(() => {
+      if (onReady) {
+        onReady()
+      }
+    }, [onReady])
+
+    return <LoadedComponent componentProps={componentProps} />
+  }
 
   return (
     <WebViewErrorBoundary>
-      <Suspense fallback={props.renderLoading ?? <div>Loading...</div>}>
-        {loadedComponent}
+      <Suspense fallback={null}>
+        <InnerComponent
+          componentProps={componentProps ?? undefined}
+          onReady={props.onReady}
+        />
       </Suspense>
     </WebViewErrorBoundary>
   )
