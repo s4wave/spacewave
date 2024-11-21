@@ -10,8 +10,8 @@ export interface IFunctionComponentContainerProps {
   scriptPath: string
   // componentProps is an optional props message to the component.
   componentProps?: Uint8Array
-  // renderLoading renders the fallback when loading the content.
-  renderLoading?: React.ReactNode
+  // onReady is called when the component is ready
+  onReady?: () => void
 }
 
 // IFunctionComponentContainerState is state for FunctionComponentContainer.
@@ -108,7 +108,7 @@ export class FunctionComponentContainer extends BldrComponent<
     }
 
     if (!this.functionComponent) {
-      return this.props.renderLoading ?? <div>Loading...</div>
+      return <div>Loading...</div>
     }
 
     return (
@@ -148,6 +148,9 @@ export class FunctionComponentContainer extends BldrComponent<
           this.divRef,
           this.props.componentProps,
         )
+        if (this.props.onReady) {
+          this.props.onReady()
+        }
       }
     })
   }

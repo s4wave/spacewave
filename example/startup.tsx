@@ -6,5 +6,5 @@ import { WebView } from '@aptre/bldr-react'
 // It controls what to display while loading the wasm app.
 export default function ExampleStartup() {
   const loading = useMemo(() => <div>Loading example web view...</div>, [])
-  return <WebView loading={loading} placeholder={loading} />
+  return <WebView loading={loading} />
 }
