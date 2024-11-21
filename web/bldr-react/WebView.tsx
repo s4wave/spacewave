@@ -93,9 +93,10 @@ const getLinkPreloadAsValue = (rel: string | undefined): string | undefined => {
     case 'track':
       return 'track'
     case 'shortcut icon':
-      return 'image'
     case 'icon':
-      return 'image'
+      // NOTE: There is no valid option for "icon" and if we use "image" there is a warning.
+      // https://fetch.spec.whatwg.org/#concept-request-destination
+      return undefined
     default:
       return undefined
   }
@@ -311,14 +312,17 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       : null}
       {/* Preload resources before component is ready to optimize loading */}
       {webViewState.ready && !isComponentReady ?
-        webViewState.htmlLinks.map((ilink) => (
-          <link
-            key={`preload-${ilink.id}`}
-            href={ilink.link.href}
-            rel="preload"
-            as={getLinkPreloadAsValue(ilink.link.rel)}
-          />
-        ))
+        webViewState.htmlLinks.map((ilink) => {
+          const as = getLinkPreloadAsValue(ilink.link.rel)
+          return as ?
+              <link
+                key={`preload-${ilink.id}`}
+                href={ilink.link.href}
+                rel="preload"
+                as={as}
+              />
+            : undefined
+        })
       : undefined}
       {/* Render actual link tags once component is ready */}
       {webViewState.ready && isComponentReady ?
