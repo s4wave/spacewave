@@ -21,7 +21,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/evanw/esbuild v0.23.0 // latest
 	github.com/fatih/color v1.17.0
-	github.com/fsnotify/fsnotify v1.7.0
+	github.com/fsnotify/fsnotify v1.8.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
@@ -80,7 +80,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.48.1 // latest
 	github.com/aperturerobotics/entitygraph v0.10.1 // indirect; latest
 	github.com/aperturerobotics/starpc v0.35.3 // latest
-	github.com/aperturerobotics/util v1.26.2 // latest
+	github.com/aperturerobotics/util v1.26.4-0.20241121063346-dbe98d45029b // latest
 )
 
 // aperture: use compatibility forks

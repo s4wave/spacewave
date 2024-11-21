@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bldr"
-	"github.com/aperturerobotics/bldr/util/gitroot"
+	"github.com/aperturerobotics/util/gitroot"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )

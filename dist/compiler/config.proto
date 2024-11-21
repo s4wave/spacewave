@@ -2,7 +2,7 @@ syntax = "proto3";
 package bldr.dist.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
-import "github.com/aperturerobotics/bldr/util/enabled/enabled.proto";
+import "github.com/aperturerobotics/util/enabled/enabled.proto";
 
 // Config configures the dist compiler controller.
 //

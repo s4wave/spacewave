@@ -2,21 +2,17 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/compiler/config.proto (package bldr.plugin.compiler, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
-import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
-import type { Enabled } from '../../util/enabled/enabled.pb.js'
-import { Enabled_Enum } from '../../util/enabled/enabled.pb.js'
-import type { EsbuildVarType } from '../../web/esbuild/esbuild.pb.js'
-import { EsbuildVarType_Enum } from '../../web/esbuild/esbuild.pb.js'
-import { WebPkgRef } from '../../web/pkg/esbuild/esbuild.pb.js'
-import { PluginDevInfo } from '../vardef/vardef.pb.js'
+import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
+import { createEnumType, createMessageType, ScalarType } from "@aptre/protobuf-es-lite";
+import { ControllerConfig } from "../../../controllerbus/controller/configset/proto/configset.pb.js";
+import type { Enabled } from "../../../util/enabled/enabled.pb.js";
+import { Enabled_Enum } from "../../../util/enabled/enabled.pb.js";
+import type { EsbuildVarType } from "../../web/esbuild/esbuild.pb.js";
+import { EsbuildVarType_Enum } from "../../web/esbuild/esbuild.pb.js";
+import { WebPkgRef } from "../../web/pkg/esbuild/esbuild.pb.js";
+import { PluginDevInfo } from "../vardef/vardef.pb.js";
 
-export const protobufPackage = 'bldr.plugin.compiler'
+export const protobufPackage = "bldr.plugin.compiler";
 
 /**
  * InputFileKind is the kind of file this is.
@@ -61,16 +57,13 @@ export enum InputFileKind {
 }
 
 // InputFileKind_Enum is the enum type for InputFileKind.
-export const InputFileKind_Enum = createEnumType(
-  'bldr.plugin.compiler.InputFileKind',
-  [
-    { no: 0, name: 'InputFileKind_UNKNOWN' },
-    { no: 1, name: 'InputFileKind_ASSET' },
-    { no: 2, name: 'InputFileKind_GO' },
-    { no: 3, name: 'InputFileKind_ESBUILD' },
-    { no: 4, name: 'InputFileKind_WEB_PKG' },
-  ],
-)
+export const InputFileKind_Enum = createEnumType("bldr.plugin.compiler.InputFileKind", [
+  { no: 0, name: "InputFileKind_UNKNOWN" },
+  { no: 1, name: "InputFileKind_ASSET" },
+  { no: 2, name: "InputFileKind_GO" },
+  { no: 3, name: "InputFileKind_ESBUILD" },
+  { no: 4, name: "InputFileKind_WEB_PKG" },
+]);
 
 /**
  * WebPkgRefConfig configures a web pkg reference.
@@ -84,14 +77,14 @@ export interface WebPkgRefConfig {
    *
    * @generated from field: string id = 1;
    */
-  id?: string
+  id?: string;
   /**
    * Exclude indicates we should reference this web pkg but exclude it from this bundle.
    * This is useful if another plugin already provides this web pkg.
    *
    * @generated from field: bool exclude = 2;
    */
-  exclude?: boolean
+  exclude?: boolean;
   /**
    * Imports is the list of imports to include in the web pkg bundle.
    * NOTE: this will be merged with any imports the code accesses.
@@ -99,25 +92,20 @@ export interface WebPkgRefConfig {
    *
    * @generated from field: repeated string imports = 3;
    */
-  imports?: string[]
-}
+  imports?: string[];
+
+};
 
 // WebPkgRefConfig contains the message type declaration for WebPkgRefConfig.
 export const WebPkgRefConfig: MessageType<WebPkgRefConfig> = createMessageType({
-  typeName: 'bldr.plugin.compiler.WebPkgRefConfig',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'exclude', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 3,
-      name: 'imports',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+    typeName: "bldr.plugin.compiler.WebPkgRefConfig",
+    fields: [
+        { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "exclude", kind: "scalar", T: ScalarType.BOOL },
+        { no: 3, name: "imports", kind: "scalar", T: ScalarType.STRING, repeated: true },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+});
 
 /**
  * Config configures the plugin compiler controller.
@@ -130,7 +118,7 @@ export interface Config {
    *
    * @generated from field: string project_id = 1;
    */
-  projectId?: string
+  projectId?: string;
   /**
    * ConfigSet is a ConfigSet to apply on plugin startup.
    * This ConfigSet is applied to the plugin bus.
@@ -139,7 +127,7 @@ export interface Config {
    *
    * @generated from field: map<string, configset.proto.ControllerConfig> config_set = 2;
    */
-  configSet?: { [key: string]: ControllerConfig }
+  configSet?: { [key: string]: ControllerConfig };
   /**
    * HostConfigSet is a ConfigSet to apply to the host on plugin startup.
    * This ConfigSet is applied to the plugin host bus.
@@ -149,7 +137,7 @@ export interface Config {
    *
    * @generated from field: map<string, configset.proto.ControllerConfig> host_config_set = 3;
    */
-  hostConfigSet?: { [key: string]: ControllerConfig }
+  hostConfigSet?: { [key: string]: ControllerConfig };
   /**
    * GoPkgs is a list of Go packages to scan for controller factories.
    * Looks for package-level functions:
@@ -159,7 +147,7 @@ export interface Config {
    *
    * @generated from field: repeated string go_pkgs = 4;
    */
-  goPkgs?: string[]
+  goPkgs?: string[];
   /**
    * WebPkgs is the list of web packages to externalize and include in the bundle.
    *
@@ -178,7 +166,7 @@ export interface Config {
    *
    * @generated from field: repeated bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 5;
    */
-  webPkgs?: WebPkgRefConfig[]
+  webPkgs?: WebPkgRefConfig[];
   /**
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by creating a directive.
@@ -187,7 +175,7 @@ export interface Config {
    *
    * @generated from field: bool disable_rpc_fetch = 6;
    */
-  disableRpcFetch?: boolean
+  disableRpcFetch?: boolean;
   /**
    * DisableFetchAssets disables the default web assets service handler.
    * The handler handles Fetch directives with the assets FS.
@@ -197,7 +185,7 @@ export interface Config {
    *
    * @generated from field: bool disable_fetch_assets = 7;
    */
-  disableFetchAssets?: boolean
+  disableFetchAssets?: boolean;
   /**
    * DelveAddr is the address to listen for Delve remote connections.
    * If the build mode is dev and this is set, uses delve to run the plugin.
@@ -208,7 +196,7 @@ export interface Config {
    *
    * @generated from field: string delve_addr = 8;
    */
-  delveAddr?: string
+  delveAddr?: string;
   /**
    * EnableCgo enables cgo in the Go compiler.
    *
@@ -219,7 +207,7 @@ export interface Config {
    *
    * @generated from field: enabled.Enabled enable_cgo = 9;
    */
-  enableCgo?: Enabled
+  enableCgo?: Enabled;
   /**
    * EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
    * The default is to use tinygo for the web platform in release mode.
@@ -227,7 +215,7 @@ export interface Config {
    *
    * @generated from field: enabled.Enabled enable_tinygo = 10;
    */
-  enableTinygo?: Enabled
+  enableTinygo?: Enabled;
   /**
    * EnableCompression can optionally force-enable or force-disable binary compression.
    * The default is ENABLE for release-mode only.
@@ -235,7 +223,7 @@ export interface Config {
    *
    * @generated from field: enabled.Enabled enable_compression = 11;
    */
-  enableCompression?: Enabled
+  enableCompression?: Enabled;
   /**
    * EsbuildFlags is a string containing additional flags to pass to esbuild.
    * Flags passed by bldr:esbuild directives can override these values.
@@ -243,7 +231,7 @@ export interface Config {
    *
    * @generated from field: repeated string esbuild_flags = 12;
    */
-  esbuildFlags?: string[]
+  esbuildFlags?: string[];
   /**
    * WebPluginId sets the plugin id for the web plugin.
    * If set, the compiler automatically adds these controllers to the config set:
@@ -256,72 +244,37 @@ export interface Config {
    *
    * @generated from field: string web_plugin_id = 13;
    */
-  webPluginId?: string
+  webPluginId?: string;
   /**
    * BuildTypes contains a mapping of BuildType to Config override.
    *
    * @generated from field: map<string, bldr.plugin.compiler.Config> build_types = 14;
    */
-  buildTypes?: { [key: string]: Config }
-}
+  buildTypes?: { [key: string]: Config };
+
+};
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
-  typeName: 'bldr.plugin.compiler.Config',
-  fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'config_set',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ControllerConfig },
-    },
-    {
-      no: 3,
-      name: 'host_config_set',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ControllerConfig },
-    },
-    {
-      no: 4,
-      name: 'go_pkgs',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 5,
-      name: 'web_pkgs',
-      kind: 'message',
-      T: () => WebPkgRefConfig,
-      repeated: true,
-    },
-    { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 7, name: 'disable_fetch_assets', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
-    { no: 10, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
-    { no: 11, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
-    {
-      no: 12,
-      name: 'esbuild_flags',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 13, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 14,
-      name: 'build_types',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => Config },
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+    typeName: "bldr.plugin.compiler.Config",
+    fields: [
+        { no: 1, name: "project_id", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "config_set", kind: "map", K: ScalarType.STRING, V: {kind: "message", T: () => ControllerConfig} },
+        { no: 3, name: "host_config_set", kind: "map", K: ScalarType.STRING, V: {kind: "message", T: () => ControllerConfig} },
+        { no: 4, name: "go_pkgs", kind: "scalar", T: ScalarType.STRING, repeated: true },
+        { no: 5, name: "web_pkgs", kind: "message", T: () => WebPkgRefConfig, repeated: true },
+        { no: 6, name: "disable_rpc_fetch", kind: "scalar", T: ScalarType.BOOL },
+        { no: 7, name: "disable_fetch_assets", kind: "scalar", T: ScalarType.BOOL },
+        { no: 8, name: "delve_addr", kind: "scalar", T: ScalarType.STRING },
+        { no: 9, name: "enable_cgo", kind: "enum", T: Enabled_Enum },
+        { no: 10, name: "enable_tinygo", kind: "enum", T: Enabled_Enum },
+        { no: 11, name: "enable_compression", kind: "enum", T: Enabled_Enum },
+        { no: 12, name: "esbuild_flags", kind: "scalar", T: ScalarType.STRING, repeated: true },
+        { no: 13, name: "web_plugin_id", kind: "scalar", T: ScalarType.STRING },
+        { no: 14, name: "build_types", kind: "map", K: ScalarType.STRING, V: {kind: "message", T: () => Config} },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+});
 
 /**
  * PreBuildHookResult is the output of a pre-build hook.
@@ -335,18 +288,18 @@ export interface PreBuildHookResult {
    *
    * @generated from field: bldr.plugin.compiler.Config config = 1;
    */
-  config?: Config
-}
+  config?: Config;
+
+};
 
 // PreBuildHookResult contains the message type declaration for PreBuildHookResult.
-export const PreBuildHookResult: MessageType<PreBuildHookResult> =
-  createMessageType({
-    typeName: 'bldr.plugin.compiler.PreBuildHookResult',
+export const PreBuildHookResult: MessageType<PreBuildHookResult> = createMessageType({
+    typeName: "bldr.plugin.compiler.PreBuildHookResult",
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => Config },
+        { no: 1, name: "config", kind: "message", T: () => Config },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  })
+});
 
 /**
  * InputFileMeta is metadata attached to an input manifest file.
@@ -359,17 +312,18 @@ export interface InputFileMeta {
    *
    * @generated from field: bldr.plugin.compiler.InputFileKind kind = 1;
    */
-  kind?: InputFileKind
-}
+  kind?: InputFileKind;
+
+};
 
 // InputFileMeta contains the message type declaration for InputFileMeta.
 export const InputFileMeta: MessageType<InputFileMeta> = createMessageType({
-  typeName: 'bldr.plugin.compiler.InputFileMeta',
-  fields: [
-    { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+    typeName: "bldr.plugin.compiler.InputFileMeta",
+    fields: [
+        { no: 1, name: "kind", kind: "enum", T: InputFileKind_Enum },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+});
 
 /**
  * EsbuildEntrypointVar is a variable in the Go code referring to a esbuild entrypoint.
@@ -382,52 +336,46 @@ export interface EsbuildEntrypointVar {
    *
    * @generated from field: string pkg_import_path = 1;
    */
-  pkgImportPath?: string
+  pkgImportPath?: string;
   /**
    * PkgVar is the variable within the go package.
    *
    * @generated from field: string pkg_var = 2;
    */
-  pkgVar?: string
+  pkgVar?: string;
   /**
    * PkgCodePath is the relative path to the code dir from the project root.
    *
    * @generated from field: string pkg_code_path = 3;
    */
-  pkgCodePath?: string
+  pkgCodePath?: string;
   /**
    * PkgVarType is the type of esbuild variable this is.
    *
    * @generated from field: bldr.esbuild.EsbuildVarType pkg_var_type = 4;
    */
-  pkgVarType?: EsbuildVarType
+  pkgVarType?: EsbuildVarType;
   /**
    * EsbuildFlags are the command-line arguments to pass to esbuild.
    *
    * @generated from field: repeated string esbuild_flags = 5;
    */
-  esbuildFlags?: string[]
-}
+  esbuildFlags?: string[];
+
+};
 
 // EsbuildEntrypointVar contains the message type declaration for EsbuildEntrypointVar.
-export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
-  createMessageType({
-    typeName: 'bldr.plugin.compiler.EsbuildEntrypointVar',
+export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> = createMessageType({
+    typeName: "bldr.plugin.compiler.EsbuildEntrypointVar",
     fields: [
-      { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'pkg_var', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'pkg_code_path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'pkg_var_type', kind: 'enum', T: EsbuildVarType_Enum },
-      {
-        no: 5,
-        name: 'esbuild_flags',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
+        { no: 1, name: "pkg_import_path", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "pkg_var", kind: "scalar", T: ScalarType.STRING },
+        { no: 3, name: "pkg_code_path", kind: "scalar", T: ScalarType.STRING },
+        { no: 4, name: "pkg_var_type", kind: "enum", T: EsbuildVarType_Enum },
+        { no: 5, name: "esbuild_flags", kind: "scalar", T: ScalarType.STRING, repeated: true },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  })
+});
 
 /**
  * EsbuildBundleMeta is information about an esbuild bundle.
@@ -440,31 +388,25 @@ export interface EsbuildBundleMeta {
    *
    * @generated from field: string id = 1;
    */
-  id?: string
+  id?: string;
   /**
    * EntrypointVars is the list of entrypoint variables.
    *
    * @generated from field: repeated bldr.plugin.compiler.EsbuildEntrypointVar entrypoint_vars = 2;
    */
-  entrypointVars?: EsbuildEntrypointVar[]
-}
+  entrypointVars?: EsbuildEntrypointVar[];
+
+};
 
 // EsbuildBundleMeta contains the message type declaration for EsbuildBundleMeta.
-export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
-  createMessageType({
-    typeName: 'bldr.plugin.compiler.EsbuildBundleMeta',
+export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> = createMessageType({
+    typeName: "bldr.plugin.compiler.EsbuildBundleMeta",
     fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'entrypoint_vars',
-        kind: 'message',
-        T: () => EsbuildEntrypointVar,
-        repeated: true,
-      },
+        { no: 1, name: "id", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "entrypoint_vars", kind: "message", T: () => EsbuildEntrypointVar, repeated: true },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  })
+});
 
 /**
  * EsbuildOutputMeta is information about an esbuild output.
@@ -477,33 +419,33 @@ export interface EsbuildOutputMeta {
    *
    * @generated from field: string path = 1;
    */
-  path?: string
+  path?: string;
   /**
    * Length is the size of the file in bytes.
    *
    * @generated from field: uint32 length = 2;
    */
-  length?: number
+  length?: number;
   /**
    * EntrypointPath is the entrypoint that produced this output file.
    * May be empty.
    *
    * @generated from field: string entrypoint_path = 3;
    */
-  entrypointPath?: string
-}
+  entrypointPath?: string;
+
+};
 
 // EsbuildOutputMeta contains the message type declaration for EsbuildOutputMeta.
-export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
-  createMessageType({
-    typeName: 'bldr.plugin.compiler.EsbuildOutputMeta',
+export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> = createMessageType({
+    typeName: "bldr.plugin.compiler.EsbuildOutputMeta",
     fields: [
-      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'length', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 3, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
+        { no: 1, name: "path", kind: "scalar", T: ScalarType.STRING },
+        { no: 2, name: "length", kind: "scalar", T: ScalarType.UINT32 },
+        { no: 3, name: "entrypoint_path", kind: "scalar", T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  })
+});
 
 /**
  * InputManifestMeta is metadata attached to the input manifest.
@@ -516,80 +458,51 @@ export interface InputManifestMeta {
    *
    * @generated from field: map<string, bldr.plugin.compiler.EsbuildBundleMeta> esbuild_bundles = 1;
    */
-  esbuildBundles?: { [key: string]: EsbuildBundleMeta }
+  esbuildBundles?: { [key: string]: EsbuildBundleMeta };
   /**
    * WebPkgRefs contains the list of web pkg references.
    *
    * @generated from field: repeated web.pkg.esbuild.WebPkgRef web_pkg_refs = 2;
    */
-  webPkgRefs?: WebPkgRef[]
+  webPkgRefs?: WebPkgRef[];
   /**
    * WebPkgs is the list of web pkgs that we separate from the bundle.
    *
    * @generated from field: repeated bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 3;
    */
-  webPkgs?: WebPkgRefConfig[]
+  webPkgs?: WebPkgRefConfig[];
   /**
    * EsbuildFlags are the base command-line arguments to pass to esbuild.
    *
    * @generated from field: repeated string esbuild_flags = 4;
    */
-  esbuildFlags?: string[]
+  esbuildFlags?: string[];
   /**
    * DevInfo contains the set of plugin variable definitions.
    *
    * @generated from field: bldr.plugin.vardef.PluginDevInfo dev_info = 5;
    */
-  devInfo?: PluginDevInfo
+  devInfo?: PluginDevInfo;
   /**
    * EsbuildOutputs contains a list of files written by esbuild.
    *
    * @generated from field: repeated bldr.plugin.compiler.EsbuildOutputMeta esbuild_outputs = 6;
    */
-  esbuildOutputs?: EsbuildOutputMeta[]
-}
+  esbuildOutputs?: EsbuildOutputMeta[];
+
+};
 
 // InputManifestMeta contains the message type declaration for InputManifestMeta.
-export const InputManifestMeta: MessageType<InputManifestMeta> =
-  createMessageType({
-    typeName: 'bldr.plugin.compiler.InputManifestMeta',
+export const InputManifestMeta: MessageType<InputManifestMeta> = createMessageType({
+    typeName: "bldr.plugin.compiler.InputManifestMeta",
     fields: [
-      {
-        no: 1,
-        name: 'esbuild_bundles',
-        kind: 'map',
-        K: ScalarType.STRING,
-        V: { kind: 'message', T: () => EsbuildBundleMeta },
-      },
-      {
-        no: 2,
-        name: 'web_pkg_refs',
-        kind: 'message',
-        T: () => WebPkgRef,
-        repeated: true,
-      },
-      {
-        no: 3,
-        name: 'web_pkgs',
-        kind: 'message',
-        T: () => WebPkgRefConfig,
-        repeated: true,
-      },
-      {
-        no: 4,
-        name: 'esbuild_flags',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
-      { no: 5, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },
-      {
-        no: 6,
-        name: 'esbuild_outputs',
-        kind: 'message',
-        T: () => EsbuildOutputMeta,
-        repeated: true,
-      },
+        { no: 1, name: "esbuild_bundles", kind: "map", K: ScalarType.STRING, V: {kind: "message", T: () => EsbuildBundleMeta} },
+        { no: 2, name: "web_pkg_refs", kind: "message", T: () => WebPkgRef, repeated: true },
+        { no: 3, name: "web_pkgs", kind: "message", T: () => WebPkgRefConfig, repeated: true },
+        { no: 4, name: "esbuild_flags", kind: "scalar", T: ScalarType.STRING, repeated: true },
+        { no: 5, name: "dev_info", kind: "message", T: () => PluginDevInfo },
+        { no: 6, name: "esbuild_outputs", kind: "message", T: () => EsbuildOutputMeta, repeated: true },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-  })
+});
+

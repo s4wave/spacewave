@@ -5,7 +5,7 @@ import "github.com/aperturerobotics/controllerbus/controller/configset/proto/con
 import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
 import "github.com/aperturerobotics/bldr/web/pkg/esbuild/esbuild.proto";
 import "github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto";
-import "github.com/aperturerobotics/bldr/util/enabled/enabled.proto";
+import "github.com/aperturerobotics/util/enabled/enabled.proto";
 
 // Config configures the plugin compiler controller.
 message Config {
