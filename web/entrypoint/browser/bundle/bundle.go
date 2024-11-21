@@ -168,15 +168,16 @@ func BuildRendererIndex(buildDir, entrypointHash string) error {
 
 // BuildRendererBundle builds the web renderer bundle files.
 //
-// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+// webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 // entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
 func BuildRendererBundle(
 	le *logrus.Entry,
+	sourcesRoot,
 	bldrDistRoot,
 	buildDir,
 	runtimeJsPath,
 	runtimeSwPath,
-	runtimeStartupPath,
+	webStartupSrcPath,
 	entrypointHash string,
 	minify bool,
 ) error {
@@ -204,8 +205,17 @@ func BuildRendererBundle(
 		rendererBuildOpts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
 	}
 
-	if runtimeStartupPath != "" {
-		rendererBuildOpts.Define["BLDR_STARTUP_JS"] = strconv.Quote(runtimeStartupPath)
+	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
+	if err != nil {
+		return err
+	}
+
+	if webStartupSrcPath != "" {
+		// esbuild interprets this path in an import() statement
+		// we need a relative path from the entrypoint.tsx to the src path.
+		// add an extra .. for the "web/entrypoint"
+		webStartupSrcPathRel := filepath.Join(distSourcesDirToSourcesRoot, "../..", webStartupSrcPath)
+		rendererBuildOpts.Define["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPathRel)
 	}
 
 	if !minify {
@@ -218,16 +228,17 @@ func BuildRendererBundle(
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
 //
-// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+// webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 // entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
 func BuildBrowserBundle(
 	ctx context.Context,
 	le *logrus.Entry,
+	sourcesRoot,
 	bldrDistRoot,
 	buildDir,
 	runtimeJsPath,
 	runtimeSwPath,
-	runtimeStartupPath string,
+	webStartupSrcPath string,
 	entrypointHash string,
 	minify,
 	devMode bool,
@@ -257,16 +268,18 @@ func BuildBrowserBundle(
 	if entrypointHash != "" {
 		pkgsPathPrefix += "/" + entrypointHash
 	}
+
 	entrypointDir := filepath.Join(buildDir, "entrypoint")
 	if entrypointHash != "" {
 		entrypointDir = filepath.Join(entrypointDir, entrypointHash)
 	}
+
 	if err := BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode); err != nil {
 		return err
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeStartupPath, entrypointHash, minify); err != nil {
+	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, webStartupSrcPath, entrypointHash, minify); err != nil {
 		return err
 	}
 

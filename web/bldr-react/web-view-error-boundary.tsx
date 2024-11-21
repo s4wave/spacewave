@@ -1,6 +1,6 @@
 import React from 'react'
 
-interface IWebViewErrorBoundaryProps {
+export interface IWebViewErrorBoundaryProps {
   // children are children elements
   children?: React.ReactNode
 }

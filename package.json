@@ -35,6 +35,7 @@
     "debug:native": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start native",
     "debug:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web",
     "debug:web:wasm": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false start web --wasm",
+    "debug:release:web": "cd ./cmd/bldr && dlv debug --wd ../../ -- --minify-entrypoint=false --build-type=debug build -b release-web",
     "build": "npm run bldr -- --build-type=debug build -b native",
     "build:web": "npm run bldr -- --build-type=debug build -b web",
     "build:release": "npm run bldr -- --build-type=release build -b release",

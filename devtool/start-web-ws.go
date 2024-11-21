@@ -124,8 +124,8 @@ func (b *DevtoolBus) ExecuteWebWs(
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
 
-	// TODO: set runtimeStartupPath to control the root component in the WebView.
-	var runtimeStartupPath string
+	// TODO: set webStartupSrcPath to control the root component in the WebView.
+	var webStartupSrcPath string
 
 	// run esbuild to compile the web entrypoint
 	le.Info("building websocket entrypoint")
@@ -133,12 +133,13 @@ func (b *DevtoolBus) ExecuteWebWs(
 	err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,
+		repoRoot,
 		distSrcDir,
 		entrypointDir,
 		// web-document is located under /pkgs/@aptre/bldr
 		entrypointToRootPrefix+"entrypoint/runtime-ws.mjs",
 		entrypointToRootPrefix+"sw.mjs",
-		runtimeStartupPath,
+		webStartupSrcPath,
 		"",
 		minifyEntrypoint,
 		devMode,

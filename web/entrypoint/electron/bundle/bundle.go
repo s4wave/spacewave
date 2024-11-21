@@ -103,7 +103,7 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 // BuildRendererBundle builds the web renderer bundle files.
 //
 // runtimeSwPath is the path to the service worker js for the entrypoint to load.
-// runtimeStartupPath is the path to the startup js module to load for the react app entrypoint (can be empty).
+// webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 func BuildRendererBundle(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -111,7 +111,7 @@ func BuildRendererBundle(
 	buildDir,
 	runtimeJsPath,
 	runtimeSwPath,
-	runtimeStartupPath string,
+	webStartupSrcPath string,
 	minify,
 	devMode bool,
 ) error {
@@ -143,8 +143,8 @@ func BuildRendererBundle(
 		opts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
 	}
 
-	if runtimeStartupPath != "" {
-		opts.Define["BLDR_STARTUP_JS"] = strconv.Quote(runtimeStartupPath)
+	if webStartupSrcPath != "" {
+		opts.Define["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPath)
 	}
 
 	if !minify {
@@ -218,13 +218,13 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	runtimePathPrefix := "../../../../"
 	runtimeSwPath := runtimePathPrefix + swFilename
 
-	var runtimeStartupPath string
+	var webStartupSrcPath string
 	if startupFilename != "" {
-		runtimeStartupPath = runtimePathPrefix + startupFilename
+		webStartupSrcPath = runtimePathPrefix + startupFilename
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, "", runtimeSwPath, runtimeStartupPath, minify, devMode); err != nil {
+	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, "", runtimeSwPath, webStartupSrcPath, minify, devMode); err != nil {
 		return err
 	}
 

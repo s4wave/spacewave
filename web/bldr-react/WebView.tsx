@@ -44,6 +44,10 @@ interface IWebViewProps {
   onRemove?: RemoveWebViewFunc
   // showDebugInfo shows debug information about the WebView.
   showDebugInfo?: boolean
+  // loading is rendered when the web view is not ready yet (loading).
+  loading?: React.ReactNode
+  // placeholder is rendered when the web view has NONE render mode.
+  placeholder?: React.ReactNode
 }
 
 interface IWebViewHtmlLink {
@@ -275,6 +279,14 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           : undefined}
         </DebugInfo>
       : undefined}
+      {!webViewState.ready && !!props.loading ? props.loading : undefined}
+      {(
+        webViewState.ready &&
+        (webViewState.renderMode ?? 0) === RenderMode.RenderMode_NONE &&
+        props.placeholder
+      ) ?
+        props.placeholder
+      : undefined}
       {webViewState.ready ?
         webViewState.htmlLinks.map((ilink) => {
           return (
@@ -289,6 +301,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
             scriptPath={webViewState.scriptPath}
             componentProps={webViewState.props}
+            renderLoading={props.loading}
           />
         )}
       {(
@@ -300,6 +313,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
           scriptPath={webViewState.scriptPath}
           componentProps={webViewState.props}
+          renderLoading={props.loading}
         />
       : undefined}
     </BldrContext.Provider>

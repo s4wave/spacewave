@@ -235,7 +235,6 @@ func (c *Controller) BuildManifest(
 		}
 
 		// Copy the embed plugin manifests to the embedded manifests world.
-		// embedManifestsObjKeys := make([]string, 0, len(embedManifests))
 		for _, embedManifestInfo := range embedManifests {
 			le.
 				WithField("copy-manifest-id", embedManifestInfo.Manifest.GetMeta().GetManifestId()).
@@ -262,22 +261,25 @@ func (c *Controller) BuildManifest(
 				embedTx.Discard()
 				return err
 			}
-			// embedManifestsObjKeys = append(embedManifestsObjKeys, manifestObjKey)
 			if err := embedTx.Commit(ctx); err != nil {
 				return err
 			}
 		}
 
-		// cleanup embedManifestsObjKeys
-		// sort.Strings(embedManifestsObjKeys)
-		// embedManifestsObjKeys = slices.Compact(embedManifestsObjKeys)
 		return nil
+	}
+
+	webStartupSrcPath, err := conf.ParseWebStartupPath()
+	if err != nil {
+		return nil, err
 	}
 
 	err = BuildDistBundle(
 		ctx,
 		le,
+		builderConf.GetSourcePath(),
 		builderConf.GetDistSourcePath(),
+		webStartupSrcPath,
 		workingPath,
 		outDistPath,
 		entrypointFilename,

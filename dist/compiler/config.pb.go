@@ -31,6 +31,12 @@ type Config struct {
 	// Use this to load your entrypoint plugin which then loads other plugins.
 	// This will be included in the dist binary.
 	LoadPlugins []string `protobuf:"bytes,2,rep,name=load_plugins,json=loadPlugins,proto3" json:"loadPlugins,omitempty"`
+	// LoadWebStartup is a path to a .js or .ts or .tsx file with a React component to load on startup.
+	// Must be a relative path located within the project sources.
+	// The file will be bundled with esbuild into the entrypoint bundle.
+	// The component should contain a <WebView /> from @aptre/bldr-react.
+	// The contents will be used for the children of BldrRoot.
+	LoadWebStartup string `protobuf:"bytes,8,opt,name=load_web_startup,json=loadWebStartup,proto3" json:"loadWebStartup,omitempty"`
 	// HostConfigSet is a ConfigSet to apply to the host on dist startup.
 	// This ConfigSet is applied to the dist host bus on startup.
 	// This will be included in the dist binary.
@@ -74,6 +80,13 @@ func (x *Config) GetLoadPlugins() []string {
 		return x.LoadPlugins
 	}
 	return nil
+}
+
+func (x *Config) GetLoadWebStartup() string {
+	if x != nil {
+		return x.LoadWebStartup
+	}
+	return ""
 }
 
 func (x *Config) GetHostConfigSet() map[string]*proto.ControllerConfig {
@@ -163,6 +176,7 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
+	r.LoadWebStartup = m.LoadWebStartup
 	r.ProjectId = m.ProjectId
 	r.EnableCgo = m.EnableCgo
 	r.EnableTinygo = m.EnableTinygo
@@ -266,6 +280,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.EnableCompression != that.EnableCompression {
+		return false
+	}
+	if this.LoadWebStartup != that.LoadWebStartup {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -402,6 +419,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("enableCompression")
 		x.EnableCompression.MarshalProtoJSON(s)
 	}
+	if x.LoadWebStartup != "" || s.HasField("loadWebStartup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("loadWebStartup")
+		s.WriteString(x.LoadWebStartup)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -457,6 +479,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "enable_compression", "enableCompression":
 			s.AddField("enable_compression")
 			x.EnableCompression.UnmarshalProtoJSON(s)
+		case "load_web_startup", "loadWebStartup":
+			s.AddField("load_web_startup")
+			x.LoadWebStartup = s.ReadString()
 		}
 	})
 }
@@ -541,6 +566,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LoadWebStartup) > 0 {
+		i -= len(m.LoadWebStartup)
+		copy(dAtA[i:], m.LoadWebStartup)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LoadWebStartup)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if m.EnableCompression != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableCompression))
@@ -694,6 +726,10 @@ func (m *Config) SizeVT() (n int) {
 	if m.EnableCompression != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCompression))
 	}
+	l = len(m.LoadWebStartup)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -811,6 +847,13 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("\"")
 		sb.WriteString(enabled.Enabled(x.EnableCompression).String())
 		sb.WriteString("\"")
+	}
+	if x.LoadWebStartup != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("load_web_startup: ")
+		sb.WriteString(strconv.Quote(x.LoadWebStartup))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1147,6 +1190,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LoadWebStartup", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LoadWebStartup = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -50,7 +50,9 @@ import (
 func BuildDistBundle(
 	rctx context.Context,
 	le *logrus.Entry,
+	srcPath string,
 	distSrcPath string,
+	webStartupSrcPath string,
 	workingPath string,
 	outputPath string,
 	outBinName string,
@@ -350,20 +352,18 @@ func BuildDistBundle(
 		// entrypoint is located under /entrypoint/{hash}/pkgs/@aptre/bldr
 		entrypointToRootPrefix := "../../../../../"
 
-		// TODO: set runtimeStartupPath to control the root component in the WebView.
-		var runtimeStartupPath string
-
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
 		entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 		err := entrypoint_browser_bundle.BuildBrowserBundle(
 			ctx,
 			le,
+			srcPath,
 			distSrcPath,
 			outputPath,
 			"./entrypoint/"+entrypointHash+"/runtime-wasm.mjs",
 			entrypointToRootPrefix+"sw.mjs",
-			runtimeStartupPath, // startupPath
+			webStartupSrcPath, // startupPath
 			entrypointHash,
 			isRelease, // minify
 			false,     // devMode

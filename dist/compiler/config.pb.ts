@@ -37,6 +37,16 @@ export interface Config {
    */
   loadPlugins?: string[]
   /**
+   * LoadWebStartup is a path to a .js or .ts or .tsx file with a React component to load on startup.
+   * Must be a relative path located within the project sources.
+   * The file will be bundled with esbuild into the entrypoint bundle.
+   * The component should contain a <WebView /> from @aptre/bldr-react.
+   * The contents will be used for the children of BldrRoot.
+   *
+   * @generated from field: string load_web_startup = 8;
+   */
+  loadWebStartup?: string
+  /**
    * HostConfigSet is a ConfigSet to apply to the host on dist startup.
    * This ConfigSet is applied to the dist host bus on startup.
    * This will be included in the dist binary.
@@ -99,6 +109,7 @@ export const Config: MessageType<Config> = createMessageType({
       T: ScalarType.STRING,
       repeated: true,
     },
+    { no: 8, name: 'load_web_startup', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 3,
       name: 'host_config_set',

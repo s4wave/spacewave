@@ -1,8 +1,11 @@
-import React from 'react'
+import React, { Suspense, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BldrRoot, IBldrRootProps } from '@aptre/bldr-react'
+import {
+  BldrRoot,
+  IBldrRootProps,
+  WebViewErrorBoundary,
+} from '@aptre/bldr-react'
 import { WebDocumentOptions } from '@aptre/bldr'
-import { ReactComponentContainer } from 'web/bldr-react/web-view-react.js'
 
 const webDocumentOpts: WebDocumentOptions = {}
 
@@ -23,15 +26,38 @@ const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
 declare const BLDR_STARTUP_JS: string | undefined
 if (typeof BLDR_STARTUP_JS === 'string') {
+  const BldrWebStartupContainer: React.FC = () => {
+    const LoadedComponent = useMemo(
+      () =>
+        React.lazy(
+          async (): Promise<{
+            default: React.LazyExoticComponent<React.ComponentType>
+          }> => import(BLDR_STARTUP_JS),
+        ),
+      [],
+    )
+
+    const loadedComponent = useMemo(
+      () => <LoadedComponent />,
+      [LoadedComponent],
+    )
+
+    return (
+      <WebViewErrorBoundary>
+        <Suspense fallback={<div>Loading app...</div>}>
+          {loadedComponent}
+        </Suspense>
+      </WebViewErrorBoundary>
+    )
+  }
+
   bldrRootProps.disableRootWebView = true
-  bldrRootProps.children = (
-    <ReactComponentContainer scriptPath={BLDR_STARTUP_JS} />
-  )
+  bldrRootProps.children = <BldrWebStartupContainer />
 }
 
 // initialize react and Bldr
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('bldr-root')
-  const root = createRoot(container!)
-  root.render(<BldrRoot {...bldrRootProps} />)
-})
+// document.addEventListener('DOMContentLoaded', () => {
+const container = document.getElementById('bldr-root')
+const root = createRoot(container!)
+root.render(<BldrRoot {...bldrRootProps} />)
+// })

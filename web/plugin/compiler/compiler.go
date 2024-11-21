@@ -185,14 +185,14 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
-	// TODO: set runtimeStartupPath to control the root component in the WebView.
-	var runtimeStartupPath string
+	// TODO: set webStartupSrcPath to control the root component in the WebView.
+	var webStartupSrcPath string
 
 	// build the electron entrypoint to the working entrypoint dir
 	le.Debug("building electron entrypoint")
 	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
-	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, distSrcDir, workingEntrypointDir, runtimeStartupPath, minify, devMode)
+	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, distSrcDir, workingEntrypointDir, webStartupSrcPath, minify, devMode)
 	if err != nil {
 		return nil, err
 	}

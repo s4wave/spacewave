@@ -2,6 +2,18 @@ export { BldrRoot, IBldrRootProps } from './bldr-root.js'
 export { WebDocument } from './web-document.js'
 export { WebView, canCloseWindow } from './WebView.js'
 export {
+  ReactComponentContainer,
+  IReactComponentContainerProps,
+} from './web-view-react.js'
+export {
+  FunctionComponentContainer,
+  IFunctionComponentContainerProps,
+} from './web-view-function.js'
+export {
+  WebViewErrorBoundary,
+  IWebViewErrorBoundaryProps,
+} from './web-view-error-boundary.js'
+export {
   Destructor,
   WebViewHostClientEffect,
   WebViewHostServiceClientEffect,

@@ -20,6 +20,13 @@ message Config {
   // This will be included in the dist binary.
   repeated string load_plugins = 2;
 
+  // LoadWebStartup is a path to a .js or .ts or .tsx file with a React component to load on startup.
+  // Must be a relative path located within the project sources.
+  // The file will be bundled with esbuild into the entrypoint bundle.
+  // The component should contain a <WebView /> from @aptre/bldr-react.
+  // The contents will be used for the children of BldrRoot.
+  string load_web_startup = 8;
+
   // HostConfigSet is a ConfigSet to apply to the host on dist startup.
   // This ConfigSet is applied to the dist host bus on startup.
   // This will be included in the dist binary.

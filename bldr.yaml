@@ -111,5 +111,6 @@ manifests:
         - bldr-demo
         loadPlugins:
         - bldr-demo
+        loadWebStartup: example/startup.tsx
         # enableCompression: ENABLE
         # enableTinygo: ENABLE

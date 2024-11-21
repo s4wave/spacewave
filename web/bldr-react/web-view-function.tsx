@@ -10,6 +10,8 @@ export interface IFunctionComponentContainerProps {
   scriptPath: string
   // componentProps is an optional props message to the component.
   componentProps?: Uint8Array
+  // renderLoading renders the fallback when loading the content.
+  renderLoading?: React.ReactNode
 }
 
 // IFunctionComponentContainerState is state for FunctionComponentContainer.
@@ -96,20 +98,30 @@ export class FunctionComponentContainer extends BldrComponent<
   }
 
   public render() {
-    return this.state.loadError ?
+    if (this.state.loadError) {
+      return (
         <>
           Error: {this.state.loadError.message}
           <br />
         </>
-      : <div
-          style={{
-            width: '100%',
-            height: '100%',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-          ref={(ref) => this.update(this.functionComponent, ref || undefined)}
-        />
+      )
+    }
+
+    if (!this.functionComponent) {
+      return this.props.renderLoading ?? <div>Loading...</div>
+    }
+
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+        ref={(ref) => this.update(this.functionComponent, ref || undefined)}
+      />
+    )
   }
 
   // update updates the function component and/or div-ref field.
