@@ -77,6 +77,26 @@ export function canCloseWindow() {
   return window.opener != null || window.history.length == 1
 }
 
+// getLinkPreloadAsValue maps a link rel value to the appropriate 'as' attribute value for preloading
+const getLinkPreloadAsValue = (rel: string | undefined): string | undefined => {
+  switch (rel) {
+    case 'stylesheet':
+      return 'style'
+    case 'script':
+      return 'script'
+    case 'font':
+      return 'font'
+    case 'image':
+      return 'image'
+    case 'fetch':
+      return 'fetch'
+    case 'track':
+      return 'track'
+    default:
+      return undefined
+  }
+}
+
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export const WebView: React.FC<IWebViewProps> = (props) => {
@@ -285,28 +305,22 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       {(!webViewState.ready || !isComponentReady) && props.loading ?
         props.loading
       : null}
-      {webViewState.ready ?
-        webViewState.htmlLinks.map((ilink) => {
-          return (
-            <link
-              key={ilink.id}
-              href={ilink.link.href}
-              rel={isComponentReady ? ilink.link.rel : 'preload'}
-              {...(!isComponentReady ?
-                {
-                  as:
-                    ilink.link.rel === 'stylesheet' ? 'style'
-                    : ilink.link.rel === 'script' ? 'script'
-                    : ilink.link.rel === 'font' ? 'font'
-                    : ilink.link.rel === 'image' ? 'image'
-                    : ilink.link.rel === 'fetch' ? 'fetch'
-                    : ilink.link.rel === 'track' ? 'track'
-                    : undefined,
-                }
-              : {})}
-            />
-          )
-        })
+      {/* Preload resources before component is ready to optimize loading */}
+      {webViewState.ready && !isComponentReady ?
+        webViewState.htmlLinks.map((ilink) => (
+          <link
+            key={`preload-${ilink.id}`}
+            href={ilink.link.href}
+            rel="preload"
+            as={getLinkPreloadAsValue(ilink.link.rel)}
+          />
+        ))
+      : undefined}
+      {/* Render actual link tags once component is ready */}
+      {webViewState.ready && isComponentReady ?
+        webViewState.htmlLinks.map((ilink) => (
+          <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />
+        ))
       : undefined}
       {webViewState.ready &&
         webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
