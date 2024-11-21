@@ -288,7 +288,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       {webViewState.ready ?
         webViewState.htmlLinks.map((ilink) => {
           return (
-            <link key={ilink.id} rel={ilink.link.rel} href={ilink.link.href} />
+            <link 
+              key={ilink.id} 
+              rel={isComponentReady ? ilink.link.rel : "preload"} 
+              href={ilink.link.href}
+            />
           )
         })
       : undefined}
