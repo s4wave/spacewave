@@ -92,6 +92,10 @@ const getLinkPreloadAsValue = (rel: string | undefined): string | undefined => {
       return 'fetch'
     case 'track':
       return 'track'
+    case 'shortcut icon':
+      return 'image'
+    case 'icon':
+      return 'image'
     default:
       return undefined
   }
