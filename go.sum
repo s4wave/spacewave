@@ -10,8 +10,8 @@ github.com/Workiva/go-datastructures v1.1.5 h1:5YfhQ4ry7bZc2Mc7R0YZyYwpf5c6t1cEF
 github.com/Workiva/go-datastructures v1.1.5/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:tykjLki/ShxJNz56wc5zYpz02oo/zNEYRpOb9g+uFuA=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
-github.com/aperturerobotics/bifrost v0.40.1-0.20241120022028-0d4304efbcaa h1:x5w3vlwJ9ANyJ/KWzon96FqIrktYTCFTCWfcRJjUF5U=
-github.com/aperturerobotics/bifrost v0.40.1-0.20241120022028-0d4304efbcaa/go.mod h1:OWZpWETXGS+rmflQH7MowwyOlqDYEZ+lGq+tmap1gO8=
+github.com/aperturerobotics/bifrost v0.40.1-0.20241120022637-6f48264d0c5e h1:U3SSyTtWV3hCRYYpsxxD0Dqwg/6DdpPVvTKtuVaRg4Q=
+github.com/aperturerobotics/bifrost v0.40.1-0.20241120022637-6f48264d0c5e/go.mod h1:OWZpWETXGS+rmflQH7MowwyOlqDYEZ+lGq+tmap1gO8=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58 h1:QWNDq/whsQh8C7CqC7yE7QjUGKRCvMBHK5M/2LPWWww=
 github.com/aperturerobotics/bifrost-nats-client v1.10.1-0.20200831103200-24c3d0464e58/go.mod h1:ougcjYEZDYV8pVtaNbA5sgYDukkYHyKtSsW/T3B13j0=
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f h1:bmScByQNGDPPy9T+zdwu816XaCbFtD5UDyqZMRiHJ80=
@@ -38,8 +38,8 @@ github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/go-multihash v0.2.3 h1:/dzKxmtr0eadFUcG/8uJdKtcQ5yHwmhwx6oqe1PoMMU=
 github.com/aperturerobotics/go-multihash v0.2.3/go.mod h1:jEGfK9IqlKuD9BaFHgadXORk3i9Rw7DmVOOM6UgauGU=
-github.com/aperturerobotics/hydra v0.0.0-20241111003610-890c943d0cbc h1:dsQxqj28BAG8QXTVmzLD/XESR59EQgPIarHphc/RvWc=
-github.com/aperturerobotics/hydra v0.0.0-20241111003610-890c943d0cbc/go.mod h1:JBaqhHmo6jSu5aznjvstaEy2/ncAz3t6QP+YqwYvPS8=
+github.com/aperturerobotics/hydra v0.0.0-20241124044113-69000824bb4a h1:3xyC8DQcXhE2LYVgZ0BknOyp2nQs4my/5/9ILwzQOrI=
+github.com/aperturerobotics/hydra v0.0.0-20241124044113-69000824bb4a/go.mod h1:zNzycyqHV44MPa8pmU+6PzbTcUynYFqA/IMp9w5o26o=
 github.com/aperturerobotics/json-iterator-lite v1.0.0 h1:cihbrYWoK/S2RYXhJLpDZd+GUjVvFJN+D3w1VOqqHRI=
 github.com/aperturerobotics/json-iterator-lite v1.0.0/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
