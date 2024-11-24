@@ -310,7 +310,7 @@ func (h *FSHandle) Lookup(ctx context.Context, name string) (*FSHandle, error) {
 // Check if fsHandle is not nil and release it even if an error is returned.
 func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, []string, error) {
 	// ignore absolute paths: treat them as relative to ./
-	pathParts, _, err := CleanSplitValidatePath(filePath)
+	pathParts, err := CleanSplitValidateRelativePath(filePath)
 	if err != nil {
 		return nil, nil, &fs.PathError{
 			Op:   "lookup",
@@ -335,7 +335,7 @@ func (h *FSHandle) LookupPath(ctx context.Context, filePath string) (*FSHandle, 
 // Check if fsHandle is not nil and release it even if an error is returned.
 func (h *FSHandle) LookupPathHandles(ctx context.Context, filePath string) ([]*FSHandle, []string, error) {
 	// ignore absolute paths: treat them as relative to ./
-	pathParts, _, err := CleanSplitValidatePath(filePath)
+	pathParts, err := CleanSplitValidateRelativePath(filePath)
 	if err != nil {
 		return nil, nil, &fs.PathError{
 			Op:   "lookup",
