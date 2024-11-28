@@ -18,10 +18,17 @@ import {
 } from '@aptre/bldr'
 import { ValueCallback } from './callback.js'
 
-// Destructor is the destructor type from React.
+/** Destructor is the destructor type from React. */
 export type Destructor = () => void
 
-// WebViewHostClientEffect is the callback function type for useWebViewHostClient.
+/**
+ * WebViewHostClientEffect is the callback function type for useWebViewHostClient.
+ * @param client - The RPC client instance
+ * @param abortSignal - Signal for aborting operations
+ * @param webDocument - The web document instance
+ * @param webView - The web view instance
+ * @returns Optional destructor function
+ */
 export type WebViewHostClientEffect = (
   client: Client,
   abortSignal: AbortSignal,
@@ -29,7 +36,11 @@ export type WebViewHostClientEffect = (
   webView: BldrWebView,
 ) => void | Destructor
 
-// useWebViewHostClient builds a client and abort signal for the web view host.
+/**
+ * Builds a client and abort signal for the web view host.
+ * @param effect - The effect callback to run with the client
+ * @param deps - Optional dependencies that trigger effect re-runs
+ */
 export function useWebViewHostClient(
   effect: WebViewHostClientEffect,
   deps?: DependencyList,
@@ -56,7 +67,16 @@ export function useWebViewHostClient(
   )
 }
 
-// WebViewHostServiceClientEffect is the callback function type for useWebViewHostServiceClient.
+/**
+ * Callback function type for useWebViewHostServiceClient.
+ * @template T - The service client implementation type
+ * @param impl - The service client implementation
+ * @param abortSignal - Signal for aborting operations
+ * @param webDocument - The web document instance
+ * @param webView - The web view instance
+ * @param client - The base RPC client instance
+ * @returns Optional destructor function
+ */
 export type WebViewHostServiceClientEffect<T> = (
   impl: T,
   abortSignal: AbortSignal,
@@ -65,7 +85,13 @@ export type WebViewHostServiceClientEffect<T> = (
   client: Client,
 ) => void | Destructor
 
-// useWebViewHostServiceClient builds a client implementation and abort signal for the web view host.
+/**
+ * Builds a client implementation and abort signal for the web view host.
+ * @template T - The service client implementation type
+ * @param ctor - Constructor function that creates the service client
+ * @param effect - The effect callback to run with the client
+ * @param deps - Optional dependencies that trigger effect re-runs
+ */
 export function useWebViewHostServiceClient<T>(
   ctor: (c: Client) => T,
   effect: WebViewHostServiceClientEffect<T>,
@@ -76,7 +102,12 @@ export function useWebViewHostServiceClient<T>(
   }, deps)
 }
 
-// createWebViewHostClientEffect creates a useEffect function which calls useWebViewHostClient.
+/**
+ * Creates a useEffect function which calls useWebViewHostClient.
+ * @template T - The service client implementation type
+ * @param ctor - Constructor function that creates the service client
+ * @returns A function that takes an effect callback and optional dependencies
+ */
 export function createWebViewHostClientEffect<T>(
   ctor: (c: Client) => T,
 ): (effect: WebViewHostServiceClientEffect<T>, deps?: DependencyList) => void {
@@ -85,7 +116,12 @@ export function createWebViewHostClientEffect<T>(
   }
 }
 
-// createWebViewHostClientState creates a useState function for calling a rpc service impl.
+/**
+ * Creates a useState function for calling a RPC service implementation.
+ * @template T - The service client implementation type
+ * @param ctor - Constructor function that creates the service client
+ * @returns A function that takes optional dependencies and returns the client implementation
+ */
 export function createWebViewHostClientState<T>(
   ctor: (c: Client) => T,
 ): (deps?: DependencyList) => T | undefined {
@@ -99,7 +135,11 @@ export function createWebViewHostClientState<T>(
   }
 }
 
-// useAbortSignal returns an AbortSignal which is canceled when the deps change.
+/**
+ * Returns an AbortSignal which is canceled when the deps change.
+ * @param deps - Optional dependencies that trigger signal abortion when changed
+ * @returns An AbortSignal that is canceled on dependency changes
+ */
 export function useAbortSignal(deps: DependencyList = []): AbortSignal {
   const abortController = useMemo(
     () => new AbortController(),
@@ -111,7 +151,11 @@ export function useAbortSignal(deps: DependencyList = []): AbortSignal {
   return abortController.signal
 }
 
-// useAbortSignalEffect wraps an effect with an abort signal.
+/**
+ * Wraps an effect with an abort signal.
+ * @param effect - The effect callback that receives an abort signal
+ * @param deps - Optional dependencies that trigger effect re-runs
+ */
 export function useAbortSignalEffect(
   effect: (signal: AbortSignal) => void | (() => void),
   deps?: DependencyList,
@@ -133,9 +177,14 @@ export function useAbortSignalEffect(
   )
 }
 
-// useRetryWithAbort calls the function with an abort signal and retries on error.
-//
-// will be aborted when the component is unmounted or deps change.
+/**
+ * Calls the function with an abort signal and retries on error.
+ * Will be aborted when the component is unmounted or deps change.
+ *
+ * @param cb - The async callback function to retry
+ * @param opts - Optional retry configuration options
+ * @param deps - Optional dependencies that trigger retries when changed
+ */
 export function useRetryWithAbort(
   cb: (abortSignal: AbortSignal) => Promise<void>,
   opts?: RetryOpts,
@@ -146,9 +195,13 @@ export function useRetryWithAbort(
   }, deps)
 }
 
-// useLatestRef returns a ref that contains the latest version of the value.
-//
-// changed is called when the value is changed from the initial value.
+/**
+ * Returns a ref that contains the latest version of the value.
+ *
+ * @param value - The value to track
+ * @param changed - Optional callback called when the value changes from initial value
+ * @returns A ref object containing the latest value
+ */
 export function useLatestRef<T>(
   value: T,
   changed?: (value: T) => void,
@@ -169,27 +222,36 @@ export function useLatestRef<T>(
   return ref
 }
 
-// useMemoUint8Array memoizes a uint8array.
+/**
+ * Memoizes a Uint8Array to prevent unnecessary re-renders.
+ *
+ * @param value - The Uint8Array to memoize
+ * @returns The memoized Uint8Array
+ */
 export function useMemoUint8Array(value: Uint8Array | null): Uint8Array | null {
   return useMemoEqual(value)
 }
 
-// MouseEvent and other events satisfy this.
+/** Event interface for events that include a detail count */
 interface DetailCountEvent {
-  // detail is the number of times the event occurred.
+  /** The number of times the event occurred */
   detail: number
 }
 
-// useDetailCountHandler builds an event handler which correctly resets the
-// event.detail counter when the component is re-mounted.
-//
-// The onClick event.detail contains the number of clicks: double-click has
-// event.detail = 2. When the clicked React component is replaced, the
-// event.detail does not reset.
-//
-// Question: https://stackoverflow.com/q/77719428/431369
-// Issue: https://codesandbox.io/p/sandbox/react-on-click-event-detail-6ndl5v?file=%2Fsrc%2FApp.tsx%3A8%2C23
-// Fix: https://codesandbox.io/p/sandbox/react-on-click-event-detail-possible-fix-4zwk7d?file=%2Fsrc%2FApp.tsx%3A59%2C1
+/**
+ * Builds an event handler which correctly resets the event.detail counter when the component is re-mounted.
+ *
+ * The onClick event.detail contains the number of clicks: double-click has event.detail = 2.
+ * When the clicked React component is replaced, the event.detail does not reset.
+ *
+ * @see {@link https://stackoverflow.com/q/77719428/431369|Stack Overflow Question}
+ * @see {@link https://codesandbox.io/p/sandbox/react-on-click-event-detail-6ndl5v|Issue Demo}
+ * @see {@link https://codesandbox.io/p/sandbox/react-on-click-event-detail-possible-fix-4zwk7d|Fix Demo}
+ *
+ * @template E - The event type extending DetailCountEvent
+ * @param cb - Callback function receiving the event and corrected count
+ * @returns Event handler function
+ */
 export function useDetailCountHandler<E extends DetailCountEvent>(
   cb: (e: E, count: number) => void,
 ) {
@@ -212,33 +274,43 @@ export function useDetailCountHandler<E extends DetailCountEvent>(
   )
 }
 
-// GetStateFunc should return the latest state object.
-//
-// This should be a useCallback function with the deps of the values that are
-// used within the update func.
-//
-// Returning undefined skips updating the state.
-// Returning a value identical to the previous state skips emitting an update event.
+/**
+ * Function that returns the latest state object.
+ *
+ * Should be a useCallback function with deps of values used within the update func.
+ * Returning undefined skips updating the state.
+ * Returning a value identical to the previous state skips emitting an update event.
+ *
+ * @template T - The state type
+ */
 export type GetStateFunc<T> = () => T | undefined
 
-// EqualStateFunc should compare two states for equality.
+/**
+ * Function that compares two states for equality.
+ *
+ * @template T - The state type
+ */
 export type EqualStateFunc<T> = (t1: T, t2: T) => boolean
 
-// useItState builds an AsyncIterable which emits the most recent state.
-//
-// When an iterator attaches to the AsyncIterable, the snapshot function is
-// called to generate an initial message to send with the starting state.
-//
-// The getState function is called every time it changes (the parameter is
-// updated). This function should be a useCallback with the dependency list set
-// to the properties or state values used to build the state object. If it
-// returns undefined or a value identical to the current state, the value will
-// be skipped (do nothing). Otherwise the new value is emitted to any consumers.
-//
-// States are checked for deep equality and identical states are skipped.
-//
-// If skipSnapshot is set, the initial state value will be skipped.
-// If latestValueOnly is set, slow consumers get the most recent state update only.
+/**
+ * Builds an AsyncIterable which emits the most recent state.
+ *
+ * When an iterator attaches to the AsyncIterable, the snapshot function is
+ * called to generate an initial message to send with the starting state.
+ *
+ * The getState function is called every time it changes. This function should
+ * be a useCallback with deps set to the properties or state values used to
+ * build the state object. If it returns undefined or a value identical to
+ * the current state, the value will be skipped. Otherwise the new value is
+ * emitted to any consumers.
+ *
+ * @template T - The state type
+ * @param getState - Function that returns the latest state
+ * @param skipSnapshot - If true, skip sending initial state value
+ * @param latestValueOnly - If true, slow consumers get only most recent state
+ * @param cmpState - Optional function to compare states for equality
+ * @returns AsyncIterable that emits state updates
+ */
 export function useItState<T>(
   getState: GetStateFunc<T>,
   skipSnapshot?: boolean,
@@ -336,34 +408,43 @@ export function useItState<T>(
   )
 }
 
-// GetUpdateFunc should return a message to send as an update to the prev state.
-///
-// This should be a useCallback function with the deps set to values that are
-// used within the update func.
-//
-// Returning undefined skips emitting a state update.
+/**
+ * Function that returns a message to send as an update to the previous state.
+ *
+ * Should be a useCallback function with deps set to values used within the update func.
+ * Returning undefined skips emitting a state update.
+ *
+ * @template T - The update message type
+ */
 export type GetUpdateFunc<T> = () => T | undefined
 
-// GetSnapshotFunc is a function returning an initial snapshot message emitted
-// when a consumer attaches to the iterable.
-//
-// If the function returns undefined, the initial snapshot message is skipped.
+/**
+ * Function returning an initial snapshot message emitted when a consumer attaches to the iterable.
+ *
+ * If the function returns undefined, the initial snapshot message is skipped.
+ *
+ * @template T - The snapshot message type
+ */
 export type GetSnapshotFunc<T> = () => T | undefined
 
-// useItUpdate builds an AsyncIterable which emits an initial snapshot message
-// followed by update messages.
-//
-// When an iterator attaches to the AsyncIterable, the snapshot function is
-// called to generate an initial message to send with the starting state.
-//
-// The getUpdateUpdate function is called every time it changes (the parameter
-// is updated). This function should be a useCallback with the dependency list
-// set to the properties or state values used to build the state object. If it
-// returns undefined, the value will be skipped (do nothing). Otherwise the new
-// value will be emitted to the listeners of the AsyncIterable.
-//
-// If latestValueOnly is set, slow consumers get the most recent state update only.
-// If any of the deps change the AsyncIterable object will be re-created.
+/**
+ * Builds an AsyncIterable which emits an initial snapshot message followed by update messages.
+ *
+ * When an iterator attaches to the AsyncIterable, the snapshot function is called
+ * to generate an initial message to send with the starting state.
+ *
+ * The getUpdate function is called every time it changes. This function should be
+ * a useCallback with deps set to the properties or state values used to build
+ * the state object. If it returns undefined, the value will be skipped. Otherwise
+ * the new value will be emitted to the listeners.
+ *
+ * @template T - The message type
+ * @param getSnapshot - Function returning initial snapshot message
+ * @param getUpdate - Function returning update messages
+ * @param latestValueOnly - If true, slow consumers get only most recent update
+ * @param deps - Dependencies that trigger AsyncIterable recreation
+ * @returns AsyncIterable that emits snapshot and update messages
+ */
 export function useItUpdate<T>(
   getSnapshot: GetSnapshotFunc<T>,
   getUpdate: GetUpdateFunc<T>,
@@ -435,8 +516,15 @@ export function useItUpdate<T>(
   )
 }
 
-// useMemoEqual checks if the given value is equal to the memoized value
-// and returns the memoized value if so.
+/**
+ * Memoizes a value using custom equality comparison.
+ * Returns the memoized value if the new value is considered equal.
+ *
+ * @template T - The value type
+ * @param value - The value to potentially memoize
+ * @param checkEqual - Optional function to compare values for equality
+ * @returns The memoized value if equal, otherwise the new value
+ */
 export function useMemoEqual<T>(
   value: T,
   checkEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
@@ -457,9 +545,17 @@ export function useMemoEqual<T>(
   return ref.current
 }
 
-// useMemoEqualGetter checks if the given value is equal to the memoized value
-// and returns the memoized value if so. If the value is different, calls the
-// getter to return the next value.
+/**
+ * Memoizes a derived value using custom equality comparison on the input.
+ * If the input value changes, calls the getter to compute the new derived value.
+ *
+ * @template T - The input value type
+ * @template V - The derived value type
+ * @param value - The input value
+ * @param getter - Function to compute derived value from input
+ * @param checkEqual - Function to compare input values for equality
+ * @returns The memoized derived value
+ */
 export function useMemoEqualGetter<T, V = T>(
   value: T,
   getter: (val: T) => V,
@@ -497,14 +593,22 @@ export function setIfChanged<S>(
   }
 }
 
-// useWatchStateRpc uses a RPC function which returns an updated value when the state changes.
-// Returns the latest message returned by the RPC call.
-// If the rpc function or request message passed is null, returns null for the value.
-// Restarts the RPC if the rpc function or the request argument changes.
-// checkEqual checks if two response objects are equal.
-//
-// T is the response type.
-// R is the request type.
+/**
+ * Uses a RPC function to watch for state changes and return updated values.
+ *
+ * Returns the latest message from the RPC call. Returns null if the RPC function
+ * or request message is null. Restarts the RPC if the function or request changes.
+ *
+ * @template T - The response type
+ * @template R - The request type
+ * @param watchStateRpc - RPC function that returns state updates
+ * @param req - The request message to send
+ * @param checkReqEqual - Function to compare request objects
+ * @param checkRespEqual - Optional function to compare response objects
+ * @param retryOpts - Optional retry configuration
+ * @param deps - Optional dependencies that trigger RPC restart
+ * @returns The latest state value or null
+ */
 export function useWatchStateRpc<T, R = unknown>(
   watchStateRpc:
     | ((req: R, abortSignal: AbortSignal) => AsyncIterable<T>)
@@ -551,21 +655,78 @@ export function useWatchStateRpc<T, R = unknown>(
     : currValue
 }
 
-// useSetValueRpc uses a RPC function which sets the given value via an rpc when it changes.
-// If the value, setValueRpc, or deps change the function will be called again.
-// Returns if the state has been set successfully yet.
-// If the value is null or undefined: does nothing.
-export function useSetValueRpc<T>(
-  value: T | null | undefined,
-  setValueRpc:
-    | ((value: T, abortSignal: AbortSignal) => Promise<void>)
+/**
+ * Uses a RPC function to get a value via RPC when the request changes.
+ * Similar to useWatchStateRpc but for one-time RPC calls that return a single value.
+ *
+ * @template T - The response value type
+ * @template R - The request type
+ * @param getValueRpc - RPC function to call to get the value
+ * @param req - The request value to send
+ * @param checkReqEqual - Function to compare request values
+ * @param checkRespEqual - Optional function to compare response values
+ * @param retryOpts - Optional retry configuration
+ * @param deps - Optional dependencies that trigger RPC restart
+ * @returns The value returned by the RPC call, or null if unavailable
+ */
+export function useGetValueRpc<T, R = unknown>(
+  getValueRpc:
+    | ((req: R, abortSignal: AbortSignal) => Promise<T>)
     | null
     | undefined,
+  req: R | null | undefined,
+  checkReqEqual: (v1: R, v2: R) => boolean,
+  checkRespEqual?: (v1: T, v2: T) => boolean,
   retryOpts?: RetryOpts,
   deps?: DependencyList,
-  checkEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
+): T | null {
+  const [currValue, setCurrValue] = useState<T | null>(null)
+  const memoizedReq = useMemoEqual(req, checkReqEqual)
+
+  useRetryWithAbort(
+    async (signal) => {
+      if (getValueRpc == null || memoizedReq == null || signal.aborted) {
+        setCurrValue(null)
+        return
+      }
+
+      const resp = await getValueRpc(memoizedReq, signal)
+      setCurrValue(setIfChanged<T | null>(resp, checkRespEqual))
+    },
+    retryOpts,
+    [getValueRpc, memoizedReq, ...(deps ?? [])],
+  )
+
+  return currValue == null || getValueRpc == null || memoizedReq == null ?
+      null
+    : currValue
+}
+
+/**
+ * Uses a RPC function to set a value via RPC when it changes.
+ * Returns a boolean indicating if the state was successfully set.
+ * The RPC is expected to return immediately.
+ *
+ * @template T - The value type to set
+ * @template R - The RPC response type
+ * @param setValueRpc - RPC function to call when setting the value
+ * @param req - The request value to send
+ * @param checkReqEqual - Optional function to compare request values
+ * @param retryOpts - Optional retry configuration
+ * @param deps - Optional dependencies that trigger RPC restart
+ * @returns Boolean indicating if the state was successfully set
+ */
+export function useSetValueRpc<T, R = unknown>(
+  setValueRpc:
+    | ((req: T, abortSignal: AbortSignal) => Promise<R>)
+    | null
+    | undefined,
+  req: T | null | undefined,
+  checkReqEqual?: (v1: NonNullable<T>, v2: NonNullable<T>) => boolean,
+  retryOpts?: RetryOpts,
+  deps?: DependencyList,
 ): boolean {
-  const currValue = useMemoEqual<T | null | undefined>(value, checkEqual)
+  const currValue = useMemoEqual<T | null | undefined>(req, checkReqEqual)
   const [wasSet, setWasSet] = useState(false)
 
   useRetryWithAbort(
@@ -584,14 +745,17 @@ export function useSetValueRpc<T>(
   return wasSet
 }
 
+
 /**
- * Executes a callback when the monitored value changes from a non-target value to the target value, excluding the first render.
- * The callback can optionally return a boolean to prevent the update of the monitored value.
+ * Executes a callback when the monitored value changes from a non-target value to the target value.
+ * The callback can return a boolean to prevent updating the monitored value.
+ * Does not execute on first render.
  *
- * @param value - The value to be monitored.
- * @param targetValue - The value at which the callback should be executed.
- * @param callback - The function to execute when the value changes to the target value. Can return boolean to control update.
- * @param deps - Optional additional dependencies for the effect.
+ * @template T - The value type being monitored
+ * @param value - The value to monitor for changes
+ * @param targetValue - The value that triggers the callback
+ * @param callback - Function to execute on change. Can return boolean to control update
+ * @param deps - Optional dependencies that trigger effect re-runs
  */
 export function useOnChangeToValue<T>(
   value: T,
@@ -621,17 +785,22 @@ export function useOnChangeToValue<T>(
   ])
 }
 
-// Focusable-is-an-object-with-a-focus-functionh.
-type Focusable = {
-  focus: () => void
+/** Represents an object with a focus() method */
+interface Focusable {
+  /** Method to set focus on this element */
+  focus(): void
 }
 
 /**
- * Calls the focus method on the ref's current value when a specified value changes to a target value.
- * Ensures the ref's current value is truthy and has a focus method before attempting to focus.
- * @param ref - A React ref object potentially containing an element with a focus method.
- * @param value - The value to monitor for changes.
- * @param targetValue - The value at which the focus method should be called.
+ * Calls focus() on a ref's current value when a monitored value changes to a target value.
+ * Only focuses if the ref's current value exists and has a focus method.
+ *
+ * @template T - Type extending Focusable interface
+ * @template V - The value type being monitored
+ * @param ref - React ref containing focusable element
+ * @param value - The value to monitor for changes
+ * @param targetValue - The value that triggers focus
+ * @param deps - Optional dependencies that trigger effect re-runs
  */
 export function useFocusOnValueChange<T extends Focusable, V>(
   ref: RefObject<T>,
