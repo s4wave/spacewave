@@ -46,7 +46,7 @@ func BuildEsbuildBuildOpts(
 		Write:          true,
 
 		// https://github.com/evanw/esbuild/issues/399
-		// Splitting:      true,
+		Splitting: true,
 
 		Define:       make(map[string]string),
 		Alias:        make(map[string]string),
