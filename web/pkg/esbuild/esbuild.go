@@ -501,7 +501,7 @@ func BuildWebPkgsEsbuild(
 // xfrmImport can be set to override the import path for a package.
 //
 // https://github.com/evanw/esbuild/issues/1921
-func NewImportBannerShim(pkgs []string, xfrmImport func(pkg string) string) string {
+func NewImportBannerShim(pkgs []string, minify bool, xfrmImport func(pkg string) string) string {
 	var sb strings.Builder
 	// write import statements
 	// import * as __bldr_react from 'react';
@@ -544,7 +544,19 @@ func NewImportBannerShim(pkgs []string, xfrmImport func(pkg string) string) stri
 	_, _ = sb.WriteString("  default:\n")
 	_, _ = sb.WriteString("    throw Error('Dynamic require of \"' + pkgName + '\" is not supported');\n")
 	_, _ = sb.WriteString("  }\n};\n")
-	return sb.String()
+
+	// minify
+	code := sb.String()
+	result := esbuild_api.Transform(code, esbuild_api.TransformOptions{
+		Target:    esbuild_api.ES2022,
+		Sourcemap: esbuild_api.SourceMapNone,
+		Platform:  esbuild_api.PlatformBrowser,
+
+		MinifyWhitespace:  minify,
+		MinifySyntax:      minify,
+		MinifyIdentifiers: false,
+	})
+	return string(result.Code)
 }
 
 // FixEsbuildIssue1921 fixes externalized esbuild imports failing with compiled commonjs modules.
@@ -558,5 +570,5 @@ func FixEsbuildIssue1921(opts *esbuild_api.BuildOptions) {
 	if len(old) != 0 {
 		old += "\n"
 	}
-	opts.Banner["js"] = old + NewImportBannerShim(BldrExternal, nil)
+	opts.Banner["js"] = old + NewImportBannerShim(BldrExternal, opts.MinifySyntax, nil)
 }
