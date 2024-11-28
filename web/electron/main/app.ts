@@ -196,7 +196,7 @@ export class BldrElectronApp {
   }
 
   // createWindow creates a new browser window.
-  private createWindow(urlSuffix?: string) {
+  private createWindow() {
     const preload = path.join(this.distPath, 'preload.mjs')
     const nwindow = new electron.BrowserWindow({
       // Only show the OS window frame on MacOS.
@@ -219,7 +219,7 @@ export class BldrElectronApp {
     })
 
     nwindow.webContents.openDevTools()
-    nwindow.loadURL(`${APP_SCHEME}://index.html${urlSuffix ?? ''}`)
+    nwindow.loadURL(`${APP_SCHEME}://index.html`)
 
     return nwindow
   }
@@ -232,7 +232,7 @@ export class BldrElectronApp {
     if (!id) {
       return { created: false }
     }
-    const nwindow = this.createWindow(`#webDocumentUuid=${req.id}`)
+    const nwindow = this.createWindow()
     this.browserWindows[id] = nwindow
     nwindow.on('closed', () => {
       if (this.browserWindows[id] === nwindow) {
