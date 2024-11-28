@@ -10,7 +10,7 @@ replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.1
 require github.com/aperturerobotics/common v0.19.1 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20241124044113-69000824bb4a // master

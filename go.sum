@@ -24,8 +24,8 @@ github.com/aperturerobotics/controllerbus v0.48.1 h1:lLX0Q3t3HTwZkEZ0l+tFLvwj+8T
 github.com/aperturerobotics/controllerbus v0.48.1/go.mod h1:o7kO19f2QgTHKjWJ4Sk6nV0fIyYttoZ2dCuDiOiLZSU=
 github.com/aperturerobotics/entitygraph v0.10.1 h1:ShiCCeW4NtGo+TfMfP21mHCdvPoKW/1N27KXw4elGk0=
 github.com/aperturerobotics/entitygraph v0.10.1/go.mod h1:Cg1SNQFmTXo0TSfnouHrPZis2wgZSEgkpIyeld0loRg=
-github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb h1:r9DoDDP/bp0rBCI5X1RhxKZtX1t8xhEST1Pab3edSK8=
-github.com/aperturerobotics/esbuild v0.20.3-0.20240501213312-7b81a2e435cb/go.mod h1:H0tJGD7IKs27PSF2ahGLKWgTgMxVwa3u87H6mtODtCQ=
+github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a h1:QIgkYB0dZRUDkMvpZ2WSBkLj10j222UzIboHPqTHYBc=
+github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a/go.mod h1:H0tJGD7IKs27PSF2ahGLKWgTgMxVwa3u87H6mtODtCQ=
 github.com/aperturerobotics/go-indexeddb v0.2.2 h1:AEImqmCLQjTm+Of8omzd4UVy8MPtM2Vfe/yIWain2Ow=
 github.com/aperturerobotics/go-indexeddb v0.2.2/go.mod h1:Qn67z3tPvzp7897XddY96KJKr0mKWQcU81lNO1ntiaQ=
 github.com/aperturerobotics/go-kvfile v0.7.3 h1:0G6yTdnEgY6g0Cb+4y9m5PcrgEKpZnAWZrxP0pJaxKw=
