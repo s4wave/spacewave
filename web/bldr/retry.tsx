@@ -70,8 +70,8 @@ export class Retry<T = void> {
     this._backoffFn = opts?.backoffFn || constantBackoff()
     this._errorCb = opts?.errorCb
 
-    this._setTimeout = opts?.setTimeout || setTimeout
-    this._clearTimeout = opts?.clearTimeout || clearTimeout
+    this._setTimeout = opts?.setTimeout || setTimeout.bind(window)
+    this._clearTimeout = opts?.clearTimeout || clearTimeout.bind(window)
 
     this.result = new Promise<T>((resolve, reject) => {
       this._resolve = resolve
