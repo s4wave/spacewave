@@ -109,14 +109,13 @@ export class Retry<T = void> {
         return
       } catch (err) {
         this._currError = err
-        if (this._errorCb) {
-          this._errorCb(err)
-        }
         if (this._canceled || this._abortSignal?.aborted) {
           if (this._reject) {
             this._reject(err)
           }
           return
+        } else if (this._errorCb) {
+          this._errorCb(err)
         }
         await new Promise<void>((resolve) => {
           let timeoutId: NodeJS.Timeout | null = null
