@@ -114,7 +114,8 @@ export class Retry<T = void> {
             this._reject(err)
           }
           return
-        } else if (this._errorCb) {
+        }
+        if (this._errorCb) {
           this._errorCb(err)
         }
         await new Promise<void>((resolve) => {
