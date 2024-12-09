@@ -11,7 +11,7 @@ export interface IBldrRootProps {
   // if unset, constructs a default WebDocument
   webDocument?: BldrWebDocument
   // children is the set of react children components.
-  children?: JSX.Element | JSX.Element[]
+  children?: React.ReactNode
   // webDocumentOpts are options to pass to WebDocument.
   // ignored if webDocument is set
   webDocumentOpts?: WebDocumentOptions
@@ -33,3 +33,5 @@ export const BldrRoot: React.FC<IBldrRootProps> = React.memo((props) => {
     </WebDocument>
   )
 })
+
+BldrRoot.displayName = 'BldrRoot'

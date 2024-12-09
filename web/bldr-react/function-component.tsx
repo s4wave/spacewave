@@ -37,7 +37,7 @@ export function createReactFunctionComponent(
 // NOTE: not recommended: use ReactComponent instead.
 export function createReactProtoFunctionComponent<T extends Message<T>>(
   def: MessageType<T>,
-  render: (props: T) => React.ReactNode | JSX.Element | undefined,
+  render: (props: T) => React.ReactNode | undefined,
   rootOptions?: RootOptions,
 ): FunctionComponent {
   return createReactFunctionComponent(renderProto(def, render), rootOptions)
