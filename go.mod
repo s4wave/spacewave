@@ -35,7 +35,7 @@ require (
 require (
 	github.com/aperturerobotics/bifrost v0.40.1-0.20241120022637-6f48264d0c5e // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
-	github.com/aperturerobotics/go-indexeddb v0.2.2 // indirect; master
+	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
 )
