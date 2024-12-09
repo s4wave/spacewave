@@ -745,7 +745,6 @@ export function useSetValueRpc<T, R = unknown>(
   return wasSet
 }
 
-
 /**
  * Executes a callback when the monitored value changes from a non-target value to the target value.
  * The callback can return a boolean to prevent updating the monitored value.
@@ -785,11 +784,14 @@ export function useOnChangeToValue<T>(
   ])
 }
 
-/** Represents an object with a focus() method */
-interface Focusable {
-  /** Method to set focus on this element */
-  focus(): void
-}
+/**
+ * Represents an element that can receive focus via a focus() method.
+ * Common examples include HTML elements like input, button, or div with tabIndex.
+ * The type allows null values to handle cases where the element may not exist.
+ */
+type Focusable = {
+  focus: () => void
+} | null
 
 /**
  * Calls focus() on a ref's current value when a monitored value changes to a target value.
