@@ -116,11 +116,6 @@ func (c *Cursor) Detach(keepRefs bool) *Cursor {
 	if c.t != nil {
 		nc.pos.Node = c.t.blockGraph.NewNode()
 		c.t.blockGraph.AddNode(nc.pos)
-		/*
-			if nc.store == nil && c.t != nil {
-				nc.store = c.t.store
-			}
-		*/
 
 		if keepRefs {
 			prevRefs := c.pos.refHandles

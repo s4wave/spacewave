@@ -244,6 +244,63 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 	tx.Discard()
 
+	// check empty value behavior
+	tx, err = ktx.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	emptyKey := []byte("empty-value-test")
+	if err := tx.Set(ctx, emptyKey, []byte{}); err != nil {
+		tx.Discard()
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	tx, err = ktx.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	// verify exists
+	exists, err := tx.Exists(ctx, emptyKey)
+	if err != nil {
+		tx.Discard()
+		return err
+	}
+	if !exists {
+		tx.Discard()
+		return errors.New("expected key with empty value to exist")
+	}
+	// verify empty value
+	val, ok, err = tx.Get(ctx, emptyKey)
+	if err != nil {
+		tx.Discard()
+		return err
+	}
+	if !ok {
+		tx.Discard()
+		return errors.New("expected to find key with empty value")
+	}
+	if len(val) != 0 {
+		tx.Discard()
+		return errors.Errorf("expected empty value but got length %d", len(val))
+	}
+	tx.Discard()
+
+	// cleanup
+	tx, err = ktx.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	if err := tx.Delete(ctx, emptyKey); err != nil {
+		tx.Discard()
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
 	// check the empty key behavior
 	tx, err = ktx.NewTransaction(ctx, true)
 	if err != nil {

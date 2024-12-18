@@ -13,7 +13,7 @@ func TestBucketReconcilerMqueueId(t *testing.T) {
 		ReconcilerID: "reconciler-id",
 	}
 	d := MarshalBucketReconcilerMqueueId(p)
-	t.Logf(string(d))
+	t.Log(string(d))
 	expected := "JpsGBN3hb4s8RpwRBMsHuPaw7ML5KjEs1mD"
 	if string(d) != expected {
 		t.Fatalf("expected %s got %s", expected, string(d))

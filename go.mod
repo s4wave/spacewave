@@ -2,7 +2,7 @@ module github.com/aperturerobotics/hydra
 
 go 1.23
 
-toolchain go1.23.2
+toolchain go1.23.3
 
 require (
 	github.com/aperturerobotics/bifrost v0.40.1-0.20241120022637-6f48264d0c5e // master

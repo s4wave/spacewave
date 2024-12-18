@@ -413,6 +413,55 @@ func (t *Tx) hasFromNode(ctx context.Context, bcs *block.Cursor, n *Node, key []
 	return t.hasFromNode(ctx, lcs, ln, key)
 }
 
+// setNodeValue sets the value of a node, handling both blob and non-blob cases.
+func (t *Tx) setNodeValue(ctx context.Context, cs *block.Cursor, nod *Node, valCursor *block.Cursor, isBlob bool) error {
+	if isBlob {
+		// Ensure the value cursor has a valid blob block.
+		if valCursor == nil {
+			valCursor = cs.Detach(false)
+			valCursor.ClearAllRefs()
+			valCursor.SetBlock(nil, true)
+		}
+		if blk, _ := valCursor.GetBlock(); blk == nil {
+			if valCursor.GetRef().GetEmpty() {
+				// ref was empty and blk was empty. set a empty blob
+				valCursor.SetBlock(blob.NewBlobBlock(), false)
+			} else {
+				// unmarshal the blob at the ref before setting as a sub-block.
+				if _, err := blob.UnmarshalBlob(ctx, valCursor); err != nil {
+					return err
+				}
+			}
+		}
+
+		// Set the blob as a sub-block.
+		if err := valCursor.SetAsSubBlock(8, cs); err != nil {
+			return err
+		}
+	} else {
+		// For non-blob values, set the value reference.
+		nod.ValueRef = valCursor.GetRef()
+		cs.SetRef(7, valCursor)
+	}
+	return nil
+}
+
+// createLeafNode creates a new leaf node with the given key and value.
+func (t *Tx) createLeafNode(ctx context.Context, cs *block.Cursor, key []byte, valCursor *block.Cursor, isBlob bool) (*Node, *block.Cursor, error) {
+	nod := &Node{
+		Key:  key,
+		Size: 1,
+	}
+	cs.ClearAllRefs()
+	cs.SetBlock(nod, true)
+
+	if err := t.setNodeValue(ctx, cs, nod, valCursor, isBlob); err != nil {
+		return nil, nil, err
+	}
+
+	return nod, cs, nil
+}
+
 // setFromNode sets a key recursively from a node.
 func (t *Tx) setFromNode(
 	ctx context.Context,
@@ -422,16 +471,10 @@ func (t *Tx) setFromNode(
 	valCursor *block.Cursor,
 	isBlob bool,
 ) (*Node, *block.Cursor, bool, error) {
-	// Careful to re-stitch the block graph while maintaining Block objects.
-	// To move a block from pos -> pos.right:
-	//  - create new block cursor with .Detach(false) (becomes new sub-root)
-	//  - create new Node at the new sub-root
-	//  - setref from new node -> old node (either left or right)
-	//  - set parent child ref -> new child (done when returning)
 	if nod.IsLeaf() {
 		keyCmp := bytes.Compare(key, nod.GetKey())
 		if keyCmp == 0 || nod.GetSize() == 0 {
-			// leaf && equal key (or empty) -> override old node
+			// Re-initialize the node with the new key and value.
 			nod.Key = key
 			nod.Size = 1
 			nod.Height = 0
@@ -443,78 +486,42 @@ func (t *Tx) setFromNode(
 			bcs.SetBlock(nod, true)
 			bcs.ClearAllRefs()
 
-			if isBlob {
-				// SetAsSubBlock requires a value, set an empty blob if blk is nil.
-				if blk, _ := valCursor.GetBlock(); blk == nil {
-					if valCursor.GetRef().GetEmpty() {
-						valCursor.SetBlock(blob.NewBlobBlock(), false)
-					} else {
-						_, err := blob.UnmarshalBlob(ctx, valCursor)
-						if err != nil {
-							return nod, bcs, true, err
-						}
-					}
-				}
-				if err := valCursor.SetAsSubBlock(8, bcs); err != nil {
-					return nod, bcs, true, err
-				}
-			} else {
-				nod.ValueRef = valCursor.GetRef()
-				bcs.SetRef(7, valCursor)
+			if err := t.setNodeValue(ctx, bcs, nod, valCursor, isBlob); err != nil {
+				return nod, bcs, true, err
 			}
 
 			return nod, bcs, true, nil
 		}
 
-		// create a new root node for the sub-graph
-		// if key < node.key, set nroot->rightNode=node, nroot->leftNode=key
+		// Create a new root node for the sub-graph.
 		nrootNod := &Node{Height: 1, Size: 2}
 		nroot := bcs.Detach(false)
 		nroot.ClearAllRefs()
 		nroot.SetBlock(nrootNod, true)
 
-		// ncs points to the new block containing key, value
+		// ncs points to the new block containing key and value.
 		var ncs *block.Cursor
 		if keyCmp < 0 {
-			// key is < old key -> set nroot -> right = bcs
+			// key is less than the node's key; set nroot's right child to the current node.
 			nrootNod.Key = nod.Key
 			nroot.SetRef(6, bcs)
 			ncs = nroot.FollowRef(5, nil)
 		} else {
-			// key is > old key -> set nroot -> left = bcs
+			// key is greater than the node's key; set nroot's left child to the current node.
 			nrootNod.Key = key
 			nroot.SetRef(5, bcs)
 			ncs = nroot.FollowRef(6, nil)
 		}
 
-		// set the new node -> the key, val
-		ncs.ClearAllRefs()
-		ncs.SetBlock(&Node{
-			Key:  key,
-			Size: 1,
-		}, true)
-		if isBlob {
-			// SetAsSubBlock requires a value, set an empty blob if blk is nil.
-			if blk, _ := valCursor.GetBlock(); blk == nil {
-				if valCursor.GetRef().GetEmpty() {
-					valCursor.SetBlock(blob.NewBlobBlock(), false)
-				} else {
-					_, err := blob.UnmarshalBlob(ctx, valCursor)
-					if err != nil {
-						return nrootNod, nroot, true, err
-					}
-				}
-			}
-			if err := valCursor.SetAsSubBlock(8, ncs); err != nil {
-				return nrootNod, nroot, true, err
-			}
-		} else {
-			ncs.SetRef(7, valCursor)
+		// Create a new leaf node with the key and value.
+		if _, _, err := t.createLeafNode(ctx, ncs, key, valCursor, isBlob); err != nil {
+			return nrootNod, nroot, true, err
 		}
 
 		return nrootNod, nroot, true, nil
 	}
 
+	// Recursive case for non-leaf nodes.
 	nextNod, nextBc, left, err := t.followKeyFromNode(ctx, bcs, nod, key)
 	if err != nil {
 		return nil, nil, false, err
@@ -526,18 +533,20 @@ func (t *Tx) setFromNode(
 	if !changed {
 		return nod, bcs, false, nil
 	}
-	// set the new sub-tree reference
+
+	// Update the child reference with the new subtree.
 	if left {
 		bcs.SetRef(5, setCs)
 	} else {
 		bcs.SetRef(6, setCs)
 	}
 
-	err = t.calcNodeHeightAndSize(ctx, nod, bcs)
-	if err != nil {
+	// Recalculate the node's height and size.
+	if err := t.calcNodeHeightAndSize(ctx, nod, bcs); err != nil {
 		return nil, nil, changed, err
 	}
 
+	// Balance the tree from this node.
 	nroot, nrootCs, err := t.balanceFromNode(ctx, nod, bcs)
 	return nroot, nrootCs, true, err
 }

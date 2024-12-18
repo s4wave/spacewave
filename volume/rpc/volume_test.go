@@ -122,10 +122,10 @@ func TestRPCVolume(t *testing.T) {
 
 	t.Log("testing object store api")
 	if err := store_test.TestObjectStore(ctx, vol, store_test.WithVLogger(le)); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	t.Log("testing message queue api")
 	if err := store_test.TestMqueueAPI(ctx, vol); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 }

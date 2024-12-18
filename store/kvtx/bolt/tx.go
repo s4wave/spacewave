@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/hydra/kvtx"
@@ -16,10 +17,9 @@ import (
 
 // Tx is a bolt transaction.
 type Tx struct {
-	txn           *bdb.Tx
-	bucket        []byte
-	discardOnce   sync.Once
-	readOnlyCache []*pendingValue
+	txn         *bdb.Tx
+	bucket      []byte
+	discardOnce sync.Once
 }
 
 // pendingValue is a pending write value
@@ -50,18 +50,6 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
-	if !t.txn.Writable() {
-		for _, v := range t.readOnlyCache {
-			if bytes.Equal(v.key, key) {
-				if len(v.value) == 0 {
-					return nil, false, nil
-				}
-				pval := make([]byte, len(v.value))
-				copy(pval, v.value)
-				return pval, true, nil
-			}
-		}
-	}
 
 	bkt, err := t.getBucket()
 	if err == bdb.ErrBucketNotFound {
@@ -71,15 +59,14 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 		return nil, false, err
 	}
 
-	item := bkt.Get(key)
-	if len(item) == 0 {
+	// bolt uses nil vs. []byte{} to indicate existence.
+	value := bkt.Get(key)
+	if value == nil {
 		return nil, false, nil
 	}
 
-	// item is only valid for time of transaction
-	valb := make([]byte, len(item))
-	copy(valb, item)
-	return valb, true, nil
+	// value is only valid for time of transaction, copy
+	return slices.Clone(value), true, nil
 }
 
 // Size returns the number of keys in the store.
@@ -98,32 +85,8 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	// we cannot store empty values in Bolt
-	if len(value) == 0 {
-		return kvtx.ErrEmptyValue
-	}
 	if !t.txn.Writable() {
-		for i, v := range t.readOnlyCache {
-			if bytes.Equal(v.key, key) {
-				if bytes.Equal(v.value, value) {
-					return nil
-				}
-
-				t.readOnlyCache[i] = t.readOnlyCache[len(t.readOnlyCache)-1]
-				t.readOnlyCache[len(t.readOnlyCache)-1] = nil
-				t.readOnlyCache = t.readOnlyCache[:len(t.readOnlyCache)-1]
-				break
-			}
-		}
-		pkey := make([]byte, len(key))
-		copy(pkey, key)
-		pval := make([]byte, len(value))
-		copy(pval, value)
-		t.readOnlyCache = append(t.readOnlyCache, &pendingValue{
-			key:   pkey,
-			value: pval,
-		})
-		return nil
+		return kvtx.ErrNotWrite
 	}
 
 	bkt, err := t.getBucket()
@@ -162,15 +125,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		return cb(k, v)
 	}
 
-	if !write {
-		for _, v := range t.readOnlyCache {
-			if err := checkElem(v.key, v.value); err != nil {
-				return err
-			}
-		}
-	}
-
-	// TODO: this might be slow, we should use buckets for prefixes as an optimization
+	// TODO: use a cursor for the prefix instead of ForEach.
 	return bkt.ForEach(checkElem)
 }
 
@@ -202,6 +157,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
+
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -242,8 +198,9 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 		return false, err
 	}
 
+	// bolt uses nil vs. []byte{} to indicate existence.
 	i := bkt.Get(key)
-	return len(i) != 0, nil
+	return i != nil, nil
 }
 
 // Discard cancels the transaction.

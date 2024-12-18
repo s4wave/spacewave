@@ -22,16 +22,20 @@ func TestBolt(t *testing.T) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
+
 	kvkey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	dir, err := os.MkdirTemp("", "hydra-test-bolt-")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer os.RemoveAll(dir)
+
 	tp := path.Join(dir, "database.boltdb")
+
 	db, err := Open(tp, 0o644, nil, []byte("test-bucket"))
 	if err != nil {
 		t.Fatal(err.Error())

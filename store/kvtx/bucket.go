@@ -67,6 +67,10 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 	prev, curr *bucket.Config,
 	err error,
 ) {
+	if err := conf.Validate(); err != nil {
+		return false, nil, nil, err
+	}
+
 	dat, err := conf.MarshalVT()
 	if err != nil {
 		return false, nil, nil, err
@@ -89,13 +93,6 @@ func (k *KVTx) ApplyBucketConfig(ctx context.Context, conf *bucket.Config) (
 		if econf.GetRev() >= conf.GetRev() {
 			return false, econf, econf, nil
 		}
-	}
-
-	// the value should always have at least the bucket name.
-	// many stores cannot handle empty values
-	// add a check here to make sure.
-	if len(dat) == 0 {
-		return false, nil, nil, kvtx.ErrEmptyValue
 	}
 
 	if err := tx.Set(ctx, key, dat); err != nil {

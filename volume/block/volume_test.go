@@ -1,4 +1,4 @@
-package volume_block_e2e
+package volume_block_test
 
 import (
 	"context"
@@ -87,7 +87,7 @@ func TestBlockVolume(t *testing.T) {
 	}
 
 	// start the volume
-	vctrl, _, diRef, err := loader.WaitExecControllerRunning(
+	volCtrl, _, diRef, err := loader.WaitExecControllerRunningTyped[volume.Controller](
 		ctx,
 		tb.Bus,
 		resolver.NewLoadControllerWithConfig(volume_block.NewConfig(
@@ -104,7 +104,6 @@ func TestBlockVolume(t *testing.T) {
 	}
 	defer diRef.Release()
 
-	volCtrl := vctrl.(volume.Controller)
 	bvol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		t.Fatal(err.Error())

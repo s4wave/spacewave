@@ -1,4 +1,4 @@
-package volume_block_e2e
+package volume_world_test
 
 import (
 	"context"
@@ -19,8 +19,8 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-// TestBlockVolume tests the block graph backed volume.
-func TestBlockVolume(t *testing.T) {
+// TestWorldVolume tests the world backed volume.
+func TestWorldVolume(t *testing.T) {
 	ctx := context.Background()
 
 	tb, err := testbed.Default(ctx)
