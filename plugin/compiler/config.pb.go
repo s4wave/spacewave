@@ -6,6 +6,10 @@ package bldr_plugin_compiler
 
 import (
 	fmt "fmt"
+	io "io"
+	strconv "strconv"
+	strings "strings"
+
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	esbuild1 "github.com/aperturerobotics/bldr/web/esbuild"
 	esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
@@ -13,9 +17,6 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	enabled "github.com/aperturerobotics/util/enabled"
-	io "io"
-	strconv "strconv"
-	strings "strings"
 )
 
 // InputFileKind is the kind of file this is.

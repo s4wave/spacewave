@@ -9,10 +9,8 @@ import (
 	_ "embed"
 )
 
-var (
-	//go:embed index.html
-	indexHTML string
-)
+//go:embed index.html
+var indexHTML string
 
 // ImportMap is the <importmap> tag contents.
 type ImportMap struct {

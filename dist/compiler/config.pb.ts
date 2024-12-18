@@ -2,13 +2,13 @@
 // @generated from file github.com/aperturerobotics/bldr/dist/compiler/config.proto (package bldr.dist.compiler, syntax proto3)
 /* eslint-disable */
 
-import { ControllerConfig } from "../../../controllerbus/controller/configset/proto/configset.pb.js";
-import type { Enabled } from "../../../util/enabled/enabled.pb.js";
-import { Enabled_Enum } from "../../../util/enabled/enabled.pb.js";
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, ScalarType } from "@aptre/protobuf-es-lite";
+import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
+import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "bldr.dist.compiler";
+export const protobufPackage = 'bldr.dist.compiler'
 
 /**
  * Config configures the dist compiler controller.
@@ -26,7 +26,7 @@ export interface Config {
    *
    * @generated from field: repeated string embed_manifests = 1;
    */
-  embedManifests?: string[];
+  embedManifests?: string[]
   /**
    * LoadPlugins is the list of plugins to load on startup.
    * Note that plugins can also load other plugins with the LoadPlugin directive.
@@ -35,7 +35,7 @@ export interface Config {
    *
    * @generated from field: repeated string load_plugins = 2;
    */
-  loadPlugins?: string[];
+  loadPlugins?: string[]
   /**
    * LoadWebStartup is a path to a .js or .ts or .tsx file with a React component to load on startup.
    * Must be a relative path located within the project sources.
@@ -45,7 +45,7 @@ export interface Config {
    *
    * @generated from field: string load_web_startup = 8;
    */
-  loadWebStartup?: string;
+  loadWebStartup?: string
   /**
    * HostConfigSet is a ConfigSet to apply to the host on dist startup.
    * This ConfigSet is applied to the dist host bus on startup.
@@ -53,13 +53,13 @@ export interface Config {
    *
    * @generated from field: map<string, configset.proto.ControllerConfig> host_config_set = 3;
    */
-  hostConfigSet?: { [key: string]: ControllerConfig };
+  hostConfigSet?: { [key: string]: ControllerConfig }
   /**
    * ProjectId overrides the project id set in the project config.
    *
    * @generated from field: string project_id = 4;
    */
-  projectId?: string;
+  projectId?: string
   /**
    * EnableCgo enables cgo in the Go compiler.
    *
@@ -70,7 +70,7 @@ export interface Config {
    *
    * @generated from field: enabled.Enabled enable_cgo = 5;
    */
-  enableCgo?: Enabled;
+  enableCgo?: Enabled
   /**
    * EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
    * Currently TinyGo fails to build Bldr due to missing implementation internally.
@@ -80,7 +80,7 @@ export interface Config {
    *
    * @generated from field: enabled.Enabled enable_tinygo = 6;
    */
-  enableTinygo?: Enabled;
+  enableTinygo?: Enabled
   /**
    * EnableCompression can optionally force-enable or force-disable binary compression.
    * The default is ENABLE for release-mode only.
@@ -88,25 +88,42 @@ export interface Config {
    *
    * @generated from field: enabled.Enabled enable_compression = 7;
    */
-  enableCompression?: Enabled;
-
-};
+  enableCompression?: Enabled
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
-    typeName: "bldr.dist.compiler.Config",
-    fields: [
-        { no: 1, name: "embed_manifests", kind: "scalar", T: ScalarType.STRING, repeated: true },
-        { no: 2, name: "load_plugins", kind: "scalar", T: ScalarType.STRING, repeated: true },
-        { no: 8, name: "load_web_startup", kind: "scalar", T: ScalarType.STRING },
-        { no: 3, name: "host_config_set", kind: "map", K: ScalarType.STRING, V: {kind: "message", T: () => ControllerConfig} },
-        { no: 4, name: "project_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 5, name: "enable_cgo", kind: "enum", T: Enabled_Enum },
-        { no: 6, name: "enable_tinygo", kind: "enum", T: Enabled_Enum },
-        { no: 7, name: "enable_compression", kind: "enum", T: Enabled_Enum },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-});
+  typeName: 'bldr.dist.compiler.Config',
+  fields: [
+    {
+      no: 1,
+      name: 'embed_manifests',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 2,
+      name: 'load_plugins',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 8, name: 'load_web_startup', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 3,
+      name: 'host_config_set',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => ControllerConfig },
+    },
+    { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
+    { no: 6, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
+    { no: 7, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * PreBuildHookResult is the output of a pre-build hook.
@@ -120,16 +137,15 @@ export interface PreBuildHookResult {
    *
    * @generated from field: bldr.dist.compiler.Config config = 1;
    */
-  config?: Config;
-
-};
+  config?: Config
+}
 
 // PreBuildHookResult contains the message type declaration for PreBuildHookResult.
-export const PreBuildHookResult: MessageType<PreBuildHookResult> = createMessageType({
-    typeName: "bldr.dist.compiler.PreBuildHookResult",
+export const PreBuildHookResult: MessageType<PreBuildHookResult> =
+  createMessageType({
+    typeName: 'bldr.dist.compiler.PreBuildHookResult',
     fields: [
-        { no: 1, name: "config", kind: "message", T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
-});
-
+  })

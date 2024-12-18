@@ -6,13 +6,14 @@ package bldr_dist_compiler
 
 import (
 	fmt "fmt"
+	io "io"
+	strconv "strconv"
+	strings "strings"
+
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	enabled "github.com/aperturerobotics/util/enabled"
-	io "io"
-	strconv "strconv"
-	strings "strings"
 )
 
 // Config configures the dist compiler controller.

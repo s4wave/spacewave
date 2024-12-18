@@ -69,10 +69,10 @@
   },
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
-    "@aptre/common": "^0.19.1",
+    "@aptre/common": "^0.20.2",
     "@types/random-string": "^0.2.0",
     "@types/react": "^19.0.1",
-    "@types/react-dom": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.17.1",
     "happy-dom": "^15.11.7",
@@ -85,14 +85,14 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.8",
-    "@libp2p/logger": "^5.1.4",
+    "@libp2p/logger": "^5.1.5",
     "console": "^0.7.2",
     "electron": "^33.2.1",
     "event-iterator": "^2.0.0",
-    "idb": "^8.0.0",
+    "idb": "^8.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "starpc": "^0.35.5",
+    "starpc": "^0.36.0",
     "workbox-window": "^7.3.0"
   },
   "resolutions": {

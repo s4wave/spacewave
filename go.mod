@@ -1,20 +1,18 @@
 module github.com/aperturerobotics/bldr
 
-go 1.23
-
-toolchain go1.23.1
+go 1.24
 
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
-require github.com/aperturerobotics/common v0.19.1 // latest
+require github.com/aperturerobotics/common v0.20.2 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20241124044113-69000824bb4a // master
-	github.com/aperturerobotics/protobuf-go-lite v0.8.0 // master
+	github.com/aperturerobotics/hydra v0.0.0-20241218073354-ffe5dc9b9315 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.8.1-0.20241109000521-5bb9966c718b // master
 )
 
 require (
@@ -37,7 +35,7 @@ require (
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
-	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
+	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008 // indirect; latest
 )
 
 // aperture: use ext-engines forks
@@ -79,7 +77,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.48.1 // latest
 	github.com/aperturerobotics/entitygraph v0.10.1 // indirect; latest
-	github.com/aperturerobotics/starpc v0.35.3 // latest
+	github.com/aperturerobotics/starpc v0.36.0 // latest
 	github.com/aperturerobotics/util v1.26.4-0.20241121063346-dbe98d45029b // latest
 )
 
@@ -101,7 +99,7 @@ replace (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/klauspost/compress v1.17.11
-	github.com/libp2p/go-libp2p v0.37.0
+	github.com/libp2p/go-libp2p v0.37.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.14.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.22 // indirect
