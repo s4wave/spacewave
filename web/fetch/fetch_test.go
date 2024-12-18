@@ -33,7 +33,7 @@ func TestFetch(t *testing.T) {
 		rw.WriteHeader(200)
 		_, err := io.Copy(rw, bytes.NewReader(testWasmBrData))
 		if err != nil {
-			le.Fatalf(err.Error())
+			le.Fatal(err.Error())
 		}
 	})
 
