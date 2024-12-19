@@ -123,6 +123,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/coder/websocket v1.8.13-0.20241107130731-1253b774ead7
+	github.com/oklog/ulid/v2 v2.1.0
 )
 
 require (
