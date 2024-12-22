@@ -222,6 +222,16 @@ export function useLatestRef<T>(
   return ref
 }
 
+// compareUint8Arrays compares two Uint8Array for equality.
+// this is (unfortunately) the fastest known method for such a comparison.
+function compareUint8Arrays(a: Uint8Array, b: Uint8Array) {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
+}
+
 /**
  * Memoizes a Uint8Array to prevent unnecessary re-renders.
  *
@@ -229,7 +239,7 @@ export function useLatestRef<T>(
  * @returns The memoized Uint8Array
  */
 export function useMemoUint8Array(value: Uint8Array | null): Uint8Array | null {
-  return useMemoEqual(value)
+  return useMemoEqual(value, compareUint8Arrays)
 }
 
 /** Event interface for events that include a detail count */
@@ -244,9 +254,9 @@ interface DetailCountEvent {
  * The onClick event.detail contains the number of clicks: double-click has event.detail = 2.
  * When the clicked React component is replaced, the event.detail does not reset.
  *
- * @see {@link https://stackoverflow.com/q/77719428/431369|Stack Overflow Question}
- * @see {@link https://codesandbox.io/p/sandbox/react-on-click-event-detail-6ndl5v|Issue Demo}
- * @see {@link https://codesandbox.io/p/sandbox/react-on-click-event-detail-possible-fix-4zwk7d|Fix Demo}
+ * @see {@link https://stackoverflow.com/q/77719428/431369}
+ * @see {@link https://codesandbox.io/p/sandbox/react-on-click-event-detail-6ndl5v}
+ * @see {@link https://codesandbox.io/p/sandbox/react-on-click-event-detail-possible-fix-4zwk7d}
  *
  * @template E - The event type extending DetailCountEvent
  * @param cb - Callback function receiving the event and corrected count
