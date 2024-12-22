@@ -1,4 +1,6 @@
+import React, { useMemo } from 'react'
 import { Message, MessageType } from '@aptre/protobuf-es-lite'
+import { useMemoUint8Array } from './hooks.js'
 
 // IRenderProtoProps are props passed to an imported ReactComponent.
 export interface IRenderProtoProps {
@@ -21,6 +23,8 @@ export function renderProto<T extends Message<T>>(
   render: React.FC<T>,
 ): ProtoRenderFunc {
   return (props: IRenderProtoProps) => {
-    return render(def.fromBinary(props.componentProps || new Uint8Array(0)))
+    const memoComponentProps = useMemoUint8Array(props.componentProps ?? null)
+    const memoParsedProps = useMemo(() => def.fromBinary(memoComponentProps), [memoComponentProps])
+    return render(memoParsedProps)
   }
 }
