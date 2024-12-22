@@ -47,7 +47,7 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	mux := srpc.NewMux()
-	mux = srpc.NewVMux(mux, le, true) // TODO
+	// mux = srpc.NewVMux(mux, le, true) // TODO
 	ctrl := &Controller{
 		le:   le,
 		bus:  bus,
