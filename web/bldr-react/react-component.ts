@@ -24,7 +24,6 @@ export function renderProto<T extends Message<T>>(
 ): ProtoRenderFunc {
   return (props: IRenderProtoProps) => {
     const memoComponentProps = useMemoUint8Array(props.componentProps ?? null)
-    const memoParsedProps = useMemo(() => def.fromBinary(memoComponentProps), [memoComponentProps])
-    return render(memoParsedProps)
+    return useMemo(() => render(def.fromBinary(memoComponentProps)), [memoComponentProps])
   }
 }

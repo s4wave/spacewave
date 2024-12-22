@@ -18,6 +18,8 @@ export interface IReactComponentContainerProps {
 
 // ReactComponentContainer imports and initializes a ReactComponent script.
 export function ReactComponentContainer(props: IReactComponentContainerProps) {
+  const componentProps = useMemoUint8Array(props.componentProps ?? null)
+
   const LoadedComponent: ProtoComponentType = useMemo(
     () =>
       React.lazy(
@@ -27,23 +29,25 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
     [props.scriptPath],
   )
 
-  const componentProps = useMemoUint8Array(props.componentProps ?? null)
+  const InnerComponent = useMemo(
+    () =>
+      ({
+        componentProps,
+        onReady,
+      }: {
+        componentProps?: Uint8Array
+        onReady?: () => void
+      }) => {
+        useEffect(() => {
+          if (onReady) {
+            onReady()
+          }
+        }, [onReady])
 
-  const InnerComponent = ({
-    componentProps,
-    onReady,
-  }: {
-    componentProps?: Uint8Array
-    onReady?: () => void
-  }) => {
-    useEffect(() => {
-      if (onReady) {
-        onReady()
-      }
-    }, [onReady])
-
-    return <LoadedComponent componentProps={componentProps} />
-  }
+        return <LoadedComponent componentProps={componentProps} />
+      },
+    [LoadedComponent],
+  )
 
   return (
     <WebViewErrorBoundary>
