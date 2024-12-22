@@ -139,6 +139,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   }))
   const [isComponentReady, setIsComponentReady] = useState(false)
 
+  // TODO: hack: improve this
   useEffect(() => {
     setIsComponentReady(false)
   }, [webViewState.scriptPath, webViewState.refreshNonce])
@@ -167,7 +168,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       async setRenderMode(
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
-        console.log('set render mode', options)
+        console.log(`WebView: set render mode for ${uuid}`, options)
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
