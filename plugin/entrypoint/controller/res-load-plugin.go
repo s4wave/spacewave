@@ -5,9 +5,9 @@ import (
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/directive"
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/retry"
-	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 )
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
