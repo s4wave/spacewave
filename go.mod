@@ -4,16 +4,16 @@ go 1.23
 
 toolchain go1.23.1
 
-require github.com/aperturerobotics/hydra v0.0.0-20241113012348-c1f91b1c5a6c // master
-
 require github.com/satori/go.uuid v1.2.0
+
+require github.com/aperturerobotics/hydra v0.0.0-20241223093430-7ebd17fd4dc9 // master
 
 // Note: The below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.39.2 // master
+	github.com/aperturerobotics/bifrost v0.40.3 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
-	github.com/aperturerobotics/json-iterator-lite v1.0.0 // indirect; latest
+	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008 // indirect; latest
 )
 
 // aperture: use ext-engines forks
@@ -35,18 +35,18 @@ replace (
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 // indirect
-	golang.org/x/sync v0.9.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
 )
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.19.1 // latest
-	github.com/aperturerobotics/controllerbus v0.48.1 // latest
-	github.com/aperturerobotics/entitygraph v0.10.1 // indirect; latest
+	github.com/aperturerobotics/common v0.20.3 // latest
+	github.com/aperturerobotics/controllerbus v0.49.0 // latest
+	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/protobuf-go-lite v0.8.0 // latest
-	github.com/aperturerobotics/starpc v0.35.3 // latest
-	github.com/aperturerobotics/util v1.26.2 // latest
+	github.com/aperturerobotics/starpc v0.36.1 // latest
+	github.com/aperturerobotics/util v1.27.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -67,23 +67,22 @@ replace (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
-	github.com/libp2p/go-libp2p v0.37.0
+	github.com/libp2p/go-libp2p v0.38.1
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.14.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.48.1 // indirect
+	github.com/quic-go/quic-go v0.48.2 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect
 )
 
 require github.com/blang/semver/v4 v4.0.0
 
 require (
-	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/coder/websocket v1.8.13-0.20241107130731-1253b774ead7 // indirect
+	github.com/coder/websocket v1.8.13-0.20241204191143-11bda985bf5f // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/pprof v0.0.0-20241017200806-017d972448fc // indirect
@@ -103,8 +102,8 @@ require (
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
-	golang.org/x/tools v0.27.0 // indirect
+	golang.org/x/net v0.32.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/tools v0.28.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
