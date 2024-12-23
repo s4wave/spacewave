@@ -7,10 +7,10 @@
   resolved "https://registry.yarnpkg.com/@aptre-cjs/esm-cjs-lexer/-/esm-cjs-lexer-0.1.0.tgz#0a495aaf6aab4b74139ef8a7b039f9b1651f853b"
   integrity sha512-SMQ7gG6ZNi7Jxq5P90W74MNpzu4A767QHxS9uXawSedrhHzUylsHhAKY/O7i90JQ3v3wj3OJoW2xLDGeIClfTA==
 
-"@aptre/common@^0.20.2":
-  version "0.20.2"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.20.2.tgz#6813b0448c7ece10735c114e77fc129479522352"
-  integrity sha512-wfKU1Hz9yDwKuTU7T79FawlA+nAMFgfKx2/2071hj0jHO6u+12gBh4r3OHZKecYazxfWg/hj9+/IIwUqkuNcgg==
+"@aptre/common@^0.20.3":
+  version "0.20.3"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.20.3.tgz#fcc0c0e17a873eea6a64c735e13fa400afdfb381"
+  integrity sha512-cJo8DsN6N4DIK+3uH6qvCZ8QwMrzSoj0KoehAhByjet3rbr45ORXY8HPb535LJTlVApAjlOnxsmmL3eXbkk8xg==
   dependencies:
     "@aptre/protobuf-es-lite" "^0.4.7"
     "@typescript-eslint/eslint-plugin" "^8.18.0"
@@ -637,10 +637,10 @@
   resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-19.0.2.tgz#ad21f9a1ee881817995fd3f7fd33659c87e7b1b7"
   integrity sha512-c1s+7TKFaDRRxr1TxccIX2u7sfCnc3RxkVyBIUA2lCpyqCF+QoAwQ/CBg7bsMdVwP120HEH143VQezKtef5nCg==
 
-"@types/react@^19.0.1":
-  version "19.0.1"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-19.0.1.tgz#a000d5b78f473732a08cecbead0f3751e550b3df"
-  integrity sha512-YW6614BDhqbpR5KtUYzTA+zlA7nayzJRA9ljz9CQoxthR0sDisYZLuvSMsil36t4EH/uAt8T52Xb4sVw17G+SQ==
+"@types/react@^19.0.2":
+  version "19.0.2"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-19.0.2.tgz#9363e6b3ef898c471cb182dd269decc4afc1b4f6"
+  integrity sha512-USU8ZI/xyKJwFTpjSVIrSeHBVAGagkHQKPNbxeWwql/vDmnTIBgx+TJnhFnj1NXgz8XfprU0egV2dROLGpsBEg==
   dependencies:
     csstype "^3.0.2"
 
@@ -1145,10 +1145,10 @@ end-of-stream@^1.1.0, end-of-stream@^1.4.1:
   dependencies:
     once "^1.4.0"
 
-enhanced-resolve@^5.17.1:
-  version "5.17.1"
-  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.17.1.tgz#67bfbbcc2f81d511be77d686a90267ef7f898a15"
-  integrity sha512-LMHl3dXhTcfv8gM4kEzIUeTQ+7fpdA0l2tUf34BddXPkz2A5xJ5L/Pchd5BL6rdccM9QGvu0sWZzK1Z1t4wwyg==
+enhanced-resolve@^5.18.0:
+  version "5.18.0"
+  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.18.0.tgz#91eb1db193896b9801251eeff1c6980278b1e404"
+  integrity sha512-0/r0MySGYG8YqlayBZ6MuCfECmHFdJ5qyPh8s8wa5Hnm6SaFLSK1VYCbj+NKp090Nm1caZhD+QTnmxO7esYGyQ==
   dependencies:
     graceful-fs "^4.2.4"
     tapable "^2.2.0"
@@ -2357,6 +2357,25 @@ starpc@^0.36.0:
   version "0.36.0"
   resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.36.0.tgz#a9817da5f3b756b4bc75824d21220d6d1d64cf8a"
   integrity sha512-A4YEKmQRrfyBEtdXT2sPT9ZQ+Bbf6/w8Pc6RGaMNd4fFMYjefi4UCwZxF8DrWX2LJix9otnihDB79zrHqvTUGw==
+  dependencies:
+    "@aptre/it-ws" "^1.0.1"
+    "@aptre/protobuf-es-lite" "^0.4.6"
+    "@chainsafe/libp2p-yamux" "^7.0.1"
+    "@libp2p/interface" "^2.1.2"
+    "@libp2p/logger" "^5.1.0"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.6"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.2"
+    uint8arraylist "^2.4.7"
+    ws "^8.17.0"
+
+starpc@^0.36.1:
+  version "0.36.1"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.36.1.tgz#3ceb6849a34bb57fddfab737f834de5309fd7118"
+  integrity sha512-AbzY3P+yFXZO0+FGIflrHqqoDjGGYqSbneNZ/HBgaLLzlXaS1dbN7DWifBJN427p/W0IBVBiuh2R/knX7oQYiA==
   dependencies:
     "@aptre/it-ws" "^1.0.1"
     "@aptre/protobuf-es-lite" "^0.4.6"

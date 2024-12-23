@@ -69,12 +69,12 @@
   },
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
-    "@aptre/common": "^0.20.2",
+    "@aptre/common": "^0.20.3",
     "@types/random-string": "^0.2.0",
-    "@types/react": "^19.0.1",
+    "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "cross-env": "^7.0.3",
-    "enhanced-resolve": "^5.17.1",
+    "enhanced-resolve": "^5.18.0",
     "happy-dom": "^15.11.7",
     "prettier": "^3.4.2",
     "pumpify": "^2.0.1",
@@ -92,7 +92,7 @@
     "idb": "^8.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "starpc": "^0.36.0",
+    "starpc": "^0.36.1",
     "workbox-window": "^7.3.0"
   },
   "resolutions": {
