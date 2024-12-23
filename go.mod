@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.3
 
 require (
-	github.com/aperturerobotics/bifrost v0.40.3-0.20241218081026-2eb6607f6b9e // master
+	github.com/aperturerobotics/bifrost v0.40.3 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -59,12 +59,12 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.20.2 // latest
-	github.com/aperturerobotics/controllerbus v0.48.2 // latest
-	github.com/aperturerobotics/entitygraph v0.10.1 // latest
+	github.com/aperturerobotics/common v0.20.3 // latest
+	github.com/aperturerobotics/controllerbus v0.49.0 // latest
+	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.8.0 // latest
-	github.com/aperturerobotics/starpc v0.36.0 // latest
-	github.com/aperturerobotics/util v1.27.0 // latest
+	github.com/aperturerobotics/starpc v0.36.1 // latest
+	github.com/aperturerobotics/util v1.27.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -85,7 +85,7 @@ replace (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/klauspost/compress v1.17.11
-	github.com/libp2p/go-libp2p v0.37.2
+	github.com/libp2p/go-libp2p v0.38.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.14.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.24 // indirect
@@ -108,7 +108,6 @@ require (
 require (
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dgraph-io/ristretto/v2 v2.0.0-alpha
 	github.com/dolthub/vitess v0.0.0-20240429213844-e8e1b4cd75c4
 	github.com/gomodule/redigo v1.9.2
