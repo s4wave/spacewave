@@ -148,5 +148,4 @@ func CollectObjectBodies[T block.Block](
 	}
 
 	return objs, objStates, retErr
-
 }

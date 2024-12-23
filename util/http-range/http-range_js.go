@@ -5,8 +5,8 @@ package http_range
 import (
 	"context"
 
-	fetch "github.com/aperturerobotics/util/js/fetch"
 	http_range_fetch "github.com/aperturerobotics/hydra/util/http-range/fetch"
+	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/sirupsen/logrus"
 )
 

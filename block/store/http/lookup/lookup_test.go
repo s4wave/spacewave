@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/bifrost/hash"
-	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -18,6 +17,7 @@ import (
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	lookup_concurrent "github.com/aperturerobotics/hydra/bucket/lookup/concurrent"
 	"github.com/aperturerobotics/hydra/testbed"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/sirupsen/logrus"
 )
 

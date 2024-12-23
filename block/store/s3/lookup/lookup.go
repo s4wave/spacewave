@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/dex"
+	httplog "github.com/aperturerobotics/util/httplog"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

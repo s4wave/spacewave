@@ -13,7 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/hydra/block"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/util/backoff/cbackoff"
+	backoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
