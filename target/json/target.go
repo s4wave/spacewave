@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	configset_json "github.com/aperturerobotics/controllerbus/controller/configset/json"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/fastjson"
 	target "github.com/aperturerobotics/forge/target"
 	"github.com/ghodss/yaml"
-	"github.com/valyala/fastjson"
 )
 
 // Target implements the JSON unmarshaling and marshaling logic for a Target.

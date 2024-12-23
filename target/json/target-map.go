@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/fastjson"
 	target "github.com/aperturerobotics/forge/target"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"github.com/valyala/fastjson"
 )
 
 // TargetMap implements the JSON unmarshaling and marshaling logic for a map of
