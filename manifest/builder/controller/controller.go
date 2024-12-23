@@ -18,7 +18,7 @@ import (
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver/v4"
-	"github.com/cenkalti/backoff/v4"
+	"github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

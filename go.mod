@@ -5,13 +5,13 @@ go 1.24
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
-require github.com/aperturerobotics/common v0.20.2 // latest
+require github.com/aperturerobotics/common v0.20.3 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20241222001133-f2b188b4d377 // master
+	github.com/aperturerobotics/hydra v0.0.0-20241223093430-7ebd17fd4dc9 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.8.1-0.20241109000521-5bb9966c718b // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.40.3-0.20241218081026-2eb6607f6b9e // master
+	github.com/aperturerobotics/bifrost v0.40.3 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
@@ -75,10 +75,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.48.2 // latest
-	github.com/aperturerobotics/entitygraph v0.10.1 // indirect; latest
-	github.com/aperturerobotics/starpc v0.36.0 // latest
-	github.com/aperturerobotics/util v1.27.0 // latest
+	github.com/aperturerobotics/controllerbus v0.49.0 // latest
+	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
+	github.com/aperturerobotics/starpc v0.36.1 // latest
+	github.com/aperturerobotics/util v1.27.1 // latest
 )
 
 // aperture: use compatibility forks
@@ -99,7 +99,7 @@ replace (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20231210192602-a7dfd8e4e6b4 // indirect
 	github.com/klauspost/compress v1.17.11
-	github.com/libp2p/go-libp2p v0.37.2
+	github.com/libp2p/go-libp2p v0.38.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.14.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.10.24 // indirect
@@ -121,7 +121,6 @@ require (
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/coder/websocket v1.8.13-0.20241204191143-11bda985bf5f
 	github.com/oklog/ulid/v2 v2.1.0
 )
