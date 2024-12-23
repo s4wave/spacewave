@@ -49,11 +49,7 @@ export {
   ProtoRenderFunc,
   renderProto,
 } from './react-component.js'
-export {
-  FunctionComponent,
-  createReactFunctionComponent,
-  createReactProtoFunctionComponent,
-} from './function-component.js'
+export { FunctionComponent } from './function-component.js'
 export {
   DebugInfo,
   DebugInfoContext,
