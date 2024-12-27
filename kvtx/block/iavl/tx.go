@@ -218,8 +218,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val []b
 		end,
 		true, true, 0,
 		func(bcs *block.Cursor, n *Node, _ uint8) error {
-			if n.GetHeight() == 0 &&
-				len(n.GetKey()) != 0 {
+			if n.GetHeight() == 0 && len(n.GetKey()) != 0 {
 				nodValue, err := t.nodeToValue(ctx, bcs, n)
 				if err != nil {
 					return err
@@ -237,9 +236,23 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 	if t.root.GetSize() == 0 {
 		return nil
 	}
-	return t.ScanPrefix(ctx, prefix, func(k, v []byte) error {
-		return cb(k)
-	})
+	end := make([]byte, len(prefix)+1)
+	copy(end, prefix)
+	end[len(end)-1] = 255
+	return t.traverseFromNode(
+		ctx,
+		t.bcs,
+		t.root,
+		prefix,
+		end,
+		true, true, 0,
+		func(bcs *block.Cursor, n *Node, _ uint8) error {
+			if n.GetHeight() == 0 && len(n.GetKey()) != 0 {
+				return cb(n.GetKey())
+			}
+			return nil
+		},
+	)
 }
 
 // Iterate returns an iterator with a given key prefix.
