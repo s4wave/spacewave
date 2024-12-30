@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.20.3 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20241223093430-7ebd17fd4dc9 // master
+	github.com/aperturerobotics/hydra v0.0.0-20241230031954-0c7cecb944ec // master
 	github.com/aperturerobotics/protobuf-go-lite v0.8.1-0.20241109000521-5bb9966c718b // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.40.3 // master
+	github.com/aperturerobotics/bifrost v0.40.4-0.20241223095607-896e5b094dac // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
@@ -126,7 +126,6 @@ require (
 )
 
 require (
-	github.com/Workiva/go-datastructures v1.1.5 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
