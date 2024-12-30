@@ -292,35 +292,25 @@ func (i *Iterator) Seek(k []byte) error {
 		} else {
 			// dequeue and visit second child
 			i.stack = i.stack[:lastIdx]
-			var shouldVisitSecond bool
-			if i.rev {
-				// In reverse mode:
-				// - Always check left subtree if we checked right
-				shouldVisitSecond = true
-			} else {
-				// In forward mode:
-				// - Always check right subtree if we checked left
-				shouldVisitSecond = true
-			}
 
-			if shouldVisitSecond {
-				var secondNode *Node
-				var secondCursor *block.Cursor
-				var err error
-				if i.rev {
-					secondNode, secondCursor, err = entry.node.FollowLeft(i.ctx, entry.cursor)
-				} else {
-					secondNode, secondCursor, err = entry.node.FollowRight(i.ctx, entry.cursor)
-				}
-				if err != nil {
-					return i.setError(err)
-				}
-				if secondNode != nil {
-					i.stack = append(i.stack, stackEntry{
-						node:   secondNode,
-						cursor: secondCursor,
-					})
-				}
+			// XXX: Is there any situation where we can skip the second child?
+
+			var secondNode *Node
+			var secondCursor *block.Cursor
+			var err error
+			if i.rev {
+				secondNode, secondCursor, err = entry.node.FollowLeft(i.ctx, entry.cursor)
+			} else {
+				secondNode, secondCursor, err = entry.node.FollowRight(i.ctx, entry.cursor)
+			}
+			if err != nil {
+				return i.setError(err)
+			}
+			if secondNode != nil {
+				i.stack = append(i.stack, stackEntry{
+					node:   secondNode,
+					cursor: secondCursor,
+				})
 			}
 		}
 	}
