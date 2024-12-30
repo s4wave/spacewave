@@ -75,7 +75,7 @@
     "@types/react-dom": "^19.0.2",
     "cross-env": "^7.0.3",
     "enhanced-resolve": "^5.18.0",
-    "happy-dom": "^15.11.7",
+    "happy-dom": "^16.0.1",
     "prettier": "^3.4.2",
     "pumpify": "^2.0.1",
     "rimraf": "^6.0.1",
