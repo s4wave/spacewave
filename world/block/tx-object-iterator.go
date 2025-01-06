@@ -18,6 +18,8 @@ type txObjectIterator struct {
 	// reversed indicates if iteration is reversed
 	reversed bool
 
+	// it is the underlying iterator
+	it world.ObjectIterator
 	// err is any error that occurred
 	err error
 	// currKey is the current key if valid
@@ -26,18 +28,30 @@ type txObjectIterator struct {
 	valid bool
 }
 
-// NewTxObjectIterator constructs a new tx object iterator.
-func NewTxObjectIterator(
+// newTxObjectIterator constructs a new tx object iterator.
+func newTxObjectIterator(
 	t *Tx,
 	ctx context.Context,
 	prefix string,
 	reversed bool,
 ) *txObjectIterator {
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return &txObjectIterator{err: err}
+	}
+	defer unlock()
+
+	if t.discarded {
+		return &txObjectIterator{err: tx.ErrDiscarded}
+	}
+
+	it := t.state.IterateObjects(ctx, prefix, reversed)
 	return &txObjectIterator{
 		t:        t,
 		ctx:      ctx,
 		prefix:   prefix,
 		reversed: reversed,
+		it:       it,
 	}
 }
 
@@ -79,55 +93,20 @@ func (t *txObjectIterator) Next() bool {
 		return false
 	}
 
-	var valid bool
-	iter := t.t.state.IterateObjects(t.ctx, t.prefix, t.reversed)
-	if iter == nil {
-		t.valid = false
-		return false
-	}
-	defer iter.Close()
-
-	if t.currKey != "" {
-		if err := iter.Seek(t.currKey); err != nil {
-			t.err = err
-			t.valid = false
-			return false
-		}
-
-		if !iter.Valid() {
-			t.err = iter.Err()
-			t.valid = false
-			return false
-		}
-
-		// Check if Seek already moved us past the current key
-		if iter.Key() == t.currKey {
-			// Still on same key, need to move past it
-			if !iter.Next() {
-				t.err = iter.Err()
-				t.valid = false
-				return false
-			}
-		}
-	}
-
-	if iter.Valid() {
-		t.currKey = iter.Key()
-		t.valid = true
-		return true
-	}
-
-	// Need to move to first valid entry
-	if !iter.Next() || !iter.Valid() {
-		t.err = iter.Err()
+	if t.it == nil {
 		t.valid = false
 		return false
 	}
 
-	t.currKey = iter.Key()
-	valid = true
-	t.valid = valid
-	return valid
+	if !t.it.Next() || !t.it.Valid() {
+		t.err = t.it.Err()
+		t.valid = false
+		return false
+	}
+
+	t.currKey = t.it.Key()
+	t.valid = true
+	return true
 }
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
@@ -150,32 +129,33 @@ func (t *txObjectIterator) Seek(k string) error {
 		return t.err
 	}
 
-	iter := t.t.state.IterateObjects(t.ctx, t.prefix, t.reversed)
-	if iter == nil {
+	if t.it == nil {
 		t.valid = false
 		return nil
 	}
-	defer iter.Close()
 
-	if err := iter.Seek(k); err != nil {
+	if err := t.it.Seek(k); err != nil {
 		t.err = err
 		t.valid = false
 		return err
 	}
 
-	if !iter.Valid() {
-		t.err = iter.Err()
+	if !t.it.Valid() {
+		t.err = t.it.Err()
 		t.valid = false
 		return t.err
 	}
 
-	t.currKey = iter.Key()
+	t.currKey = t.it.Key()
 	t.valid = true
 	return nil
 }
 
 // Close releases the iterator.
 func (t *txObjectIterator) Close() {
+	if t.it != nil {
+		t.it.Close()
+	}
 	t.valid = false
 	t.err = context.Canceled
 }

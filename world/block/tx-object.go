@@ -55,7 +55,17 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 // Call Close when done with the iterator.
 // Any init errors will be available via the iterator's Err() method.
 func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	return NewTxObjectIterator(t, ctx, prefix, reversed)
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return &txObjectIterator{err: err}
+	}
+	defer unlock()
+
+	if t.discarded {
+		return &txObjectIterator{err: tx.ErrDiscarded}
+	}
+
+	return newTxObjectIterator(t, ctx, prefix, reversed)
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
