@@ -845,6 +845,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     const view = this.webViews[webViewId]
     if (view?.webView === webView) {
+      console.log(`WebDocument: removed web view with id ${webViewId}`)
       delete this.webViews[webViewId]
       this.notifyWebViewUpdated(webViewId, undefined)
     }

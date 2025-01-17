@@ -26,7 +26,7 @@ var EsbuildLogLevel = esbuild.LogLevelWarning
 // DefaultBanner is the default banner applied to code files.
 func DefaultBanner() map[string]string {
 	return map[string]string{
-		"js": "// © 2018-2024 Aperture Robotics, LLC. <support@aperture.us>\n// All rights reserved.",
+		"js": "// © 2018-2025 Aperture Robotics, LLC. <support@aperture.us>\n// All rights reserved.",
 	}
 }
 
