@@ -22,6 +22,7 @@ import (
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
+	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/util/backoff"
@@ -99,6 +100,14 @@ func main() {
 			return err
 		}
 		defer relNodeCtrl()
+
+		// attach the configset controller
+		configSetCtrl, _ := configset_controller.NewController(le, b)
+		relConfigSetCtrl, err := b.AddController(ctx, configSetCtrl, nil)
+		if err != nil {
+			return err
+		}
+		defer relConfigSetCtrl()
 
 		// attach the default storage controller
 		storageID := default_storage.StorageID
