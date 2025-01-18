@@ -199,8 +199,8 @@ func (c *Controller) buildPluginMux(
 	distFS,
 	assetsFS *unixfs.FSHandle,
 ) srpc.Mux {
-	// busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID)
-	mux := srpc.NewMux() // busInvoker
+	busInvoker := bifrost_rpc.NewInvoker(c.bus, "plugin/"+pluginID, true)
+	mux := srpc.NewMux(busInvoker) // busInvoker
 
 	// register access host volume via rpc service
 	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
