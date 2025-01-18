@@ -23,6 +23,7 @@ import (
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
+	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/retry"
 	"github.com/sirupsen/logrus"
@@ -90,6 +91,7 @@ func main() {
 		sr.AddFactory(websocket.NewFactory(b))
 		sr.AddFactory(link_establish_controller.NewFactory(b))
 		sr.AddFactory(link_holdopen_controller.NewFactory(b))
+		sr.AddFactory(volume_rpc_server.NewFactory(b))
 
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)
