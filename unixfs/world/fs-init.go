@@ -23,7 +23,6 @@ func FsInit(
 	objKey string,
 	fsType FSType,
 	fsRef *bucket.ObjectRef,
-	fsRefType FSType,
 	overwrite bool,
 	ts time.Time,
 ) (rev uint64, sysErr bool, err error) {
@@ -31,7 +30,6 @@ func FsInit(
 		objKey,
 		fsType,
 		fsRef,
-		fsRefType,
 		overwrite,
 		ts,
 	)
@@ -47,7 +45,6 @@ func NewFsInitOp(
 	objKey string,
 	fsType FSType,
 	fsRef *bucket.ObjectRef,
-	fsRefType FSType,
 	overwrite bool,
 	ts time.Time,
 ) *FsInitOp {
@@ -55,7 +52,6 @@ func NewFsInitOp(
 		ObjectKey:   objKey,
 		FsType:      fsType,
 		FsRef:       fsRef,
-		FsRefType:   fsRefType,
 		FsOverwrite: overwrite,
 		Timestamp:   unixfs_block.ToTimestamp(ts, true),
 	}
@@ -72,9 +68,6 @@ func (o *FsInitOp) Validate() error {
 		return world.ErrEmptyObjectKey
 	}
 	if err := o.GetTimestamp().Validate(false); err != nil {
-		return err
-	}
-	if err := o.GetFsRefType().Validate(true); err != nil {
 		return err
 	}
 	if err := o.GetFsRef().Validate(); err != nil {
@@ -102,7 +95,6 @@ func (o *FsInitOp) ValidateOrCreateFs(
 		access,
 		o.GetFsType(),
 		o.GetFsRef(),
-		o.GetFsRefType(),
 		ts,
 	)
 }

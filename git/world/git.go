@@ -287,7 +287,7 @@ func CreateWorldObjectWorktree(
 		}
 
 		// init the workdir
-		_, _, err = unixfs_world.FsInit(ctx, ws, sender, workdirObjKey, workdirRef.GetFsType(), nil, 0, false, ts)
+		_, _, err = unixfs_world.FsInit(ctx, ws, sender, workdirObjKey, workdirRef.GetFsType(), nil, false, ts)
 		if err != nil {
 			return err
 		}

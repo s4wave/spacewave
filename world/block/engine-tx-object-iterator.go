@@ -65,12 +65,32 @@ func (e *engineTxObjectIterator) Next() bool {
 	}
 
 	var valid bool
+	var prevIter world.ObjectIterator
+	var prevTx *Tx
 	err := e.e.performOp(func(tx *Tx) error {
-		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
-		if iter == nil {
+		var iter world.ObjectIterator
+		// fast path: same txn as before
+		if prevTx == tx {
+			iter = prevIter
+			if !iter.Next() {
+				return iter.Err()
+			}
+			e.currKey = iter.Key()
+			valid = true
 			return nil
 		}
+
+		// slow path: rebuild iterator with new read txn (contents changed)
+		iter = tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		defer iter.Close()
+
+		// check for error
+		if err := iter.Err(); err != nil {
+			return err
+		}
+
+		// save txn and iter for later
+		prevTx, prevIter = tx, iter
 
 		if e.currKey != "" {
 			if err := iter.Seek(e.currKey); err != nil {

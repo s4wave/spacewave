@@ -131,7 +131,7 @@ func execute(rctx context.Context) error {
 	if !exists {
 		_, _, err = ws.ApplyWorldOp(
 			ctx,
-			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, 0, true, time.Now()),
+			unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, true, time.Now()),
 			senderPeerID,
 		)
 		if err != nil {

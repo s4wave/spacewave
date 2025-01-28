@@ -41,7 +41,7 @@ func (c *LookupOpController) HandleDirective(
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case LookupWorldOp:
-		return directive.R(c.resolveLookupWorldOp(ctx, di, d))
+		return directive.R(c.resolveLookupWorldOp(d))
 	}
 	return nil, nil
 }
@@ -69,11 +69,7 @@ func (c *LookupOpController) Close() error {
 }
 
 // resolveLookupWorldOp returns a resolver for the LookupWorldOp directive.
-func (c *LookupOpController) resolveLookupWorldOp(
-	ctx context.Context,
-	di directive.Instance,
-	d LookupWorldOp,
-) (directive.Resolver, error) {
+func (c *LookupOpController) resolveLookupWorldOp(d LookupWorldOp) (directive.Resolver, error) {
 	if c.lookupOp == nil {
 		return nil, nil
 	}

@@ -93,11 +93,6 @@ func (t *txObjectIterator) Next() bool {
 		return false
 	}
 
-	if t.it == nil {
-		t.valid = false
-		return false
-	}
-
 	if !t.it.Next() || !t.it.Valid() {
 		t.err = t.it.Err()
 		t.valid = false
@@ -129,11 +124,6 @@ func (t *txObjectIterator) Seek(k string) error {
 		return t.err
 	}
 
-	if t.it == nil {
-		t.valid = false
-		return nil
-	}
-
 	if err := t.it.Seek(k); err != nil {
 		t.err = err
 		t.valid = false
@@ -153,9 +143,7 @@ func (t *txObjectIterator) Seek(k string) error {
 
 // Close releases the iterator.
 func (t *txObjectIterator) Close() {
-	if t.it != nil {
-		t.it.Close()
-	}
+	t.it.Close()
 	t.valid = false
 	t.err = context.Canceled
 }

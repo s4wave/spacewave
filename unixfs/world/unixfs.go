@@ -56,7 +56,6 @@ func ValidateOrCreateFs(
 	accessState world.AccessWorldStateFunc,
 	fsType FSType,
 	fsRef *bucket.ObjectRef,
-	fsRefType FSType,
 	ts *timestamp.Timestamp,
 ) (*bucket.ObjectRef, string, error) {
 	// check fsRef

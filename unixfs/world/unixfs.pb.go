@@ -113,11 +113,9 @@ type FsInitOp struct {
 	// FsType sets the filesystem object type to create.
 	FsType FSType `protobuf:"varint,2,opt,name=fs_type,json=fsType,proto3" json:"fsType,omitempty"`
 	// FsRef contains a initial object ref to use the root of the UnixFS.
+	// Must match fs_type if set.
 	// If empty, will create a new blank fs.
 	FsRef *bucket.ObjectRef `protobuf:"bytes,3,opt,name=fs_ref,json=fsRef,proto3" json:"fsRef,omitempty"`
-	// FsRefType is the FSType of the ref.
-	// Defaults to FsType_FS_NODE.
-	FsRefType FSType `protobuf:"varint,4,opt,name=fs_ref_type,json=fsRefType,proto3" json:"fsRefType,omitempty"`
 	// FsOverwrite indicates to overwrite any existing object.
 	FsOverwrite bool `protobuf:"varint,5,opt,name=fs_overwrite,json=fsOverwrite,proto3" json:"fsOverwrite,omitempty"`
 	// Timestamp is the modification time for the fs root.
@@ -149,13 +147,6 @@ func (x *FsInitOp) GetFsRef() *bucket.ObjectRef {
 		return x.FsRef
 	}
 	return nil
-}
-
-func (x *FsInitOp) GetFsRefType() FSType {
-	if x != nil {
-		return x.FsRefType
-	}
-	return FSType_FSType_UNKNOWN
 }
 
 func (x *FsInitOp) GetFsOverwrite() bool {
@@ -802,7 +793,6 @@ func (m *FsInitOp) CloneVT() *FsInitOp {
 	r := new(FsInitOp)
 	r.ObjectKey = m.ObjectKey
 	r.FsType = m.FsType
-	r.FsRefType = m.FsRefType
 	r.FsOverwrite = m.FsOverwrite
 	if rhs := m.FsRef; rhs != nil {
 		r.FsRef = rhs.CloneVT()
@@ -1146,9 +1136,6 @@ func (this *FsInitOp) EqualVT(that *FsInitOp) bool {
 		return false
 	}
 	if !this.FsRef.EqualVT(that.FsRef) {
-		return false
-	}
-	if this.FsRefType != that.FsRefType {
 		return false
 	}
 	if this.FsOverwrite != that.FsOverwrite {
@@ -1672,11 +1659,6 @@ func (x *FsInitOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("fsRef")
 		x.FsRef.MarshalProtoJSON(s.WithField("fsRef"))
 	}
-	if x.FsRefType != 0 || s.HasField("fsRefType") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("fsRefType")
-		x.FsRefType.MarshalProtoJSON(s)
-	}
 	if x.FsOverwrite || s.HasField("fsOverwrite") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("fsOverwrite")
@@ -1717,9 +1699,6 @@ func (x *FsInitOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.FsRef = &bucket.ObjectRef{}
 			x.FsRef.UnmarshalProtoJSON(s.WithField("fs_ref", true))
-		case "fs_ref_type", "fsRefType":
-			s.AddField("fs_ref_type")
-			x.FsRefType.UnmarshalProtoJSON(s)
 		case "fs_overwrite", "fsOverwrite":
 			s.AddField("fs_overwrite")
 			x.FsOverwrite = s.ReadBool()
@@ -2770,11 +2749,6 @@ func (m *FsInitOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x28
 	}
-	if m.FsRefType != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FsRefType))
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.FsRef != nil {
 		size, err := m.FsRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3591,9 +3565,6 @@ func (m *FsInitOp) SizeVT() (n int) {
 		l = m.FsRef.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.FsRefType != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.FsRefType))
-	}
 	if m.FsOverwrite {
 		n += 2
 	}
@@ -3965,15 +3936,6 @@ func (x *FsInitOp) MarshalProtoText() string {
 		}
 		sb.WriteString("fs_ref: ")
 		sb.WriteString(x.FsRef.MarshalProtoText())
-	}
-	if x.FsRefType != 0 {
-		if sb.Len() > 10 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("fs_ref_type: ")
-		sb.WriteString("\"")
-		sb.WriteString(FSType(x.FsRefType).String())
-		sb.WriteString("\"")
 	}
 	if x.FsOverwrite != false {
 		if sb.Len() > 10 {
@@ -4749,25 +4711,6 @@ func (m *FsInitOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FsRefType", wireType)
-			}
-			m.FsRefType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.FsRefType |= FSType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FsOverwrite", wireType)

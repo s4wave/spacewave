@@ -41,11 +41,9 @@ message FsInitOp {
   FSType fs_type = 2;
 
   // FsRef contains a initial object ref to use the root of the UnixFS.
+  // Must match fs_type if set.
   // If empty, will create a new blank fs.
   .bucket.ObjectRef fs_ref = 3;
-  // FsRefType is the FSType of the ref.
-  // Defaults to FsType_FS_NODE.
-  FSType fs_ref_type = 4;
   // FsOverwrite indicates to overwrite any existing object.
   bool fs_overwrite = 5;
   // Timestamp is the modification time for the fs root.

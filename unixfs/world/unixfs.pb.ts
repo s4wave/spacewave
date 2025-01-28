@@ -121,18 +121,12 @@ export interface FsInitOp {
   fsType?: FSType
   /**
    * FsRef contains a initial object ref to use the root of the UnixFS.
+   * Must match fs_type if set.
    * If empty, will create a new blank fs.
    *
    * @generated from field: bucket.ObjectRef fs_ref = 3;
    */
   fsRef?: ObjectRef
-  /**
-   * FsRefType is the FSType of the ref.
-   * Defaults to FsType_FS_NODE.
-   *
-   * @generated from field: unixfs.world.FSType fs_ref_type = 4;
-   */
-  fsRefType?: FSType
   /**
    * FsOverwrite indicates to overwrite any existing object.
    *
@@ -154,7 +148,6 @@ export const FsInitOp: MessageType<FsInitOp> = createMessageType({
     { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
     { no: 3, name: 'fs_ref', kind: 'message', T: () => ObjectRef },
-    { no: 4, name: 'fs_ref_type', kind: 'enum', T: FSType_Enum },
     { no: 5, name: 'fs_overwrite', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] as readonly PartialFieldInfo[],

@@ -66,7 +66,6 @@ func InitTestbed(
 		objKey,
 		fsType,
 		nil,
-		0,
 		true,
 		time.Now(),
 	)
