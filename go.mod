@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.20.3 // latest
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20241230032319-4a2bf2097a05 // master
+	github.com/aperturerobotics/hydra v0.0.0-20250128002246-faf70939e022 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.8.1-0.20241109000521-5bb9966c718b // master
 )
 
