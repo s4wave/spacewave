@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -105,8 +104,7 @@ func (t *TxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	// t.tx.state.GetSeqno()
-	return 0, errors.New("TODO tx object state waitrev")
+	return t.o.WaitRev(ctx, rev, ignoreNotFound)
 }
 
 // _ is a type assertion
