@@ -25,7 +25,7 @@ func FsSetPermissions(
 ) (rev uint64, sysErr bool, err error) {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsSetPermissionsOp("", fsType, bpaths, perms, ts)
-	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
+	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
 
 // FsSetPermissionsOpId is the operation id.

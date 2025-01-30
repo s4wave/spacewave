@@ -102,10 +102,8 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 		var rootRef *bucket.ObjectRef
 		var rev uint64
 
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return context.Canceled
-		default:
 		}
 
 		seqno, err := ws.GetSeqno(ctx)

@@ -1,6 +1,8 @@
 package world_block
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 )
@@ -19,16 +21,15 @@ func NewObjectBlock() block.Block {
 	return &Object{}
 }
 
+// UnmarshalObject unmarshals a Object block from a cursor.
+// If empty, returns nil, nil
+func UnmarshalObject(ctx context.Context, bcs *block.Cursor) (*Object, error) {
+	return block.UnmarshalBlock[*Object](ctx, bcs, NewObjectBlock)
+}
+
 // Clone clones the Object.
 func (o *Object) Clone() *Object {
-	if o == nil {
-		return nil
-	}
-	return &Object{
-		Key:     o.GetKey(),
-		RootRef: o.GetRootRef().Clone(),
-		Rev:     o.GetRev(),
-	}
+	return o.CloneVT()
 }
 
 // MarshalBlock marshals the block to binary.

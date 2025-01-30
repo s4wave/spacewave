@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/csync"
 )
@@ -20,8 +19,6 @@ type Tx struct {
 	// rmtx guards the world operations, single-writer multi-reader
 	// not used for WaitSeqno
 	rmtx csync.RWMutex
-	// discarded indicates the tx was discarded
-	discarded bool
 }
 
 // NewTx constructs a new transaction from a world state.
@@ -40,10 +37,6 @@ func (t *Tx) Fork(ctx context.Context) (world.WorldState, error) {
 		return nil, err
 	}
 	defer unlock()
-
-	if t.discarded {
-		return nil, tx.ErrDiscarded
-	}
 
 	forkedState, err := t.state.Fork(ctx)
 	if err != nil {
@@ -111,10 +104,6 @@ func (t *Tx) ApplyWorldOp(
 	}
 	defer unlock()
 
-	if t.discarded {
-		return 0, false, tx.ErrDiscarded
-	}
-
 	return t.state.ApplyWorldOp(ctx, op, opSender)
 }
 
@@ -128,14 +117,7 @@ func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error
 	}
 	defer unlock()
 
-	discarded := t.discarded
-	if !discarded {
-		t.discarded = true
-		err = t.state.Commit(ctx)
-	}
-	if discarded {
-		return nil, tx.ErrDiscarded
-	}
+	err = t.state.Commit(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +139,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 func (t *Tx) Discard() {
 	lkr := t.rmtx.Locker()
 	lkr.Lock()
-	t.discarded = true
+	t.state.Discard()
 	lkr.Unlock()
 }
 

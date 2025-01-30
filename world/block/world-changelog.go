@@ -18,38 +18,34 @@ func (t *WorldState) queueWorldChange(ctx context.Context, w *WorldChange) (*blo
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
+
 	r, err := t.GetRoot(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if r.GetLastChangeDisable() {
-		t.pendingChanges = append(t.pendingChanges, nil)
-		return nil, nil
-	}
 
-	changeBcs := t.bcs.Detach(false)
-	changeBcs.SetBlock(w, true)
+	var changeBcs *block.Cursor
+	if !r.GetLastChangeDisable() {
+		changeBcs = t.bcs.Detach(false)
+		changeBcs.SetBlock(w, true)
+	}
 	t.pendingChanges = append(t.pendingChanges, changeBcs)
 
-	// estimate next sequence number
-	currSeqno := r.GetLastChange().GetSeqno()
-	nextSeqno := currSeqno + uint64(len(t.pendingChanges))
-	t.pendingSeqno = nextSeqno
-
-	// proc waiters
-	t.procWaiters(nextSeqno)
-
+	t.updateSeqno(r)
 	return changeBcs, nil
 }
 
-// procWaiters calls all waiters.
-// expects rmtx to be locked
-func (w *WorldState) procWaiters(nseqno uint64) {
-	proc := w.waiters
-	w.waiters = nil
-	for _, w := range proc {
-		w(nseqno)
-	}
+// updateSeqno computes the latest sequence number and updates t.seqno.
+func (t *WorldState) updateSeqno(r *World) {
+	// estimate next sequence number
+	currSeqno := r.GetLastChange().GetSeqno()
+	nextSeqno := currSeqno + uint64(len(t.pendingChanges))
+	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if t.seqno != nextSeqno {
+			t.seqno = nextSeqno
+			broadcast()
+		}
+	})
 }
 
 // flushWorldChanges flushes the queued world changes to the log.

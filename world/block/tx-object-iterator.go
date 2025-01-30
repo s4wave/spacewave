@@ -41,7 +41,7 @@ func newTxObjectIterator(
 	}
 	defer unlock()
 
-	if t.discarded {
+	if t.state.discarded.Load() {
 		return &txObjectIterator{err: tx.ErrDiscarded}
 	}
 
@@ -87,7 +87,7 @@ func (t *txObjectIterator) Next() bool {
 	}
 	defer unlock()
 
-	if t.t.discarded {
+	if t.t.state.discarded.Load() {
 		t.err = tx.ErrDiscarded
 		t.valid = false
 		return false
@@ -118,7 +118,7 @@ func (t *txObjectIterator) Seek(k string) error {
 	}
 	defer unlock()
 
-	if t.t.discarded {
+	if t.t.state.discarded.Load() {
 		t.err = tx.ErrDiscarded
 		t.valid = false
 		return t.err

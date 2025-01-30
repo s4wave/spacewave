@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
@@ -77,13 +78,17 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		// no-op
 		return root.GetRev(), nil
 	}
+
+	// TODO: should we instead make a new block cursor here?
 	prevBlk := root.Clone()
-	prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
-	prevBcs.SetBlock(prevBlk, true)
+
 	root.RootRef = nref
 	root.Rev++
 	r := root.Rev
+
 	o.bcs.SetBlock(root, true)
+	o.bcs.ClearAllRefs()
+
 	changeBcs, err := o.w.queueWorldChange(ctx, &WorldChange{
 		Key:        o.key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_SET,
@@ -94,8 +99,11 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	if changeBcs != nil {
 		nbcs := o.bcs
 		changeBcs.SetRef(6, nbcs)
+		prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
+		prevBcs.SetBlock(prevBlk, true)
 		changeBcs.SetRef(7, prevBcs)
 	}
+
 	return r, nil
 }
 
@@ -168,31 +176,13 @@ func (o *ObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	// TODO this will likely be: wait for a local writer to increment rev
-	// i.e. it will wait for someone else to change the block graph
-	// for now, return immediately.
-	// return 0, errors.New("TODO world/block object-state wait rev")
-	root, err := o.GetRoot(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return root.GetRev(), nil
+	// TODO
+	return 0, errors.New("TODO: world/block: ObjectState: WaitRev not implemented")
 }
 
 // GetRoot unmarshals root from the block cursor
 func (o *ObjectState) GetRoot(ctx context.Context) (*Object, error) {
-	obji, err := o.bcs.Unmarshal(ctx, NewObjectBlock)
-	if err != nil {
-		return nil, err
-	}
-	if obji == nil {
-		return nil, world.ErrObjectNotFound
-	}
-	v, ok := obji.(*Object)
-	if !ok {
-		return nil, block.ErrUnexpectedType
-	}
-	return v, nil
+	return UnmarshalObject(ctx, o.bcs)
 }
 
 // _ is a type assertion

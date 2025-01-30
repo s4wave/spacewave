@@ -146,7 +146,7 @@ func (f *FS) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 		rel()
 	}
 	if !added {
-		cb(&unixfs.FSCursorChange{Released: true})
+		cb(&unixfs.FSCursorChange{Cursor: f, Released: true})
 	}
 }
 
@@ -165,16 +165,23 @@ func (f *FS) Release() {
 		return
 	}
 	f.ctxCancel()
+
 	rel, err := f.rmtx.Lock(context.Background(), true)
 	if err != nil {
 		return
 	}
+
+	cbs := f.cbs
+	f.cbs = nil
 	if f.rootFSCursor != nil {
 		f.rootFSCursor.releaseLocked()
 		f.rootFSCursor = nil
 	}
 	f.bls.Release()
+
 	rel()
+
+	_ = cbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})
 }
 
 // addChangeCbLocked calls AddChangeCb while locked.

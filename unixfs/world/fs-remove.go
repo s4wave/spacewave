@@ -23,7 +23,7 @@ func FsRemove(
 ) (rev uint64, sysErr bool, err error) {
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsRemoveOp("", fsType, bpaths, ts)
-	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
+	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
 
 // FsRemoveOpId is the unixfs remove op id.

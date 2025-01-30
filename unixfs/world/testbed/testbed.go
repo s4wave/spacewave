@@ -44,9 +44,10 @@ func InitTestbed(
 	// provide op handlers to bus
 	engineID := tb.EngineID
 	opc := world.NewLookupOpController("test-fs-ops", engineID, unixfs_world.LookupFsOp)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
+	_, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	// hack: wait for it to start
 	<-time.After(time.Millisecond * 100)
@@ -59,7 +60,7 @@ func InitTestbed(
 	sender := tb.Volume.GetPeerID()
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	typeID, _ := unixfs_world.FSTypeToTypeID(fsType)
-	_, _, err := unixfs_world.FsInit(
+	_, _, err = unixfs_world.FsInit(
 		ctx,
 		ws,
 		sender,

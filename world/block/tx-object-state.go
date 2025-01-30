@@ -39,7 +39,7 @@ func (t *TxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint
 	}
 	defer unlock()
 
-	if t.tx.discarded {
+	if t.tx.state.discarded.Load() {
 		return nil, 0, tx.ErrDiscarded
 	}
 
@@ -104,6 +104,7 @@ func (t *TxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
+	// t.tx.state.WaitSeqno(ctx context.Context, value uint64)
 	return t.o.WaitRev(ctx, rev, ignoreNotFound)
 }
 

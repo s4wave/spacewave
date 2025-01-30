@@ -24,7 +24,7 @@ func FsTruncate(
 ) (rev uint64, sysErr bool, err error) {
 	fpath := unixfs_block.NewFSPath(path, false)
 	wOp := NewFsTruncateOp("", fsType, fpath, size, ts)
-	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
+	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
 
 // FsTruncateOpId is the operation id.

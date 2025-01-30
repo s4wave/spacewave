@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/semaphore"
 )
 
 // Engine is the world engine instance.
@@ -24,7 +24,7 @@ type Engine struct {
 	// verbose enables verbose logging within world state
 	verbose bool
 	// wmtx ensures only one write transaction is active at a time
-	wmtx *semaphore.Weighted
+	wmtx csync.Mutex
 	// rmtx locks the read-only world instance field & root field & waiters & read/writeTx
 	rmtx sync.RWMutex
 	// baseRoot is the base root cursor to use.
@@ -37,8 +37,8 @@ type Engine struct {
 	// writeTx is the current write tx
 	// canceled if the state changes mid-write
 	writeTx *EngineTx
-	// waiters are callbacks that should be called when seqno changes
-	waiters []func(seqno uint64)
+	// writeTxRel releases wmtx, call when unsetting writeTx
+	writeTxRel func()
 	// commitFn is a function to be called just before a commit is confirmed.
 	// can be nil
 	commitFn CommitFn
@@ -68,8 +68,6 @@ func NewEngine(
 		root:     root.Clone(),
 		commitFn: commitFn,
 		verbose:  verbose,
-
-		wmtx: semaphore.NewWeighted(1),
 	}
 	if err := e.updateReadWriteTxns(ctx); err != nil {
 		return nil, err
@@ -142,7 +140,8 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	}
 
 	// Released in Discard or Commit
-	if err := e.wmtx.Acquire(ctx, 1); err != nil {
+	relLock, err := e.wmtx.Lock(ctx)
+	if err != nil {
 		return nil, err
 	}
 
@@ -151,12 +150,13 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	world, err := e.buildWorldState(ctx, false)
 	if err != nil {
-		e.wmtx.Release(1)
+		relLock()
 		return nil, err
 	}
 
 	engTx := newEngineTx(e, NewTx(world))
 	e.writeTx = engTx
+	e.writeTxRel = relLock
 	return engTx, nil
 }
 
@@ -222,35 +222,21 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 // If value == 0, this might return immediately unconditionally.
 func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	for {
-		e.rmtx.Lock()
-		seqno, err := e.readTx.GetSeqno(ctx)
-		var waitCh chan uint64
-		tooOld := seqno < value
-		if err == nil && tooOld {
-			waitCh = make(chan uint64, 1)
-			e.waiters = append(e.waiters, func(seqno uint64) {
-				select {
-				case waitCh <- seqno:
-				default:
-				}
-			})
+		e.rmtx.RLock()
+		readTx := e.readTx
+		e.rmtx.RUnlock()
+
+		seqno, err := readTx.WaitSeqno(ctx, value)
+		if readTx.state.discarded.Load() {
+			// readTxn was discarded, get the new one.
+			continue
 		}
-		e.rmtx.Unlock()
 		if err != nil {
 			return 0, err
 		}
-		if !tooOld {
-			return seqno, nil
-		}
 
-		select {
-		case <-ctx.Done():
-			return 0, ctx.Err()
-		case seqno = <-waitCh:
-			// seqno updated
-			if seqno >= value {
-				return seqno, nil
-			}
+		if seqno >= value {
+			return seqno, nil
 		}
 	}
 }
@@ -259,9 +245,9 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 // expects caller to hold rmtx lock
 // the state has been affected only if nil is returned
 func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
+	// This is the only place readTx might be nil (on first call).
 	// If no changes have occurred...
-	if e.readTx != nil &&
-		e.readTx.state.GetRootRef().EqualsRef(e.root.GetRef().GetRootRef()) {
+	if e.readTx != nil && e.readTx.state.GetRootRef().EqualsRef(e.root.GetRef().GetRootRef()) {
 		return nil
 	}
 
@@ -269,43 +255,18 @@ func (e *Engine) updateReadWriteTxns(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	readTx := NewTx(world)
-	nseqno, err := readTx.GetSeqno(ctx)
-	if err != nil {
-		readTx.Discard()
-		return err
-	}
-	// proc waiters
-	// call before discarding e.readTx
-	e.procWaiters(nseqno)
 	// cancel the old write tx if active
 	if e.writeTx != nil {
-		e.writeTx.Discard()
+		e.writeTx.discardLocked()
 		e.writeTx = nil // field is checked during Commit() as well
 	}
 	// swap in the new read tx
+	readTx := NewTx(world)
 	if e.readTx != nil {
 		e.readTx.Discard()
 	}
 	e.readTx = readTx
 	return nil
-}
-
-// procWaiters calls all waiters.
-// expects rmtx to be locked
-func (e *Engine) procWaiters(nseqno uint64) {
-	proc := e.waiters
-	e.waiters = nil
-	if e.readTx != nil && e.readTx.state != nil {
-		lkr := e.readTx.rmtx.Locker()
-		lkr.Lock()
-		proc = append(proc, e.readTx.state.waiters...)
-		e.readTx.state.waiters = nil
-		lkr.Unlock()
-	}
-	for _, w := range proc {
-		w(nseqno)
-	}
 }
 
 // buildWorldState builds the world state transaction and cursor fields.

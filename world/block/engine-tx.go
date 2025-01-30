@@ -12,7 +12,7 @@ import (
 // EngineTx is an engine transaction wrapping the Tx object.
 // returned by e.NewTransaction
 type EngineTx struct {
-	rel    uint32
+	rel    atomic.Bool
 	engine *Engine
 
 	writeTx *Tx
@@ -50,7 +50,8 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 
 	// ensure tx is not already discarded
 	// also marks the tx as discarded
-	if !e.release() {
+	if e.rel.Swap(true) {
+		// already discarded
 		return nil, tx.ErrDiscarded
 	}
 
@@ -67,6 +68,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	var nextRootRef *bucket.ObjectRef
 	// apply committed changes or rollback
 	e.engine.rmtx.Lock()
+	var relWriteTx func()
 	if commitErr == nil {
 		if e.engine.writeTx != e {
 			// discarded mid-write
@@ -85,11 +87,18 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 					commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
 				}
 			}
+
+			// clear write tx
+			e.engine.writeTx = nil
+			relWriteTx = e.engine.writeTxRel
+			e.engine.writeTxRel = nil
 		}
 	}
-	e.engine.writeTx = nil // clear write tx
 	e.engine.rmtx.Unlock()
-	e.engine.wmtx.Release(1)
+
+	if relWriteTx != nil {
+		relWriteTx()
+	}
 
 	if commitErr != nil {
 		return nil, commitErr
@@ -102,19 +111,26 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 // Cannot return an error.
 // Can be called unlimited times.
 func (e *EngineTx) Discard() {
-	if e.release() {
-		if e.writeTx != nil {
-			e.writeTx.Discard()
-			e.engine.writeTx = nil
-			e.engine.wmtx.Release(1)
-		}
+	if !e.rel.Swap(true) {
+		e.engine.rmtx.Lock()
+		e.discardLocked()
+		e.engine.rmtx.Unlock()
 	}
 }
 
-// release releases the tx
-func (e *EngineTx) release() bool {
-	rel := atomic.SwapUint32(&e.rel, 1)
-	return rel != 1
+// discardLocked is called while e.engine.rmtx.Lock is held.
+func (e *EngineTx) discardLocked() {
+	e.rel.Store(true)
+	// e.writeTx will be nil if this is a read-only txn.
+	if e.writeTx != nil {
+		e.writeTx.Discard()
+	}
+	// check if the engine writeTx is this one.
+	if e.engine.writeTx == e {
+		e.engine.writeTx = nil
+		e.engine.writeTxRel()
+		e.engine.writeTxRel = nil
+	}
 }
 
 // GetReadOnly returns if the state is read-only.

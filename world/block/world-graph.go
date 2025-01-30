@@ -15,6 +15,10 @@ import (
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
 func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+	if t.discarded.Load() {
+		return tx.ErrDiscarded
+	}
+
 	hd := t.graphHd
 	// TODO TODO: wrap the graph handle to update the changelog if writes are applied here.
 	return cb(ctx, hd)
@@ -22,6 +26,10 @@ func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(
 
 // LookupGraphQuads searches for graph quads in the store.
 func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
+
 	cq, err := world.GraphQuadToCayleyQuad(filter, false)
 	if err != nil {
 		return nil, err
@@ -47,6 +55,9 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 	if !t.write {
 		return tx.ErrNotWrite
 	}
+	if t.discarded.Load() {
+		return tx.ErrDiscarded
+	}
 
 	cq, err := world.GraphQuadToCayleyQuad(q, true)
 	if err != nil {
@@ -68,7 +79,7 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 	if err != nil {
 		return err
 	}
-	subjRef, err := world.MustGetObject(ctx, t, subjKey)
+	subjRef, err := t.mustGetObject(ctx, subjKey)
 	if err != nil {
 		return err
 	}
@@ -77,7 +88,7 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 	if err != nil {
 		return err
 	}
-	objRef, err := world.MustGetObject(ctx, t, objKey)
+	objRef, err := t.mustGetObject(ctx, objKey)
 	if err != nil {
 		return err
 	}
@@ -90,11 +101,11 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 
 	// increment rev # on the affected objects
 	// note: does not add INCREMENT_REV to changelog
-	_, err = subjRef.(*ObjectState).incrementRev(ctx, false)
+	_, err = subjRef.incrementRev(ctx, false)
 	if err != nil {
 		return err
 	}
-	_, err = objRef.(*ObjectState).incrementRev(ctx, false)
+	_, err = objRef.incrementRev(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -116,26 +127,29 @@ func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 	if !t.write {
 		return tx.ErrNotWrite
 	}
+	if t.discarded.Load() {
+		return tx.ErrDiscarded
+	}
 
 	subjKey := q.GetSubject()
-	subj, subjFound, err := t.GetObject(ctx, subjKey)
+	subj, subjFound, err := t.getObject(ctx, subjKey)
 	if err != nil {
 		return err
 	}
 	if subjFound {
-		_, err = subj.(*ObjectState).incrementRev(ctx, false)
+		_, err = subj.incrementRev(ctx, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	objKey := q.GetObj()
-	obj, objFound, err := t.GetObject(ctx, objKey)
+	obj, objFound, err := t.getObject(ctx, objKey)
 	if err != nil {
 		return err
 	}
 	if objFound {
-		_, err = obj.(*ObjectState).incrementRev(ctx, false)
+		_, err = obj.incrementRev(ctx, false)
 		if err != nil {
 			return err
 		}
@@ -172,6 +186,9 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	if objKey == "" {
 		return nil
 	}
+	if t.discarded.Load() {
+		return tx.ErrDiscarded
+	}
 
 	value := world.KeyToGraphValue(objKey)
 	valueStr := value.String()
@@ -200,12 +217,12 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	}
 
 	// increment object revision
-	objState, objStateFound, err := t.GetObject(ctx, objKey)
+	objState, objStateFound, err := t.getObject(ctx, objKey)
 	if err != nil {
 		return err
 	}
 	if objStateFound {
-		_, err = objState.(*ObjectState).incrementRev(ctx, false)
+		_, err = objState.incrementRev(ctx, false)
 		if err != nil {
 			return err
 		}

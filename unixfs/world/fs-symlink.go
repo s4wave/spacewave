@@ -25,7 +25,7 @@ func FsSymlink(
 	bpath, tpath := unixfs_block.NewFSPath(path, false), unixfs_block.NewFSPath(tgtPath, tgtIsAbsolute)
 	lnk := unixfs_block.NewFSSymlink(tpath)
 	wOp := NewFsSymlinkOp("", fsType, bpath, lnk, ts)
-	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
+	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
 
 // FsSymlinkOpId is the operation id.

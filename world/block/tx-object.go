@@ -17,10 +17,6 @@ func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.Objec
 	}
 	defer unlock()
 
-	if t.discarded {
-		return nil, tx.ErrDiscarded
-	}
-
 	cobj, err := t.state.CreateObject(ctx, key, rootRef)
 	if err != nil || cobj == nil {
 		return nil, err
@@ -36,10 +32,6 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 		return nil, false, err
 	}
 	defer unlock()
-
-	if t.discarded {
-		return nil, false, tx.ErrDiscarded
-	}
 
 	cobj, ok, err := t.state.GetObject(ctx, key)
 	if err != nil || !ok || cobj == nil {
@@ -61,7 +53,7 @@ func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) w
 	}
 	defer unlock()
 
-	if t.discarded {
+	if t.state.discarded.Load() {
 		return &txObjectIterator{err: tx.ErrDiscarded}
 	}
 

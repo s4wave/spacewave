@@ -2,7 +2,7 @@ package world_block
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/cayley"
@@ -17,6 +17,7 @@ import (
 	kvtx_vlogger "github.com/aperturerobotics/hydra/kvtx/vlogger"
 	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,14 +25,15 @@ import (
 var objectKeyPrefix = "o/"
 
 // WorldState implements world state backed by a block graph.
-// Note: calls are not concurrency safe. Use Tx if you want a mutex.
-// Note: as an exception, WaitSeqno is concurrency safe.
+// Note: GetRoot, WaitSeqno are concurrency safe.
+// Note: all other calls are not concurrency safe. Use Tx if you want a mutex.
 type WorldState struct {
-	le      *logrus.Entry
-	btx     *block.Transaction
-	bcs     *block.Cursor
-	write   bool
-	verbose bool
+	le        *logrus.Entry
+	btx       *block.Transaction
+	bcs       *block.Cursor
+	write     bool
+	verbose   bool
+	discarded atomic.Bool
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -40,13 +42,11 @@ type WorldState struct {
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
 
-	pendingSeqno   uint64
 	pendingChanges []*block.Cursor // *WorldChange
 
-	// mtx guards below fields only
-	mtx sync.Mutex
-	// waiters are callbacks that should be called when seqno changes
-	waiters []func(seqno uint64)
+	// seqnoBcast guards below fields
+	seqnoBcast broadcast.Broadcast
+	seqno      uint64
 }
 
 // NewWorldState constructs a new world handle.
@@ -111,7 +111,10 @@ func (t *WorldState) GetBcs() *block.Cursor {
 }
 
 // GetRoot builds the Root object from the block cursor.
+//
+// Concurrency safe.
 func (t *WorldState) GetRoot(ctx context.Context) (*World, error) {
+	// bcs uses mutexes internally so this is concurrency safe.
 	return UnmarshalWorld(ctx, t.bcs)
 }
 
@@ -124,54 +127,46 @@ func (t *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 
-	seqno := w.GetLastChange().GetSeqno()
-	return max(t.pendingSeqno, seqno), nil
+	var currSeqno uint64
+	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		currSeqno = t.seqno
+	})
+
+	return max(currSeqno, w.GetLastChange().GetSeqno()), nil
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.
 func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
-	if t.GetReadOnly() {
-		// read-only txns cannot change seqno, waiting doesn't make sense.
-		return 0, tx.ErrNotWrite
-	}
-
 	for {
-		t.mtx.Lock()
+		var waitCh <-chan struct{}
+		var err error
+		var seqno uint64
+		t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if t.discarded.Load() {
+				err = tx.ErrDiscarded
+				return
+			}
 
-		w, err := t.GetRoot(ctx)
+			seqno = t.seqno
+			if seqno >= value {
+				return
+			}
+
+			waitCh = getWaitCh()
+		})
 		if err != nil {
-			t.mtx.Unlock()
 			return 0, err
 		}
-
-		seqno := w.GetLastChange().GetSeqno()
-		var waitCh chan uint64
-		tooOld := seqno < value
-		if tooOld {
-			waitCh = make(chan uint64, 1)
-			t.waiters = append(t.waiters, func(seqno uint64) {
-				select {
-				case waitCh <- seqno:
-				default:
-				}
-			})
-		}
-		t.mtx.Unlock()
-
-		if !tooOld {
+		if waitCh == nil {
 			return seqno, nil
 		}
 
 		select {
 		case <-ctx.Done():
 			return 0, ctx.Err()
-		case seqno = <-waitCh:
-			// seqno updated
-			if seqno >= value {
-				return seqno, nil
-			}
+		case <-waitCh:
 		}
 	}
 }
@@ -214,6 +209,9 @@ func (t *WorldState) ApplyWorldOp(
 	if op == nil {
 		return 0, false, world.ErrEmptyOp
 	}
+	if t.discarded.Load() {
+		return 0, false, tx.ErrDiscarded
+	}
 
 	if err := op.Validate(); err != nil {
 		return 0, false, err
@@ -237,6 +235,10 @@ func (t *WorldState) ApplyWorldOp(
 //
 // Creates a new block transaction.
 func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
+
 	bcs := t.bcs.DetachTransaction()
 	blk, _ := bcs.GetBlock()
 	var blkv *World
@@ -272,8 +274,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.
 func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transaction, bcs *block.Cursor) error {
-	// type assert root -> *World
-	_, err := block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
+	root, err := block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
 	if err != nil {
 		return err
 	}
@@ -296,7 +297,24 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		t.objTree.Discard()
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
+	t.updateSeqno(root)
 	return nil
+}
+
+// Discard discards the resources in the WorldState.
+func (t *WorldState) Discard() {
+	if t.discarded.Swap(true) {
+		return
+	}
+	if t.objTree != nil {
+		t.objTree.Discard()
+	}
+	if t.graphTree != nil {
+		t.graphTree.Discard()
+	}
+	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		broadcast()
+	})
 }
 
 // Commit commits the current pending changes to the block cursor.
@@ -305,10 +323,13 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	select {
-	case <-ctx.Done():
+	// Note: we do NOT discard after commit in WorldState.
+	// We can re-use the state immediately after Commit.
+	if t.discarded.Load() {
 		return tx.ErrDiscarded
-	default:
+	}
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
 	}
 	w, err := t.GetRoot(ctx)
 	if err != nil {

@@ -42,7 +42,7 @@ func FsWriteAt(
 
 	// Transmit the blob in a fs write operation.
 	wOp := NewFsWriteAtOp("", fsType, fpath, offset, blbObjRef.GetRootRef(), ts)
-	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
+	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
 
 // FsWriteAtOpId is the operation id.

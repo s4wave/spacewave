@@ -132,8 +132,6 @@ type BlockWithCloneVT[T Block] interface {
 	CloneVT() T
 }
 
-// MarshalB58 marshals the PutOpts to B58.
-
 // CastToBlock casts a object to a block or returns an error.
 func CastToBlock(sb interface{}) (Block, error) {
 	if sb == nil {

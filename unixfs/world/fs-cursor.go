@@ -4,7 +4,9 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/bucket"
+	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_block_fs "github.com/aperturerobotics/hydra/unixfs/block/fs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
@@ -73,6 +75,32 @@ func NewFSCursor(
 	}
 }
 
+// NewFSCursorWithWriter builds a FSCursor with a FSWriter setting the confirm func.
+//
+// watchChanges is always enabled so that WaitObjectRev can be notified of the changes.
+func NewFSCursorWithWriter(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	objKey string,
+	fsType FSType,
+	sender peer.ID,
+) (*FSCursor, *FSWriter) {
+	// the fs writer processes write ops
+	fsw := NewFSWriter(ws, objKey, fsType, sender)
+
+	// construct the fs cursor
+	// watchChanges must be true otherwise WaitObjectRev will never update
+	fsc := NewFSCursor(le, ws, objKey, fsType, fsw, true)
+
+	// we need the writer to wait until the FSCursor has processed the updated
+	// revision of the world before returning from writes. pass the FSCursor to
+	// the writer to set the additional wait function.
+	fsw.SetConfirmFunc(fsc.WaitObjectRev)
+
+	return fsc, fsw
+}
+
 // CheckReleased checks if the fscursor is released without locking anything.
 func (f *FSCursor) CheckReleased() bool {
 	return f.isReleased.Load()
@@ -84,19 +112,18 @@ func (f *FSCursor) CheckReleased() bool {
 // Waits for the world revision to be at least nrev.
 // Can be used with SetConfirmFunc on the writer.
 func (f *FSCursor) WaitObjectRev(ctx context.Context, nrev uint64) error {
-	if !f.watchChanges {
-		return nil
-	}
-
 	for {
 		var wait <-chan struct{}
+		var released bool
 		f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if f.prevObjRev >= nrev {
-				wait = nil
-			} else {
+			released = f.CheckReleased()
+			if !released && f.prevObjRev < nrev {
 				wait = getWaitCh()
 			}
 		})
+		if released {
+			return unixfs_errors.ErrReleased
+		}
 		if wait == nil {
 			return nil
 		}
@@ -186,9 +213,11 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			f.rootFSCursor = nfs
 			// dispatch goroutine to wait for changes
 			if f.watchChanges {
-				go f.watchWorldChanges(nfs, objState, objRef)
+				go func() {
+					f.watchWorldChanges(nfs, objRef)
+				}()
 			}
-			// add callback to release cursors
+			// add callback to release cursors when nfs is released
 			nfs.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
 				if !ch.Released {
 					return true
@@ -243,8 +272,10 @@ func (f *FSCursor) lockedAddChangeCb(cb unixfs.FSCursorChangeCb) bool {
 // note: locks mtx. must NOT be locked when calling
 func (f *FSCursor) Release() {
 	if f.CheckReleased() {
+		// fast path
 		return
 	}
+	var changeCbs unixfs.FSCursorChangeCbSlice
 	f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if f.isReleased.Swap(true) {
 			return
@@ -256,12 +287,16 @@ func (f *FSCursor) Release() {
 			}
 			f.rootFSCursor = nil
 		}
+		changeCbs = f.cbs
+		f.cbs = nil
+		broadcast()
 	})
+	_ = changeCbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})
 }
 
 // watchWorldChanges waits for changes to the world object in a goroutine.
 // started by GetProxyCursor
-func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.ObjectState, currRef *bucket.ObjectRef) {
+func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.ObjectRef) {
 	markLatestRev := func(rev uint64) {
 		// proc any waiters
 		f.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -311,13 +346,17 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, objState world.Obj
 	objLoop := control.NewWatchLoop(nil, f.objKey, handleWorldChange)
 	ctx := nfs.GetContext()
 	if err := objLoop.Execute(ctx, f.ws); err != nil {
-		if err != context.Canceled && err != unixfs_errors.ErrReleased {
+		if err != context.Canceled && err != unixfs_errors.ErrReleased && err != tx.ErrDiscarded {
 			f.le.WithError(err).Warn("error watching for world changes")
 		}
 	}
 
-	// release root fs cursor when loop exits
+	// release root fs when loop exits
 	nfs.Release()
+
+	// release this cursor when loop exits
+	// this signals to WaitObjectRev that watchWorldChanges is no longer running.
+	f.Release()
 }
 
 // _ is a type assertion

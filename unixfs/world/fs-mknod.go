@@ -28,7 +28,7 @@ func FsMknod(
 	tType := unixfs_block.FSCursorNodeTypeToNodeType(nodeType)
 	bpaths := unixfs_block.StringSlicesToPaths(paths)
 	wOp := NewFsMknodOp("", fsType, bpaths, tType, permissions, ts)
-	return world.ApplyWaitObjectOp(ctx, obj, wOp, sender)
+	return obj.ApplyObjectOp(ctx, wOp, sender)
 }
 
 // FsMknodOpId is the operation id.

@@ -3,7 +3,6 @@ package world_block
 import (
 	"context"
 
-	"github.com/aperturerobotics/hydra/tx"
 	"github.com/aperturerobotics/hydra/world"
 )
 
@@ -18,10 +17,6 @@ func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx cont
 	}
 	defer unlock()
 
-	if t.discarded {
-		return tx.ErrDiscarded
-	}
-
 	return t.state.AccessCayleyGraph(ctx, write, cb)
 }
 
@@ -32,10 +27,6 @@ func (t *Tx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit
 		return nil, err
 	}
 	defer unlock()
-
-	if t.discarded {
-		return nil, tx.ErrDiscarded
-	}
 
 	return t.state.LookupGraphQuads(ctx, filter, limit)
 }

@@ -16,6 +16,9 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
 
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
@@ -52,6 +55,19 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	val, ok, err := t.getObject(ctx, key)
+	if val == nil {
+		return nil, ok, err
+	}
+	return val, ok, err
+}
+
+// getObject looks up an object by key.
+// Returns nil, false if not found.
+func (t *WorldState) getObject(ctx context.Context, key string) (*ObjectState, bool, error) {
+	if t.discarded.Load() {
+		return nil, false, tx.ErrDiscarded
+	}
 	ot := t.objTree
 	k := []byte(objectKeyPrefix + key)
 	bcs, err := ot.GetCursorAtKey(ctx, k)
@@ -63,6 +79,18 @@ func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 		return nil, false, err
 	}
 	return ost, true, nil
+}
+
+// mustGetObject returns an error if not found.
+func (t *WorldState) mustGetObject(ctx context.Context, key string) (*ObjectState, error) {
+	obj, found, err := t.getObject(ctx, key)
+	if err == nil && !found {
+		err = world.ErrObjectNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
 
 // IterateObjects returns an iterator with the given object key prefix.
@@ -81,6 +109,9 @@ func (t *WorldState) IterateObjects(ctx context.Context, prefix string, reversed
 func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
 	if !t.write {
 		return false, tx.ErrNotWrite
+	}
+	if t.discarded.Load() {
+		return false, tx.ErrDiscarded
 	}
 
 	ot := t.objTree

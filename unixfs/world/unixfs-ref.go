@@ -48,8 +48,7 @@ func BuildFSFromUnixfsRef(
 // FollowUnixfsRef builds a fs cursor based on a Unixfs ref.
 //
 // NOTE: ignores the Path field!
-// if sender is empty the fs will be read-only.
-// if watchChanges is nil the fs will be read-only.
+// watchChanges: if unset, the fs will be read-only
 func FollowUnixfsRef(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -80,24 +79,13 @@ func FollowUnixfsRef(
 		}
 	}
 
-	var fsw *FSWriter
-	var writer unixfs.FSWriter
-	if len(sender) != 0 && watchChanges {
-		fsw = NewFSWriter(ws, objKey, fsType, sender)
-		writer = fsw
+	if watchChanges {
+		fsc, _ := NewFSCursorWithWriter(ctx, le, ws, objKey, fsType, sender)
+		return fsc, nil
 	}
 
-	// construct the fs cursor
-	fsc := NewFSCursor(le, ws, objKey, fsType, writer, watchChanges)
-
-	// we need the writer to wait until the FSCursor has processed the updated
-	// revision of the world before returning from writes. pass the FSCursor to
-	// the writer to set the additional wait function.
-	if fsw != nil {
-		fsw.SetConfirmFunc(fsc.WaitObjectRev)
-	}
-
-	return fsc, nil
+	// construct the read-only fs cursor
+	return NewFSCursor(le, ws, objKey, fsType, nil, false), nil
 }
 
 // Validate checks the unixfs ref.

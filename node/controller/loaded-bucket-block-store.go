@@ -34,6 +34,7 @@ func (b *loadedBucket) newLoadedBucketBlockStore(blockStoreID string) (keyed.Rou
 
 // execute executes the bucket block store tracker.
 func (l *loadedBucketBlockStore) execute(ctx context.Context) error {
+	// TODO: clean this function up and avoid the unnecessary goroutine
 	_, diRef, err := l.b.c.b.AddDirective(
 		bucket.NewBuildBucketAPI(l.b.bucketID, l.blockStoreID),
 		l,
