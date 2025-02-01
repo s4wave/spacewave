@@ -104,8 +104,45 @@ func (t *TxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	// t.tx.state.WaitSeqno(ctx context.Context, value uint64)
-	return t.o.WaitRev(ctx, rev, ignoreNotFound)
+	for {
+		var currSeqno uint64
+		var currObjRev uint64
+		err := func() error {
+			unlock, err := t.tx.rmtx.Lock(ctx, false)
+			if err != nil {
+				return err
+			}
+			defer unlock()
+
+			obj, err := t.tx.state.mustGetObject(ctx, t.key)
+			if err != nil {
+				return err
+			}
+
+			_, currObjRev, err = obj.GetRootRef(ctx)
+			if err != nil {
+				return err
+			}
+
+			if currObjRev >= rev {
+				return nil
+			}
+
+			currSeqno, err = t.tx.state.GetSeqno(ctx)
+			return err
+		}()
+		if err != nil {
+			return 0, err
+		}
+		if currObjRev >= rev {
+			return currObjRev, nil
+		}
+
+		_, err = t.tx.WaitSeqno(ctx, currSeqno+1)
+		if err != nil {
+			return 0, err
+		}
+	}
 }
 
 // _ is a type assertion
