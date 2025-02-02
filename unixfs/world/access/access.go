@@ -2,7 +2,6 @@ package unixfs_world_access
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -84,7 +83,7 @@ func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc
 				rreleased()
 			}
 		}
-		accessCtrlInter, _, accessCtrlRef, err := loader.WaitExecControllerRunning(
+		ctrl, _, accessCtrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](
 			ctx,
 			b,
 			resolver.NewLoadControllerWithConfig(conf),
@@ -92,12 +91,6 @@ func NewAccessUnixFSFunc(b bus.Bus, conf *Config) unixfs_access.AccessUnixFSFunc
 		)
 		if err != nil {
 			return nil, nil, err
-		}
-		ctrl, ok := accessCtrlInter.(*Controller)
-		if !ok {
-			ctxCancel()
-			accessCtrlRef.Release()
-			return nil, nil, errors.New("unexpected controller type for unixfs/world/access")
 		}
 		handle, rel, err := ctrl.AccessUnixFS(ctx, released)
 		if err != nil {
