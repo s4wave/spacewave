@@ -106,17 +106,11 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 		return 0, false, tx.ErrDiscarded
 	}
 
-	seqno, sysErr, err := t.o.ApplyObjectOp(ctx, op, opSender)
+	objRev, sysErr, err := t.o.ApplyObjectOp(ctx, op, opSender)
 	if err == nil {
 		t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
-		if seqno > t.w.seqno {
-			t.w.seqno = seqno
-		} else {
-			t.w.seqno++
-			seqno = t.w.seqno
-		}
 	}
-	return seqno, sysErr, err
+	return objRev, sysErr, err
 }
 
 // IncrementRev increments the revision of the object.

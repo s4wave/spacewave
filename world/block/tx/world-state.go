@@ -26,26 +26,15 @@ type WorldState struct {
 	discarded bool
 	// txBatch is the batch of applied txs so far
 	txBatch *TxBatch
-	// seqno is the current write seqno
-	seqno uint64
 }
 
 // NewWorldState constructs a new world state without forking it.
 func NewWorldState(ctx context.Context, world world.WorldState, write bool) (*WorldState, error) {
-	var seqno uint64
-	if write {
-		var err error
-		seqno, err = world.GetSeqno(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return &WorldState{
 		ctx:     ctx,
 		world:   world,
 		write:   write,
 		txBatch: &TxBatch{},
-		seqno:   seqno,
 	}, nil
 }
 
@@ -73,15 +62,8 @@ func (w *WorldState) GetReadOnly() bool {
 // Note: this will be an estimate ONLY of the final seqno.
 func (w *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	w.mtx.Lock()
-	readSeqno, err := w.world.GetSeqno(ctx)
-	if err == nil {
-		if readSeqno > w.seqno {
-			w.seqno = readSeqno
-		}
-	}
-	seqno := w.seqno
-	w.mtx.Unlock()
-	return seqno, err
+	defer w.mtx.Unlock()
+	return w.world.GetSeqno(ctx)
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
@@ -137,12 +119,6 @@ func (w *WorldState) ApplyWorldOp(
 	seqno, sysErr, err := w.world.ApplyWorldOp(ctx, op, opSender)
 	if err == nil {
 		w.txBatch.Txs = append(w.txBatch.Txs, t)
-		if seqno > w.seqno {
-			w.seqno = seqno
-		} else {
-			w.seqno++
-			seqno = w.seqno
-		}
 	}
 
 	return seqno, sysErr, err
@@ -172,7 +148,6 @@ func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	}
 
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
-	w.seqno++
 	return NewObjectState(w, key, obj), nil
 }
 
@@ -219,7 +194,6 @@ func (w *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	}
 
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
-	w.seqno++
 	return true, nil
 }
 
@@ -274,7 +248,6 @@ func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 	}
 
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
-	w.seqno++
 	return nil
 }
 
@@ -302,7 +275,6 @@ func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) err
 	}
 
 	w.txBatch.Txs = append(w.txBatch.Txs, t)
-	w.seqno++
 	return nil
 }
 
