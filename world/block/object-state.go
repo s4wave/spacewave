@@ -87,7 +87,6 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	r := root.Rev
 
 	o.bcs.SetBlock(root, true)
-	o.bcs.ClearAllRefs()
 
 	changeBcs, err := o.w.queueWorldChange(ctx, &WorldChange{
 		Key:        o.key,

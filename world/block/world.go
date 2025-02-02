@@ -46,7 +46,8 @@ type WorldState struct {
 
 	// seqnoBcast guards below fields
 	seqnoBcast broadcast.Broadcast
-	seqno      uint64
+	// seqno is the current sequence number of the world state
+	seqno uint64
 }
 
 // NewWorldState constructs a new world handle.
@@ -122,17 +123,11 @@ func (t *WorldState) GetRoot(ctx context.Context) (*World, error) {
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 func (t *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
-	w, err := t.GetRoot(ctx)
-	if err != nil {
-		return 0, err
-	}
-
 	var currSeqno uint64
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		currSeqno = t.seqno
 	})
-
-	return max(currSeqno, w.GetLastChange().GetSeqno()), nil
+	return currSeqno, nil
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
@@ -224,6 +219,7 @@ func (t *WorldState) ApplyWorldOp(
 	if err != nil {
 		return 0, sysErr, err
 	}
+
 	seq, err := t.GetSeqno(ctx)
 	if err != nil {
 		return 0, true, err
