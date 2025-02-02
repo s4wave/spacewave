@@ -829,3 +829,28 @@ export function useFocusOnValueChange<T extends Focusable, V>(
   }, [ref])
   useOnChangeToValue(value, targetValue, callback, deps)
 }
+
+/**
+ * Hook that tracks the document's visibility state.
+ *
+ * Returns the current visibility state of the document which can be:
+ * - 'visible': the page content may be at least partially visible
+ * - 'hidden': the page content is not visible (minimized or in background)
+ * - 'prerender': the page content is being prerendered and not visible
+ *
+ * Updates when the visibility state changes.
+ *
+ * @returns The current {@link DocumentVisibilityState} of the document
+ */
+export function useDocumentVisibility(): DocumentVisibilityState {
+  const [documentVisibility, setDocumentVisibility] =
+    useState<DocumentVisibilityState>(document.visibilityState)
+
+  useEffect(() => {
+    const listener = () => setDocumentVisibility(document.visibilityState)
+    document.addEventListener('visibilitychange', listener)
+    return () => document.removeEventListener('visibilitychange', listener)
+  }, [])
+
+  return documentVisibility
+}
