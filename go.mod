@@ -17,15 +17,15 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/evanw/esbuild v0.23.0 // latest
+	github.com/evanw/esbuild v0.25.0 // latest
 	github.com/fatih/color v1.17.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
-	github.com/tetratelabs/wazero v1.7.3 // latest
-	golang.org/x/mod v0.22.0 // latest
-	golang.org/x/tools v0.28.0 // latest
+	github.com/tetratelabs/wazero v1.9.0 // latest
+	golang.org/x/mod v0.23.0 // latest
+	golang.org/x/tools v0.30.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
@@ -69,7 +69,7 @@ require (
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	go.etcd.io/bbolt v1.4.0-beta.0.0.20241216162354-7b2d3609bf79 // indirect
-	golang.org/x/sync v0.10.0
+	golang.org/x/sync v0.11.0
 )
 
 // Note: the below is from the Bifrost go.mod
@@ -114,7 +114,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	gonum.org/v1/gonum v0.15.1 // indirect
 )
@@ -177,8 +177,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
