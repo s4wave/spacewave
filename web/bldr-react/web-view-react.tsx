@@ -38,6 +38,7 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
         componentProps?: Uint8Array
         onReady?: () => void
       }) => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         useEffect(() => {
           if (onReady) {
             onReady()

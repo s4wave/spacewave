@@ -20,6 +20,8 @@ module.exports = {
   ignorePatterns: [
     "node_modules",
     "dist",
+    "vite-dist",
+    "vite",
     "coverage",
     "bundle",
     "runtime",
