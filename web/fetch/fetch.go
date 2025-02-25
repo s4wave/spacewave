@@ -185,7 +185,7 @@ func BuildFetchResponse_Info(header http.Header, statusCode int) *FetchResponse 
 				Ok:           true,
 				Redirected:   false,
 				Headers:      BuildHeadersMap(header, true),
-				Status:       uint32(statusCode),
+				Status:       uint32(statusCode), //nolint:gosec
 				StatusText:   http.StatusText(statusCode),
 				ResponseType: "default",
 			},

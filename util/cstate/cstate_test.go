@@ -18,7 +18,7 @@ func TestCState(t *testing.T) {
 		_ = st.Execute(ctx, nil)
 	}()
 	_, _ = st.AddWatcher(ctx, true, func(ctx context.Context, state int) {
-		lastState.Store(int32(state))
+		lastState.Store(int32(state)) //nolint:gosec
 	})
 	_, err := st.Apply(ctx, func(ctx context.Context, v *CStateWriter[int]) (dirty bool, err error) {
 		v.SetObj(1)
@@ -27,8 +27,8 @@ func TestCState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if lastState.Load() != 1 {
-		t.Fatal("Expected lastState to be 1, got", lastState)
+	if lsl := lastState.Load(); lsl != 1 {
+		t.Fatal("Expected lastState to be 1, got", lsl)
 	}
 }
 

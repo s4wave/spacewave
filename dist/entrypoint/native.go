@@ -70,7 +70,7 @@ func newStaticBlockStoreReaderBuilder(_ *logrus.Entry, assetsFS fs.FS, _ bool) r
 		}
 
 		readerAt := f.(io.ReaderAt)
-		fileSize := uint64(fi.Size())
+		fileSize := uint64(fi.Size()) //nolint:gosec
 
 		rdr, err := kvfile.BuildReader(readerAt, fileSize)
 		if err != nil {

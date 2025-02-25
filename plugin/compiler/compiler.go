@@ -123,7 +123,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
-// BuildManifest compiles the manifest once with the given builder args.
+// BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *manifest_builder.BuildManifestArgs,
@@ -932,7 +932,7 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
-		// optimization pass: brotli compression
+		// optimization pass: compression
 		if enableCompression && isWebBuildPlatform {
 			le.Info("compressing plugin binary")
 
@@ -942,6 +942,7 @@ func (c *Controller) BuildPlugin(
 					return nil, nil, err
 				}
 			*/
+
 			brPath, err := bldr_compress.CompressGzip(le, workingPath, outDistBinary)
 			if err != nil {
 				return nil, nil, err

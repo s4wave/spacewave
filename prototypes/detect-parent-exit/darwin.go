@@ -22,7 +22,7 @@ func main() {
 
 	// Set up the kevent to monitor for the exit of the parent process
 	event := syscall.Kevent_t{
-		Ident:  uint64(parentPid),
+		Ident:  uint64(parentPid), //nolint:gosec
 		Filter: syscall.EVFILT_PROC,
 		Flags:  syscall.EV_ADD | syscall.EV_ENABLE,
 		Fflags: syscall.NOTE_EXIT,

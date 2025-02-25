@@ -53,7 +53,7 @@ func TestFindPackedMessages(t *testing.T) {
 	for i, msg := range encMessages {
 		if i != 0 {
 			out.WriteString(" ")
-			out.WriteString(randstring.RandString(rand.New(rng), int(rng.Uint64()%48)))
+			out.WriteString(randstring.RandString(rand.New(rng), int(rng.Uint64()%48))) //nolint:gosec
 			out.WriteString(" ")
 		}
 		out.WriteString(msg)

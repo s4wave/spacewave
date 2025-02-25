@@ -132,7 +132,7 @@ func (c *Controller) confFetcherExited(err error) {
 	if refetchDur <= 0 {
 		return
 	}
-	staggerMs := 0.1 * float32(refetchDur.Milliseconds()) * (rand.Float32()*2.0 - 1.0)
+	staggerMs := 0.1 * float32(refetchDur.Milliseconds()) * (rand.Float32()*2.0 - 1.0) //nolint:gosec
 	refetchDur += time.Millisecond * time.Duration(staggerMs)
 
 	c.le.Debugf("scheduling re-check in %v", refetchDur.String())

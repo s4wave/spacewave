@@ -29,7 +29,7 @@ func run() error {
 
 	var currentSize uint64
 	keyIterator := func() (key []byte, err error) {
-		if currentSize >= uint64(targetSize) {
+		if currentSize >= uint64(targetSize) { //nolint:gosec
 			return nil, io.EOF
 		}
 		key = make([]byte, 8)
@@ -43,8 +43,9 @@ func run() error {
 			value[i] = byte(currentSize % 256)
 		}
 		n, err := wr.Write(value)
-		currentSize += uint64(n)
-		return uint64(n), err
+		n64 := uint64(n) //nolint:gosec
+		currentSize += n64
+		return n64, err
 	}
 
 	err = kvfile.WriteIterator(of, keyIterator, valIterator)

@@ -362,7 +362,7 @@ func BuildEsbuildOutputMetas(metaFile *bldr_esbuild_build.EsbuildMetafile) []*Es
 		for _, file := range files {
 			metas = append(metas, &EsbuildOutputMeta{
 				Path:           file,
-				Length:         uint32(outputFile.Bytes),
+				Length:         uint32(outputFile.Bytes), //nolint:gosec
 				EntrypointPath: outputFile.EntryPoint,
 			})
 		}

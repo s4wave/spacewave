@@ -96,7 +96,7 @@ func (t *executePlugin) execDownloadManifest(ctx context.Context, manifestValue 
 			var bref *block.BlockRef
 			oldBref := manifestCursor.GetRef().GetRootRef()
 
-			bref, bcs, err = btx.Write(ctx, true)
+			bref, bcs, err = btx.Write(ctx, true) //nolint:staticcheck
 			if err != nil {
 				return err
 			}
