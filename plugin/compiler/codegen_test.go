@@ -65,7 +65,7 @@ func main() {
 }
 
 // _ ensures that at least one reference to bldr_values is present.
-var _ bldr_values.EsbuildOutput
+var _ bldr_values.VoidOutput
 `
 
 const expectedCodegenDevInfo = `package main
@@ -120,7 +120,7 @@ func main() {
 }
 
 // _ ensures that at least one reference to bldr_values is present.
-var _ bldr_values.EsbuildOutput
+var _ bldr_values.VoidOutput
 `
 
 func TestCodegen(t *testing.T) {

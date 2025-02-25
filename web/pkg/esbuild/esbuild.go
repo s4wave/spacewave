@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"

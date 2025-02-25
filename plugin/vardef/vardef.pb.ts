@@ -2,7 +2,7 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto (package bldr.plugin.vardef, syntax proto3)
 /* eslint-disable */
 
-import { EsbuildOutput } from '../../web/esbuild/esbuild.pb.js'
+import { WebBundlerOutput } from '../../web/bundler/bundler.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
@@ -48,12 +48,12 @@ export interface PluginVar {
       }
     | {
         /**
-         * EsbuildOutput is an esbuild build output / entrypoint.
+         * WebBundlerOutput is a web bundler build output / entrypoint.
          *
-         * @generated from field: bldr.esbuild.EsbuildOutput esbuild_output = 4;
+         * @generated from field: bldr.web.bundler.WebBundlerOutput web_bundler_output = 4;
          */
-        value: EsbuildOutput
-        case: 'esbuildOutput'
+        value: WebBundlerOutput
+        case: 'webBundlerOutput'
       }
 }
 
@@ -72,9 +72,9 @@ export const PluginVar: MessageType<PluginVar> = createMessageType({
     },
     {
       no: 4,
-      name: 'esbuild_output',
+      name: 'web_bundler_output',
       kind: 'message',
-      T: () => EsbuildOutput,
+      T: () => WebBundlerOutput,
       oneof: 'body',
     },
   ] as readonly PartialFieldInfo[],

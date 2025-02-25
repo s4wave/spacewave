@@ -107,7 +107,12 @@ The plugin compiler scans Go code for comment directives, ex:
 // Entrypoint is the component entrypoint.
 //
 //bldr:esbuild root.tsx
-var Entrypoint bldr_esbuild.EsbuildOutput
+var Entrypoint bldr_web_bundler.WebBundlerOutput
+
+// Alternatively you can use a string path to the .js entrypoint.
+//
+//bldr:esbuild root.tsx
+var EntrypointURL string
 ```
 
 The available comment directives are documented here:
@@ -142,7 +147,7 @@ stored in the variable associated with the comment.
 
 ```go
 //bldr:esbuild --any-esbuild-flag component.tsx
-var Component bldr_esbuild.EsbuildOutput
+var Component bldr_web_bundler.WebBundlerOutput
 ```
 
 Uses Esbuild to bundle the contents of the given entrypoint to the plugin asset

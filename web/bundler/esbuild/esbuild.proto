@@ -1,0 +1,20 @@
+syntax = "proto3";
+package bldr.web.bundler.esbuild;
+
+// EsbuildVarType is the list of types of esbuild output variable.
+enum EsbuildVarType {
+  // EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+  // output type is a string
+  EsbuildVarType_ENTRYPOINT_PATH = 0;
+  // EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+  // output type is bldr_web_bundler.WebBundlerOutput
+  EsbuildVarType_WEB_BUNDLER_OUTPUT = 1;
+}
+
+// EsbuildEntrypoint is an entrypoint passed to Esbuild.
+message EsbuildEntrypoint {
+  // InputPath is the input file path.
+  string input_path = 1;
+  // OutputPath is the output file path, if any.
+  string output_path = 2;
+}

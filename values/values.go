@@ -1,9 +1,12 @@
+// package bldr_values contains value types that are injected to the target binary.
 package bldr_values
 
-import bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+import bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 
-// Contains various value types that are injected to the target binary.
+// VoidOutput contains no output.
+type VoidOutput = struct{}
 
-// EsbuildOutput contains a single EsbuildScript output object.
-// EsbuildVarType_ESBUILD_OUTPUT
-type EsbuildOutput = bldr_esbuild.EsbuildOutput
+// WebBundlerOutput contains a single web bundler output object.
+// EsbuildVarType_WEB_BUNDLER_OUTPUT
+// ViteVarType_WEB_BUNDLER_OUTPUT
+type WebBundlerOutput = bldr_web_bundler.WebBundlerOutput

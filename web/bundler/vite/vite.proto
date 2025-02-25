@@ -1,0 +1,22 @@
+syntax = "proto3";
+package bldr.web.bundler.vite;
+
+// ViteVarType is the list of types of vite output variables.
+enum ViteVarType {
+  // ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+  // output type is a string
+  ViteVarType_ENTRYPOINT_PATH = 0;
+  // ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+  // output type is bldr_web_bundler.WebBundlerOutput
+  ViteVarType_WEB_BUNDLER_OUTPUT = 1;
+}
+
+// ViteEntrypoint is an entrypoint passed to Vite.
+message ViteEntrypoint {
+  // InputPath is the input file path.
+  string input_path = 1;
+  // OutputPath is the output file path, if any.
+  string output_path = 2;
+
+  // TODO vite.conf.ts, ...
+}

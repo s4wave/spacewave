@@ -10,8 +10,9 @@ import (
 	"strings"
 
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
+	bldr_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
@@ -328,16 +329,16 @@ func BuildEsbuildBundle(
 				assetHref = BuildAssetHref(pluginID, outpCssPath)
 			}
 			varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_StringValue{StringValue: assetHref})
-		case bldr_esbuild.EsbuildVarType_EsbuildVarType_ESBUILD_OUTPUT:
-			output := &bldr_esbuild.EsbuildOutput{}
+		case bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT:
+			output := &bldr_web_bundler.WebBundlerOutput{}
 			if outpEntrypointPath != "" {
 				output.EntrypointHref = BuildAssetHref(pluginID, outpEntrypointPath)
 			}
 			if outpCssPath != "" {
 				output.CssHref = BuildAssetHref(pluginID, outpCssPath)
 			}
-			varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_EsbuildOutput{
-				EsbuildOutput: output,
+			varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_WebBundlerOutput{
+				WebBundlerOutput: output,
 			})
 		default:
 			return nil, nil, nil, nil, errors.Errorf("unknown target variable type: %s", varType.String())

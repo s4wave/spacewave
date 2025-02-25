@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	"github.com/evanw/esbuild/pkg/api"

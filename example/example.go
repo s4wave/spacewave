@@ -7,7 +7,7 @@ import (
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	plugin "github.com/aperturerobotics/bldr/plugin"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_handler "github.com/aperturerobotics/bldr/web/view/handler"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -29,7 +29,7 @@ const ControllerID = "bldr/example/demo"
 // ExampleEntrypoint is the example typescript entrypoint.
 //
 //bldr:esbuild example.tsx
-var ExampleEntrypoint bldr_esbuild.EsbuildOutput
+var ExampleEntrypoint bldr_web_bundler.WebBundlerOutput
 
 // AssetPath is an example of using the bldr:asset:href tag.
 //

@@ -10,7 +10,7 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bundler "github.com/aperturerobotics/bldr/web/bundler"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
@@ -47,7 +47,7 @@ type PluginVar struct {
 	// Types that are assignable to Body:
 	//
 	//	*PluginVar_StringValue
-	//	*PluginVar_EsbuildOutput
+	//	*PluginVar_WebBundlerOutput
 	Body isPluginVar_Body `protobuf_oneof:"body"`
 }
 
@@ -85,9 +85,9 @@ func (x *PluginVar) GetStringValue() string {
 	return ""
 }
 
-func (x *PluginVar) GetEsbuildOutput() *esbuild.EsbuildOutput {
-	if x, ok := x.GetBody().(*PluginVar_EsbuildOutput); ok {
-		return x.EsbuildOutput
+func (x *PluginVar) GetWebBundlerOutput() *bundler.WebBundlerOutput {
+	if x, ok := x.GetBody().(*PluginVar_WebBundlerOutput); ok {
+		return x.WebBundlerOutput
 	}
 	return nil
 }
@@ -101,14 +101,14 @@ type PluginVar_StringValue struct {
 	StringValue string `protobuf:"bytes,3,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 
-type PluginVar_EsbuildOutput struct {
-	// EsbuildOutput is an esbuild build output / entrypoint.
-	EsbuildOutput *esbuild.EsbuildOutput `protobuf:"bytes,4,opt,name=esbuild_output,json=esbuildOutput,proto3,oneof"`
+type PluginVar_WebBundlerOutput struct {
+	// WebBundlerOutput is a web bundler build output / entrypoint.
+	WebBundlerOutput *bundler.WebBundlerOutput `protobuf:"bytes,4,opt,name=web_bundler_output,json=webBundlerOutput,proto3,oneof"`
 }
 
 func (*PluginVar_StringValue) isPluginVar_Body() {}
 
-func (*PluginVar_EsbuildOutput) isPluginVar_Body() {}
+func (*PluginVar_WebBundlerOutput) isPluginVar_Body() {}
 
 func (m *PluginDevInfo) CloneVT() *PluginDevInfo {
 	if m == nil {
@@ -167,16 +167,16 @@ func (m *PluginVar_StringValue) CloneOneofVT() isPluginVar_Body {
 	return m.CloneVT()
 }
 
-func (m *PluginVar_EsbuildOutput) CloneVT() *PluginVar_EsbuildOutput {
+func (m *PluginVar_WebBundlerOutput) CloneVT() *PluginVar_WebBundlerOutput {
 	if m == nil {
-		return (*PluginVar_EsbuildOutput)(nil)
+		return (*PluginVar_WebBundlerOutput)(nil)
 	}
-	r := new(PluginVar_EsbuildOutput)
-	r.EsbuildOutput = m.EsbuildOutput.CloneVT()
+	r := new(PluginVar_WebBundlerOutput)
+	r.WebBundlerOutput = m.WebBundlerOutput.CloneVT()
 	return r
 }
 
-func (m *PluginVar_EsbuildOutput) CloneOneofVT() isPluginVar_Body {
+func (m *PluginVar_WebBundlerOutput) CloneOneofVT() isPluginVar_Body {
 	return m.CloneVT()
 }
 
@@ -262,8 +262,8 @@ func (this *PluginVar_StringValue) EqualVT(thatIface isPluginVar_Body) bool {
 	return true
 }
 
-func (this *PluginVar_EsbuildOutput) EqualVT(thatIface isPluginVar_Body) bool {
-	that, ok := thatIface.(*PluginVar_EsbuildOutput)
+func (this *PluginVar_WebBundlerOutput) EqualVT(thatIface isPluginVar_Body) bool {
+	that, ok := thatIface.(*PluginVar_WebBundlerOutput)
 	if !ok {
 		return false
 	}
@@ -273,12 +273,12 @@ func (this *PluginVar_EsbuildOutput) EqualVT(thatIface isPluginVar_Body) bool {
 	if this == nil && that != nil || this != nil && that == nil {
 		return false
 	}
-	if p, q := this.EsbuildOutput, that.EsbuildOutput; p != q {
+	if p, q := this.WebBundlerOutput, that.WebBundlerOutput; p != q {
 		if p == nil {
-			p = &esbuild.EsbuildOutput{}
+			p = &bundler.WebBundlerOutput{}
 		}
 		if q == nil {
-			q = &esbuild.EsbuildOutput{}
+			q = &bundler.WebBundlerOutput{}
 		}
 		if !p.EqualVT(q) {
 			return false
@@ -374,10 +374,10 @@ func (x *PluginVar) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("stringValue")
 			s.WriteString(ov.StringValue)
-		case *PluginVar_EsbuildOutput:
+		case *PluginVar_WebBundlerOutput:
 			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("esbuildOutput")
-			ov.EsbuildOutput.MarshalProtoJSON(s.WithField("esbuildOutput"))
+			s.WriteObjectField("webBundlerOutput")
+			ov.WebBundlerOutput.MarshalProtoJSON(s.WithField("webBundlerOutput"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -408,15 +408,15 @@ func (x *PluginVar) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			ov := &PluginVar_StringValue{}
 			x.Body = ov
 			ov.StringValue = s.ReadString()
-		case "esbuild_output", "esbuildOutput":
-			ov := &PluginVar_EsbuildOutput{}
+		case "web_bundler_output", "webBundlerOutput":
+			ov := &PluginVar_WebBundlerOutput{}
 			x.Body = ov
 			if s.ReadNil() {
-				ov.EsbuildOutput = nil
+				ov.WebBundlerOutput = nil
 				return
 			}
-			ov.EsbuildOutput = &esbuild.EsbuildOutput{}
-			ov.EsbuildOutput.UnmarshalProtoJSON(s.WithField("esbuild_output", true))
+			ov.WebBundlerOutput = &bundler.WebBundlerOutput{}
+			ov.WebBundlerOutput.UnmarshalProtoJSON(s.WithField("web_bundler_output", true))
 		}
 	})
 }
@@ -541,15 +541,15 @@ func (m *PluginVar_StringValue) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	dAtA[i] = 0x1a
 	return len(dAtA) - i, nil
 }
-func (m *PluginVar_EsbuildOutput) MarshalToVT(dAtA []byte) (int, error) {
+func (m *PluginVar_WebBundlerOutput) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *PluginVar_EsbuildOutput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *PluginVar_WebBundlerOutput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.EsbuildOutput != nil {
-		size, err := m.EsbuildOutput.MarshalToSizedBufferVT(dAtA[:i])
+	if m.WebBundlerOutput != nil {
+		size, err := m.WebBundlerOutput.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -611,14 +611,14 @@ func (m *PluginVar_StringValue) SizeVT() (n int) {
 	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	return n
 }
-func (m *PluginVar_EsbuildOutput) SizeVT() (n int) {
+func (m *PluginVar_WebBundlerOutput) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.EsbuildOutput != nil {
-		l = m.EsbuildOutput.SizeVT()
+	if m.WebBundlerOutput != nil {
+		l = m.WebBundlerOutput.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	} else {
 		n += 2
@@ -674,13 +674,13 @@ func (x *PluginVar) MarshalProtoText() string {
 			sb.WriteString("string_value: ")
 			sb.WriteString(strconv.Quote(body.StringValue))
 		}
-	case *PluginVar_EsbuildOutput:
-		if body.EsbuildOutput != nil {
+	case *PluginVar_WebBundlerOutput:
+		if body.WebBundlerOutput != nil {
 			if sb.Len() > 11 {
 				sb.WriteString(" ")
 			}
-			sb.WriteString("esbuild_output: ")
-			sb.WriteString(body.EsbuildOutput.MarshalProtoText())
+			sb.WriteString("web_bundler_output: ")
+			sb.WriteString(body.WebBundlerOutput.MarshalProtoText())
 		}
 	}
 	sb.WriteString("}")
@@ -902,7 +902,7 @@ func (m *PluginVar) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildOutput", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field WebBundlerOutput", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -929,16 +929,16 @@ func (m *PluginVar) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Body.(*PluginVar_EsbuildOutput); ok {
-				if err := oneof.EsbuildOutput.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+			if oneof, ok := m.Body.(*PluginVar_WebBundlerOutput); ok {
+				if err := oneof.WebBundlerOutput.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
 			} else {
-				v := &esbuild.EsbuildOutput{}
+				v := &bundler.WebBundlerOutput{}
 				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
-				m.Body = &PluginVar_EsbuildOutput{EsbuildOutput: v}
+				m.Body = &PluginVar_WebBundlerOutput{WebBundlerOutput: v}
 			}
 			iNdEx = postIndex
 		default:

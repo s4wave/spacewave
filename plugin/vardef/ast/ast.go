@@ -30,11 +30,11 @@ func ToGoDevInfoRefAst(v *bldr_plugin_vardef.PluginVar, devInfoVarName string) (
 				Sel: &gast.Ident{Name: "GetStringValue"},
 			},
 		}, nil
-	case *bldr_plugin_vardef.PluginVar_EsbuildOutput:
+	case *bldr_plugin_vardef.PluginVar_WebBundlerOutput:
 		return &gast.CallExpr{
 			Fun: &gast.SelectorExpr{
 				X:   pluginVarVal,
-				Sel: &gast.Ident{Name: "GetEsbuildOutputValue"},
+				Sel: &gast.Ident{Name: "GetWebBundlerOutputValue"},
 			},
 		}, nil
 	default:
@@ -55,9 +55,9 @@ func ToGoValueAst(v *bldr_plugin_vardef.PluginVar) (gast.Expr, error) {
 	switch val := v.GetBody().(type) {
 	case *bldr_plugin_vardef.PluginVar_StringValue:
 		return buildStringLit(val.StringValue), nil
-	case *bldr_plugin_vardef.PluginVar_EsbuildOutput:
+	case *bldr_plugin_vardef.PluginVar_WebBundlerOutput:
 		elts := make([]gast.Expr, 0, 2)
-		output := val.EsbuildOutput
+		output := val.WebBundlerOutput
 		if entrypointHref := output.GetEntrypointHref(); entrypointHref != "" {
 			elts = append(elts, &gast.KeyValueExpr{
 				Key:   gast.NewIdent("EntrypointHref"),
@@ -73,7 +73,7 @@ func ToGoValueAst(v *bldr_plugin_vardef.PluginVar) (gast.Expr, error) {
 		return &gast.CompositeLit{
 			Elts: elts,
 			Type: &gast.SelectorExpr{
-				Sel: gast.NewIdent("EsbuildOutput"),
+				Sel: gast.NewIdent("WebBundlerOutput"),
 				X:   gast.NewIdent("bldr_values"),
 			},
 		}, nil

@@ -1,4 +1,4 @@
-package bldr_esbuild_build
+package bldr_web_bundler_esbuild_build
 
 import (
 	"errors"

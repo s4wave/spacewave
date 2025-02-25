@@ -11,8 +11,8 @@ import {
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
-import type { EsbuildVarType } from '../../web/esbuild/esbuild.pb.js'
-import { EsbuildVarType_Enum } from '../../web/esbuild/esbuild.pb.js'
+import type { EsbuildVarType } from '../../web/bundler/esbuild/esbuild.pb.js'
+import { EsbuildVarType_Enum } from '../../web/bundler/esbuild/esbuild.pb.js'
 import { WebPkgRef } from '../../web/pkg/esbuild/esbuild.pb.js'
 import { PluginDevInfo } from '../vardef/vardef.pb.js'
 
@@ -46,18 +46,25 @@ export enum InputFileKind {
   InputFileKind_GO = 2,
 
   /**
-   * InputFileKind_ESBUILD is an input consumed by esbuild.
-   *
-   * @generated from enum value: InputFileKind_ESBUILD = 3;
-   */
-  InputFileKind_ESBUILD = 3,
-
-  /**
    * InputFileKind_WEB_PKG is a third party bundled npm package.
    *
-   * @generated from enum value: InputFileKind_WEB_PKG = 4;
+   * @generated from enum value: InputFileKind_WEB_PKG = 3;
    */
-  InputFileKind_WEB_PKG = 4,
+  InputFileKind_WEB_PKG = 3,
+
+  /**
+   * InputFileKind_ESBUILD is an input consumed by esbuild.
+   *
+   * @generated from enum value: InputFileKind_ESBUILD = 4;
+   */
+  InputFileKind_ESBUILD = 4,
+
+  /**
+   * InputFileKind_VITE is an input consumed by vite.
+   *
+   * @generated from enum value: InputFileKind_VITE = 5;
+   */
+  InputFileKind_VITE = 5,
 }
 
 // InputFileKind_Enum is the enum type for InputFileKind.
@@ -67,8 +74,9 @@ export const InputFileKind_Enum = createEnumType(
     { no: 0, name: 'InputFileKind_UNKNOWN' },
     { no: 1, name: 'InputFileKind_ASSET' },
     { no: 2, name: 'InputFileKind_GO' },
-    { no: 3, name: 'InputFileKind_ESBUILD' },
-    { no: 4, name: 'InputFileKind_WEB_PKG' },
+    { no: 3, name: 'InputFileKind_WEB_PKG' },
+    { no: 4, name: 'InputFileKind_ESBUILD' },
+    { no: 5, name: 'InputFileKind_VITE' },
   ],
 )
 
@@ -398,7 +406,7 @@ export interface EsbuildEntrypointVar {
   /**
    * PkgVarType is the type of esbuild variable this is.
    *
-   * @generated from field: bldr.esbuild.EsbuildVarType pkg_var_type = 4;
+   * @generated from field: bldr.web.bundler.esbuild.EsbuildVarType pkg_var_type = 4;
    */
   pkgVarType?: EsbuildVarType
   /**
@@ -512,17 +520,17 @@ export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
  */
 export interface InputManifestMeta {
   /**
-   * EsbuildBundles contains the set of esbuild bundles.
-   *
-   * @generated from field: map<string, bldr.plugin.compiler.EsbuildBundleMeta> esbuild_bundles = 1;
-   */
-  esbuildBundles?: { [key: string]: EsbuildBundleMeta }
-  /**
    * WebPkgRefs contains the list of web pkg references.
    *
-   * @generated from field: repeated web.pkg.esbuild.WebPkgRef web_pkg_refs = 2;
+   * @generated from field: repeated web.pkg.esbuild.WebPkgRef web_pkg_refs = 1;
    */
   webPkgRefs?: WebPkgRef[]
+  /**
+   * DevInfo contains the set of plugin variable definitions.
+   *
+   * @generated from field: bldr.plugin.vardef.PluginDevInfo dev_info = 2;
+   */
+  devInfo?: PluginDevInfo
   /**
    * WebPkgs is the list of web pkgs that we separate from the bundle.
    *
@@ -530,17 +538,17 @@ export interface InputManifestMeta {
    */
   webPkgs?: WebPkgRefConfig[]
   /**
-   * EsbuildFlags are the base command-line arguments to pass to esbuild.
+   * EsbuildFlags are the base command-line arguments to pass to all esbuild bundles.
    *
    * @generated from field: repeated string esbuild_flags = 4;
    */
   esbuildFlags?: string[]
   /**
-   * DevInfo contains the set of plugin variable definitions.
+   * EsbuildBundles contains the set of esbuild bundles.
    *
-   * @generated from field: bldr.plugin.vardef.PluginDevInfo dev_info = 5;
+   * @generated from field: map<string, bldr.plugin.compiler.EsbuildBundleMeta> esbuild_bundles = 5;
    */
-  devInfo?: PluginDevInfo
+  esbuildBundles?: { [key: string]: EsbuildBundleMeta }
   /**
    * EsbuildOutputs contains a list of files written by esbuild.
    *
@@ -556,18 +564,12 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
     fields: [
       {
         no: 1,
-        name: 'esbuild_bundles',
-        kind: 'map',
-        K: ScalarType.STRING,
-        V: { kind: 'message', T: () => EsbuildBundleMeta },
-      },
-      {
-        no: 2,
         name: 'web_pkg_refs',
         kind: 'message',
         T: () => WebPkgRef,
         repeated: true,
       },
+      { no: 2, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },
       {
         no: 3,
         name: 'web_pkgs',
@@ -582,7 +584,13 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         T: ScalarType.STRING,
         repeated: true,
       },
-      { no: 5, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },
+      {
+        no: 5,
+        name: 'esbuild_bundles',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => EsbuildBundleMeta },
+      },
       {
         no: 6,
         name: 'esbuild_outputs',

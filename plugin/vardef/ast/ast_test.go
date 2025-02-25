@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	bldr_plugin_vardef "github.com/aperturerobotics/bldr/plugin/vardef"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 )
 
 type testcase struct {
@@ -28,13 +28,13 @@ var testcases = []*testcase{{
 	pluginVar: &bldr_plugin_vardef.PluginVar{
 		PkgImportPath: "other/package",
 		PkgVar:        "OtherTestVar",
-		Body: &bldr_plugin_vardef.PluginVar_EsbuildOutput{EsbuildOutput: &bldr_esbuild.EsbuildOutput{
+		Body: &bldr_plugin_vardef.PluginVar_WebBundlerOutput{WebBundlerOutput: &bldr_web_bundler.WebBundlerOutput{
 			EntrypointHref: "/p/plugin/entrypoint.js",
 			CssHref:        "/p/plugin/entrypoint.css",
 		}},
 	},
-	expectedDevInfoRef: `devInfo.LookupPluginDevVar("other/package", "OtherTestVar").GetEsbuildOutputValue()`,
-	expectedGoValue:    `bldr_values.EsbuildOutput{EntrypointHref: "/p/plugin/entrypoint.js", CssHref: "/p/plugin/entrypoint.css"}`,
+	expectedDevInfoRef: `devInfo.LookupPluginDevVar("other/package", "OtherTestVar").GetWebBundlerOutputValue()`,
+	expectedGoValue:    `bldr_values.WebBundlerOutput{EntrypointHref: "/p/plugin/entrypoint.js", CssHref: "/p/plugin/entrypoint.css"}`,
 }}
 
 var devInfoVarName = "devInfo"

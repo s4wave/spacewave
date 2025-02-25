@@ -12,7 +12,7 @@ import (
 	"github.com/aperturerobotics/bldr/util/npm"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"

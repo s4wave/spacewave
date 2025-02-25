@@ -1,0 +1,26 @@
+syntax = "proto3";
+package bldr.web.bundler;
+
+// WebEntrypoint is an entrypoint passed to a web bundler.
+message WebEntrypoint {
+  // InputPath is the input file path.
+  string input_path = 1;
+  // OutputPath is the output file path, if any.
+  string output_path = 2;
+}
+
+// WebBundlerOutput contains a single web bundler output.
+//
+// EsbuildVarType_WEB_BUNDLER_OUTPUT
+// ViteVarType_WEB_BUNDLER_OUTPUT
+message WebBundlerOutput {
+  // EntrypointHref is the url path to the script entrypoint.
+  //
+  // e.x: /p/plugin-id/script.js
+  string entrypoint_href = 1;
+  // CssHref is the url path to the css bundle (if applicable).
+  //
+  // May be empty.
+  // e.x: /p/plugin-id/script.css
+  string css_href = 2;
+}

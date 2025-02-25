@@ -1,7 +1,7 @@
 syntax = "proto3";
 package bldr.plugin.vardef;
 
-import "github.com/aperturerobotics/bldr/web/esbuild/esbuild.proto";
+import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 
 // PluginDevInfo is information passed as a .bin file as part of the development plugin entrypoint.
 message PluginDevInfo {
@@ -19,7 +19,7 @@ message PluginVar {
   oneof body {
     // StringValue is a value set to a string variable.
     string string_value = 3;
-    // EsbuildOutput is an esbuild build output / entrypoint.
-    .bldr.esbuild.EsbuildOutput esbuild_output = 4;
+    // WebBundlerOutput is a web bundler build output / entrypoint.
+    .bldr.web.bundler.WebBundlerOutput web_bundler_output = 4;
   }
 }

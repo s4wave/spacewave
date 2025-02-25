@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )

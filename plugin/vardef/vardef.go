@@ -3,7 +3,7 @@ package bldr_plugin_vardef
 import (
 	"strings"
 
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	"golang.org/x/exp/slices"
 )
 
@@ -34,11 +34,11 @@ func (v *PluginVar) GetVariablePath() string {
 	return v.GetPkgImportPath() + "." + v.GetPkgVar()
 }
 
-// GetEsbuildOutputValue returns the dereferenced value of EsbuildOutput or empty if unset.
-func (v *PluginVar) GetEsbuildOutputValue() bldr_esbuild.EsbuildOutput {
-	val := v.GetEsbuildOutput()
+// GetWebBundlerOutputValue returns the dereferenced value of WebBundlerOutput or empty if unset.
+func (v *PluginVar) GetWebBundlerOutputValue() bldr_web_bundler.WebBundlerOutput {
+	val := v.GetWebBundlerOutput()
 	if val == nil {
-		return bldr_esbuild.EsbuildOutput{}
+		return bldr_web_bundler.WebBundlerOutput{}
 	}
 	return *(val.CloneVT())
 }

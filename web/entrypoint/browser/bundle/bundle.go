@@ -11,7 +11,7 @@ import (
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"

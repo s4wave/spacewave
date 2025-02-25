@@ -7,7 +7,7 @@ import (
 	"go/types"
 	"strings"
 
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/esbuild"
+	bldr_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/packages"
 )
@@ -40,10 +40,10 @@ func TrimEsbuildDirective(value string) (string, bool) {
 }
 
 // EsbuildOutputPkgPath is the package path for EsbuildOutput type
-const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/web/esbuild"
+const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/values"
 
 // EsbuildOutputTypeName is the type name for EsbuildOutput
-const EsbuildOutputTypeName = "EsbuildOutput"
+const EsbuildOutputTypeName = "WebBundlerOutput"
 
 // isEsbuildOutputType checks if a type is an EsbuildOutput type
 func isEsbuildOutputType(t types.Type) bool {
@@ -59,7 +59,7 @@ func isEsbuildOutputType(t types.Type) bool {
 func determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, error) {
 	// First check if it's directly an EsbuildOutput type
 	if isEsbuildOutputType(obj.Type()) {
-		return bldr_esbuild.EsbuildVarType_EsbuildVarType_ESBUILD_OUTPUT, nil
+		return bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT, nil
 	}
 
 	// Check the underlying type
@@ -72,7 +72,7 @@ func determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, err
 	case *types.Named, *types.Struct:
 		// For named types and struct types, check if the original type is EsbuildOutput
 		if isEsbuildOutputType(obj.Type()) {
-			return bldr_esbuild.EsbuildVarType_EsbuildVarType_ESBUILD_OUTPUT, nil
+			return bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT, nil
 		}
 
 		// Get a descriptive name for error reporting

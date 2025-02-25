@@ -11,7 +11,7 @@ import (
 	strings "strings"
 
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
-	esbuild1 "github.com/aperturerobotics/bldr/web/esbuild"
+	esbuild1 "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
@@ -29,10 +29,12 @@ const (
 	InputFileKind_InputFileKind_ASSET InputFileKind = 1
 	// InputFileKind_GO is a file built by the Go compiler.
 	InputFileKind_InputFileKind_GO InputFileKind = 2
-	// InputFileKind_ESBUILD is an input consumed by esbuild.
-	InputFileKind_InputFileKind_ESBUILD InputFileKind = 3
 	// InputFileKind_WEB_PKG is a third party bundled npm package.
-	InputFileKind_InputFileKind_WEB_PKG InputFileKind = 4
+	InputFileKind_InputFileKind_WEB_PKG InputFileKind = 3
+	// InputFileKind_ESBUILD is an input consumed by esbuild.
+	InputFileKind_InputFileKind_ESBUILD InputFileKind = 4
+	// InputFileKind_VITE is an input consumed by vite.
+	InputFileKind_InputFileKind_VITE InputFileKind = 5
 )
 
 // Enum value maps for InputFileKind.
@@ -41,15 +43,17 @@ var (
 		0: "InputFileKind_UNKNOWN",
 		1: "InputFileKind_ASSET",
 		2: "InputFileKind_GO",
-		3: "InputFileKind_ESBUILD",
-		4: "InputFileKind_WEB_PKG",
+		3: "InputFileKind_WEB_PKG",
+		4: "InputFileKind_ESBUILD",
+		5: "InputFileKind_VITE",
 	}
 	InputFileKind_value = map[string]int32{
 		"InputFileKind_UNKNOWN": 0,
 		"InputFileKind_ASSET":   1,
 		"InputFileKind_GO":      2,
-		"InputFileKind_ESBUILD": 3,
-		"InputFileKind_WEB_PKG": 4,
+		"InputFileKind_WEB_PKG": 3,
+		"InputFileKind_ESBUILD": 4,
+		"InputFileKind_VITE":    5,
 	}
 )
 
@@ -300,19 +304,61 @@ func (x *InputFileMeta) GetKind() InputFileKind {
 	return InputFileKind_InputFileKind_UNKNOWN
 }
 
+// WebPkgRefConfig configures a web pkg reference.
+type WebPkgRefConfig struct {
+	unknownFields []byte
+	// Id is the identifier of the web pkg.
+	// example: @aptre/flex-layout
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Exclude indicates we should reference this web pkg but exclude it from this bundle.
+	// This is useful if another plugin already provides this web pkg.
+	Exclude bool `protobuf:"varint,2,opt,name=exclude,proto3" json:"exclude,omitempty"`
+	// Imports is the list of imports to include in the web pkg bundle.
+	// NOTE: this will be merged with any imports the code accesses.
+	// NOTE: this is therefore optional.
+	Imports []string `protobuf:"bytes,3,rep,name=imports,proto3" json:"imports,omitempty"`
+}
+
+func (x *WebPkgRefConfig) Reset() {
+	*x = WebPkgRefConfig{}
+}
+
+func (*WebPkgRefConfig) ProtoMessage() {}
+
+func (x *WebPkgRefConfig) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *WebPkgRefConfig) GetExclude() bool {
+	if x != nil {
+		return x.Exclude
+	}
+	return false
+}
+
+func (x *WebPkgRefConfig) GetImports() []string {
+	if x != nil {
+		return x.Imports
+	}
+	return nil
+}
+
 // InputManifestMeta is metadata attached to the input manifest.
 type InputManifestMeta struct {
 	unknownFields []byte
-	// EsbuildBundles contains the set of esbuild bundles.
-	EsbuildBundles map[string]*EsbuildBundleMeta `protobuf:"bytes,1,rep,name=esbuild_bundles,json=esbuildBundles,proto3" json:"esbuildBundles,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// WebPkgRefs contains the list of web pkg references.
-	WebPkgRefs []*esbuild.WebPkgRef `protobuf:"bytes,2,rep,name=web_pkg_refs,json=webPkgRefs,proto3" json:"webPkgRefs,omitempty"`
+	WebPkgRefs []*esbuild.WebPkgRef `protobuf:"bytes,1,rep,name=web_pkg_refs,json=webPkgRefs,proto3" json:"webPkgRefs,omitempty"`
+	// DevInfo contains the set of plugin variable definitions.
+	DevInfo *vardef.PluginDevInfo `protobuf:"bytes,2,opt,name=dev_info,json=devInfo,proto3" json:"devInfo,omitempty"`
 	// WebPkgs is the list of web pkgs that we separate from the bundle.
 	WebPkgs []*WebPkgRefConfig `protobuf:"bytes,3,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
-	// EsbuildFlags are the base command-line arguments to pass to esbuild.
+	// EsbuildFlags are the base command-line arguments to pass to all esbuild bundles.
 	EsbuildFlags []string `protobuf:"bytes,4,rep,name=esbuild_flags,json=esbuildFlags,proto3" json:"esbuildFlags,omitempty"`
-	// DevInfo contains the set of plugin variable definitions.
-	DevInfo *vardef.PluginDevInfo `protobuf:"bytes,5,opt,name=dev_info,json=devInfo,proto3" json:"devInfo,omitempty"`
+	// EsbuildBundles contains the set of esbuild bundles.
+	EsbuildBundles map[string]*EsbuildBundleMeta `protobuf:"bytes,5,rep,name=esbuild_bundles,json=esbuildBundles,proto3" json:"esbuildBundles,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// EsbuildOutputs contains a list of files written by esbuild.
 	EsbuildOutputs []*EsbuildOutputMeta `protobuf:"bytes,6,rep,name=esbuild_outputs,json=esbuildOutputs,proto3" json:"esbuildOutputs,omitempty"`
 }
@@ -323,16 +369,16 @@ func (x *InputManifestMeta) Reset() {
 
 func (*InputManifestMeta) ProtoMessage() {}
 
-func (x *InputManifestMeta) GetEsbuildBundles() map[string]*EsbuildBundleMeta {
+func (x *InputManifestMeta) GetWebPkgRefs() []*esbuild.WebPkgRef {
 	if x != nil {
-		return x.EsbuildBundles
+		return x.WebPkgRefs
 	}
 	return nil
 }
 
-func (x *InputManifestMeta) GetWebPkgRefs() []*esbuild.WebPkgRef {
+func (x *InputManifestMeta) GetDevInfo() *vardef.PluginDevInfo {
 	if x != nil {
-		return x.WebPkgRefs
+		return x.DevInfo
 	}
 	return nil
 }
@@ -351,9 +397,9 @@ func (x *InputManifestMeta) GetEsbuildFlags() []string {
 	return nil
 }
 
-func (x *InputManifestMeta) GetDevInfo() *vardef.PluginDevInfo {
+func (x *InputManifestMeta) GetEsbuildBundles() map[string]*EsbuildBundleMeta {
 	if x != nil {
-		return x.DevInfo
+		return x.EsbuildBundles
 	}
 	return nil
 }
@@ -485,48 +531,6 @@ func (x *EsbuildEntrypointVar) GetPkgVarType() esbuild1.EsbuildVarType {
 func (x *EsbuildEntrypointVar) GetEsbuildFlags() []string {
 	if x != nil {
 		return x.EsbuildFlags
-	}
-	return nil
-}
-
-// WebPkgRefConfig configures a web pkg reference.
-type WebPkgRefConfig struct {
-	unknownFields []byte
-	// Id is the identifier of the web pkg.
-	// example: @aptre/flex-layout
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Exclude indicates we should reference this web pkg but exclude it from this bundle.
-	// This is useful if another plugin already provides this web pkg.
-	Exclude bool `protobuf:"varint,2,opt,name=exclude,proto3" json:"exclude,omitempty"`
-	// Imports is the list of imports to include in the web pkg bundle.
-	// NOTE: this will be merged with any imports the code accesses.
-	// NOTE: this is therefore optional.
-	Imports []string `protobuf:"bytes,3,rep,name=imports,proto3" json:"imports,omitempty"`
-}
-
-func (x *WebPkgRefConfig) Reset() {
-	*x = WebPkgRefConfig{}
-}
-
-func (*WebPkgRefConfig) ProtoMessage() {}
-
-func (x *WebPkgRefConfig) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *WebPkgRefConfig) GetExclude() bool {
-	if x != nil {
-		return x.Exclude
-	}
-	return false
-}
-
-func (x *WebPkgRefConfig) GetImports() []string {
-	if x != nil {
-		return x.Imports
 	}
 	return nil
 }
@@ -731,24 +735,43 @@ func (m *InputFileMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *WebPkgRefConfig) CloneVT() *WebPkgRefConfig {
+	if m == nil {
+		return (*WebPkgRefConfig)(nil)
+	}
+	r := new(WebPkgRefConfig)
+	r.Id = m.Id
+	r.Exclude = m.Exclude
+	if rhs := m.Imports; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Imports = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *WebPkgRefConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 	if m == nil {
 		return (*InputManifestMeta)(nil)
 	}
 	r := new(InputManifestMeta)
-	if rhs := m.EsbuildBundles; rhs != nil {
-		tmpContainer := make(map[string]*EsbuildBundleMeta, len(rhs))
-		for k, v := range rhs {
-			tmpContainer[k] = v.CloneVT()
-		}
-		r.EsbuildBundles = tmpContainer
-	}
 	if rhs := m.WebPkgRefs; rhs != nil {
 		tmpContainer := make([]*esbuild.WebPkgRef, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.WebPkgRefs = tmpContainer
+	}
+	if rhs := m.DevInfo; rhs != nil {
+		r.DevInfo = rhs.CloneVT()
 	}
 	if rhs := m.WebPkgs; rhs != nil {
 		tmpContainer := make([]*WebPkgRefConfig, len(rhs))
@@ -762,8 +785,12 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		copy(tmpContainer, rhs)
 		r.EsbuildFlags = tmpContainer
 	}
-	if rhs := m.DevInfo; rhs != nil {
-		r.DevInfo = rhs.CloneVT()
+	if rhs := m.EsbuildBundles; rhs != nil {
+		tmpContainer := make(map[string]*EsbuildBundleMeta, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.EsbuildBundles = tmpContainer
 	}
 	if rhs := m.EsbuildOutputs; rhs != nil {
 		tmpContainer := make([]*EsbuildOutputMeta, len(rhs))
@@ -848,29 +875,6 @@ func (m *EsbuildEntrypointVar) CloneVT() *EsbuildEntrypointVar {
 }
 
 func (m *EsbuildEntrypointVar) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *WebPkgRefConfig) CloneVT() *WebPkgRefConfig {
-	if m == nil {
-		return (*WebPkgRefConfig)(nil)
-	}
-	r := new(WebPkgRefConfig)
-	r.Id = m.Id
-	r.Exclude = m.Exclude
-	if rhs := m.Imports; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Imports = tmpContainer
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *WebPkgRefConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1047,31 +1051,42 @@ func (this *InputFileMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
+func (this *WebPkgRefConfig) EqualVT(that *WebPkgRefConfig) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
 		return false
 	}
-	if len(this.EsbuildBundles) != len(that.EsbuildBundles) {
+	if this.Id != that.Id {
 		return false
 	}
-	for i, vx := range this.EsbuildBundles {
-		vy, ok := that.EsbuildBundles[i]
-		if !ok {
+	if this.Exclude != that.Exclude {
+		return false
+	}
+	if len(this.Imports) != len(that.Imports) {
+		return false
+	}
+	for i, vx := range this.Imports {
+		vy := that.Imports[i]
+		if vx != vy {
 			return false
 		}
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &EsbuildBundleMeta{}
-			}
-			if q == nil {
-				q = &EsbuildBundleMeta{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WebPkgRefConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WebPkgRefConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
 	}
 	if len(this.WebPkgRefs) != len(that.WebPkgRefs) {
 		return false
@@ -1089,6 +1104,9 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 				return false
 			}
 		}
+	}
+	if !this.DevInfo.EqualVT(that.DevInfo) {
+		return false
 	}
 	if len(this.WebPkgs) != len(that.WebPkgs) {
 		return false
@@ -1116,8 +1134,25 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 			return false
 		}
 	}
-	if !this.DevInfo.EqualVT(that.DevInfo) {
+	if len(this.EsbuildBundles) != len(that.EsbuildBundles) {
 		return false
+	}
+	for i, vx := range this.EsbuildBundles {
+		vy, ok := that.EsbuildBundles[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EsbuildBundleMeta{}
+			}
+			if q == nil {
+				q = &EsbuildBundleMeta{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	if len(this.EsbuildOutputs) != len(that.EsbuildOutputs) {
 		return false
@@ -1239,37 +1274,6 @@ func (this *EsbuildEntrypointVar) EqualVT(that *EsbuildEntrypointVar) bool {
 
 func (this *EsbuildEntrypointVar) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*EsbuildEntrypointVar)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-func (this *WebPkgRefConfig) EqualVT(that *WebPkgRefConfig) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Id != that.Id {
-		return false
-	}
-	if this.Exclude != that.Exclude {
-		return false
-	}
-	if len(this.Imports) != len(that.Imports) {
-		return false
-	}
-	for i, vx := range this.Imports {
-		vy := that.Imports[i]
-		if vx != vy {
-			return false
-		}
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *WebPkgRefConfig) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*WebPkgRefConfig)
 	if !ok {
 		return false
 	}
@@ -1789,6 +1793,68 @@ func (x *InputFileMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WebPkgRefConfig message to JSON.
+func (x *WebPkgRefConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Exclude || s.HasField("exclude") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exclude")
+		s.WriteBool(x.Exclude)
+	}
+	if len(x.Imports) > 0 || s.HasField("imports") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("imports")
+		s.WriteStringArray(x.Imports)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WebPkgRefConfig to JSON.
+func (x *WebPkgRefConfig) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebPkgRefConfig message from JSON.
+func (x *WebPkgRefConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "exclude":
+			s.AddField("exclude")
+			x.Exclude = s.ReadBool()
+		case "imports":
+			s.AddField("imports")
+			if s.ReadNil() {
+				x.Imports = nil
+				return
+			}
+			x.Imports = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WebPkgRefConfig from JSON.
+func (x *WebPkgRefConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the InputManifestMeta_EsbuildBundlesEntry message to JSON.
 func (x *InputManifestMeta_EsbuildBundlesEntry) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1851,18 +1917,6 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.EsbuildBundles != nil || s.HasField("esbuildBundles") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("esbuildBundles")
-		s.WriteObjectStart()
-		var wroteElement bool
-		for k, v := range x.EsbuildBundles {
-			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("esbuildBundles"))
-		}
-		s.WriteObjectEnd()
-	}
 	if len(x.WebPkgRefs) > 0 || s.HasField("webPkgRefs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("webPkgRefs")
@@ -1873,6 +1927,11 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("webPkgRefs"))
 		}
 		s.WriteArrayEnd()
+	}
+	if x.DevInfo != nil || s.HasField("devInfo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devInfo")
+		x.DevInfo.MarshalProtoJSON(s.WithField("devInfo"))
 	}
 	if len(x.WebPkgs) > 0 || s.HasField("webPkgs") {
 		s.WriteMoreIf(&wroteField)
@@ -1890,10 +1949,17 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("esbuildFlags")
 		s.WriteStringArray(x.EsbuildFlags)
 	}
-	if x.DevInfo != nil || s.HasField("devInfo") {
+	if x.EsbuildBundles != nil || s.HasField("esbuildBundles") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("devInfo")
-		x.DevInfo.MarshalProtoJSON(s.WithField("devInfo"))
+		s.WriteObjectField("esbuildBundles")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.EsbuildBundles {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("esbuildBundles"))
+		}
+		s.WriteObjectEnd()
 	}
 	if len(x.EsbuildOutputs) > 0 || s.HasField("esbuildOutputs") {
 		s.WriteMoreIf(&wroteField)
@@ -1923,18 +1989,6 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "esbuild_bundles", "esbuildBundles":
-			s.AddField("esbuild_bundles")
-			if s.ReadNil() {
-				x.EsbuildBundles = nil
-				return
-			}
-			x.EsbuildBundles = make(map[string]*EsbuildBundleMeta)
-			s.ReadStringMap(func(key string) {
-				var v EsbuildBundleMeta
-				v.UnmarshalProtoJSON(s)
-				x.EsbuildBundles[key] = &v
-			})
 		case "web_pkg_refs", "webPkgRefs":
 			s.AddField("web_pkg_refs")
 			if s.ReadNil() {
@@ -1953,6 +2007,13 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.WebPkgRefs = append(x.WebPkgRefs, v)
 			})
+		case "dev_info", "devInfo":
+			if s.ReadNil() {
+				x.DevInfo = nil
+				return
+			}
+			x.DevInfo = &vardef.PluginDevInfo{}
+			x.DevInfo.UnmarshalProtoJSON(s.WithField("dev_info", true))
 		case "web_pkgs", "webPkgs":
 			s.AddField("web_pkgs")
 			if s.ReadNil() {
@@ -1978,13 +2039,18 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.EsbuildFlags = s.ReadStringArray()
-		case "dev_info", "devInfo":
+		case "esbuild_bundles", "esbuildBundles":
+			s.AddField("esbuild_bundles")
 			if s.ReadNil() {
-				x.DevInfo = nil
+				x.EsbuildBundles = nil
 				return
 			}
-			x.DevInfo = &vardef.PluginDevInfo{}
-			x.DevInfo.UnmarshalProtoJSON(s.WithField("dev_info", true))
+			x.EsbuildBundles = make(map[string]*EsbuildBundleMeta)
+			s.ReadStringMap(func(key string) {
+				var v EsbuildBundleMeta
+				v.UnmarshalProtoJSON(s)
+				x.EsbuildBundles[key] = &v
+			})
 		case "esbuild_outputs", "esbuildOutputs":
 			s.AddField("esbuild_outputs")
 			if s.ReadNil() {
@@ -2216,68 +2282,6 @@ func (x *EsbuildEntrypointVar) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the EsbuildEntrypointVar from JSON.
 func (x *EsbuildEntrypointVar) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the WebPkgRefConfig message to JSON.
-func (x *WebPkgRefConfig) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Id != "" || s.HasField("id") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("id")
-		s.WriteString(x.Id)
-	}
-	if x.Exclude || s.HasField("exclude") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("exclude")
-		s.WriteBool(x.Exclude)
-	}
-	if len(x.Imports) > 0 || s.HasField("imports") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("imports")
-		s.WriteStringArray(x.Imports)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the WebPkgRefConfig to JSON.
-func (x *WebPkgRefConfig) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the WebPkgRefConfig message from JSON.
-func (x *WebPkgRefConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "id":
-			s.AddField("id")
-			x.Id = s.ReadString()
-		case "exclude":
-			s.AddField("exclude")
-			x.Exclude = s.ReadBool()
-		case "imports":
-			s.AddField("imports")
-			if s.ReadNil() {
-				x.Imports = nil
-				return
-			}
-			x.Imports = s.ReadStringArray()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the WebPkgRefConfig from JSON.
-func (x *WebPkgRefConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2547,6 +2551,65 @@ func (m *InputFileMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *WebPkgRefConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebPkgRefConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WebPkgRefConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Imports) > 0 {
+		for iNdEx := len(m.Imports) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Imports[iNdEx])
+			copy(dAtA[i:], m.Imports[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Imports[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.Exclude {
+		i--
+		if m.Exclude {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *InputManifestMeta) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2589,15 +2652,27 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x32
 		}
 	}
-	if m.DevInfo != nil {
-		size, err := m.DevInfo.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
+	if len(m.EsbuildBundles) > 0 {
+		for k := range m.EsbuildBundles {
+			v := m.EsbuildBundles[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x2a
 		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x2a
 	}
 	if len(m.EsbuildFlags) > 0 {
 		for iNdEx := len(m.EsbuildFlags) - 1; iNdEx >= 0; iNdEx-- {
@@ -2620,6 +2695,16 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x1a
 		}
 	}
+	if m.DevInfo != nil {
+		size, err := m.DevInfo.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.WebPkgRefs) > 0 {
 		for iNdEx := len(m.WebPkgRefs) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.WebPkgRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -2628,28 +2713,6 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			}
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.EsbuildBundles) > 0 {
-		for k := range m.EsbuildBundles {
-			v := m.EsbuildBundles[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -2829,65 +2892,6 @@ func (m *EsbuildEntrypointVar) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-func (m *WebPkgRefConfig) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WebPkgRefConfig) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *WebPkgRefConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.Imports) > 0 {
-		for iNdEx := len(m.Imports) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Imports[iNdEx])
-			copy(dAtA[i:], m.Imports[iNdEx])
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Imports[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if m.Exclude {
-		i--
-		if m.Exclude {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Id) > 0 {
-		i -= len(m.Id)
-		copy(dAtA[i:], m.Id)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3009,30 +3013,44 @@ func (m *InputFileMeta) SizeVT() (n int) {
 	return n
 }
 
+func (m *WebPkgRefConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Exclude {
+		n += 2
+	}
+	if len(m.Imports) > 0 {
+		for _, s := range m.Imports {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *InputManifestMeta) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if len(m.EsbuildBundles) > 0 {
-		for k, v := range m.EsbuildBundles {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
-		}
-	}
 	if len(m.WebPkgRefs) > 0 {
 		for _, e := range m.WebPkgRefs {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.DevInfo != nil {
+		l = m.DevInfo.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	if len(m.WebPkgs) > 0 {
 		for _, e := range m.WebPkgs {
@@ -3046,9 +3064,18 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
-	if m.DevInfo != nil {
-		l = m.DevInfo.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.EsbuildBundles) > 0 {
+		for k, v := range m.EsbuildBundles {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
 	}
 	if len(m.EsbuildOutputs) > 0 {
 		for _, e := range m.EsbuildOutputs {
@@ -3124,29 +3151,6 @@ func (m *EsbuildEntrypointVar) SizeVT() (n int) {
 	}
 	if len(m.EsbuildFlags) > 0 {
 		for _, s := range m.EsbuildFlags {
-			l = len(s)
-			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-		}
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *WebPkgRefConfig) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Id)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Exclude {
-		n += 2
-	}
-	if len(m.Imports) > 0 {
-		for _, s := range m.Imports {
 			l = len(s)
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
@@ -3416,6 +3420,43 @@ func (x *InputFileMeta) MarshalProtoText() string {
 func (x *InputFileMeta) String() string {
 	return x.MarshalProtoText()
 }
+func (x *WebPkgRefConfig) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WebPkgRefConfig {")
+	if x.Id != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Exclude != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("exclude: ")
+		sb.WriteString(strconv.FormatBool(x.Exclude))
+	}
+	if len(x.Imports) > 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("imports: [")
+		for i, v := range x.Imports {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WebPkgRefConfig) String() string {
+	return x.MarshalProtoText()
+}
 func (x *InputManifestMeta_EsbuildBundlesEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EsbuildBundlesEntry {")
@@ -3443,19 +3484,6 @@ func (x *InputManifestMeta_EsbuildBundlesEntry) String() string {
 func (x *InputManifestMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputManifestMeta {")
-	if len(x.EsbuildBundles) > 0 {
-		if sb.Len() > 19 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("esbuild_bundles: {")
-		for k, v := range x.EsbuildBundles {
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
-			sb.WriteString(v.MarshalProtoText())
-		}
-		sb.WriteString(" }")
-	}
 	if len(x.WebPkgRefs) > 0 {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
@@ -3468,6 +3496,13 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
+	}
+	if x.DevInfo != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dev_info: ")
+		sb.WriteString(x.DevInfo.MarshalProtoText())
 	}
 	if len(x.WebPkgs) > 0 {
 		if sb.Len() > 19 {
@@ -3495,12 +3530,18 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 		}
 		sb.WriteString("]")
 	}
-	if x.DevInfo != nil {
+	if len(x.EsbuildBundles) > 0 {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("dev_info: ")
-		sb.WriteString(x.DevInfo.MarshalProtoText())
+		sb.WriteString("esbuild_bundles: {")
+		for k, v := range x.EsbuildBundles {
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString(" }")
 	}
 	if len(x.EsbuildOutputs) > 0 {
 		if sb.Len() > 19 {
@@ -3634,43 +3675,6 @@ func (x *EsbuildEntrypointVar) MarshalProtoText() string {
 }
 
 func (x *EsbuildEntrypointVar) String() string {
-	return x.MarshalProtoText()
-}
-func (x *WebPkgRefConfig) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("WebPkgRefConfig {")
-	if x.Id != "" {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("id: ")
-		sb.WriteString(strconv.Quote(x.Id))
-	}
-	if x.Exclude != false {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("exclude: ")
-		sb.WriteString(strconv.FormatBool(x.Exclude))
-	}
-	if len(x.Imports) > 0 {
-		if sb.Len() > 17 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("imports: [")
-		for i, v := range x.Imports {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(strconv.Quote(v))
-		}
-		sb.WriteString("]")
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *WebPkgRefConfig) String() string {
 	return x.MarshalProtoText()
 }
 func (m *Config) UnmarshalVT(dAtA []byte) error {
@@ -4559,6 +4563,141 @@ func (m *InputFileMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *WebPkgRefConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WebPkgRefConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WebPkgRefConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exclude", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Exclude = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Imports", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Imports = append(m.Imports, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4589,6 +4728,142 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgRefs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgRefs = append(m.WebPkgRefs, &esbuild.WebPkgRef{})
+			if err := m.WebPkgRefs[len(m.WebPkgRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevInfo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DevInfo == nil {
+				m.DevInfo = &vardef.PluginDevInfo{}
+			}
+			if err := m.DevInfo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgs = append(m.WebPkgs, &WebPkgRefConfig{})
+			if err := m.WebPkgs[len(m.WebPkgs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildFlags", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildBundles", wireType)
 			}
@@ -4716,142 +4991,6 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.EsbuildBundles[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgRefs", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WebPkgRefs = append(m.WebPkgRefs, &esbuild.WebPkgRef{})
-			if err := m.WebPkgRefs[len(m.WebPkgRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WebPkgs = append(m.WebPkgs, &WebPkgRefConfig{})
-			if err := m.WebPkgs[len(m.WebPkgs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EsbuildFlags", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DevInfo", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.DevInfo == nil {
-				m.DevInfo = &vardef.PluginDevInfo{}
-			}
-			if err := m.DevInfo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -5335,141 +5474,6 @@ func (m *EsbuildEntrypointVar) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.EsbuildFlags = append(m.EsbuildFlags, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WebPkgRefConfig) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protobuf_go_lite.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WebPkgRefConfig: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WebPkgRefConfig: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Id = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Exclude", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Exclude = bool(v != 0)
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Imports", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Imports = append(m.Imports, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

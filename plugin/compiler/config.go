@@ -7,7 +7,7 @@ import (
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/bldr/util/merge"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"

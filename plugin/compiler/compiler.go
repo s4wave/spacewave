@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
@@ -19,7 +20,7 @@ import (
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	bldr_compress "github.com/aperturerobotics/bldr/util/compress"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
@@ -36,8 +37,10 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/enabled"
 	"github.com/aperturerobotics/util/fsutil"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -62,6 +65,8 @@ var inlineSourcemaps = true
 type Controller struct {
 	*bus.BusController[*Config]
 	preBuildHooks []PreBuildHook
+
+	viteCompilers *keyed.KeyedRefCount[string, *viteCompilerTracker]
 }
 
 // Factory is the factory for the compiler controller.
@@ -72,7 +77,8 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 	if err := conf.Validate(); err != nil {
 		return nil, err
 	}
-	return &Controller{
+
+	c := &Controller{
 		BusController: bus.NewBusController(
 			le,
 			b,
@@ -81,7 +87,16 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 			Version,
 			controllerDescrip,
 		),
-	}, nil
+	}
+
+	c.viteCompilers = keyed.NewKeyedRefCountWithLogger(
+		c.buildViteCompilerTracker,
+		le,
+		keyed.WithReleaseDelay[string, *viteCompilerTracker](time.Second*30),
+		keyed.WithRetry[string, *viteCompilerTracker](&backoff.Backoff{}),
+	)
+
+	return c, nil
 }
 
 // NewFactory constructs a new plugin compiler controller factory.
@@ -319,223 +334,6 @@ func (c *Controller) BuildManifest(
 	}
 
 	return result, nil
-}
-
-// FastRebuildPlugin compiles the plugin once skipping running the Go compiler if possible.
-// Assumes we are in dev mode (not release mode).
-// Assumes the previous result is already checked out to outDistPath and outAssetsPath.
-// Returns nil, nil if fast rebuild is not applicable.
-func (c *Controller) FastRebuildPlugin(
-	ctx context.Context,
-	le *logrus.Entry,
-	pluginID,
-	sourcePath,
-	outDistPath,
-	outAssetsPath string,
-	prevInputManifest *manifest_builder.InputManifest,
-	changedFiles []*manifest_builder.InputManifest_File,
-	devInfoFile string,
-) (*manifest_builder.InputManifest, error) {
-	// Skip if there is no previous result.
-	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
-		return nil, nil
-	}
-
-	// Skip if there is no valid input manifest metadata.
-	prevMetaBin := prevInputManifest.Metadata
-	if len(prevMetaBin) == 0 {
-		return nil, nil
-	}
-	inputMeta := &InputManifestMeta{}
-	if err := inputMeta.UnmarshalVT(prevMetaBin); err != nil {
-		return nil, errors.Wrap(err, "unmarshal input metadata")
-	}
-
-	webPkgs := inputMeta.GetWebPkgs()
-	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(inputMeta.GetEsbuildFlags())
-	if err != nil {
-		return nil, err
-	}
-
-	// If any non-esbuild assets changed, skip fast rebuild.
-	meta := &InputFileMeta{}
-	for _, changedFile := range changedFiles {
-		meta.Reset()
-		err := meta.UnmarshalVT(changedFile.GetMetadata())
-		if err != nil {
-			// parsing error
-			return nil, errors.Wrap(err, "failed to parse file metadata")
-		}
-		if meta.GetKind() != InputFileKind_InputFileKind_ESBUILD {
-			// Skip fast rebuild: non-esbuild asset
-			return nil, nil
-		}
-	}
-
-	// Perform fast rebuild by running the esbuild compiler only.
-	le.Info("performing fast rebuild")
-
-	// execute the build
-	esbuildBundleMeta := inputMeta.GetEsbuildBundles()
-	bundleIDs := maps.Keys(esbuildBundleMeta)
-	slices.Sort(bundleIDs)
-	var updatedWebPkgRefs []*web_pkg_esbuild.WebPkgRef
-	var esbuildSrcFiles []string
-	var goVariableDefs []*vardef.PluginVar
-	var updatedEsbuildOutputs []*EsbuildOutputMeta
-	for _, bundleID := range bundleIDs {
-		bundleDef := esbuildBundleMeta[bundleID]
-		esbuildVarDefs, esbuildWebPkgRefs, esbuildOutputMeta, esbuildSrcs, err := BuildEsbuildBundle(
-			le,
-			sourcePath,
-			bundleDef,
-			baseEsbuildOpts,
-			webPkgs,
-			outAssetsPath,
-			pluginID,
-			inlineSourcemaps,
-			false,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		esbuildSrcFiles = append(esbuildSrcFiles, esbuildSrcs...)
-		goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
-		updatedEsbuildOutputs = append(updatedEsbuildOutputs, esbuildOutputMeta...)
-		for _, webPkgRef := range esbuildWebPkgRefs {
-			for _, impPath := range webPkgRef.Imports {
-				updatedWebPkgRefs, _ = web_pkg_esbuild.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
-					webPkgRef.WebPkgId,
-					webPkgRef.WebPkgRoot,
-					impPath,
-				)
-			}
-		}
-	}
-
-	// sort the web pkg refs
-	web_pkg_esbuild.SortWebPkgRefs(updatedWebPkgRefs)
-
-	// compare the web pkg refs to see if they changed.
-	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
-	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
-		le.Info("references to web pkgs changed: forcing a full re-build")
-		return nil, nil
-	}
-
-	// cleanup esbuild src files list
-	slices.Sort(esbuildSrcFiles)
-	esbuildSrcFiles = slices.Compact(esbuildSrcFiles)
-
-	// cleanup outputs list
-	updatedEsbuildOutputs = SortEsbuildOutputMetas(updatedEsbuildOutputs)
-
-	// compare the outputs list with the old outputs list.
-	// delete any output file from the old outputs that was not overwritten by esbuild.
-	// for example: changed files with hashes in the filename will delete the old hash.
-	updatedOutputs := make(map[string]struct{}, len(updatedEsbuildOutputs))
-	for _, updatedOutput := range updatedEsbuildOutputs {
-		updatedOutputs[updatedOutput.GetPath()] = struct{}{}
-	}
-	for _, oldOutput := range inputMeta.GetEsbuildOutputs() {
-		if _, ok := updatedOutputs[oldOutput.GetPath()]; !ok {
-			oldOutputPath := oldOutput.GetPath()
-			absPath := filepath.Join(outAssetsPath, oldOutputPath)
-			relPath, err := filepath.Rel(outAssetsPath, absPath)
-			if err != nil {
-				return nil, err
-			}
-			if strings.HasPrefix(relPath, "..") {
-				// prevent deleting things outside the assets dir
-				le.Warnf("skipping removing old output path outside assets dir: %s", relPath)
-				continue
-			}
-			if _, err := os.Stat(absPath); os.IsNotExist(err) {
-				le.Warnf("old output path not found: %s", oldOutputPath)
-			} else if err := os.Remove(absPath); err != nil {
-				return nil, err
-			} else {
-				le.Debugf("removed old output: %s", oldOutputPath)
-			}
-		}
-	}
-
-	// build the updated input manifest
-	updatedInputManifest := prevInputManifest.CloneVT()
-	updatedInputMeta := inputMeta.CloneVT()
-	if updatedInputMeta.DevInfo == nil {
-		updatedInputMeta.DevInfo = &vardef.PluginDevInfo{}
-	}
-	updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
-
-	// drop all esbuild files from the set (we will add them back next)
-	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
-		meta.Reset()
-		err := meta.UnmarshalVT(f.GetMetadata())
-		if err != nil {
-			return false
-		}
-		return meta.GetKind() == InputFileKind_InputFileKind_ESBUILD
-	})
-
-	// drop all overwritten variable definitions from the set (we will add them back next)
-	type varDefKey struct {
-		pkgPath string
-		pkgVar  string
-	}
-	overwrittenVarDefs := make(map[varDefKey]struct{})
-	for _, goVarDef := range goVariableDefs {
-		overwrittenVarDefs[varDefKey{pkgPath: goVarDef.PkgImportPath, pkgVar: goVarDef.PkgVar}] = struct{}{}
-	}
-	updatedInputMeta.DevInfo.PluginVars = slices.DeleteFunc(updatedInputMeta.DevInfo.PluginVars, func(goVarDef *vardef.PluginVar) bool {
-		_, overwritten := overwrittenVarDefs[varDefKey{pkgPath: goVarDef.PkgImportPath, pkgVar: goVarDef.PkgVar}]
-		return overwritten
-	})
-
-	// add the updated go variable defs to the list
-	updatedInputMeta.DevInfo.PluginVars = append(updatedInputMeta.DevInfo.PluginVars, goVariableDefs...)
-	vardef.SortPluginVars(updatedInputMeta.DevInfo.PluginVars)
-
-	// add the updated esbuild files to the list
-	if err := fsutil.ConvertPathsToRelative(sourcePath, esbuildSrcFiles); err != nil {
-		return nil, err
-	}
-	inputFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_ESBUILD}
-	inputFileMetaBin, err := inputFileMeta.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	for _, srcPath := range esbuildSrcFiles {
-		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
-			Path:     srcPath,
-			Metadata: inputFileMetaBin,
-		})
-	}
-	updatedInputManifest.SortFiles()
-
-	// encode the updated meta
-	updMeta, err := updatedInputMeta.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	updatedInputManifest.Metadata = updMeta
-
-	// encode the updated dev info file
-	if devInfoFile != "" {
-		updDevInfo, err := updatedInputMeta.GetDevInfo().MarshalVT()
-		if err != nil {
-			return nil, err
-		}
-		devInfoPath := filepath.Join(outDistPath, devInfoFile)
-		if err := os.WriteFile(devInfoPath, updDevInfo, 0o644); err != nil {
-			return nil, err
-		}
-		le.Debugf("wrote file: %s", devInfoFile)
-	}
-
-	le.Debug("fast rebuild complete")
-	return updatedInputManifest, nil
 }
 
 // BuildPlugin compiles the plugin once, committing it to the target world.
@@ -1064,6 +862,223 @@ func (c *Controller) BuildPlugin(
 	inputManifest.SortFiles()
 
 	return an, inputManifest, nil
+}
+
+// FastRebuildPlugin compiles the plugin once skipping running the Go compiler if possible.
+// Assumes we are in dev mode (not release mode).
+// Assumes the previous result is already checked out to outDistPath and outAssetsPath.
+// Returns nil, nil if fast rebuild is not applicable.
+func (c *Controller) FastRebuildPlugin(
+	ctx context.Context,
+	le *logrus.Entry,
+	pluginID,
+	sourcePath,
+	outDistPath,
+	outAssetsPath string,
+	prevInputManifest *manifest_builder.InputManifest,
+	changedFiles []*manifest_builder.InputManifest_File,
+	devInfoFile string,
+) (*manifest_builder.InputManifest, error) {
+	// Skip if there is no previous result.
+	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
+		return nil, nil
+	}
+
+	// Skip if there is no valid input manifest metadata.
+	prevMetaBin := prevInputManifest.Metadata
+	if len(prevMetaBin) == 0 {
+		return nil, nil
+	}
+	inputMeta := &InputManifestMeta{}
+	if err := inputMeta.UnmarshalVT(prevMetaBin); err != nil {
+		return nil, errors.Wrap(err, "unmarshal input metadata")
+	}
+
+	webPkgs := inputMeta.GetWebPkgs()
+	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(inputMeta.GetEsbuildFlags())
+	if err != nil {
+		return nil, err
+	}
+
+	// If any non-esbuild assets changed, skip fast rebuild.
+	meta := &InputFileMeta{}
+	for _, changedFile := range changedFiles {
+		meta.Reset()
+		err := meta.UnmarshalVT(changedFile.GetMetadata())
+		if err != nil {
+			// parsing error
+			return nil, errors.Wrap(err, "failed to parse file metadata")
+		}
+		if meta.GetKind() != InputFileKind_InputFileKind_ESBUILD {
+			// Skip fast rebuild: non-esbuild asset
+			return nil, nil
+		}
+	}
+
+	// Perform fast rebuild by running the esbuild compiler only.
+	le.Info("performing fast rebuild")
+
+	// execute the build
+	esbuildBundleMeta := inputMeta.GetEsbuildBundles()
+	bundleIDs := maps.Keys(esbuildBundleMeta)
+	slices.Sort(bundleIDs)
+	var updatedWebPkgRefs []*web_pkg_esbuild.WebPkgRef
+	var esbuildSrcFiles []string
+	var goVariableDefs []*vardef.PluginVar
+	var updatedEsbuildOutputs []*EsbuildOutputMeta
+	for _, bundleID := range bundleIDs {
+		bundleDef := esbuildBundleMeta[bundleID]
+		esbuildVarDefs, esbuildWebPkgRefs, esbuildOutputMeta, esbuildSrcs, err := BuildEsbuildBundle(
+			le,
+			sourcePath,
+			bundleDef,
+			baseEsbuildOpts,
+			webPkgs,
+			outAssetsPath,
+			pluginID,
+			inlineSourcemaps,
+			false,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		esbuildSrcFiles = append(esbuildSrcFiles, esbuildSrcs...)
+		goVariableDefs = append(goVariableDefs, esbuildVarDefs...)
+		updatedEsbuildOutputs = append(updatedEsbuildOutputs, esbuildOutputMeta...)
+		for _, webPkgRef := range esbuildWebPkgRefs {
+			for _, impPath := range webPkgRef.Imports {
+				updatedWebPkgRefs, _ = web_pkg_esbuild.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
+					webPkgRef.WebPkgId,
+					webPkgRef.WebPkgRoot,
+					impPath,
+				)
+			}
+		}
+	}
+
+	// sort the web pkg refs
+	web_pkg_esbuild.SortWebPkgRefs(updatedWebPkgRefs)
+
+	// compare the web pkg refs to see if they changed.
+	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
+	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
+		le.Info("references to web pkgs changed: forcing a full re-build")
+		return nil, nil
+	}
+
+	// cleanup esbuild src files list
+	slices.Sort(esbuildSrcFiles)
+	esbuildSrcFiles = slices.Compact(esbuildSrcFiles)
+
+	// cleanup outputs list
+	updatedEsbuildOutputs = SortEsbuildOutputMetas(updatedEsbuildOutputs)
+
+	// compare the outputs list with the old outputs list.
+	// delete any output file from the old outputs that was not overwritten by esbuild.
+	// for example: changed files with hashes in the filename will delete the old hash.
+	updatedOutputs := make(map[string]struct{}, len(updatedEsbuildOutputs))
+	for _, updatedOutput := range updatedEsbuildOutputs {
+		updatedOutputs[updatedOutput.GetPath()] = struct{}{}
+	}
+	for _, oldOutput := range inputMeta.GetEsbuildOutputs() {
+		if _, ok := updatedOutputs[oldOutput.GetPath()]; !ok {
+			oldOutputPath := oldOutput.GetPath()
+			absPath := filepath.Join(outAssetsPath, oldOutputPath)
+			relPath, err := filepath.Rel(outAssetsPath, absPath)
+			if err != nil {
+				return nil, err
+			}
+			if strings.HasPrefix(relPath, "..") {
+				// prevent deleting things outside the assets dir
+				le.Warnf("skipping removing old output path outside assets dir: %s", relPath)
+				continue
+			}
+			if _, err := os.Stat(absPath); os.IsNotExist(err) {
+				le.Warnf("old output path not found: %s", oldOutputPath)
+			} else if err := os.Remove(absPath); err != nil {
+				return nil, err
+			} else {
+				le.Debugf("removed old output: %s", oldOutputPath)
+			}
+		}
+	}
+
+	// build the updated input manifest
+	updatedInputManifest := prevInputManifest.CloneVT()
+	updatedInputMeta := inputMeta.CloneVT()
+	if updatedInputMeta.DevInfo == nil {
+		updatedInputMeta.DevInfo = &vardef.PluginDevInfo{}
+	}
+	updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
+
+	// drop all esbuild files from the set (we will add them back next)
+	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
+		meta.Reset()
+		err := meta.UnmarshalVT(f.GetMetadata())
+		if err != nil {
+			return false
+		}
+		return meta.GetKind() == InputFileKind_InputFileKind_ESBUILD
+	})
+
+	// drop all overwritten variable definitions from the set (we will add them back next)
+	type varDefKey struct {
+		pkgPath string
+		pkgVar  string
+	}
+	overwrittenVarDefs := make(map[varDefKey]struct{})
+	for _, goVarDef := range goVariableDefs {
+		overwrittenVarDefs[varDefKey{pkgPath: goVarDef.PkgImportPath, pkgVar: goVarDef.PkgVar}] = struct{}{}
+	}
+	updatedInputMeta.DevInfo.PluginVars = slices.DeleteFunc(updatedInputMeta.DevInfo.PluginVars, func(goVarDef *vardef.PluginVar) bool {
+		_, overwritten := overwrittenVarDefs[varDefKey{pkgPath: goVarDef.PkgImportPath, pkgVar: goVarDef.PkgVar}]
+		return overwritten
+	})
+
+	// add the updated go variable defs to the list
+	updatedInputMeta.DevInfo.PluginVars = append(updatedInputMeta.DevInfo.PluginVars, goVariableDefs...)
+	vardef.SortPluginVars(updatedInputMeta.DevInfo.PluginVars)
+
+	// add the updated esbuild files to the list
+	if err := fsutil.ConvertPathsToRelative(sourcePath, esbuildSrcFiles); err != nil {
+		return nil, err
+	}
+	inputFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_ESBUILD}
+	inputFileMetaBin, err := inputFileMeta.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	for _, srcPath := range esbuildSrcFiles {
+		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
+			Path:     srcPath,
+			Metadata: inputFileMetaBin,
+		})
+	}
+	updatedInputManifest.SortFiles()
+
+	// encode the updated meta
+	updMeta, err := updatedInputMeta.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	updatedInputManifest.Metadata = updMeta
+
+	// encode the updated dev info file
+	if devInfoFile != "" {
+		updDevInfo, err := updatedInputMeta.GetDevInfo().MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+		devInfoPath := filepath.Join(outDistPath, devInfoFile)
+		if err := os.WriteFile(devInfoPath, updDevInfo, 0o644); err != nil {
+			return nil, err
+		}
+		le.Debugf("wrote file: %s", devInfoFile)
+	}
+
+	le.Debug("fast rebuild complete")
+	return updatedInputManifest, nil
 }
 
 // _ is a type assertion
