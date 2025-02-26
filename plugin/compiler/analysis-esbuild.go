@@ -40,7 +40,7 @@ func TrimEsbuildDirective(value string) (string, bool) {
 }
 
 // EsbuildOutputPkgPath is the package path for EsbuildOutput type
-const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/values"
+const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/web/bundler"
 
 // EsbuildOutputTypeName is the type name for EsbuildOutput
 const EsbuildOutputTypeName = "WebBundlerOutput"
@@ -68,7 +68,7 @@ func determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, err
 		if t.Kind() == types.String {
 			return bldr_esbuild.EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH, nil
 		}
-		return 0, errors.Errorf("unexpected basic type for bldr:esbuild variable: %v", t)
+		return 0, errors.Wrapf(ErrUnexpectedVarType, "basic type: %v", t)
 	case *types.Named, *types.Struct:
 		// For named types and struct types, check if the original type is EsbuildOutput
 		if isEsbuildOutputType(obj.Type()) {
@@ -77,12 +77,12 @@ func determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, err
 
 		// Get a descriptive name for error reporting
 		if named, ok := obj.Type().(*types.Named); ok && named.Obj().Pkg() != nil {
-			return 0, errors.Errorf("unexpected type for bldr:esbuild variable: %v.%v",
+			return 0, errors.Wrapf(ErrUnexpectedVarType, "named type: %v.%v",
 				named.Obj().Pkg().Path(), named.Obj().Name())
 		}
-		return 0, errors.Errorf("unexpected type for bldr:esbuild variable")
+		return 0, errors.Wrap(ErrUnexpectedVarType, "struct type")
 	default:
-		return 0, errors.Errorf("unexpected type for bldr:esbuild variable: %T", t)
+		return 0, errors.Wrapf(ErrUnexpectedVarType, "type: %T", t)
 	}
 }
 
