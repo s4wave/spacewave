@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'path'
-import { buildConfig } from './web/vite/build.js'
+import { buildConfig } from './web/bundler/vite/build.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const EXAMPLE_DIR = './example'

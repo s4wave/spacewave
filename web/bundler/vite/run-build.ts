@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 async function build() {
   try {
     return await viteBuild({
-      configFile: resolve(__dirname, '../../vite.config.ts'),
+      configFile: resolve(__dirname, '../../../vite.config.ts'),
       mode: 'development',
       build: {
         watch: null, // {}
@@ -119,12 +119,12 @@ async function buildAndWrite() {
   }
 
   writeFileSync(
-    resolve(__dirname, '../../vite-output.json'),
+    resolve(__dirname, '../../../vite-output.json'),
     JSON.stringify(outputChunks, null, 2),
   )
 
   writeFileSync(
-    resolve(__dirname, '../../vite-analysis.json'),
+    resolve(__dirname, '../../../vite-analysis.json'),
     JSON.stringify(analyzeOutput(outputChunks), null, 2),
   )
 }

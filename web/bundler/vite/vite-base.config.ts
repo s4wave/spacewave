@@ -37,11 +37,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@go/*': resolve(__dirname, '../../vendor/*'),
-      '@aptre/bldr': resolve(__dirname, '../../.bldr/src/web/bldr/index.js'),
+      '@go/*': resolve(__dirname, '../../../vendor/*'),
+      '@aptre/bldr': resolve(__dirname, '../../../.bldr/src/web/bldr/index.js'),
       '@aptre/bldr-react': resolve(
         __dirname,
-        '../../.bldr/src/web/bldr-react/index.js',
+        '../../../.bldr/src/web/bldr-react/index.js',
       ),
     },
   },
@@ -60,7 +60,7 @@ export default defineConfig({
         // Convert @go/ path to vendor path
         const vendorPath = resolve(
           __dirname,
-          '../../vendor',
+          '../../../vendor',
           source.slice('@go/'.length),
         )
         const tsPath = vendorPath.replace(/\.js$/, '.ts')
