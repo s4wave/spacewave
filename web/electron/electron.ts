@@ -41,18 +41,21 @@ export const isElectron = typeof BLDR_ELECTRON !== 'undefined'
 // WICG Spec: https://wicg.github.io/ua-client-hints
 // Only expected to work reliably under Electron (where we test it).
 export const isMac =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (navigator as any)?.userAgentData?.platform === 'macOS' || false
 
 // isLinux indicates this is a Linux platform.
 // WICG Spec: https://wicg.github.io/ua-client-hints
 // Only expected to work reliably under Electron (where we test it).
 export const isLinux =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (navigator as any)?.userAgentData?.platform === 'Linux' || false
 
 // isWindows indicates this is a Windows platform.
 // WICG Spec: https://wicg.github.io/ua-client-hints
 // Only expected to work reliably under Electron (where we test it).
 export const isWindows =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (navigator as any)?.userAgentData?.platform === 'Windows' || false
 
 // openElectronPort connects a MessagePort to the remote Electron main WebRuntime.

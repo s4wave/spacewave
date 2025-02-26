@@ -1,5 +1,6 @@
 // SimpleEventEmitter is a simplified version of EventEmitter.
 export class SimpleEventEmitter<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Events extends Record<string, (...args: any[]) => void>,
 > {
   private eventHandlers: { [K in keyof Events]?: Events[K][] } = {}

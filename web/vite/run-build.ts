@@ -50,7 +50,7 @@ function analyzeOutput(rollupOutput: BuildOutput) {
 
       // Track input files for this entrypoint
       const inputFiles = new Set<string>()
-      
+
       // Add the entry module itself
       if (facadeModuleId) {
         inputFiles.add(facadeModuleId)
