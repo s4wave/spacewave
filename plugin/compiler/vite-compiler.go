@@ -35,8 +35,7 @@ func (c *Controller) buildViteCompilerTracker(key string) (keyed.Routine, *viteC
 }
 
 // viteCompilerInstance is the vite compiler rpc instance.
-type viteCompilerInstance struct {
-}
+type viteCompilerInstance struct{}
 
 // execute executes the tracker.
 func (t *viteCompilerTracker) execute(ctx context.Context) error {

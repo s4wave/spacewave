@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
-	"github.com/pkg/errors"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -46,44 +45,23 @@ const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/web/bundler"
 const EsbuildOutputTypeName = "WebBundlerOutput"
 
 // isEsbuildOutputType checks if a type is an EsbuildOutput type
-func isEsbuildOutputType(t types.Type) bool {
-	if named, ok := t.(*types.Named); ok {
-		return named.Obj().Pkg() != nil &&
-			named.Obj().Pkg().Path() == EsbuildOutputPkgPath &&
-			named.Obj().Name() == EsbuildOutputTypeName
-	}
-	return false
+func (a *Analysis) isEsbuildOutputType(t types.Type) bool {
+	return a.isTypeIdentical(t, a.esbuildOutputType)
 }
 
 // determineEsbuildVarType determines the variable type for an esbuild variable
-func determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, error) {
-	// First check if it's directly an EsbuildOutput type
-	if isEsbuildOutputType(obj.Type()) {
-		return bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT, nil
+func (a *Analysis) determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, error) {
+	result, err := a.determineVarTypeWithReference(
+		obj,
+		a.esbuildOutputType,
+		bldr_esbuild.EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH,
+		bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT,
+		"esbuild",
+	)
+	if err != nil {
+		return 0, err
 	}
-
-	// Check the underlying type
-	switch t := obj.Type().Underlying().(type) {
-	case *types.Basic:
-		if t.Kind() == types.String {
-			return bldr_esbuild.EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH, nil
-		}
-		return 0, errors.Wrapf(ErrUnexpectedVarType, "basic type: %v", t)
-	case *types.Named, *types.Struct:
-		// For named types and struct types, check if the original type is EsbuildOutput
-		if isEsbuildOutputType(obj.Type()) {
-			return bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT, nil
-		}
-
-		// Get a descriptive name for error reporting
-		if named, ok := obj.Type().(*types.Named); ok && named.Obj().Pkg() != nil {
-			return 0, errors.Wrapf(ErrUnexpectedVarType, "named type: %v.%v",
-				named.Obj().Pkg().Path(), named.Obj().Name())
-		}
-		return 0, errors.Wrap(ErrUnexpectedVarType, "struct type")
-	default:
-		return 0, errors.Wrapf(ErrUnexpectedVarType, "type: %T", t)
-	}
+	return result.(bldr_esbuild.EsbuildVarType), nil
 }
 
 // parseEsbuildArgs parses esbuild directive arguments to extract bundle ID and other flags
@@ -117,7 +95,7 @@ func (a *Analysis) FindEsbuildVariables(codeFiles map[string][]*ast.File) (map[s
 			bundleID, esbuildFlags := parseEsbuildArgs(args)
 
 			// Determine the variable type using the type system
-			varType, err := determineEsbuildVarType(obj)
+			varType, err := a.determineEsbuildVarType(obj)
 			if err != nil {
 				return nil, true, err
 			}

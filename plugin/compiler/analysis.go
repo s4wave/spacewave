@@ -45,6 +45,9 @@ type Analysis struct {
 
 	// controllerFactories contains the set of packages containing controllers
 	controllerFactories map[string]*packages.Package
+
+	// esbuildOutputType is the type of EsbuildOutput
+	esbuildOutputType types.Type
 }
 
 // AnalyzePackages analyzes code packages using Go module package resolution.
@@ -136,11 +139,30 @@ func AnalyzePackages(
 	conf.Env = append(os.Environ(), gocompiler.GetDefaultEnv()...)
 	conf.Env = append(conf.Env, "GOOS=linux", "GOARCH=amd64")
 
-	loadedPackages, err := packages.Load(&conf, packagePaths...)
+	// Add values packages to the packages to load for type comparison
+	packagesToLoad := append([]string{EsbuildOutputPkgPath}, packagePaths...)
+
+	// Load the packages
+	loadedPackages, err := packages.Load(&conf, packagesToLoad...)
 	if err != nil {
 		return nil, err
 	}
 	res.fset = conf.Fset
+
+	// Find and store the EsbuildOutput type
+	for _, pkg := range loadedPackages {
+		if pkg.PkgPath == EsbuildOutputPkgPath {
+			if obj := pkg.Types.Scope().Lookup(EsbuildOutputTypeName); obj != nil {
+				res.esbuildOutputType = obj.Type()
+			}
+			break
+		}
+	}
+
+	// If we couldn't find the EsbuildOutput type, return an error since we need it for type comparison
+	if res.esbuildOutputType == nil {
+		return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
+	}
 
 	addPkgsStack := make([]*packages.Package, len(loadedPackages))
 	copy(addPkgsStack, loadedPackages)
@@ -277,6 +299,53 @@ func (a *Analysis) GetBaseModFile() *modfile.File {
 // GetImportedModules returns the list of modules imported in the packages.
 func (a *Analysis) GetImportedModules() map[string]*packages.Module {
 	return a.module
+}
+
+// isTypeIdentical checks if a type is identical to a reference type
+func (a *Analysis) isTypeIdentical(t types.Type, refType types.Type) bool {
+	if refType == nil {
+		return false
+	}
+	return types.Identical(t, refType)
+}
+
+// determineVarTypeWithReference determines the variable type by comparing with a reference type
+// and handling common type patterns
+func (a *Analysis) determineVarTypeWithReference(
+	obj types.Object,
+	refType types.Type,
+	stringTypeValue interface{},
+	refTypeValue interface{},
+	errTag string,
+) (interface{}, error) {
+	// First check if it's directly the reference type
+	if a.isTypeIdentical(obj.Type(), refType) {
+		return refTypeValue, nil
+	}
+
+	// Check the underlying type
+	switch t := obj.Type().Underlying().(type) {
+	case *types.Basic:
+		if t.Kind() == types.String {
+			return stringTypeValue, nil
+		}
+		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s basic type: %v", errTag, t)
+	case *types.Named, *types.Struct:
+		// For named types and struct types, check if the original type matches reference
+		if a.isTypeIdentical(obj.Type(), refType) {
+			return refTypeValue, nil
+		}
+
+		// Get a descriptive name for error reporting
+		if named, ok := obj.Type().(*types.Named); ok && named.Obj().Pkg() != nil {
+			return nil, errors.Wrapf(ErrUnexpectedVarType, "%s named type: %v.%v",
+				errTag, named.Obj().Pkg().Path(), named.Obj().Name())
+		}
+
+		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s struct type", errTag)
+	default:
+		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s type: %T", errTag, t)
+	}
 }
 
 // AddVariableDefImports adds imports for the given variable defs.
