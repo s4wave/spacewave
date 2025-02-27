@@ -77,9 +77,11 @@ manifests:
       id: bldr/web/plugin/compiler
       config: {}
         # delveAddr: wait
+
   bldr-demo:
     builder:
       id: bldr/plugin/compiler
+      rev: 2
       config:
         # delveAddr: wait
         webPluginId: web
@@ -102,6 +104,7 @@ manifests:
                 config:
                   pluginId: bldr-demo
                   fetchManifestIdRe: demo-.*
+
   bldr-demo-release:
     builder:
       id: bldr/dist/compiler

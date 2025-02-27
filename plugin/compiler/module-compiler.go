@@ -142,6 +142,7 @@ func (m *ModuleCompiler) CompilePlugin(
 ) error {
 	workDir := m.pluginCodegenPath
 	return gocompiler.ExecBuildEntrypoint(
+		ctx,
 		le,
 		buildPlatform,
 		buildType,
@@ -225,7 +226,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// build path: .
 	args = append(args, ".")
 
-	ecmd := gocompiler.NewGoCompilerCmd("go", args...)
+	ecmd := gocompiler.NewGoCompilerCmd(ctx, "go", args...)
 	ecmd.Env = append(ecmd.Env, "GOOS=", "GOARCH=") // host, ignore cgo-enabled
 	ecmd.Dir = devSrcDir
 	return gocompiler.ExecGoCompiler(m.le, ecmd)

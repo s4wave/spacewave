@@ -5,7 +5,7 @@ go 1.24
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
-require github.com/aperturerobotics/common v0.20.3 // latest
+require github.com/aperturerobotics/common v0.21.1 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
@@ -35,7 +35,7 @@ require (
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
-	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008 // indirect; latest
+	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20241223092408-d525fa878b3e // indirect; latest
 )
 
 // aperture: use ext-engines forks
@@ -75,10 +75,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.49.0 // latest
+	github.com/aperturerobotics/controllerbus v0.49.1 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.36.1 // latest
-	github.com/aperturerobotics/util v1.27.1 // latest
+	github.com/aperturerobotics/util v1.29.0 // latest
 )
 
 // aperture: use compatibility forks
@@ -115,7 +115,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.33.0
-	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
+	golang.org/x/exp v0.0.0-20250228200357-dead58393ab7
 	gonum.org/v1/gonum v0.15.1 // indirect
 )
 

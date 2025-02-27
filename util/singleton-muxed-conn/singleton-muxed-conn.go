@@ -158,8 +158,8 @@ func (l *SingletonMuxedConn) doTrig() {
 	}
 }
 
-// waitConn waits for l.conn or for the Singleton to be closed.
-func (l *SingletonMuxedConn) waitConn(ctx context.Context) (network.MuxedConn, error) {
+// WaitConn waits for l.conn or for the Singleton to be closed.
+func (l *SingletonMuxedConn) WaitConn(ctx context.Context) (network.MuxedConn, error) {
 	for {
 		var conn network.MuxedConn
 		l.mtx.Lock()
@@ -201,7 +201,7 @@ func (l *SingletonMuxedConn) waitConn(ctx context.Context) (network.MuxedConn, e
 // keeps trying until ctx is canceled or the Singleton is closed.
 func (l *SingletonMuxedConn) tryConn(ctx context.Context, cb func(conn network.MuxedConn) error) error {
 	for {
-		conn, err := l.waitConn(ctx)
+		conn, err := l.WaitConn(ctx)
 		if err != nil {
 			return err
 		}

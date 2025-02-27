@@ -323,7 +323,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 	args = append(args, npm.NpmFlags...)
 	args = append(args, "--prefix", buildPkgsDir)
 	args = append(args, archFlags...)
-	cmd := exec.NewCmd("npm", args...)
+	cmd := exec.NewCmd(ctx, "npm", args...)
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 		return err
 	}

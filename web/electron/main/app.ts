@@ -1,16 +1,9 @@
 import os from 'os'
 import path from 'path'
-import net from 'net'
 import electron, { ipcMain, nativeTheme } from 'electron'
-import {
-  Client as SRPCClient,
-  OpenStreamCtr,
-  StreamConn,
-  buildPushableSink,
-  combineUint8ArrayListTransform,
-} from 'starpc'
-import { pushable } from 'it-pushable'
-import { pipe } from 'it-pipe'
+import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
+import type { Message } from '@aptre/protobuf-es-lite'
+
 import { WebRuntime } from '../../bldr/web-runtime.js'
 import {
   CreateWebDocumentRequest,
@@ -23,7 +16,10 @@ import { APP_SCHEME, appRequestHandler } from './protocol.js'
 import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../../fetch/fetch.js'
 import { messagePortMainToMessagePort } from './ipc.js'
-import { Message } from '@aptre/protobuf-es-lite'
+import {
+  buildPipeName,
+  connectToPipe,
+} from '../../../util/pipesock/pipesock.js'
 
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
@@ -141,55 +137,28 @@ export class BldrElectronApp {
       workdir = path.dirname(workdir)
     }
 
-    // see: util/pipesock
-    let ipcPath: string
-    if (process.platform === 'win32') {
-      ipcPath = '\\\\.\\pipe\\bldr\\' + runtimeUuid
-    } else {
-      ipcPath = path.join(workdir, `.pipe-${runtimeUuid}`)
-    }
-
-    // socketTx is data outgoing to the socket.
-    const socketTx = pushable<Uint8Array>({ objectMode: true })
-    // socketRx is data incoming from the socket.
-    const socketRx = pushable<Uint8Array>({ objectMode: true })
+    // Build the IPC path using the pipesock utility
+    const ipcPath = buildPipeName(workdir, runtimeUuid)
 
     // socketConn reads and writes to the socket.
     const socketConn = new StreamConn(this.webRuntime.getWebRuntimeServer(), {
       direction: 'inbound',
     })
-    pipe(
-      socketRx,
-      socketConn,
-      combineUint8ArrayListTransform(),
-      buildPushableSink<Uint8Array>(socketTx),
-    ).catch((err) => socketConn.close(err))
 
-    // sock is the connected socket instance
-    const sock = net.connect(ipcPath, async () => {
+    // Connect to the pipe and set up bidirectional communication
+    const sock = connectToPipe(ipcPath, socketConn, (_connection) => {
       this.webRuntimeHostOpenStreamCtr.set(socketConn.buildOpenStreamFunc())
-      try {
-        for await (const data of socketTx) {
-          sock.write(data)
-        }
-        socketConn.close()
-      } catch (err) {
-        socketConn.close(err as Error)
-      }
     })
 
-    sock.on('data', (data) => {
-      socketRx.push(data)
-    })
+    // Handle socket end (process exit)
     sock.on('end', () => {
-      socketRx.end()
-      socketConn.close()
       // assume we are exiting
       process.exit(0)
     })
+
+    // Handle socket errors (process exit with error)
     sock.on('error', (err) => {
-      socketRx.end(err)
-      socketConn.close(err)
+      console.error(err)
       // ...but also exit if this happens.
       process.exit(1)
     })

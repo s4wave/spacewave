@@ -2,7 +2,8 @@ syntax = "proto3";
 package bldr.web.pkg.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
-import "github.com/aperturerobotics/bldr/plugin/compiler/config.proto";
+import "github.com/aperturerobotics/bldr/plugin/compiler/compiler.proto";
+import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 
 // Config configures the web package builder.
 //
@@ -41,7 +42,7 @@ message Config {
   // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
   //
   // Note: only files & entrypoints imported by at least one js file will be included.
-  repeated .bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 5;
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
 
   // DelveAddr is the address to listen for Delve remote connections.
   // If the build mode is dev and this is set, uses delve to run the plugin.

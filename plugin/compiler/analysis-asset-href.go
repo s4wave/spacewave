@@ -76,6 +76,8 @@ func (a *Analysis) FindAssetHrefVariables(codeFiles map[string][]*ast.File) (map
 }
 
 // BuildDefAssetHrefs builds the list of go variable defs for the given code files.
+// This processes variables marked with bldr:asset:href comments to generate URLs to assets.
+// Unlike BuildDefAssets, this doesn't copy files but just creates references to existing assets.
 func BuildDefAssetHrefs(
 	le *logrus.Entry,
 	codeFiles map[string][]*ast.File,

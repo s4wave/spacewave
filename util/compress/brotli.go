@@ -1,6 +1,7 @@
 package bldr_compress
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,7 +11,7 @@ import (
 )
 
 // CompressBrotli compresses the file using brotli with .br suffix.
-func CompressBrotli(le *logrus.Entry, workingPath, binPath string) (brPath string, err error) {
+func CompressBrotli(ctx context.Context, le *logrus.Entry, workingPath, binPath string) (brPath string, err error) {
 	// track file size savings
 	preOptStat, err := os.Stat(binPath)
 	if err != nil {
@@ -33,6 +34,7 @@ func CompressBrotli(le *logrus.Entry, workingPath, binPath string) (brPath strin
 	}
 
 	ecmd := uexec.NewCmd(
+		ctx,
 		"brotli",
 		// Compression levels have a trade-off between build time and file size.
 		// -q 11 (--best): 50s, file size: 4.9M

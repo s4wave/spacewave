@@ -48,7 +48,7 @@ class Plugin implements SRPCPlugin {
   constructor() {
     const mux = createMux()
     mux.register(createHandler(PluginDefinition, this))
-    this.rpcServer = new Server(mux.lookupMethodFunc)
+    this.rpcServer = new Server(mux.lookupMethod)
     this.rpcMux = mux
   }
 

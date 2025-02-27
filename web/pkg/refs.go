@@ -1,4 +1,4 @@
-package web_pkg_esbuild
+package web_pkg
 
 import (
 	"strings"

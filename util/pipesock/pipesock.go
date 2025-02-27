@@ -18,7 +18,20 @@ import (
 // The pipeUuid is used for the socket path OR the Windows Pipe Name.
 // The pipeUuid should be unique to the local device and pipe.
 func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener, error) {
-	pipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, errors.Wrap(err, "get current working directory")
+	}
+
+	// Create absolute path for the socket
+	absolutePipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
+
+	// Get relative path from current working directory
+	pipePath, err := filepath.Rel(cwd, absolutePipePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "get relative path for pipe")
+	}
 
 	// remove old pipe file, if exists
 	if _, err := os.Stat(pipePath); !os.IsNotExist(err) {
@@ -37,12 +50,26 @@ func BuildPipeListener(le *logrus.Entry, rootDir, pipeUuid string) (net.Listener
 
 // DialPipeListener connects to the pipe listener in the directory.
 func DialPipeListener(ctx context.Context, le *logrus.Entry, rootDir, pipeUuid string) (net.Conn, error) {
-	pipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, errors.Wrap(err, "get current working directory")
+	}
+
+	// Create absolute path for the socket
+	absolutePipePath := filepath.Join(rootDir, ".pipe-"+pipeUuid)
+
+	// Get relative path from current working directory
+	pipePath, err := filepath.Rel(cwd, absolutePipePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "get relative path for pipe")
+	}
+
 	addr := &net.UnixAddr{
 		Net:  "unix",
 		Name: pipePath,
 	}
-	le.Debugf("connecting to unix socket: %s", addr.String())
+	le.Debugf("connecting to unix socket: %s (relative to %s)", addr.String(), cwd)
 	dialer := net.Dialer{}
 	return dialer.DialContext(ctx, "unix", addr.String())
 }

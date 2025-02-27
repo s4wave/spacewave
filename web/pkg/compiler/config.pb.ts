@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
-import { WebPkgRefConfig } from '../../../plugin/compiler/config.pb.js'
+import { WebPkgRefConfig } from '../../bundler/bundler.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
@@ -64,7 +64,7 @@ export interface Config {
    *
    * Note: only files & entrypoints imported by at least one js file will be included.
    *
-   * @generated from field: repeated bldr.plugin.compiler.WebPkgRefConfig web_pkgs = 5;
+   * @generated from field: repeated bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
    */
   webPkgs?: WebPkgRefConfig[]
   /**

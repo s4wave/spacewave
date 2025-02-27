@@ -164,7 +164,7 @@ class WebDocumentWebView implements WebViewService {
     if (webView.lookupMethod) {
       this.mux.registerLookupMethod(webView.lookupMethod.bind(webView))
     }
-    this.server = new Server(this.mux.lookupMethodFunc)
+    this.server = new Server(this.mux.lookupMethod)
   }
 
   // buildWebViewStatus returns the WebViewStatus for the WebView.
@@ -413,7 +413,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       opts?.createWebViewCb ?? null,
     )
     mux.register(createHandler(WebDocumentDefinition, webDocument))
-    this.server = new Server(mux.lookupMethodFunc)
+    this.server = new Server(mux.lookupMethod)
     this.client = new Client()
     this.webDocumentHost = new WebDocumentHostClient(this.client)
 

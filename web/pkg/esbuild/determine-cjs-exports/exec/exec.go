@@ -26,7 +26,7 @@ func ExecDetermineCjsExports(
 		"-",
 		importPath,
 	}
-	cmd := exec.NewCmd("node", args...)
+	cmd := exec.NewCmd(ctx, "node", args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stdin = strings.NewReader(determine_cjs_exports.GetDetermineCjsExportsScript())

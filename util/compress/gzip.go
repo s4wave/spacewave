@@ -1,6 +1,7 @@
 package bldr_compress
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,7 +11,7 @@ import (
 )
 
 // CompressGzip compresses the file using gzip with .br suffix.
-func CompressGzip(le *logrus.Entry, workingPath, binPath string) (gzPath string, err error) {
+func CompressGzip(ctx context.Context, le *logrus.Entry, workingPath, binPath string) (gzPath string, err error) {
 	// track file size savings
 	preOptStat, err := os.Stat(binPath)
 	if err != nil {
@@ -28,6 +29,7 @@ func CompressGzip(le *logrus.Entry, workingPath, binPath string) (gzPath string,
 	}
 
 	ecmd := uexec.NewCmd(
+		ctx,
 		"gzip",
 		"--best",
 		"--keep",

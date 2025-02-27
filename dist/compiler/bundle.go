@@ -409,6 +409,7 @@ func BuildDistBundle(
 
 	// compile runtime.wasm or the native entrypoint
 	err = gocompiler.ExecBuildEntrypoint(
+		ctx,
 		le,
 		buildPlatform,
 		buildType,
@@ -425,7 +426,7 @@ func BuildDistBundle(
 
 	// We must use gzip compression here since DecompressStream does not support brotli.
 	if isWebPlatform && enableCompression {
-		gzPath, err := bldr_compress.CompressGzip(le, workingPath, outBinPath)
+		gzPath, err := bldr_compress.CompressGzip(ctx, le, workingPath, outBinPath)
 		if err != nil {
 			return err
 		}

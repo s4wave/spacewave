@@ -36,7 +36,7 @@ func BuildWasmRuntimeEntrypoint(
 ) error {
 	le.Info("building runtime-wasm.mjs")
 
-	wasmExecFile, err := gocompiler.GetWasmExecPath(le, useTinygo)
+	wasmExecFile, err := gocompiler.GetWasmExecPath(ctx, le, useTinygo)
 	if err != nil {
 		return err
 	}

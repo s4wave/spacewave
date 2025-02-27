@@ -12,7 +12,7 @@ import (
 
 // RunGoModTidy runs go mod tidy unconditionally.
 func RunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) error {
-	cmd := NewGoCompilerCmd("mod", "tidy")
+	cmd := NewGoCompilerCmd(ctx, "mod", "tidy")
 	cmd.Dir = workDir
 	return ExecGoCompiler(le, cmd)
 }
@@ -41,7 +41,7 @@ func MaybeRunGoModTidy(ctx context.Context, le *logrus.Entry, workDir string) er
 		return err
 	}
 
-	cmd := NewGoCompilerCmd("mod", "tidy")
+	cmd := NewGoCompilerCmd(ctx, "mod", "tidy")
 	cmd.Dir = workDir
 	return ExecGoCompiler(le, cmd)
 }

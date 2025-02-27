@@ -10,6 +10,7 @@ import (
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_plugin_handle_web_pkg "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -94,7 +95,7 @@ func (c *Controller) BuildManifest(
 			&bldr_web_plugin_handle_web_pkg.Config{
 				WebPluginId:    conf.GetWebPluginId(),
 				HandlePluginId: pluginID,
-				WebPkgIdList:   plugin_compiler.WebPkgRefConfigSlice(webPkgs).ToIdList(),
+				WebPkgIdList:   bldr_web_bundler.WebPkgRefConfigSlice(webPkgs).ToIdList(),
 			},
 			1,
 			false,

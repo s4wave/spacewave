@@ -165,6 +165,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)
 	runtimeOut := filepath.Join(wasmRuntimeDir, "runtime.wasm")
 	if err := gocompiler.ExecBuildEntrypoint(
+		ctx,
 		le,
 		buildPlatform,
 		entryBuildType,

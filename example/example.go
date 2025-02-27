@@ -28,7 +28,9 @@ const ControllerID = "bldr/example/demo"
 
 // ExampleEntrypoint is the example typescript entrypoint.
 //
-//bldr:esbuild example.tsx
+// Hint: you can use bldr:esbuild here instead of bldr:vite if you prefer.
+//
+//bldr:vite example.tsx
 var ExampleEntrypoint bldr_web_bundler.WebBundlerOutput
 
 // AssetPath is an example of using the bldr:asset:href tag.

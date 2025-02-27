@@ -54,7 +54,7 @@ func RunElectron(
 	electronArgs = append(electronArgs, extraElectronFlags...)
 	electronArgs = append(electronArgs, rendererPath)
 
-	cmd := exec.NewCmd(electronPath, electronArgs...)
+	cmd := exec.NewCmd(ctx, electronPath, electronArgs...)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
 	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)

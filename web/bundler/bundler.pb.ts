@@ -75,3 +75,50 @@ export const WebBundlerOutput: MessageType<WebBundlerOutput> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * WebPkgRefConfig configures a web pkg reference.
+ *
+ * @generated from message bldr.web.bundler.WebPkgRefConfig
+ */
+export interface WebPkgRefConfig {
+  /**
+   * Id is the identifier of the web pkg.
+   * example: @aptre/flex-layout
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Exclude indicates we should reference this web pkg but exclude it from this bundle.
+   * This is useful if another plugin already provides this web pkg.
+   *
+   * @generated from field: bool exclude = 2;
+   */
+  exclude?: boolean
+  /**
+   * Imports is the list of imports to include in the web pkg bundle.
+   * NOTE: this will be merged with any imports the code accesses.
+   * NOTE: this is therefore optional.
+   *
+   * @generated from field: repeated string imports = 3;
+   */
+  imports?: string[]
+}
+
+// WebPkgRefConfig contains the message type declaration for WebPkgRefConfig.
+export const WebPkgRefConfig: MessageType<WebPkgRefConfig> = createMessageType({
+  typeName: 'bldr.web.bundler.WebPkgRefConfig',
+  fields: [
+    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'exclude', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 3,
+      name: 'imports',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

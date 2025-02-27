@@ -16,10 +16,10 @@ github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2d
 github.com/aperturerobotics/bifrost-nats-server/v2 v2.1.8-0.20221228081037-b7c2df0c151f/go.mod h1:kIcZtLpq4UIZzOqduYLm1mYU1nuMBtN6XuDCtQ21QT8=
 github.com/aperturerobotics/cayley v0.9.1 h1:fPW0kYZamDbRVzBfpHNou5uqFlLIIF/JFeh6laP/Wuc=
 github.com/aperturerobotics/cayley v0.9.1/go.mod h1:jAi3MXAWz07Ds2rERJd13auScsyt4Vkf2Mbqi4Tx/40=
-github.com/aperturerobotics/common v0.20.3 h1:pzcwAbLdyC4sgHOquGTkwK1ww/LlPscxiNpJ3u0Upg8=
-github.com/aperturerobotics/common v0.20.3/go.mod h1:S2yc+bp5PoLn0PHOAt+XXGsC50sA0MU9GF3q6FyEs9U=
-github.com/aperturerobotics/controllerbus v0.49.0 h1:SgY2DOWhVb4A835tfWH14tjtziwTtaG1oqtiiZtcKJE=
-github.com/aperturerobotics/controllerbus v0.49.0/go.mod h1:kBXmuNACfNpv/eFuVAiP42w83DsRSMBBaEQtD1yT2rg=
+github.com/aperturerobotics/common v0.21.1 h1:n2kPPTVhTkNeJ5pDeH6u3tMuv07A53bek/TRMGNZIAs=
+github.com/aperturerobotics/common v0.21.1/go.mod h1:FrecdNcsYvVS8RcWCR8FUkKFh+XmouFOYKHpBdMqqBA=
+github.com/aperturerobotics/controllerbus v0.49.1 h1:LfDc13n2xlHPosotFdMSUKdw/lKV9Ae8AMt7/4KpqtA=
+github.com/aperturerobotics/controllerbus v0.49.1/go.mod h1:vOvxTtl3Tkkn/ALtPHfcVWevpi7V17O38K/2BkiDU98=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=
 github.com/aperturerobotics/entitygraph v0.11.0/go.mod h1:/hiKxzHn0rF7Nhju/dTVBLI8FX2i8Om6cIbHED/jbOw=
 github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a h1:QIgkYB0dZRUDkMvpZ2WSBkLj10j222UzIboHPqTHYBc=
@@ -38,8 +38,8 @@ github.com/aperturerobotics/go-multihash v0.2.3 h1:/dzKxmtr0eadFUcG/8uJdKtcQ5yHw
 github.com/aperturerobotics/go-multihash v0.2.3/go.mod h1:jEGfK9IqlKuD9BaFHgadXORk3i9Rw7DmVOOM6UgauGU=
 github.com/aperturerobotics/hydra v0.0.0-20250202023427-811385125bff h1:x3oC3guWYJSgAX4F/4Bk+yiD56OFpe0PiChNK1XIFJ0=
 github.com/aperturerobotics/hydra v0.0.0-20250202023427-811385125bff/go.mod h1:nbxcu6R7IPptK6qYBnyFK5XXe6uAx+cgPMBrTB38+aU=
-github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008 h1:So9JeziaWKx2Fw8sK4AUN/szqKtJ0jEMhS6bU4sHbxs=
-github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20240713111131-be6bf89c3008/go.mod h1:snaApCEDtrHHP6UWSLKiYNOZU9A5NyzccKenx9oZEzg=
+github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20241223092408-d525fa878b3e h1:9KDK70CSnHCUGShpq3sEg/t8zEEnKePlhJ4775ekpeI=
+github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20241223092408-d525fa878b3e/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/aperturerobotics/protobuf-go-lite v0.8.1-0.20241109000521-5bb9966c718b h1:4oA6GDSBgrdkwDeAxTAJHIyHFu5GTOIQLK0UoHtuvs4=
@@ -48,8 +48,8 @@ github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89 h1:MUX
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89/go.mod h1:vhhkHYq2i9lb0bOllqKhOdtg/3i7r4o/7zc8XI/T4lo=
 github.com/aperturerobotics/starpc v0.36.1 h1:10z0U0gPsXbT6eHGExa/oblWwWSC4yO39T6fdDpsKL4=
 github.com/aperturerobotics/starpc v0.36.1/go.mod h1:VOTQt8NRyo+HbcTpf+YAonYU4gofyPZyYsX/B9NUpj8=
-github.com/aperturerobotics/util v1.27.1 h1:htCjY/HvP8DusRxWiCFEbm8lMz7HzJSovdhSzVcrtuI=
-github.com/aperturerobotics/util v1.27.1/go.mod h1:hurmxv5jC2CqkfhgySRYrXDcvqPk6BHUhHizu6yyXhE=
+github.com/aperturerobotics/util v1.29.0 h1:Yu4uP1ZnBMmSLgpKRW9FCu0yJpbKexhFE12jIFXVTIs=
+github.com/aperturerobotics/util v1.29.0/go.mod h1:yG6DwiEHZ79CqoPX9ZEkcSQA6NNMf+vBgf+3b1QOn8A=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.14.3 h1:Gd2c8lSNf9pKXom5JtD7AaKO8o7fGQ2LtFj1436qilA=
 github.com/bits-and-blooms/bitset v1.14.3/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
@@ -316,8 +316,8 @@ golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b/go.mod h1:T9bdIzuCu7OtxOm
 golang.org/x/crypto v0.33.0 h1:IOBPskki6Lysi0lo9qQvbxiQ+FvsCC/YWOecCHAixus=
 golang.org/x/crypto v0.33.0/go.mod h1:bVdXmD7IV/4GdElGPozy6U7lWdRXA4qyRVGJV57uQ5M=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
-golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 h1:1UoZQm6f0P/ZO0w1Ri+f+ifG/gXhegadRdwBIXEFWDo=
-golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67/go.mod h1:qj5a5QZpwLU2NLQudwIN5koi3beDhSAlJwa67PuM98c=
+golang.org/x/exp v0.0.0-20250228200357-dead58393ab7 h1:aWwlzYV971S4BXRS9AmqwDLAD85ouC6X+pocatKY58c=
+golang.org/x/exp v0.0.0-20250228200357-dead58393ab7/go.mod h1:BHOTPb3L19zxehTsLoJXVaTktb06DFgmdW6Wb9s8jqk=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/lint v0.0.0-20190227174305-5b3e6a55c961/go.mod h1:wehouNa3lNwaWXcvxsM5YxQ5yQlVC4a0KAMCusXpPoU=
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=

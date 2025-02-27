@@ -2,6 +2,7 @@ package gocompiler
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,8 +66,8 @@ func GetDefaultEnv() []string {
 	}
 }
 
-func NewGoCompilerCmd(cmd string, args ...string) *exec.Cmd {
-	ecmd := uexec.NewCmd(cmd, args...)
+func NewGoCompilerCmd(ctx context.Context, cmd string, args ...string) *exec.Cmd {
+	ecmd := uexec.NewCmd(ctx, cmd, args...)
 	ecmd.Env = os.Environ()
 	ecmd.Env = append(ecmd.Env, GetDefaultEnv()...)
 	return ecmd
@@ -89,12 +90,12 @@ func NewBuildTags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 }
 
 // GetWasmExecPath gets the path to wasm_exec.js and ensures it exists.
-func GetWasmExecPath(le *logrus.Entry, useTinygo bool) (string, error) {
+func GetWasmExecPath(ctx context.Context, le *logrus.Entry, useTinygo bool) (string, error) {
 	var goc *exec.Cmd
 	if useTinygo {
-		goc = NewGoCompilerCmd("tinygo", "env", "TINYGOROOT")
+		goc = NewGoCompilerCmd(ctx, "tinygo", "env", "TINYGOROOT")
 	} else {
-		goc = NewGoCompilerCmd("go", "env", "GOROOT")
+		goc = NewGoCompilerCmd(ctx, "go", "env", "GOROOT")
 	}
 
 	var gocBuf bytes.Buffer

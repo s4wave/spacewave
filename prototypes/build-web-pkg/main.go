@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +32,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	rootDir := filepath.Join(wd, "../../")
 	outDir := filepath.Join(wd, "out")
 
-	refs := []*web_pkg_esbuild.WebPkgRef{{
+	refs := []*web_pkg.WebPkgRef{{
 		WebPkgId:   "react",
 		WebPkgRoot: filepath.Join(rootDir, "node_modules/react"),
 		Imports:    []string{"index.js", "jsx-runtime.js"},

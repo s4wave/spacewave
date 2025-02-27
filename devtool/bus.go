@@ -331,7 +331,7 @@ func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) e
 
 	runGoMod := func(cmd string) error {
 		le.Infof("bldr sources: running go mod %s", cmd)
-		goVendorCmd := exec.NewCmd("go", "mod", cmd)
+		goVendorCmd := exec.NewCmd(ctx, "go", "mod", cmd)
 		goVendorCmd.Dir = d.distSrcRoot
 		goVendorCmd.Stderr = os.Stderr
 		goVendorCmd.Stdout = os.Stderr

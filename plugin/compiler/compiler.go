@@ -20,8 +20,10 @@ import (
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	bldr_compress "github.com/aperturerobotics/bldr/util/compress"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
+	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
 	web_pkg_rpc_server "github.com/aperturerobotics/bldr/web/pkg/rpc/server"
@@ -61,16 +63,54 @@ var controllerDescrip = "plugin compiler controller"
 // https://issues.chromium.org/u/1/issues/41486524#comment4 [curently open 2024/03/13]
 var inlineSourcemaps = true
 
+// viteBundlerKey is a composite key for identifying a Vite bundler instance.
+type viteBundlerKey struct {
+	// distPath is the root path to the dist sources
+	distPath string
+	// sourcePath is the root path of the source code
+	sourcePath string
+	// workingPath is the path to the working directory
+	workingPath string
+	// bundleID is the ID of the Vite bundle
+	bundleID string
+}
+
+// newViteBundlerKey creates a new viteBundlerKey with the given parameters.
+func newViteBundlerKey(distPath, sourcePath, workingPath, bundleID string) viteBundlerKey {
+	return viteBundlerKey{
+		distPath:    distPath,
+		sourcePath:  sourcePath,
+		workingPath: workingPath,
+		bundleID:    bundleID,
+	}
+}
+
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
 	preBuildHooks []PreBuildHook
 
-	viteCompilers *keyed.KeyedRefCount[string, *viteCompilerTracker]
+	viteBundlers *keyed.KeyedRefCount[viteBundlerKey, *viteBundlerTracker]
 }
 
 // Factory is the factory for the compiler controller.
 type Factory = bus.BusFactory[*Config, *Controller]
+
+// NewControllerWithBusController constructs a new plugin compiler controller with an existing BusController.
+func NewControllerWithBusController(base *bus.BusController[*Config]) (*Controller, error) {
+	c := &Controller{
+		BusController: base,
+	}
+
+	c.viteBundlers = keyed.NewKeyedRefCount(
+		c.buildViteCompilerTracker,
+		keyed.WithExitLoggerWithNameFn[viteBundlerKey, *viteBundlerTracker](c.GetLogger(), func(key viteBundlerKey) string { return "bundle-" + key.bundleID }),
+		keyed.WithReleaseDelay[viteBundlerKey, *viteBundlerTracker](time.Second*30),
+		keyed.WithRetry[viteBundlerKey, *viteBundlerTracker](&backoff.Backoff{}),
+	)
+
+	return c, nil
+}
 
 // NewController constructs a new plugin compiler controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, error) {
@@ -78,25 +118,16 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 		return nil, err
 	}
 
-	c := &Controller{
-		BusController: bus.NewBusController(
-			le,
-			b,
-			conf,
-			ControllerID,
-			Version,
-			controllerDescrip,
-		),
-	}
-
-	c.viteCompilers = keyed.NewKeyedRefCountWithLogger(
-		c.buildViteCompilerTracker,
+	base := bus.NewBusController(
 		le,
-		keyed.WithReleaseDelay[string, *viteCompilerTracker](time.Second*30),
-		keyed.WithRetry[string, *viteCompilerTracker](&backoff.Backoff{}),
+		b,
+		conf,
+		ControllerID,
+		Version,
+		controllerDescrip,
 	)
 
-	return c, nil
+	return NewControllerWithBusController(base)
 }
 
 // NewFactory constructs a new plugin compiler controller factory.
@@ -108,11 +139,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		Version,
 		controllerDescrip,
 		NewConfig,
-		func(base *bus.BusController[*Config]) (*Controller, error) {
-			return &Controller{
-				BusController: base,
-			}, nil
-		},
+		NewControllerWithBusController,
 	)
 }
 
@@ -135,6 +162,7 @@ func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	c.viteBundlers.SetContext(ctx, true)
 	return nil
 }
 
@@ -161,6 +189,7 @@ func (c *Controller) BuildManifest(
 	outDistPath := filepath.Join(workingPath, "dist")
 	outAssetsPath := filepath.Join(workingPath, "assets")
 	outBinName := pluginID + buildPlatform.GetExecutableExt()
+	distSourcePath := builderConf.GetDistSourcePath()
 
 	// if we have an alternative entrypoint path...
 	outEntrypointName := outBinName
@@ -208,6 +237,8 @@ func (c *Controller) BuildManifest(
 				le,
 				pluginID,
 				sourcePath,
+				distSourcePath,
+				workingPath,
 				outDistPath,
 				outAssetsPath,
 				prevResult.GetInputManifest(),
@@ -277,7 +308,7 @@ func (c *Controller) BuildManifest(
 			outBinName,
 			workingPath,
 			sourcePath,
-			builderConf.GetDistSourcePath(),
+			distSourcePath,
 			outDistPath,
 			outAssetsPath,
 			pluginBuildConf.GetGoPkgs(),
@@ -292,6 +323,7 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.GetEnableTinygo(),
 			pluginBuildConf.GetEnableCompression(),
 			pluginBuildConf.GetEsbuildFlags(),
+			pluginBuildConf.GetViteConfigPaths(),
 			devInfoFile,
 		)
 		if err != nil {
@@ -341,6 +373,7 @@ func (c *Controller) BuildManifest(
 // webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
 // Returns a list of source files from the list of given goPkgs.
 // Source files list includes all files consumed by esbuild.
+// This is the main function that orchestrates the entire plugin build process.
 func (c *Controller) BuildPlugin(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -354,7 +387,7 @@ func (c *Controller) BuildPlugin(
 	outDistPath,
 	outAssetsPath string,
 	goPkgs []string,
-	webPkgs []*WebPkgRefConfig,
+	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	webPluginID string,
 	disableRpcFetch, disableFetchAssets bool,
 	delveAddr string,
@@ -364,6 +397,7 @@ func (c *Controller) BuildPlugin(
 	enableTinygoOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
 	baseEsbuildFlags []string,
+	baseViteConfigPaths []string,
 	devInfoFile string,
 ) (*Analysis, *manifest_builder.InputManifest, error) {
 	// plugin id
@@ -378,12 +412,13 @@ func (c *Controller) BuildPlugin(
 	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
 	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
 
-	// disable cgo on default
+	// disable cgo on default (false means default value is false)
 	enableCgo := enableCgoOpt.IsEnabled(false)
-	// enable compression for release mode only on default
+	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
 	// enable tinygo on the web platform in release mode on default
 	tinygoSupported := false // TODO: TinyGo cannot yet build Bldr successfully.
+	// Only enable TinyGo if: 1) we're building for web, 2) user explicitly enabled it or it's release mode, 3) TinyGo is supported
 	enableTinygo := isWebBuildPlatform && enableTinygoOpt.IsEnabled(isRelease && tinygoSupported)
 
 	baseEsbuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(baseEsbuildFlags)
@@ -395,9 +430,10 @@ func (c *Controller) BuildPlugin(
 	embedConfigSet := make(configset_proto.ConfigSetMap)
 
 	// applyToConfigSet conditionally applies the config to the config set if not already set.
+	// This helper function adds a controller config to the embedConfigSet map if it doesn't already exist
 	applyToConfigSet := func(id string, conf config.Config) error {
 		if _, ok := embedConfigSet[id]; ok {
-			return nil
+			return nil // Skip if this config ID already exists in the map
 		}
 		configBin, err := conf.MarshalVT()
 		if err != nil {
@@ -570,7 +606,7 @@ func (c *Controller) BuildPlugin(
 	// NOTE: We specify the list of web pkgs in the parameters to BuildPlugin.
 	// NOTE: However: we only actually build the web pkgs that are referenced by the code.
 	// NOTE: This is because we need to tree-shake which imports are referenced.
-	var webPkgRefs web_pkg_esbuild.WebPkgRefSlice
+	var webPkgRefs web_pkg.WebPkgRefSlice
 
 	// parse bldr:esbuild comments and build import path definition list
 	esbuildPkgs, err := an.FindEsbuildVariables(codeFiles)
@@ -622,18 +658,90 @@ func (c *Controller) BuildPlugin(
 		}
 	}
 
+	// parse bldr:vite comments and build import path definition list
+	vitePkgs, err := an.FindViteVariables(codeFiles)
+	if err != nil {
+		return nil, nil, err
+	}
+	var viteSrcFiles []string
+	var viteBundleMeta map[string]*ViteBundleMeta
+	var viteOutputMeta []*ViteOutputMeta
+	if len(vitePkgs) != 0 {
+		le.Debugf("found %d packages with %s comments", len(vitePkgs), ViteTag)
+
+		// Extract entrypoint information from the vite directives
+		viteBundleMeta, err = BuildViteBundleMeta(le, sourcePath, codeFiles, fset, vitePkgs)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		bundleIDs := maps.Keys(viteBundleMeta)
+		slices.Sort(bundleIDs)
+		for _, bundleID := range bundleIDs {
+			ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(newViteBundlerKey(
+				distSourcePath,
+				sourcePath,
+				workingPath,
+				bundleID,
+			))
+			bundler, err := bundlerTkr.instancePromiseCtr.Await(ctx)
+			if err != nil {
+				ref.Release()
+				return nil, nil, err
+			}
+
+			bundleDef := viteBundleMeta[bundleID]
+			viteVarDefs, viteWebPkgRefs, viteOutputs, viteSrcs, err := BuildViteBundle(
+				ctx,
+				le,
+				distSourcePath,
+				sourcePath,
+				workingPath,
+				baseViteConfigPaths,
+				bundleDef,
+				bundler,
+				webPkgs,
+				outAssetsPath,
+				pluginID,
+				isRelease,
+			)
+			ref.Release()
+			if err != nil {
+				return nil, nil, err
+			}
+
+			viteSrcFiles = append(viteSrcFiles, viteSrcs...)
+			goVariableDefs = append(goVariableDefs, viteVarDefs...)
+			viteOutputMeta = append(viteOutputMeta, viteOutputs...)
+			for _, webPkgRef := range viteWebPkgRefs {
+				for _, impPath := range webPkgRef.Imports {
+					webPkgRefs, _ = webPkgRefs.AppendWebPkgRef(
+						webPkgRef.WebPkgId,
+						webPkgRef.WebPkgRoot,
+						impPath,
+					)
+				}
+			}
+		}
+	}
+
 	// cleanup esbuild src files list
 	slices.Sort(esbuildSrcFiles)
 	esbuildSrcFiles = slices.Compact(esbuildSrcFiles)
 
+	// cleanup vite src files list
+	slices.Sort(viteSrcFiles)
+	viteSrcFiles = slices.Compact(viteSrcFiles)
+
 	// sort the web pkg refs
-	web_pkg_esbuild.SortWebPkgRefs(webPkgRefs)
+	web_pkg.SortWebPkgRefs(webPkgRefs)
 
 	// sort go variable defs
 	vardef.SortPluginVars(goVariableDefs)
 
 	// cleanup the list of outputs
 	esbuildOutputMeta = SortEsbuildOutputMetas(esbuildOutputMeta)
+	viteOutputMeta = SortViteOutputMetas(viteOutputMeta)
 
 	// run esbuild on the web pkgs (if any)
 	outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
@@ -741,7 +849,7 @@ func (c *Controller) BuildPlugin(
 				}
 			*/
 
-			brPath, err := bldr_compress.CompressGzip(le, workingPath, outDistBinary)
+			brPath, err := bldr_compress.CompressGzip(ctx, le, workingPath, outDistBinary)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -816,17 +924,25 @@ func (c *Controller) BuildPlugin(
 	}
 
 	// sort
-	SortWebPkgRefConfigs(webPkgs)
-	web_pkg_esbuild.SortWebPkgRefs(webPkgRefs)
+	web_pkg.SortWebPkgRefs(webPkgRefs)
+
+	// sort and compact
+	webPkgs = bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(webPkgs))
 
 	// build manifest metadata
 	inputManifestMeta := &InputManifestMeta{
-		DevInfo:        pluginDevInfo,
+		DevInfo: pluginDevInfo,
+
+		WebPkgRefs: webPkgRefs,
+		WebPkgs:    webPkgs,
+
 		EsbuildBundles: esbuildBundleMeta,
 		EsbuildFlags:   baseEsbuildFlags,
 		EsbuildOutputs: esbuildOutputMeta,
-		WebPkgRefs:     webPkgRefs,
-		WebPkgs:        webPkgs,
+
+		ViteBundles:     viteBundleMeta,
+		ViteConfigPaths: baseViteConfigPaths,
+		ViteOutputs:     viteOutputMeta,
 	}
 	inputManifestMetaBin, err := inputManifestMeta.MarshalVT()
 	if err != nil {
@@ -839,6 +955,7 @@ func (c *Controller) BuildPlugin(
 		InputFileKind_InputFileKind_ASSET:   assetSrcFiles,
 		InputFileKind_InputFileKind_ESBUILD: esbuildSrcFiles,
 		InputFileKind_InputFileKind_WEB_PKG: webPkgSrcFiles,
+		InputFileKind_InputFileKind_VITE:    viteSrcFiles,
 	}
 	for kind, srcPaths := range inputFileKinds {
 		meta := &InputFileMeta{Kind: kind}
@@ -873,6 +990,8 @@ func (c *Controller) FastRebuildPlugin(
 	le *logrus.Entry,
 	pluginID,
 	sourcePath,
+	distSourcePath,
+	workingPath,
 	outDistPath,
 	outAssetsPath string,
 	prevInputManifest *manifest_builder.InputManifest,
@@ -900,7 +1019,7 @@ func (c *Controller) FastRebuildPlugin(
 		return nil, err
 	}
 
-	// If any non-esbuild assets changed, skip fast rebuild.
+	// If any non-esbuild/non-vite assets changed, skip fast rebuild.
 	meta := &InputFileMeta{}
 	for _, changedFile := range changedFiles {
 		meta.Reset()
@@ -909,23 +1028,26 @@ func (c *Controller) FastRebuildPlugin(
 			// parsing error
 			return nil, errors.Wrap(err, "failed to parse file metadata")
 		}
-		if meta.GetKind() != InputFileKind_InputFileKind_ESBUILD {
-			// Skip fast rebuild: non-esbuild asset
+		kind := meta.GetKind()
+		if kind != InputFileKind_InputFileKind_ESBUILD && kind != InputFileKind_InputFileKind_VITE {
+			// Skip fast rebuild: non-esbuild/non-vite asset
 			return nil, nil
 		}
 	}
 
-	// Perform fast rebuild by running the esbuild compiler only.
+	// Perform fast rebuild by running the esbuild and vite compilers only.
 	le.Info("performing fast rebuild")
 
 	// execute the build
 	esbuildBundleMeta := inputMeta.GetEsbuildBundles()
 	bundleIDs := maps.Keys(esbuildBundleMeta)
 	slices.Sort(bundleIDs)
-	var updatedWebPkgRefs []*web_pkg_esbuild.WebPkgRef
+	var updatedWebPkgRefs []*web_pkg.WebPkgRef
 	var esbuildSrcFiles []string
+	var viteSrcFiles []string
 	var goVariableDefs []*vardef.PluginVar
 	var updatedEsbuildOutputs []*EsbuildOutputMeta
+	var updatedViteOutputs []*ViteOutputMeta
 	for _, bundleID := range bundleIDs {
 		bundleDef := esbuildBundleMeta[bundleID]
 		esbuildVarDefs, esbuildWebPkgRefs, esbuildOutputMeta, esbuildSrcs, err := BuildEsbuildBundle(
@@ -948,7 +1070,7 @@ func (c *Controller) FastRebuildPlugin(
 		updatedEsbuildOutputs = append(updatedEsbuildOutputs, esbuildOutputMeta...)
 		for _, webPkgRef := range esbuildWebPkgRefs {
 			for _, impPath := range webPkgRef.Imports {
-				updatedWebPkgRefs, _ = web_pkg_esbuild.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
+				updatedWebPkgRefs, _ = web_pkg.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
 					webPkgRef.WebPkgId,
 					webPkgRef.WebPkgRoot,
 					impPath,
@@ -958,7 +1080,7 @@ func (c *Controller) FastRebuildPlugin(
 	}
 
 	// sort the web pkg refs
-	web_pkg_esbuild.SortWebPkgRefs(updatedWebPkgRefs)
+	web_pkg.SortWebPkgRefs(updatedWebPkgRefs)
 
 	// compare the web pkg refs to see if they changed.
 	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
@@ -967,20 +1089,81 @@ func (c *Controller) FastRebuildPlugin(
 		return nil, nil
 	}
 
+	// Process Vite bundles
+	viteBundleMeta := inputMeta.GetViteBundles()
+	bundleIDs = maps.Keys(viteBundleMeta)
+	slices.Sort(bundleIDs)
+	for _, bundleID := range bundleIDs {
+		ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(newViteBundlerKey(
+			distSourcePath,
+			sourcePath,
+			workingPath,
+			bundleID,
+		))
+		bundler, err := bundlerTkr.instancePromiseCtr.Await(ctx)
+		if err != nil {
+			ref.Release()
+			return nil, err
+		}
+
+		bundleDef := viteBundleMeta[bundleID]
+		viteVarDefs, viteWebPkgRefs, viteOutputs, viteSrcs, err := BuildViteBundle(
+			ctx,
+			le,
+			distSourcePath,
+			sourcePath,
+			workingPath,
+			inputMeta.GetViteConfigPaths(),
+			bundleDef,
+			bundler,
+			webPkgs,
+			outAssetsPath,
+			pluginID,
+			false, // Not release mode for fast rebuild
+		)
+		ref.Release()
+		if err != nil {
+			return nil, err
+		}
+
+		viteSrcFiles = append(viteSrcFiles, viteSrcs...)
+		goVariableDefs = append(goVariableDefs, viteVarDefs...)
+		updatedViteOutputs = append(updatedViteOutputs, viteOutputs...)
+		for _, webPkgRef := range viteWebPkgRefs {
+			for _, impPath := range webPkgRef.Imports {
+				updatedWebPkgRefs, _ = web_pkg.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
+					webPkgRef.WebPkgId,
+					webPkgRef.WebPkgRoot,
+					impPath,
+				)
+			}
+		}
+	}
+
 	// cleanup esbuild src files list
 	slices.Sort(esbuildSrcFiles)
 	esbuildSrcFiles = slices.Compact(esbuildSrcFiles)
 
+	// cleanup vite src files list
+	slices.Sort(viteSrcFiles)
+	viteSrcFiles = slices.Compact(viteSrcFiles)
+
 	// cleanup outputs list
 	updatedEsbuildOutputs = SortEsbuildOutputMetas(updatedEsbuildOutputs)
+	updatedViteOutputs = SortViteOutputMetas(updatedViteOutputs)
 
 	// compare the outputs list with the old outputs list.
-	// delete any output file from the old outputs that was not overwritten by esbuild.
+	// delete any output file from the old outputs that was not overwritten by esbuild or vite.
 	// for example: changed files with hashes in the filename will delete the old hash.
-	updatedOutputs := make(map[string]struct{}, len(updatedEsbuildOutputs))
+	updatedOutputs := make(map[string]struct{}, len(updatedEsbuildOutputs)+len(updatedViteOutputs))
 	for _, updatedOutput := range updatedEsbuildOutputs {
 		updatedOutputs[updatedOutput.GetPath()] = struct{}{}
 	}
+	for _, updatedOutput := range updatedViteOutputs {
+		updatedOutputs[updatedOutput.GetPath()] = struct{}{}
+	}
+
+	// Clean up old esbuild outputs
 	for _, oldOutput := range inputMeta.GetEsbuildOutputs() {
 		if _, ok := updatedOutputs[oldOutput.GetPath()]; !ok {
 			oldOutputPath := oldOutput.GetPath()
@@ -1004,6 +1187,31 @@ func (c *Controller) FastRebuildPlugin(
 		}
 	}
 
+	// Clean up old vite outputs
+	for _, oldOutput := range inputMeta.GetViteOutputs() {
+		if _, ok := updatedOutputs[oldOutput.GetPath()]; !ok {
+			oldOutputPath := oldOutput.GetPath()
+			absPath := filepath.Join(outAssetsPath, oldOutputPath)
+			relPath, err := filepath.Rel(outAssetsPath, absPath)
+			if err != nil {
+				return nil, err
+			}
+			if strings.HasPrefix(relPath, "..") {
+				// prevent deleting things outside the assets dir
+				le.Warnf("skipping removing old output path outside assets dir: %s", relPath)
+				continue
+			}
+			if _, err := os.Stat(absPath); os.IsNotExist(err) {
+				// le.Warnf("old output path not found: %s", oldOutputPath)
+				// ignore this error since vite will automatically clean up old outputs.
+			} else if err := os.Remove(absPath); err != nil {
+				return nil, err
+			} else {
+				le.Debugf("removed old output: %s", oldOutputPath)
+			}
+		}
+	}
+
 	// build the updated input manifest
 	updatedInputManifest := prevInputManifest.CloneVT()
 	updatedInputMeta := inputMeta.CloneVT()
@@ -1011,15 +1219,17 @@ func (c *Controller) FastRebuildPlugin(
 		updatedInputMeta.DevInfo = &vardef.PluginDevInfo{}
 	}
 	updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
+	updatedInputMeta.ViteOutputs = updatedViteOutputs
 
-	// drop all esbuild files from the set (we will add them back next)
+	// drop all esbuild and vite files from the set (we will add them back next)
 	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
 		meta.Reset()
 		err := meta.UnmarshalVT(f.GetMetadata())
 		if err != nil {
 			return false
 		}
-		return meta.GetKind() == InputFileKind_InputFileKind_ESBUILD
+		kind := meta.GetKind()
+		return kind == InputFileKind_InputFileKind_ESBUILD || kind == InputFileKind_InputFileKind_VITE
 	})
 
 	// drop all overwritten variable definitions from the set (we will add them back next)
@@ -1044,15 +1254,31 @@ func (c *Controller) FastRebuildPlugin(
 	if err := fsutil.ConvertPathsToRelative(sourcePath, esbuildSrcFiles); err != nil {
 		return nil, err
 	}
-	inputFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_ESBUILD}
-	inputFileMetaBin, err := inputFileMeta.MarshalVT()
+	esbuildFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_ESBUILD}
+	esbuildFileMetaBin, err := esbuildFileMeta.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
 	for _, srcPath := range esbuildSrcFiles {
 		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
 			Path:     srcPath,
-			Metadata: inputFileMetaBin,
+			Metadata: esbuildFileMetaBin,
+		})
+	}
+
+	// add the updated vite files to the list
+	if err := fsutil.ConvertPathsToRelative(sourcePath, viteSrcFiles); err != nil {
+		return nil, err
+	}
+	viteFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_VITE}
+	viteFileMetaBin, err := viteFileMeta.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	for _, srcPath := range viteSrcFiles {
+		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
+			Path:     srcPath,
+			Metadata: viteFileMetaBin,
 		})
 	}
 	updatedInputManifest.SortFiles()

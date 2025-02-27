@@ -7,6 +7,7 @@ import (
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/bldr/util/merge"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -130,9 +131,9 @@ func (c *Config) Merge(o *Config) {
 
 	// append and sort web packages list
 	for _, webPkgConfig := range o.GetWebPkgs() {
-		c.WebPkgs, _ = WebPkgRefConfigSlice(c.WebPkgs).AppendWebPkgRefConfig(webPkgConfig)
+		c.WebPkgs, _ = bldr_web_bundler.WebPkgRefConfigSlice(c.WebPkgs).AppendWebPkgRefConfig(webPkgConfig)
 	}
-	SortWebPkgRefConfigs(c.WebPkgs)
+	bldr_web_bundler.SortWebPkgRefConfigs(c.WebPkgs)
 
 	// override project id
 	if cproj := o.GetProjectId(); cproj != "" {
@@ -173,18 +174,20 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 	for len(mergeConfigs) != 0 {
 		conf := mergeConfigs[len(mergeConfigs)-1]
 
+		// Find the config for this specific build type (e.g., "dev" or "release")
 		buildTypeConfig, ok := conf.GetBuildTypes()[filterBuildType.String()]
-		conf.BuildTypes = nil
+		conf.BuildTypes = nil // Clear the build types to avoid recursion
 		if ok && !slices.Contains(mergeConfigs, buildTypeConfig) {
+			// Add the build-type specific config to be processed
 			mergeConfigs = append(mergeConfigs, buildTypeConfig)
 			continue
 		}
 
-		// dequeue
+		// dequeue the current config from the stack
 		mergeConfigs[len(mergeConfigs)-1] = nil
 		mergeConfigs = mergeConfigs[:len(mergeConfigs)-1]
 
-		// merge into base config
+		// merge into base config (but skip if it's the original config to avoid self-merge)
 		if conf != c {
 			c.Merge(conf)
 		}

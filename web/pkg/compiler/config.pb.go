@@ -10,7 +10,8 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	_ "github.com/aperturerobotics/bldr/plugin/compiler"
+	bundler "github.com/aperturerobotics/bldr/web/bundler"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -50,7 +51,7 @@ type Config struct {
 	// They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
 	//
 	// Note: only files & entrypoints imported by at least one js file will be included.
-	WebPkgs []*compiler.WebPkgRefConfig `protobuf:"bytes,5,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
+	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,5,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
 	// DelveAddr is the address to listen for Delve remote connections.
 	// If the build mode is dev and this is set, uses delve to run the plugin.
 	// Ignored if build mode is not dev.
@@ -92,7 +93,7 @@ func (x *Config) GetHostConfigSet() map[string]*proto.ControllerConfig {
 	return nil
 }
 
-func (x *Config) GetWebPkgs() []*compiler.WebPkgRefConfig {
+func (x *Config) GetWebPkgs() []*bundler.WebPkgRefConfig {
 	if x != nil {
 		return x.WebPkgs
 	}
@@ -181,7 +182,7 @@ func (m *Config) CloneVT() *Config {
 		r.HostConfigSet = tmpContainer
 	}
 	if rhs := m.WebPkgs; rhs != nil {
-		tmpContainer := make([]*compiler.WebPkgRefConfig, len(rhs))
+		tmpContainer := make([]*bundler.WebPkgRefConfig, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
@@ -254,10 +255,10 @@ func (this *Config) EqualVT(that *Config) bool {
 		vy := that.WebPkgs[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &compiler.WebPkgRefConfig{}
+				p = &bundler.WebPkgRefConfig{}
 			}
 			if q == nil {
-				q = &compiler.WebPkgRefConfig{}
+				q = &bundler.WebPkgRefConfig{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -502,7 +503,7 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.WebPkgs = append(x.WebPkgs, nil)
 					return
 				}
-				v := &compiler.WebPkgRefConfig{}
+				v := &bundler.WebPkgRefConfig{}
 				v.UnmarshalProtoJSON(s.WithField("web_pkgs", false))
 				if s.Err() != nil {
 					return
@@ -1154,7 +1155,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.WebPkgs = append(m.WebPkgs, &compiler.WebPkgRefConfig{})
+			m.WebPkgs = append(m.WebPkgs, &bundler.WebPkgRefConfig{})
 			if err := m.WebPkgs[len(m.WebPkgs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}

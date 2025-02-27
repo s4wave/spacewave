@@ -156,7 +156,7 @@ func BuildRendererBundle(
 }
 
 // FixEsbuildIssue1921 fixes dynamic esbuild imports failing under node.js.
-//
+
 // https://github.com/evanw/esbuild/issues/1921
 func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
 	if opts.Banner == nil {
@@ -237,7 +237,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 // buildDir should be pre-prepared using BuildElectronBundle.
 // outPath should be the path to the output .asar file
 func BuildAsar(ctx context.Context, le *logrus.Entry, buildDir, outPath string) error {
-	cmd := npm.NpmExec("@electron/asar", "pack", buildDir, outPath)
+	cmd := npm.NpmExec(ctx, "@electron/asar", "pack", buildDir, outPath)
 	return exec.StartAndWait(ctx, le, cmd)
 }
 
@@ -278,7 +278,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, plat bldr_pla
 	args = append(args, "--prefix", npmDir)
 	args = append(args, archFlags...)
 	args = append(args, npmPkg)
-	cmd := exec.NewCmd("npm", args...)
+	cmd := exec.NewCmd(ctx, "npm", args...)
 	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 		return err
 	}

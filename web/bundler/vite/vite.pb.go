@@ -10,6 +10,7 @@ import (
 	strconv "strconv"
 	strings "strings"
 
+	bundler "github.com/aperturerobotics/bldr/web/bundler"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
@@ -52,42 +53,292 @@ func (x ViteVarType) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// ViteEntrypoint is an entrypoint passed to Vite.
-type ViteEntrypoint struct {
+// WebPkgRef is a reference to a web package.
+type WebPkgRef struct {
 	unknownFields []byte
-	// InputPath is the input file path.
+	// PkgId is the package identifier.
+	PkgId string `protobuf:"bytes,1,opt,name=pkg_id,json=pkgId,proto3" json:"pkgId,omitempty"`
+	// PkgRoot is the path to the root of the package.
+	PkgRoot string `protobuf:"bytes,2,opt,name=pkg_root,json=pkgRoot,proto3" json:"pkgRoot,omitempty"`
+	// SubPaths is the list of sub-paths within the package.
+	SubPaths []string `protobuf:"bytes,3,rep,name=sub_paths,json=subPaths,proto3" json:"subPaths,omitempty"`
+}
+
+func (x *WebPkgRef) Reset() {
+	*x = WebPkgRef{}
+}
+
+func (*WebPkgRef) ProtoMessage() {}
+
+func (x *WebPkgRef) GetPkgId() string {
+	if x != nil {
+		return x.PkgId
+	}
+	return ""
+}
+
+func (x *WebPkgRef) GetPkgRoot() string {
+	if x != nil {
+		return x.PkgRoot
+	}
+	return ""
+}
+
+func (x *WebPkgRef) GetSubPaths() []string {
+	if x != nil {
+		return x.SubPaths
+	}
+	return nil
+}
+
+// BuildRequest is a request to build a Vite project.
+type BuildRequest struct {
+	unknownFields []byte
+	// ConfigPaths is the path to the Vite configuration file(s) to merge together.
+	ConfigPaths []string `protobuf:"bytes,1,rep,name=config_paths,json=configPaths,proto3" json:"configPaths,omitempty"`
+	// Mode is the build mode (development or production).
+	Mode string `protobuf:"bytes,2,opt,name=mode,proto3" json:"mode,omitempty"`
+	// RootDir is the root directory of the project.
+	RootDir string `protobuf:"bytes,3,opt,name=root_dir,json=rootDir,proto3" json:"rootDir,omitempty"`
+	// OutDir is the output directory for the build.
+	OutDir string `protobuf:"bytes,4,opt,name=out_dir,json=outDir,proto3" json:"outDir,omitempty"`
+	// CacheDir is the cache directory for the build.
+	CacheDir string `protobuf:"bytes,5,opt,name=cache_dir,json=cacheDir,proto3" json:"cacheDir,omitempty"`
+	// DistDir is the bldr dist src directory for the build.
+	DistDir string `protobuf:"bytes,6,opt,name=dist_dir,json=distDir,proto3" json:"distDir,omitempty"`
+	// Entrypoints contains the list of entrypoints to build.
+	Entrypoints []*EntrypointConfig `protobuf:"bytes,7,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`
+	// ExternalPkgs is the list of packages to pass to External provided by importmap.
+	ExternalPkgs []string `protobuf:"bytes,8,rep,name=external_pkgs,json=externalPkgs,proto3" json:"externalPkgs,omitempty"`
+	// WebPkgs is the list of packages to be externalized as shared web pkgs.
+	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,9,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
+}
+
+func (x *BuildRequest) Reset() {
+	*x = BuildRequest{}
+}
+
+func (*BuildRequest) ProtoMessage() {}
+
+func (x *BuildRequest) GetConfigPaths() []string {
+	if x != nil {
+		return x.ConfigPaths
+	}
+	return nil
+}
+
+func (x *BuildRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetRootDir() string {
+	if x != nil {
+		return x.RootDir
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetOutDir() string {
+	if x != nil {
+		return x.OutDir
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetCacheDir() string {
+	if x != nil {
+		return x.CacheDir
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetDistDir() string {
+	if x != nil {
+		return x.DistDir
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetEntrypoints() []*EntrypointConfig {
+	if x != nil {
+		return x.Entrypoints
+	}
+	return nil
+}
+
+func (x *BuildRequest) GetExternalPkgs() []string {
+	if x != nil {
+		return x.ExternalPkgs
+	}
+	return nil
+}
+
+func (x *BuildRequest) GetWebPkgs() []*bundler.WebPkgRefConfig {
+	if x != nil {
+		return x.WebPkgs
+	}
+	return nil
+}
+
+// EntrypointConfig defines a single entrypoint for Vite to build.
+type EntrypointConfig struct {
+	unknownFields []byte
+	// InputPath is the path to the entrypoint file.
 	InputPath string `protobuf:"bytes,1,opt,name=input_path,json=inputPath,proto3" json:"inputPath,omitempty"`
-	// OutputPath is the output file path, if any.
-	OutputPath string `protobuf:"bytes,2,opt,name=output_path,json=outputPath,proto3" json:"outputPath,omitempty"`
+	// Name is the name to use for the output file.
+	// Must be unique in the set or an error will be thrown.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 }
 
-func (x *ViteEntrypoint) Reset() {
-	*x = ViteEntrypoint{}
+func (x *EntrypointConfig) Reset() {
+	*x = EntrypointConfig{}
 }
 
-func (*ViteEntrypoint) ProtoMessage() {}
+func (*EntrypointConfig) ProtoMessage() {}
 
-func (x *ViteEntrypoint) GetInputPath() string {
+func (x *EntrypointConfig) GetInputPath() string {
 	if x != nil {
 		return x.InputPath
 	}
 	return ""
 }
 
-func (x *ViteEntrypoint) GetOutputPath() string {
+func (x *EntrypointConfig) GetName() string {
 	if x != nil {
-		return x.OutputPath
+		return x.Name
 	}
 	return ""
 }
 
-func (m *ViteEntrypoint) CloneVT() *ViteEntrypoint {
-	if m == nil {
-		return (*ViteEntrypoint)(nil)
+// BuildResponse is the response from a Vite build.
+type BuildResponse struct {
+	unknownFields []byte
+	// Success indicates if the build was successful.
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	// Error is the error message if the build failed.
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	// EntrypointOutputs contains information about each entrypoint and its outputs.
+	EntrypointOutputs []*EntrypointOutput `protobuf:"bytes,3,rep,name=entrypoint_outputs,json=entrypointOutputs,proto3" json:"entrypointOutputs,omitempty"`
+	// InputFiles is the list of all input files that were processed.
+	//
+	// If success=false these are the files to watch for changes before retrying.
+	InputFiles []string `protobuf:"bytes,4,rep,name=input_files,json=inputFiles,proto3" json:"inputFiles,omitempty"`
+	// GlobalCssFiles is the list of global CSS files that were generated.
+	GlobalCssFiles []string `protobuf:"bytes,5,rep,name=global_css_files,json=globalCssFiles,proto3" json:"globalCssFiles,omitempty"`
+	// WebPkgRefs is the list of web packages that were referenced during the build.
+	WebPkgRefs []*WebPkgRef `protobuf:"bytes,6,rep,name=web_pkg_refs,json=webPkgRefs,proto3" json:"webPkgRefs,omitempty"`
+}
+
+func (x *BuildResponse) Reset() {
+	*x = BuildResponse{}
+}
+
+func (*BuildResponse) ProtoMessage() {}
+
+func (x *BuildResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
 	}
-	r := new(ViteEntrypoint)
-	r.InputPath = m.InputPath
-	r.OutputPath = m.OutputPath
+	return false
+}
+
+func (x *BuildResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *BuildResponse) GetEntrypointOutputs() []*EntrypointOutput {
+	if x != nil {
+		return x.EntrypointOutputs
+	}
+	return nil
+}
+
+func (x *BuildResponse) GetInputFiles() []string {
+	if x != nil {
+		return x.InputFiles
+	}
+	return nil
+}
+
+func (x *BuildResponse) GetGlobalCssFiles() []string {
+	if x != nil {
+		return x.GlobalCssFiles
+	}
+	return nil
+}
+
+func (x *BuildResponse) GetWebPkgRefs() []*WebPkgRef {
+	if x != nil {
+		return x.WebPkgRefs
+	}
+	return nil
+}
+
+// EntrypointOutput contains information about an entrypoint and its outputs.
+type EntrypointOutput struct {
+	unknownFields []byte
+	// Entrypoint is the path to the entrypoint file.
+	Entrypoint string `protobuf:"bytes,1,opt,name=entrypoint,proto3" json:"entrypoint,omitempty"`
+	// JsOutput is the path to the JavaScript output file.
+	JsOutput string `protobuf:"bytes,2,opt,name=js_output,json=jsOutput,proto3" json:"jsOutput,omitempty"`
+	// CssOutputs is the list of CSS output files for this entrypoint.
+	CssOutputs []string `protobuf:"bytes,3,rep,name=css_outputs,json=cssOutputs,proto3" json:"cssOutputs,omitempty"`
+	// InputFiles is the list of input files for this entrypoint.
+	InputFiles []string `protobuf:"bytes,4,rep,name=input_files,json=inputFiles,proto3" json:"inputFiles,omitempty"`
+}
+
+func (x *EntrypointOutput) Reset() {
+	*x = EntrypointOutput{}
+}
+
+func (*EntrypointOutput) ProtoMessage() {}
+
+func (x *EntrypointOutput) GetEntrypoint() string {
+	if x != nil {
+		return x.Entrypoint
+	}
+	return ""
+}
+
+func (x *EntrypointOutput) GetJsOutput() string {
+	if x != nil {
+		return x.JsOutput
+	}
+	return ""
+}
+
+func (x *EntrypointOutput) GetCssOutputs() []string {
+	if x != nil {
+		return x.CssOutputs
+	}
+	return nil
+}
+
+func (x *EntrypointOutput) GetInputFiles() []string {
+	if x != nil {
+		return x.InputFiles
+	}
+	return nil
+}
+
+func (m *WebPkgRef) CloneVT() *WebPkgRef {
+	if m == nil {
+		return (*WebPkgRef)(nil)
+	}
+	r := new(WebPkgRef)
+	r.PkgId = m.PkgId
+	r.PkgRoot = m.PkgRoot
+	if rhs := m.SubPaths; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.SubPaths = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -95,11 +346,258 @@ func (m *ViteEntrypoint) CloneVT() *ViteEntrypoint {
 	return r
 }
 
-func (m *ViteEntrypoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *WebPkgRef) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (this *ViteEntrypoint) EqualVT(that *ViteEntrypoint) bool {
+func (m *BuildRequest) CloneVT() *BuildRequest {
+	if m == nil {
+		return (*BuildRequest)(nil)
+	}
+	r := new(BuildRequest)
+	r.Mode = m.Mode
+	r.RootDir = m.RootDir
+	r.OutDir = m.OutDir
+	r.CacheDir = m.CacheDir
+	r.DistDir = m.DistDir
+	if rhs := m.ConfigPaths; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ConfigPaths = tmpContainer
+	}
+	if rhs := m.Entrypoints; rhs != nil {
+		tmpContainer := make([]*EntrypointConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Entrypoints = tmpContainer
+	}
+	if rhs := m.ExternalPkgs; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ExternalPkgs = tmpContainer
+	}
+	if rhs := m.WebPkgs; rhs != nil {
+		tmpContainer := make([]*bundler.WebPkgRefConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.WebPkgs = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BuildRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *EntrypointConfig) CloneVT() *EntrypointConfig {
+	if m == nil {
+		return (*EntrypointConfig)(nil)
+	}
+	r := new(EntrypointConfig)
+	r.InputPath = m.InputPath
+	r.Name = m.Name
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *EntrypointConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BuildResponse) CloneVT() *BuildResponse {
+	if m == nil {
+		return (*BuildResponse)(nil)
+	}
+	r := new(BuildResponse)
+	r.Success = m.Success
+	r.Error = m.Error
+	if rhs := m.EntrypointOutputs; rhs != nil {
+		tmpContainer := make([]*EntrypointOutput, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.EntrypointOutputs = tmpContainer
+	}
+	if rhs := m.InputFiles; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.InputFiles = tmpContainer
+	}
+	if rhs := m.GlobalCssFiles; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.GlobalCssFiles = tmpContainer
+	}
+	if rhs := m.WebPkgRefs; rhs != nil {
+		tmpContainer := make([]*WebPkgRef, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.WebPkgRefs = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BuildResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *EntrypointOutput) CloneVT() *EntrypointOutput {
+	if m == nil {
+		return (*EntrypointOutput)(nil)
+	}
+	r := new(EntrypointOutput)
+	r.Entrypoint = m.Entrypoint
+	r.JsOutput = m.JsOutput
+	if rhs := m.CssOutputs; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.CssOutputs = tmpContainer
+	}
+	if rhs := m.InputFiles; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.InputFiles = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *EntrypointOutput) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (this *WebPkgRef) EqualVT(that *WebPkgRef) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PkgId != that.PkgId {
+		return false
+	}
+	if this.PkgRoot != that.PkgRoot {
+		return false
+	}
+	if len(this.SubPaths) != len(that.SubPaths) {
+		return false
+	}
+	for i, vx := range this.SubPaths {
+		vy := that.SubPaths[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WebPkgRef) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WebPkgRef)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.ConfigPaths) != len(that.ConfigPaths) {
+		return false
+	}
+	for i, vx := range this.ConfigPaths {
+		vy := that.ConfigPaths[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Mode != that.Mode {
+		return false
+	}
+	if this.RootDir != that.RootDir {
+		return false
+	}
+	if this.OutDir != that.OutDir {
+		return false
+	}
+	if this.CacheDir != that.CacheDir {
+		return false
+	}
+	if this.DistDir != that.DistDir {
+		return false
+	}
+	if len(this.Entrypoints) != len(that.Entrypoints) {
+		return false
+	}
+	for i, vx := range this.Entrypoints {
+		vy := that.Entrypoints[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EntrypointConfig{}
+			}
+			if q == nil {
+				q = &EntrypointConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.ExternalPkgs) != len(that.ExternalPkgs) {
+		return false
+	}
+	for i, vx := range this.ExternalPkgs {
+		vy := that.ExternalPkgs[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.WebPkgs) != len(that.WebPkgs) {
+		return false
+	}
+	for i, vx := range this.WebPkgs {
+		vy := that.WebPkgs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &bundler.WebPkgRefConfig{}
+			}
+			if q == nil {
+				q = &bundler.WebPkgRefConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BuildRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BuildRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *EntrypointConfig) EqualVT(that *EntrypointConfig) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -108,14 +606,128 @@ func (this *ViteEntrypoint) EqualVT(that *ViteEntrypoint) bool {
 	if this.InputPath != that.InputPath {
 		return false
 	}
-	if this.OutputPath != that.OutputPath {
+	if this.Name != that.Name {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ViteEntrypoint) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ViteEntrypoint)
+func (this *EntrypointConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EntrypointConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *BuildResponse) EqualVT(that *BuildResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Success != that.Success {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	if len(this.EntrypointOutputs) != len(that.EntrypointOutputs) {
+		return false
+	}
+	for i, vx := range this.EntrypointOutputs {
+		vy := that.EntrypointOutputs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &EntrypointOutput{}
+			}
+			if q == nil {
+				q = &EntrypointOutput{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.InputFiles) != len(that.InputFiles) {
+		return false
+	}
+	for i, vx := range this.InputFiles {
+		vy := that.InputFiles[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.GlobalCssFiles) != len(that.GlobalCssFiles) {
+		return false
+	}
+	for i, vx := range this.GlobalCssFiles {
+		vy := that.GlobalCssFiles[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.WebPkgRefs) != len(that.WebPkgRefs) {
+		return false
+	}
+	for i, vx := range this.WebPkgRefs {
+		vy := that.WebPkgRefs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &WebPkgRef{}
+			}
+			if q == nil {
+				q = &WebPkgRef{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BuildResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BuildResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *EntrypointOutput) EqualVT(that *EntrypointOutput) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Entrypoint != that.Entrypoint {
+		return false
+	}
+	if this.JsOutput != that.JsOutput {
+		return false
+	}
+	if len(this.CssOutputs) != len(that.CssOutputs) {
+		return false
+	}
+	for i, vx := range this.CssOutputs {
+		vy := that.CssOutputs[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.InputFiles) != len(that.InputFiles) {
+		return false
+	}
+	for i, vx := range this.InputFiles {
+		vy := that.InputFiles[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EntrypointOutput) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EntrypointOutput)
 	if !ok {
 		return false
 	}
@@ -162,8 +774,226 @@ func (x *ViteVarType) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ViteEntrypoint message to JSON.
-func (x *ViteEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the WebPkgRef message to JSON.
+func (x *WebPkgRef) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PkgId != "" || s.HasField("pkgId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pkgId")
+		s.WriteString(x.PkgId)
+	}
+	if x.PkgRoot != "" || s.HasField("pkgRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pkgRoot")
+		s.WriteString(x.PkgRoot)
+	}
+	if len(x.SubPaths) > 0 || s.HasField("subPaths") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("subPaths")
+		s.WriteStringArray(x.SubPaths)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WebPkgRef to JSON.
+func (x *WebPkgRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebPkgRef message from JSON.
+func (x *WebPkgRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pkg_id", "pkgId":
+			s.AddField("pkg_id")
+			x.PkgId = s.ReadString()
+		case "pkg_root", "pkgRoot":
+			s.AddField("pkg_root")
+			x.PkgRoot = s.ReadString()
+		case "sub_paths", "subPaths":
+			s.AddField("sub_paths")
+			if s.ReadNil() {
+				x.SubPaths = nil
+				return
+			}
+			x.SubPaths = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WebPkgRef from JSON.
+func (x *WebPkgRef) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BuildRequest message to JSON.
+func (x *BuildRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ConfigPaths) > 0 || s.HasField("configPaths") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configPaths")
+		s.WriteStringArray(x.ConfigPaths)
+	}
+	if x.Mode != "" || s.HasField("mode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mode")
+		s.WriteString(x.Mode)
+	}
+	if x.RootDir != "" || s.HasField("rootDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootDir")
+		s.WriteString(x.RootDir)
+	}
+	if x.OutDir != "" || s.HasField("outDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outDir")
+		s.WriteString(x.OutDir)
+	}
+	if x.CacheDir != "" || s.HasField("cacheDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cacheDir")
+		s.WriteString(x.CacheDir)
+	}
+	if x.DistDir != "" || s.HasField("distDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("distDir")
+		s.WriteString(x.DistDir)
+	}
+	if len(x.Entrypoints) > 0 || s.HasField("entrypoints") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypoints")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entrypoints {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entrypoints"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.ExternalPkgs) > 0 || s.HasField("externalPkgs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("externalPkgs")
+		s.WriteStringArray(x.ExternalPkgs)
+	}
+	if len(x.WebPkgs) > 0 || s.HasField("webPkgs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webPkgs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.WebPkgs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("webPkgs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildRequest to JSON.
+func (x *BuildRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildRequest message from JSON.
+func (x *BuildRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "config_paths", "configPaths":
+			s.AddField("config_paths")
+			if s.ReadNil() {
+				x.ConfigPaths = nil
+				return
+			}
+			x.ConfigPaths = s.ReadStringArray()
+		case "mode":
+			s.AddField("mode")
+			x.Mode = s.ReadString()
+		case "root_dir", "rootDir":
+			s.AddField("root_dir")
+			x.RootDir = s.ReadString()
+		case "out_dir", "outDir":
+			s.AddField("out_dir")
+			x.OutDir = s.ReadString()
+		case "cache_dir", "cacheDir":
+			s.AddField("cache_dir")
+			x.CacheDir = s.ReadString()
+		case "dist_dir", "distDir":
+			s.AddField("dist_dir")
+			x.DistDir = s.ReadString()
+		case "entrypoints":
+			s.AddField("entrypoints")
+			if s.ReadNil() {
+				x.Entrypoints = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entrypoints = append(x.Entrypoints, nil)
+					return
+				}
+				v := &EntrypointConfig{}
+				v.UnmarshalProtoJSON(s.WithField("entrypoints", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entrypoints = append(x.Entrypoints, v)
+			})
+		case "external_pkgs", "externalPkgs":
+			s.AddField("external_pkgs")
+			if s.ReadNil() {
+				x.ExternalPkgs = nil
+				return
+			}
+			x.ExternalPkgs = s.ReadStringArray()
+		case "web_pkgs", "webPkgs":
+			s.AddField("web_pkgs")
+			if s.ReadNil() {
+				x.WebPkgs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.WebPkgs = append(x.WebPkgs, nil)
+					return
+				}
+				v := &bundler.WebPkgRefConfig{}
+				v.UnmarshalProtoJSON(s.WithField("web_pkgs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.WebPkgs = append(x.WebPkgs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildRequest from JSON.
+func (x *BuildRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the EntrypointConfig message to JSON.
+func (x *EntrypointConfig) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -175,21 +1005,21 @@ func (x *ViteEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("inputPath")
 		s.WriteString(x.InputPath)
 	}
-	if x.OutputPath != "" || s.HasField("outputPath") {
+	if x.Name != "" || s.HasField("name") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("outputPath")
-		s.WriteString(x.OutputPath)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
 	}
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the ViteEntrypoint to JSON.
-func (x *ViteEntrypoint) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the EntrypointConfig to JSON.
+func (x *EntrypointConfig) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the ViteEntrypoint message from JSON.
-func (x *ViteEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the EntrypointConfig message from JSON.
+func (x *EntrypointConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -200,19 +1030,225 @@ func (x *ViteEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "input_path", "inputPath":
 			s.AddField("input_path")
 			x.InputPath = s.ReadString()
-		case "output_path", "outputPath":
-			s.AddField("output_path")
-			x.OutputPath = s.ReadString()
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the ViteEntrypoint from JSON.
-func (x *ViteEntrypoint) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the EntrypointConfig from JSON.
+func (x *EntrypointConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-func (m *ViteEntrypoint) MarshalVT() (dAtA []byte, err error) {
+// MarshalProtoJSON marshals the BuildResponse message to JSON.
+func (x *BuildResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Success || s.HasField("success") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("success")
+		s.WriteBool(x.Success)
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	if len(x.EntrypointOutputs) > 0 || s.HasField("entrypointOutputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointOutputs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.EntrypointOutputs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entrypointOutputs"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.InputFiles) > 0 || s.HasField("inputFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inputFiles")
+		s.WriteStringArray(x.InputFiles)
+	}
+	if len(x.GlobalCssFiles) > 0 || s.HasField("globalCssFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("globalCssFiles")
+		s.WriteStringArray(x.GlobalCssFiles)
+	}
+	if len(x.WebPkgRefs) > 0 || s.HasField("webPkgRefs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webPkgRefs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.WebPkgRefs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("webPkgRefs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildResponse to JSON.
+func (x *BuildResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildResponse message from JSON.
+func (x *BuildResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "success":
+			s.AddField("success")
+			x.Success = s.ReadBool()
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		case "entrypoint_outputs", "entrypointOutputs":
+			s.AddField("entrypoint_outputs")
+			if s.ReadNil() {
+				x.EntrypointOutputs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.EntrypointOutputs = append(x.EntrypointOutputs, nil)
+					return
+				}
+				v := &EntrypointOutput{}
+				v.UnmarshalProtoJSON(s.WithField("entrypoint_outputs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.EntrypointOutputs = append(x.EntrypointOutputs, v)
+			})
+		case "input_files", "inputFiles":
+			s.AddField("input_files")
+			if s.ReadNil() {
+				x.InputFiles = nil
+				return
+			}
+			x.InputFiles = s.ReadStringArray()
+		case "global_css_files", "globalCssFiles":
+			s.AddField("global_css_files")
+			if s.ReadNil() {
+				x.GlobalCssFiles = nil
+				return
+			}
+			x.GlobalCssFiles = s.ReadStringArray()
+		case "web_pkg_refs", "webPkgRefs":
+			s.AddField("web_pkg_refs")
+			if s.ReadNil() {
+				x.WebPkgRefs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.WebPkgRefs = append(x.WebPkgRefs, nil)
+					return
+				}
+				v := &WebPkgRef{}
+				v.UnmarshalProtoJSON(s.WithField("web_pkg_refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.WebPkgRefs = append(x.WebPkgRefs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildResponse from JSON.
+func (x *BuildResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the EntrypointOutput message to JSON.
+func (x *EntrypointOutput) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Entrypoint != "" || s.HasField("entrypoint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypoint")
+		s.WriteString(x.Entrypoint)
+	}
+	if x.JsOutput != "" || s.HasField("jsOutput") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jsOutput")
+		s.WriteString(x.JsOutput)
+	}
+	if len(x.CssOutputs) > 0 || s.HasField("cssOutputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cssOutputs")
+		s.WriteStringArray(x.CssOutputs)
+	}
+	if len(x.InputFiles) > 0 || s.HasField("inputFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inputFiles")
+		s.WriteStringArray(x.InputFiles)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EntrypointOutput to JSON.
+func (x *EntrypointOutput) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EntrypointOutput message from JSON.
+func (x *EntrypointOutput) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entrypoint":
+			s.AddField("entrypoint")
+			x.Entrypoint = s.ReadString()
+		case "js_output", "jsOutput":
+			s.AddField("js_output")
+			x.JsOutput = s.ReadString()
+		case "css_outputs", "cssOutputs":
+			s.AddField("css_outputs")
+			if s.ReadNil() {
+				x.CssOutputs = nil
+				return
+			}
+			x.CssOutputs = s.ReadStringArray()
+		case "input_files", "inputFiles":
+			s.AddField("input_files")
+			if s.ReadNil() {
+				x.InputFiles = nil
+				return
+			}
+			x.InputFiles = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the EntrypointOutput from JSON.
+func (x *EntrypointOutput) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *WebPkgRef) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -225,12 +1261,12 @@ func (m *ViteEntrypoint) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ViteEntrypoint) MarshalToVT(dAtA []byte) (int, error) {
+func (m *WebPkgRef) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ViteEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *WebPkgRef) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -242,10 +1278,176 @@ func (m *ViteEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.OutputPath) > 0 {
-		i -= len(m.OutputPath)
-		copy(dAtA[i:], m.OutputPath)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OutputPath)))
+	if len(m.SubPaths) > 0 {
+		for iNdEx := len(m.SubPaths) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SubPaths[iNdEx])
+			copy(dAtA[i:], m.SubPaths[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SubPaths[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.PkgRoot) > 0 {
+		i -= len(m.PkgRoot)
+		copy(dAtA[i:], m.PkgRoot)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PkgRoot)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PkgId) > 0 {
+		i -= len(m.PkgId)
+		copy(dAtA[i:], m.PkgId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PkgId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BuildRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BuildRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WebPkgs) > 0 {
+		for iNdEx := len(m.WebPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.WebPkgs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if len(m.ExternalPkgs) > 0 {
+		for iNdEx := len(m.ExternalPkgs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ExternalPkgs[iNdEx])
+			copy(dAtA[i:], m.ExternalPkgs[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExternalPkgs[iNdEx])))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.Entrypoints) > 0 {
+		for iNdEx := len(m.Entrypoints) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entrypoints[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.DistDir) > 0 {
+		i -= len(m.DistDir)
+		copy(dAtA[i:], m.DistDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DistDir)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.CacheDir) > 0 {
+		i -= len(m.CacheDir)
+		copy(dAtA[i:], m.CacheDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CacheDir)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.OutDir) > 0 {
+		i -= len(m.OutDir)
+		copy(dAtA[i:], m.OutDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OutDir)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.RootDir) > 0 {
+		i -= len(m.RootDir)
+		copy(dAtA[i:], m.RootDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RootDir)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Mode) > 0 {
+		i -= len(m.Mode)
+		copy(dAtA[i:], m.Mode)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Mode)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ConfigPaths) > 0 {
+		for iNdEx := len(m.ConfigPaths) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ConfigPaths[iNdEx])
+			copy(dAtA[i:], m.ConfigPaths[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ConfigPaths[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EntrypointConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EntrypointConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EntrypointConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -259,7 +1461,242 @@ func (m *ViteEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ViteEntrypoint) SizeVT() (n int) {
+func (m *BuildResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BuildResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BuildResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WebPkgRefs) > 0 {
+		for iNdEx := len(m.WebPkgRefs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.WebPkgRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.GlobalCssFiles) > 0 {
+		for iNdEx := len(m.GlobalCssFiles) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.GlobalCssFiles[iNdEx])
+			copy(dAtA[i:], m.GlobalCssFiles[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.GlobalCssFiles[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.InputFiles) > 0 {
+		for iNdEx := len(m.InputFiles) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.InputFiles[iNdEx])
+			copy(dAtA[i:], m.InputFiles[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InputFiles[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.EntrypointOutputs) > 0 {
+		for iNdEx := len(m.EntrypointOutputs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.EntrypointOutputs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Success {
+		i--
+		if m.Success {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EntrypointOutput) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EntrypointOutput) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EntrypointOutput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.InputFiles) > 0 {
+		for iNdEx := len(m.InputFiles) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.InputFiles[iNdEx])
+			copy(dAtA[i:], m.InputFiles[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InputFiles[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.CssOutputs) > 0 {
+		for iNdEx := len(m.CssOutputs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CssOutputs[iNdEx])
+			copy(dAtA[i:], m.CssOutputs[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CssOutputs[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.JsOutput) > 0 {
+		i -= len(m.JsOutput)
+		copy(dAtA[i:], m.JsOutput)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.JsOutput)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Entrypoint) > 0 {
+		i -= len(m.Entrypoint)
+		copy(dAtA[i:], m.Entrypoint)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Entrypoint)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WebPkgRef) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PkgId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.PkgRoot)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.SubPaths) > 0 {
+		for _, s := range m.SubPaths {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BuildRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.ConfigPaths) > 0 {
+		for _, s := range m.ConfigPaths {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.Mode)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RootDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OutDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.CacheDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DistDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Entrypoints) > 0 {
+		for _, e := range m.Entrypoints {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ExternalPkgs) > 0 {
+		for _, s := range m.ExternalPkgs {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.WebPkgs) > 0 {
+		for _, e := range m.WebPkgs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EntrypointConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -269,9 +1706,80 @@ func (m *ViteEntrypoint) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.OutputPath)
+	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BuildResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Success {
+		n += 2
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.EntrypointOutputs) > 0 {
+		for _, e := range m.EntrypointOutputs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.InputFiles) > 0 {
+		for _, s := range m.InputFiles {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.GlobalCssFiles) > 0 {
+		for _, s := range m.GlobalCssFiles {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.WebPkgRefs) > 0 {
+		for _, e := range m.WebPkgRefs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EntrypointOutput) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Entrypoint)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.JsOutput)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.CssOutputs) > 0 {
+		for _, s := range m.CssOutputs {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.InputFiles) > 0 {
+		for _, s := range m.InputFiles {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -280,31 +1788,291 @@ func (m *ViteEntrypoint) SizeVT() (n int) {
 func (x ViteVarType) MarshalProtoText() string {
 	return x.String()
 }
-func (x *ViteEntrypoint) MarshalProtoText() string {
+func (x *WebPkgRef) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("ViteEntrypoint {")
-	if x.InputPath != "" {
-		if sb.Len() > 16 {
+	sb.WriteString("WebPkgRef {")
+	if x.PkgId != "" {
+		if sb.Len() > 11 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("input_path: ")
-		sb.WriteString(strconv.Quote(x.InputPath))
+		sb.WriteString("pkg_id: ")
+		sb.WriteString(strconv.Quote(x.PkgId))
 	}
-	if x.OutputPath != "" {
-		if sb.Len() > 16 {
+	if x.PkgRoot != "" {
+		if sb.Len() > 11 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("output_path: ")
-		sb.WriteString(strconv.Quote(x.OutputPath))
+		sb.WriteString("pkg_root: ")
+		sb.WriteString(strconv.Quote(x.PkgRoot))
+	}
+	if len(x.SubPaths) > 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sub_paths: [")
+		for i, v := range x.SubPaths {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
-func (x *ViteEntrypoint) String() string {
+func (x *WebPkgRef) String() string {
 	return x.MarshalProtoText()
 }
-func (m *ViteEntrypoint) UnmarshalVT(dAtA []byte) error {
+func (x *BuildRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BuildRequest {")
+	if len(x.ConfigPaths) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("config_paths: [")
+		for i, v := range x.ConfigPaths {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Mode != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("mode: ")
+		sb.WriteString(strconv.Quote(x.Mode))
+	}
+	if x.RootDir != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("root_dir: ")
+		sb.WriteString(strconv.Quote(x.RootDir))
+	}
+	if x.OutDir != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("out_dir: ")
+		sb.WriteString(strconv.Quote(x.OutDir))
+	}
+	if x.CacheDir != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cache_dir: ")
+		sb.WriteString(strconv.Quote(x.CacheDir))
+	}
+	if x.DistDir != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dist_dir: ")
+		sb.WriteString(strconv.Quote(x.DistDir))
+	}
+	if len(x.Entrypoints) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoints: [")
+		for i, v := range x.Entrypoints {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ExternalPkgs) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("external_pkgs: [")
+		for i, v := range x.ExternalPkgs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.WebPkgs) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_pkgs: [")
+		for i, v := range x.WebPkgs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BuildRequest) String() string {
+	return x.MarshalProtoText()
+}
+func (x *EntrypointConfig) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("EntrypointConfig {")
+	if x.InputPath != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("input_path: ")
+		sb.WriteString(strconv.Quote(x.InputPath))
+	}
+	if x.Name != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("name: ")
+		sb.WriteString(strconv.Quote(x.Name))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *EntrypointConfig) String() string {
+	return x.MarshalProtoText()
+}
+func (x *BuildResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BuildResponse {")
+	if x.Success != false {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("success: ")
+		sb.WriteString(strconv.FormatBool(x.Success))
+	}
+	if x.Error != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error: ")
+		sb.WriteString(strconv.Quote(x.Error))
+	}
+	if len(x.EntrypointOutputs) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_outputs: [")
+		for i, v := range x.EntrypointOutputs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.InputFiles) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("input_files: [")
+		for i, v := range x.InputFiles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.GlobalCssFiles) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("global_css_files: [")
+		for i, v := range x.GlobalCssFiles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.WebPkgRefs) > 0 {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_pkg_refs: [")
+		for i, v := range x.WebPkgRefs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BuildResponse) String() string {
+	return x.MarshalProtoText()
+}
+func (x *EntrypointOutput) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("EntrypointOutput {")
+	if x.Entrypoint != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint: ")
+		sb.WriteString(strconv.Quote(x.Entrypoint))
+	}
+	if x.JsOutput != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("js_output: ")
+		sb.WriteString(strconv.Quote(x.JsOutput))
+	}
+	if len(x.CssOutputs) > 0 {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("css_outputs: [")
+		for i, v := range x.CssOutputs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.InputFiles) > 0 {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("input_files: [")
+		for i, v := range x.InputFiles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *EntrypointOutput) String() string {
+	return x.MarshalProtoText()
+}
+func (m *WebPkgRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -327,10 +2095,500 @@ func (m *ViteEntrypoint) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ViteEntrypoint: wiretype end group for non-group")
+			return fmt.Errorf("proto: WebPkgRef: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ViteEntrypoint: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: WebPkgRef: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PkgRoot", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PkgRoot = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SubPaths", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SubPaths = append(m.SubPaths, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BuildRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BuildRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigPaths", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ConfigPaths = append(m.ConfigPaths, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mode = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootDir", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RootDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutDir", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OutDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CacheDir", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CacheDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DistDir", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DistDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoints", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entrypoints = append(m.Entrypoints, &EntrypointConfig{})
+			if err := m.Entrypoints[len(m.Entrypoints)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExternalPkgs", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExternalPkgs = append(m.ExternalPkgs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgs = append(m.WebPkgs, &bundler.WebPkgRefConfig{})
+			if err := m.WebPkgs[len(m.WebPkgs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EntrypointConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EntrypointConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EntrypointConfig: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -367,7 +2625,7 @@ func (m *ViteEntrypoint) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OutputPath", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -395,7 +2653,421 @@ func (m *ViteEntrypoint) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.OutputPath = string(dAtA[iNdEx:postIndex])
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BuildResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BuildResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BuildResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Success", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Success = bool(v != 0)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointOutputs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointOutputs = append(m.EntrypointOutputs, &EntrypointOutput{})
+			if err := m.EntrypointOutputs[len(m.EntrypointOutputs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InputFiles", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InputFiles = append(m.InputFiles, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GlobalCssFiles", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GlobalCssFiles = append(m.GlobalCssFiles, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgRefs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgRefs = append(m.WebPkgRefs, &WebPkgRef{})
+			if err := m.WebPkgRefs[len(m.WebPkgRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EntrypointOutput) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EntrypointOutput: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EntrypointOutput: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoint", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entrypoint = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JsOutput", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.JsOutput = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CssOutputs", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CssOutputs = append(m.CssOutputs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InputFiles", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InputFiles = append(m.InputFiles, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

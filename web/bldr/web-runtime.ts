@@ -337,7 +337,7 @@ export class WebRuntime {
     runtimeWorkerHostMux.register(
       createHandler(WebRuntimeDefinition, this.webRuntime),
     )
-    this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethodFunc)
+    this.webRuntimeServer = new Server(runtimeWorkerHostMux.lookupMethod)
 
     // Setup the status stream.
     this.statusStream = new ItState<WebRuntimeStatus>(

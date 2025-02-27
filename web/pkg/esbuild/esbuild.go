@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
@@ -23,8 +24,8 @@ import (
 var BldrExternal = []string{"react", "react-dom", "@aptre/bldr", "@aptre/bldr-react", "@aptre/protobuf-es-lite"}
 
 // GetBldrExternalWebPkgRefs returns the web pkg refs for BldrExternal.
-func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*WebPkgRef {
-	return []*WebPkgRef{{
+func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgRef {
+	return []*web_pkg.WebPkgRef{{
 		WebPkgId:   "react",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
 		Imports:    []string{"index.js", "jsx-runtime.js"},
@@ -83,13 +84,13 @@ func ResolveWebPkgRefsEsbuild(
 	ctx context.Context,
 	le *logrus.Entry,
 	codeRootPath string,
-	webPkgsRefs []*WebPkgRef,
-) ([]*WebPkgRef, error) {
+	webPkgsRefs []*web_pkg.WebPkgRef,
+) ([]*web_pkg.WebPkgRef, error) {
 	// stack contains the list of refs we need to process
 	// sort by web pkg id
 	stack := slices.Clone(webPkgsRefs)
 	sortStack := func() {
-		SortWebPkgRefs(stack)
+		web_pkg.SortWebPkgRefs(stack)
 	}
 	sortStack()
 
@@ -171,14 +172,14 @@ func ResolveWebPkgRefsEsbuild(
 			}
 
 			var dirty bool
-			webPkgsRefs, dirty = WebPkgRefSlice(webPkgsRefs).AppendWebPkgRef(webPkgID, webPkgRoot, webPkgSubPath)
+			webPkgsRefs, dirty = web_pkg.WebPkgRefSlice(webPkgsRefs).AppendWebPkgRef(webPkgID, webPkgRoot, webPkgSubPath)
 			if dirty {
 				le.WithFields(logrus.Fields{
 					"web-pkg-id":         ref.WebPkgId,
 					"ref-web-pkg-id":     webPkgID,
 					"ref-web-pkg-import": webPkgSubPath,
 				}).Debug("added web pkg ref")
-				changedRef, _ := FindWebPkgRef(webPkgsRefs, webPkgID)
+				changedRef, _ := web_pkg.FindWebPkgRef(webPkgsRefs, webPkgID)
 				if changedRef != nil && !slices.Contains(stack, changedRef) {
 					stack = append(stack, changedRef)
 					sortStack()
@@ -221,7 +222,7 @@ func BuildWebPkgsEsbuild(
 	ctx context.Context,
 	le *logrus.Entry,
 	codeRootPath string,
-	webPkgsRefs []*WebPkgRef,
+	webPkgsRefs []*web_pkg.WebPkgRef,
 	outputPath string,
 	webPkgBasePath string,
 	isRelease bool,

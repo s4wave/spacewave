@@ -13,6 +13,7 @@ import (
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
@@ -91,23 +92,29 @@ func (m *EsbuildBundleMeta) SortEntrypointVars() {
 }
 
 // BuildEsbuildBundle builds an esbuild bundle with the given bundle args.
+// Returns:
+// - Go variable definitions for the bundle
+// - Web package references used by the bundle
+// - Metadata about the esbuild outputs
+// - List of source files used by esbuild
+// - Any error that occurred
 func BuildEsbuildBundle(
 	le *logrus.Entry,
 	codeRootPath string,
 	meta *EsbuildBundleMeta,
 	baseEsbuildOpts *esbuild_api.BuildOptions,
-	webPkgs []*WebPkgRefConfig,
+	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	outAssetsPath string,
 	pluginID string,
 	inlineSourcemaps bool,
 	isRelease bool,
-) ([]*vardef.PluginVar, []*web_pkg_esbuild.WebPkgRef, []*EsbuildOutputMeta, []string, error) {
+) ([]*vardef.PluginVar, []*web_pkg.WebPkgRef, []*EsbuildOutputMeta, []string, error) {
 	// outputs
 	var goVariableDefs []*vardef.PluginVar
 	var sourceFilesList []string
-	var webPkgRefs []*web_pkg_esbuild.WebPkgRef
+	var webPkgRefs []*web_pkg.WebPkgRef
 	addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
-		webPkgRefs, _ = web_pkg_esbuild.
+		webPkgRefs, _ = web_pkg.
 			WebPkgRefSlice(webPkgRefs).
 			AppendWebPkgRef(webPkgID, webPkgRoot, webPkgSubPath)
 	}
@@ -192,7 +199,7 @@ func BuildEsbuildBundle(
 		// store entrypoints and the indexes within the list
 		entrypointIdxs := make([]int, len(entryPoints))
 		baseIdx := len(buildOpts.EntryPointsAdvanced)
-		for i := 0; i < len(entryPoints); i++ {
+		for i := range entryPoints {
 			entrypointIdxs[i] = baseIdx + i
 		}
 		buildOpts.EntryPointsAdvanced = append(buildOpts.EntryPointsAdvanced, entryPoints...)
@@ -219,13 +226,14 @@ func BuildEsbuildBundle(
 		buildOpts.Plugins,
 		web_pkg_esbuild.BuildEsbuildPlugin(
 			le,
-			WebPkgRefConfigSlice(webPkgs).ToIdList(),
+			bldr_web_bundler.WebPkgRefConfigSlice(webPkgs).ToIdList(),
 			addWebPkgRef,
 		),
 	)
 
 	// https://github.com/evanw/esbuild/issues/1921
 	// NOTE: we can't use async import() here since require() is called w/o await.
+	// This fixes an issue with esbuild where dynamic imports don't work correctly in certain environments
 	web_pkg_esbuild.FixEsbuildIssue1921(buildOpts)
 
 	// compile the bundle

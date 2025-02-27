@@ -1,6 +1,7 @@
 package npm
 
 import (
+	"context"
 	oexec "os/exec"
 
 	"github.com/aperturerobotics/util/exec"
@@ -20,10 +21,10 @@ var NpmFlags = []string{
 // pkg is be the package name, optionally with the version:
 //   - @electron/asar
 //   - @electron/asar@3.2.3
-func NpmExec(pkg string, cmd ...string) *oexec.Cmd {
+func NpmExec(ctx context.Context, pkg string, cmd ...string) *oexec.Cmd {
 	args := []string{"exec"}
 	args = append(args, NpmFlags...)
 	args = append(args, "--", pkg)
 	args = append(args, cmd...)
-	return exec.NewCmd("npm", args...)
+	return exec.NewCmd(ctx, "npm", args...)
 }

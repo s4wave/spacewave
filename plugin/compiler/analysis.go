@@ -46,8 +46,8 @@ type Analysis struct {
 	// controllerFactories contains the set of packages containing controllers
 	controllerFactories map[string]*packages.Package
 
-	// esbuildOutputType is the type of EsbuildOutput
-	esbuildOutputType types.Type
+	// webBundlerOutputType is the type of EsbuildOutput and WebBundlerOutput and ViteOutput
+	webBundlerOutputType types.Type
 }
 
 // AnalyzePackages analyzes code packages using Go module package resolution.
@@ -149,18 +149,18 @@ func AnalyzePackages(
 	}
 	res.fset = conf.Fset
 
-	// Find and store the EsbuildOutput type
+	// Find and store the web bundler output type
 	for _, pkg := range loadedPackages {
 		if pkg.PkgPath == EsbuildOutputPkgPath {
 			if obj := pkg.Types.Scope().Lookup(EsbuildOutputTypeName); obj != nil {
-				res.esbuildOutputType = obj.Type()
+				res.webBundlerOutputType = obj.Type()
 			}
 			break
 		}
 	}
 
-	// If we couldn't find the EsbuildOutput type, return an error since we need it for type comparison
-	if res.esbuildOutputType == nil {
+	// If we couldn't find the type, return an error since we need it for type comparison
+	if res.webBundlerOutputType == nil {
 		return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
 	}
 
@@ -185,16 +185,14 @@ func AnalyzePackages(
 		}
 	}
 
-	le.Debugf("loaded %d init packages to analyze", len(loadedPackages))
-	if len(loadedPackages) == 0 {
+	le.Debugf("loaded %d init packages to analyze", len(res.packages))
+	if len(res.packages) == 0 {
 		return nil, errors.New("expected at least one package to be loaded")
 	}
-	// initPkg := loadedPackages[0]
-
-	factoryModules := res.module
 
 	// Find NewFactory() constructors.
 	// Build a list of packages to import.
+	factoryModules := res.module
 	for _, pkg := range res.packages {
 		le := le.WithField("pkg", pkg.Types.Path())
 
@@ -314,9 +312,9 @@ func (a *Analysis) isTypeIdentical(t types.Type, refType types.Type) bool {
 func (a *Analysis) determineVarTypeWithReference(
 	obj types.Object,
 	refType types.Type,
-	stringTypeValue interface{},
-	refTypeValue interface{},
-	errTag string,
+	stringTypeValue interface{}, // Value to return if the type is a string
+	refTypeValue interface{}, // Value to return if the type matches the reference type
+	errTag string, // Tag to include in error messages for context
 ) (interface{}, error) {
 	// First check if it's directly the reference type
 	if a.isTypeIdentical(obj.Type(), refType) {
@@ -327,7 +325,7 @@ func (a *Analysis) determineVarTypeWithReference(
 	switch t := obj.Type().Underlying().(type) {
 	case *types.Basic:
 		if t.Kind() == types.String {
-			return stringTypeValue, nil
+			return stringTypeValue, nil // Return string value for string types
 		}
 		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s basic type: %v", errTag, t)
 	case *types.Named, *types.Struct:

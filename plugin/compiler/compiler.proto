@@ -2,8 +2,10 @@ syntax = "proto3";
 package bldr.plugin.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 import "github.com/aperturerobotics/bldr/web/bundler/esbuild/esbuild.proto";
-import "github.com/aperturerobotics/bldr/web/pkg/esbuild/esbuild.proto";
+import "github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto";
+import "github.com/aperturerobotics/bldr/web/pkg/pkg.proto";
 import "github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto";
 import "github.com/aperturerobotics/util/enabled/enabled.proto";
 
@@ -46,7 +48,7 @@ message Config {
   // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
   //
   // Note: only files & entrypoints imported by at least one js file will be included.
-  repeated WebPkgRefConfig web_pkgs = 5;
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
 
   // DisableRpcFetch disables the default Fetch RPC service handler.
   // The handler handles the Fetch service by creating a directive.
@@ -92,6 +94,10 @@ message Config {
   // E.x.: --target es2020
   repeated string esbuild_flags = 12;
 
+  // ViteConfigPaths is a list of paths to Vite configuration files to use.
+  // Config files passed by bldr:vite directives can override these values.
+  repeated string vite_config_paths = 15;
+
   // WebPluginId sets the plugin id for the web plugin.
   // If set, the compiler automatically adds these controllers to the config set:
   // - handle-web-pkgs: handle web pkg lookups for the webPkgIds
@@ -135,29 +141,15 @@ message InputFileMeta {
   InputFileKind kind = 1;
 }
 
-// WebPkgRefConfig configures a web pkg reference.
-message WebPkgRefConfig {
-  // Id is the identifier of the web pkg.
-  // example: @aptre/flex-layout
-  string id = 1;
-  // Exclude indicates we should reference this web pkg but exclude it from this bundle.
-  // This is useful if another plugin already provides this web pkg.
-  bool exclude = 2;
-  // Imports is the list of imports to include in the web pkg bundle.
-  // NOTE: this will be merged with any imports the code accesses.
-  // NOTE: this is therefore optional.
-  repeated string imports = 3;
-}
-
 // InputManifestMeta is metadata attached to the input manifest.
 message InputManifestMeta {
   // WebPkgRefs contains the list of web pkg references.
-  repeated .web.pkg.esbuild.WebPkgRef web_pkg_refs = 1;
+  repeated .web.pkg.WebPkgRef web_pkg_refs = 1;
   // DevInfo contains the set of plugin variable definitions.
   .bldr.plugin.vardef.PluginDevInfo dev_info = 2;
 
   // WebPkgs is the list of web pkgs that we separate from the bundle.
-  repeated WebPkgRefConfig web_pkgs = 3;
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 3;
 
   // EsbuildFlags are the base command-line arguments to pass to all esbuild bundles.
   repeated string esbuild_flags = 4;
@@ -165,6 +157,13 @@ message InputManifestMeta {
   map<string, EsbuildBundleMeta> esbuild_bundles = 5;
   // EsbuildOutputs contains a list of files written by esbuild.
   repeated EsbuildOutputMeta esbuild_outputs = 6;
+
+  // ViteConfigPaths are the paths to Vite configuration files to use for all vite bundles.
+  repeated string vite_config_paths = 7;
+  // ViteBundles contains the set of vite bundles.
+  map<string, ViteBundleMeta> vite_bundles = 8;
+  // ViteOutputs contains a list of files written by vite.
+  repeated ViteOutputMeta vite_outputs = 9;
 }
 
 // EsbuildOutputMeta is information about an esbuild output.
@@ -198,4 +197,38 @@ message EsbuildEntrypointVar {
   .bldr.web.bundler.esbuild.EsbuildVarType pkg_var_type = 4;
   // EsbuildFlags are the command-line arguments to pass to esbuild.
   repeated string esbuild_flags = 5;
+}
+
+// ViteOutputMeta is information about a vite output.
+message ViteOutputMeta {
+  // Path is the path to the file within the output dir.
+  string path = 1;
+  // EntrypointPath is the entrypoint that produced this output file.
+  // May be empty.
+  string entrypoint_path = 2;
+}
+
+// ViteBundleMeta is information about a vite bundle.
+message ViteBundleMeta {
+  // Id is the identifier of the bundle.
+  string id = 1;
+  // EntrypointVars is the list of entrypoint variables.
+  repeated ViteEntrypointVar entrypoint_vars = 2;
+}
+
+// ViteEntrypointVar is a variable in the Go code referring to a vite entrypoint.
+message ViteEntrypointVar {
+  // PkgImportPath is the go package import path.
+  string pkg_import_path = 1;
+  // PkgVar is the variable within the go package.
+  string pkg_var = 2;
+  // PkgCodePath is the relative path to the code dir from the project root.
+  string pkg_code_path = 3;
+  // PkgVarType is the type of vite variable this is.
+  .bldr.web.bundler.vite.ViteVarType pkg_var_type = 4;
+  // ViteConfigPaths are the paths to Vite configuration files to use.
+  repeated string vite_config_paths = 5;
+  // EntrypointPath is the specific entrypoint path for this variable.
+  // If empty, PkgCodePath is used as the entrypoint.
+  string entrypoint_path = 6;
 }

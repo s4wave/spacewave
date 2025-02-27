@@ -57,7 +57,7 @@ const Example: React.FC<ExampleProps> = (props) => {
         <br />
         isWindows: {JSON.stringify(isWindows)}
       </DebugInfo>
-      <div className="example-message">{message || 'Loading...'}</div>
+      <p className="example-message">{message || 'Loading...'}</p>
     </DebugInfoProvider>
   )
 }

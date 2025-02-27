@@ -1,6 +1,8 @@
 syntax = "proto3";
 package bldr.web.bundler.vite;
 
+import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
+
 // ViteVarType is the list of types of vite output variables.
 enum ViteVarType {
   // ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
@@ -11,12 +13,79 @@ enum ViteVarType {
   ViteVarType_WEB_BUNDLER_OUTPUT = 1;
 }
 
-// ViteEntrypoint is an entrypoint passed to Vite.
-message ViteEntrypoint {
-  // InputPath is the input file path.
-  string input_path = 1;
-  // OutputPath is the output file path, if any.
-  string output_path = 2;
+// ViteBundler is a service that runs Vite to compile web assets.
+service ViteBundler {
+  // Build runs the Vite compiler with the given configuration.
+  rpc Build(BuildRequest) returns (BuildResponse) {}
+}
 
-  // TODO vite.conf.ts, ...
+// WebPkgRef is a reference to a web package.
+message WebPkgRef {
+  // PkgId is the package identifier.
+  string pkg_id = 1;
+  // PkgRoot is the path to the root of the package.
+  string pkg_root = 2;
+  // SubPaths is the list of sub-paths within the package.
+  repeated string sub_paths = 3;
+}
+
+// BuildRequest is a request to build a Vite project.
+message BuildRequest {
+  // ConfigPaths is the path to the Vite configuration file(s) to merge together.
+  repeated string config_paths = 1;
+  // Mode is the build mode (development or production).
+  string mode = 2;
+  // RootDir is the root directory of the project.
+  string root_dir = 3;
+  // OutDir is the output directory for the build.
+  string out_dir = 4;
+  // CacheDir is the cache directory for the build.
+  string cache_dir = 5;
+  // DistDir is the bldr dist src directory for the build.
+  string dist_dir = 6;
+  // Entrypoints contains the list of entrypoints to build.
+  repeated EntrypointConfig entrypoints = 7;
+  // ExternalPkgs is the list of packages to pass to External provided by importmap.
+  repeated string external_pkgs = 8;
+  // WebPkgs is the list of packages to be externalized as shared web pkgs.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 9;
+}
+
+// EntrypointConfig defines a single entrypoint for Vite to build.
+message EntrypointConfig {
+  // InputPath is the path to the entrypoint file.
+  string input_path = 1;
+  // Name is the name to use for the output file.
+  // Must be unique in the set or an error will be thrown.
+  string name = 2;
+}
+
+// BuildResponse is the response from a Vite build.
+message BuildResponse {
+  // Success indicates if the build was successful.
+  bool success = 1;
+  // Error is the error message if the build failed.
+  string error = 2;
+  // EntrypointOutputs contains information about each entrypoint and its outputs.
+  repeated EntrypointOutput entrypoint_outputs = 3;
+  // InputFiles is the list of all input files that were processed.
+  //
+  // If success=false these are the files to watch for changes before retrying.
+  repeated string input_files = 4;
+  // GlobalCssFiles is the list of global CSS files that were generated.
+  repeated string global_css_files = 5;
+  // WebPkgRefs is the list of web packages that were referenced during the build.
+  repeated WebPkgRef web_pkg_refs = 6;
+}
+
+// EntrypointOutput contains information about an entrypoint and its outputs.
+message EntrypointOutput {
+  // Entrypoint is the path to the entrypoint file.
+  string entrypoint = 1;
+  // JsOutput is the path to the JavaScript output file.
+  string js_output = 2;
+  // CssOutputs is the list of CSS output files for this entrypoint.
+  repeated string css_outputs = 3;
+  // InputFiles is the list of input files for this entrypoint.
+  repeated string input_files = 4;
 }

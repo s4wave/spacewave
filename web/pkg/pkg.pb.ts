@@ -30,3 +30,60 @@ export const WebPkgInfo: MessageType<WebPkgInfo> = createMessageType({
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * WebPkgRef contains information about references to a web pkg.
+ *
+ * @generated from message web.pkg.WebPkgRef
+ */
+export interface WebPkgRef {
+  /**
+   * WebPkgId is the web pkg identifier.
+   *
+   * @generated from field: string web_pkg_id = 1;
+   */
+  webPkgId?: string
+  /**
+   * WebPkgRoot is the path to the web pkg root dir relative to project root.
+   *
+   * @generated from field: string web_pkg_root = 2;
+   */
+  webPkgRoot?: string
+  /**
+   * Imports is the list of paths that were imported from the web pkg.
+   *
+   * @generated from field: repeated string imports = 3;
+   */
+  imports?: string[]
+  /**
+   * CrossRefs is the list of other web pkgs that this pkg imports.
+   * NOTE: this is not filled unless ResolveWebPkgRefsEsbuild is called.
+   *
+   * @generated from field: repeated string cross_refs = 4;
+   */
+  crossRefs?: string[]
+}
+
+// WebPkgRef contains the message type declaration for WebPkgRef.
+export const WebPkgRef: MessageType<WebPkgRef> = createMessageType({
+  typeName: 'web.pkg.WebPkgRef',
+  fields: [
+    { no: 1, name: 'web_pkg_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'web_pkg_root', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 3,
+      name: 'imports',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 4,
+      name: 'cross_refs',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

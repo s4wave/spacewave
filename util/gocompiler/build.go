@@ -1,6 +1,7 @@
 package gocompiler
 
 import (
+	"context"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 // ExecBuildEntrypoint executes building an entrypoint main package.
 func ExecBuildEntrypoint(
+	ctx context.Context,
 	le *logrus.Entry,
 	buildPlatform bldr_platform.Platform,
 	buildType bldr_manifest.BuildType,
@@ -99,7 +101,7 @@ func ExecBuildEntrypoint(
 	args = append(args, ".")
 
 	// go build
-	ecmd := NewGoCompilerCmd(cmd, args...)
+	ecmd := NewGoCompilerCmd(ctx, cmd, args...)
 	ecmd.Dir = workingPath
 	if !useTinygo {
 		if enableCgo {
@@ -117,7 +119,7 @@ func ExecBuildEntrypoint(
 
 	// post-processing in release mode
 	if isWebBuildPlatform && isRelease {
-		if err := opt_wasm.OptimizeWasmBinary(le, workingPath, outBinPath); err != nil {
+		if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
 			return err
 		}
 	}

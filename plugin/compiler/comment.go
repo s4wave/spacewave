@@ -101,6 +101,7 @@ func FindTagComments[T any](
 // Returns a map of packages -> variable names -> result type.
 // processComments should parse the comments and return the result, a boolean indicating if the tag was found,
 // and any error. It can use the package's type system to reliably identify types.
+// This is a more advanced version of FindTagComments that integrates with Go's type system.
 func FindTagCommentsWithTypes[T any](
 	tag string,
 	analysis *Analysis,
@@ -220,6 +221,7 @@ func FindTagCommentsWithTypes[T any](
 // Returns the merged list of shell args.
 // Returns if the tag was found in any of the comments.
 // Ignores any comments without the prefix.
+// This allows for multi-line shell-style arguments in comments to be combined.
 func CombineShellComments(tag string, comments []string) ([]string, bool, error) {
 	var tagFound bool
 	var args []string

@@ -80,6 +80,48 @@ func (x *WebBundlerOutput) GetCssHref() string {
 	return ""
 }
 
+// WebPkgRefConfig configures a web pkg reference.
+type WebPkgRefConfig struct {
+	unknownFields []byte
+	// Id is the identifier of the web pkg.
+	// example: @aptre/flex-layout
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Exclude indicates we should reference this web pkg but exclude it from this bundle.
+	// This is useful if another plugin already provides this web pkg.
+	Exclude bool `protobuf:"varint,2,opt,name=exclude,proto3" json:"exclude,omitempty"`
+	// Imports is the list of imports to include in the web pkg bundle.
+	// NOTE: this will be merged with any imports the code accesses.
+	// NOTE: this is therefore optional.
+	Imports []string `protobuf:"bytes,3,rep,name=imports,proto3" json:"imports,omitempty"`
+}
+
+func (x *WebPkgRefConfig) Reset() {
+	*x = WebPkgRefConfig{}
+}
+
+func (*WebPkgRefConfig) ProtoMessage() {}
+
+func (x *WebPkgRefConfig) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *WebPkgRefConfig) GetExclude() bool {
+	if x != nil {
+		return x.Exclude
+	}
+	return false
+}
+
+func (x *WebPkgRefConfig) GetImports() []string {
+	if x != nil {
+		return x.Imports
+	}
+	return nil
+}
+
 func (m *WebEntrypoint) CloneVT() *WebEntrypoint {
 	if m == nil {
 		return (*WebEntrypoint)(nil)
@@ -113,6 +155,29 @@ func (m *WebBundlerOutput) CloneVT() *WebBundlerOutput {
 }
 
 func (m *WebBundlerOutput) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WebPkgRefConfig) CloneVT() *WebPkgRefConfig {
+	if m == nil {
+		return (*WebPkgRefConfig)(nil)
+	}
+	r := new(WebPkgRefConfig)
+	r.Id = m.Id
+	r.Exclude = m.Exclude
+	if rhs := m.Imports; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Imports = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *WebPkgRefConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -155,6 +220,37 @@ func (this *WebBundlerOutput) EqualVT(that *WebBundlerOutput) bool {
 
 func (this *WebBundlerOutput) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WebBundlerOutput)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *WebPkgRefConfig) EqualVT(that *WebPkgRefConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Exclude != that.Exclude {
+		return false
+	}
+	if len(this.Imports) != len(that.Imports) {
+		return false
+	}
+	for i, vx := range this.Imports {
+		vy := that.Imports[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WebPkgRefConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WebPkgRefConfig)
 	if !ok {
 		return false
 	}
@@ -261,6 +357,68 @@ func (x *WebBundlerOutput) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WebPkgRefConfig message to JSON.
+func (x *WebPkgRefConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Exclude || s.HasField("exclude") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exclude")
+		s.WriteBool(x.Exclude)
+	}
+	if len(x.Imports) > 0 || s.HasField("imports") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("imports")
+		s.WriteStringArray(x.Imports)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WebPkgRefConfig to JSON.
+func (x *WebPkgRefConfig) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebPkgRefConfig message from JSON.
+func (x *WebPkgRefConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "exclude":
+			s.AddField("exclude")
+			x.Exclude = s.ReadBool()
+		case "imports":
+			s.AddField("imports")
+			if s.ReadNil() {
+				x.Imports = nil
+				return
+			}
+			x.Imports = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WebPkgRefConfig from JSON.
+func (x *WebPkgRefConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WebEntrypoint) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -355,6 +513,65 @@ func (m *WebBundlerOutput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *WebPkgRefConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebPkgRefConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WebPkgRefConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Imports) > 0 {
+		for iNdEx := len(m.Imports) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Imports[iNdEx])
+			copy(dAtA[i:], m.Imports[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Imports[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.Exclude {
+		i--
+		if m.Exclude {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WebEntrypoint) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -386,6 +603,29 @@ func (m *WebBundlerOutput) SizeVT() (n int) {
 	l = len(m.CssHref)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WebPkgRefConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Exclude {
+		n += 2
+	}
+	if len(m.Imports) > 0 {
+		for _, s := range m.Imports {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -437,6 +677,43 @@ func (x *WebBundlerOutput) MarshalProtoText() string {
 }
 
 func (x *WebBundlerOutput) String() string {
+	return x.MarshalProtoText()
+}
+func (x *WebPkgRefConfig) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WebPkgRefConfig {")
+	if x.Id != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Exclude != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("exclude: ")
+		sb.WriteString(strconv.FormatBool(x.Exclude))
+	}
+	if len(x.Imports) > 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("imports: [")
+		for i, v := range x.Imports {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WebPkgRefConfig) String() string {
 	return x.MarshalProtoText()
 }
 func (m *WebEntrypoint) UnmarshalVT(dAtA []byte) error {
@@ -646,6 +923,141 @@ func (m *WebBundlerOutput) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.CssHref = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WebPkgRefConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WebPkgRefConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WebPkgRefConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exclude", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Exclude = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Imports", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Imports = append(m.Imports, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

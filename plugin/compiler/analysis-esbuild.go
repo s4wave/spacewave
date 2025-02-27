@@ -44,16 +44,11 @@ const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/web/bundler"
 // EsbuildOutputTypeName is the type name for EsbuildOutput
 const EsbuildOutputTypeName = "WebBundlerOutput"
 
-// isEsbuildOutputType checks if a type is an EsbuildOutput type
-func (a *Analysis) isEsbuildOutputType(t types.Type) bool {
-	return a.isTypeIdentical(t, a.esbuildOutputType)
-}
-
 // determineEsbuildVarType determines the variable type for an esbuild variable
 func (a *Analysis) determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, error) {
 	result, err := a.determineVarTypeWithReference(
 		obj,
-		a.esbuildOutputType,
+		a.webBundlerOutputType,
 		bldr_esbuild.EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH,
 		bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT,
 		"esbuild",

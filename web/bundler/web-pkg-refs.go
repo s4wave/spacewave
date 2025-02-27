@@ -1,4 +1,4 @@
-package bldr_plugin_compiler
+package bldr_web_bundler
 
 import (
 	"strings"
@@ -69,4 +69,55 @@ func SortWebPkgRefConfigs(refs []*WebPkgRefConfig) {
 	slices.SortStableFunc(refs, func(a, b *WebPkgRefConfig) int {
 		return strings.Compare(a.GetId(), b.GetId())
 	})
+}
+
+// CompactWebPkgRefConfigs compacts the list of ref configs by web pkg id.
+// Merges together entries with the same ID in-place.
+func CompactWebPkgRefConfigs(refs []*WebPkgRefConfig) []*WebPkgRefConfig {
+	if len(refs) <= 1 {
+		return refs
+	}
+
+	// Sort by ID first to ensure we process duplicates together
+	SortWebPkgRefConfigs(refs)
+
+	// Iterate through the sorted slice, merging duplicates
+	writeIdx := 0
+	for readIdx := range refs {
+		// Skip empty IDs
+		if refs[readIdx].GetId() == "" {
+			continue
+		}
+
+		// If this is the first element or has a different ID than the previous one
+		if writeIdx == 0 || refs[writeIdx-1].GetId() != refs[readIdx].GetId() {
+			// If we're not at the same position, copy the current element
+			if writeIdx != readIdx {
+				refs[writeIdx] = refs[readIdx]
+			}
+			writeIdx++
+		} else {
+			// Same ID as previous element, merge with it
+			prev := refs[writeIdx-1]
+			curr := refs[readIdx]
+
+			// Merge exclude flag
+			if curr.GetExclude() {
+				prev.Exclude = true
+			}
+
+			// Merge imports
+			for _, imp := range curr.GetImports() {
+				if !slices.Contains(prev.Imports, imp) {
+					prev.Imports = append(prev.Imports, imp)
+				}
+			}
+
+			// Sort imports for consistency
+			slices.Sort(prev.Imports)
+		}
+	}
+
+	// Return the compacted slice
+	return refs[:writeIdx]
 }

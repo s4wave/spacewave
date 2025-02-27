@@ -1,6 +1,7 @@
 package opt_wasm
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -10,7 +11,7 @@ import (
 )
 
 // OptimizeWasmBinary optimizes a .wasm binary using wasm-opt.
-func OptimizeWasmBinary(le *logrus.Entry, workingPath, outBinPath string) error {
+func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outBinPath string) error {
 	// track file size savings
 	preOptStat, err := os.Stat(outBinPath)
 	if err != nil {
@@ -39,6 +40,7 @@ func OptimizeWasmBinary(le *logrus.Entry, workingPath, outBinPath string) error 
 	// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
 	// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
 	ecmd := uexec.NewCmd(
+		ctx,
 		"wasm-opt",
 
 		// https://caniuse.com/?search=WebAssembly

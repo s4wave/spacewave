@@ -8,13 +8,13 @@ import (
 	"sync/atomic"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -39,6 +39,8 @@ type Controller struct {
 	manifestBuilders *keyed.KeyedRefCount[string, *manifestBuilderTracker]
 	// remotes is the set of keyed remote access controllers.
 	remotes *keyed.KeyedRefCount[string, *remoteTracker]
+	// startup manages the set of "start" plugins listed in the config.
+	startup *routine.StateRoutineContainer[*bldr_project.StartConfig]
 	// mtx guards writing below fields
 	mtx sync.Mutex
 	// conf is the current controller config
@@ -52,8 +54,11 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 		bus: bus,
 	}
 	ctrl.conf.Store(cc)
-	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newManifestBuilderTracker, le)
-	ctrl.remotes = keyed.NewKeyedRefCountWithLogger(ctrl.newRemoteTracker, le)
+	buildBackoff := cc.GetBuildBackoff()
+	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newManifestBuilderTracker, le, keyed.WithRetry[string, *manifestBuilderTracker](buildBackoff))
+	ctrl.remotes = keyed.NewKeyedRefCountWithLogger(ctrl.newRemoteTracker, le, keyed.WithRetry[string, *remoteTracker](buildBackoff))
+	ctrl.startup = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.StartConfig](le, routine.WithRetry(buildBackoff))
+	ctrl.startup.SetStateRoutine(ctrl.executeStartup)
 	return ctrl
 }
 
@@ -76,6 +81,9 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	if err := nextConf.Validate(); err != nil {
 		return err
 	}
+
+	// set startup config
+	c.startup.SetState(nextConf.GetStart())
 
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
@@ -325,22 +333,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.remotes.SetContext(ctx, true)
 
 	// load the startup plugins, if configured
-	conf := c.GetConfig()
-	projConf := conf.GetProjectConfig()
-	loadPluginIDs := projConf.GetStart().GetPlugins()
-	if conf.GetStart() && len(loadPluginIDs) != 0 {
-		for _, pluginID := range loadPluginIDs {
-			c.le.WithField("plugin-id", pluginID).Info("loading startup plugin")
-			_, plugRef, err := c.bus.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
-			if err != nil {
-				return err
-			}
-			defer plugRef.Release()
-		}
-
-		// wait for context cancel to release plugin refs
-		<-ctx.Done()
-	}
+	c.startup.SetContext(ctx, true)
+	c.startup.SetState(c.GetConfig().GetProjectConfig().GetStart())
 
 	return nil
 }
