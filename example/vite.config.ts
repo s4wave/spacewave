@@ -18,7 +18,5 @@ export default defineConfig({
       formats: ['es'],
     },
   },
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
 })

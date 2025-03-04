@@ -90,8 +90,6 @@
     "@libp2p/logger": "^5.1.11",
     "console": "^0.7.2",
     "electron": "^34.3.0",
-    "event-iterator": "^2.0.0",
-    "idb": "^8.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "starpc": "^0.37.0",

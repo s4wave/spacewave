@@ -1,16 +1,21 @@
 import path from 'path'
-import fs from 'fs'
 import { Plugin } from 'vite'
 import type { ResolveIdResult } from 'rollup'
 
+// List of file extensions that should be remapped to .mjs
+const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
+
 export interface WebPkgRemapPluginConfig {
-  webPkgIDs: string[] // List of packages that can be bundled as web pkgs
+  // List of packages that can be bundled as web pkgs
+  webPkgIDs: string[]
+  // Optional callback
   addWebPkgImport?: (
     webPkgID: string,
     webPkgRoot: string,
     webPkgSubPath: string,
-  ) => void // Optional callback
-  debug?: boolean // Enable debug logging
+  ) => void
+  // Enable debug logging
+  debug?: boolean
 }
 
 export function createWebPkgRemapPlugin(
@@ -18,19 +23,6 @@ export function createWebPkgRemapPlugin(
 ): Plugin {
   const WEB_PKG_PREFIX = '/b/pkg/' // Prefix for remapped external imports
   const debug = config.debug || false
-
-  // Helper function to find package root by walking up the directory tree
-  async function findPkgRoot(startPath: string): Promise<string | null> {
-    let currentDir = startPath
-    while (currentDir !== path.parse(currentDir).root) {
-      const pkgJsonPath = path.join(currentDir, 'package.json')
-      if (fs.existsSync(pkgJsonPath)) {
-        return currentDir
-      }
-      currentDir = path.dirname(currentDir)
-    }
-    return null
-  }
 
   return {
     name: 'bldr-pkg-resolve',
@@ -85,6 +77,11 @@ export function createWebPkgRemapPlugin(
         return null
       }
 
+      if (debug)
+        console.log(
+          `[bldr-pkg-resolve] Processing: ${pkgID}, subpath: ${subPath}`,
+        )
+
       // Resolve the full import path
       const resolvedImport = await this.resolve(importId, importer, {
         skipSelf: true,
@@ -99,37 +96,33 @@ export function createWebPkgRemapPlugin(
       const importPath = resolvedImport.id
       if (debug) console.log(`[bldr-pkg-resolve] Resolved path: ${importPath}`)
 
-      // Step 1: Try resolving package.json to find the package root
-      let pkgRoot: string | null = null
-      const pkgJsonResolve = await this.resolve(
-        `${pkgID}/package.json`,
-        importer,
-        {
-          skipSelf: true,
-          ...options,
-        },
-      )
-      if (pkgJsonResolve) {
-        pkgRoot = path.dirname(pkgJsonResolve.id)
+      // Infer package root from the resolved import path
+      let pkgRoot = path.dirname(importPath)
+      let relSubPath = subPath // Default to the parsed subpath
+
+      // Handle case with no subpath (e.g., package entry point)
+      if (!subPath) {
+        relSubPath = path.basename(importPath)
       } else {
-        // Step 2: Fallback to finding package.json by walking up from the import path
-        pkgRoot = await findPkgRoot(path.dirname(importPath))
-        if (!pkgRoot) {
+        // Verify the resolved path aligns with the expected package
+        const expectedPrefix = pkgID.replace(/^@/, '').replace(/\//g, '-')
+        if (!importPath.includes(expectedPrefix)) {
           if (debug)
             console.log(
-              `[bldr-pkg-resolve] Failed to find package root for: ${pkgID}`,
+              `[bldr-pkg-resolve] Resolved path does not match package: ${importPath}`,
             )
           return null
         }
+        relSubPath = path.relative(pkgRoot, importPath).replace(/\\/g, '/')
+        relSubPath = path.posix
+          .normalize(relSubPath)
+          .replace(/^(\.\/|\.|\/)/, '')
       }
 
-      if (debug) console.log(`[bldr-pkg-resolve] Package root: ${pkgRoot}`)
-
-      // Step 3: Compute the relative subpath from package root to import path
-      let relSubPath = path.relative(pkgRoot, importPath).replace(/\\/g, '/')
-      relSubPath = path.posix.normalize(relSubPath).replace(/^(\.\/|\.|\/)/, '')
       if (debug)
-        console.log(`[bldr-pkg-resolve] Relative subpath: ${relSubPath}`)
+        console.log(
+          `[bldr-pkg-resolve] Package root: ${pkgRoot}, Relative subpath: ${relSubPath}`,
+        )
 
       // Check if the import resolves outside the package
       if (relSubPath.startsWith('../')) {
@@ -138,17 +131,17 @@ export function createWebPkgRemapPlugin(
         this.error(errorMsg)
       }
 
-      // Step 4: Remap extension to .mjs if applicable
+      // Remap extension to .mjs if applicable
       let finalSubPath = relSubPath
       const ext = path.extname(relSubPath)
-      if (['.js', '.cjs', '.jsx', '.ts', '.tsx'].includes(ext)) {
+      if (JS_EXTENSIONS.includes(ext)) {
         finalSubPath =
           finalSubPath.substring(0, finalSubPath.length - ext.length) + '.mjs'
         if (debug)
           console.log(`[bldr-pkg-resolve] Remapped to: ${finalSubPath}`)
       }
 
-      // Step 5: Construct the remapped external path
+      // Construct the remapped external path
       const remappedPath = `${WEB_PKG_PREFIX}${pkgID}${finalSubPath ? '/' + finalSubPath : ''}`
       if (debug) console.log(`[bldr-pkg-resolve] Remapped to: ${remappedPath}`)
 
