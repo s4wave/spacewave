@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
-import { access } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { goTsResolver } from './go-ts-resolver.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -39,29 +39,6 @@ export default defineConfig({
   plugins: [
     react(),
     // This plugin fixes issues with resolving paths like @go/foo/bar/baz.js where baz.ts exists only.
-    {
-      name: 'go-ts-resolver',
-      async resolveId(source) {
-        // Handle only @go/ paths that end in .js
-        if (!source.startsWith('@go/') || !source.endsWith('.js')) {
-          return null
-        }
-
-        // Convert @go/ path to vendor path
-        const vendorPath = resolve(
-          bldrProjectRoot,
-          './vendor',
-          source.slice('@go/'.length),
-        )
-        const tsPath = vendorPath.replace(/\.js$/, '.ts')
-
-        try {
-          await access(tsPath)
-          return tsPath
-        } catch {
-          return null
-        }
-      },
-    },
+    goTsResolver(bldrProjectRoot),
   ],
 })

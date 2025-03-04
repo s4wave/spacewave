@@ -33,7 +33,7 @@ import (
 //go:embed web/bundler/vite/build.ts web/bundler/vite/run-build.ts
 //go:embed web/bundler/vite/vite.ts web/bundler/vite/plugin.ts
 //go:embed web/bundler/vite/vite.pb.ts web/bundler/vite/vite_srpc.pb.ts
-//go:embed web/bundler/vite/vite-base.config.ts
+//go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
 //go:embed util/pipesock/pipesock.ts
 //go:embed .vscode/launch.json
 //go:embed README.md tsconfig.json go.mod go.sum global.d.ts
