@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,7 +36,6 @@ export default defineConfig({
     },
   },
   plugins: [
-    react(),
     // This plugin fixes issues with resolving paths like @go/foo/bar/baz.js where baz.ts exists only.
     goTsResolver(bldrProjectRoot),
   ],
