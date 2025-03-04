@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
+	"slices"
 )
 
 // HashFileWithBlake3 hashes a file using blake3 and returns the first 8 characters of the base32-encoded hash.
@@ -29,7 +30,7 @@ func HashFileWithBlake3(filePath string) (string, error) {
 
 	// Get the hash and encode it
 	hash := hasher.Sum(nil)
-	hashStr := strings.ToLower(base32.StdEncoding.EncodeToString(hash)[:8])
+	hashStr := base32.StdEncoding.EncodeToString(hash)[:8]
 	return hashStr, nil
 }
 
@@ -54,7 +55,7 @@ func UpdateSourceMapReference(filePath, newMapFilename string) error {
 	lines := strings.Split(string(content), "\n")
 	for i, line := range lines {
 		if strings.HasPrefix(strings.TrimSpace(line), "//# sourceMappingURL=") {
-			lines = append(lines[:i], lines[i+1:]...)
+			lines = slices.Delete(lines, i, i+1)
 			break
 		}
 	}
