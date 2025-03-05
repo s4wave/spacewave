@@ -9,9 +9,10 @@ import { BuildRequest, BuildResponse } from './vite.pb.js'
 import { buildAndAnalyze, buildConfig, isRollupError } from './build.js'
 import { LibraryOptions } from 'vite'
 import { createWebPkgRemapPlugin } from './plugin.js'
+import fs from 'fs'
 
 // verboseDebug is the verbose debugging flag
-const verboseDebug = false
+const verboseDebug = true
 
 // Parse command line arguments
 function parseArgs() {
@@ -53,8 +54,10 @@ class ViteBundlerService implements ViteBundler {
         new Map()
 
       // set env vars to indicate the project root path
+      // these are used in vite-base.config.ts
       process.env['BLDR_DIST_ROOT'] = distDir
       process.env['BLDR_PROJECT_ROOT'] = rootDir
+      process.env['BLDR_OUT_ROOT'] = outDir
 
       // Build the merged configuration
       const mergedConfig = await buildConfig(
@@ -182,7 +185,22 @@ class ViteBundlerService implements ViteBundler {
       }
       if (verboseDebug) {
         console.log(`[vite] build result: ${JSON.stringify(result)}`)
+
+        // Write all JSON files just before returning
+        fs.writeFileSync(
+          path.join(outDir, 'vite-config.json'),
+          JSON.stringify(mergedConfig, null, 2),
+        )
+        fs.writeFileSync(
+          path.join(outDir, 'vite-analysis.json'),
+          JSON.stringify(analysis, null, 2),
+        )
+        fs.writeFileSync(
+          path.join(outDir, 'vite-result.json'),
+          JSON.stringify(result, null, 2),
+        )
       }
+
       return result
     } catch (err) {
       console.error(`[vite] build error:`, err)
