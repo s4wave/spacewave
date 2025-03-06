@@ -607,6 +607,8 @@ type ViteEntrypointVar struct {
 	// EntrypointPath is the specific entrypoint path for this variable.
 	// If empty, PkgCodePath is used as the entrypoint.
 	EntrypointPath string `protobuf:"bytes,6,opt,name=entrypoint_path,json=entrypointPath,proto3" json:"entrypointPath,omitempty"`
+	// DisableProjectConfig disables searching for the vite.config.ts in the project root.
+	DisableProjectConfig bool `protobuf:"varint,7,opt,name=disable_project_config,json=disableProjectConfig,proto3" json:"disableProjectConfig,omitempty"`
 }
 
 func (x *ViteEntrypointVar) Reset() {
@@ -655,6 +657,13 @@ func (x *ViteEntrypointVar) GetEntrypointPath() string {
 		return x.EntrypointPath
 	}
 	return ""
+}
+
+func (x *ViteEntrypointVar) GetDisableProjectConfig() bool {
+	if x != nil {
+		return x.DisableProjectConfig
+	}
+	return false
 }
 
 type Config_ConfigSetEntry struct {
@@ -1079,6 +1088,7 @@ func (m *ViteEntrypointVar) CloneVT() *ViteEntrypointVar {
 	r.PkgCodePath = m.PkgCodePath
 	r.PkgVarType = m.PkgVarType
 	r.EntrypointPath = m.EntrypointPath
+	r.DisableProjectConfig = m.DisableProjectConfig
 	if rhs := m.ViteConfigPaths; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1606,6 +1616,9 @@ func (this *ViteEntrypointVar) EqualVT(that *ViteEntrypointVar) bool {
 		}
 	}
 	if this.EntrypointPath != that.EntrypointPath {
+		return false
+	}
+	if this.DisableProjectConfig != that.DisableProjectConfig {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2852,6 +2865,11 @@ func (x *ViteEntrypointVar) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("entrypointPath")
 		s.WriteString(x.EntrypointPath)
 	}
+	if x.DisableProjectConfig || s.HasField("disableProjectConfig") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disableProjectConfig")
+		s.WriteBool(x.DisableProjectConfig)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2891,6 +2909,9 @@ func (x *ViteEntrypointVar) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "entrypoint_path", "entrypointPath":
 			s.AddField("entrypoint_path")
 			x.EntrypointPath = s.ReadString()
+		case "disable_project_config", "disableProjectConfig":
+			s.AddField("disable_project_config")
+			x.DisableProjectConfig = s.ReadBool()
 		}
 	})
 }
@@ -3629,6 +3650,16 @@ func (m *ViteEntrypointVar) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.DisableProjectConfig {
+		i--
+		if m.DisableProjectConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
 	if len(m.EntrypointPath) > 0 {
 		i -= len(m.EntrypointPath)
 		copy(dAtA[i:], m.EntrypointPath)
@@ -4017,6 +4048,9 @@ func (m *ViteEntrypointVar) SizeVT() (n int) {
 	l = len(m.EntrypointPath)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.DisableProjectConfig {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4685,6 +4719,13 @@ func (x *ViteEntrypointVar) MarshalProtoText() string {
 		}
 		sb.WriteString("entrypoint_path: ")
 		sb.WriteString(strconv.Quote(x.EntrypointPath))
+	}
+	if x.DisableProjectConfig != false {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("disable_project_config: ")
+		sb.WriteString(strconv.FormatBool(x.DisableProjectConfig))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -7045,6 +7086,26 @@ func (m *ViteEntrypointVar) UnmarshalVT(dAtA []byte) error {
 			}
 			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableProjectConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableProjectConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

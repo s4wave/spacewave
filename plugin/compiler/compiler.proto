@@ -231,4 +231,6 @@ message ViteEntrypointVar {
   // EntrypointPath is the specific entrypoint path for this variable.
   // If empty, PkgCodePath is used as the entrypoint.
   string entrypoint_path = 6;
+  // DisableProjectConfig disables searching for the vite.config.ts in the project root.
+  bool disable_project_config = 7;
 }

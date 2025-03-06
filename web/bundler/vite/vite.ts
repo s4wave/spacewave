@@ -12,7 +12,7 @@ import { createWebPkgRemapPlugin } from './plugin.js'
 import fs from 'fs'
 
 // verboseDebug is the verbose debugging flag
-const verboseDebug = true
+const verboseDebug = false
 
 // Parse command line arguments
 function parseArgs() {

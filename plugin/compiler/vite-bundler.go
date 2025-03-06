@@ -217,12 +217,13 @@ func BuildViteBundleMeta(
 			bundleID := pkgViteDirective.BundleID
 			bundleDef := getBundle(bundleID)
 			bundleDef.EntrypointVars = append(bundleDef.EntrypointVars, &ViteEntrypointVar{
-				PkgImportPath:   pkgImportPath,
-				PkgVar:          pkgVar,
-				PkgVarType:      pkgViteDirective.ViteVarType,
-				PkgCodePath:     relPkgCodePath,
-				ViteConfigPaths: pkgViteDirective.ViteConfigPaths,
-				EntrypointPath:  pkgViteDirective.EntrypointPath,
+				PkgImportPath:        pkgImportPath,
+				PkgVar:               pkgVar,
+				PkgVarType:           pkgViteDirective.ViteVarType,
+				PkgCodePath:          relPkgCodePath,
+				ViteConfigPaths:      pkgViteDirective.ViteConfigPaths,
+				EntrypointPath:       pkgViteDirective.EntrypointPath,
+				DisableProjectConfig: pkgViteDirective.DisableProjectConfig,
 			})
 		}
 	}
@@ -242,6 +243,16 @@ func (m *ViteBundleMeta) SortEntrypointVars() {
 		sb := b.GetPkgImportPath() + "." + b.GetPkgVar()
 		return strings.Compare(sa, sb)
 	})
+}
+
+// HasDisableProjectConfig returns true if any entrypoint variable has DisableProjectConfig set.
+func (m *ViteBundleMeta) HasDisableProjectConfig() bool {
+	for _, v := range m.EntrypointVars {
+		if v.GetDisableProjectConfig() {
+			return true
+		}
+	}
+	return false
 }
 
 // BuildViteBundle builds a Vite bundle with the given bundle args.
@@ -290,6 +301,31 @@ func BuildViteBundle(
 		}
 		if err != nil {
 			return nil, nil, nil, nil, errors.Wrapf(err, "invalid vite config path: %v", configPath)
+		}
+	}
+
+	// Check if we need to look for project config files
+	disableProjectConfig := viteBundleMeta.HasDisableProjectConfig()
+
+	// If project config is not disabled, look for vite.config.{js,ts,cjs,mjs} in the code root
+	if !disableProjectConfig {
+		possibleConfigExtensions := []string{".ts", ".js", ".cjs", ".mjs"}
+		for _, ext := range possibleConfigExtensions {
+			configPath := filepath.Join(codeRootPath, "vite.config"+ext)
+			if _, err := os.Stat(configPath); err != nil {
+				if os.IsNotExist(err) {
+					continue
+				}
+				return nil, nil, nil, nil, errors.Wrapf(err, "error reading vite config at: %v", configPath)
+			}
+
+			// Found a config file, add it to the list
+			relConfigPath, err := filepath.Rel(codeRootPath, configPath)
+			if err != nil {
+				return nil, nil, nil, nil, errors.Wrapf(err, "failed to get relative path for project config: %v", configPath)
+			}
+			le.Debugf("found project vite config: %s", relConfigPath)
+			viteConfigPaths = append(viteConfigPaths, relConfigPath)
 		}
 	}
 

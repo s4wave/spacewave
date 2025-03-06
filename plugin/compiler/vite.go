@@ -25,6 +25,9 @@ const ViteBundleIDFlag = "--bundle-id="
 // ViteConfigFlag is the flag for vite config paths.
 const ViteConfigFlag = "--config="
 
+// ViteDisableProjectConfigFlag is the flag to disable automatic project config detection.
+const ViteDisableProjectConfigFlag = "--disable-project-config"
+
 // ViteDirective are arguments parsed from a bldr:vite directive.
 type ViteDirective struct {
 	// BundleID is the bundle identifier to use for vite.
@@ -38,6 +41,8 @@ type ViteDirective struct {
 	EntrypointPath string
 	// ViteVarType is the type of vite output variable we are using.
 	ViteVarType bldr_vite.ViteVarType
+	// DisableProjectConfig indicates whether to disable automatic project config detection.
+	DisableProjectConfig bool
 }
 
 // TrimViteDirective trims the bldr:vite prefix from a string.
@@ -67,35 +72,51 @@ func (a *Analysis) determineViteVarType(obj types.Object) (bldr_vite.ViteVarType
 	return result.(bldr_vite.ViteVarType), nil
 }
 
-// parseViteArgs parses vite directive arguments to extract bundle ID, config paths, and entrypoint path
-// Only one positional argument is allowed as the entrypoint path
-func parseViteArgs(args []string) (bundleID string, viteConfigPaths []string, entrypointPath string, err error) {
-	bundleID = DefaultViteBundleID
-	var configPaths []string
+// ViteDirectiveArgs contains the parsed arguments from a vite directive.
+type ViteDirectiveArgs struct {
+	// BundleID is the bundle identifier to use for vite.
+	BundleID string
+	// ViteConfigPaths are the vite config paths options.
+	ViteConfigPaths []string
+	// EntrypointPath is the entrypoint path for vite.
+	EntrypointPath string
+	// DisableProjectConfig indicates whether to disable automatic project config detection.
+	DisableProjectConfig bool
+}
+
+// ParseViteDirectiveArgs parses vite directive arguments to extract bundle ID, config paths, entrypoint path,
+// and whether to disable project config detection.
+// Only one positional argument is allowed as the entrypoint path.
+func ParseViteDirectiveArgs(args []string) (ViteDirectiveArgs, error) {
+	result := ViteDirectiveArgs{
+		BundleID: DefaultViteBundleID,
+	}
 	var foundEntrypoint bool
 
 	for _, arg := range args {
 		if strings.HasPrefix(arg, ViteBundleIDFlag) {
 			value := arg[len(ViteBundleIDFlag):]
 			if len(value) != 0 {
-				bundleID = value
+				result.BundleID = value
 			}
 		} else if strings.HasPrefix(arg, ViteConfigFlag) {
 			value := arg[len(ViteConfigFlag):]
 			if len(value) != 0 {
-				configPaths = append(configPaths, value)
+				result.ViteConfigPaths = append(result.ViteConfigPaths, value)
 			}
+		} else if arg == ViteDisableProjectConfigFlag {
+			result.DisableProjectConfig = true
 		} else {
 			// Any argument that doesn't start with a flag is considered an entrypoint path
 			if foundEntrypoint {
-				return "", nil, "", errors.New("only one entrypoint path is allowed")
+				return ViteDirectiveArgs{}, errors.New("only one entrypoint path is allowed")
 			}
-			entrypointPath = arg
+			result.EntrypointPath = arg
 			foundEntrypoint = true
 		}
 	}
 
-	return bundleID, configPaths, entrypointPath, nil
+	return result, nil
 }
 
 // FindViteVariables searches for bldr:vite comments.
@@ -111,8 +132,8 @@ func (a *Analysis) FindViteVariables(codeFiles map[string][]*ast.File) (map[stri
 				return nil, found, err
 			}
 
-			// Determine bundle ID, config paths, and entrypoint path from the args
-			bundleID, viteConfigPaths, entrypointPath, err := parseViteArgs(args)
+			// Parse the arguments into a structured result
+			argsResult, err := ParseViteDirectiveArgs(args)
 			if err != nil {
 				return nil, true, err
 			}
@@ -124,10 +145,11 @@ func (a *Analysis) FindViteVariables(codeFiles map[string][]*ast.File) (map[stri
 			}
 
 			return &ViteDirective{
-				BundleID:        bundleID,
-				ViteConfigPaths: viteConfigPaths,
-				EntrypointPath:  entrypointPath,
-				ViteVarType:     varType,
+				BundleID:             argsResult.BundleID,
+				ViteConfigPaths:      argsResult.ViteConfigPaths,
+				EntrypointPath:       argsResult.EntrypointPath,
+				ViteVarType:          varType,
+				DisableProjectConfig: argsResult.DisableProjectConfig,
 			}, true, nil
 		},
 	)

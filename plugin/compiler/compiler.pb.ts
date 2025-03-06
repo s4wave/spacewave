@@ -526,6 +526,12 @@ export interface ViteEntrypointVar {
    * @generated from field: string entrypoint_path = 6;
    */
   entrypointPath?: string
+  /**
+   * DisableProjectConfig disables searching for the vite.config.ts in the project root.
+   *
+   * @generated from field: bool disable_project_config = 7;
+   */
+  disableProjectConfig?: boolean
 }
 
 // ViteEntrypointVar contains the message type declaration for ViteEntrypointVar.
@@ -545,6 +551,12 @@ export const ViteEntrypointVar: MessageType<ViteEntrypointVar> =
         repeated: true,
       },
       { no: 6, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'disable_project_config',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

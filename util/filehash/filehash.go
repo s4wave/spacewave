@@ -6,11 +6,11 @@ import (
 	"encoding/base32"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
-	"slices"
 )
 
 // HashFileWithBlake3 hashes a file using blake3 and returns the first 8 characters of the base32-encoded hash.
