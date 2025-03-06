@@ -59,6 +59,9 @@ class ViteBundlerService implements ViteBundler {
       process.env['BLDR_PROJECT_ROOT'] = rootDir
       process.env['BLDR_OUT_ROOT'] = outDir
 
+      // set node env
+      process.env['NODE_ENV'] = mode
+
       // Build the merged configuration
       const mergedConfig = await buildConfig(
         { mode, command: 'build' },
