@@ -35,12 +35,6 @@ export function createWebPkgRemapPlugin(
         return null
       }
 
-      if (debug) {
-        console.log(
-          `[bldr-pkg-resolve] Resolving: ${importId} from ${importer}`,
-        )
-      }
-
       // Parse package ID and subpath from import
       const normalizedImportId = importId.trim().replace(/^\//, '')
       if (normalizedImportId.length === 0) return null
@@ -73,7 +67,6 @@ export function createWebPkgRemapPlugin(
       const pkgNameRegex =
         /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/
       if (!pkgNameRegex.test(pkgID) || !config.webPkgIDs.includes(pkgID)) {
-        if (debug) console.log(`[bldr-pkg-resolve] Skipping: ${pkgID}`)
         return null
       }
 

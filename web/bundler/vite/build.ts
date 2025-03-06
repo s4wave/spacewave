@@ -81,7 +81,8 @@ export function analyzeOutput(rollupOutput: BuildOutput) {
       }
 
       // Add referenced files for this chunk
-      ;(chunk.referencedFiles || []).forEach((file) => {
+      ;(chunk.moduleIds || []).forEach((file) => {
+        // file = absolute path to the file
         if (file) inputFiles.add(file)
       })
 
@@ -152,10 +153,18 @@ export async function buildAndAnalyze(config: UserConfig) {
   // drop some unnecessary detail from the result(s)
   for (const chunk of outputChunks) {
     if (chunk.type === 'chunk') {
+      // the source code, too much info
       delete chunk['code']
-      delete chunk['modules']
+      // sourcemap
       delete chunk['map']
-      delete chunk['moduleIds']
+
+      // list of modules that were bundled (source files)
+      delete chunk['modules']
+      // list of keys in the modules map
+      // we need this to determine the input files
+      // delete chunk['moduleIds']
+
+      // could be useful to know which variables were imported from each module
       delete chunk['importedBindings']
     }
     if (chunk.type === 'asset') {
@@ -164,6 +173,7 @@ export async function buildAndAnalyze(config: UserConfig) {
   }
 
   return {
+    viteOutput,
     outputChunks,
     analysis: analyzeOutput(outputChunks),
   }

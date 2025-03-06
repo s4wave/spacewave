@@ -1082,13 +1082,6 @@ func (c *Controller) FastRebuildPlugin(
 	// sort the web pkg refs
 	web_pkg.SortWebPkgRefs(updatedWebPkgRefs)
 
-	// compare the web pkg refs to see if they changed.
-	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
-	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
-		le.Info("references to web pkgs changed: forcing a full re-build")
-		return nil, nil
-	}
-
 	// Process Vite bundles
 	viteBundleMeta := inputMeta.GetViteBundles()
 	bundleIDs = maps.Keys(viteBundleMeta)
@@ -1210,6 +1203,13 @@ func (c *Controller) FastRebuildPlugin(
 				le.Debugf("removed old output: %s", oldOutputPath)
 			}
 		}
+	}
+
+	// compare the web pkg refs to see if they changed.
+	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
+	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
+		le.Info("references to web pkgs changed: forcing a full re-build")
+		return nil, nil
 	}
 
 	// build the updated input manifest

@@ -1,4 +1,5 @@
 import path, { resolve } from 'path'
+import fs from 'fs'
 import { Server, StreamConn, createHandler, createMux } from 'starpc'
 import {
   buildPipeName,
@@ -9,7 +10,6 @@ import { BuildRequest, BuildResponse } from './vite.pb.js'
 import { buildAndAnalyze, buildConfig, isRollupError } from './build.js'
 import { LibraryOptions } from 'vite'
 import { createWebPkgRemapPlugin } from './plugin.js'
-import fs from 'fs'
 
 // verboseDebug is the verbose debugging flag
 const verboseDebug = false
@@ -142,17 +142,8 @@ class ViteBundlerService implements ViteBundler {
         }
       }
 
-      // Log the merged config
-      if (verboseDebug) {
-        console.log(`[vite] build config: ${JSON.stringify(mergedConfig)}`)
-      }
-
       // Run the build process with the merged config
-      const { analysis } = await buildAndAnalyze(mergedConfig)
-
-      if (verboseDebug) {
-        console.log(`[vite] build analysis: ${JSON.stringify(analysis)}`)
-      }
+      const { analysis, viteOutput } = await buildAndAnalyze(mergedConfig)
 
       // Map the analysis results to the response format and make paths relative to rootDir
       const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
@@ -186,13 +177,16 @@ class ViteBundlerService implements ViteBundler {
           subPaths: Array.from(entry.subPaths),
         })),
       }
-      if (verboseDebug) {
-        console.log(`[vite] build result: ${JSON.stringify(result)}`)
 
+      if (verboseDebug) {
         // Write all JSON files just before returning
         fs.writeFileSync(
           path.join(outDir, 'vite-config.json'),
           JSON.stringify(mergedConfig, null, 2),
+        )
+        fs.writeFileSync(
+          path.join(outDir, 'vite-output.json'),
+          JSON.stringify(viteOutput, null, 2),
         )
         fs.writeFileSync(
           path.join(outDir, 'vite-analysis.json'),
