@@ -37,6 +37,8 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	optPathRel := filepath.Join(outBinDirRel, optFilename)
 	optPath := filepath.Join(workingPath, optPathRel)
 
+	// TODO: tinygo already runs wasm-opt for the asyncify pass. don't run it twice?
+
 	// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
 	// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
 	ecmd := uexec.NewCmd(

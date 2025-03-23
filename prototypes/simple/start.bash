@@ -11,4 +11,4 @@ npm run go:run -- \
     --state-path ./prototypes/simple/.bldr \
     -c ./prototypes/simple/bldr.yaml \
     start \
-    native
+    web --wasm
