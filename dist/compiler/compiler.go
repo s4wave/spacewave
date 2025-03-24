@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -99,6 +100,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *manifest_builder.BuildManifestArgs,
+	host bldr_manifest_builder.BuildManifestHost,
 ) (*manifest_builder.BuilderResult, error) {
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()

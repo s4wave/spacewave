@@ -62,6 +62,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
+	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
@@ -110,7 +111,7 @@ func (c *Controller) BuildManifest(
 	}
 
 	// build the manifest
-	return pluginCompilerCtrl.BuildManifest(ctx, args)
+	return pluginCompilerCtrl.BuildManifest(ctx, args, host)
 }
 
 // GetElectronApplicable returns if electron should be bundled for this platform.

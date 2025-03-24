@@ -5,8 +5,10 @@ import (
 	"path"
 	"strings"
 
+	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/util/promise"
 	"golang.org/x/exp/slices"
 )
 
@@ -30,7 +32,22 @@ type Controller interface {
 	BuildManifest(
 		ctx context.Context,
 		args *BuildManifestArgs,
+		host BuildManifestHost,
 	) (*BuilderResult, error)
+}
+
+// BuildManifestHost is the host API available to a BuildManifest routine.
+type BuildManifestHost interface {
+	// BuildSubManifest builds a sub-manifest and returns a compilation promise.
+	//
+	// subManifestID must be a valid manifest-id.
+	// in development mode the compiler will watch for changes to the sub-manifest.
+	// once a value is returned from the Promise any change to the sub-manifest will restart parent BuildManifest attempt.
+	BuildSubManifest(
+		ctx context.Context,
+		subManifestID string,
+		subManifestConfig *bldr_project.ManifestConfig,
+	) (promise.PromiseLike[*BuilderResult], error)
 }
 
 // NewInputManifest constructs a new input manifest with a list of files.

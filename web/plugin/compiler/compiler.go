@@ -75,6 +75,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
+	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
 	pluginCompilerConf, err := c.GetConfig().ToPluginCompilerConf()
 	if err != nil {
@@ -106,7 +107,7 @@ func (c *Controller) BuildManifest(
 	pluginCompilerCtrl.AddPreBuildHook(c.BundleElectronHook)
 
 	// build the manifest
-	return pluginCompilerCtrl.BuildManifest(ctx, args)
+	return pluginCompilerCtrl.BuildManifest(ctx, args, host)
 }
 
 // BundleElectronHook bundles electron.

@@ -149,8 +149,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 			PrevBuilderResult: prevResult,
 			ChangedFiles:      changedFiles,
 		}
+
+		builderHost := &buildManifestHost{
+			// TODO
+		}
+
 		changedFiles = nil
-		result, err := builderCtrl.BuildManifest(ctx, args)
+		result, err := builderCtrl.BuildManifest(ctx, args, builderHost)
 		resultPromise.SetResult(result, err)
 		if err == nil {
 			prevResult = result

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
@@ -170,6 +171,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *manifest_builder.BuildManifestArgs,
+	host bldr_manifest_builder.BuildManifestHost,
 ) (*manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
