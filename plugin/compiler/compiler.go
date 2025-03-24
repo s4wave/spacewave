@@ -512,7 +512,7 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
-		// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+		// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
 		if len(webPkgs) != 0 {
 			// NOTE: add the actual config later after we build the web pkgs
 			addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg")

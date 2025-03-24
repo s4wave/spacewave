@@ -153,7 +153,7 @@ type Config struct {
 	ViteConfigPaths []string `protobuf:"bytes,15,rep,name=vite_config_paths,json=viteConfigPaths,proto3" json:"viteConfigPaths,omitempty"`
 	// WebPluginId sets the plugin id for the web plugin.
 	// If set, the compiler automatically adds these controllers to the config set:
-	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds
+	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
 	// - handle-web-view-rpc: handle incoming RPCs for web-view
 	// - handle-web-view-server: handle incoming RPCs for HandleWebView
 	// - handle-web-view: handle web views via HandleWebView
