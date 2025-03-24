@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
-	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	bldr_plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	bldr_web_plugin_controller "github.com/aperturerobotics/bldr/web/plugin/controller"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -60,8 +60,8 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 }
 
 // ToPluginCompilerConf converts the Config to a PluginCompilerConf.
-func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler.Config, error) {
-	pluginCompilerConf := bldr_plugin_compiler.NewConfig()
+func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler_go.Config, error) {
+	pluginCompilerConf := bldr_plugin_compiler_go.NewConfig()
 	pluginCompilerConf.ProjectId = c.GetProjectId()
 	pluginCompilerConf.GoPkgs = []string{
 		basePkg + "/web/plugin/controller",

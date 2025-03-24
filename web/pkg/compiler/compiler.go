@@ -9,7 +9,7 @@ import (
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_plugin_handle_web_pkg "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -72,7 +72,7 @@ func (c *Controller) BuildManifest(
 	}
 	pluginID := strings.TrimSpace(meta.GetManifestId())
 
-	pluginCompilerConf := plugin_compiler.NewConfig()
+	pluginCompilerConf := plugin_compiler_go.NewConfig()
 	pluginCompilerConf.ProjectId = conf.GetProjectId()
 	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
@@ -105,7 +105,7 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
-	pluginCompilerCtrl, err := plugin_compiler.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
+	pluginCompilerCtrl, err := plugin_compiler_go.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {
 		return nil, err
 	}

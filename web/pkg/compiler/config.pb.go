@@ -10,7 +10,7 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	_ "github.com/aperturerobotics/bldr/plugin/compiler"
+	_ "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	bundler "github.com/aperturerobotics/bldr/web/bundler"
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"

@@ -21,7 +21,7 @@ start:
 plugins:
   web:
   my-project:
-    id: bldr/plugin/compiler
+    id: bldr/plugin/compiler/go
     config:
       # delveAddr: wait
       goPkgs: [...]

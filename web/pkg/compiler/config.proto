@@ -2,7 +2,7 @@ syntax = "proto3";
 package bldr.web.pkg.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
-import "github.com/aperturerobotics/bldr/plugin/compiler/compiler.proto";
+import "github.com/aperturerobotics/bldr/plugin/compiler/go/compiler.proto";
 import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 
 // Config configures the web package builder.

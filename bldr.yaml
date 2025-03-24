@@ -80,7 +80,7 @@ manifests:
 
   bldr-demo:
     builder:
-      id: bldr/plugin/compiler
+      id: bldr/plugin/compiler/go
       rev: 2
       config:
         # delveAddr: wait

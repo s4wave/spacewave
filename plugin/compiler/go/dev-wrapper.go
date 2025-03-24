@@ -1,4 +1,4 @@
-package bldr_plugin_compiler
+package bldr_plugin_compiler_go
 
 import (
 	"embed"

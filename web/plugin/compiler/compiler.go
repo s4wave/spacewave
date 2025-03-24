@@ -13,7 +13,7 @@ import (
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
+	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	"github.com/aperturerobotics/bldr/util/npm"
 	entrypoint_electron_bundle "github.com/aperturerobotics/bldr/web/entrypoint/electron/bundle"
 	web_plugin_browser_build "github.com/aperturerobotics/bldr/web/plugin/browser/build"
@@ -98,7 +98,7 @@ func (c *Controller) BuildManifest(
 		return c.buildBrowserShimManifest(ctx, args)
 	}
 
-	pluginCompilerCtrl, err := plugin_compiler.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
+	pluginCompilerCtrl, err := plugin_compiler_go.NewController(c.GetLogger(), c.GetBus(), pluginCompilerConf)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (c *Controller) BundleElectronHook(
 	ctx context.Context,
 	builderConf *manifest_builder.BuilderConfig,
 	worldEng world.Engine,
-) (*plugin_compiler.PreBuildHookResult, error) {
+) (*plugin_compiler_go.PreBuildHookResult, error) {
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
@@ -225,8 +225,8 @@ func (c *Controller) BundleElectronHook(
 	}
 
 	// return result
-	return &plugin_compiler.PreBuildHookResult{
-		Config: &plugin_compiler.Config{
+	return &plugin_compiler_go.PreBuildHookResult{
+		Config: &plugin_compiler_go.Config{
 			ConfigSet: map[string]*configset_proto.ControllerConfig{
 				"electron": electronCtrlConf,
 			},
@@ -309,6 +309,6 @@ func (c *Controller) buildBrowserShimManifest(
 
 // _ is a type assertion
 var (
-	_ plugin_compiler.PreBuildHook = ((*Controller)(nil)).BundleElectronHook
-	_ manifest_builder.Controller  = ((*Controller)(nil))
+	_ plugin_compiler_go.PreBuildHook = ((*Controller)(nil)).BundleElectronHook
+	_ manifest_builder.Controller     = ((*Controller)(nil))
 )

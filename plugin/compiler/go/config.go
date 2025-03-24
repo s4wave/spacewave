@@ -1,4 +1,4 @@
-package bldr_plugin_compiler
+package bldr_plugin_compiler_go
 
 import (
 	"strings"
@@ -18,7 +18,7 @@ import (
 )
 
 // ConfigID is the config identifier.
-const ConfigID = "bldr/plugin/compiler"
+const ConfigID = "bldr/plugin/compiler/go"
 
 // NewConfig constructs a new config.
 func NewConfig() *Config {

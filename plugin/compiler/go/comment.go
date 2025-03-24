@@ -1,6 +1,6 @@
 //go:build !js
 
-package bldr_plugin_compiler
+package bldr_plugin_compiler_go
 
 import (
 	"go/ast"
