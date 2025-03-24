@@ -219,7 +219,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		ctrlConf.GetWatch(),
 	)
 
-	ctrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(
+	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*manifest_builder_controller.Controller](
 		ctx,
 		t.c.bus,
 		resolver.NewLoadControllerWithConfig(builderConf),
@@ -230,13 +230,6 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		return err
 	}
 	defer ctrlRef.Release()
-
-	builderCtrl, ok := ctrlInter.(*manifest_builder_controller.Controller)
-	if !ok {
-		err := errors.New("unexpected controller type for plugin builder controller")
-		t.resultPromiseCtr.SetResult(nil, err)
-		return err
-	}
 
 	for {
 		resultPromiseCtr := builderCtrl.GetResultPromise()

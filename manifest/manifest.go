@@ -89,6 +89,13 @@ func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
 	return strings.Join(manifestKeyPts, "/")
 }
 
+// NewSubManifestKey builds a key for a manifest built as a sub-manifest of a manifest.
+//
+// It is assumed that the sub-manifest has the same platform as the parent manifest.
+func NewSubManifestKey(parentObjKey string, subManifestID string) string {
+	return strings.Join([]string{parentObjKey, "sub-manifest", subManifestID}, "/")
+}
+
 // UnmarshalManifest unmarshals a Manifest block from the cursor.
 func UnmarshalManifest(ctx context.Context, bcs *block.Cursor) (*Manifest, error) {
 	return block.UnmarshalBlock[*Manifest](ctx, bcs, NewManifestBlock)

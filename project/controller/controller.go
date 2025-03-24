@@ -182,15 +182,6 @@ func (c *Controller) BuildManifests(
 	ctx context.Context,
 	manifestBuilderConfigs []*ManifestBuilderConfig,
 ) ([]*bldr_manifest.ManifestRef, []string, error) {
-	// add reference to the remote
-	/*
-		remoteEng, remoteRef, err := c.WaitRemote(ctx, remoteID)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer remoteRef.Release()
-	*/
-
 	// build the manifest builder configs
 	for _, manifestBuilderConf := range manifestBuilderConfigs {
 		if err := manifestBuilderConf.Validate(); err != nil {
@@ -224,8 +215,6 @@ func (c *Controller) BuildManifests(
 
 		manifestObjKeys = append(manifestObjKeys, result.GetBuilderConfig().GetObjectKey())
 		manifestRefs = append(manifestRefs, result.GetBuilderResult().GetManifestRef())
-
-		// link the manifests to the link keys
 	}
 
 	return manifestRefs, manifestObjKeys, nil

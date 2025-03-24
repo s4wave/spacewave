@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	backoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/blang/semver/v4"
 	"github.com/fsnotify/fsnotify"
@@ -40,16 +41,20 @@ type Controller struct {
 	c *Config
 	// resultPromise contains the result of the compilation.
 	resultPromise *promise.PromiseContainer[*manifest_builder.BuilderResult]
+	// subManifestBuilderTrackers track building sub-manifests
+	subManifestBuilderTrackers *keyed.Keyed[string, *subManifestBuilderTracker]
 }
 
 // NewController constructs a new controller.
 func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
-	return &Controller{
+	c := &Controller{
 		le:            le,
 		bus:           bus,
 		c:             cc,
 		resultPromise: promise.NewPromiseContainer[*manifest_builder.BuilderResult](),
 	}
+	c.subManifestBuilderTrackers = keyed.NewKeyedWithLogger(c.newSubManifestBuilderTracker, le)
+	return c
 }
 
 // GetConfig returns the config.
@@ -75,6 +80,7 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_buil
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	c.subManifestBuilderTrackers.SetContext(ctx, true)
 	c.resultPromise.SetPromise(nil)
 	builderConfig := c.GetConfig().GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta()
@@ -139,7 +145,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var prevResult *manifest_builder.BuilderResult
 	var prevErr error
 	var changedFiles []*manifest_builder.InputManifest_File
+
 	for {
+		if ctx.Err() != nil {
+			return context.Canceled
+		}
+
 		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
 		c.resultPromise.SetPromise(resultPromise)
 
@@ -150,12 +161,56 @@ func (c *Controller) Execute(ctx context.Context) error {
 			ChangedFiles:      changedFiles,
 		}
 
-		builderHost := &buildManifestHost{
-			// TODO
+		builderHost := newBuildManifestHost(c, builderConfig)
+
+		// buildCtx is for this build call
+		buildCtx, buildCtxCancel := context.WithCancel(ctx)
+
+		// restartFn forces restarting BuildManifest (once)
+		var restarted atomic.Bool
+		restartFn := func() {
+			if !restarted.Swap(true) {
+				buildCtxCancel()
+			}
 		}
 
+		// update restartFn on any existing manifest trackers
+		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
+			tkr := prevSubManifestTracker.Data
+			tkr.mtx.Lock()
+			tkr.restartFn = restartFn
+			tkr.resultPcObserved = false // flag that we shouldn't call restart() if the value changes (yet)
+			tkr.mtx.Unlock()
+		}
+
+		// Call the builder controller BuildManifest function.
 		changedFiles = nil
-		result, err := builderCtrl.BuildManifest(ctx, args, builderHost)
+		result, err := builderCtrl.BuildManifest(buildCtx, args, builderHost)
+		if ctx.Err() != nil {
+			buildCtxCancel()
+			return context.Canceled
+		}
+		if buildCtx.Err() != nil {
+			if restarted.Load() {
+				continue
+			}
+		}
+
+		// Delete any sub-manifests that were not observed this run
+		var anySubManifests bool
+		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
+			tkr := prevSubManifestTracker.Data
+			tkr.mtx.Lock()
+			resultPcObserved := tkr.resultPcObserved
+			tkr.mtx.Unlock()
+			if !resultPcObserved {
+				c.subManifestBuilderTrackers.RemoveKey(prevSubManifestTracker.Key)
+			} else {
+				anySubManifests = true
+			}
+		}
+
+		// Set the result promise
 		resultPromise.SetResult(result, err)
 		if err == nil {
 			prevResult = result
@@ -170,6 +225,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		if !c.c.GetWatch() || len(inputFiles) == 0 {
+			buildCtxCancel()
 			return prevErr
 		}
 
@@ -192,8 +248,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		if len(watchedFiles) == 0 {
-			le.Debug("builder provided no files to watch, returning")
-			return nil
+			le.Debug("builder provided no files to watch")
+
+			if !anySubManifests {
+				// nothing to wait for, return.
+				buildCtxCancel()
+				return nil
+			}
+
+			// wait for sub-manifests to change or ctx to cancel
+			select {
+			case <-buildCtx.Done():
+				continue
+			case <-ctx.Done():
+				buildCtxCancel()
+				return context.Canceled
+			}
 		}
 
 		// compare list of files with previous list of file
@@ -224,12 +294,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		//   https://github.com/fsnotify/fsnotify/issues/18
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
+			buildCtxCancel()
 			return err
 		}
 
 		for watchedDirPath := range watchedSourceDirs {
 			err = watcher.Add(watchedDirPath)
 			if err != nil {
+				buildCtxCancel()
 				_ = watcher.Close()
 				return err
 			}
@@ -237,10 +309,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		le.Debugf("watching for changes in %d files and %d directories", len(watchedFiles), len(watchedSourceDirs))
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
-			ctx,
+			buildCtx,
 			watcher,
 			time.Millisecond*250,
 			func(event fsnotify.Event) (match bool, err error) {
+				// filter for watchedSourcePaths
 				if _, ok := watchedSourcePaths[event.Name]; !ok {
 					return false, nil
 				}
@@ -248,12 +321,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 			},
 		)
 		_ = watcher.Close()
+
+		if ctx.Err() != nil {
+			buildCtxCancel()
+			return context.Canceled
+		}
+		if buildCtx.Err() != nil {
+			le.Info("re-building after sub-manifest changed")
+			continue
+		}
 		if err != nil {
+			buildCtxCancel()
 			return err
 		}
 
 		// build list of changed files
 		// DebounceFSWatcherEvents watches for Create, Rename, Write, Remove
+		// we know there is at least one event in happened
 		seenChangedFiles := make(map[*manifest_builder.InputManifest_File]struct{}, len(happened))
 		for _, event := range happened {
 			inputFile := watchedSourcePaths[event.Name]
