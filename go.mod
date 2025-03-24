@@ -5,14 +5,14 @@ go 1.24
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
-require github.com/aperturerobotics/common v0.21.2 // latest
+require github.com/aperturerobotics/common v0.21.3-0.20250324012822-7b068d08a5f6 // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20250202023427-811385125bff // master
-	github.com/aperturerobotics/protobuf-go-lite v0.8.1-0.20241109000521-5bb9966c718b // master
+	github.com/aperturerobotics/protobuf-go-lite v0.8.1 // master
 )
 
 require (
@@ -77,7 +77,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.49.1 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.37.0 // latest
+	github.com/aperturerobotics/starpc v0.37.1 // latest
 	github.com/aperturerobotics/util v1.29.0 // latest
 )
 
