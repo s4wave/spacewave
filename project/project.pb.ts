@@ -63,15 +63,15 @@ export interface ManifestConfig {
    */
   builder?: ControllerConfig
   /**
-   * Rev is the manifest rev to build.
+   * Rev is the minimum manifest rev to build.
    *
    * The controller will always scan for the latest manifest and add 1 to the
-   * most recent rev number when building.
+   * most recent rev when building to determine the resulting manifest rev.
    *
    * However, if there is no existing manifest in the store, or if you want to
    * override the minimum rev number, this field can be used.
    *
-   * This version will be used in the devtool storage.
+   * Useful for forcing a manifest to be rebuilt/reloaded even if nothing changed.
    *
    * @generated from field: uint64 rev = 2;
    */
