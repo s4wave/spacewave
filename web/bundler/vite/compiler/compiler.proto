@@ -1,0 +1,103 @@
+syntax = "proto3";
+package bldr.web.bundler.vite.compiler;
+
+import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
+import "github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto";
+import "github.com/aperturerobotics/bldr/web/pkg/pkg.proto";
+import "github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto";
+import "github.com/aperturerobotics/util/enabled/enabled.proto";
+
+// Config configures the vite plugin compiler controller.
+message Config {
+  // Bundles is the list of vite bundles to compile.
+  repeated ViteBundleMeta bundles = 1;
+
+  // WebPkgs is the list of web packages to externalize and include in the bundle.
+  //
+  // Externalized web packages (npm modules) are imported separately from the web bundle.
+  // They will be deduplicated such that a single version is imported at a time by the app.
+  // This is useful for packages that require a single instance per WebDocument.
+  //
+  // On default only the imports referenced by the plugin will be compiled in.
+  // Everything else will be tree-shaken away to lower bundle size.
+  // Additional imports to reference can be specified in the config.
+  //
+  // These packages will be available with the LookupWebPkg directive.
+  // They will also be available at /b/pkg: e.g. /b/pkg/@my/npm-package/foo/bar/index.js
+  //
+  // Note: only files & entrypoints imported by at least one js file will be included.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 2;
+
+  // ViteConfigPaths is a list of paths to Vite configuration files to use.
+  // Config files passed by bldr:vite directives can override these values.
+  repeated string vite_config_paths = 3;
+
+  // DisableProjectConfig disables searching for the vite.config.ts in the project root.
+  bool disable_project_config = 4;
+
+  // BuildTypes contains a mapping of BuildType to Config override.
+  map<string, Config> build_types = 5;
+}
+
+// PreBuildHookResult is the output of a pre-build hook.
+message PreBuildHookResult {
+  // Config is the configuration for the plugin build step.
+  // Merged with the existing configuration.
+  Config config = 1;
+}
+
+// InputFileKind is the kind of file this is.
+enum InputFileKind {
+  // InputFileKind_UNKNOWN is the default kind.
+  InputFileKind_UNKNOWN = 0;
+  // InputFileKind_VITE is an input consumed by vite.
+  InputFileKind_VITE = 1;
+  // InputFileKind_WEB_PKG is a third party bundled npm package.
+  InputFileKind_WEB_PKG = 2;
+}
+
+// InputFileMeta is metadata attached to an input manifest file.
+message InputFileMeta {
+  // Kind is the input file kind.
+  InputFileKind kind = 1;
+}
+
+// InputManifestMeta is metadata attached to the input manifest.
+message InputManifestMeta {
+  // WebPkgRefs contains the list of web pkg references.
+  repeated .web.pkg.WebPkgRef web_pkg_refs = 1;
+  // WebPkgs is the list of web pkgs that we separate from the bundle.
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 2;
+
+  // ViteConfigPaths are the paths to Vite configuration files to use for all vite bundles.
+  repeated string vite_config_paths = 3;
+  // ViteDisableProjectConfig disables searching for the vite.config.ts in the project root.
+  bool vite_disable_project_config = 4;
+  // ViteBundles is the list of vite bundles with entrypoint configs.
+  repeated ViteBundleMeta vite_bundles = 5;
+  // ViteOutputs contains a list of files written by vite.
+  repeated .bldr.web.bundler.vite.ViteOutputMeta vite_outputs = 6;
+}
+
+// ViteBundleMeta is information about an vite bundle.
+message ViteBundleMeta {
+  // Id is the identifier of the bundle.
+  string id = 1;
+  // Entrypoints is the list of entrypoints to pass to vite.
+  repeated ViteBundleEntrypoint entrypoints = 2;
+  // PublicPath overrides the default public URL path prefix for assets.
+  // If empty, defaults to /.
+  string public_path = 3;
+  // ViteConfigPaths are the paths to Vite configuration files to use.
+  repeated string vite_config_paths = 4;
+  // DisableProjectConfig disables searching for the vite.config.ts in the project root.
+  bool disable_project_config = 5;
+}
+
+
+// ViteBundleEntrypoint defines a single entrypoint for Vite to build.
+message ViteBundleEntrypoint {
+  // InputPath is the path to the entrypoint file relative to the code root.
+  string input_path = 1;
+}

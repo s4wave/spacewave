@@ -3,16 +3,6 @@ package bldr.web.bundler.vite;
 
 import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 
-// ViteVarType is the list of types of vite output variables.
-enum ViteVarType {
-  // ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
-  // output type is a string
-  ViteVarType_ENTRYPOINT_PATH = 0;
-  // ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
-  // output type is bldr_web_bundler.WebBundlerOutput
-  ViteVarType_WEB_BUNDLER_OUTPUT = 1;
-}
-
 // ViteBundler is a service that runs Vite to compile web assets.
 service ViteBundler {
   // Build runs the Vite compiler with the given configuration.
@@ -44,19 +34,18 @@ message BuildRequest {
   // DistDir is the bldr dist src directory for the build.
   string dist_dir = 6;
   // Entrypoints contains the list of entrypoints to build.
-  repeated EntrypointConfig entrypoints = 7;
+  repeated ViteBuildRequestEntrypoint entrypoints = 7;
   // ExternalPkgs is the list of packages to pass to External provided by importmap.
   repeated string external_pkgs = 8;
   // WebPkgs is the list of packages to be externalized as shared web pkgs.
   repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 9;
 }
 
-// EntrypointConfig defines a single entrypoint for Vite to build.
-message EntrypointConfig {
-  // InputPath is the path to the entrypoint file.
+// ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
+message ViteBuildRequestEntrypoint {
+  // InputPath is the path to the entrypoint file relative to the code root.
   string input_path = 1;
-  // Name is the name to use for the output file.
-  // Must be unique in the set or an error will be thrown.
+  // Name is the name of the bundle, must be unique and set.
   string name = 2;
 }
 
@@ -88,4 +77,13 @@ message EntrypointOutput {
   repeated string css_outputs = 3;
   // InputFiles is the list of input files for this entrypoint.
   repeated string input_files = 4;
+}
+
+// ViteOutputMeta is information about a vite output.
+message ViteOutputMeta {
+  // Path is the path to the file within the output dir.
+  string path = 1;
+  // EntrypointPath is the entrypoint that produced this output file.
+  // May be empty.
+  string entrypoint_path = 2;
 }

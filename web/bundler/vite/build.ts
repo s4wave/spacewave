@@ -23,6 +23,7 @@ async function loadOptionalConfig(
   configPath: string,
 ): Promise<UserConfig | null> {
   if (!existsSync(configPath)) {
+    console.warn('[vite] ignoring not-existing config file: ' + configPath)
     return null
   }
 

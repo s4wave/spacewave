@@ -28,7 +28,7 @@ const ControllerID = "bldr/example/demo"
 
 // ExampleEntrypoint is the example typescript entrypoint.
 //
-// Hint: you can use bldr:esbuild here instead of bldr:vite if you prefer.
+// NOTE: you can also use bldr:esbuild instead of bldr:vite here!
 //
 //bldr:vite example.tsx
 var ExampleEntrypoint bldr_web_bundler.WebBundlerOutput

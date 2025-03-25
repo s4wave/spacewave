@@ -31,12 +31,6 @@ const (
 	InputFileKind_InputFileKind_ASSET InputFileKind = 1
 	// InputFileKind_GO is a file built by the Go compiler.
 	InputFileKind_InputFileKind_GO InputFileKind = 2
-	// InputFileKind_WEB_PKG is a third party bundled npm package.
-	InputFileKind_InputFileKind_WEB_PKG InputFileKind = 3
-	// InputFileKind_ESBUILD is an input consumed by esbuild.
-	InputFileKind_InputFileKind_ESBUILD InputFileKind = 4
-	// InputFileKind_VITE is an input consumed by vite.
-	InputFileKind_InputFileKind_VITE InputFileKind = 5
 )
 
 // Enum value maps for InputFileKind.
@@ -45,17 +39,11 @@ var (
 		0: "InputFileKind_UNKNOWN",
 		1: "InputFileKind_ASSET",
 		2: "InputFileKind_GO",
-		3: "InputFileKind_WEB_PKG",
-		4: "InputFileKind_ESBUILD",
-		5: "InputFileKind_VITE",
 	}
 	InputFileKind_value = map[string]int32{
 		"InputFileKind_UNKNOWN": 0,
 		"InputFileKind_ASSET":   1,
 		"InputFileKind_GO":      2,
-		"InputFileKind_WEB_PKG": 3,
-		"InputFileKind_ESBUILD": 4,
-		"InputFileKind_VITE":    5,
 	}
 )
 
@@ -67,6 +55,82 @@ func (x InputFileKind) Enum() *InputFileKind {
 
 func (x InputFileKind) String() string {
 	name, valid := InputFileKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// EsbuildVarType is the list of types of esbuild output variable.
+type EsbuildVarType int32
+
+const (
+	// EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+	// output type is a string
+	EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH EsbuildVarType = 0
+	// EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+	// output type is bldr_web_bundler.WebBundlerOutput
+	EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT EsbuildVarType = 1
+)
+
+// Enum value maps for EsbuildVarType.
+var (
+	EsbuildVarType_name = map[int32]string{
+		0: "EsbuildVarType_ENTRYPOINT_PATH",
+		1: "EsbuildVarType_WEB_BUNDLER_OUTPUT",
+	}
+	EsbuildVarType_value = map[string]int32{
+		"EsbuildVarType_ENTRYPOINT_PATH":    0,
+		"EsbuildVarType_WEB_BUNDLER_OUTPUT": 1,
+	}
+)
+
+func (x EsbuildVarType) Enum() *EsbuildVarType {
+	p := new(EsbuildVarType)
+	*p = x
+	return p
+}
+
+func (x EsbuildVarType) String() string {
+	name, valid := EsbuildVarType_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// ViteVarType is the list of types of vite output variables.
+type ViteVarType int32
+
+const (
+	// ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+	// output type is a string
+	ViteVarType_ViteVarType_ENTRYPOINT_PATH ViteVarType = 0
+	// ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+	// output type is bldr_web_bundler.WebBundlerOutput
+	ViteVarType_ViteVarType_WEB_BUNDLER_OUTPUT ViteVarType = 1
+)
+
+// Enum value maps for ViteVarType.
+var (
+	ViteVarType_name = map[int32]string{
+		0: "ViteVarType_ENTRYPOINT_PATH",
+		1: "ViteVarType_WEB_BUNDLER_OUTPUT",
+	}
+	ViteVarType_value = map[string]int32{
+		"ViteVarType_ENTRYPOINT_PATH":    0,
+		"ViteVarType_WEB_BUNDLER_OUTPUT": 1,
+	}
+)
+
+func (x ViteVarType) Enum() *ViteVarType {
+	p := new(ViteVarType)
+	*p = x
+	return p
+}
+
+func (x ViteVarType) String() string {
+	name, valid := ViteVarType_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -111,6 +175,13 @@ type Config struct {
 	//
 	// Note: only files & entrypoints imported by at least one js file will be included.
 	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,5,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
+	// ViteConfigPaths is a list of paths to Vite configuration files to apply to all bundles.
+	// Ignored unless any bldr:vite directives are found in the code.
+	ViteConfigPaths []string `protobuf:"bytes,15,rep,name=vite_config_paths,json=viteConfigPaths,proto3" json:"viteConfigPaths,omitempty"`
+	// ViteDisableProjectConfig indicates whether to disable automatic project config detection for Vite.
+	// Disables finding the root vite.conf.ts for the project.
+	// Ignored unless any bldr:vite directives are found in the code.
+	ViteDisableProjectConfig bool `protobuf:"varint,16,opt,name=vite_disable_project_config,json=viteDisableProjectConfig,proto3" json:"viteDisableProjectConfig,omitempty"`
 	// DisableRpcFetch disables the default Fetch RPC service handler.
 	// The handler handles the Fetch service by creating a directive.
 	// You can also override config ID "rpc-fetch" in the config-set.
@@ -148,9 +219,6 @@ type Config struct {
 	// Flags passed by bldr:esbuild directives can override these values.
 	// E.x.: --target es2020
 	EsbuildFlags []string `protobuf:"bytes,12,rep,name=esbuild_flags,json=esbuildFlags,proto3" json:"esbuildFlags,omitempty"`
-	// ViteConfigPaths is a list of paths to Vite configuration files to use.
-	// Config files passed by bldr:vite directives can override these values.
-	ViteConfigPaths []string `protobuf:"bytes,15,rep,name=vite_config_paths,json=viteConfigPaths,proto3" json:"viteConfigPaths,omitempty"`
 	// WebPluginId sets the plugin id for the web plugin.
 	// If set, the compiler automatically adds these controllers to the config set:
 	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
@@ -205,6 +273,20 @@ func (x *Config) GetWebPkgs() []*bundler.WebPkgRefConfig {
 	return nil
 }
 
+func (x *Config) GetViteConfigPaths() []string {
+	if x != nil {
+		return x.ViteConfigPaths
+	}
+	return nil
+}
+
+func (x *Config) GetViteDisableProjectConfig() bool {
+	if x != nil {
+		return x.ViteDisableProjectConfig
+	}
+	return false
+}
+
 func (x *Config) GetDisableRpcFetch() bool {
 	if x != nil {
 		return x.DisableRpcFetch
@@ -250,13 +332,6 @@ func (x *Config) GetEnableCompression() enabled.Enabled {
 func (x *Config) GetEsbuildFlags() []string {
 	if x != nil {
 		return x.EsbuildFlags
-	}
-	return nil
-}
-
-func (x *Config) GetViteConfigPaths() []string {
-	if x != nil {
-		return x.ViteConfigPaths
 	}
 	return nil
 }
@@ -319,24 +394,27 @@ func (x *InputFileMeta) GetKind() InputFileKind {
 // InputManifestMeta is metadata attached to the input manifest.
 type InputManifestMeta struct {
 	unknownFields []byte
-	// WebPkgRefs contains the list of web pkg references.
-	WebPkgRefs []*pkg.WebPkgRef `protobuf:"bytes,1,rep,name=web_pkg_refs,json=webPkgRefs,proto3" json:"webPkgRefs,omitempty"`
 	// DevInfo contains the set of plugin variable definitions.
-	DevInfo *vardef.PluginDevInfo `protobuf:"bytes,2,opt,name=dev_info,json=devInfo,proto3" json:"devInfo,omitempty"`
+	DevInfo *vardef.PluginDevInfo `protobuf:"bytes,1,opt,name=dev_info,json=devInfo,proto3" json:"devInfo,omitempty"`
+	// WebPkgRefs contains the list of web pkg references.
+	WebPkgRefs []*pkg.WebPkgRef `protobuf:"bytes,2,rep,name=web_pkg_refs,json=webPkgRefs,proto3" json:"webPkgRefs,omitempty"`
 	// WebPkgs is the list of web pkgs that we separate from the bundle.
 	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,3,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
 	// EsbuildFlags are the base command-line arguments to pass to all esbuild bundles.
 	EsbuildFlags []string `protobuf:"bytes,4,rep,name=esbuild_flags,json=esbuildFlags,proto3" json:"esbuildFlags,omitempty"`
 	// EsbuildBundles contains the set of esbuild bundles.
-	EsbuildBundles map[string]*EsbuildBundleMeta `protobuf:"bytes,5,rep,name=esbuild_bundles,json=esbuildBundles,proto3" json:"esbuildBundles,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	EsbuildBundles []*EsbuildBundleVarMeta `protobuf:"bytes,5,rep,name=esbuild_bundles,json=esbuildBundles,proto3" json:"esbuildBundles,omitempty"`
 	// EsbuildOutputs contains a list of files written by esbuild.
-	EsbuildOutputs []*EsbuildOutputMeta `protobuf:"bytes,6,rep,name=esbuild_outputs,json=esbuildOutputs,proto3" json:"esbuildOutputs,omitempty"`
-	// ViteConfigPaths are the paths to Vite configuration files to use for all vite bundles.
+	EsbuildOutputs []*esbuild.EsbuildOutputMeta `protobuf:"bytes,6,rep,name=esbuild_outputs,json=esbuildOutputs,proto3" json:"esbuildOutputs,omitempty"`
+	// ViteConfigPaths are paths to Vite configuration files to merge together.
 	ViteConfigPaths []string `protobuf:"bytes,7,rep,name=vite_config_paths,json=viteConfigPaths,proto3" json:"viteConfigPaths,omitempty"`
-	// ViteBundles contains the set of vite bundles.
-	ViteBundles map[string]*ViteBundleMeta `protobuf:"bytes,8,rep,name=vite_bundles,json=viteBundles,proto3" json:"viteBundles,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// ViteBundles is the list of vite bundles with entrypoint configs.
+	ViteBundles []*ViteBundleVarMeta `protobuf:"bytes,8,rep,name=vite_bundles,json=viteBundles,proto3" json:"viteBundles,omitempty"`
 	// ViteOutputs contains a list of files written by vite.
-	ViteOutputs []*ViteOutputMeta `protobuf:"bytes,9,rep,name=vite_outputs,json=viteOutputs,proto3" json:"viteOutputs,omitempty"`
+	ViteOutputs []*vite.ViteOutputMeta `protobuf:"bytes,9,rep,name=vite_outputs,json=viteOutputs,proto3" json:"viteOutputs,omitempty"`
+	// ViteDisableProjectConfig indicates whether to disable automatic project config detection.
+	// Disables finding the root vite.conf.ts for the project.
+	ViteDisableProjectConfig bool `protobuf:"varint,10,opt,name=vite_disable_project_config,json=viteDisableProjectConfig,proto3" json:"viteDisableProjectConfig,omitempty"`
 }
 
 func (x *InputManifestMeta) Reset() {
@@ -345,16 +423,16 @@ func (x *InputManifestMeta) Reset() {
 
 func (*InputManifestMeta) ProtoMessage() {}
 
-func (x *InputManifestMeta) GetWebPkgRefs() []*pkg.WebPkgRef {
+func (x *InputManifestMeta) GetDevInfo() *vardef.PluginDevInfo {
 	if x != nil {
-		return x.WebPkgRefs
+		return x.DevInfo
 	}
 	return nil
 }
 
-func (x *InputManifestMeta) GetDevInfo() *vardef.PluginDevInfo {
+func (x *InputManifestMeta) GetWebPkgRefs() []*pkg.WebPkgRef {
 	if x != nil {
-		return x.DevInfo
+		return x.WebPkgRefs
 	}
 	return nil
 }
@@ -373,14 +451,14 @@ func (x *InputManifestMeta) GetEsbuildFlags() []string {
 	return nil
 }
 
-func (x *InputManifestMeta) GetEsbuildBundles() map[string]*EsbuildBundleMeta {
+func (x *InputManifestMeta) GetEsbuildBundles() []*EsbuildBundleVarMeta {
 	if x != nil {
 		return x.EsbuildBundles
 	}
 	return nil
 }
 
-func (x *InputManifestMeta) GetEsbuildOutputs() []*EsbuildOutputMeta {
+func (x *InputManifestMeta) GetEsbuildOutputs() []*esbuild.EsbuildOutputMeta {
 	if x != nil {
 		return x.EsbuildOutputs
 	}
@@ -394,61 +472,29 @@ func (x *InputManifestMeta) GetViteConfigPaths() []string {
 	return nil
 }
 
-func (x *InputManifestMeta) GetViteBundles() map[string]*ViteBundleMeta {
+func (x *InputManifestMeta) GetViteBundles() []*ViteBundleVarMeta {
 	if x != nil {
 		return x.ViteBundles
 	}
 	return nil
 }
 
-func (x *InputManifestMeta) GetViteOutputs() []*ViteOutputMeta {
+func (x *InputManifestMeta) GetViteOutputs() []*vite.ViteOutputMeta {
 	if x != nil {
 		return x.ViteOutputs
 	}
 	return nil
 }
 
-// EsbuildOutputMeta is information about an esbuild output.
-type EsbuildOutputMeta struct {
-	unknownFields []byte
-	// Path is the path to the file within the output dir.
-	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// Length is the size of the file in bytes.
-	Length uint32 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
-	// EntrypointPath is the entrypoint that produced this output file.
-	// May be empty.
-	EntrypointPath string `protobuf:"bytes,3,opt,name=entrypoint_path,json=entrypointPath,proto3" json:"entrypointPath,omitempty"`
-}
-
-func (x *EsbuildOutputMeta) Reset() {
-	*x = EsbuildOutputMeta{}
-}
-
-func (*EsbuildOutputMeta) ProtoMessage() {}
-
-func (x *EsbuildOutputMeta) GetPath() string {
+func (x *InputManifestMeta) GetViteDisableProjectConfig() bool {
 	if x != nil {
-		return x.Path
+		return x.ViteDisableProjectConfig
 	}
-	return ""
+	return false
 }
 
-func (x *EsbuildOutputMeta) GetLength() uint32 {
-	if x != nil {
-		return x.Length
-	}
-	return 0
-}
-
-func (x *EsbuildOutputMeta) GetEntrypointPath() string {
-	if x != nil {
-		return x.EntrypointPath
-	}
-	return ""
-}
-
-// EsbuildBundleMeta is information about an esbuild bundle.
-type EsbuildBundleMeta struct {
+// EsbuildBundleVarMeta is information about an esbuild bundle.
+type EsbuildBundleVarMeta struct {
 	unknownFields []byte
 	// Id is the identifier of the bundle.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -456,20 +502,20 @@ type EsbuildBundleMeta struct {
 	EntrypointVars []*EsbuildEntrypointVar `protobuf:"bytes,2,rep,name=entrypoint_vars,json=entrypointVars,proto3" json:"entrypointVars,omitempty"`
 }
 
-func (x *EsbuildBundleMeta) Reset() {
-	*x = EsbuildBundleMeta{}
+func (x *EsbuildBundleVarMeta) Reset() {
+	*x = EsbuildBundleVarMeta{}
 }
 
-func (*EsbuildBundleMeta) ProtoMessage() {}
+func (*EsbuildBundleVarMeta) ProtoMessage() {}
 
-func (x *EsbuildBundleMeta) GetId() string {
+func (x *EsbuildBundleVarMeta) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *EsbuildBundleMeta) GetEntrypointVars() []*EsbuildEntrypointVar {
+func (x *EsbuildBundleVarMeta) GetEntrypointVars() []*EsbuildEntrypointVar {
 	if x != nil {
 		return x.EntrypointVars
 	}
@@ -486,7 +532,7 @@ type EsbuildEntrypointVar struct {
 	// PkgCodePath is the relative path to the code dir from the project root.
 	PkgCodePath string `protobuf:"bytes,3,opt,name=pkg_code_path,json=pkgCodePath,proto3" json:"pkgCodePath,omitempty"`
 	// PkgVarType is the type of esbuild variable this is.
-	PkgVarType esbuild.EsbuildVarType `protobuf:"varint,4,opt,name=pkg_var_type,json=pkgVarType,proto3" json:"pkgVarType,omitempty"`
+	PkgVarType EsbuildVarType `protobuf:"varint,4,opt,name=pkg_var_type,json=pkgVarType,proto3" json:"pkgVarType,omitempty"`
 	// EsbuildFlags are the command-line arguments to pass to esbuild.
 	EsbuildFlags []string `protobuf:"bytes,5,rep,name=esbuild_flags,json=esbuildFlags,proto3" json:"esbuildFlags,omitempty"`
 }
@@ -518,11 +564,11 @@ func (x *EsbuildEntrypointVar) GetPkgCodePath() string {
 	return ""
 }
 
-func (x *EsbuildEntrypointVar) GetPkgVarType() esbuild.EsbuildVarType {
+func (x *EsbuildEntrypointVar) GetPkgVarType() EsbuildVarType {
 	if x != nil {
 		return x.PkgVarType
 	}
-	return esbuild.EsbuildVarType(0)
+	return EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH
 }
 
 func (x *EsbuildEntrypointVar) GetEsbuildFlags() []string {
@@ -532,38 +578,8 @@ func (x *EsbuildEntrypointVar) GetEsbuildFlags() []string {
 	return nil
 }
 
-// ViteOutputMeta is information about a vite output.
-type ViteOutputMeta struct {
-	unknownFields []byte
-	// Path is the path to the file within the output dir.
-	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// EntrypointPath is the entrypoint that produced this output file.
-	// May be empty.
-	EntrypointPath string `protobuf:"bytes,2,opt,name=entrypoint_path,json=entrypointPath,proto3" json:"entrypointPath,omitempty"`
-}
-
-func (x *ViteOutputMeta) Reset() {
-	*x = ViteOutputMeta{}
-}
-
-func (*ViteOutputMeta) ProtoMessage() {}
-
-func (x *ViteOutputMeta) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *ViteOutputMeta) GetEntrypointPath() string {
-	if x != nil {
-		return x.EntrypointPath
-	}
-	return ""
-}
-
-// ViteBundleMeta is information about a vite bundle.
-type ViteBundleMeta struct {
+// ViteBundleVarMeta is information about a vite bundle.
+type ViteBundleVarMeta struct {
 	unknownFields []byte
 	// Id is the identifier of the bundle.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -571,20 +587,20 @@ type ViteBundleMeta struct {
 	EntrypointVars []*ViteEntrypointVar `protobuf:"bytes,2,rep,name=entrypoint_vars,json=entrypointVars,proto3" json:"entrypointVars,omitempty"`
 }
 
-func (x *ViteBundleMeta) Reset() {
-	*x = ViteBundleMeta{}
+func (x *ViteBundleVarMeta) Reset() {
+	*x = ViteBundleVarMeta{}
 }
 
-func (*ViteBundleMeta) ProtoMessage() {}
+func (*ViteBundleVarMeta) ProtoMessage() {}
 
-func (x *ViteBundleMeta) GetId() string {
+func (x *ViteBundleVarMeta) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *ViteBundleMeta) GetEntrypointVars() []*ViteEntrypointVar {
+func (x *ViteBundleVarMeta) GetEntrypointVars() []*ViteEntrypointVar {
 	if x != nil {
 		return x.EntrypointVars
 	}
@@ -601,13 +617,13 @@ type ViteEntrypointVar struct {
 	// PkgCodePath is the relative path to the code dir from the project root.
 	PkgCodePath string `protobuf:"bytes,3,opt,name=pkg_code_path,json=pkgCodePath,proto3" json:"pkgCodePath,omitempty"`
 	// PkgVarType is the type of vite variable this is.
-	PkgVarType vite.ViteVarType `protobuf:"varint,4,opt,name=pkg_var_type,json=pkgVarType,proto3" json:"pkgVarType,omitempty"`
-	// ViteConfigPaths are the paths to Vite configuration files to use.
+	PkgVarType ViteVarType `protobuf:"varint,4,opt,name=pkg_var_type,json=pkgVarType,proto3" json:"pkgVarType,omitempty"`
+	// ViteConfigPaths are the vite config paths options for this variable.
 	ViteConfigPaths []string `protobuf:"bytes,5,rep,name=vite_config_paths,json=viteConfigPaths,proto3" json:"viteConfigPaths,omitempty"`
-	// EntrypointPath is the specific entrypoint path for this variable.
-	// If empty, PkgCodePath is used as the entrypoint.
+	// EntrypointPath is the entrypoint path for vite.
 	EntrypointPath string `protobuf:"bytes,6,opt,name=entrypoint_path,json=entrypointPath,proto3" json:"entrypointPath,omitempty"`
-	// DisableProjectConfig disables searching for the vite.config.ts in the project root.
+	// DisableProjectConfig indicates whether to disable automatic project config detection.
+	// Disables finding the root vite.conf.ts for the project.
 	DisableProjectConfig bool `protobuf:"varint,7,opt,name=disable_project_config,json=disableProjectConfig,proto3" json:"disableProjectConfig,omitempty"`
 }
 
@@ -638,11 +654,11 @@ func (x *ViteEntrypointVar) GetPkgCodePath() string {
 	return ""
 }
 
-func (x *ViteEntrypointVar) GetPkgVarType() vite.ViteVarType {
+func (x *ViteEntrypointVar) GetPkgVarType() ViteVarType {
 	if x != nil {
 		return x.PkgVarType
 	}
-	return vite.ViteVarType(0)
+	return ViteVarType_ViteVarType_ENTRYPOINT_PATH
 }
 
 func (x *ViteEntrypointVar) GetViteConfigPaths() []string {
@@ -744,64 +760,13 @@ func (x *Config_BuildTypesEntry) GetValue() *Config {
 	return nil
 }
 
-type InputManifestMeta_EsbuildBundlesEntry struct {
-	unknownFields []byte
-	Key           string             `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *EsbuildBundleMeta `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *InputManifestMeta_EsbuildBundlesEntry) Reset() {
-	*x = InputManifestMeta_EsbuildBundlesEntry{}
-}
-
-func (*InputManifestMeta_EsbuildBundlesEntry) ProtoMessage() {}
-
-func (x *InputManifestMeta_EsbuildBundlesEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *InputManifestMeta_EsbuildBundlesEntry) GetValue() *EsbuildBundleMeta {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
-type InputManifestMeta_ViteBundlesEntry struct {
-	unknownFields []byte
-	Key           string          `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *ViteBundleMeta `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-}
-
-func (x *InputManifestMeta_ViteBundlesEntry) Reset() {
-	*x = InputManifestMeta_ViteBundlesEntry{}
-}
-
-func (*InputManifestMeta_ViteBundlesEntry) ProtoMessage() {}
-
-func (x *InputManifestMeta_ViteBundlesEntry) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *InputManifestMeta_ViteBundlesEntry) GetValue() *ViteBundleMeta {
-	if x != nil {
-		return x.Value
-	}
-	return nil
-}
-
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
 	r.ProjectId = m.ProjectId
+	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
 	r.DisableRpcFetch = m.DisableRpcFetch
 	r.DisableFetchAssets = m.DisableFetchAssets
 	r.DelveAddr = m.DelveAddr
@@ -835,15 +800,15 @@ func (m *Config) CloneVT() *Config {
 		}
 		r.WebPkgs = tmpContainer
 	}
-	if rhs := m.EsbuildFlags; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.EsbuildFlags = tmpContainer
-	}
 	if rhs := m.ViteConfigPaths; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.ViteConfigPaths = tmpContainer
+	}
+	if rhs := m.EsbuildFlags; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EsbuildFlags = tmpContainer
 	}
 	if rhs := m.BuildTypes; rhs != nil {
 		tmpContainer := make(map[string]*Config, len(rhs))
@@ -902,15 +867,16 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		return (*InputManifestMeta)(nil)
 	}
 	r := new(InputManifestMeta)
+	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
+	if rhs := m.DevInfo; rhs != nil {
+		r.DevInfo = rhs.CloneVT()
+	}
 	if rhs := m.WebPkgRefs; rhs != nil {
 		tmpContainer := make([]*pkg.WebPkgRef, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.WebPkgRefs = tmpContainer
-	}
-	if rhs := m.DevInfo; rhs != nil {
-		r.DevInfo = rhs.CloneVT()
 	}
 	if rhs := m.WebPkgs; rhs != nil {
 		tmpContainer := make([]*bundler.WebPkgRefConfig, len(rhs))
@@ -925,14 +891,14 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		r.EsbuildFlags = tmpContainer
 	}
 	if rhs := m.EsbuildBundles; rhs != nil {
-		tmpContainer := make(map[string]*EsbuildBundleMeta, len(rhs))
+		tmpContainer := make([]*EsbuildBundleVarMeta, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.EsbuildBundles = tmpContainer
 	}
 	if rhs := m.EsbuildOutputs; rhs != nil {
-		tmpContainer := make([]*EsbuildOutputMeta, len(rhs))
+		tmpContainer := make([]*esbuild.EsbuildOutputMeta, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
@@ -944,14 +910,14 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		r.ViteConfigPaths = tmpContainer
 	}
 	if rhs := m.ViteBundles; rhs != nil {
-		tmpContainer := make(map[string]*ViteBundleMeta, len(rhs))
+		tmpContainer := make([]*ViteBundleVarMeta, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.ViteBundles = tmpContainer
 	}
 	if rhs := m.ViteOutputs; rhs != nil {
-		tmpContainer := make([]*ViteOutputMeta, len(rhs))
+		tmpContainer := make([]*vite.ViteOutputMeta, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
@@ -968,30 +934,11 @@ func (m *InputManifestMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *EsbuildOutputMeta) CloneVT() *EsbuildOutputMeta {
+func (m *EsbuildBundleVarMeta) CloneVT() *EsbuildBundleVarMeta {
 	if m == nil {
-		return (*EsbuildOutputMeta)(nil)
+		return (*EsbuildBundleVarMeta)(nil)
 	}
-	r := new(EsbuildOutputMeta)
-	r.Path = m.Path
-	r.Length = m.Length
-	r.EntrypointPath = m.EntrypointPath
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *EsbuildOutputMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *EsbuildBundleMeta) CloneVT() *EsbuildBundleMeta {
-	if m == nil {
-		return (*EsbuildBundleMeta)(nil)
-	}
-	r := new(EsbuildBundleMeta)
+	r := new(EsbuildBundleVarMeta)
 	r.Id = m.Id
 	if rhs := m.EntrypointVars; rhs != nil {
 		tmpContainer := make([]*EsbuildEntrypointVar, len(rhs))
@@ -1007,7 +954,7 @@ func (m *EsbuildBundleMeta) CloneVT() *EsbuildBundleMeta {
 	return r
 }
 
-func (m *EsbuildBundleMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *EsbuildBundleVarMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1036,29 +983,11 @@ func (m *EsbuildEntrypointVar) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *ViteOutputMeta) CloneVT() *ViteOutputMeta {
+func (m *ViteBundleVarMeta) CloneVT() *ViteBundleVarMeta {
 	if m == nil {
-		return (*ViteOutputMeta)(nil)
+		return (*ViteBundleVarMeta)(nil)
 	}
-	r := new(ViteOutputMeta)
-	r.Path = m.Path
-	r.EntrypointPath = m.EntrypointPath
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *ViteOutputMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ViteBundleMeta) CloneVT() *ViteBundleMeta {
-	if m == nil {
-		return (*ViteBundleMeta)(nil)
-	}
-	r := new(ViteBundleMeta)
+	r := new(ViteBundleVarMeta)
 	r.Id = m.Id
 	if rhs := m.EntrypointVars; rhs != nil {
 		tmpContainer := make([]*ViteEntrypointVar, len(rhs))
@@ -1074,7 +1003,7 @@ func (m *ViteBundleMeta) CloneVT() *ViteBundleMeta {
 	return r
 }
 
-func (m *ViteBundleMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *ViteBundleVarMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1239,6 +1168,9 @@ func (this *Config) EqualVT(that *Config) bool {
 			return false
 		}
 	}
+	if this.ViteDisableProjectConfig != that.ViteDisableProjectConfig {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1293,6 +1225,9 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if !this.DevInfo.EqualVT(that.DevInfo) {
+		return false
+	}
 	if len(this.WebPkgRefs) != len(that.WebPkgRefs) {
 		return false
 	}
@@ -1309,9 +1244,6 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 				return false
 			}
 		}
-	}
-	if !this.DevInfo.EqualVT(that.DevInfo) {
-		return false
 	}
 	if len(this.WebPkgs) != len(that.WebPkgs) {
 		return false
@@ -1343,16 +1275,13 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 		return false
 	}
 	for i, vx := range this.EsbuildBundles {
-		vy, ok := that.EsbuildBundles[i]
-		if !ok {
-			return false
-		}
+		vy := that.EsbuildBundles[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &EsbuildBundleMeta{}
+				p = &EsbuildBundleVarMeta{}
 			}
 			if q == nil {
-				q = &EsbuildBundleMeta{}
+				q = &EsbuildBundleVarMeta{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1366,10 +1295,10 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 		vy := that.EsbuildOutputs[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &EsbuildOutputMeta{}
+				p = &esbuild.EsbuildOutputMeta{}
 			}
 			if q == nil {
-				q = &EsbuildOutputMeta{}
+				q = &esbuild.EsbuildOutputMeta{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1389,16 +1318,13 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 		return false
 	}
 	for i, vx := range this.ViteBundles {
-		vy, ok := that.ViteBundles[i]
-		if !ok {
-			return false
-		}
+		vy := that.ViteBundles[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &ViteBundleMeta{}
+				p = &ViteBundleVarMeta{}
 			}
 			if q == nil {
-				q = &ViteBundleMeta{}
+				q = &ViteBundleVarMeta{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1412,15 +1338,18 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 		vy := that.ViteOutputs[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &ViteOutputMeta{}
+				p = &vite.ViteOutputMeta{}
 			}
 			if q == nil {
-				q = &ViteOutputMeta{}
+				q = &vite.ViteOutputMeta{}
 			}
 			if !p.EqualVT(q) {
 				return false
 			}
 		}
+	}
+	if this.ViteDisableProjectConfig != that.ViteDisableProjectConfig {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1432,32 +1361,7 @@ func (this *InputManifestMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *EsbuildOutputMeta) EqualVT(that *EsbuildOutputMeta) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Path != that.Path {
-		return false
-	}
-	if this.Length != that.Length {
-		return false
-	}
-	if this.EntrypointPath != that.EntrypointPath {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *EsbuildOutputMeta) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*EsbuildOutputMeta)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-func (this *EsbuildBundleMeta) EqualVT(that *EsbuildBundleMeta) bool {
+func (this *EsbuildBundleVarMeta) EqualVT(that *EsbuildBundleVarMeta) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1486,8 +1390,8 @@ func (this *EsbuildBundleMeta) EqualVT(that *EsbuildBundleMeta) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *EsbuildBundleMeta) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*EsbuildBundleMeta)
+func (this *EsbuildBundleVarMeta) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EsbuildBundleVarMeta)
 	if !ok {
 		return false
 	}
@@ -1530,29 +1434,7 @@ func (this *EsbuildEntrypointVar) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *ViteOutputMeta) EqualVT(that *ViteOutputMeta) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Path != that.Path {
-		return false
-	}
-	if this.EntrypointPath != that.EntrypointPath {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ViteOutputMeta) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ViteOutputMeta)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-func (this *ViteBundleMeta) EqualVT(that *ViteBundleMeta) bool {
+func (this *ViteBundleVarMeta) EqualVT(that *ViteBundleVarMeta) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1581,8 +1463,8 @@ func (this *ViteBundleMeta) EqualVT(that *ViteBundleMeta) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ViteBundleMeta) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ViteBundleMeta)
+func (this *ViteBundleVarMeta) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ViteBundleVarMeta)
 	if !ok {
 		return false
 	}
@@ -1669,6 +1551,86 @@ func (x *InputFileKind) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the InputFileKind from JSON.
 func (x *InputFileKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the EsbuildVarType to JSON.
+func (x EsbuildVarType) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnumString(int32(x), EsbuildVarType_name)
+}
+
+// MarshalText marshals the EsbuildVarType to text.
+func (x EsbuildVarType) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), EsbuildVarType_name)), nil
+}
+
+// MarshalJSON marshals the EsbuildVarType to JSON.
+func (x EsbuildVarType) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EsbuildVarType from JSON.
+func (x *EsbuildVarType) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(EsbuildVarType_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read EsbuildVarType enum: %v", err)
+		return
+	}
+	*x = EsbuildVarType(v)
+}
+
+// UnmarshalText unmarshals the EsbuildVarType from text.
+func (x *EsbuildVarType) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), EsbuildVarType_value)
+	if err != nil {
+		return err
+	}
+	*x = EsbuildVarType(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the EsbuildVarType from JSON.
+func (x *EsbuildVarType) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ViteVarType to JSON.
+func (x ViteVarType) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnumString(int32(x), ViteVarType_name)
+}
+
+// MarshalText marshals the ViteVarType to text.
+func (x ViteVarType) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), ViteVarType_name)), nil
+}
+
+// MarshalJSON marshals the ViteVarType to JSON.
+func (x ViteVarType) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ViteVarType from JSON.
+func (x *ViteVarType) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(ViteVarType_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read ViteVarType enum: %v", err)
+		return
+	}
+	*x = ViteVarType(v)
+}
+
+// UnmarshalText unmarshals the ViteVarType from text.
+func (x *ViteVarType) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), ViteVarType_value)
+	if err != nil {
+		return err
+	}
+	*x = ViteVarType(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the ViteVarType from JSON.
+func (x *ViteVarType) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1944,6 +1906,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viteConfigPaths")
 		s.WriteStringArray(x.ViteConfigPaths)
 	}
+	if x.ViteDisableProjectConfig || s.HasField("viteDisableProjectConfig") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viteDisableProjectConfig")
+		s.WriteBool(x.ViteDisableProjectConfig)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2060,6 +2027,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.ViteConfigPaths = s.ReadStringArray()
+		case "vite_disable_project_config", "viteDisableProjectConfig":
+			s.AddField("vite_disable_project_config")
+			x.ViteDisableProjectConfig = s.ReadBool()
 		}
 	})
 }
@@ -2157,114 +2127,6 @@ func (x *InputFileMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the InputManifestMeta_EsbuildBundlesEntry message to JSON.
-func (x *InputManifestMeta_EsbuildBundlesEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the InputManifestMeta_EsbuildBundlesEntry to JSON.
-func (x *InputManifestMeta_EsbuildBundlesEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the InputManifestMeta_EsbuildBundlesEntry message from JSON.
-func (x *InputManifestMeta_EsbuildBundlesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &EsbuildBundleMeta{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the InputManifestMeta_EsbuildBundlesEntry from JSON.
-func (x *InputManifestMeta_EsbuildBundlesEntry) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the InputManifestMeta_ViteBundlesEntry message to JSON.
-func (x *InputManifestMeta_ViteBundlesEntry) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Key != "" || s.HasField("key") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("key")
-		s.WriteString(x.Key)
-	}
-	if x.Value != nil || s.HasField("value") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("value")
-		x.Value.MarshalProtoJSON(s.WithField("value"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the InputManifestMeta_ViteBundlesEntry to JSON.
-func (x *InputManifestMeta_ViteBundlesEntry) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the InputManifestMeta_ViteBundlesEntry message from JSON.
-func (x *InputManifestMeta_ViteBundlesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "key":
-			s.AddField("key")
-			x.Key = s.ReadString()
-		case "value":
-			if s.ReadNil() {
-				x.Value = nil
-				return
-			}
-			x.Value = &ViteBundleMeta{}
-			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the InputManifestMeta_ViteBundlesEntry from JSON.
-func (x *InputManifestMeta_ViteBundlesEntry) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the InputManifestMeta message to JSON.
 func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2273,6 +2135,11 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
+	if x.DevInfo != nil || s.HasField("devInfo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devInfo")
+		x.DevInfo.MarshalProtoJSON(s.WithField("devInfo"))
+	}
 	if len(x.WebPkgRefs) > 0 || s.HasField("webPkgRefs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("webPkgRefs")
@@ -2283,11 +2150,6 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("webPkgRefs"))
 		}
 		s.WriteArrayEnd()
-	}
-	if x.DevInfo != nil || s.HasField("devInfo") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("devInfo")
-		x.DevInfo.MarshalProtoJSON(s.WithField("devInfo"))
 	}
 	if len(x.WebPkgs) > 0 || s.HasField("webPkgs") {
 		s.WriteMoreIf(&wroteField)
@@ -2305,17 +2167,16 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("esbuildFlags")
 		s.WriteStringArray(x.EsbuildFlags)
 	}
-	if x.EsbuildBundles != nil || s.HasField("esbuildBundles") {
+	if len(x.EsbuildBundles) > 0 || s.HasField("esbuildBundles") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("esbuildBundles")
-		s.WriteObjectStart()
+		s.WriteArrayStart()
 		var wroteElement bool
-		for k, v := range x.EsbuildBundles {
+		for _, element := range x.EsbuildBundles {
 			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("esbuildBundles"))
+			element.MarshalProtoJSON(s.WithField("esbuildBundles"))
 		}
-		s.WriteObjectEnd()
+		s.WriteArrayEnd()
 	}
 	if len(x.EsbuildOutputs) > 0 || s.HasField("esbuildOutputs") {
 		s.WriteMoreIf(&wroteField)
@@ -2333,17 +2194,16 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viteConfigPaths")
 		s.WriteStringArray(x.ViteConfigPaths)
 	}
-	if x.ViteBundles != nil || s.HasField("viteBundles") {
+	if len(x.ViteBundles) > 0 || s.HasField("viteBundles") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("viteBundles")
-		s.WriteObjectStart()
+		s.WriteArrayStart()
 		var wroteElement bool
-		for k, v := range x.ViteBundles {
+		for _, element := range x.ViteBundles {
 			s.WriteMoreIf(&wroteElement)
-			s.WriteObjectStringField(k)
-			v.MarshalProtoJSON(s.WithField("viteBundles"))
+			element.MarshalProtoJSON(s.WithField("viteBundles"))
 		}
-		s.WriteObjectEnd()
+		s.WriteArrayEnd()
 	}
 	if len(x.ViteOutputs) > 0 || s.HasField("viteOutputs") {
 		s.WriteMoreIf(&wroteField)
@@ -2355,6 +2215,11 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("viteOutputs"))
 		}
 		s.WriteArrayEnd()
+	}
+	if x.ViteDisableProjectConfig || s.HasField("viteDisableProjectConfig") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viteDisableProjectConfig")
+		s.WriteBool(x.ViteDisableProjectConfig)
 	}
 	s.WriteObjectEnd()
 }
@@ -2373,6 +2238,13 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
+		case "dev_info", "devInfo":
+			if s.ReadNil() {
+				x.DevInfo = nil
+				return
+			}
+			x.DevInfo = &vardef.PluginDevInfo{}
+			x.DevInfo.UnmarshalProtoJSON(s.WithField("dev_info", true))
 		case "web_pkg_refs", "webPkgRefs":
 			s.AddField("web_pkg_refs")
 			if s.ReadNil() {
@@ -2391,13 +2263,6 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.WebPkgRefs = append(x.WebPkgRefs, v)
 			})
-		case "dev_info", "devInfo":
-			if s.ReadNil() {
-				x.DevInfo = nil
-				return
-			}
-			x.DevInfo = &vardef.PluginDevInfo{}
-			x.DevInfo.UnmarshalProtoJSON(s.WithField("dev_info", true))
 		case "web_pkgs", "webPkgs":
 			s.AddField("web_pkgs")
 			if s.ReadNil() {
@@ -2429,11 +2294,17 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.EsbuildBundles = nil
 				return
 			}
-			x.EsbuildBundles = make(map[string]*EsbuildBundleMeta)
-			s.ReadStringMap(func(key string) {
-				var v EsbuildBundleMeta
-				v.UnmarshalProtoJSON(s)
-				x.EsbuildBundles[key] = &v
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.EsbuildBundles = append(x.EsbuildBundles, nil)
+					return
+				}
+				v := &EsbuildBundleVarMeta{}
+				v.UnmarshalProtoJSON(s.WithField("esbuild_bundles", false))
+				if s.Err() != nil {
+					return
+				}
+				x.EsbuildBundles = append(x.EsbuildBundles, v)
 			})
 		case "esbuild_outputs", "esbuildOutputs":
 			s.AddField("esbuild_outputs")
@@ -2446,7 +2317,7 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.EsbuildOutputs = append(x.EsbuildOutputs, nil)
 					return
 				}
-				v := &EsbuildOutputMeta{}
+				v := &esbuild.EsbuildOutputMeta{}
 				v.UnmarshalProtoJSON(s.WithField("esbuild_outputs", false))
 				if s.Err() != nil {
 					return
@@ -2466,11 +2337,17 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.ViteBundles = nil
 				return
 			}
-			x.ViteBundles = make(map[string]*ViteBundleMeta)
-			s.ReadStringMap(func(key string) {
-				var v ViteBundleMeta
-				v.UnmarshalProtoJSON(s)
-				x.ViteBundles[key] = &v
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ViteBundles = append(x.ViteBundles, nil)
+					return
+				}
+				v := &ViteBundleVarMeta{}
+				v.UnmarshalProtoJSON(s.WithField("vite_bundles", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ViteBundles = append(x.ViteBundles, v)
 			})
 		case "vite_outputs", "viteOutputs":
 			s.AddField("vite_outputs")
@@ -2483,13 +2360,16 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.ViteOutputs = append(x.ViteOutputs, nil)
 					return
 				}
-				v := &ViteOutputMeta{}
+				v := &vite.ViteOutputMeta{}
 				v.UnmarshalProtoJSON(s.WithField("vite_outputs", false))
 				if s.Err() != nil {
 					return
 				}
 				x.ViteOutputs = append(x.ViteOutputs, v)
 			})
+		case "vite_disable_project_config", "viteDisableProjectConfig":
+			s.AddField("vite_disable_project_config")
+			x.ViteDisableProjectConfig = s.ReadBool()
 		}
 	})
 }
@@ -2499,66 +2379,8 @@ func (x *InputManifestMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the EsbuildOutputMeta message to JSON.
-func (x *EsbuildOutputMeta) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Path != "" || s.HasField("path") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("path")
-		s.WriteString(x.Path)
-	}
-	if x.Length != 0 || s.HasField("length") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("length")
-		s.WriteUint32(x.Length)
-	}
-	if x.EntrypointPath != "" || s.HasField("entrypointPath") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("entrypointPath")
-		s.WriteString(x.EntrypointPath)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the EsbuildOutputMeta to JSON.
-func (x *EsbuildOutputMeta) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the EsbuildOutputMeta message from JSON.
-func (x *EsbuildOutputMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "path":
-			s.AddField("path")
-			x.Path = s.ReadString()
-		case "length":
-			s.AddField("length")
-			x.Length = s.ReadUint32()
-		case "entrypoint_path", "entrypointPath":
-			s.AddField("entrypoint_path")
-			x.EntrypointPath = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the EsbuildOutputMeta from JSON.
-func (x *EsbuildOutputMeta) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the EsbuildBundleMeta message to JSON.
-func (x *EsbuildBundleMeta) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the EsbuildBundleVarMeta message to JSON.
+func (x *EsbuildBundleVarMeta) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -2584,13 +2406,13 @@ func (x *EsbuildBundleMeta) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the EsbuildBundleMeta to JSON.
-func (x *EsbuildBundleMeta) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the EsbuildBundleVarMeta to JSON.
+func (x *EsbuildBundleVarMeta) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the EsbuildBundleMeta message from JSON.
-func (x *EsbuildBundleMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the EsbuildBundleVarMeta message from JSON.
+func (x *EsbuildBundleVarMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2623,8 +2445,8 @@ func (x *EsbuildBundleMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the EsbuildBundleMeta from JSON.
-func (x *EsbuildBundleMeta) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the EsbuildBundleVarMeta from JSON.
+func (x *EsbuildBundleVarMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2706,58 +2528,8 @@ func (x *EsbuildEntrypointVar) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ViteOutputMeta message to JSON.
-func (x *ViteOutputMeta) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Path != "" || s.HasField("path") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("path")
-		s.WriteString(x.Path)
-	}
-	if x.EntrypointPath != "" || s.HasField("entrypointPath") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("entrypointPath")
-		s.WriteString(x.EntrypointPath)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ViteOutputMeta to JSON.
-func (x *ViteOutputMeta) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ViteOutputMeta message from JSON.
-func (x *ViteOutputMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "path":
-			s.AddField("path")
-			x.Path = s.ReadString()
-		case "entrypoint_path", "entrypointPath":
-			s.AddField("entrypoint_path")
-			x.EntrypointPath = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ViteOutputMeta from JSON.
-func (x *ViteOutputMeta) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ViteBundleMeta message to JSON.
-func (x *ViteBundleMeta) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the ViteBundleVarMeta message to JSON.
+func (x *ViteBundleVarMeta) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -2783,13 +2555,13 @@ func (x *ViteBundleMeta) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the ViteBundleMeta to JSON.
-func (x *ViteBundleMeta) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the ViteBundleVarMeta to JSON.
+func (x *ViteBundleVarMeta) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the ViteBundleMeta message from JSON.
-func (x *ViteBundleMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the ViteBundleVarMeta message from JSON.
+func (x *ViteBundleVarMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2822,8 +2594,8 @@ func (x *ViteBundleMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the ViteBundleMeta from JSON.
-func (x *ViteBundleMeta) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the ViteBundleVarMeta from JSON.
+func (x *ViteBundleVarMeta) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2950,6 +2722,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ViteDisableProjectConfig {
+		i--
+		if m.ViteDisableProjectConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
 	if len(m.ViteConfigPaths) > 0 {
 		for iNdEx := len(m.ViteConfigPaths) - 1; iNdEx >= 0; iNdEx-- {
@@ -3226,6 +3010,16 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ViteDisableProjectConfig {
+		i--
+		if m.ViteDisableProjectConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
 	if len(m.ViteOutputs) > 0 {
 		for iNdEx := len(m.ViteOutputs) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.ViteOutputs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -3239,23 +3033,13 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 	}
 	if len(m.ViteBundles) > 0 {
-		for k := range m.ViteBundles {
-			v := m.ViteBundles[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+		for iNdEx := len(m.ViteBundles) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ViteBundles[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
 			i--
 			dAtA[i] = 0x42
 		}
@@ -3282,23 +3066,13 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 	}
 	if len(m.EsbuildBundles) > 0 {
-		for k := range m.EsbuildBundles {
-			v := m.EsbuildBundles[k]
-			baseI := i
-			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+		for iNdEx := len(m.EsbuildBundles) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.EsbuildBundles[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
 			i--
 			dAtA[i] = 0x2a
 		}
@@ -3324,16 +3098,6 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x1a
 		}
 	}
-	if m.DevInfo != nil {
-		size, err := m.DevInfo.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
 	if len(m.WebPkgRefs) > 0 {
 		for iNdEx := len(m.WebPkgRefs) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.WebPkgRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -3343,65 +3107,23 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
 	}
-	return len(dAtA) - i, nil
-}
-
-func (m *EsbuildOutputMeta) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *EsbuildOutputMeta) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *EsbuildOutputMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.EntrypointPath) > 0 {
-		i -= len(m.EntrypointPath)
-		copy(dAtA[i:], m.EntrypointPath)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointPath)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Length != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Length))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Path) > 0 {
-		i -= len(m.Path)
-		copy(dAtA[i:], m.Path)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+	if m.DevInfo != nil {
+		size, err := m.DevInfo.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
 
-func (m *EsbuildBundleMeta) MarshalVT() (dAtA []byte, err error) {
+func (m *EsbuildBundleVarMeta) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3414,12 +3136,12 @@ func (m *EsbuildBundleMeta) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EsbuildBundleMeta) MarshalToVT(dAtA []byte) (int, error) {
+func (m *EsbuildBundleVarMeta) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *EsbuildBundleMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *EsbuildBundleVarMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3521,7 +3243,7 @@ func (m *EsbuildEntrypointVar) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-func (m *ViteOutputMeta) MarshalVT() (dAtA []byte, err error) {
+func (m *ViteBundleVarMeta) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3534,59 +3256,12 @@ func (m *ViteOutputMeta) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ViteOutputMeta) MarshalToVT(dAtA []byte) (int, error) {
+func (m *ViteBundleVarMeta) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ViteOutputMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.EntrypointPath) > 0 {
-		i -= len(m.EntrypointPath)
-		copy(dAtA[i:], m.EntrypointPath)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointPath)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Path) > 0 {
-		i -= len(m.Path)
-		copy(dAtA[i:], m.Path)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ViteBundleMeta) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ViteBundleMeta) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ViteBundleMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *ViteBundleVarMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3801,6 +3476,9 @@ func (m *Config) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.ViteDisableProjectConfig {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3838,15 +3516,15 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	if m.DevInfo != nil {
+		l = m.DevInfo.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	if len(m.WebPkgRefs) > 0 {
 		for _, e := range m.WebPkgRefs {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
-	}
-	if m.DevInfo != nil {
-		l = m.DevInfo.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	if len(m.WebPkgs) > 0 {
 		for _, e := range m.WebPkgs {
@@ -3861,16 +3539,9 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 		}
 	}
 	if len(m.EsbuildBundles) > 0 {
-		for k, v := range m.EsbuildBundles {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		for _, e := range m.EsbuildBundles {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
 	if len(m.EsbuildOutputs) > 0 {
@@ -3886,16 +3557,9 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 		}
 	}
 	if len(m.ViteBundles) > 0 {
-		for k, v := range m.ViteBundles {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.SizeVT()
-			}
-			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
-			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
-			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		for _, e := range m.ViteBundles {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
 	if len(m.ViteOutputs) > 0 {
@@ -3904,32 +3568,14 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *EsbuildOutputMeta) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Path)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Length != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Length))
-	}
-	l = len(m.EntrypointPath)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if m.ViteDisableProjectConfig {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (m *EsbuildBundleMeta) SizeVT() (n int) {
+func (m *EsbuildBundleVarMeta) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3980,25 +3626,7 @@ func (m *EsbuildEntrypointVar) SizeVT() (n int) {
 	return n
 }
 
-func (m *ViteOutputMeta) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Path)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.EntrypointPath)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ViteBundleMeta) SizeVT() (n int) {
+func (m *ViteBundleVarMeta) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4057,6 +3685,12 @@ func (m *ViteEntrypointVar) SizeVT() (n int) {
 }
 
 func (x InputFileKind) MarshalProtoText() string {
+	return x.String()
+}
+func (x EsbuildVarType) MarshalProtoText() string {
+	return x.String()
+}
+func (x ViteVarType) MarshalProtoText() string {
 	return x.String()
 }
 func (x *Config_ConfigSetEntry) MarshalProtoText() string {
@@ -4287,6 +3921,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("]")
 	}
+	if x.ViteDisableProjectConfig != false {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("vite_disable_project_config: ")
+		sb.WriteString(strconv.FormatBool(x.ViteDisableProjectConfig))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -4330,57 +3971,16 @@ func (x *InputFileMeta) MarshalProtoText() string {
 func (x *InputFileMeta) String() string {
 	return x.MarshalProtoText()
 }
-func (x *InputManifestMeta_EsbuildBundlesEntry) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("EsbuildBundlesEntry {")
-	if x.Key != "" {
-		if sb.Len() > 21 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		if sb.Len() > 21 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *InputManifestMeta_EsbuildBundlesEntry) String() string {
-	return x.MarshalProtoText()
-}
-func (x *InputManifestMeta_ViteBundlesEntry) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("ViteBundlesEntry {")
-	if x.Key != "" {
-		if sb.Len() > 18 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("key: ")
-		sb.WriteString(strconv.Quote(x.Key))
-	}
-	if x.Value != nil {
-		if sb.Len() > 18 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("value: ")
-		sb.WriteString(x.Value.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *InputManifestMeta_ViteBundlesEntry) String() string {
-	return x.MarshalProtoText()
-}
 func (x *InputManifestMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputManifestMeta {")
+	if x.DevInfo != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dev_info: ")
+		sb.WriteString(x.DevInfo.MarshalProtoText())
+	}
 	if len(x.WebPkgRefs) > 0 {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
@@ -4393,13 +3993,6 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
-	}
-	if x.DevInfo != nil {
-		if sb.Len() > 19 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("dev_info: ")
-		sb.WriteString(x.DevInfo.MarshalProtoText())
 	}
 	if len(x.WebPkgs) > 0 {
 		if sb.Len() > 19 {
@@ -4431,14 +4024,14 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("esbuild_bundles: {")
-		for k, v := range x.EsbuildBundles {
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
+		sb.WriteString("esbuild_bundles: [")
+		for i, v := range x.EsbuildBundles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
 			sb.WriteString(v.MarshalProtoText())
 		}
-		sb.WriteString(" }")
+		sb.WriteString("]")
 	}
 	if len(x.EsbuildOutputs) > 0 {
 		if sb.Len() > 19 {
@@ -4470,14 +4063,14 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("vite_bundles: {")
-		for k, v := range x.ViteBundles {
-			sb.WriteString(" ")
-			sb.WriteString(strconv.Quote(k))
-			sb.WriteString(": ")
+		sb.WriteString("vite_bundles: [")
+		for i, v := range x.ViteBundles {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
 			sb.WriteString(v.MarshalProtoText())
 		}
-		sb.WriteString(" }")
+		sb.WriteString("]")
 	}
 	if len(x.ViteOutputs) > 0 {
 		if sb.Len() > 19 {
@@ -4492,6 +4085,13 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 		}
 		sb.WriteString("]")
 	}
+	if x.ViteDisableProjectConfig != false {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("vite_disable_project_config: ")
+		sb.WriteString(strconv.FormatBool(x.ViteDisableProjectConfig))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -4499,49 +4099,18 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 func (x *InputManifestMeta) String() string {
 	return x.MarshalProtoText()
 }
-func (x *EsbuildOutputMeta) MarshalProtoText() string {
+func (x *EsbuildBundleVarMeta) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("EsbuildOutputMeta {")
-	if x.Path != "" {
-		if sb.Len() > 19 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("path: ")
-		sb.WriteString(strconv.Quote(x.Path))
-	}
-	if x.Length != 0 {
-		if sb.Len() > 19 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("length: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.Length), 10))
-	}
-	if x.EntrypointPath != "" {
-		if sb.Len() > 19 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("entrypoint_path: ")
-		sb.WriteString(strconv.Quote(x.EntrypointPath))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *EsbuildOutputMeta) String() string {
-	return x.MarshalProtoText()
-}
-func (x *EsbuildBundleMeta) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("EsbuildBundleMeta {")
+	sb.WriteString("EsbuildBundleVarMeta {")
 	if x.Id != "" {
-		if sb.Len() > 19 {
+		if sb.Len() > 22 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
 	if len(x.EntrypointVars) > 0 {
-		if sb.Len() > 19 {
+		if sb.Len() > 22 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("entrypoint_vars: [")
@@ -4557,7 +4126,7 @@ func (x *EsbuildBundleMeta) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *EsbuildBundleMeta) String() string {
+func (x *EsbuildBundleVarMeta) String() string {
 	return x.MarshalProtoText()
 }
 func (x *EsbuildEntrypointVar) MarshalProtoText() string {
@@ -4590,7 +4159,7 @@ func (x *EsbuildEntrypointVar) MarshalProtoText() string {
 		}
 		sb.WriteString("pkg_var_type: ")
 		sb.WriteString("\"")
-		sb.WriteString(esbuild.EsbuildVarType(x.PkgVarType).String())
+		sb.WriteString(EsbuildVarType(x.PkgVarType).String())
 		sb.WriteString("\"")
 	}
 	if len(x.EsbuildFlags) > 0 {
@@ -4613,42 +4182,18 @@ func (x *EsbuildEntrypointVar) MarshalProtoText() string {
 func (x *EsbuildEntrypointVar) String() string {
 	return x.MarshalProtoText()
 }
-func (x *ViteOutputMeta) MarshalProtoText() string {
+func (x *ViteBundleVarMeta) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("ViteOutputMeta {")
-	if x.Path != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("path: ")
-		sb.WriteString(strconv.Quote(x.Path))
-	}
-	if x.EntrypointPath != "" {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("entrypoint_path: ")
-		sb.WriteString(strconv.Quote(x.EntrypointPath))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *ViteOutputMeta) String() string {
-	return x.MarshalProtoText()
-}
-func (x *ViteBundleMeta) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("ViteBundleMeta {")
+	sb.WriteString("ViteBundleVarMeta {")
 	if x.Id != "" {
-		if sb.Len() > 16 {
+		if sb.Len() > 19 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
 	if len(x.EntrypointVars) > 0 {
-		if sb.Len() > 16 {
+		if sb.Len() > 19 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("entrypoint_vars: [")
@@ -4664,7 +4209,7 @@ func (x *ViteBundleMeta) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *ViteBundleMeta) String() string {
+func (x *ViteBundleVarMeta) String() string {
 	return x.MarshalProtoText()
 }
 func (x *ViteEntrypointVar) MarshalProtoText() string {
@@ -4697,7 +4242,7 @@ func (x *ViteEntrypointVar) MarshalProtoText() string {
 		}
 		sb.WriteString("pkg_var_type: ")
 		sb.WriteString("\"")
-		sb.WriteString(vite.ViteVarType(x.PkgVarType).String())
+		sb.WriteString(ViteVarType(x.PkgVarType).String())
 		sb.WriteString("\"")
 	}
 	if len(x.ViteConfigPaths) > 0 {
@@ -5473,6 +5018,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ViteConfigPaths = append(m.ViteConfigPaths, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ViteDisableProjectConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.ViteDisableProjectConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5683,40 +5248,6 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgRefs", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WebPkgRefs = append(m.WebPkgRefs, &pkg.WebPkgRef{})
-			if err := m.WebPkgRefs[len(m.WebPkgRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DevInfo", wireType)
 			}
 			var msglen int
@@ -5748,6 +5279,40 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 				m.DevInfo = &vardef.PluginDevInfo{}
 			}
 			if err := m.DevInfo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgRefs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebPkgRefs = append(m.WebPkgRefs, &pkg.WebPkgRef{})
+			if err := m.WebPkgRefs[len(m.WebPkgRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5846,105 +5411,10 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.EsbuildBundles == nil {
-				m.EsbuildBundles = make(map[string]*EsbuildBundleMeta)
+			m.EsbuildBundles = append(m.EsbuildBundles, &EsbuildBundleVarMeta{})
+			if err := m.EsbuildBundles[len(m.EsbuildBundles)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
-			var mapkey string
-			var mapvalue *EsbuildBundleMeta
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protobuf_go_lite.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protobuf_go_lite.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protobuf_go_lite.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &EsbuildBundleMeta{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.EsbuildBundles[mapkey] = mapvalue
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -5975,7 +5445,7 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EsbuildOutputs = append(m.EsbuildOutputs, &EsbuildOutputMeta{})
+			m.EsbuildOutputs = append(m.EsbuildOutputs, &esbuild.EsbuildOutputMeta{})
 			if err := m.EsbuildOutputs[len(m.EsbuildOutputs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -6041,105 +5511,10 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.ViteBundles == nil {
-				m.ViteBundles = make(map[string]*ViteBundleMeta)
+			m.ViteBundles = append(m.ViteBundles, &ViteBundleVarMeta{})
+			if err := m.ViteBundles[len(m.ViteBundles)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
-			var mapkey string
-			var mapvalue *ViteBundleMeta
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protobuf_go_lite.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protobuf_go_lite.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protobuf_go_lite.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &ViteBundleMeta{}
-					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protobuf_go_lite.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.ViteBundles[mapkey] = mapvalue
 			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
@@ -6170,99 +5545,16 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ViteOutputs = append(m.ViteOutputs, &ViteOutputMeta{})
+			m.ViteOutputs = append(m.ViteOutputs, &vite.ViteOutputMeta{})
 			if err := m.ViteOutputs[len(m.ViteOutputs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *EsbuildOutputMeta) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protobuf_go_lite.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: EsbuildOutputMeta: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EsbuildOutputMeta: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Path = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
+		case 10:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Length", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ViteDisableProjectConfig", wireType)
 			}
-			m.Length = 0
+			var v int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protobuf_go_lite.ErrIntOverflow
@@ -6272,43 +5564,12 @@ func (m *EsbuildOutputMeta) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Length |= uint32(b&0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointPath", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
+			m.ViteDisableProjectConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6331,7 +5592,7 @@ func (m *EsbuildOutputMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EsbuildBundleMeta) UnmarshalVT(dAtA []byte) error {
+func (m *EsbuildBundleVarMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6354,10 +5615,10 @@ func (m *EsbuildBundleMeta) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EsbuildBundleMeta: wiretype end group for non-group")
+			return fmt.Errorf("proto: EsbuildBundleVarMeta: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EsbuildBundleMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: EsbuildBundleVarMeta: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -6587,7 +5848,7 @@ func (m *EsbuildEntrypointVar) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PkgVarType |= esbuild.EsbuildVarType(b&0x7F) << shift
+				m.PkgVarType |= EsbuildVarType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -6646,7 +5907,7 @@ func (m *EsbuildEntrypointVar) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ViteOutputMeta) UnmarshalVT(dAtA []byte) error {
+func (m *ViteBundleVarMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6669,125 +5930,10 @@ func (m *ViteOutputMeta) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ViteOutputMeta: wiretype end group for non-group")
+			return fmt.Errorf("proto: ViteBundleVarMeta: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ViteOutputMeta: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Path = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointPath", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ViteBundleMeta) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protobuf_go_lite.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ViteBundleMeta: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ViteBundleMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ViteBundleVarMeta: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -7017,7 +6163,7 @@ func (m *ViteEntrypointVar) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PkgVarType |= vite.ViteVarType(b&0x7F) << shift
+				m.PkgVarType |= ViteVarType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

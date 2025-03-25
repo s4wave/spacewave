@@ -148,39 +148,6 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	if err := os.MkdirAll(wasmRuntimeDir, 0o755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWasmRuntimeEntrypoint(
-		ctx,
-		le,
-		distSrcDir,
-		wasmRuntimeDir,
-		entryBuildType,
-		useTinygo,
-		"./runtime.wasm",
-	); err != nil {
-		return err
-	}
-
-	// Build runtime wasm pkg
-	le.Info("building runtime.wasm")
-	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)
-	runtimeOut := filepath.Join(wasmRuntimeDir, "runtime.wasm")
-	if err := gocompiler.ExecBuildEntrypoint(
-		ctx,
-		le,
-		buildPlatform,
-		entryBuildType,
-		entrypointGoDir,
-		runtimeOut,
-		false, // disable cgo
-		useTinygo,
-		nil,
-		nil,
-	); err != nil {
-		return err
-	}
-
-	// write the banner
-	writeBanner()
 
 	// start the websocket transport for the devtool
 	linkWsPath := "/bldr-dev/web-wasm/link.ws"
@@ -278,6 +245,38 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		}
 	}
 
+	// build the wasm entrypooints concurrently with the plugins for speedup
+	if err := entrypoint_browser_build.BuildWasmRuntimeEntrypoint(
+		ctx,
+		le,
+		distSrcDir,
+		wasmRuntimeDir,
+		entryBuildType,
+		useTinygo,
+		"./runtime.wasm",
+	); err != nil {
+		return err
+	}
+
+	// Build runtime wasm pkg
+	le.Info("building runtime.wasm")
+	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)
+	runtimeOut := filepath.Join(wasmRuntimeDir, "runtime.wasm")
+	if err := gocompiler.ExecBuildEntrypoint(
+		ctx,
+		le,
+		buildPlatform,
+		entryBuildType,
+		entrypointGoDir,
+		runtimeOut,
+		false, // disable cgo
+		useTinygo,
+		nil,
+		nil,
+	); err != nil {
+		return err
+	}
+
 	// encode the init info for the browser devtool entrypoint
 	browserInit := &devtool_web.DevtoolInitBrowser{
 		AppId:             appID,
@@ -314,6 +313,9 @@ func (b *DevtoolBus) ExecuteWebWasm(
 
 		entrySrv.ServeHTTP(rw, req)
 	}
+
+	// write the banner
+	writeBanner()
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}

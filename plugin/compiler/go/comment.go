@@ -27,11 +27,14 @@ func TrimCommentArgs(tag, value string) (string, bool) {
 	return value, false
 }
 
-// FindTagComments searches for comments with the given tag & parses them.
+// FindTagComments searches for comments associated with variable declarations (`var`)
+// that have the given tag prefix. It operates purely on the Abstract Syntax Tree (AST)
+// and does not use resolved type information.
 //
-// Returns a map of packages -> variable names -> variable args.
-// checkParseComment should return nil, false, nil if the comment doesn't have the tag prefix.
-// Uses the package's type system to reliably identify types rather than string matching.
+// Returns a map of packages -> variable names -> parsed result (type T).
+// The checkParseComments callback receives the comment lines and the AST node (*ast.ValueSpec)
+// for the variable declaration. It should return the parsed result, a boolean indicating
+// if the tag was found, and any error. Returning false for the boolean skips the comment.
 func FindTagComments[T any](
 	tag string,
 	fset *token.FileSet,
@@ -93,15 +96,27 @@ func FindTagComments[T any](
 			}
 		}
 	}
+
+	// Remove packages that ended up with no tagged variables
+	for pkgImportPath, vars := range packagesMap {
+		if len(vars) == 0 {
+			delete(packagesMap, pkgImportPath)
+		}
+	}
+
 	return packagesMap, nil
 }
 
-// FindTagCommentsWithTypes searches for comments with the given tag & parses them using the type system.
+// FindTagCommentsWithTypes searches for comments associated with variable declarations (`var`)
+// that have the given tag prefix. It uses resolved type information from the provided Analysis object
+// in addition to the Abstract Syntax Tree (AST).
 //
-// Returns a map of packages -> variable names -> result type.
-// processComments should parse the comments and return the result, a boolean indicating if the tag was found,
-// and any error. It can use the package's type system to reliably identify types.
-// This is a more advanced version of FindTagComments that integrates with Go's type system.
+// Returns a map of packages -> variable names -> parsed result (type T).
+// The processComments callback receives the comment lines, the variable name, the package containing
+// the variable (*packages.Package), and the resolved type object (types.Object). It should return
+// the parsed result, a boolean indicating if the tag was found, and any error. Returning false
+// for the boolean skips the comment. This allows the callback to make decisions based on the
+// variable's actual type.
 func FindTagCommentsWithTypes[T any](
 	tag string,
 	analysis *Analysis,
@@ -210,6 +225,13 @@ func FindTagCommentsWithTypes[T any](
 					}
 				}
 			}
+		}
+	}
+
+	// Remove packages that ended up with no tagged variables
+	for pkgImportPath, vars := range packagesMap {
+		if len(vars) == 0 {
+			delete(packagesMap, pkgImportPath)
 		}
 	}
 

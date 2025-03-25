@@ -93,7 +93,7 @@ func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
 //
 // It is assumed that the sub-manifest has the same platform as the parent manifest.
 func NewSubManifestKey(parentObjKey string, subManifestID string) string {
-	return strings.Join([]string{parentObjKey, "sub-manifest", subManifestID}, "/")
+	return strings.Join([]string{parentObjKey, "sub", subManifestID}, "/")
 }
 
 // UnmarshalManifest unmarshals a Manifest block from the cursor.

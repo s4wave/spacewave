@@ -16,11 +16,12 @@ import (
 type buildManifestHost struct {
 	c             *Controller
 	builderConfig *bldr_manifest_builder.BuilderConfig
+	restartFn     func()
 }
 
 // newBuildManifestHost builds a new buildManifestHost.
-func newBuildManifestHost(c *Controller, builderConfig *bldr_manifest_builder.BuilderConfig) *buildManifestHost {
-	return &buildManifestHost{c: c, builderConfig: builderConfig}
+func newBuildManifestHost(c *Controller, builderConfig *bldr_manifest_builder.BuilderConfig, restartFn func()) *buildManifestHost {
+	return &buildManifestHost{c: c, builderConfig: builderConfig, restartFn: restartFn}
 }
 
 // BuildSubManifest builds a sub-manifest and returns a compilation promise.
@@ -54,7 +55,7 @@ func (h *buildManifestHost) BuildSubManifest(
 	builderTracker, _ := h.c.subManifestBuilderTrackers.SetKey(subManifestID, true)
 
 	// update the config and get the result promise container, mark the tracker as observed
-	return builderTracker.setManifestConfig(subManifestConfig)
+	return builderTracker.setManifestConfig(subManifestConfig, h.restartFn)
 }
 
 // _ is a type assertion

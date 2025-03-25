@@ -3,42 +3,140 @@
 package bldr_plugin_compiler_go
 
 import (
-	"encoding/json"
 	"go/ast"
 	"go/token"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 
-	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
-	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
-	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
+	bldr_web_bundler_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	bldr_web_bundler_esbuild_compiler "github.com/aperturerobotics/bldr/web/bundler/esbuild/compiler"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
-	esbuild_cli "github.com/evanw/esbuild/pkg/cli"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
-// BuildEsbuildBundleMeta builds the bundle metadata from the list of go variable defs.
-func BuildEsbuildBundleMeta(
+// EsbuildAssetSubdir is the sub-directory for esbuild assets within the assets dir.
+var EsbuildAssetSubdir = "esb"
+
+// BuildEsbuildBundlerConfig builds the esbuild bundler controller config.
+func BuildEsbuildBundlerConfig(
+	bundleVars []*EsbuildBundleVarMeta,
+	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
+	baseEsbuildFlags []string,
+	codeRootPath,
+	publicPath string,
+) (*bldr_web_bundler_esbuild_compiler.Config, error) {
+	// build list of EsbuildBundleMeta from bundleVar list
+	var esbuildBundleMeta []*bldr_web_bundler_esbuild_compiler.EsbuildBundleMeta
+	for _, bundleVar := range bundleVars {
+		var bundleFlags []string
+		var bundleEntrypoints []*bldr_web_bundler_esbuild.EsbuildBundleEntrypoint
+		for _, bundleVarEntrypoint := range bundleVar.GetEntrypointVars() {
+			varEsbuildFlags := bundleVarEntrypoint.GetEsbuildFlags()
+			varBuildOpts, err := bldr_web_bundler_esbuild_build.ParseEsbuildFlags(varEsbuildFlags)
+			if err != nil {
+				return nil, err
+			}
+
+			entryPoints := slices.Clone(varBuildOpts.EntryPointsAdvanced)
+
+			// convert non-advanced entrypoints to advanced
+			for _, entrypointPath := range varBuildOpts.EntryPoints {
+				entryPoints = append(entryPoints, esbuild_api.EntryPoint{
+					InputPath: entrypointPath,
+				})
+			}
+
+			// transform entrypoint paths to be relative to codeRootPath
+			for i := range entryPoints {
+				inputPath := entryPoints[i].InputPath
+				// treat absolute paths as relative to root of project
+				if filepath.IsAbs(inputPath) {
+					inputPath = filepath.Join(codeRootPath, inputPath)
+					inputPath, err = filepath.Rel(codeRootPath, inputPath)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					// determine path relative to the code
+					inputPath = filepath.ToSlash(filepath.Join(bundleVarEntrypoint.GetPkgCodePath(), filepath.Clean(inputPath)))
+				}
+
+				// double-check to make sure path is within the code root
+				inputPath = filepath.Join(codeRootPath, inputPath)
+				inputPath, err = filepath.Rel(codeRootPath, inputPath)
+				if err != nil {
+					return nil, err
+				}
+				if strings.HasPrefix(inputPath, "../") {
+					return nil, errors.Errorf("entrypoint cannot be outside code root: %s", inputPath)
+				}
+
+				entryPoints[i].InputPath = inputPath
+			}
+
+			// restrict to a single entrypoint per variable.
+			// NOTE; we could remove this restriction, but then we wouldn't know which to store in the variable.
+			if len(entryPoints) != 1 {
+				return nil, errors.Errorf(
+					"expected single entrypoint per bldr:esbuild variable but got %v: %s.%s",
+					len(entryPoints),
+					bundleVarEntrypoint.PkgImportPath,
+					bundleVarEntrypoint.PkgVar,
+				)
+			}
+
+			// note: we enforce just one here, but use a for loop for completeness.
+			bundleFlags = append(bundleFlags, varEsbuildFlags...)
+			for _, entryPoint := range entryPoints {
+				bundleEntrypoints = append(bundleEntrypoints, &bldr_web_bundler_esbuild.EsbuildBundleEntrypoint{
+					EntrypointId: bundleVarEntrypoint.ToEsbuildEntrypointId(bundleVar.GetId()),
+					InputPath:    entryPoint.InputPath,
+					OutputPath:   entryPoint.OutputPath,
+				})
+			}
+		}
+
+		// build the bundle metadata
+		bundleMeta := &bldr_web_bundler_esbuild_compiler.EsbuildBundleMeta{
+			Id:           bundleVar.Id,
+			Entrypoints:  bundleEntrypoints,
+			PublicPath:   publicPath,
+			EsbuildFlags: bundleFlags,
+		}
+
+		// add to the bundle meta list
+		esbuildBundleMeta = append(esbuildBundleMeta, bundleMeta)
+	}
+
+	return &bldr_web_bundler_esbuild_compiler.Config{
+		Bundles:      esbuildBundleMeta,
+		WebPkgs:      webPkgs,
+		EsbuildFlags: baseEsbuildFlags,
+	}, nil
+}
+
+// BuildEsbuildBundleVarMeta builds the bundle metadata from the list of go variable defs.
+func BuildEsbuildBundleVarMeta(
 	le *logrus.Entry,
 	codeRootPath string,
 	codeFiles map[string][]*ast.File,
 	fset *token.FileSet,
 	pkgs map[string](map[string]*EsbuildDirective),
-) (map[string]*EsbuildBundleMeta, error) {
+) ([]*EsbuildBundleVarMeta, error) {
 	// bundles is the map of bundle-id to bundle-def
-	bundles := make(map[string]*EsbuildBundleMeta)
-	getBundle := func(bundleID string) *EsbuildBundleMeta {
+	bundles := make(map[string]*EsbuildBundleVarMeta)
+	getBundle := func(bundleID string) *EsbuildBundleVarMeta {
 		bundleDef := bundles[bundleID]
 		if bundleDef != nil {
 			return bundleDef
 		}
 
-		bundleDef = &EsbuildBundleMeta{Id: bundleID}
+		bundleDef = &EsbuildBundleVarMeta{Id: bundleID}
 		bundles[bundleID] = bundleDef
 		return bundleDef
 	}
@@ -75,316 +173,27 @@ func BuildEsbuildBundleMeta(
 	}
 
 	// sort entrypoint variables
-	for _, bundle := range bundles {
+	bundleVals := slices.Collect(maps.Values(bundles))
+	for _, bundle := range bundleVals {
 		bundle.SortEntrypointVars()
 	}
 
-	return bundles, nil
+	// sort by bundle id
+	slices.SortFunc(bundleVals, func(a, b *EsbuildBundleVarMeta) int {
+		return strings.Compare(a.GetId(), b.GetId())
+	})
+
+	return bundleVals, nil
 }
 
 // SortEntrypointVars sorts the entrypoint variables field.
-func (m *EsbuildBundleMeta) SortEntrypointVars() {
+func (m *EsbuildBundleVarMeta) SortEntrypointVars() {
 	slices.SortFunc(m.EntrypointVars, func(a, b *EsbuildEntrypointVar) int {
-		sa := a.GetPkgImportPath() + "." + a.GetPkgVar()
-		sb := b.GetPkgImportPath() + "." + b.GetPkgVar()
-		return strings.Compare(sa, sb)
+		return strings.Compare(a.ToEsbuildEntrypointId(""), b.ToEsbuildEntrypointId(""))
 	})
 }
 
-// BuildEsbuildBundle builds an esbuild bundle with the given bundle args.
-// Returns:
-// - Go variable definitions for the bundle
-// - Web package references used by the bundle
-// - Metadata about the esbuild outputs
-// - List of source files used by esbuild
-// - Any error that occurred
-func BuildEsbuildBundle(
-	le *logrus.Entry,
-	codeRootPath string,
-	meta *EsbuildBundleMeta,
-	baseEsbuildOpts *esbuild_api.BuildOptions,
-	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
-	outAssetsPath string,
-	pluginID string,
-	inlineSourcemaps bool,
-	isRelease bool,
-) ([]*vardef.PluginVar, []*web_pkg.WebPkgRef, []*EsbuildOutputMeta, []string, error) {
-	// outputs
-	var goVariableDefs []*vardef.PluginVar
-	var sourceFilesList []string
-	var webPkgRefs []*web_pkg.WebPkgRef
-	addWebPkgRef := func(webPkgID, webPkgRoot, webPkgSubPath string) {
-		webPkgRefs, _ = web_pkg.
-			WebPkgRefSlice(webPkgRefs).
-			AppendWebPkgRef(webPkgID, webPkgRoot, webPkgSubPath)
-	}
-
-	// construct build options
-	buildOpts := web_pkg_esbuild.BuildEsbuildBuildOpts(
-		le,
-		codeRootPath,
-		outAssetsPath,
-		BuildAssetHref(pluginID, ""),
-		isRelease,
-		true,
-	)
-	if inlineSourcemaps && !isRelease {
-		buildOpts.Sourcemap = esbuild_api.SourceMapInlineAndExternal
-	}
-
-	// merge options set by baseEsbuildOpts
-	if baseEsbuildOpts != nil {
-		web_pkg_esbuild.MergeEsbuildBuildOpts(buildOpts, baseEsbuildOpts)
-	}
-
-	type esbuildBundleVar struct {
-		meta           *EsbuildEntrypointVar
-		entrypointIdxs []int
-	}
-
-	// merge options set by the flags on the comments
-	bundleVars := make([]*esbuildBundleVar, 0, len(meta.GetEntrypointVars()))
-	for _, varDef := range meta.GetEntrypointVars() {
-		esbuildFlags := varDef.GetEsbuildFlags()
-		if len(esbuildFlags) == 0 {
-			continue
-		}
-
-		varBuildOpts, err := esbuild_cli.ParseBuildOptions(varDef.GetEsbuildFlags())
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-
-		// note: ignores entrypoints list
-		web_pkg_esbuild.MergeEsbuildBuildOpts(buildOpts, &varBuildOpts)
-
-		// build entrypoints list
-		entryPoints := slices.Clone(varBuildOpts.EntryPointsAdvanced)
-
-		// convert non-advanced entrypoints to advanced
-		for _, entrypointPath := range varBuildOpts.EntryPoints {
-			entryPoints = append(entryPoints, esbuild_api.EntryPoint{
-				InputPath: entrypointPath,
-			})
-		}
-
-		// transform entrypoint paths to be relative to codeRootPath
-		for i := range entryPoints {
-			inputPath := entryPoints[i].InputPath
-			// treat absolute paths as relative to root of project
-			if filepath.IsAbs(inputPath) {
-				inputPath = filepath.Join(codeRootPath, inputPath)
-				inputPath, err = filepath.Rel(codeRootPath, inputPath)
-				if err != nil {
-					return nil, nil, nil, nil, err
-				}
-			} else {
-				// determine path relative to the code
-				inputPath = filepath.ToSlash(filepath.Join(varDef.PkgCodePath, filepath.Clean(inputPath)))
-			}
-
-			// double-check to make sure path is within the code root
-			inputPath = filepath.Join(codeRootPath, inputPath)
-			inputPath, err = filepath.Rel(codeRootPath, inputPath)
-			if err != nil {
-				return nil, nil, nil, nil, err
-			}
-			if strings.HasPrefix(inputPath, "../") {
-				return nil, nil, nil, nil, errors.Errorf("entrypoint cannot be outside code root: %s", inputPath)
-			}
-
-			entryPoints[i].InputPath = inputPath
-		}
-
-		// store entrypoints and the indexes within the list
-		entrypointIdxs := make([]int, len(entryPoints))
-		baseIdx := len(buildOpts.EntryPointsAdvanced)
-		for i := range entryPoints {
-			entrypointIdxs[i] = baseIdx + i
-		}
-		buildOpts.EntryPointsAdvanced = append(buildOpts.EntryPointsAdvanced, entryPoints...)
-
-		// restrict to a single entrypoint per variable.
-		if len(entrypointIdxs) != 1 {
-			return nil, nil, nil, nil, errors.Errorf(
-				"expected single entrypoint but got %v: %s.%s",
-				len(entrypointIdxs),
-				varDef.PkgImportPath,
-				varDef.PkgVar,
-			)
-		}
-
-		// append the bundle variable definition
-		bundleVars = append(bundleVars, &esbuildBundleVar{
-			meta:           varDef,
-			entrypointIdxs: entrypointIdxs,
-		})
-	}
-
-	// add the bldr plugin
-	buildOpts.Plugins = append(
-		buildOpts.Plugins,
-		web_pkg_esbuild.BuildEsbuildPlugin(
-			le,
-			bldr_web_bundler.WebPkgRefConfigSlice(webPkgs).ToIdList(),
-			addWebPkgRef,
-		),
-	)
-
-	// https://github.com/evanw/esbuild/issues/1921
-	// NOTE: we can't use async import() here since require() is called w/o await.
-	// This fixes an issue with esbuild where dynamic imports don't work correctly in certain environments
-	web_pkg_esbuild.FixEsbuildIssue1921(buildOpts)
-
-	// compile the bundle
-	bundleID := meta.GetId()
-	le.Debugf("compiling bundle with esbuild: %s", bundleID)
-	result := esbuild_api.Build(*buildOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return nil, nil, nil, nil, err
-	}
-	if len(result.OutputFiles) == 0 {
-		return nil, nil, nil, nil, errors.New("esbuild: expected at least one output file but got none")
-	}
-
-	// metaAnalysis contains a graphical view of input files & their sizes
-	/*
-		metaAnalysis := esbuild_api.AnalyzeMetafile(result.Metafile, esbuild_api.AnalyzeMetafileOptions{
-			Color: true,
-		})
-		os.Stderr.WriteString(metaAnalysis + "\n")
-	*/
-
-	metaFile := &bldr_esbuild_build.EsbuildMetafile{}
-	if err := json.Unmarshal([]byte(result.Metafile), metaFile); err != nil {
-		return nil, nil, nil, nil, errors.Wrap(err, "parse esbuild metafile")
-	}
-
-	// Use it to get the list of source files to watch.
-	// Note: the paths are relative to the codeRootPath.
-	for inFilePath := range metaFile.Inputs {
-		sourceFilesList = append(sourceFilesList, inFilePath)
-	}
-
-	// write information about outputs to the result
-	esbuildOutputMeta := BuildEsbuildOutputMetas(metaFile)
-
-	// transform the paths in the metas to be relative to the assets dir
-	for _, meta := range esbuildOutputMeta {
-		metaPath := filepath.Join(codeRootPath, meta.Path)
-		metaPath, err := filepath.Rel(outAssetsPath, metaPath)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-		meta.Path = metaPath
-	}
-
-	// re-sort the list
-	esbuildOutputMeta = SortEsbuildOutputMetas(esbuildOutputMeta)
-
-	// Match each variable def to an entrypoint.
-	for _, bundleVar := range bundleVars {
-		// entrypointIdx := varDef.entrypointIdxs[0]
-		entrypointDef := buildOpts.EntryPointsAdvanced[bundleVar.entrypointIdxs[0]]
-		entrypointInpPath := entrypointDef.InputPath
-
-		// Outputs: the key is the output path relative to the source dir.
-		var entrypointOutpPath string
-		var entrypointOutp bldr_esbuild_build.EsbuildMetaFileOutput
-		for outpPath, outp := range metaFile.Outputs {
-			if outp.EntryPoint == entrypointInpPath {
-				entrypointOutpPath = outpPath
-				entrypointOutp = outp
-				break
-			}
-		}
-		if entrypointOutpPath == "" {
-			return nil, nil, nil, nil, errors.Errorf("output for entrypoint not found in metafile: %s", entrypointInpPath)
-		}
-
-		var outpEntrypointPath string
-		var err error
-		if entrypointOutp.EntryPoint != "" {
-			outpEntrypointPath = filepath.Join(codeRootPath, entrypointOutpPath)
-			outpEntrypointPath, err = filepath.Rel(outAssetsPath, outpEntrypointPath)
-			if err != nil {
-				return nil, nil, nil, nil, err
-			}
-			outpEntrypointPath = filepath.ToSlash(outpEntrypointPath)
-		}
-		var outpCssPath string
-		if entrypointOutp.CssBundle != "" {
-			// NOTE: outp.CssBundle is relative to buildSrcPath
-			outpCssPath = filepath.Join(codeRootPath, entrypointOutp.CssBundle)
-			outpCssPath, err = filepath.Rel(outAssetsPath, outpCssPath)
-			if err != nil {
-				return nil, nil, nil, nil, err
-			}
-			outpCssPath = filepath.ToSlash(outpCssPath)
-		}
-
-		// varValue is the value for the go variable.
-		varType := bundleVar.meta.GetPkgVarType()
-		pkgImportPath := bundleVar.meta.GetPkgImportPath()
-		pkgVar := bundleVar.meta.GetPkgVar()
-		var varDef *vardef.PluginVar
-		switch varType {
-		case bldr_esbuild.EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH:
-			var assetHref string
-			if outpEntrypointPath != "" {
-				assetHref = BuildAssetHref(pluginID, outpEntrypointPath)
-			} else {
-				assetHref = BuildAssetHref(pluginID, outpCssPath)
-			}
-			varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_StringValue{StringValue: assetHref})
-		case bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT:
-			output := &bldr_web_bundler.WebBundlerOutput{}
-			if outpEntrypointPath != "" {
-				output.EntrypointHref = BuildAssetHref(pluginID, outpEntrypointPath)
-			}
-			if outpCssPath != "" {
-				output.CssHref = BuildAssetHref(pluginID, outpCssPath)
-			}
-			varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_WebBundlerOutput{
-				WebBundlerOutput: output,
-			})
-		default:
-			return nil, nil, nil, nil, errors.Errorf("unknown target variable type: %s", varType.String())
-		}
-
-		goVariableDefs = append(goVariableDefs, varDef)
-	}
-
-	return goVariableDefs, webPkgRefs, esbuildOutputMeta, sourceFilesList, nil
-}
-
-// BuildEsbuildOutputMetas builds output metadata from the meta file.
-func BuildEsbuildOutputMetas(metaFile *bldr_esbuild_build.EsbuildMetafile) []*EsbuildOutputMeta {
-	metas := make([]*EsbuildOutputMeta, 0, len(metaFile.Outputs))
-	files := make([]string, 0, 2)
-	for outputPath, outputFile := range metaFile.Outputs {
-		files = files[:1]
-		files[0] = outputPath
-		if cssBundlePath := outputFile.CssBundle; cssBundlePath != "" {
-			files = append(files, cssBundlePath)
-		}
-		for _, file := range files {
-			metas = append(metas, &EsbuildOutputMeta{
-				Path:           file,
-				Length:         uint32(outputFile.Bytes), //nolint:gosec
-				EntrypointPath: outputFile.EntryPoint,
-			})
-		}
-	}
-	return SortEsbuildOutputMetas(metas)
-}
-
-// SortEsbuildOutputMetas sorts and compacts a list of esbuild output meta.
-func SortEsbuildOutputMetas(metas []*EsbuildOutputMeta) []*EsbuildOutputMeta {
-	slices.SortFunc(metas, func(a, b *EsbuildOutputMeta) int {
-		return strings.Compare(a.GetPath(), b.GetPath())
-	})
-	return slices.CompactFunc(metas, func(a, b *EsbuildOutputMeta) bool {
-		return a.GetPath() == b.GetPath()
-	})
+// ToEsbuildEntrypointId converts an EsbuildEntrypointVar to an esbuild bundle entrypoint id.
+func (m *EsbuildEntrypointVar) ToEsbuildEntrypointId(bundleID string) string {
+	return bundleID + "/-/" + m.GetPkgImportPath() + "." + m.GetPkgVar()
 }

@@ -3,46 +3,10 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { WebPkgRefConfig } from '../bundler.pb.js'
 
 export const protobufPackage = 'bldr.web.bundler.vite'
-
-/**
- * ViteVarType is the list of types of vite output variables.
- *
- * @generated from enum bldr.web.bundler.vite.ViteVarType
- */
-export enum ViteVarType {
-  /**
-   * ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
-   * output type is a string
-   *
-   * @generated from enum value: ViteVarType_ENTRYPOINT_PATH = 0;
-   */
-  ViteVarType_ENTRYPOINT_PATH = 0,
-
-  /**
-   * ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
-   * output type is bldr_web_bundler.WebBundlerOutput
-   *
-   * @generated from enum value: ViteVarType_WEB_BUNDLER_OUTPUT = 1;
-   */
-  ViteVarType_WEB_BUNDLER_OUTPUT = 1,
-}
-
-// ViteVarType_Enum is the enum type for ViteVarType.
-export const ViteVarType_Enum = createEnumType(
-  'bldr.web.bundler.vite.ViteVarType',
-  [
-    { no: 0, name: 'ViteVarType_ENTRYPOINT_PATH' },
-    { no: 1, name: 'ViteVarType_WEB_BUNDLER_OUTPUT' },
-  ],
-)
 
 /**
  * WebPkgRef is a reference to a web package.
@@ -88,30 +52,29 @@ export const WebPkgRef: MessageType<WebPkgRef> = createMessageType({
 })
 
 /**
- * EntrypointConfig defines a single entrypoint for Vite to build.
+ * ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
  *
- * @generated from message bldr.web.bundler.vite.EntrypointConfig
+ * @generated from message bldr.web.bundler.vite.ViteBuildRequestEntrypoint
  */
-export interface EntrypointConfig {
+export interface ViteBuildRequestEntrypoint {
   /**
-   * InputPath is the path to the entrypoint file.
+   * InputPath is the path to the entrypoint file relative to the code root.
    *
    * @generated from field: string input_path = 1;
    */
   inputPath?: string
   /**
-   * Name is the name to use for the output file.
-   * Must be unique in the set or an error will be thrown.
+   * Name is the name of the bundle, must be unique and set.
    *
    * @generated from field: string name = 2;
    */
   name?: string
 }
 
-// EntrypointConfig contains the message type declaration for EntrypointConfig.
-export const EntrypointConfig: MessageType<EntrypointConfig> =
+// ViteBuildRequestEntrypoint contains the message type declaration for ViteBuildRequestEntrypoint.
+export const ViteBuildRequestEntrypoint: MessageType<ViteBuildRequestEntrypoint> =
   createMessageType({
-    typeName: 'bldr.web.bundler.vite.EntrypointConfig',
+    typeName: 'bldr.web.bundler.vite.ViteBuildRequestEntrypoint',
     fields: [
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -164,9 +127,9 @@ export interface BuildRequest {
   /**
    * Entrypoints contains the list of entrypoints to build.
    *
-   * @generated from field: repeated bldr.web.bundler.vite.EntrypointConfig entrypoints = 7;
+   * @generated from field: repeated bldr.web.bundler.vite.ViteBuildRequestEntrypoint entrypoints = 7;
    */
-  entrypoints?: EntrypointConfig[]
+  entrypoints?: ViteBuildRequestEntrypoint[]
   /**
    * ExternalPkgs is the list of packages to pass to External provided by importmap.
    *
@@ -201,7 +164,7 @@ export const BuildRequest: MessageType<BuildRequest> = createMessageType({
       no: 7,
       name: 'entrypoints',
       kind: 'message',
-      T: () => EntrypointConfig,
+      T: () => ViteBuildRequestEntrypoint,
       repeated: true,
     },
     {
@@ -359,6 +322,37 @@ export const BuildResponse: MessageType<BuildResponse> = createMessageType({
       T: () => WebPkgRef,
       repeated: true,
     },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * ViteOutputMeta is information about a vite output.
+ *
+ * @generated from message bldr.web.bundler.vite.ViteOutputMeta
+ */
+export interface ViteOutputMeta {
+  /**
+   * Path is the path to the file within the output dir.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+  /**
+   * EntrypointPath is the entrypoint that produced this output file.
+   * May be empty.
+   *
+   * @generated from field: string entrypoint_path = 2;
+   */
+  entrypointPath?: string
+}
+
+// ViteOutputMeta contains the message type declaration for ViteOutputMeta.
+export const ViteOutputMeta: MessageType<ViteOutputMeta> = createMessageType({
+  typeName: 'bldr.web.bundler.vite.ViteOutputMeta',
+  fields: [
+    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

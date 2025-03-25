@@ -12,12 +12,10 @@ import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/
 import { WebPkgRefConfig } from '../../../web/bundler/bundler.pb.js'
 import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
-import type { EsbuildVarType } from '../../../web/bundler/esbuild/esbuild.pb.js'
-import { EsbuildVarType_Enum } from '../../../web/bundler/esbuild/esbuild.pb.js'
-import type { ViteVarType } from '../../../web/bundler/vite/vite.pb.js'
-import { ViteVarType_Enum } from '../../../web/bundler/vite/vite.pb.js'
-import { WebPkgRef } from '../../../web/pkg/pkg.pb.js'
 import { PluginDevInfo } from '../../vardef/vardef.pb.js'
+import { WebPkgRef } from '../../../web/pkg/pkg.pb.js'
+import { EsbuildOutputMeta } from '../../../web/bundler/esbuild/esbuild.pb.js'
+import { ViteOutputMeta } from '../../../web/bundler/vite/vite.pb.js'
 
 export const protobufPackage = 'bldr.plugin.compiler.go'
 
@@ -47,27 +45,6 @@ export enum InputFileKind {
    * @generated from enum value: InputFileKind_GO = 2;
    */
   InputFileKind_GO = 2,
-
-  /**
-   * InputFileKind_WEB_PKG is a third party bundled npm package.
-   *
-   * @generated from enum value: InputFileKind_WEB_PKG = 3;
-   */
-  InputFileKind_WEB_PKG = 3,
-
-  /**
-   * InputFileKind_ESBUILD is an input consumed by esbuild.
-   *
-   * @generated from enum value: InputFileKind_ESBUILD = 4;
-   */
-  InputFileKind_ESBUILD = 4,
-
-  /**
-   * InputFileKind_VITE is an input consumed by vite.
-   *
-   * @generated from enum value: InputFileKind_VITE = 5;
-   */
-  InputFileKind_VITE = 5,
 }
 
 // InputFileKind_Enum is the enum type for InputFileKind.
@@ -77,9 +54,70 @@ export const InputFileKind_Enum = createEnumType(
     { no: 0, name: 'InputFileKind_UNKNOWN' },
     { no: 1, name: 'InputFileKind_ASSET' },
     { no: 2, name: 'InputFileKind_GO' },
-    { no: 3, name: 'InputFileKind_WEB_PKG' },
-    { no: 4, name: 'InputFileKind_ESBUILD' },
-    { no: 5, name: 'InputFileKind_VITE' },
+  ],
+)
+
+/**
+ * EsbuildVarType is the list of types of esbuild output variable.
+ *
+ * @generated from enum bldr.plugin.compiler.go.EsbuildVarType
+ */
+export enum EsbuildVarType {
+  /**
+   * EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+   * output type is a string
+   *
+   * @generated from enum value: EsbuildVarType_ENTRYPOINT_PATH = 0;
+   */
+  EsbuildVarType_ENTRYPOINT_PATH = 0,
+
+  /**
+   * EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+   * output type is bldr_web_bundler.WebBundlerOutput
+   *
+   * @generated from enum value: EsbuildVarType_WEB_BUNDLER_OUTPUT = 1;
+   */
+  EsbuildVarType_WEB_BUNDLER_OUTPUT = 1,
+}
+
+// EsbuildVarType_Enum is the enum type for EsbuildVarType.
+export const EsbuildVarType_Enum = createEnumType(
+  'bldr.plugin.compiler.go.EsbuildVarType',
+  [
+    { no: 0, name: 'EsbuildVarType_ENTRYPOINT_PATH' },
+    { no: 1, name: 'EsbuildVarType_WEB_BUNDLER_OUTPUT' },
+  ],
+)
+
+/**
+ * ViteVarType is the list of types of vite output variables.
+ *
+ * @generated from enum bldr.plugin.compiler.go.ViteVarType
+ */
+export enum ViteVarType {
+  /**
+   * ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
+   * output type is a string
+   *
+   * @generated from enum value: ViteVarType_ENTRYPOINT_PATH = 0;
+   */
+  ViteVarType_ENTRYPOINT_PATH = 0,
+
+  /**
+   * ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
+   * output type is bldr_web_bundler.WebBundlerOutput
+   *
+   * @generated from enum value: ViteVarType_WEB_BUNDLER_OUTPUT = 1;
+   */
+  ViteVarType_WEB_BUNDLER_OUTPUT = 1,
+}
+
+// ViteVarType_Enum is the enum type for ViteVarType.
+export const ViteVarType_Enum = createEnumType(
+  'bldr.plugin.compiler.go.ViteVarType',
+  [
+    { no: 0, name: 'ViteVarType_ENTRYPOINT_PATH' },
+    { no: 1, name: 'ViteVarType_WEB_BUNDLER_OUTPUT' },
   ],
 )
 
@@ -143,6 +181,21 @@ export interface Config {
    * @generated from field: repeated bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
    */
   webPkgs?: WebPkgRefConfig[]
+  /**
+   * ViteConfigPaths is a list of paths to Vite configuration files to apply to all bundles.
+   * Ignored unless any bldr:vite directives are found in the code.
+   *
+   * @generated from field: repeated string vite_config_paths = 15;
+   */
+  viteConfigPaths?: string[]
+  /**
+   * ViteDisableProjectConfig indicates whether to disable automatic project config detection for Vite.
+   * Disables finding the root vite.conf.ts for the project.
+   * Ignored unless any bldr:vite directives are found in the code.
+   *
+   * @generated from field: bool vite_disable_project_config = 16;
+   */
+  viteDisableProjectConfig?: boolean
   /**
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by creating a directive.
@@ -209,13 +262,6 @@ export interface Config {
    */
   esbuildFlags?: string[]
   /**
-   * ViteConfigPaths is a list of paths to Vite configuration files to use.
-   * Config files passed by bldr:vite directives can override these values.
-   *
-   * @generated from field: repeated string vite_config_paths = 15;
-   */
-  viteConfigPaths?: string[]
-  /**
    * WebPluginId sets the plugin id for the web plugin.
    * If set, the compiler automatically adds these controllers to the config set:
    * - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
@@ -269,6 +315,19 @@ export const Config: MessageType<Config> = createMessageType({
       T: () => WebPkgRefConfig,
       repeated: true,
     },
+    {
+      no: 15,
+      name: 'vite_config_paths',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 16,
+      name: 'vite_disable_project_config',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
     { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'disable_fetch_assets', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
@@ -278,13 +337,6 @@ export const Config: MessageType<Config> = createMessageType({
     {
       no: 12,
       name: 'esbuild_flags',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 15,
-      name: 'vite_config_paths',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
@@ -376,7 +428,7 @@ export interface EsbuildEntrypointVar {
   /**
    * PkgVarType is the type of esbuild variable this is.
    *
-   * @generated from field: bldr.web.bundler.esbuild.EsbuildVarType pkg_var_type = 4;
+   * @generated from field: bldr.plugin.compiler.go.EsbuildVarType pkg_var_type = 4;
    */
   pkgVarType?: EsbuildVarType
   /**
@@ -408,11 +460,11 @@ export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
   })
 
 /**
- * EsbuildBundleMeta is information about an esbuild bundle.
+ * EsbuildBundleVarMeta is information about an esbuild bundle.
  *
- * @generated from message bldr.plugin.compiler.go.EsbuildBundleMeta
+ * @generated from message bldr.plugin.compiler.go.EsbuildBundleVarMeta
  */
-export interface EsbuildBundleMeta {
+export interface EsbuildBundleVarMeta {
   /**
    * Id is the identifier of the bundle.
    *
@@ -427,10 +479,10 @@ export interface EsbuildBundleMeta {
   entrypointVars?: EsbuildEntrypointVar[]
 }
 
-// EsbuildBundleMeta contains the message type declaration for EsbuildBundleMeta.
-export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
+// EsbuildBundleVarMeta contains the message type declaration for EsbuildBundleVarMeta.
+export const EsbuildBundleVarMeta: MessageType<EsbuildBundleVarMeta> =
   createMessageType({
-    typeName: 'bldr.plugin.compiler.go.EsbuildBundleMeta',
+    typeName: 'bldr.plugin.compiler.go.EsbuildBundleVarMeta',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       {
@@ -440,45 +492,6 @@ export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
         T: () => EsbuildEntrypointVar,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * EsbuildOutputMeta is information about an esbuild output.
- *
- * @generated from message bldr.plugin.compiler.go.EsbuildOutputMeta
- */
-export interface EsbuildOutputMeta {
-  /**
-   * Path is the path to the file within the output dir.
-   *
-   * @generated from field: string path = 1;
-   */
-  path?: string
-  /**
-   * Length is the size of the file in bytes.
-   *
-   * @generated from field: uint32 length = 2;
-   */
-  length?: number
-  /**
-   * EntrypointPath is the entrypoint that produced this output file.
-   * May be empty.
-   *
-   * @generated from field: string entrypoint_path = 3;
-   */
-  entrypointPath?: string
-}
-
-// EsbuildOutputMeta contains the message type declaration for EsbuildOutputMeta.
-export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
-  createMessageType({
-    typeName: 'bldr.plugin.compiler.go.EsbuildOutputMeta',
-    fields: [
-      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'length', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 3, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -510,24 +523,24 @@ export interface ViteEntrypointVar {
   /**
    * PkgVarType is the type of vite variable this is.
    *
-   * @generated from field: bldr.web.bundler.vite.ViteVarType pkg_var_type = 4;
+   * @generated from field: bldr.plugin.compiler.go.ViteVarType pkg_var_type = 4;
    */
   pkgVarType?: ViteVarType
   /**
-   * ViteConfigPaths are the paths to Vite configuration files to use.
+   * ViteConfigPaths are the vite config paths options for this variable.
    *
    * @generated from field: repeated string vite_config_paths = 5;
    */
   viteConfigPaths?: string[]
   /**
-   * EntrypointPath is the specific entrypoint path for this variable.
-   * If empty, PkgCodePath is used as the entrypoint.
+   * EntrypointPath is the entrypoint path for vite.
    *
    * @generated from field: string entrypoint_path = 6;
    */
   entrypointPath?: string
   /**
-   * DisableProjectConfig disables searching for the vite.config.ts in the project root.
+   * DisableProjectConfig indicates whether to disable automatic project config detection.
+   * Disables finding the root vite.conf.ts for the project.
    *
    * @generated from field: bool disable_project_config = 7;
    */
@@ -562,11 +575,11 @@ export const ViteEntrypointVar: MessageType<ViteEntrypointVar> =
   })
 
 /**
- * ViteBundleMeta is information about a vite bundle.
+ * ViteBundleVarMeta is information about a vite bundle.
  *
- * @generated from message bldr.plugin.compiler.go.ViteBundleMeta
+ * @generated from message bldr.plugin.compiler.go.ViteBundleVarMeta
  */
-export interface ViteBundleMeta {
+export interface ViteBundleVarMeta {
   /**
    * Id is the identifier of the bundle.
    *
@@ -581,52 +594,22 @@ export interface ViteBundleMeta {
   entrypointVars?: ViteEntrypointVar[]
 }
 
-// ViteBundleMeta contains the message type declaration for ViteBundleMeta.
-export const ViteBundleMeta: MessageType<ViteBundleMeta> = createMessageType({
-  typeName: 'bldr.plugin.compiler.go.ViteBundleMeta',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'entrypoint_vars',
-      kind: 'message',
-      T: () => ViteEntrypointVar,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
-
-/**
- * ViteOutputMeta is information about a vite output.
- *
- * @generated from message bldr.plugin.compiler.go.ViteOutputMeta
- */
-export interface ViteOutputMeta {
-  /**
-   * Path is the path to the file within the output dir.
-   *
-   * @generated from field: string path = 1;
-   */
-  path?: string
-  /**
-   * EntrypointPath is the entrypoint that produced this output file.
-   * May be empty.
-   *
-   * @generated from field: string entrypoint_path = 2;
-   */
-  entrypointPath?: string
-}
-
-// ViteOutputMeta contains the message type declaration for ViteOutputMeta.
-export const ViteOutputMeta: MessageType<ViteOutputMeta> = createMessageType({
-  typeName: 'bldr.plugin.compiler.go.ViteOutputMeta',
-  fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+// ViteBundleVarMeta contains the message type declaration for ViteBundleVarMeta.
+export const ViteBundleVarMeta: MessageType<ViteBundleVarMeta> =
+  createMessageType({
+    typeName: 'bldr.plugin.compiler.go.ViteBundleVarMeta',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'entrypoint_vars',
+        kind: 'message',
+        T: () => ViteEntrypointVar,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * InputManifestMeta is metadata attached to the input manifest.
@@ -635,17 +618,17 @@ export const ViteOutputMeta: MessageType<ViteOutputMeta> = createMessageType({
  */
 export interface InputManifestMeta {
   /**
-   * WebPkgRefs contains the list of web pkg references.
-   *
-   * @generated from field: repeated web.pkg.WebPkgRef web_pkg_refs = 1;
-   */
-  webPkgRefs?: WebPkgRef[]
-  /**
    * DevInfo contains the set of plugin variable definitions.
    *
-   * @generated from field: bldr.plugin.vardef.PluginDevInfo dev_info = 2;
+   * @generated from field: bldr.plugin.vardef.PluginDevInfo dev_info = 1;
    */
   devInfo?: PluginDevInfo
+  /**
+   * WebPkgRefs contains the list of web pkg references.
+   *
+   * @generated from field: repeated web.pkg.WebPkgRef web_pkg_refs = 2;
+   */
+  webPkgRefs?: WebPkgRef[]
   /**
    * WebPkgs is the list of web pkgs that we separate from the bundle.
    *
@@ -661,33 +644,40 @@ export interface InputManifestMeta {
   /**
    * EsbuildBundles contains the set of esbuild bundles.
    *
-   * @generated from field: map<string, bldr.plugin.compiler.go.EsbuildBundleMeta> esbuild_bundles = 5;
+   * @generated from field: repeated bldr.plugin.compiler.go.EsbuildBundleVarMeta esbuild_bundles = 5;
    */
-  esbuildBundles?: { [key: string]: EsbuildBundleMeta }
+  esbuildBundles?: EsbuildBundleVarMeta[]
   /**
    * EsbuildOutputs contains a list of files written by esbuild.
    *
-   * @generated from field: repeated bldr.plugin.compiler.go.EsbuildOutputMeta esbuild_outputs = 6;
+   * @generated from field: repeated bldr.web.bundler.esbuild.EsbuildOutputMeta esbuild_outputs = 6;
    */
   esbuildOutputs?: EsbuildOutputMeta[]
   /**
-   * ViteConfigPaths are the paths to Vite configuration files to use for all vite bundles.
+   * ViteConfigPaths are paths to Vite configuration files to merge together.
    *
    * @generated from field: repeated string vite_config_paths = 7;
    */
   viteConfigPaths?: string[]
   /**
-   * ViteBundles contains the set of vite bundles.
+   * ViteBundles is the list of vite bundles with entrypoint configs.
    *
-   * @generated from field: map<string, bldr.plugin.compiler.go.ViteBundleMeta> vite_bundles = 8;
+   * @generated from field: repeated bldr.plugin.compiler.go.ViteBundleVarMeta vite_bundles = 8;
    */
-  viteBundles?: { [key: string]: ViteBundleMeta }
+  viteBundles?: ViteBundleVarMeta[]
   /**
    * ViteOutputs contains a list of files written by vite.
    *
-   * @generated from field: repeated bldr.plugin.compiler.go.ViteOutputMeta vite_outputs = 9;
+   * @generated from field: repeated bldr.web.bundler.vite.ViteOutputMeta vite_outputs = 9;
    */
   viteOutputs?: ViteOutputMeta[]
+  /**
+   * ViteDisableProjectConfig indicates whether to disable automatic project config detection.
+   * Disables finding the root vite.conf.ts for the project.
+   *
+   * @generated from field: bool vite_disable_project_config = 10;
+   */
+  viteDisableProjectConfig?: boolean
 }
 
 // InputManifestMeta contains the message type declaration for InputManifestMeta.
@@ -695,14 +685,14 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.go.InputManifestMeta',
     fields: [
+      { no: 1, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },
       {
-        no: 1,
+        no: 2,
         name: 'web_pkg_refs',
         kind: 'message',
         T: () => WebPkgRef,
         repeated: true,
       },
-      { no: 2, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },
       {
         no: 3,
         name: 'web_pkgs',
@@ -720,9 +710,9 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
       {
         no: 5,
         name: 'esbuild_bundles',
-        kind: 'map',
-        K: ScalarType.STRING,
-        V: { kind: 'message', T: () => EsbuildBundleMeta },
+        kind: 'message',
+        T: () => EsbuildBundleVarMeta,
+        repeated: true,
       },
       {
         no: 6,
@@ -741,9 +731,9 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
       {
         no: 8,
         name: 'vite_bundles',
-        kind: 'map',
-        K: ScalarType.STRING,
-        V: { kind: 'message', T: () => ViteBundleMeta },
+        kind: 'message',
+        T: () => ViteBundleVarMeta,
+        repeated: true,
       },
       {
         no: 9,
@@ -751,6 +741,12 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         kind: 'message',
         T: () => ViteOutputMeta,
         repeated: true,
+      },
+      {
+        no: 10,
+        name: 'vite_disable_project_config',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,

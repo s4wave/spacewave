@@ -9,6 +9,7 @@ import (
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
+	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -155,6 +156,11 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	return context.Canceled
 }
 
+// resolveLoadPlugin resolves a LoadPlugin directive.
+func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
+	return plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID()), nil
+}
+
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.
 // Any unexpected errors are returned for logging.
@@ -166,7 +172,7 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case bldr_plugin.LoadPlugin:
-		return directive.R(c.resolveLoadPlugin(ctx, inst, d))
+		return directive.R(c.resolveLoadPlugin(d))
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
 	}

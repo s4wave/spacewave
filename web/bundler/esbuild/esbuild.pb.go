@@ -14,80 +14,115 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// EsbuildVarType is the list of types of esbuild output variable.
-type EsbuildVarType int32
-
-const (
-	// EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
-	// output type is a string
-	EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH EsbuildVarType = 0
-	// EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
-	// output type is bldr_web_bundler.WebBundlerOutput
-	EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT EsbuildVarType = 1
-)
-
-// Enum value maps for EsbuildVarType.
-var (
-	EsbuildVarType_name = map[int32]string{
-		0: "EsbuildVarType_ENTRYPOINT_PATH",
-		1: "EsbuildVarType_WEB_BUNDLER_OUTPUT",
-	}
-	EsbuildVarType_value = map[string]int32{
-		"EsbuildVarType_ENTRYPOINT_PATH":    0,
-		"EsbuildVarType_WEB_BUNDLER_OUTPUT": 1,
-	}
-)
-
-func (x EsbuildVarType) Enum() *EsbuildVarType {
-	p := new(EsbuildVarType)
-	*p = x
-	return p
-}
-
-func (x EsbuildVarType) String() string {
-	name, valid := EsbuildVarType_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
-// EsbuildEntrypoint is an entrypoint passed to Esbuild.
-type EsbuildEntrypoint struct {
+// EsbuildBundleEntrypoint configures a entrypoint to build into the bundle with esbuild.
+type EsbuildBundleEntrypoint struct {
 	unknownFields []byte
-	// InputPath is the input file path.
+	// InputPath is the relative path to the entrypoint from the project root.
 	InputPath string `protobuf:"bytes,1,opt,name=input_path,json=inputPath,proto3" json:"inputPath,omitempty"`
-	// OutputPath is the output file path, if any.
+	// OutputPath is the relative path to the output from the dist fs root.
+	// Optional. If unset, will be inferred from InputPath.
 	OutputPath string `protobuf:"bytes,2,opt,name=output_path,json=outputPath,proto3" json:"outputPath,omitempty"`
+	// EntrypointId is the entrypoint identifier.
+	// Used to identify the entrypoint in the InputManifestMeta.
+	// Optional, can be empty.
+	EntrypointId string `protobuf:"bytes,3,opt,name=entrypoint_id,json=entrypointId,proto3" json:"entrypointId,omitempty"`
 }
 
-func (x *EsbuildEntrypoint) Reset() {
-	*x = EsbuildEntrypoint{}
+func (x *EsbuildBundleEntrypoint) Reset() {
+	*x = EsbuildBundleEntrypoint{}
 }
 
-func (*EsbuildEntrypoint) ProtoMessage() {}
+func (*EsbuildBundleEntrypoint) ProtoMessage() {}
 
-func (x *EsbuildEntrypoint) GetInputPath() string {
+func (x *EsbuildBundleEntrypoint) GetInputPath() string {
 	if x != nil {
 		return x.InputPath
 	}
 	return ""
 }
 
-func (x *EsbuildEntrypoint) GetOutputPath() string {
+func (x *EsbuildBundleEntrypoint) GetOutputPath() string {
 	if x != nil {
 		return x.OutputPath
 	}
 	return ""
 }
 
-func (m *EsbuildEntrypoint) CloneVT() *EsbuildEntrypoint {
-	if m == nil {
-		return (*EsbuildEntrypoint)(nil)
+func (x *EsbuildBundleEntrypoint) GetEntrypointId() string {
+	if x != nil {
+		return x.EntrypointId
 	}
-	r := new(EsbuildEntrypoint)
+	return ""
+}
+
+// EsbuildOutputMeta is information about an esbuild output.
+type EsbuildOutputMeta struct {
+	unknownFields []byte
+	// Path is the path to the file within the output dir.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Length is the size of the file in bytes.
+	Length uint32 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
+	// CssBundlePath is the path to the css bundle within the output dir.
+	// May be empty.
+	CssBundlePath string `protobuf:"bytes,3,opt,name=css_bundle_path,json=cssBundlePath,proto3" json:"cssBundlePath,omitempty"`
+	// EntrypointPath is the entrypoint that produced this output file.
+	// May be empty.
+	EntrypointPath string `protobuf:"bytes,4,opt,name=entrypoint_path,json=entrypointPath,proto3" json:"entrypointPath,omitempty"`
+	// EntrypointId is the entrypoint identifier.
+	// Set in the EsbuildBundleEntrypoint.
+	// Optional, can be empty.
+	EntrypointId string `protobuf:"bytes,5,opt,name=entrypoint_id,json=entrypointId,proto3" json:"entrypointId,omitempty"`
+}
+
+func (x *EsbuildOutputMeta) Reset() {
+	*x = EsbuildOutputMeta{}
+}
+
+func (*EsbuildOutputMeta) ProtoMessage() {}
+
+func (x *EsbuildOutputMeta) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *EsbuildOutputMeta) GetLength() uint32 {
+	if x != nil {
+		return x.Length
+	}
+	return 0
+}
+
+func (x *EsbuildOutputMeta) GetCssBundlePath() string {
+	if x != nil {
+		return x.CssBundlePath
+	}
+	return ""
+}
+
+func (x *EsbuildOutputMeta) GetEntrypointPath() string {
+	if x != nil {
+		return x.EntrypointPath
+	}
+	return ""
+}
+
+func (x *EsbuildOutputMeta) GetEntrypointId() string {
+	if x != nil {
+		return x.EntrypointId
+	}
+	return ""
+}
+
+func (m *EsbuildBundleEntrypoint) CloneVT() *EsbuildBundleEntrypoint {
+	if m == nil {
+		return (*EsbuildBundleEntrypoint)(nil)
+	}
+	r := new(EsbuildBundleEntrypoint)
 	r.InputPath = m.InputPath
 	r.OutputPath = m.OutputPath
+	r.EntrypointId = m.EntrypointId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -95,11 +130,32 @@ func (m *EsbuildEntrypoint) CloneVT() *EsbuildEntrypoint {
 	return r
 }
 
-func (m *EsbuildEntrypoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *EsbuildBundleEntrypoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (this *EsbuildEntrypoint) EqualVT(that *EsbuildEntrypoint) bool {
+func (m *EsbuildOutputMeta) CloneVT() *EsbuildOutputMeta {
+	if m == nil {
+		return (*EsbuildOutputMeta)(nil)
+	}
+	r := new(EsbuildOutputMeta)
+	r.Path = m.Path
+	r.Length = m.Length
+	r.CssBundlePath = m.CssBundlePath
+	r.EntrypointPath = m.EntrypointPath
+	r.EntrypointId = m.EntrypointId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *EsbuildOutputMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (this *EsbuildBundleEntrypoint) EqualVT(that *EsbuildBundleEntrypoint) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -111,59 +167,53 @@ func (this *EsbuildEntrypoint) EqualVT(that *EsbuildEntrypoint) bool {
 	if this.OutputPath != that.OutputPath {
 		return false
 	}
+	if this.EntrypointId != that.EntrypointId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *EsbuildEntrypoint) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*EsbuildEntrypoint)
+func (this *EsbuildBundleEntrypoint) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EsbuildBundleEntrypoint)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *EsbuildOutputMeta) EqualVT(that *EsbuildOutputMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.Length != that.Length {
+		return false
+	}
+	if this.CssBundlePath != that.CssBundlePath {
+		return false
+	}
+	if this.EntrypointPath != that.EntrypointPath {
+		return false
+	}
+	if this.EntrypointId != that.EntrypointId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EsbuildOutputMeta) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EsbuildOutputMeta)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-// MarshalProtoJSON marshals the EsbuildVarType to JSON.
-func (x EsbuildVarType) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnumString(int32(x), EsbuildVarType_name)
-}
-
-// MarshalText marshals the EsbuildVarType to text.
-func (x EsbuildVarType) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), EsbuildVarType_name)), nil
-}
-
-// MarshalJSON marshals the EsbuildVarType to JSON.
-func (x EsbuildVarType) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the EsbuildVarType from JSON.
-func (x *EsbuildVarType) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(EsbuildVarType_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read EsbuildVarType enum: %v", err)
-		return
-	}
-	*x = EsbuildVarType(v)
-}
-
-// UnmarshalText unmarshals the EsbuildVarType from text.
-func (x *EsbuildVarType) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), EsbuildVarType_value)
-	if err != nil {
-		return err
-	}
-	*x = EsbuildVarType(i)
-	return nil
-}
-
-// UnmarshalJSON unmarshals the EsbuildVarType from JSON.
-func (x *EsbuildVarType) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the EsbuildEntrypoint message to JSON.
-func (x *EsbuildEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the EsbuildBundleEntrypoint message to JSON.
+func (x *EsbuildBundleEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -180,16 +230,21 @@ func (x *EsbuildEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("outputPath")
 		s.WriteString(x.OutputPath)
 	}
+	if x.EntrypointId != "" || s.HasField("entrypointId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointId")
+		s.WriteString(x.EntrypointId)
+	}
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the EsbuildEntrypoint to JSON.
-func (x *EsbuildEntrypoint) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the EsbuildBundleEntrypoint to JSON.
+func (x *EsbuildBundleEntrypoint) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the EsbuildEntrypoint message from JSON.
-func (x *EsbuildEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the EsbuildBundleEntrypoint message from JSON.
+func (x *EsbuildBundleEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -203,16 +258,93 @@ func (x *EsbuildEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "output_path", "outputPath":
 			s.AddField("output_path")
 			x.OutputPath = s.ReadString()
+		case "entrypoint_id", "entrypointId":
+			s.AddField("entrypoint_id")
+			x.EntrypointId = s.ReadString()
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the EsbuildEntrypoint from JSON.
-func (x *EsbuildEntrypoint) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the EsbuildBundleEntrypoint from JSON.
+func (x *EsbuildBundleEntrypoint) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-func (m *EsbuildEntrypoint) MarshalVT() (dAtA []byte, err error) {
+// MarshalProtoJSON marshals the EsbuildOutputMeta message to JSON.
+func (x *EsbuildOutputMeta) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.Length != 0 || s.HasField("length") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("length")
+		s.WriteUint32(x.Length)
+	}
+	if x.CssBundlePath != "" || s.HasField("cssBundlePath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cssBundlePath")
+		s.WriteString(x.CssBundlePath)
+	}
+	if x.EntrypointPath != "" || s.HasField("entrypointPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointPath")
+		s.WriteString(x.EntrypointPath)
+	}
+	if x.EntrypointId != "" || s.HasField("entrypointId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointId")
+		s.WriteString(x.EntrypointId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EsbuildOutputMeta to JSON.
+func (x *EsbuildOutputMeta) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EsbuildOutputMeta message from JSON.
+func (x *EsbuildOutputMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "length":
+			s.AddField("length")
+			x.Length = s.ReadUint32()
+		case "css_bundle_path", "cssBundlePath":
+			s.AddField("css_bundle_path")
+			x.CssBundlePath = s.ReadString()
+		case "entrypoint_path", "entrypointPath":
+			s.AddField("entrypoint_path")
+			x.EntrypointPath = s.ReadString()
+		case "entrypoint_id", "entrypointId":
+			s.AddField("entrypoint_id")
+			x.EntrypointId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the EsbuildOutputMeta from JSON.
+func (x *EsbuildOutputMeta) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *EsbuildBundleEntrypoint) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -225,12 +357,12 @@ func (m *EsbuildEntrypoint) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EsbuildEntrypoint) MarshalToVT(dAtA []byte) (int, error) {
+func (m *EsbuildBundleEntrypoint) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *EsbuildEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *EsbuildBundleEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -241,6 +373,13 @@ func (m *EsbuildEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EntrypointId) > 0 {
+		i -= len(m.EntrypointId)
+		copy(dAtA[i:], m.EntrypointId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.OutputPath) > 0 {
 		i -= len(m.OutputPath)
@@ -259,7 +398,73 @@ func (m *EsbuildEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *EsbuildEntrypoint) SizeVT() (n int) {
+func (m *EsbuildOutputMeta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EsbuildOutputMeta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EsbuildOutputMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EntrypointId) > 0 {
+		i -= len(m.EntrypointId)
+		copy(dAtA[i:], m.EntrypointId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.EntrypointPath) > 0 {
+		i -= len(m.EntrypointPath)
+		copy(dAtA[i:], m.EntrypointPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointPath)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.CssBundlePath) > 0 {
+		i -= len(m.CssBundlePath)
+		copy(dAtA[i:], m.CssBundlePath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CssBundlePath)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Length != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Length))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EsbuildBundleEntrypoint) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -273,38 +478,120 @@ func (m *EsbuildEntrypoint) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.EntrypointId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (x EsbuildVarType) MarshalProtoText() string {
-	return x.String()
+func (m *EsbuildOutputMeta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Length != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Length))
+	}
+	l = len(m.CssBundlePath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EntrypointPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EntrypointId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
 }
-func (x *EsbuildEntrypoint) MarshalProtoText() string {
+
+func (x *EsbuildBundleEntrypoint) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("EsbuildEntrypoint {")
+	sb.WriteString("EsbuildBundleEntrypoint {")
 	if x.InputPath != "" {
-		if sb.Len() > 19 {
+		if sb.Len() > 25 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("input_path: ")
 		sb.WriteString(strconv.Quote(x.InputPath))
 	}
 	if x.OutputPath != "" {
-		if sb.Len() > 19 {
+		if sb.Len() > 25 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("output_path: ")
 		sb.WriteString(strconv.Quote(x.OutputPath))
 	}
+	if x.EntrypointId != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_id: ")
+		sb.WriteString(strconv.Quote(x.EntrypointId))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
-func (x *EsbuildEntrypoint) String() string {
+func (x *EsbuildBundleEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
-func (m *EsbuildEntrypoint) UnmarshalVT(dAtA []byte) error {
+func (x *EsbuildOutputMeta) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("EsbuildOutputMeta {")
+	if x.Path != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	if x.Length != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("length: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Length), 10))
+	}
+	if x.CssBundlePath != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("css_bundle_path: ")
+		sb.WriteString(strconv.Quote(x.CssBundlePath))
+	}
+	if x.EntrypointPath != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_path: ")
+		sb.WriteString(strconv.Quote(x.EntrypointPath))
+	}
+	if x.EntrypointId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_id: ")
+		sb.WriteString(strconv.Quote(x.EntrypointId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *EsbuildOutputMeta) String() string {
+	return x.MarshalProtoText()
+}
+func (m *EsbuildBundleEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -327,10 +614,10 @@ func (m *EsbuildEntrypoint) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EsbuildEntrypoint: wiretype end group for non-group")
+			return fmt.Errorf("proto: EsbuildBundleEntrypoint: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EsbuildEntrypoint: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: EsbuildBundleEntrypoint: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -396,6 +683,236 @@ func (m *EsbuildEntrypoint) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.OutputPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EsbuildOutputMeta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EsbuildOutputMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EsbuildOutputMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Length", wireType)
+			}
+			m.Length = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Length |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CssBundlePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CssBundlePath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

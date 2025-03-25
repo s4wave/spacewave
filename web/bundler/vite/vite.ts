@@ -62,10 +62,15 @@ class ViteBundlerService implements ViteBundler {
       // set node env
       process.env['NODE_ENV'] = mode
 
+      // configPaths are relative to rootDir, make them absolute paths.
+      const absoluteConfigPaths = configPaths.map((configPath) =>
+        path.resolve(rootDir, configPath),
+      )
+
       // Build the merged configuration
       const mergedConfig = await buildConfig(
         { mode, command: 'build' },
-        ...configPaths,
+        ...absoluteConfigPaths,
       )
       if (!mergedConfig.build) {
         mergedConfig.build = {}

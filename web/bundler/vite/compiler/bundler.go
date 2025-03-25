@@ -1,12 +1,10 @@
 //go:build !js
 
-package bldr_plugin_compiler_go
+package bldr_web_bundler_vite_compiler
 
 import (
 	"bytes"
 	"context"
-	"go/ast"
-	"go/token"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	filehash "github.com/aperturerobotics/bldr/util/filehash"
 	"github.com/aperturerobotics/bldr/util/node"
 	"github.com/aperturerobotics/bldr/util/pipesock"
@@ -22,6 +19,7 @@ import (
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
+	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -44,6 +42,28 @@ type viteBundlerTracker struct {
 	le *logrus.Entry
 	// instancePromiseCtr contains the vite compiler rpc instance or any error running it
 	instancePromiseCtr *promise.PromiseContainer[bldr_vite.SRPCViteBundlerClient]
+}
+
+// viteBundlerKey is a composite key for identifying a Vite bundler instance.
+type viteBundlerKey struct {
+	// distPath is the root path to the dist sources
+	distPath string
+	// sourcePath is the root path of the source code
+	sourcePath string
+	// workingPath is the path to the working directory
+	workingPath string
+	// bundleID is the ID of the Vite bundle
+	bundleID string
+}
+
+// newViteBundlerKey creates a new viteBundlerKey with the given parameters.
+func newViteBundlerKey(distPath, sourcePath, workingPath, bundleID string) viteBundlerKey {
+	return viteBundlerKey{
+		distPath:    distPath,
+		sourcePath:  sourcePath,
+		workingPath: workingPath,
+		bundleID:    bundleID,
+	}
 }
 
 // buildViteCompilerTracker returns a function that constructs a new Vite compiler tracker.
@@ -179,81 +199,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	return err
 }
 
-// BuildViteBundleMeta builds the bundle metadata from the list of go variable defs.
-func BuildViteBundleMeta(
-	le *logrus.Entry,
-	codeRootPath string,
-	codeFiles map[string][]*ast.File,
-	fset *token.FileSet,
-	pkgs map[string](map[string]*ViteDirective),
-) (map[string]*ViteBundleMeta, error) {
-	// bundles is the map of bundle-id to bundle-def
-	bundles := make(map[string]*ViteBundleMeta)
-	getBundle := func(bundleID string) *ViteBundleMeta {
-		bundleDef := bundles[bundleID]
-		if bundleDef != nil {
-			return bundleDef
-		}
-
-		bundleDef = &ViteBundleMeta{Id: bundleID}
-		bundles[bundleID] = bundleDef
-		return bundleDef
-	}
-
-	// for each package variable, build a bundle definition + variable
-	for pkgImportPath, pkgVars := range pkgs {
-		pkgCodeFiles := codeFiles[pkgImportPath]
-		if len(pkgCodeFiles) == 0 {
-			return nil, errors.Errorf("failed to find ast.File for package: %s", pkgImportPath)
-		}
-
-		pkgCodePath := filepath.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
-		relPkgCodePath, err := filepath.Rel(codeRootPath, pkgCodePath)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to determine relative path")
-		}
-
-		for pkgVar, pkgViteDirective := range pkgVars {
-			bundleID := pkgViteDirective.BundleID
-			bundleDef := getBundle(bundleID)
-			bundleDef.EntrypointVars = append(bundleDef.EntrypointVars, &ViteEntrypointVar{
-				PkgImportPath:        pkgImportPath,
-				PkgVar:               pkgVar,
-				PkgVarType:           pkgViteDirective.ViteVarType,
-				PkgCodePath:          relPkgCodePath,
-				ViteConfigPaths:      pkgViteDirective.ViteConfigPaths,
-				EntrypointPath:       pkgViteDirective.EntrypointPath,
-				DisableProjectConfig: pkgViteDirective.DisableProjectConfig,
-			})
-		}
-	}
-
-	// sort entrypoint variables
-	for _, bundle := range bundles {
-		bundle.SortEntrypointVars()
-	}
-
-	return bundles, nil
-}
-
-// SortEntrypointVars sorts the entrypoint variables field.
-func (m *ViteBundleMeta) SortEntrypointVars() {
-	slices.SortFunc(m.EntrypointVars, func(a, b *ViteEntrypointVar) int {
-		sa := a.GetPkgImportPath() + "." + a.GetPkgVar()
-		sb := b.GetPkgImportPath() + "." + b.GetPkgVar()
-		return strings.Compare(sa, sb)
-	})
-}
-
-// HasDisableProjectConfig returns true if any entrypoint variable has DisableProjectConfig set.
-func (m *ViteBundleMeta) HasDisableProjectConfig() bool {
-	for _, v := range m.EntrypointVars {
-		if v.GetDisableProjectConfig() {
-			return true
-		}
-	}
-	return false
-}
+// TODO: publicPath?
 
 // BuildViteBundle builds a Vite bundle with the given bundle args.
 func BuildViteBundle(
@@ -269,12 +215,11 @@ func BuildViteBundle(
 	outAssetsPath string,
 	pluginID string,
 	isRelease bool,
-) ([]*vardef.PluginVar, []*web_pkg.WebPkgRef, []*ViteOutputMeta, []string, error) {
+) ([]*web_pkg.WebPkgRef, []*bldr_web_bundler_vite.ViteOutputMeta, []string, error) {
 	// outputs
-	var goVariableDefs []*vardef.PluginVar
 	var sourceFilesList []string
 	var webPkgRefs []*web_pkg.WebPkgRef
-	var outputMetas []*ViteOutputMeta
+	var outputMetas []*bldr_web_bundler_vite.ViteOutputMeta
 
 	// Create a temporary output directory for Vite
 	viteBundleMetaID := viteBundleMeta.GetId()
@@ -300,14 +245,12 @@ func BuildViteBundle(
 			err = errors.New("config path must be within code dir")
 		}
 		if err != nil {
-			return nil, nil, nil, nil, errors.Wrapf(err, "invalid vite config path: %v", configPath)
+			return nil, nil, nil, errors.Wrapf(err, "invalid vite config path: %v", configPath)
 		}
 	}
 
-	// Check if we need to look for project config files
-	disableProjectConfig := viteBundleMeta.HasDisableProjectConfig()
-
 	// If project config is not disabled, look for vite.config.{js,ts,cjs,mjs} in the code root
+	disableProjectConfig := viteBundleMeta.GetDisableProjectConfig()
 	if !disableProjectConfig {
 		possibleConfigExtensions := []string{".ts", ".js", ".cjs", ".mjs"}
 		for _, ext := range possibleConfigExtensions {
@@ -316,13 +259,13 @@ func BuildViteBundle(
 				if os.IsNotExist(err) {
 					continue
 				}
-				return nil, nil, nil, nil, errors.Wrapf(err, "error reading vite config at: %v", configPath)
+				return nil, nil, nil, errors.Wrapf(err, "error reading vite config at: %v", configPath)
 			}
 
 			// Found a config file, add it to the list
 			relConfigPath, err := filepath.Rel(codeRootPath, configPath)
 			if err != nil {
-				return nil, nil, nil, nil, errors.Wrapf(err, "failed to get relative path for project config: %v", configPath)
+				return nil, nil, nil, errors.Wrapf(err, "failed to get relative path for project config: %v", configPath)
 			}
 			le.Debugf("found project vite config: %s", relConfigPath)
 			viteConfigPaths = append(viteConfigPaths, relConfigPath)
@@ -330,48 +273,28 @@ func BuildViteBundle(
 	}
 
 	// Add the base config path
-	baseConfigRelPath, err := filepath.Rel(workingPath, filepath.Join(distSourcePath, "web/bundler/vite/vite-base.config.ts"))
+	baseConfigRelPath, err := filepath.Rel(codeRootPath, filepath.Join(distSourcePath, "web/bundler/vite/vite-base.config.ts"))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	viteConfigPaths = append(viteConfigPaths, baseConfigRelPath)
 
 	// Build entrypoint configs
-	entrypoints := make([]*bldr_vite.EntrypointConfig, 0)
+	entrypoints := make([]*bldr_vite.ViteBuildRequestEntrypoint, 0)
 	usedNames := make(map[string]bool)
 
-	for _, varDef := range viteBundleMeta.EntrypointVars {
-		// Process config paths
-		for _, configPath := range varDef.GetViteConfigPaths() {
-			var err error
-			configPath, err = filepath.Rel(codeRootPath, filepath.Join(codeRootPath, configPath))
-			if err == nil && strings.HasPrefix(configPath, "../") {
-				err = errors.New("config path must be within code dir")
-			}
-			if err != nil {
-				return nil, nil, nil, nil, errors.Wrapf(err, "invalid vite config path: %v", configPath)
-			}
-			viteConfigPaths = append(viteConfigPaths, configPath)
-		}
-
+	for _, entrypointConf := range viteBundleMeta.GetEntrypoints() {
 		// Validate entrypoint path
-		if varDef.GetEntrypointPath() == "" {
-			return nil, nil, nil, nil, errors.New("entrypoint path is required for vite bundle")
+		entrypointPath := entrypointConf.GetInputPath()
+		if entrypointPath == "" {
+			return nil, nil, nil, errors.New("entrypoint path is required for vite bundle")
 		}
-		inputPath := filepath.Join(varDef.GetPkgCodePath(), varDef.GetEntrypointPath())
 
 		// Skip if we already have this entrypoint
-		found := false
-		for _, ep := range entrypoints {
-			if ep.InputPath == inputPath {
-				found = true
-				break
-			}
-		}
-
+		found := slices.IndexFunc(entrypoints, func(e *bldr_vite.ViteBuildRequestEntrypoint) bool { return e.GetInputPath() == entrypointPath }) != -1
 		if !found {
 			// Use filename (without extension) as entrypoint name
-			baseName := filepath.Base(varDef.GetEntrypointPath())
+			baseName := filepath.Base(entrypointPath)
 			baseEntryName := strings.TrimSuffix(baseName, filepath.Ext(baseName))
 
 			// Deconflict names by adding incremental numbers if necessary
@@ -385,9 +308,9 @@ func BuildViteBundle(
 			}
 			usedNames[entryName] = true
 
-			entrypoints = append(entrypoints, &bldr_vite.EntrypointConfig{
-				InputPath: inputPath,
+			entrypoints = append(entrypoints, &bldr_vite.ViteBuildRequestEntrypoint{
 				Name:      entryName,
+				InputPath: entrypointPath,
 			})
 		}
 	}
@@ -411,18 +334,18 @@ func BuildViteBundle(
 		ConfigPaths:  viteConfigPaths,
 		Mode:         mode,
 		RootDir:      codeRootPath,
+		DistDir:      distSourcePath,
 		OutDir:       viteOutDir,
 		CacheDir:     cacheDir,
-		DistDir:      distSourcePath,
 		Entrypoints:  entrypoints,
 		ExternalPkgs: web_pkg_esbuild.BldrExternal,
 		WebPkgs:      extWebPkgs,
 	})
 	if ctx.Err() != nil {
-		return nil, nil, nil, nil, context.Canceled
+		return nil, nil, nil, context.Canceled
 	}
 	if err != nil {
-		return nil, nil, nil, nil, errors.Wrap(err, "vite build failed")
+		return nil, nil, nil, errors.Wrap(err, "vite build failed")
 	}
 
 	// Add source files to the list
@@ -431,7 +354,7 @@ func BuildViteBundle(
 
 	le.Debugf("vite result: %v", buildResp.String())
 	if !buildResp.GetSuccess() {
-		return nil, nil, nil, sourceFilesList, errors.New("vite build failed: " + buildResp.GetError())
+		return nil, nil, sourceFilesList, errors.New("vite build failed: " + buildResp.GetError())
 	}
 
 	// Process web package references
@@ -492,7 +415,7 @@ func BuildViteBundle(
 
 		// Add to output metadata
 		outputPath := filepath.Join(outAssetsBundleDir, hashedFilename)
-		outputMetas = append(outputMetas, &ViteOutputMeta{
+		outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
 			Path:           outputPath,
 			EntrypointPath: entrypointPath,
 		})
@@ -509,7 +432,7 @@ func BuildViteBundle(
 		if entrypoint.JsOutput != "" {
 			hashedJsFilename, err := processAssetFile(entrypoint.JsOutput, entrypoint.Entrypoint, fileHashMap)
 			if err != nil {
-				return nil, nil, nil, nil, errors.Wrap(err, "failed to process JS file")
+				return nil, nil, nil, errors.Wrap(err, "failed to process JS file")
 			}
 			if hashedJsFilename != "" {
 				entrypoint.JsOutput = hashedJsFilename
@@ -520,7 +443,7 @@ func BuildViteBundle(
 		for i, cssOutput := range entrypoint.CssOutputs {
 			hashedCssFilename, err := processAssetFile(cssOutput, entrypoint.Entrypoint, fileHashMap)
 			if err != nil {
-				return nil, nil, nil, nil, errors.Wrap(err, "failed to process CSS file")
+				return nil, nil, nil, errors.Wrap(err, "failed to process CSS file")
 			}
 			if hashedCssFilename != "" {
 				entrypoint.CssOutputs[i] = hashedCssFilename
@@ -532,74 +455,16 @@ func BuildViteBundle(
 	for _, cssFile := range buildResp.GetGlobalCssFiles() {
 		_, err := processAssetFile(cssFile, "", fileHashMap)
 		if err != nil {
-			return nil, nil, nil, nil, errors.Wrap(err, "failed to process global CSS file")
+			return nil, nil, nil, errors.Wrap(err, "failed to process global CSS file")
 		}
 	}
 
 	// Rename all the files after processing
 	for originalPath, hashedPath := range fileHashMap {
 		if err := os.Rename(originalPath, hashedPath); err != nil {
-			return nil, nil, nil, nil, errors.Wrapf(err, "failed to rename file from %s to %s", originalPath, hashedPath)
+			return nil, nil, nil, errors.Wrapf(err, "failed to rename file from %s to %s", originalPath, hashedPath)
 		}
 	}
 
-	// Process each variable definition and find a matching entrypoint
-	for _, varDef := range viteBundleMeta.EntrypointVars {
-		// Determine the entrypoint path for this variable definition
-		inputPath := filepath.Join(varDef.GetPkgCodePath(), varDef.GetEntrypointPath())
-
-		// Try to find a matching entrypoint
-		var matchedEntrypoint *bldr_vite.EntrypointOutput
-		for _, entrypoint := range buildResp.GetEntrypointOutputs() {
-			if inputPath == entrypoint.Entrypoint {
-				matchedEntrypoint = entrypoint
-				break
-			}
-		}
-
-		// Check if we found a matching entrypoint
-		if matchedEntrypoint == nil {
-			// No matching entrypoint found, return error
-			return nil, nil, nil, nil, errors.Errorf("no matching entrypoint found for variable %s.%s", varDef.GetPkgImportPath(), varDef.GetPkgVar())
-		}
-
-		// Create variable definitions based on the variable type
-		switch varDef.PkgVarType {
-		case bldr_vite.ViteVarType_ViteVarType_ENTRYPOINT_PATH:
-			// For entrypoint path, use the JS output path
-			if matchedEntrypoint.JsOutput == "" {
-				// No JS output for this entrypoint - return error
-				return nil, nil, nil, nil, errors.Errorf("no JS output found for entrypoint variable %s.%s", varDef.GetPkgImportPath(), varDef.GetPkgVar())
-			}
-
-			// Note: matchedEntrypoint.JsOutput now contains the hashed filename
-			jsOutputPath := filepath.Join(outAssetsBundleDir, matchedEntrypoint.JsOutput)
-			assetHref := BuildAssetHref(pluginID, jsOutputPath)
-			goVariableDefs = append(goVariableDefs, vardef.NewPluginVar(
-				varDef.PkgImportPath,
-				varDef.PkgVar,
-				&vardef.PluginVar_StringValue{StringValue: assetHref},
-			))
-		case bldr_vite.ViteVarType_ViteVarType_WEB_BUNDLER_OUTPUT:
-			// For web bundler output, create a WebBundlerOutput object
-			output := &bldr_web_bundler.WebBundlerOutput{}
-			if matchedEntrypoint.JsOutput != "" {
-				// Note: matchedEntrypoint.JsOutput now contains the hashed filename
-				jsOutputPath := filepath.Join(outAssetsBundleDir, matchedEntrypoint.JsOutput)
-				output.EntrypointHref = BuildAssetHref(pluginID, jsOutputPath)
-			}
-			if len(matchedEntrypoint.CssOutputs) > 0 {
-				// Note: matchedEntrypoint.CssOutputs now contains the hashed filenames
-				cssOutputPath := filepath.Join(outAssetsBundleDir, matchedEntrypoint.CssOutputs[0])
-				output.CssHref = BuildAssetHref(pluginID, cssOutputPath)
-			}
-			goVariableDefs = append(goVariableDefs, vardef.NewPluginVar(
-				varDef.PkgImportPath,
-				varDef.PkgVar,
-				&vardef.PluginVar_WebBundlerOutput{WebBundlerOutput: output},
-			))
-		}
-	}
-
-	return goVariableDefs, webPkgRefs, outputMetas, sourceFilesList, nil
+	return webPkgRefs, outputMetas, sourceFilesList, nil
 }

@@ -62,3 +62,24 @@ func FindWebPkgRef(sl []*WebPkgRef, webPkgID string) (*WebPkgRef, int) {
 	}
 	return nil, -1
 }
+
+// ToWebPkgIDList returns a sorted, deduplicated list of web pkg ids from the slice.
+func (sl WebPkgRefSlice) ToWebPkgIDList() []string {
+	if len(sl) == 0 {
+		return nil
+	}
+
+	// Extract all web pkg ids
+	ids := make([]string, 0, len(sl))
+	for _, ref := range sl {
+		if webPkgID := ref.GetWebPkgId(); webPkgID != "" {
+			ids = append(ids, webPkgID)
+		}
+	}
+
+	// sort the ids
+	slices.Sort(ids)
+
+	// remove duplicates
+	return slices.Compact(ids)
+}

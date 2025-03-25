@@ -7,7 +7,6 @@ import (
 	"go/types"
 	"strings"
 
-	bldr_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -29,7 +28,7 @@ type EsbuildDirective struct {
 	// Note that all BuildOptions for the same BundleID are merged.
 	EsbuildFlags []string
 	// EsbuildVarType is the type of esbuild output variable we are using.
-	EsbuildVarType bldr_esbuild.EsbuildVarType
+	EsbuildVarType EsbuildVarType
 }
 
 // TrimEsbuildDirective trims the bldr:esbuild prefix from a string.
@@ -45,18 +44,15 @@ const EsbuildOutputPkgPath = "github.com/aperturerobotics/bldr/web/bundler"
 const EsbuildOutputTypeName = "WebBundlerOutput"
 
 // determineEsbuildVarType determines the variable type for an esbuild variable
-func (a *Analysis) determineEsbuildVarType(obj types.Object) (bldr_esbuild.EsbuildVarType, error) {
-	result, err := a.determineVarTypeWithReference(
+func (a *Analysis) determineEsbuildVarType(obj types.Object) (EsbuildVarType, error) {
+	return determineVarTypeWithReference[EsbuildVarType](
+		a,
 		obj,
 		a.webBundlerOutputType,
-		bldr_esbuild.EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH,
-		bldr_esbuild.EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT,
+		EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH,
+		EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT,
 		"esbuild",
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.(bldr_esbuild.EsbuildVarType), nil
 }
 
 // parseEsbuildArgs parses esbuild directive arguments to extract bundle ID and other flags

@@ -46,7 +46,7 @@ type Analysis struct {
 	// controllerFactories contains the set of packages containing controllers
 	controllerFactories map[string]*packages.Package
 
-	// webBundlerOutputType is the type of EsbuildOutput and WebBundlerOutput and ViteOutput
+	// webBundlerOutputType is the type of EsbuildOutput and WebBundlerOutput
 	webBundlerOutputType types.Type
 }
 
@@ -309,13 +309,15 @@ func (a *Analysis) isTypeIdentical(t types.Type, refType types.Type) bool {
 
 // determineVarTypeWithReference determines the variable type by comparing with a reference type
 // and handling common type patterns
-func (a *Analysis) determineVarTypeWithReference(
+func determineVarTypeWithReference[V any](
+	a *Analysis,
 	obj types.Object,
 	refType types.Type,
-	stringTypeValue interface{}, // Value to return if the type is a string
-	refTypeValue interface{}, // Value to return if the type matches the reference type
+	stringTypeValue, // Value to return if the type is a string
+	refTypeValue V, // Value to return if the type matches the reference type
 	errTag string, // Tag to include in error messages for context
-) (interface{}, error) {
+) (V, error) {
+	var empty V
 	// First check if it's directly the reference type
 	if a.isTypeIdentical(obj.Type(), refType) {
 		return refTypeValue, nil
@@ -327,7 +329,7 @@ func (a *Analysis) determineVarTypeWithReference(
 		if t.Kind() == types.String {
 			return stringTypeValue, nil // Return string value for string types
 		}
-		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s basic type: %v", errTag, t)
+		return empty, errors.Wrapf(ErrUnexpectedVarType, "%s basic type: %v", errTag, t)
 	case *types.Named, *types.Struct:
 		// For named types and struct types, check if the original type matches reference
 		if a.isTypeIdentical(obj.Type(), refType) {
@@ -336,13 +338,13 @@ func (a *Analysis) determineVarTypeWithReference(
 
 		// Get a descriptive name for error reporting
 		if named, ok := obj.Type().(*types.Named); ok && named.Obj().Pkg() != nil {
-			return nil, errors.Wrapf(ErrUnexpectedVarType, "%s named type: %v.%v",
+			return empty, errors.Wrapf(ErrUnexpectedVarType, "%s named type: %v.%v",
 				errTag, named.Obj().Pkg().Path(), named.Obj().Name())
 		}
 
-		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s struct type", errTag)
+		return empty, errors.Wrapf(ErrUnexpectedVarType, "%s struct type", errTag)
 	default:
-		return nil, errors.Wrapf(ErrUnexpectedVarType, "%s type: %T", errTag, t)
+		return empty, errors.Wrapf(ErrUnexpectedVarType, "%s type: %T", errTag, t)
 	}
 }
 

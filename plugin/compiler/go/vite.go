@@ -3,164 +3,151 @@
 package bldr_plugin_compiler_go
 
 import (
-	"errors"
 	"go/ast"
-	"go/types"
+	"go/token"
+	"maps"
+	"path/filepath"
+	"slices"
 	"strings"
 
-	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
-	"golang.org/x/exp/slices"
-	"golang.org/x/tools/go/packages"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
+	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-// ViteTag is the comment tag used for vite.
-const ViteTag = "bldr:vite"
+// ViteAssetSubdir is the sub-directory for vite assets within the assets dir.
+var ViteAssetSubdir = "vite"
 
-// DefaultViteBundleID is the default ID to use for vite bundles.
-const DefaultViteBundleID = "default"
+// BuildViteBundlerConfig builds the vite bundler controller config.
+func BuildViteBundlerConfig(
+	bundleVars []*ViteBundleVarMeta,
+	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
+	viteConfigPaths []string,
+	disableProjectConfig bool,
+) (*bldr_web_bundler_vite_compiler.Config, error) {
+	// build list of ViteBundleMeta from bundleVar list
+	var viteBundleMeta []*bldr_web_bundler_vite_compiler.ViteBundleMeta
+	for _, bundleVar := range bundleVars {
+		// build the entrypoints for this bundle
+		var entrypoints []*bldr_web_bundler_vite_compiler.ViteBundleEntrypoint
+		bundleConfigPaths := []string{}
+		bundleDisableProjectConfig := disableProjectConfig
 
-// ViteBundleIDFlag is the flag for bundle-id.
-const ViteBundleIDFlag = "--bundle-id="
+		for _, bundleVarEntrypoint := range bundleVar.GetEntrypointVars() {
+			// validate entrypoint path
+			if bundleVarEntrypoint.EntrypointPath == "" {
+				return nil, errors.Errorf("entrypoint path is required for %s.%s",
+					bundleVarEntrypoint.PkgImportPath, bundleVarEntrypoint.PkgVar)
+			}
 
-// ViteConfigFlag is the flag for vite config paths.
-const ViteConfigFlag = "--config="
+			// add to list
+			entrypoints = append(entrypoints, &bldr_web_bundler_vite_compiler.ViteBundleEntrypoint{
+				InputPath: filepath.Join(bundleVarEntrypoint.PkgCodePath, bundleVarEntrypoint.EntrypointPath),
+			})
 
-// ViteDisableProjectConfigFlag is the flag to disable automatic project config detection.
-const ViteDisableProjectConfigFlag = "--disable-project-config"
+			// collect config paths and settings from entrypoints
+			if len(bundleVarEntrypoint.ViteConfigPaths) > 0 {
+				bundleConfigPaths = append(bundleConfigPaths, bundleVarEntrypoint.ViteConfigPaths...)
+			}
+			if bundleVarEntrypoint.DisableProjectConfig {
+				bundleDisableProjectConfig = true
+			}
+		}
 
-// ViteDirective are arguments parsed from a bldr:vite directive.
-type ViteDirective struct {
-	// BundleID is the bundle identifier to use for vite.
-	// If unset, uses "default".
-	BundleID string
-	// ViteConfigPaths are the vite config paths options.
-	// Note that all BuildOptions for the same BundleID are merged.
-	ViteConfigPaths []string
-	// EntrypointPath is the entrypoint path for vite.
-	// This is the positional argument that doesn't start with a flag.
-	EntrypointPath string
-	// ViteVarType is the type of vite output variable we are using.
-	ViteVarType bldr_vite.ViteVarType
-	// DisableProjectConfig indicates whether to disable automatic project config detection.
-	DisableProjectConfig bool
-}
+		// build the bundle metadata
+		bundleMeta := &bldr_web_bundler_vite_compiler.ViteBundleMeta{
+			Id:                   bundleVar.Id,
+			Entrypoints:          entrypoints,
+			ViteConfigPaths:      bundleConfigPaths,
+			DisableProjectConfig: bundleDisableProjectConfig,
+		}
 
-// TrimViteDirective trims the bldr:vite prefix from a string.
-// Returns if the string had the prefix.
-func TrimViteDirective(value string) (string, bool) {
-	return TrimCommentArgs(ViteTag, value)
-}
-
-// ViteOutputPkgPath is the package path for ViteOutput type
-const ViteOutputPkgPath = "github.com/aperturerobotics/bldr/web/bundler"
-
-// ViteOutputTypeName is the type name for ViteOutput
-const ViteOutputTypeName = "WebBundlerOutput"
-
-// determineViteVarType determines the variable type for a vite variable
-func (a *Analysis) determineViteVarType(obj types.Object) (bldr_vite.ViteVarType, error) {
-	result, err := a.determineVarTypeWithReference(
-		obj,
-		a.webBundlerOutputType, // Reuse the same type as esbuild
-		bldr_vite.ViteVarType_ViteVarType_ENTRYPOINT_PATH,
-		bldr_vite.ViteVarType_ViteVarType_WEB_BUNDLER_OUTPUT,
-		"vite",
-	)
-	if err != nil {
-		return 0, err
+		// add to the bundle meta list
+		viteBundleMeta = append(viteBundleMeta, bundleMeta)
 	}
-	return result.(bldr_vite.ViteVarType), nil
+
+	return &bldr_web_bundler_vite_compiler.Config{
+		Bundles:              viteBundleMeta,
+		WebPkgs:              webPkgs,
+		ViteConfigPaths:      viteConfigPaths,
+		DisableProjectConfig: disableProjectConfig,
+	}, nil
 }
 
-// ViteDirectiveArgs contains the parsed arguments from a vite directive.
-type ViteDirectiveArgs struct {
-	// BundleID is the bundle identifier to use for vite.
-	BundleID string
-	// ViteConfigPaths are the vite config paths options.
-	ViteConfigPaths []string
-	// EntrypointPath is the entrypoint path for vite.
-	EntrypointPath string
-	// DisableProjectConfig indicates whether to disable automatic project config detection.
-	DisableProjectConfig bool
-}
+// BuildViteBundleVarMeta builds the bundle metadata from the list of go variable defs.
+func BuildViteBundleVarMeta(
+	le *logrus.Entry,
+	codeRootPath string,
+	codeFiles map[string][]*ast.File,
+	fset *token.FileSet,
+	pkgs map[string](map[string]*ViteDirective),
+) ([]*ViteBundleVarMeta, error) {
+	// bundles is the map of bundle-id to bundle-def
+	bundles := make(map[string]*ViteBundleVarMeta)
+	getBundle := func(bundleID string) *ViteBundleVarMeta {
+		bundleDef := bundles[bundleID]
+		if bundleDef != nil {
+			return bundleDef
+		}
 
-// ParseViteDirectiveArgs parses vite directive arguments to extract bundle ID, config paths, entrypoint path,
-// and whether to disable project config detection.
-// Only one positional argument is allowed as the entrypoint path.
-func ParseViteDirectiveArgs(args []string) (ViteDirectiveArgs, error) {
-	result := ViteDirectiveArgs{
-		BundleID: DefaultViteBundleID,
+		bundleDef = &ViteBundleVarMeta{Id: bundleID}
+		bundles[bundleID] = bundleDef
+		return bundleDef
 	}
-	var foundEntrypoint bool
 
-	for _, arg := range args {
-		if strings.HasPrefix(arg, ViteBundleIDFlag) {
-			value := arg[len(ViteBundleIDFlag):]
-			if len(value) != 0 {
-				result.BundleID = value
+	// for each package variable, build a bundle definition + variable
+	for pkgImportPath, pkgVars := range pkgs {
+		pkgCodeFiles := codeFiles[pkgImportPath]
+		if len(pkgCodeFiles) == 0 {
+			return nil, errors.Errorf("failed to find ast.File for package: %s", pkgImportPath)
+		}
+
+		pkgCodePath := filepath.Dir(fset.File(pkgCodeFiles[0].Pos()).Name())
+		relPkgCodePath, err := filepath.Rel(codeRootPath, pkgCodePath)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to determine relative path")
+		}
+
+		for pkgVar, pkgViteDirective := range pkgVars {
+			// validate entrypoint path
+			if pkgViteDirective.EntrypointPath == "" {
+				return nil, errors.Errorf("%s.%s: entrypoint path is required", pkgImportPath, pkgVar)
 			}
-		} else if strings.HasPrefix(arg, ViteConfigFlag) {
-			value := arg[len(ViteConfigFlag):]
-			if len(value) != 0 {
-				result.ViteConfigPaths = append(result.ViteConfigPaths, value)
-			}
-		} else if arg == ViteDisableProjectConfigFlag {
-			result.DisableProjectConfig = true
-		} else {
-			// Any argument that doesn't start with a flag is considered an entrypoint path
-			if foundEntrypoint {
-				return ViteDirectiveArgs{}, errors.New("only one entrypoint path is allowed")
-			}
-			result.EntrypointPath = arg
-			foundEntrypoint = true
+
+			bundleID := pkgViteDirective.BundleID
+			bundleDef := getBundle(bundleID)
+			bundleDef.EntrypointVars = append(bundleDef.EntrypointVars, &ViteEntrypointVar{
+				PkgImportPath:        pkgImportPath,
+				PkgVar:               pkgVar,
+				PkgVarType:           pkgViteDirective.ViteVarType,
+				PkgCodePath:          relPkgCodePath,
+				ViteConfigPaths:      pkgViteDirective.ViteConfigPaths,
+				EntrypointPath:       pkgViteDirective.EntrypointPath,
+				DisableProjectConfig: pkgViteDirective.DisableProjectConfig,
+			})
 		}
 	}
 
-	return result, nil
-}
+	// sort entrypoint variables
+	bundleVals := slices.Collect(maps.Values(bundles))
+	for _, bundle := range bundleVals {
+		bundle.SortEntrypointVars()
+	}
 
-// FindViteVariables searches for bldr:vite comments.
-func (a *Analysis) FindViteVariables(codeFiles map[string][]*ast.File) (map[string](map[string]*ViteDirective), error) {
-	return FindTagCommentsWithTypes(
-		ViteTag,
-		a,
-		codeFiles,
-		func(values []string, varName string, pkg *packages.Package, obj types.Object) (*ViteDirective, bool, error) {
-			// Parse the comments for vite directives
-			args, found, err := CombineShellComments(ViteTag, values)
-			if err != nil || !found {
-				return nil, found, err
-			}
-
-			// Parse the arguments into a structured result
-			argsResult, err := ParseViteDirectiveArgs(args)
-			if err != nil {
-				return nil, true, err
-			}
-
-			// Determine the variable type using the type system
-			varType, err := a.determineViteVarType(obj)
-			if err != nil {
-				return nil, true, err
-			}
-
-			return &ViteDirective{
-				BundleID:             argsResult.BundleID,
-				ViteConfigPaths:      argsResult.ViteConfigPaths,
-				EntrypointPath:       argsResult.EntrypointPath,
-				ViteVarType:          varType,
-				DisableProjectConfig: argsResult.DisableProjectConfig,
-			}, true, nil
-		},
-	)
-}
-
-// SortViteOutputMetas sorts and compacts a list of esbuild output meta.
-func SortViteOutputMetas(metas []*ViteOutputMeta) []*ViteOutputMeta {
-	slices.SortFunc(metas, func(a, b *ViteOutputMeta) int {
-		return strings.Compare(a.GetPath(), b.GetPath())
+	// sort by bundle id
+	slices.SortFunc(bundleVals, func(a, b *ViteBundleVarMeta) int {
+		return strings.Compare(a.GetId(), b.GetId())
 	})
-	return slices.CompactFunc(metas, func(a, b *ViteOutputMeta) bool {
-		return a.GetPath() == b.GetPath()
+
+	return bundleVals, nil
+}
+
+// SortEntrypointVars sorts the entrypoint variables field.
+func (m *ViteBundleVarMeta) SortEntrypointVars() {
+	slices.SortFunc(m.EntrypointVars, func(a, b *ViteEntrypointVar) int {
+		sa := a.PkgImportPath + "." + a.PkgVar
+		sb := b.PkgImportPath + "." + b.PkgVar
+		return strings.Compare(sa, sb)
 	})
 }

@@ -15,44 +15,6 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// ViteVarType is the list of types of vite output variables.
-type ViteVarType int32
-
-const (
-	// ViteVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
-	// output type is a string
-	ViteVarType_ViteVarType_ENTRYPOINT_PATH ViteVarType = 0
-	// ViteVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
-	// output type is bldr_web_bundler.WebBundlerOutput
-	ViteVarType_ViteVarType_WEB_BUNDLER_OUTPUT ViteVarType = 1
-)
-
-// Enum value maps for ViteVarType.
-var (
-	ViteVarType_name = map[int32]string{
-		0: "ViteVarType_ENTRYPOINT_PATH",
-		1: "ViteVarType_WEB_BUNDLER_OUTPUT",
-	}
-	ViteVarType_value = map[string]int32{
-		"ViteVarType_ENTRYPOINT_PATH":    0,
-		"ViteVarType_WEB_BUNDLER_OUTPUT": 1,
-	}
-)
-
-func (x ViteVarType) Enum() *ViteVarType {
-	p := new(ViteVarType)
-	*p = x
-	return p
-}
-
-func (x ViteVarType) String() string {
-	name, valid := ViteVarType_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
 // WebPkgRef is a reference to a web package.
 type WebPkgRef struct {
 	unknownFields []byte
@@ -107,7 +69,7 @@ type BuildRequest struct {
 	// DistDir is the bldr dist src directory for the build.
 	DistDir string `protobuf:"bytes,6,opt,name=dist_dir,json=distDir,proto3" json:"distDir,omitempty"`
 	// Entrypoints contains the list of entrypoints to build.
-	Entrypoints []*EntrypointConfig `protobuf:"bytes,7,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`
+	Entrypoints []*ViteBuildRequestEntrypoint `protobuf:"bytes,7,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`
 	// ExternalPkgs is the list of packages to pass to External provided by importmap.
 	ExternalPkgs []string `protobuf:"bytes,8,rep,name=external_pkgs,json=externalPkgs,proto3" json:"externalPkgs,omitempty"`
 	// WebPkgs is the list of packages to be externalized as shared web pkgs.
@@ -162,7 +124,7 @@ func (x *BuildRequest) GetDistDir() string {
 	return ""
 }
 
-func (x *BuildRequest) GetEntrypoints() []*EntrypointConfig {
+func (x *BuildRequest) GetEntrypoints() []*ViteBuildRequestEntrypoint {
 	if x != nil {
 		return x.Entrypoints
 	}
@@ -183,30 +145,29 @@ func (x *BuildRequest) GetWebPkgs() []*bundler.WebPkgRefConfig {
 	return nil
 }
 
-// EntrypointConfig defines a single entrypoint for Vite to build.
-type EntrypointConfig struct {
+// ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
+type ViteBuildRequestEntrypoint struct {
 	unknownFields []byte
-	// InputPath is the path to the entrypoint file.
+	// InputPath is the path to the entrypoint file relative to the code root.
 	InputPath string `protobuf:"bytes,1,opt,name=input_path,json=inputPath,proto3" json:"inputPath,omitempty"`
-	// Name is the name to use for the output file.
-	// Must be unique in the set or an error will be thrown.
+	// Name is the name of the bundle, must be unique and set.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 }
 
-func (x *EntrypointConfig) Reset() {
-	*x = EntrypointConfig{}
+func (x *ViteBuildRequestEntrypoint) Reset() {
+	*x = ViteBuildRequestEntrypoint{}
 }
 
-func (*EntrypointConfig) ProtoMessage() {}
+func (*ViteBuildRequestEntrypoint) ProtoMessage() {}
 
-func (x *EntrypointConfig) GetInputPath() string {
+func (x *ViteBuildRequestEntrypoint) GetInputPath() string {
 	if x != nil {
 		return x.InputPath
 	}
 	return ""
 }
 
-func (x *EntrypointConfig) GetName() string {
+func (x *ViteBuildRequestEntrypoint) GetName() string {
 	if x != nil {
 		return x.Name
 	}
@@ -327,6 +288,36 @@ func (x *EntrypointOutput) GetInputFiles() []string {
 	return nil
 }
 
+// ViteOutputMeta is information about a vite output.
+type ViteOutputMeta struct {
+	unknownFields []byte
+	// Path is the path to the file within the output dir.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// EntrypointPath is the entrypoint that produced this output file.
+	// May be empty.
+	EntrypointPath string `protobuf:"bytes,2,opt,name=entrypoint_path,json=entrypointPath,proto3" json:"entrypointPath,omitempty"`
+}
+
+func (x *ViteOutputMeta) Reset() {
+	*x = ViteOutputMeta{}
+}
+
+func (*ViteOutputMeta) ProtoMessage() {}
+
+func (x *ViteOutputMeta) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *ViteOutputMeta) GetEntrypointPath() string {
+	if x != nil {
+		return x.EntrypointPath
+	}
+	return ""
+}
+
 func (m *WebPkgRef) CloneVT() *WebPkgRef {
 	if m == nil {
 		return (*WebPkgRef)(nil)
@@ -366,7 +357,7 @@ func (m *BuildRequest) CloneVT() *BuildRequest {
 		r.ConfigPaths = tmpContainer
 	}
 	if rhs := m.Entrypoints; rhs != nil {
-		tmpContainer := make([]*EntrypointConfig, len(rhs))
+		tmpContainer := make([]*ViteBuildRequestEntrypoint, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
@@ -395,11 +386,11 @@ func (m *BuildRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *EntrypointConfig) CloneVT() *EntrypointConfig {
+func (m *ViteBuildRequestEntrypoint) CloneVT() *ViteBuildRequestEntrypoint {
 	if m == nil {
-		return (*EntrypointConfig)(nil)
+		return (*ViteBuildRequestEntrypoint)(nil)
 	}
-	r := new(EntrypointConfig)
+	r := new(ViteBuildRequestEntrypoint)
 	r.InputPath = m.InputPath
 	r.Name = m.Name
 	if len(m.unknownFields) > 0 {
@@ -409,7 +400,7 @@ func (m *EntrypointConfig) CloneVT() *EntrypointConfig {
 	return r
 }
 
-func (m *EntrypointConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *ViteBuildRequestEntrypoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -483,6 +474,24 @@ func (m *EntrypointOutput) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *ViteOutputMeta) CloneVT() *ViteOutputMeta {
+	if m == nil {
+		return (*ViteOutputMeta)(nil)
+	}
+	r := new(ViteOutputMeta)
+	r.Path = m.Path
+	r.EntrypointPath = m.EntrypointPath
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ViteOutputMeta) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *WebPkgRef) EqualVT(that *WebPkgRef) bool {
 	if this == that {
 		return true
@@ -551,10 +560,10 @@ func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
 		vy := that.Entrypoints[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &EntrypointConfig{}
+				p = &ViteBuildRequestEntrypoint{}
 			}
 			if q == nil {
-				q = &EntrypointConfig{}
+				q = &ViteBuildRequestEntrypoint{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -597,7 +606,7 @@ func (this *BuildRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *EntrypointConfig) EqualVT(that *EntrypointConfig) bool {
+func (this *ViteBuildRequestEntrypoint) EqualVT(that *ViteBuildRequestEntrypoint) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -612,8 +621,8 @@ func (this *EntrypointConfig) EqualVT(that *EntrypointConfig) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *EntrypointConfig) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*EntrypointConfig)
+func (this *ViteBuildRequestEntrypoint) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ViteBuildRequestEntrypoint)
 	if !ok {
 		return false
 	}
@@ -733,45 +742,27 @@ func (this *EntrypointOutput) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
-// MarshalProtoJSON marshals the ViteVarType to JSON.
-func (x ViteVarType) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnumString(int32(x), ViteVarType_name)
-}
-
-// MarshalText marshals the ViteVarType to text.
-func (x ViteVarType) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), ViteVarType_name)), nil
-}
-
-// MarshalJSON marshals the ViteVarType to JSON.
-func (x ViteVarType) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ViteVarType from JSON.
-func (x *ViteVarType) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(ViteVarType_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read ViteVarType enum: %v", err)
-		return
+func (this *ViteOutputMeta) EqualVT(that *ViteOutputMeta) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
 	}
-	*x = ViteVarType(v)
-}
-
-// UnmarshalText unmarshals the ViteVarType from text.
-func (x *ViteVarType) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), ViteVarType_value)
-	if err != nil {
-		return err
+	if this.Path != that.Path {
+		return false
 	}
-	*x = ViteVarType(i)
-	return nil
+	if this.EntrypointPath != that.EntrypointPath {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-// UnmarshalJSON unmarshals the ViteVarType from JSON.
-func (x *ViteVarType) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+func (this *ViteOutputMeta) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ViteOutputMeta)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 // MarshalProtoJSON marshals the WebPkgRef message to JSON.
@@ -951,7 +942,7 @@ func (x *BuildRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Entrypoints = append(x.Entrypoints, nil)
 					return
 				}
-				v := &EntrypointConfig{}
+				v := &ViteBuildRequestEntrypoint{}
 				v.UnmarshalProtoJSON(s.WithField("entrypoints", false))
 				if s.Err() != nil {
 					return
@@ -992,8 +983,8 @@ func (x *BuildRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the EntrypointConfig message to JSON.
-func (x *EntrypointConfig) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the ViteBuildRequestEntrypoint message to JSON.
+func (x *ViteBuildRequestEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1013,13 +1004,13 @@ func (x *EntrypointConfig) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the EntrypointConfig to JSON.
-func (x *EntrypointConfig) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the ViteBuildRequestEntrypoint to JSON.
+func (x *ViteBuildRequestEntrypoint) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the EntrypointConfig message from JSON.
-func (x *EntrypointConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the ViteBuildRequestEntrypoint message from JSON.
+func (x *ViteBuildRequestEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -1037,8 +1028,8 @@ func (x *EntrypointConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the EntrypointConfig from JSON.
-func (x *EntrypointConfig) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the ViteBuildRequestEntrypoint from JSON.
+func (x *ViteBuildRequestEntrypoint) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1248,6 +1239,56 @@ func (x *EntrypointOutput) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ViteOutputMeta message to JSON.
+func (x *ViteOutputMeta) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.EntrypointPath != "" || s.HasField("entrypointPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointPath")
+		s.WriteString(x.EntrypointPath)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ViteOutputMeta to JSON.
+func (x *ViteOutputMeta) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ViteOutputMeta message from JSON.
+func (x *ViteOutputMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "entrypoint_path", "entrypointPath":
+			s.AddField("entrypoint_path")
+			x.EntrypointPath = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ViteOutputMeta from JSON.
+func (x *ViteOutputMeta) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *WebPkgRef) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1414,7 +1455,7 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *EntrypointConfig) MarshalVT() (dAtA []byte, err error) {
+func (m *ViteBuildRequestEntrypoint) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -1427,12 +1468,12 @@ func (m *EntrypointConfig) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *EntrypointConfig) MarshalToVT(dAtA []byte) (int, error) {
+func (m *ViteBuildRequestEntrypoint) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *EntrypointConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *ViteBuildRequestEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -1618,6 +1659,53 @@ func (m *EntrypointOutput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ViteOutputMeta) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ViteOutputMeta) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ViteOutputMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EntrypointPath) > 0 {
+		i -= len(m.EntrypointPath)
+		copy(dAtA[i:], m.EntrypointPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointPath)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WebPkgRef) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1696,7 +1784,7 @@ func (m *BuildRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *EntrypointConfig) SizeVT() (n int) {
+func (m *ViteBuildRequestEntrypoint) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1785,9 +1873,24 @@ func (m *EntrypointOutput) SizeVT() (n int) {
 	return n
 }
 
-func (x ViteVarType) MarshalProtoText() string {
-	return x.String()
+func (m *ViteOutputMeta) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EntrypointPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
 }
+
 func (x *WebPkgRef) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebPkgRef {")
@@ -1922,18 +2025,18 @@ func (x *BuildRequest) MarshalProtoText() string {
 func (x *BuildRequest) String() string {
 	return x.MarshalProtoText()
 }
-func (x *EntrypointConfig) MarshalProtoText() string {
+func (x *ViteBuildRequestEntrypoint) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("EntrypointConfig {")
+	sb.WriteString("ViteBuildRequestEntrypoint {")
 	if x.InputPath != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("input_path: ")
 		sb.WriteString(strconv.Quote(x.InputPath))
 	}
 	if x.Name != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("name: ")
@@ -1943,7 +2046,7 @@ func (x *EntrypointConfig) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *EntrypointConfig) String() string {
+func (x *ViteBuildRequestEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
 func (x *BuildResponse) MarshalProtoText() string {
@@ -2070,6 +2173,30 @@ func (x *EntrypointOutput) MarshalProtoText() string {
 }
 
 func (x *EntrypointOutput) String() string {
+	return x.MarshalProtoText()
+}
+func (x *ViteOutputMeta) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ViteOutputMeta {")
+	if x.Path != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	if x.EntrypointPath != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_path: ")
+		sb.WriteString(strconv.Quote(x.EntrypointPath))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ViteOutputMeta) String() string {
 	return x.MarshalProtoText()
 }
 func (m *WebPkgRef) UnmarshalVT(dAtA []byte) error {
@@ -2469,7 +2596,7 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Entrypoints = append(m.Entrypoints, &EntrypointConfig{})
+			m.Entrypoints = append(m.Entrypoints, &ViteBuildRequestEntrypoint{})
 			if err := m.Entrypoints[len(m.Entrypoints)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -2562,7 +2689,7 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EntrypointConfig) UnmarshalVT(dAtA []byte) error {
+func (m *ViteBuildRequestEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2585,10 +2712,10 @@ func (m *EntrypointConfig) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EntrypointConfig: wiretype end group for non-group")
+			return fmt.Errorf("proto: ViteBuildRequestEntrypoint: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EntrypointConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ViteBuildRequestEntrypoint: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3068,6 +3195,121 @@ func (m *EntrypointOutput) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.InputFiles = append(m.InputFiles, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ViteOutputMeta) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ViteOutputMeta: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ViteOutputMeta: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

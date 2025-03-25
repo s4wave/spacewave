@@ -82,6 +82,7 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_buil
 func (c *Controller) Execute(ctx context.Context) error {
 	c.subManifestBuilderTrackers.SetContext(ctx, true)
 	c.resultPromise.SetPromise(nil)
+
 	builderConfig := c.GetConfig().GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta()
 	manifestID := meta.GetManifestId()
@@ -161,8 +162,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			ChangedFiles:      changedFiles,
 		}
 
-		builderHost := newBuildManifestHost(c, builderConfig)
-
 		// buildCtx is for this build call
 		buildCtx, buildCtxCancel := context.WithCancel(ctx)
 
@@ -173,6 +172,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 				buildCtxCancel()
 			}
 		}
+
+		// construct the builder host which will set the restartFn when necessary
+		builderHost := newBuildManifestHost(c, builderConfig, restartFn)
 
 		// update restartFn on any existing manifest trackers
 		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
@@ -311,7 +313,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			buildCtx,
 			watcher,
-			time.Millisecond*250,
+			time.Millisecond*100,
 			func(event fsnotify.Event) (match bool, err error) {
 				// filter for watchedSourcePaths
 				if _, ok := watchedSourcePaths[event.Name]; !ok {

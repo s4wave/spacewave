@@ -1,20 +1,33 @@
 syntax = "proto3";
 package bldr.web.bundler.esbuild;
 
-// EsbuildVarType is the list of types of esbuild output variable.
-enum EsbuildVarType {
-  // EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
-  // output type is a string
-  EsbuildVarType_ENTRYPOINT_PATH = 0;
-  // EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
-  // output type is bldr_web_bundler.WebBundlerOutput
-  EsbuildVarType_WEB_BUNDLER_OUTPUT = 1;
+// EsbuildBundleEntrypoint configures a entrypoint to build into the bundle with esbuild.
+message EsbuildBundleEntrypoint {
+  // InputPath is the relative path to the entrypoint from the project root.
+  string input_path = 1;
+  // OutputPath is the relative path to the output from the dist fs root.
+  // Optional. If unset, will be inferred from InputPath.
+  string output_path = 2;
+  // EntrypointId is the entrypoint identifier.
+  // Used to identify the entrypoint in the InputManifestMeta.
+  // Optional, can be empty.
+  string entrypoint_id = 3;
 }
 
-// EsbuildEntrypoint is an entrypoint passed to Esbuild.
-message EsbuildEntrypoint {
-  // InputPath is the input file path.
-  string input_path = 1;
-  // OutputPath is the output file path, if any.
-  string output_path = 2;
+// EsbuildOutputMeta is information about an esbuild output.
+message EsbuildOutputMeta {
+  // Path is the path to the file within the output dir.
+  string path = 1;
+  // Length is the size of the file in bytes.
+  uint32 length = 2;
+  // CssBundlePath is the path to the css bundle within the output dir.
+  // May be empty.
+  string css_bundle_path = 3;
+  // EntrypointPath is the entrypoint that produced this output file.
+  // May be empty.
+  string entrypoint_path = 4;
+  // EntrypointId is the entrypoint identifier.
+  // Set in the EsbuildBundleEntrypoint.
+  // Optional, can be empty.
+  string entrypoint_id = 5;
 }

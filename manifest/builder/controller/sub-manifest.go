@@ -64,12 +64,13 @@ func (c *Controller) newSubManifestBuilderTracker(subManifestID string) (keyed.R
 // execute executes the tracker.
 func (t *subManifestBuilderTracker) execute(ctx context.Context) error {
 	t.builderRoutine.SetContext(ctx, true)
+	<-ctx.Done() // necessary because Keyed cancels ctx after we return.
 	return nil
 }
 
 // setManifestConfig updates the manifest config and clears the result if needed
 // returns an error if ManifestConfig != current, current was set, and a result was already returned
-func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig) (*promise.PromiseContainer[*manifest_builder.BuilderResult], error) {
+func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func()) (*promise.PromiseContainer[*manifest_builder.BuilderResult], error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -82,17 +83,16 @@ func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project
 		return manifestConf
 	})
 
-	if equal {
-		return t.resultPc, nil
-	}
-
-	if t.resultPcObserved && (t.result != nil || t.resultErr != nil) {
+	if !equal && t.resultPcObserved && (t.result != nil || t.resultErr != nil) {
 		// don't allow this, could cause infinite loops
 		return nil, errors.New("called BuildSubManifest with different configuration after a value was already resolved")
 	}
 
 	// mark the tracker pc as observed
 	t.resultPcObserved = true
+	if restartFn != nil {
+		t.restartFn = restartFn
+	}
 
 	return t.resultPc, nil
 }
@@ -145,7 +145,7 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 	manifestBuilderConf := parentBuilderConfig.CloneVT()
 	manifestBuilderConf.ManifestMeta = meta
 	manifestBuilderConf.ObjectKey = manifestKey
-	manifestBuilderConf.LinkObjectKeys = []string{parentBuilderConfig.GetObjectKey()} // TODO should we link this?
+	manifestBuilderConf.LinkObjectKeys = nil // TODO should we link this?
 	manifestBuilderConf.WorkingPath = workingPath
 
 	builderConf := NewConfig(

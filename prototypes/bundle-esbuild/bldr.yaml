@@ -1,0 +1,19 @@
+# Used as an example program while debugging / developing Bldr.
+# type: project.ProjectConfig
+id: bundle-esbuild
+
+start:
+  plugins:
+    - app
+
+manifests:
+  app:
+    builder:
+      id: bldr/web/bundler/esbuild/compiler
+      config:
+        bundles:
+        - id: default
+          entrypoints:
+          - inputPath: example/example.tsx
+        webPkgs:
+        - id: 'lodash.isequal'

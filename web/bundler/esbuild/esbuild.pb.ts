@@ -3,73 +3,103 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'bldr.web.bundler.esbuild'
 
 /**
- * EsbuildVarType is the list of types of esbuild output variable.
+ * EsbuildBundleEntrypoint configures a entrypoint to build into the bundle with esbuild.
  *
- * @generated from enum bldr.web.bundler.esbuild.EsbuildVarType
+ * @generated from message bldr.web.bundler.esbuild.EsbuildBundleEntrypoint
  */
-export enum EsbuildVarType {
+export interface EsbuildBundleEntrypoint {
   /**
-   * EsbuildVarType_ENTRYPOINT_PATH is the path to the main entrypoint script.
-   * output type is a string
-   *
-   * @generated from enum value: EsbuildVarType_ENTRYPOINT_PATH = 0;
-   */
-  EsbuildVarType_ENTRYPOINT_PATH = 0,
-
-  /**
-   * EsbuildVarType_WEB_BUNDLER_OUTPUT contains a single web bundler output object.
-   * output type is bldr_web_bundler.WebBundlerOutput
-   *
-   * @generated from enum value: EsbuildVarType_WEB_BUNDLER_OUTPUT = 1;
-   */
-  EsbuildVarType_WEB_BUNDLER_OUTPUT = 1,
-}
-
-// EsbuildVarType_Enum is the enum type for EsbuildVarType.
-export const EsbuildVarType_Enum = createEnumType(
-  'bldr.web.bundler.esbuild.EsbuildVarType',
-  [
-    { no: 0, name: 'EsbuildVarType_ENTRYPOINT_PATH' },
-    { no: 1, name: 'EsbuildVarType_WEB_BUNDLER_OUTPUT' },
-  ],
-)
-
-/**
- * EsbuildEntrypoint is an entrypoint passed to Esbuild.
- *
- * @generated from message bldr.web.bundler.esbuild.EsbuildEntrypoint
- */
-export interface EsbuildEntrypoint {
-  /**
-   * InputPath is the input file path.
+   * InputPath is the relative path to the entrypoint from the project root.
    *
    * @generated from field: string input_path = 1;
    */
   inputPath?: string
   /**
-   * OutputPath is the output file path, if any.
+   * OutputPath is the relative path to the output from the dist fs root.
+   * Optional. If unset, will be inferred from InputPath.
    *
    * @generated from field: string output_path = 2;
    */
   outputPath?: string
+  /**
+   * EntrypointId is the entrypoint identifier.
+   * Used to identify the entrypoint in the InputManifestMeta.
+   * Optional, can be empty.
+   *
+   * @generated from field: string entrypoint_id = 3;
+   */
+  entrypointId?: string
 }
 
-// EsbuildEntrypoint contains the message type declaration for EsbuildEntrypoint.
-export const EsbuildEntrypoint: MessageType<EsbuildEntrypoint> =
+// EsbuildBundleEntrypoint contains the message type declaration for EsbuildBundleEntrypoint.
+export const EsbuildBundleEntrypoint: MessageType<EsbuildBundleEntrypoint> =
   createMessageType({
-    typeName: 'bldr.web.bundler.esbuild.EsbuildEntrypoint',
+    typeName: 'bldr.web.bundler.esbuild.EsbuildBundleEntrypoint',
     fields: [
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'entrypoint_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * EsbuildOutputMeta is information about an esbuild output.
+ *
+ * @generated from message bldr.web.bundler.esbuild.EsbuildOutputMeta
+ */
+export interface EsbuildOutputMeta {
+  /**
+   * Path is the path to the file within the output dir.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+  /**
+   * Length is the size of the file in bytes.
+   *
+   * @generated from field: uint32 length = 2;
+   */
+  length?: number
+  /**
+   * CssBundlePath is the path to the css bundle within the output dir.
+   * May be empty.
+   *
+   * @generated from field: string css_bundle_path = 3;
+   */
+  cssBundlePath?: string
+  /**
+   * EntrypointPath is the entrypoint that produced this output file.
+   * May be empty.
+   *
+   * @generated from field: string entrypoint_path = 4;
+   */
+  entrypointPath?: string
+  /**
+   * EntrypointId is the entrypoint identifier.
+   * Set in the EsbuildBundleEntrypoint.
+   * Optional, can be empty.
+   *
+   * @generated from field: string entrypoint_id = 5;
+   */
+  entrypointId?: string
+}
+
+// EsbuildOutputMeta contains the message type declaration for EsbuildOutputMeta.
+export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
+  createMessageType({
+    typeName: 'bldr.web.bundler.esbuild.EsbuildOutputMeta',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'length', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'css_bundle_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'entrypoint_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
