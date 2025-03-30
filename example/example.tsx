@@ -14,6 +14,7 @@ import {
   isLinux,
   isWindows,
 } from '@aptre/bldr'
+import { Home, Settings, User } from 'lucide-react'
 
 import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 import { ExampleProps } from './example.pb.js'
@@ -44,6 +45,19 @@ const Example: React.FC<ExampleProps> = (props) => {
     },
   )
 
+  // Render the message along with some sample icons.
+  return (
+    <p className="example-message flex items-center gap-2">
+      {message || 'Loading...'}
+      <Home className="h-4 w-4" />
+      <Settings className="h-4 w-4" />
+      <User className="h-4 w-4" />
+    </p>
+  )
+}
+
+// ExampleDebug wraps Example with a DebugInfoProvider
+const ExampleDebug: React.FC<ExampleProps> = (props) => {
   return (
     <DebugInfoProvider>
       <DebugInfoDisplay />
@@ -57,12 +71,11 @@ const Example: React.FC<ExampleProps> = (props) => {
         <br />
         isWindows: {JSON.stringify(isWindows)}
       </DebugInfo>
-      <p className="example-message">{message || 'Loading...'}</p>
-      test
+      <Example {...props} />
     </DebugInfoProvider>
   )
 }
 
 export default renderProto(ExampleProps, (props: ExampleProps) => (
-  <Example {...props} />
+  <ExampleDebug {...props} />
 ))

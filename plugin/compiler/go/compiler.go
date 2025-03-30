@@ -955,6 +955,12 @@ func (c *Controller) FastRebuildPlugin(
 	// Perform fast rebuild by running the bundlers only.
 	le.Info("performing fast rebuild")
 
+	// Cleanup the web pkgs dir, we will re-build it below.
+	outAssetsWebPkgPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
+	if err := fsutil.CleanCreateDir(outAssetsWebPkgPath); err != nil {
+		return nil, err
+	}
+
 	prevWebPkgs := inputMeta.GetWebPkgs()
 	var updatedWebPkgRefs web_pkg.WebPkgRefSlice
 	var esbuildWebPkgRefs web_pkg.WebPkgRefSlice
@@ -1131,25 +1137,19 @@ func (c *Controller) buildAndCheckoutEsbuildSubManifest(
 	esbuildBundleVarMeta []*EsbuildBundleVarMeta,
 	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	baseEsbuildFlags []string,
-) (
-	webPkgRefs web_pkg.WebPkgRefSlice,
-	esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta,
-	err error,
-) {
+) (web_pkg.WebPkgRefSlice, []*bldr_web_bundler_esbuild.EsbuildOutputMeta, error) {
 	publicPath := BuildAssetHref(pluginID, EsbuildAssetSubdir)
 	esbuildBundlerConf, err := BuildEsbuildBundlerConfig(esbuildBundleVarMeta, webPkgs, baseEsbuildFlags, sourcePath, publicPath)
 	if err == nil {
 		err = esbuildBundlerConf.Validate()
 	}
 	if err != nil {
-		err = errors.Wrap(err, "failed to build esbuild bundler config")
-		return
+		return nil, nil, errors.Wrap(err, "failed to build esbuild bundler config")
 	}
 
 	esbuildBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, esbuildBundlerConf), true)
 	if err != nil {
-		err = errors.Wrap(err, "failed to marshal esbuild bundler config")
-		return
+		return nil, nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
 	}
 
 	// build the manifest for this esbuild bundle
@@ -1159,28 +1159,25 @@ func (c *Controller) buildAndCheckoutEsbuildSubManifest(
 		Builder: esbuildBuilderProto,
 	})
 	if err != nil {
-		err = errors.Wrap(err, "failed to start esbuild sub-manifest build")
-		return
+		return nil, nil, errors.Wrap(err, "failed to start esbuild sub-manifest build")
 	}
 
 	// wait for the result
 	subManifestResult, err := subManifestPromise.Await(ctx)
 	if err != nil {
-		err = errors.Wrap(err, "esbuild sub-manifest build failed")
-		return
+		return nil, nil, errors.Wrap(err, "esbuild sub-manifest build failed")
 	}
 
 	// parse out the input manifest meta
 	subManifestInput := subManifestResult.GetInputManifest()
 	subManifestInputMeta := &bldr_web_bundler_esbuild_compiler.InputManifestMeta{}
-	if err = subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
-		err = errors.Wrap(err, "unable to parse esbuild sub-manifest input metadata")
-		return
+	if err := subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
+		return nil, nil, errors.Wrap(err, "unable to parse esbuild sub-manifest input metadata")
 	}
 
 	// extract a couple variables we need later
-	webPkgRefs = subManifestInputMeta.GetWebPkgRefs()
-	esbuildOutputMeta = subManifestInputMeta.GetEsbuildOutputs()
+	webPkgRefs := subManifestInputMeta.GetWebPkgRefs()
+	esbuildOutputMeta := subManifestInputMeta.GetEsbuildOutputs()
 
 	// sync the latest sub-manifest contents into our assets directory
 	le.Debug("esbuild sub-manifest build complete, checking out assets")
@@ -1193,10 +1190,21 @@ func (c *Controller) buildAndCheckoutEsbuildSubManifest(
 		"", // No dist path for esbuild sub-manifest
 		outAssetsEsbuildPath,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
+		nil, // No dist filter for esbuild sub-manifest
+		nil,
 	)
 	if err != nil {
-		err = errors.Wrap(err, "unable to extract esbuild sub-manifest")
-		return
+		return nil, nil, errors.Wrap(err, "unable to extract esbuild sub-manifest")
+	}
+
+	// move any web-pkgs to the correct dir. these functions ignore not-exist source dirs
+	webPkgsDir := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
+	outAssetsEsbuildWebPkgsDir := filepath.Join(outAssetsEsbuildPath, bldr_plugin.PluginAssetsWebPkgsDir)
+	if err := fsutil.CopyRecursive(webPkgsDir, outAssetsEsbuildWebPkgsDir, nil); err != nil {
+		return nil, nil, err
+	}
+	if err := fsutil.CleanDir(outAssetsEsbuildWebPkgsDir); err != nil {
+		return nil, nil, err
 	}
 
 	return webPkgRefs, esbuildOutputMeta, nil
@@ -1288,24 +1296,18 @@ func (c *Controller) buildAndCheckoutViteSubManifest(
 	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	viteConfigPaths []string,
 	disableProjectConfig bool,
-) (
-	webPkgRefs web_pkg.WebPkgRefSlice,
-	viteOutputMeta []*bldr_vite.ViteOutputMeta,
-	err error,
-) {
+) (web_pkg.WebPkgRefSlice, []*bldr_vite.ViteOutputMeta, error) {
 	viteBundlerConf, err := BuildViteBundlerConfig(viteBundleVarMeta, webPkgs, viteConfigPaths, disableProjectConfig)
 	if err == nil {
 		err = viteBundlerConf.Validate()
 	}
 	if err != nil {
-		err = errors.Wrap(err, "failed to build vite bundler config")
-		return
+		return nil, nil, errors.Wrap(err, "failed to build vite bundler config")
 	}
 
 	viteBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, viteBundlerConf), true)
 	if err != nil {
-		err = errors.Wrap(err, "failed to marshal vite bundler config")
-		return
+		return nil, nil, errors.Wrap(err, "failed to marshal vite bundler config")
 	}
 
 	// build the manifest for this vite bundle
@@ -1315,28 +1317,25 @@ func (c *Controller) buildAndCheckoutViteSubManifest(
 		Builder: viteBuilderProto,
 	})
 	if err != nil {
-		err = errors.Wrap(err, "failed to start vite sub-manifest build")
-		return
+		return nil, nil, errors.Wrap(err, "failed to start vite sub-manifest build")
 	}
 
 	// wait for the result
 	subManifestResult, err := subManifestPromise.Await(ctx)
 	if err != nil {
-		err = errors.Wrap(err, "vite sub-manifest build failed")
-		return
+		return nil, nil, errors.Wrap(err, "vite sub-manifest build failed")
 	}
 
 	// parse out the input manifest meta
 	subManifestInput := subManifestResult.GetInputManifest()
 	subManifestInputMeta := &bldr_web_bundler_vite_compiler.InputManifestMeta{}
-	if err = subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
-		err = errors.Wrap(err, "unable to parse vite sub-manifest input metadata")
-		return
+	if err := subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
+		return nil, nil, errors.Wrap(err, "unable to parse vite sub-manifest input metadata")
 	}
 
 	// extract a couple variables we need later
-	webPkgRefs = subManifestInputMeta.GetWebPkgRefs()
-	viteOutputMeta = subManifestInputMeta.GetViteOutputs()
+	webPkgRefs := subManifestInputMeta.GetWebPkgRefs()
+	viteOutputMeta := subManifestInputMeta.GetViteOutputs()
 
 	// sync the latest sub-manifest contents into our assets directory
 	le.Debug("vite sub-manifest build complete, checking out assets")
@@ -1349,10 +1348,21 @@ func (c *Controller) buildAndCheckoutViteSubManifest(
 		"", // No dist path for vite sub-manifest
 		outAssetsVitePath,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
+		nil,
+		nil,
 	)
 	if err != nil {
-		err = errors.Wrap(err, "unable to extract vite sub-manifest")
-		return
+		return nil, nil, errors.Wrap(err, "unable to extract vite sub-manifest")
+	}
+
+	// move any web-pkgs to the correct dir. these functions ignore not-exist source dirs
+	webPkgsDir := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
+	outAssetsViteWebPkgsDir := filepath.Join(outAssetsVitePath, bldr_plugin.PluginAssetsWebPkgsDir)
+	if err := fsutil.CopyRecursive(webPkgsDir, outAssetsViteWebPkgsDir, nil); err != nil {
+		return nil, nil, err
+	}
+	if err := fsutil.CleanDir(outAssetsViteWebPkgsDir); err != nil {
+		return nil, nil, err
 	}
 
 	return webPkgRefs, viteOutputMeta, nil

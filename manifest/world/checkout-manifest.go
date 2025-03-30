@@ -24,6 +24,8 @@ func CheckoutManifest(
 	manifestRef *bucket.ObjectRef,
 	outDistPath, outAssetsPath string,
 	deleteMode unixfs_sync.DeleteMode,
+	filterDistCb unixfs_sync.FilterCb,
+	filterAssetsCb unixfs_sync.FilterCb,
 ) (*manifest.Manifest, error) {
 	var outManifest *manifest.Manifest
 	err := AccessManifest(ctx, le, accessFunc, manifestRef, func(
@@ -43,7 +45,7 @@ func CheckoutManifest(
 				outDistPath,
 				distFS,
 				deleteMode,
-				nil,
+				filterDistCb,
 			); err != nil {
 				return err
 			}
@@ -56,7 +58,7 @@ func CheckoutManifest(
 				outAssetsPath,
 				assetsFS,
 				deleteMode,
-				nil,
+				filterAssetsCb,
 			); err != nil {
 				return err
 			}

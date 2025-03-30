@@ -87,6 +87,11 @@ manifests:
         webPluginId: web
         goPkgs:
           - ./example
+
+        # webPkgs externalizes packages
+        webPkgs:
+          - id: lucide-react
+
         # configure the configset to apply on startup
         configSet:
           demo-1:

@@ -127,5 +127,7 @@ func (c *BuilderConfig) CheckoutManifest(
 		distFsPath,
 		assetsFsPath,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
+		nil,
+		nil,
 	)
 }

@@ -315,7 +315,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       {webViewState.ready && !isComponentReady ?
         webViewState.htmlLinks.map((ilink) => {
           const as = getLinkPreloadAsValue(ilink.link.rel)
-          return as ?
+          return as && ilink.link.href ?
               <link
                 key={`preload-${ilink.id}`}
                 href={ilink.link.href}
@@ -327,9 +327,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       : undefined}
       {/* Render actual link tags once component is ready */}
       {webViewState.ready && isComponentReady ?
-        webViewState.htmlLinks.map((ilink) => (
-          <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />
-        ))
+        webViewState.htmlLinks
+          .filter((ilink) => !!ilink.link.href)
+          .map((ilink) => (
+            <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />
+          ))
       : undefined}
       {webViewState.ready &&
         webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
