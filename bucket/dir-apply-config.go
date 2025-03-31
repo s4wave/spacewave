@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"slices"
 	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"golang.org/x/exp/slices"
 )
 
 // ApplyBucketConfig is a directive to apply a bucket configuration.

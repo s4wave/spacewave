@@ -3,6 +3,7 @@ package unixfs
 import (
 	"context"
 	"io/fs"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/aperturerobotics/util/cqueue"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // FSHandle is an open handle to a location in a FSTree.

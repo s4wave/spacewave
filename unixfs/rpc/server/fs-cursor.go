@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -13,7 +14,6 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_rpc "github.com/aperturerobotics/hydra/unixfs/rpc"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"golang.org/x/exp/slices"
 )
 
 // FSCursorService exposes an FSCursor and CursorOps tree via RPC.

@@ -2,12 +2,12 @@ package unixfs_watch
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/util/broadcast"
-	"golang.org/x/exp/slices"
 )
 
 // FSWatcherCb is a function called with the FSOps and FSCursor when the

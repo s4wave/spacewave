@@ -3,11 +3,11 @@ package unixfs_sync
 import (
 	"context"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/aperturerobotics/hydra/unixfs"
-	"golang.org/x/exp/slices"
 )
 
 // FilterCb is a callback that can be passed to Sync.

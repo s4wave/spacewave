@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"path"
+	"slices"
 	"testing"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // TestFS tests the full end-to-end filesystem.

@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	unixfs_iofs "github.com/aperturerobotics/hydra/unixfs/iofs"
 	"github.com/go-git/go-billy/v5"
-	"golang.org/x/exp/slices"
 )
 
 // BillyFSCursorOps is an FSCursor ops implementation backed by a BillyFS.

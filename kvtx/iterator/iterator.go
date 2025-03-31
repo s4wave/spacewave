@@ -107,7 +107,7 @@ func (i *Iterator) Seek(k []byte) error {
 
 	// Binary search for the key
 	valid := i.ki.Seek(k)
-	
+
 	if i.rev {
 		// In reverse mode:
 		// If we found an exact match, stay there
@@ -121,7 +121,7 @@ func (i *Iterator) Seek(k []byte) error {
 			valid = i.ki.Last()
 		}
 	}
-	
+
 	i.oob = !valid
 
 	// Check if the key matches our prefix constraint

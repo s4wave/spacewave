@@ -113,7 +113,6 @@ func (e *engineObjectIterator) Next() bool {
 		valid = true
 		return nil
 	}()
-
 	if err != nil {
 		e.err = err
 		e.valid = false
@@ -158,7 +157,6 @@ func (e *engineObjectIterator) Seek(k string) error {
 		valid = true
 		return nil
 	}()
-
 	if err != nil {
 		e.err = err
 		e.valid = false

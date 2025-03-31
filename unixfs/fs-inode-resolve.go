@@ -2,10 +2,10 @@ package unixfs
 
 import (
 	"context"
+	"slices"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // if the callback returns ErrReleased, the operation will be retried

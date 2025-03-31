@@ -5,12 +5,12 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/hydra/block/blob"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // MaxReadFileSize is the maximum size for ReadFile operations (4GB)

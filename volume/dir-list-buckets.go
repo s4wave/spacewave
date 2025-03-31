@@ -2,11 +2,11 @@ package volume
 
 import (
 	"regexp"
+	"slices"
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // ListBuckets is a directive to list buckets.

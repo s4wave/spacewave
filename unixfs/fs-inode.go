@@ -2,13 +2,13 @@ package unixfs
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"sync/atomic"
 
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/aperturerobotics/util/cqueue"
 	"github.com/aperturerobotics/util/csync"
-	"golang.org/x/exp/slices"
 )
 
 // fsInodeTries is the maximum number of tries for an operation.

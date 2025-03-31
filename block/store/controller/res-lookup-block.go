@@ -2,10 +2,10 @@ package block_store_controller
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/dex"
-	"golang.org/x/exp/slices"
 )
 
 // lookupBlockFromNetworkResolver resolves LookupBlockFromNetwork

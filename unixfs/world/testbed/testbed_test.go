@@ -142,15 +142,15 @@ func TestFs_SingleTxn(t *testing.T) {
 		defer wtx.Discard()
 		defer fsh.Release()
 
-		if err := fsh.Mknod(ctx, false, []string{"mydir"}, unixfs.NewFSCursorNodeType_Dir(), 0644, time.Now()); err != nil {
+		if err := fsh.Mknod(ctx, false, []string{"mydir"}, unixfs.NewFSCursorNodeType_Dir(), 0o644, time.Now()); err != nil {
 			return err
 		}
 
-		if err := fsh.MkdirAll(ctx, []string{"test", "dir"}, 0700, time.Now()); err != nil {
+		if err := fsh.MkdirAll(ctx, []string{"test", "dir"}, 0o700, time.Now()); err != nil {
 			return err
 		}
 
-		if err := fsh.Mknod(ctx, false, []string{"hello.txt", "world.md"}, unixfs.NewFSCursorNodeType_File(), 0644, time.Now()); err != nil {
+		if err := fsh.Mknod(ctx, false, []string{"hello.txt", "world.md"}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Now()); err != nil {
 			return err
 		}
 
