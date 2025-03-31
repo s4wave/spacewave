@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"slices"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
@@ -23,7 +24,6 @@ import (
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // ControllerID is the compiler controller ID.

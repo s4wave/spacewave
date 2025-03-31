@@ -5,9 +5,8 @@ import (
 	"embed"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // DetermineCjsExportsFS contains the contents of the determine-cjs-exports.mjs file.

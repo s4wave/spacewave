@@ -1,10 +1,10 @@
 package bldr_plugin_vardef
 
 import (
+	"slices"
 	"strings"
 
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
-	"golang.org/x/exp/slices"
 )
 
 // NewPluginVar constructs a new plugin var.

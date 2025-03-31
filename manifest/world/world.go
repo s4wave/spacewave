@@ -2,6 +2,7 @@ package bldr_manifest_world
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -14,7 +15,6 @@ import (
 	world_types "github.com/aperturerobotics/hydra/world/types"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 const (

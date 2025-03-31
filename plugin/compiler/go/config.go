@@ -1,6 +1,7 @@
 package bldr_plugin_compiler_go
 
 import (
+	"slices"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -13,7 +14,6 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 	"golang.org/x/mod/module"
 )
 

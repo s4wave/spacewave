@@ -3,6 +3,7 @@ package web_pkg_esbuild
 import (
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
@@ -12,7 +13,6 @@ import (
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // BuildEsbuildPlugin constructs the bldr esbuild plugin.

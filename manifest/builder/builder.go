@@ -3,13 +3,13 @@ package bldr_manifest_builder
 import (
 	"context"
 	"path"
+	"slices"
 	"strings"
 
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/promise"
-	"golang.org/x/exp/slices"
 )
 
 // ControllerConfig is a configuration for a manifest Builder controller.

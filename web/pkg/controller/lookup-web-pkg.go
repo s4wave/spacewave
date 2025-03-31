@@ -2,10 +2,10 @@ package web_pkg_controller
 
 import (
 	"context"
+	"slices"
 
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"golang.org/x/exp/slices"
 )
 
 // resolveLookupWebPkg returns a resolver for looking up a volume.

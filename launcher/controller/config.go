@@ -2,6 +2,7 @@ package bldr_launcher_controller
 
 import (
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	bldr_launcher "github.com/aperturerobotics/bldr/launcher"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // ConfigID is the config identifier.

@@ -11,7 +11,7 @@ require github.com/aperturerobotics/common v0.21.3-0.20250324012822-7b068d08a5f6
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
-	github.com/aperturerobotics/hydra v0.0.0-20250202023427-811385125bff // master
+	github.com/aperturerobotics/hydra v0.0.0-20250331010840-d680128081c8 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.8.1 // master
 )
 
@@ -31,7 +31,7 @@ require (
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.40.5 // master
+	github.com/aperturerobotics/bifrost v0.41.0 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.7.3 // master
@@ -75,10 +75,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.49.1 // latest
+	github.com/aperturerobotics/controllerbus v0.49.3 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.37.1 // latest
-	github.com/aperturerobotics/util v1.29.1 // latest
+	github.com/aperturerobotics/util v1.29.2 // latest
 )
 
 // aperture: use compatibility forks
@@ -99,29 +99,29 @@ replace (
 require (
 	filippo.io/edwards25519 v1.1.1-0.20250211130249-04b037b40df0 // indirect
 	github.com/klauspost/compress v1.18.0
-	github.com/libp2p/go-libp2p v0.41.0
+	github.com/libp2p/go-libp2p v0.41.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.15.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.26 // indirect
-	github.com/nats-io/nats.go v1.39.1 // indirect
+	github.com/nats-io/nats-server/v2 v2.11.0 // indirect
+	github.com/nats-io/nats.go v1.40.1 // indirect
 	github.com/nats-io/nkeys v0.4.10 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
-	github.com/pion/sdp/v3 v3.0.10 // indirect
-	github.com/pion/webrtc/v4 v4.0.13 // indirect
+	github.com/pion/sdp/v3 v3.0.11 // indirect
+	github.com/pion/webrtc/v4 v4.0.14 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.50.0 // indirect
+	github.com/quic-go/quic-go v0.50.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.36.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	gonum.org/v1/gonum v0.15.1 // indirect
+	gonum.org/v1/gonum v0.16.0 // indirect
 )
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/coder/websocket v1.8.13-0.20250130123249-d1468a75eee5
+	github.com/coder/websocket v1.8.13
 	github.com/oklog/ulid/v2 v2.1.0
 )
 
@@ -156,13 +156,13 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.20.2 // indirect
 	github.com/pion/dtls/v3 v3.0.4 // indirect
-	github.com/pion/ice/v4 v4.0.7 // indirect
+	github.com/pion/ice/v4 v4.0.8 // indirect
 	github.com/pion/interceptor v0.1.37 // indirect
 	github.com/pion/logging v0.2.3 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.15 // indirect
-	github.com/pion/rtp v1.8.12 // indirect
+	github.com/pion/rtp v1.8.13 // indirect
 	github.com/pion/sctp v1.8.37 // indirect
 	github.com/pion/srtp/v3 v3.0.4 // indirect
 	github.com/pion/stun/v3 v3.0.0 // indirect

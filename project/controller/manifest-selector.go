@@ -1,9 +1,8 @@
 package bldr_project_controller
 
 import (
+	"slices"
 	"sort"
-
-	"golang.org/x/exp/slices"
 )
 
 // ForManifestSelector iterates over all combinations of platform id & manifest id in the given sets.

@@ -2,12 +2,12 @@ package bldr_platform
 
 import (
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/util/gotargets"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // PlatformID_NATIVE builds Go binaries in the native executable format.

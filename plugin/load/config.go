@@ -1,12 +1,12 @@
 package bldr_plugin_load
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
-	"golang.org/x/exp/slices"
 )
 
 // ConfigID is the config identifier.

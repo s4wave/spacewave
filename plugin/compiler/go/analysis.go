@@ -12,12 +12,12 @@ import (
 	// "go/parser"
 	"go/token"
 	"go/types"
+	"slices"
 
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )

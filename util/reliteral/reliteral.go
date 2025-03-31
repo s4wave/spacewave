@@ -2,9 +2,8 @@ package reliteral
 
 import (
 	"regexp"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // GenerateRegex takes a list of string literals and produces a regex to match any of them.

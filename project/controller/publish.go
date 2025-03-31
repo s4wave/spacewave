@@ -4,6 +4,7 @@ package bldr_project_controller
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 
@@ -17,7 +18,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // PublishTargets publishes to the given publish target(s)

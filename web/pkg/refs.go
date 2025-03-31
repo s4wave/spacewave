@@ -1,9 +1,8 @@
 package web_pkg
 
 import (
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // WebPkgRefSlice is a slice of WebPkgRef.

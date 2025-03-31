@@ -1,12 +1,13 @@
 package bldr_web_bundler_vite_compiler
 
 import (
-	"github.com/aperturerobotics/bldr/manifest"
+	"slices"
+
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // ConfigID is the config identifier.

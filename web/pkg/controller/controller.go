@@ -2,13 +2,13 @@ package web_pkg_controller
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // WebPkgGetter is a function to resolve a web package.
@@ -87,7 +87,7 @@ func NewControllerWithWebPkgList(le *logrus.Entry, info *controller.Info, webPkg
 
 // NewControllerWithWebPkgMap constructs a new controller with a map of WebPkg.
 func NewControllerWithWebPkgMap(le *logrus.Entry, info *controller.Info, webPkgMap map[string]web_pkg.WebPkg) *Controller {
-	webPkgsIds := maps.Keys(webPkgMap)
+	webPkgsIds := slices.Collect(maps.Keys(webPkgMap))
 	slices.Sort(webPkgsIds)
 	if len(webPkgsIds) != 0 && webPkgsIds[0] == "" {
 		webPkgsIds = webPkgsIds[1:]

@@ -4,9 +4,9 @@ import "testing"
 
 func TestParseWebPlatform(t *testing.T) {
 	testCases := []struct {
-		input         string
-		expectedArch  string
-		expectError   bool
+		input        string
+		expectedArch string
+		expectError  bool
 	}{
 		{"web", "js", false},
 		{"web/js", "js", false},

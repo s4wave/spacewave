@@ -91,8 +91,8 @@
     "@libp2p/logger": "^5.1.11",
     "console": "^0.7.2",
     "electron": "^35.1.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "starpc": "^0.37.0",
     "workbox-window": "^7.3.0"
   },

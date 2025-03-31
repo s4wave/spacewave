@@ -1,9 +1,8 @@
 package bldr_web_bundler
 
 import (
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // WebPkgRefConfigSlice is a slice of WebPkgRefConfig.

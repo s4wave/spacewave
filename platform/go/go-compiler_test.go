@@ -1,10 +1,10 @@
 package bldr_platform_go
 
 import (
+	"slices"
 	"testing"
 
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	"golang.org/x/exp/slices"
 )
 
 func TestGoCompilerEnvVars(t *testing.T) {

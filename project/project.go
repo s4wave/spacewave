@@ -1,6 +1,7 @@
 package bldr_project
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/aperturerobotics/bifrost/peer"
@@ -12,7 +13,6 @@ import (
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 // UnmarshalProjectConfig unmarshals a project config from json or yaml.
