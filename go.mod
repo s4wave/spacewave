@@ -12,7 +12,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20250331010840-d680128081c8 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.9.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
 )
 
 require (

@@ -1,7 +1,6 @@
 package bldr_plugin_compiler_js
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -29,7 +28,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	protobuf_go_lite_json "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/blang/semver/v4"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
@@ -358,19 +357,36 @@ func (c *Controller) BuildManifest(
 		return nil, errors.Wrapf(err, "js plugin entrypoint source: %s", entrypointTsSrcPath)
 	}
 
-	// Prepare defines for esbuild by marshalling entrypoints to JSON array strings
-	backendEpJsonStr, err := marshalEntrypointsToJsonArrayString(backendEntrypoints)
+	// Marshal backend entrypoints to JSON array string
+	backendEpJsonBytes, err := protobuf_go_lite_json.MarshalSlice(protobuf_go_lite_json.DefaultMarshalerConfig, backendEntrypoints)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal backend entrypoints")
 	}
-	frontendEpJsonStr, err := marshalEntrypointsToJsonArrayString(frontendEntrypoints)
+	backendEpJsonStr := string(backendEpJsonBytes)
+
+	// Marshal frontend entrypoints to JSON array string
+	frontendEpJsonBytes, err := protobuf_go_lite_json.MarshalSlice(protobuf_go_lite_json.DefaultMarshalerConfig, frontendEntrypoints)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal frontend entrypoints")
 	}
+	frontendEpJsonStr := string(frontendEpJsonBytes)
+
+	// Marshal host config set to JSON array string.
+	hostConfigSet := buildCtrlConf.GetHostConfigSet()
+	hostConfigSetJsonStr := "undefined"
+	if len(hostConfigSet) != 0 {
+		hostConfigSetJson, err := protobuf_go_lite_json.MarshalMap(protobuf_go_lite_json.DefaultMarshalerConfig, hostConfigSet)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal host config set")
+		}
+		hostConfigSetJsonStr = string(hostConfigSetJson)
+	}
+
 	defines := map[string]string{
 		// Pass JSON array strings to esbuild define
 		"__BLDR_BACKEND_ENTRYPOINTS__":  backendEpJsonStr,
 		"__BLDR_FRONTEND_ENTRYPOINTS__": frontendEpJsonStr,
+		"__BLDR_HOST_CONFIG_SET__":      hostConfigSetJsonStr,
 	}
 
 	// Relative path to the entrypoint within the distSourcePath directory.
@@ -392,7 +408,6 @@ func (c *Controller) BuildManifest(
 			OutputPath: entrypointOutputBase, // Define the output structure (name part, hash added by EntryNames).
 		},
 	}
-	buildOptions.Platform = esbuild_api.PlatformNeutral  // Use Neutral for compatibility (e.g., workers).
 	buildOptions.Define = defines                        // Inject backend/frontend entrypoint paths.
 	buildOptions.Metafile = true                         // Enable metafile to find the hashed output path.
 	buildOptions.Splitting = false                       // Do not split code for this simple entrypoint.
@@ -494,33 +509,6 @@ func (c *Controller) BuildManifest(
 	}
 
 	return builderResult, nil
-}
-
-// marshalEntrypointsToJsonArrayString marshals a slice of entrypoints (that implement MarshalJSON)
-// into a JSON array string without using the encoding/json package directly on the slice.
-func marshalEntrypointsToJsonArrayString[T protobuf_go_lite.JSONMessage](entrypoints []T) (string, error) {
-	if len(entrypoints) == 0 {
-		return "[]", nil
-	}
-
-	jsonParts := make([][]byte, 0, len(entrypoints))
-	for _, ep := range entrypoints {
-		epJSON, err := ep.MarshalJSON()
-		if err != nil {
-			return "", errors.Wrap(err, "failed to marshal entrypoint to JSON")
-		}
-		jsonParts = append(jsonParts, epJSON)
-	}
-
-	// Join with commas and wrap in brackets
-	// e.g. {"foo":"bar"},{"baz":"qux"} -> [{"foo":"bar"},{"baz":"qux"}]
-	finalJSON := bytes.Join([][]byte{
-		[]byte("["),
-		bytes.Join(jsonParts, []byte(",")),
-		[]byte("]"),
-	}, nil)
-
-	return string(finalJSON), nil
 }
 
 // _ is a type assertion

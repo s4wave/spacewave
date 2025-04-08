@@ -53,16 +53,8 @@ class Plugin implements SRPCPlugin {
 export default async function main(backendAPI: BackendAPI) {
   console.log('Starting web plugin for browser...')
 
-  // webRuntimeClient manages the connection to the WebRuntime.
-  const webRuntimeClient = backendAPI.webRuntimeClient
-  // webRuntimeRpcClient attempts to contact the WebRuntime over any of the WebDocument relays.
-  // NOTE: this connects to GetWebWorkerHost in web/runtime/remote.go
-  const webRuntimeRpcClient = webRuntimeClient.rpcClient
-
   // Initialize the client for the host service.
-  const webPluginBrowserHost = new WebPluginBrowserHostClient(
-    webRuntimeRpcClient,
-  )
+  const webPluginBrowserHost = new WebPluginBrowserHostClient(backendAPI.client)
 
   // plugin is the instance of the Plugin service implementation.
   const plugin = new Plugin(webPluginBrowserHost)

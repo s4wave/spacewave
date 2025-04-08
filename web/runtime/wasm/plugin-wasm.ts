@@ -56,7 +56,7 @@ export default async function main(api: BackendAPI): Promise<void> {
     onMessage,
     onClose,
   ): Promise<Pushable<Uint8Array>> => {
-    const packetStream = await api.webRuntimeClient.openStream()
+    const packetStream = await api.openStream()
     const packetSource = packetStream.source
     queueMicrotask(async () => {
       try {

@@ -30,3 +30,11 @@ manifests:
         configSet:
           app:
             id: bldr/example/demo
+
+        hostConfigSet:
+          demo-bucket:
+            id: hydra/bucket/setup
+            config:
+              applyBucketConfigs:
+              - volumeIdList: ["devtool"]
+                config: {'id': 'demo-bucket'}

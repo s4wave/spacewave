@@ -1,16 +1,17 @@
 // Import types generated from protobuf definitions.
 import type { BackendAPI, BackendEntrypointFunc } from '@aptre/bldr-sdk'
 import { BackendEntrypoint, FrontendEntrypoint } from './compiler.pb.js'
+import { ConfigSet } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import { retryWithAbort } from '@aptre/bldr'
 
 // Defines the list of backend entrypoints to load.
-// Populated by the Bldr JS compiler via esbuild define.
-// Value is injected as a literal array object (or undefined if empty).
 declare const __BLDR_BACKEND_ENTRYPOINTS__: BackendEntrypoint[] | undefined
 
 // Defines the list of frontend entrypoints.
-// Populated by the Bldr JS compiler via esbuild define.
-// Value is injected as a literal array object (or undefined if empty).
 declare const __BLDR_FRONTEND_ENTRYPOINTS__: FrontendEntrypoint[] | undefined
+
+// Defines the set of config set to apply to the plugin host.
+declare const __BLDR_HOST_CONFIG_SET__: ConfigSet['configs'] | undefined
 
 /**
  * Loads and executes a single backend entrypoint module.
@@ -151,11 +152,23 @@ function loadFrontendEntrypoints(): void {
 export default async function main(backendAPI: BackendAPI) {
   console.debug('Starting Bldr JS plugin entrypoint...')
 
+  const abortController = new AbortController()
+  const abortSignal = abortController.signal
+
   // Load the plugin info to determine the host volume info (unused currently in Js)
   // const pluginInfo = await backendAPI.pluginHost.GetPluginInfo({})
 
   // Load and start the hostConfigSet, if any.
   // TODO
+
+  // Load host configSet directly from the defined constant.
+  const hostConfigSet: ConfigSet['configs'] | undefined = __BLDR_HOST_CONFIG_SET__ ?? undefined
+  if (hostConfigSet != null && Object.keys(hostConfigSet).length !== 0) {
+    retryWithAbort(abortSignal, async (abortSignal) => {
+      console.debug("Starting host config set...", hostConfigSet)
+      backendAPI.pluginHost.ExecController({configSet: {configs: hostConfigSet}}, abortSignal)
+    })
+  }
 
   // Load and execute backend entrypoints.
   await loadBackendEntrypoints(backendAPI)

@@ -1,4 +1,9 @@
-import { Client, HandleStreamCtr, HandleStreamFunc } from 'starpc'
+import {
+  Client,
+  HandleStreamCtr,
+  HandleStreamFunc,
+  OpenStreamFunc,
+} from 'starpc'
 import { PluginWorker } from '../runtime/plugin-worker.js'
 import { BackendAPI } from '../../sdk/plugin.js'
 import { PluginHost, PluginHostClient } from '../../plugin/plugin_srpc.pb.js'
@@ -9,6 +14,8 @@ declare let self: SharedWorkerGlobalScope
 class BackendApiImpl implements BackendAPI {
   // startInfoB58 is the base58 encoded start information passed during initialization.
   public readonly startInfoB58: string
+  // openStream is the open stream func for client
+  public readonly openStream: OpenStreamFunc
   // client is a connection to the Go WebRuntime via. WebWorkerRpc rpcstream.
   public readonly client: Client
   // pluginHost is the plugin host RPC service client.
@@ -19,13 +26,14 @@ class BackendApiImpl implements BackendAPI {
 
   constructor(
     startInfoB58: string,
-    client: Client,
+    openStream: OpenStreamFunc,
     handleStreamCtr: HandleStreamCtr,
   ) {
     this.startInfoB58 = startInfoB58
-    this.client = client
+    this.openStream = openStream
+    this.client = new Client(openStream)
     this.handleStreamCtr = handleStreamCtr
-    this.pluginHost = new PluginHostClient(client)
+    this.pluginHost = new PluginHostClient(this.client)
   }
 }
 
@@ -59,14 +67,14 @@ const startPluginCallback = async (startInfoB58: string) => {
 
   // Construct the WebRuntimeHost client.
   // This will call => WebRuntime (TypeScript) => rpcstream WebWorkerRpc => Go runtime
-  const webWorkerHostClient = new Client(
-    pluginWorker.webRuntimeClient.openStream.bind(pluginWorker.webRuntimeClient),
+  const openStream = pluginWorker.webRuntimeClient.openStream.bind(
+    pluginWorker.webRuntimeClient,
   )
 
   // Construct the backend api
   const backendAPI = new BackendApiImpl(
     startInfoB58,
-    webWorkerHostClient,
+    openStream,
     handleIncomingStreamCtr,
   )
 

@@ -23,6 +23,7 @@ import (
 	web_entrypoint_browser "github.com/aperturerobotics/bldr/web/entrypoint/browser"
 	bldr_web_plugin_browser_controller "github.com/aperturerobotics/bldr/web/plugin/browser/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
+	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
 	"github.com/aperturerobotics/util/backoff"
@@ -84,15 +85,19 @@ func main() {
 			le.Fatal(err.Error())
 		}
 
-		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
 		sr.AddFactory(manifest_fetch_rpc.NewFactory(b))
 		sr.AddFactory(plugin_host_web.NewFactory(b))
-		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
+		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
+
+		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
+		sr.AddFactory(volume_rpc_server.NewFactory(b))
+
 		sr.AddFactory(websocket.NewFactory(b))
 		sr.AddFactory(link_establish_controller.NewFactory(b))
 		sr.AddFactory(link_holdopen_controller.NewFactory(b))
-		sr.AddFactory(volume_rpc_server.NewFactory(b))
+
+		sr.AddFactory(bucket_setup.NewFactory(b))
 
 		nodeCtrl := node_controller.NewController(&node_controller.Config{}, le, b)
 		relNodeCtrl, err := b.AddController(ctx, nodeCtrl, nil)
