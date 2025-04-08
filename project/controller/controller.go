@@ -300,12 +300,12 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 	}
 
 	// note: BuildManifests overrides RemoteId with manifestRemoteID
-	manifestBuilderRef, err := c.AddManifestBuilderRef(&ManifestBuilderConfig{
-		ManifestId: manifestMeta.GetManifestId(),
-		PlatformId: manifestMeta.GetPlatformId(),
-		BuildType:  buildType,
-		RemoteId:   manifestRemoteID,
-	})
+	manifestBuilderRef, err := c.AddManifestBuilderRef(NewManifestBuilderConfig(
+		manifestMeta.GetManifestId(),
+		buildType,
+		manifestMeta.GetPlatformId(),
+		manifestRemoteID,
+	))
 	if err != nil {
 		remoteRef.Release()
 		return nil, nil, err

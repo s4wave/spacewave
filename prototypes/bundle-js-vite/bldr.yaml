@@ -1,0 +1,32 @@
+# Used as an example program while debugging / developing Bldr.
+# type: project.ProjectConfig
+id: bundle-js-vite
+
+start:
+  plugins:
+    - app
+    - web
+
+manifests:
+  web:
+    builder:
+      id: bldr/web/plugin/compiler
+
+  app:
+    builder:
+      id: bldr/plugin/compiler/js
+      rev: 1
+      config:
+        webPluginId: web
+        modules:
+        - kind: JS_MODULE_KIND_FRONTEND
+          path: ./example/example.tsx
+
+        # webPkgs externalizes packages
+        webPkgs:
+          - id: lucide-react
+
+        # configure the configset to apply on startup
+        configSet:
+          app:
+            id: bldr/example/demo

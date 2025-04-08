@@ -59,6 +59,17 @@ func (c *Config) Merge(o *Config) {
 	}
 	bldr_web_bundler.SortWebPkgRefConfigs(c.WebPkgs)
 
+	// merge vite config paths
+	if paths := o.GetViteConfigPaths(); len(paths) != 0 {
+		c.ViteConfigPaths = append(c.ViteConfigPaths, paths...)
+		// Note: order matters for vite config paths, do not sort/compact.
+	}
+
+	// merge disable project config (true overrides false)
+	if o.GetDisableProjectConfig() {
+		c.DisableProjectConfig = true
+	}
+
 	// merge bundles
 	if bundles := o.GetBundles(); len(bundles) != 0 {
 		c.Bundles = append(c.Bundles, bundles...)

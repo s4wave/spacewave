@@ -109,7 +109,7 @@ func GetWasmExecPath(ctx context.Context, le *logrus.Entry, useTinygo bool) (str
 	if useTinygo {
 		wasmExecFile = filepath.Join(goRootDir, "targets/wasm_exec.js")
 	} else {
-		wasmExecFile = filepath.Join(goRootDir, "misc/wasm/wasm_exec.js")
+		wasmExecFile = filepath.Join(goRootDir, "lib/wasm/wasm_exec.js")
 	}
 
 	if _, err := os.Stat(wasmExecFile); err != nil {

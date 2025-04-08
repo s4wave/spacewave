@@ -97,8 +97,10 @@ message CreateWebViewResponse {
 message CreateWebWorkerRequest {
   // Id is the identifier for the new WebWorker.
   string id = 1;
-  // Url is the url to the source to load into the worker.
-  string url = 2;
+  // Path is the path to the source to load into the worker.
+  // This is passed to the shared-worker.ts loader.
+  // Used as the path after the current host. For example /path/to/script.mjs
+  string path = 2;
   // Shared indicates this should be a worker shared between all WebDocument (if possible)
   bool shared = 3;
   // InitData is initialization data to pass to the worker.

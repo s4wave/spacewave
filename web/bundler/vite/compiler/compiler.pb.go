@@ -240,6 +240,7 @@ func (x *InputManifestMeta) GetViteOutputs() []*vite.ViteOutputMeta {
 type ViteBundleMeta struct {
 	unknownFields []byte
 	// Id is the identifier of the bundle.
+	// Optional: defaults to "default"
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Entrypoints is the list of entrypoints to pass to vite.
 	Entrypoints []*ViteBundleEntrypoint `protobuf:"bytes,2,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`

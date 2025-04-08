@@ -1,4 +1,10 @@
-import { Client, PacketStream, ChannelStream, castToError } from 'starpc'
+import {
+  Client,
+  PacketStream,
+  ChannelStream,
+  castToError,
+  HandleStreamFunc,
+} from 'starpc'
 
 import {
   WebRuntimeClientInit,
@@ -10,11 +16,6 @@ import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
-
-// HandleStreamFn handles an incoming RPC stream.
-// Returns as soon as the stream has been passed off to be handled.
-// Throws an error if we can't handle the incoming stream.
-export type HandleStreamFn = (ch: PacketStream) => Promise<void>
 
 // HandleDisconnectedFn handles when the web runtime client was disconnected.
 export type HandleDisconnectedFn = (err?: Error) => Promise<void>
@@ -31,7 +32,7 @@ export class WebRuntimeClient {
     public readonly clientId: string,
     public readonly clientType: WebRuntimeClientType,
     private openClientCh: OpenChannelFn,
-    private handleIncomingStream: HandleStreamFn | null,
+    private handleIncomingStream: HandleStreamFunc | null,
     private handleDisconnected: HandleDisconnectedFn | null,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))

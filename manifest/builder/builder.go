@@ -51,8 +51,8 @@ type BuildManifestHost interface {
 }
 
 // NewInputManifest constructs a new input manifest with a list of files.
-func NewInputManifest(paths []string) *InputManifest {
-	manifest := &InputManifest{}
+func NewInputManifest(paths []string, meta []byte) *InputManifest {
+	manifest := &InputManifest{Metadata: meta}
 	seenPaths := make(map[string]struct{})
 	for _, inputPath := range paths {
 		cleanPath := path.Clean(inputPath)

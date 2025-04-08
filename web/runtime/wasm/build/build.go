@@ -76,6 +76,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 		}
 		opts.Inject = append(opts.Inject, nodeStubsLoc)
 	}
+
 	opts.Inject = append(opts.Inject, wasmExecFile)
 
 	if !minify {

@@ -27,7 +27,11 @@ export default defineConfig({
       mangle: false,
     },
   },
-  define: { 'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development') },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(
+      process.env.NODE_ENV || 'development',
+    ),
+  },
   resolve: {
     alias: {
       '@go/*': resolve(bldrProjectRoot, './vendor/*'),

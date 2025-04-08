@@ -123,6 +123,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	if err != nil {
 		return err
 	}
+	c.le.Debugf("plugin host platform id is: %v", pluginPlatformID)
 	c.hostPluginPlatformID.SetResult(pluginPlatformID, nil)
 
 	// lookup the host volume

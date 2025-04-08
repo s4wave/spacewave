@@ -1,4 +1,6 @@
+import { HandleStreamFunc } from 'starpc'
 import { Message } from '@aptre/protobuf-es-lite'
+
 import {
   ClientToWebDocument,
   ConnectWebRuntimeAck,
@@ -10,7 +12,7 @@ import {
   WebRuntimeClientType,
 } from '../runtime/runtime.pb.js'
 import { timeoutPromise } from './timeout.js'
-import { HandleStreamFn, WebRuntimeClient } from './web-runtime-client.js'
+import { WebRuntimeClient } from './web-runtime-client.js'
 
 // WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
 // connect to the remote WebRuntime via these documents, retrying if the remote
@@ -41,7 +43,7 @@ export class WebDocumentTracker {
     clientUuid: string,
     clientType: WebRuntimeClientType,
     private readonly onWebDocumentsExhausted: () => Promise<void>,
-    handleIncomingStream: HandleStreamFn | null,
+    handleIncomingStream: HandleStreamFunc | null,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType

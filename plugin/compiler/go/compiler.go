@@ -13,22 +13,19 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
+	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
-	bldr_project "github.com/aperturerobotics/bldr/project"
 	bldr_compress "github.com/aperturerobotics/bldr/util/compress"
 	"github.com/aperturerobotics/bldr/util/gocompiler"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
-	bldr_web_bundler_esbuild_compiler "github.com/aperturerobotics/bldr/web/bundler/esbuild/compiler"
 	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
-	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
 	web_fetch_controller "github.com/aperturerobotics/bldr/web/fetch/service"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
@@ -44,7 +41,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	unixfs_sync "github.com/aperturerobotics/hydra/unixfs/sync"
 	"github.com/aperturerobotics/hydra/world"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/util/enabled"
@@ -151,17 +147,27 @@ func (c *Controller) BuildManifest(
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
 
+	// platform
+	basePlatformID := buildPlatform.GetBasePlatformID()
+	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
+
 	// output paths
 	workingPath := builderConf.GetWorkingPath()
 	outDistPath := filepath.Join(workingPath, "dist")
 	outAssetsPath := filepath.Join(workingPath, "assets")
-	outBinName := pluginID + buildPlatform.GetExecutableExt()
 	distSourcePath := builderConf.GetDistSourcePath()
 
-	// if we have an alternative entrypoint path...
-	outEntrypointName := outBinName
-	if entrypointExt := buildPlatform.GetEntrypointExt(); entrypointExt != "" {
-		outEntrypointName = pluginID + entrypointExt
+	// outEntrypointName is the .wasm or .mjs entrypoint name.
+	outEntrypointName := pluginID + buildPlatform.GetExecutableExt()
+
+	// outBinName is the name of the Go binary.
+	var outBinName string
+	if isWebBuildPlatform {
+		// build to .wasm and import with the .mjs
+		outBinName = pluginID + ".wasm"
+	} else {
+		// build to .exe or no suffix, no separate entrypoint .mjs
+		outBinName = outEntrypointName
 	}
 
 	// build output world engine
@@ -382,6 +388,7 @@ func (c *Controller) BuildPlugin(
 	goPkgs = slices.Clone(goPkgs)
 	webPkgs = protobuf_go_lite.CloneVTSlice(webPkgs)
 
+	// platform
 	basePlatformID := buildPlatform.GetBasePlatformID()
 	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
 	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
@@ -592,18 +599,28 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
+		publicPath := BuildAssetHref(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
+		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(esbuildBundleVarMeta, webPkgs, baseEsbuildFlags, sourcePath, publicPath)
+		if err == nil {
+			err = esbuildBundlerConf.Validate()
+		}
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to build esbuild bundler config")
+		}
+
+		esbuildBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, esbuildBundlerConf), true)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
+		}
+
 		// Build and checkout the esbuild sub-manifest
-		webPkgRefs, esbuildOutputMeta, err = c.buildAndCheckoutEsbuildSubManifest(
+		webPkgRefs, esbuildOutputMeta, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
 			buildHost,
 			buildWorld,
-			pluginID,
-			sourcePath,
 			outAssetsPath,
-			esbuildBundleVarMeta,
-			webPkgs,
-			baseEsbuildFlags,
+			esbuildBuilderProto,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -638,17 +655,27 @@ func (c *Controller) BuildPlugin(
 		viteConfigPaths := conf.GetViteConfigPaths()
 		disableProjectConfig := conf.GetViteDisableProjectConfig()
 
+		viteBundlerConf, err := BuildViteBundlerConfig(viteBundleVarMeta, webPkgs, viteConfigPaths, disableProjectConfig)
+		if err == nil {
+			err = viteBundlerConf.Validate()
+		}
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to build vite bundler config")
+		}
+
+		viteBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, viteBundlerConf), true)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to marshal vite bundler config")
+		}
+
 		// Build and checkout the vite sub-manifest
-		viteWebPkgRefs, viteOutputMeta, err = c.buildAndCheckoutViteSubManifest(
+		viteWebPkgRefs, viteOutputMeta, err = bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
 			ctx,
 			le,
 			buildHost,
 			buildWorld,
 			outAssetsPath,
-			viteBundleVarMeta,
-			webPkgs,
-			viteConfigPaths,
-			disableProjectConfig,
+			viteBuilderProto,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -741,7 +768,6 @@ func (c *Controller) BuildPlugin(
 	// Files to copy from the generated module directory to the output dist directory.
 	var copyFiles []string
 	outDistBinary := filepath.Join(outDistPath, outBinName)
-	outBinNameWithoutExt := strings.TrimSuffix(outBinName, buildPlatform.GetExecutableExt())
 
 	// only use dev wrapper if !isRelease && delveAddr != "" && platform == native
 	if isRelease || delveAddr == "" || !isNativeBuildPlatform {
@@ -796,7 +822,7 @@ func (c *Controller) BuildPlugin(
 		le.Info("compiling web plugin entrypoint")
 		outScriptPath := filepath.Join(
 			outDistPath,
-			outBinNameWithoutExt+".mjs",
+			pluginID+".mjs",
 		)
 		if err := web_runtime_wasm_build.BuildWebWasmPluginScript(
 			ctx,
@@ -971,7 +997,7 @@ func (c *Controller) FastRebuildPlugin(
 	// Check for esbuild bundles to rebuild
 	if len(prevEsbuildBundles) > 0 {
 		// Build esbuild config based on previous metadata
-		publicPath := BuildAssetHref(pluginID, EsbuildAssetSubdir)
+		publicPath := BuildAssetHref(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
 		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(prevEsbuildBundles, prevWebPkgs, baseEsbuildFlags, sourcePath, publicPath)
 		if err == nil {
 			err = esbuildBundlerConf.Validate()
@@ -979,20 +1005,20 @@ func (c *Controller) FastRebuildPlugin(
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build esbuild bundler config for fast rebuild")
 		}
+		esbuildBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, esbuildBundlerConf), true)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal esbuild bundler config for fast rebuild")
+		}
 
 		// Build and checkout the esbuild sub-manifest
 		// Capture the esbuild output metadata for later use.
-		esbuildWebPkgRefs, updatedEsbuildOutputs, err = c.buildAndCheckoutEsbuildSubManifest(
+		esbuildWebPkgRefs, updatedEsbuildOutputs, err = bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
 			buildHost,
 			buildWorld,
-			pluginID,
-			sourcePath,
 			outAssetsPath,
-			prevEsbuildBundles, // Use previous bundles for config
-			prevWebPkgs,        // Use previous web pkgs for config
-			baseEsbuildFlags,
+			esbuildBuilderProto,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build and checkout esbuild sub-manifest during fast rebuild")
@@ -1015,19 +1041,20 @@ func (c *Controller) FastRebuildPlugin(
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build vite bundler config for fast rebuild")
 		}
+		viteBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, viteBundlerConf), true)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal vite bundler config for fast rebuild")
+		}
 
 		// Build and checkout the vite sub-manifest
 		// Capture the vite output metadata for later use.
-		viteWebPkgRefs, updatedViteOutputs, err = c.buildAndCheckoutViteSubManifest(
+		viteWebPkgRefs, updatedViteOutputs, err = bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
 			ctx,
 			le,
 			buildHost,
 			buildWorld,
 			outAssetsPath,
-			prevViteBundles,
-			prevWebPkgs,
-			prevViteConfigPaths,
-			prevViteDisableProjectConfig,
+			viteBuilderProto,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build and checkout vite sub-manifest during fast rebuild")
@@ -1124,92 +1151,6 @@ func (c *Controller) FastRebuildPlugin(
 	return updatedInputManifest, nil
 }
 
-// buildAndCheckoutEsbuildSubManifest builds the esbuild sub-manifest and checks out the results.
-// It returns the web package references and esbuild output metadata extracted from the sub-manifest.
-func (c *Controller) buildAndCheckoutEsbuildSubManifest(
-	ctx context.Context,
-	le *logrus.Entry,
-	buildHost bldr_manifest_builder.BuildManifestHost,
-	buildWorld world.Engine,
-	pluginID string,
-	sourcePath string,
-	outAssetsPath string,
-	esbuildBundleVarMeta []*EsbuildBundleVarMeta,
-	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
-	baseEsbuildFlags []string,
-) (web_pkg.WebPkgRefSlice, []*bldr_web_bundler_esbuild.EsbuildOutputMeta, error) {
-	publicPath := BuildAssetHref(pluginID, EsbuildAssetSubdir)
-	esbuildBundlerConf, err := BuildEsbuildBundlerConfig(esbuildBundleVarMeta, webPkgs, baseEsbuildFlags, sourcePath, publicPath)
-	if err == nil {
-		err = esbuildBundlerConf.Validate()
-	}
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to build esbuild bundler config")
-	}
-
-	esbuildBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, esbuildBundlerConf), true)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
-	}
-
-	// build the manifest for this esbuild bundle
-	subManifestID := "esbuild"
-	le.Debug("waiting for esbuild sub-manifest")
-	subManifestPromise, err := buildHost.BuildSubManifest(ctx, subManifestID, &bldr_project.ManifestConfig{
-		Builder: esbuildBuilderProto,
-	})
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to start esbuild sub-manifest build")
-	}
-
-	// wait for the result
-	subManifestResult, err := subManifestPromise.Await(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "esbuild sub-manifest build failed")
-	}
-
-	// parse out the input manifest meta
-	subManifestInput := subManifestResult.GetInputManifest()
-	subManifestInputMeta := &bldr_web_bundler_esbuild_compiler.InputManifestMeta{}
-	if err := subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
-		return nil, nil, errors.Wrap(err, "unable to parse esbuild sub-manifest input metadata")
-	}
-
-	// extract a couple variables we need later
-	webPkgRefs := subManifestInputMeta.GetWebPkgRefs()
-	esbuildOutputMeta := subManifestInputMeta.GetEsbuildOutputs()
-
-	// sync the latest sub-manifest contents into our assets directory
-	le.Debug("esbuild sub-manifest build complete, checking out assets")
-	outAssetsEsbuildPath := filepath.Join(outAssetsPath, EsbuildAssetSubdir)
-	_, err = bldr_manifest_world.CheckoutManifest(
-		ctx,
-		le,
-		buildWorld.AccessWorldState,
-		subManifestResult.GetManifestRef().GetManifestRef(),
-		"", // No dist path for esbuild sub-manifest
-		outAssetsEsbuildPath,
-		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		nil, // No dist filter for esbuild sub-manifest
-		nil,
-	)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to extract esbuild sub-manifest")
-	}
-
-	// move any web-pkgs to the correct dir. these functions ignore not-exist source dirs
-	webPkgsDir := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
-	outAssetsEsbuildWebPkgsDir := filepath.Join(outAssetsEsbuildPath, bldr_plugin.PluginAssetsWebPkgsDir)
-	if err := fsutil.CopyRecursive(webPkgsDir, outAssetsEsbuildWebPkgsDir, nil); err != nil {
-		return nil, nil, err
-	}
-	if err := fsutil.CleanDir(outAssetsEsbuildWebPkgsDir); err != nil {
-		return nil, nil, err
-	}
-
-	return webPkgRefs, esbuildOutputMeta, nil
-}
-
 // buildEsbuildGoVariableDefs generates the Go variable definitions based on esbuild outputs.
 func buildEsbuildGoVariableDefs(
 	pluginID string,
@@ -1240,13 +1181,13 @@ func buildEsbuildGoVariableDefs(
 			var outpEntrypointPath string
 			if outpPath := outputEntrypoint.GetPath(); outpPath != "" {
 				outpEntrypointPath = filepath.ToSlash(outpPath) // possibly unnecessary
-				outpEntrypointPath = path.Join(EsbuildAssetSubdir, outpEntrypointPath)
+				outpEntrypointPath = path.Join(bldr_plugin_compiler.EsbuildAssetSubdir, outpEntrypointPath)
 			}
 
 			var outpCssPath string
 			if cssPath := outputEntrypoint.GetCssBundlePath(); cssPath != "" {
 				outpCssPath = filepath.ToSlash(cssPath) // possibly unnecessary
-				outpCssPath = path.Join(EsbuildAssetSubdir, outpCssPath)
+				outpCssPath = path.Join(bldr_plugin_compiler.EsbuildAssetSubdir, outpCssPath)
 			}
 
 			// varValue is the value for the go variable.
@@ -1282,90 +1223,6 @@ func buildEsbuildGoVariableDefs(
 		}
 	}
 	return goVariableDefs, nil
-}
-
-// buildAndCheckoutViteSubManifest builds the vite sub-manifest and checks out the results.
-// It returns the web package references and vite output metadata extracted from the sub-manifest.
-func (c *Controller) buildAndCheckoutViteSubManifest(
-	ctx context.Context,
-	le *logrus.Entry,
-	buildHost bldr_manifest_builder.BuildManifestHost,
-	buildWorld world.Engine,
-	outAssetsPath string,
-	viteBundleVarMeta []*ViteBundleVarMeta,
-	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
-	viteConfigPaths []string,
-	disableProjectConfig bool,
-) (web_pkg.WebPkgRefSlice, []*bldr_vite.ViteOutputMeta, error) {
-	viteBundlerConf, err := BuildViteBundlerConfig(viteBundleVarMeta, webPkgs, viteConfigPaths, disableProjectConfig)
-	if err == nil {
-		err = viteBundlerConf.Validate()
-	}
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to build vite bundler config")
-	}
-
-	viteBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, viteBundlerConf), true)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to marshal vite bundler config")
-	}
-
-	// build the manifest for this vite bundle
-	subManifestID := "vite"
-	le.Debug("waiting for vite sub-manifest")
-	subManifestPromise, err := buildHost.BuildSubManifest(ctx, subManifestID, &bldr_project.ManifestConfig{
-		Builder: viteBuilderProto,
-	})
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to start vite sub-manifest build")
-	}
-
-	// wait for the result
-	subManifestResult, err := subManifestPromise.Await(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "vite sub-manifest build failed")
-	}
-
-	// parse out the input manifest meta
-	subManifestInput := subManifestResult.GetInputManifest()
-	subManifestInputMeta := &bldr_web_bundler_vite_compiler.InputManifestMeta{}
-	if err := subManifestInputMeta.UnmarshalVT(subManifestInput.GetMetadata()); err != nil {
-		return nil, nil, errors.Wrap(err, "unable to parse vite sub-manifest input metadata")
-	}
-
-	// extract a couple variables we need later
-	webPkgRefs := subManifestInputMeta.GetWebPkgRefs()
-	viteOutputMeta := subManifestInputMeta.GetViteOutputs()
-
-	// sync the latest sub-manifest contents into our assets directory
-	le.Debug("vite sub-manifest build complete, checking out assets")
-	outAssetsVitePath := filepath.Join(outAssetsPath, ViteAssetSubdir)
-	_, err = bldr_manifest_world.CheckoutManifest(
-		ctx,
-		le,
-		buildWorld.AccessWorldState,
-		subManifestResult.GetManifestRef().GetManifestRef(),
-		"", // No dist path for vite sub-manifest
-		outAssetsVitePath,
-		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		nil,
-		nil,
-	)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to extract vite sub-manifest")
-	}
-
-	// move any web-pkgs to the correct dir. these functions ignore not-exist source dirs
-	webPkgsDir := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
-	outAssetsViteWebPkgsDir := filepath.Join(outAssetsVitePath, bldr_plugin.PluginAssetsWebPkgsDir)
-	if err := fsutil.CopyRecursive(webPkgsDir, outAssetsViteWebPkgsDir, nil); err != nil {
-		return nil, nil, err
-	}
-	if err := fsutil.CleanDir(outAssetsViteWebPkgsDir); err != nil {
-		return nil, nil, err
-	}
-
-	return webPkgRefs, viteOutputMeta, nil
 }
 
 // buildViteGoVariableDefs generates the Go variable definitions based on vite outputs.
@@ -1428,7 +1285,7 @@ func buildViteGoVariableDefs(
 
 				// Build asset href and create string variable
 				// Prepend ViteAssetSubdir to ensure the path is relative to the plugin assets root.
-				jsAssetPath := path.Join(ViteAssetSubdir, jsOutputPath)
+				jsAssetPath := path.Join(bldr_plugin_compiler.ViteAssetSubdir, jsOutputPath)
 				assetHref := BuildAssetHref(pluginID, jsAssetPath)
 				goVariableDefs = append(goVariableDefs, vardef.NewPluginVar(
 					entrypointVar.GetPkgImportPath(),
@@ -1441,11 +1298,11 @@ func buildViteGoVariableDefs(
 				// Prepend ViteAssetSubdir to ensure the paths are relative to the plugin assets root.
 				output := &bldr_web_bundler.WebBundlerOutput{}
 				if jsOutputPath != "" {
-					jsAssetPath := path.Join(ViteAssetSubdir, jsOutputPath)
+					jsAssetPath := path.Join(bldr_plugin_compiler.ViteAssetSubdir, jsOutputPath)
 					output.EntrypointHref = BuildAssetHref(pluginID, jsAssetPath)
 				}
 				if cssOutputPath != "" {
-					cssAssetPath := path.Join(ViteAssetSubdir, cssOutputPath)
+					cssAssetPath := path.Join(bldr_plugin_compiler.ViteAssetSubdir, cssOutputPath)
 					output.CssHref = BuildAssetHref(pluginID, cssAssetPath)
 				}
 

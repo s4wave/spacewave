@@ -45,7 +45,7 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 	return esbuild.BuildOptions{
 		AbsWorkingDir: workingDir,
 
-		Target:      esbuild.ES2022,
+		Target:      esbuild.ES2024,
 		Format:      esbuild.FormatESModule,
 		Platform:    esbuild.PlatformBrowser,
 		LogLevel:    EsbuildLogLevel,
@@ -101,6 +101,19 @@ func ServiceWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.Buil
 	return baseConfig
 }
 
+// SharedWorkerBuildOpts creates the BuildOpts for the shared worker
+func SharedWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.BuildOptions {
+	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
+	if hash {
+		baseConfig.EntryNames = "shw-[hash]"
+	} else {
+		baseConfig.EntryNames = "shw"
+	}
+	baseConfig.EntryPoints = []string{"web/bldr/shared-worker.ts"}
+	baseConfig.EntryPointsAdvanced = nil
+	return baseConfig
+}
+
 // BuildServiceWorkerBundle builds specifically the service worker files.
 //
 // Returns the filename of the service worker output file (including the hash).
@@ -115,6 +128,29 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 	}
 	swOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
 	result := esbuild.Build(swOpts)
+	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
+		return "", err
+	}
+	if len(result.OutputFiles) != 1 {
+		return "", errors.Errorf("expected %d output files but got %d", 1, len(result.OutputFiles))
+	}
+	return filepath.Base(result.OutputFiles[0].Path), nil
+}
+
+// BuildSharedWorkerBundle builds specifically the shared worker files.
+//
+// Returns the filename of the shared worker output file (including the hash).
+func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
+	le.Debug("generating shared-worker bundle")
+
+	shwOpts := SharedWorkerBuildOpts(bldrDistRoot, minify, !devMode)
+	shwOpts.Outdir = buildDir
+	shwOpts.Write = true
+	if !minify {
+		shwOpts.Sourcemap = esbuild.SourceMapInline
+	}
+	shwOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
+	result := esbuild.Build(shwOpts)
 	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
 		return "", err
 	}
@@ -177,6 +213,7 @@ func BuildRendererBundle(
 	buildDir,
 	runtimeJsPath,
 	runtimeSwPath,
+	runtimeShwPath,
 	webStartupSrcPath,
 	entrypointHash string,
 	minify bool,
@@ -203,6 +240,10 @@ func BuildRendererBundle(
 
 	if runtimeSwPath != "" {
 		rendererBuildOpts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
+	}
+
+	if runtimeShwPath != "" {
+		rendererBuildOpts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
 	}
 
 	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
@@ -238,6 +279,7 @@ func BuildBrowserBundle(
 	buildDir,
 	runtimeJsPath,
 	runtimeSwPath,
+	runtimeShwPath,
 	webStartupSrcPath string,
 	entrypointHash string,
 	minify,
@@ -254,8 +296,16 @@ func BuildBrowserBundle(
 		return err
 	}
 
+	// shared worker
+	shwFilename, err := BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	if err != nil {
+		return err
+	}
+
 	// replace the filename in runtimeSwPath with the sw filename
 	runtimeSwPath = filepath.Join(filepath.Dir(runtimeSwPath), swFilename)
+	// replace the filename in runtimeShwPath with the shw filename
+	runtimeShwPath = filepath.Join(filepath.Dir(runtimeShwPath), shwFilename)
 
 	// web pkgs
 	// use platform for linux -> node.js (react and react-dom don't care.)
@@ -279,7 +329,7 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, webStartupSrcPath, entrypointHash, minify); err != nil {
+	if err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify); err != nil {
 		return err
 	}
 

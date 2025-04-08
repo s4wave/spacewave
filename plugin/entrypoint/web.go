@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"syscall/js"
 	"time"
 
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
@@ -101,19 +102,39 @@ func Run(
 	)
 }
 
-// readFile reads from a file using fetch.
+// readFile reads from a file using fetch, resolving the path relative to the module URL.
+// It resolves the filePath relative to the current module's URL using JavaScript's URL constructor.
 func readFile(filePath string) ([]byte, error) {
-	resp, err := fetch.Fetch(filePath, &fetch.Opts{
+	// use js to determine the full path to filePath based on import.meta.url
+	// this is because the path to the shw.mjs is different than the path to the plugin entrypoint .mjs
+	// we need to join filePath with the path to /b/pd/{plugin-id}/
+	//
+	// Construct the URL: new URL(filePath, BLDR_BASE_URL) and get the pathname.
+	// BLDR_BASE_URL should be set to the equivalent of import.meta.url for the main module.
+	// Get BLDR_BASE_URL from the global scope.
+	baseUrlVal := js.Global().Get("BLDR_BASE_URL")
+	// Check if BLDR_BASE_URL is defined and not empty.
+	if !baseUrlVal.Truthy() {
+		return nil, errors.New("BLDR_BASE_URL is not defined")
+	}
+
+	// Construct the URL object. This call might panic if the arguments are invalid.
+	resolvedPath := js.Global().Get("URL").New(filePath, baseUrlVal).Get("pathname").String()
+
+	// Fetch the resolved path
+	resp, err := fetch.Fetch(resolvedPath, &fetch.Opts{
 		Method: fetch.MethodGet,
 		CommonOpts: fetch.CommonOpts{
 			Cache: "no-store",
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "fetching resolved path: %s", resolvedPath)
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.Errorf("request returned status %v: %s", resp.Status, filePath)
+		return nil, errors.Errorf("request returned status %v: %s", resp.Status, resolvedPath)
 	}
 	return io.ReadAll(resp.Body)
 }

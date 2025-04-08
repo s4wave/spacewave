@@ -103,6 +103,7 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 // BuildRendererBundle builds the web renderer bundle files.
 //
 // runtimeSwPath is the path to the service worker js for the entrypoint to load.
+// runtimeShwPath is the path to the service worker js for the entrypoint to load.
 // webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 func BuildRendererBundle(
 	ctx context.Context,
@@ -111,6 +112,7 @@ func BuildRendererBundle(
 	buildDir,
 	runtimeJsPath,
 	runtimeSwPath,
+	runtimeShwPath,
 	webStartupSrcPath string,
 	minify,
 	devMode bool,
@@ -141,6 +143,10 @@ func BuildRendererBundle(
 
 	if runtimeSwPath != "" {
 		opts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
+	}
+
+	if runtimeShwPath != "" {
+		opts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
 	}
 
 	if webStartupSrcPath != "" {
@@ -188,6 +194,12 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 		return err
 	}
 
+	// shared worker
+	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	if err != nil {
+		return err
+	}
+
 	// preload
 	if err := BuildPreloadBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
 		return err
@@ -217,6 +229,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	// the renderer is at /entrypoint/pkgs/@aptre/bldr/
 	runtimePathPrefix := "../../../../"
 	runtimeSwPath := runtimePathPrefix + swFilename
+	runtimeShwPath := runtimePathPrefix + shwFilename
 
 	var webStartupSrcPath string
 	if startupFilename != "" {
@@ -224,7 +237,18 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 	}
 
 	// renderer bundle
-	if err := BuildRendererBundle(ctx, le, bldrDistRoot, buildDir, "", runtimeSwPath, webStartupSrcPath, minify, devMode); err != nil {
+	if err := BuildRendererBundle(
+		ctx,
+		le,
+		bldrDistRoot,
+		buildDir,
+		"",
+		runtimeSwPath,
+		runtimeShwPath,
+		webStartupSrcPath,
+		minify,
+		devMode,
+	); err != nil {
 		return err
 	}
 

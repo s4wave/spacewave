@@ -84,6 +84,7 @@ export const ViteBundleEntrypoint: MessageType<ViteBundleEntrypoint> =
 export interface ViteBundleMeta {
   /**
    * Id is the identifier of the bundle.
+   * Optional: defaults to "default"
    *
    * @generated from field: string id = 1;
    */

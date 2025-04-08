@@ -50,11 +50,5 @@ func (n *NonePlatform) GetExecutableExt() string {
 	return ""
 }
 
-// GetEntrypointExt returns the extension used for the entrypoint. May be empty.
-// if empty, it is assumed that there is no alterative entrypoint file.
-func (n *NonePlatform) GetEntrypointExt() string {
-	return ""
-}
-
 // _ is a type assertion
 var _ Platform = (*NonePlatform)(nil)

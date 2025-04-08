@@ -19,9 +19,6 @@ type Platform interface {
 	GetBasePlatformID() string
 	// GetExecutableExt returns the extension used for executables. May be empty.
 	GetExecutableExt() string
-	// GetEntrypointExt returns the extension used for the entrypoint. May be empty.
-	// if empty, it is assumed that there is no alterative entrypoint file.
-	GetEntrypointExt() string
 }
 
 // ParsePlatform parses the given platform ID.

@@ -139,6 +139,7 @@ func (b *DevtoolBus) ExecuteWebWs(
 		// web-document is located under /pkgs/@aptre/bldr
 		entrypointToRootPrefix+"entrypoint/runtime-ws.mjs",
 		entrypointToRootPrefix+"sw.mjs",
+		entrypointToRootPrefix+"shw.mjs",
 		webStartupSrcPath,
 		"",
 		minifyEntrypoint,

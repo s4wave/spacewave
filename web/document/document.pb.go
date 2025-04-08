@@ -219,8 +219,10 @@ type CreateWebWorkerRequest struct {
 	unknownFields []byte
 	// Id is the identifier for the new WebWorker.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Url is the url to the source to load into the worker.
-	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// Path is the path to the source to load into the worker.
+	// This is passed to the shared-worker.ts loader.
+	// Used as the path after the current host. For example /path/to/script.mjs
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	// Shared indicates this should be a worker shared between all WebDocument (if possible)
 	Shared bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
 	// InitData is initialization data to pass to the worker.
@@ -242,9 +244,9 @@ func (x *CreateWebWorkerRequest) GetId() string {
 	return ""
 }
 
-func (x *CreateWebWorkerRequest) GetUrl() string {
+func (x *CreateWebWorkerRequest) GetPath() string {
 	if x != nil {
-		return x.Url
+		return x.Path
 	}
 	return ""
 }
@@ -463,7 +465,7 @@ func (m *CreateWebWorkerRequest) CloneVT() *CreateWebWorkerRequest {
 	}
 	r := new(CreateWebWorkerRequest)
 	r.Id = m.Id
-	r.Url = m.Url
+	r.Path = m.Path
 	r.Shared = m.Shared
 	if rhs := m.InitData; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
@@ -708,7 +710,7 @@ func (this *CreateWebWorkerRequest) EqualVT(that *CreateWebWorkerRequest) bool {
 	if this.Id != that.Id {
 		return false
 	}
-	if this.Url != that.Url {
+	if this.Path != that.Path {
 		return false
 	}
 	if this.Shared != that.Shared {
@@ -1152,10 +1154,10 @@ func (x *CreateWebWorkerRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("id")
 		s.WriteString(x.Id)
 	}
-	if x.Url != "" || s.HasField("url") {
+	if x.Path != "" || s.HasField("path") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("url")
-		s.WriteString(x.Url)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
 	}
 	if x.Shared || s.HasField("shared") {
 		s.WriteMoreIf(&wroteField)
@@ -1187,9 +1189,9 @@ func (x *CreateWebWorkerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "id":
 			s.AddField("id")
 			x.Id = s.ReadString()
-		case "url":
-			s.AddField("url")
-			x.Url = s.ReadString()
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
 		case "shared":
 			s.AddField("shared")
 			x.Shared = s.ReadBool()
@@ -1716,10 +1718,10 @@ func (m *CreateWebWorkerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i--
 		dAtA[i] = 0x18
 	}
-	if len(m.Url) > 0 {
-		i -= len(m.Url)
-		copy(dAtA[i:], m.Url)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Url)))
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -1991,7 +1993,7 @@ func (m *CreateWebWorkerRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.Url)
+	l = len(m.Path)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -2229,12 +2231,12 @@ func (x *CreateWebWorkerRequest) MarshalProtoText() string {
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
-	if x.Url != "" {
+	if x.Path != "" {
 		if sb.Len() > 24 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("url: ")
-		sb.WriteString(strconv.Quote(x.Url))
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
 	}
 	if x.Shared != false {
 		if sb.Len() > 24 {
@@ -3042,7 +3044,7 @@ func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -3070,7 +3072,7 @@ func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Url = string(dAtA[iNdEx:postIndex])
+			m.Path = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {

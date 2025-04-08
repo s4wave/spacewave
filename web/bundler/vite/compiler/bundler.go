@@ -125,6 +125,11 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 			"BLDR_IS_NODE": "true",
 		},
 
+		Plugins: []esbuild.Plugin{
+			// Mark node_modules as external to prevent bundling dependencies unnecessarily.
+			bldr_esbuild_build.ExternalNodeModulesPlugin(),
+		},
+
 		External: []string{"starpc", "vite"},
 
 		Bundle: true,
@@ -352,7 +357,7 @@ func BuildViteBundle(
 	// This is also set even if success=false for watching for changes
 	sourceFilesList = append(sourceFilesList, buildResp.GetInputFiles()...)
 
-	le.Debugf("vite result: %v", buildResp.String())
+	// le.Debugf("vite result: %v", buildResp.String())
 	if !buildResp.GetSuccess() {
 		return nil, nil, sourceFilesList, errors.New("vite build failed: " + buildResp.GetError())
 	}

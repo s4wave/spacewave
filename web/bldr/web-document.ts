@@ -92,7 +92,10 @@ class WebDocumentWebWorker {
 
   constructor(
     public readonly id: string,
-    public readonly url: string,
+    // path is the path to the user's worker script.
+    public readonly path: string,
+    // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
+    sharedWorkerPath: string,
     public readonly webDocumentUuid: string,
     initData: Uint8Array | undefined,
     onWebWorkerMessage: (e: MessageEvent<ClientToWebDocument>) => void,
@@ -100,8 +103,11 @@ class WebDocumentWebWorker {
     if (!id) {
       throw new Error('empty web worker id')
     }
-    if (!url) {
-      throw new Error('web worker url must be set')
+    if (!path) {
+      throw new Error('web worker path must be set')
+    }
+    if (!sharedWorkerPath) {
+      throw new Error('shared worker path must be set')
     }
 
     const { port1: localPort, port2: workerPort } = new MessageChannel()
@@ -111,15 +117,23 @@ class WebDocumentWebWorker {
       initPort: workerPort,
     }
 
-    const workerURL = new URL(url, baseURL).toString()
+    // pass the shared worker wrapper
+    const shwURL = new URL(sharedWorkerPath, baseURL)
+    // Use the hash to pass the script path to avoid potential conflicts with
+    // query parameters used by the script itself.
+    // Encode necessary characters using encodeURIComponent, but then replace
+    // encoded forward slashes (%2F) back to literal slashes (/), as slashes
+    // are permitted characters within URL fragments (RFC 3986).
+    shwURL.hash = `s=${encodeURIComponent(path).replace(/%2F/g, '/')}`
+
     if (typeof SharedWorker !== 'undefined') {
-      this.sharedWorker = new SharedWorker(workerURL, {
+      this.sharedWorker = new SharedWorker(shwURL.toString(), {
         name: id,
         type: 'module',
       })
       this.sharedWorker.port.postMessage(init, [workerPort])
     } else {
-      this.worker = new Worker(workerURL, { name: id, type: 'module' })
+      this.worker = new Worker(shwURL.toString(), { name: id, type: 'module' })
       this.worker.postMessage(init, [workerPort])
     }
 
@@ -281,12 +295,16 @@ export interface WebDocumentOptions {
   closedCallback?: (err?: Error) => void
   // runtimeWorkerPath is the path to the runtime-wasm.mjs
   // if unset, defaults to ./runtime-wasm.mjs
+  // this is the .mjs file that loads the main Go program (the plugin host)
   runtimeWorkerPath?: string
   // serviceWorkerPath is the path to the bldr sw.mjs
   // NOTE: ServiceWorker controls the URL space below the script address!
   // NOTE: You MUST include sw.mjs next to your index.html.
   // if unset, defaults to /sw.mjs
   serviceWorkerPath?: string
+  // sharedWorkerPath is the path to the bldr shw.mjs
+  // if unset, defaults to /shw.mjs
+  sharedWorkerPath?: string
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -365,6 +383,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private hidden: boolean
   // closed indicates the web document is closed with an optional error
   private closed?: true | Error
+  // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
+  private readonly sharedWorkerPath: string
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -416,6 +436,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.server = new Server(mux.lookupMethod)
     this.client = new Client()
     this.webDocumentHost = new WebDocumentHostClient(this.client)
+    this.sharedWorkerPath = opts?.sharedWorkerPath ?? '/shw.mjs'
 
     this.webRuntimeClient = new WebRuntimeClient(
       this.webRuntimeId,
@@ -519,8 +540,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // setup the service worker
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
-    // NOTE: scope controls which /pages/ are covered by the worker
-    // NOTE: scope can only be narrower than paths below the script path.
+    // NOTE: scope controls which pages are covered by the worker.
+    // NOTE: scope must only be narrower than paths below the script.
+    // NOTE: for example /my/sw.mjs can only manage paths under /my/...
     const swUrl =
       opts?.serviceWorkerPath ?
         new URL(opts.serviceWorkerPath, baseURL).toString()
@@ -651,8 +673,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (!request.id) {
       throw new Error('web worker id is required')
     }
-    if (!request.url) {
-      throw new Error('web worker url is required')
+    if (!request.path) {
+      throw new Error('web worker path is required')
     }
 
     const old = this.webWorkers[request.id]
@@ -662,7 +684,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     const worker = new WebDocumentWebWorker(
       request.id,
-      request.url,
+      request.path,
+      this.sharedWorkerPath,
       this.webDocumentUuid,
       request.initData,
       this.onWebWorkerMessage.bind(this, request.id),

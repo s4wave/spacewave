@@ -234,11 +234,13 @@ export interface CreateWebWorkerRequest {
    */
   id?: string
   /**
-   * Url is the url to the source to load into the worker.
+   * Path is the path to the source to load into the worker.
+   * This is passed to the shared-worker.ts loader.
+   * Used as the path after the current host. For example /path/to/script.mjs
    *
-   * @generated from field: string url = 2;
+   * @generated from field: string path = 2;
    */
-  url?: string
+  path?: string
   /**
    * Shared indicates this should be a worker shared between all WebDocument (if possible)
    *
@@ -261,7 +263,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
     typeName: 'web.document.CreateWebWorkerRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
     ] as readonly PartialFieldInfo[],

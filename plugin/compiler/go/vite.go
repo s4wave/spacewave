@@ -16,9 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ViteAssetSubdir is the sub-directory for vite assets within the assets dir.
-var ViteAssetSubdir = "vite"
-
 // BuildViteBundlerConfig builds the vite bundler controller config.
 func BuildViteBundlerConfig(
 	bundleVars []*ViteBundleVarMeta,

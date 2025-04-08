@@ -1,4 +1,5 @@
-import { HandleStreamFn } from '../bldr/web-runtime-client.js'
+import { HandleStreamFunc } from 'starpc'
+
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
 import { WebDocumentToWorker } from './runtime.js'
 import { WebRuntimeClientType } from './runtime.pb.js'
@@ -45,7 +46,7 @@ export class PluginWorker {
       | SharedWorkerGlobalScope
       | DedicatedWorkerGlobalScope,
     private readonly startPlugin: (startInfoB58: string) => void,
-    handleIncomingStream: HandleStreamFn | null,
+    handleIncomingStream: HandleStreamFunc | null,
   ) {
     // webDocumentTracker tracks the set of connected remote WebDocument.
     this.webDocumentTracker = new WebDocumentTracker(

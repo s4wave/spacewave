@@ -230,8 +230,6 @@ func (c *Controller) BuildManifest(
 			buildCtrlConf.Merge(res.GetConfig())
 		}
 
-		le.Debug("compiling bundle")
-
 		// Process each bundle
 		bundleList, err := BuildViteBundleMeta(buildCtrlConf.GetBundles())
 		if err != nil {

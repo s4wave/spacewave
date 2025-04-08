@@ -83,6 +83,7 @@ message InputManifestMeta {
 // ViteBundleMeta is information about an vite bundle.
 message ViteBundleMeta {
   // Id is the identifier of the bundle.
+  // Optional: defaults to "default"
   string id = 1;
   // Entrypoints is the list of entrypoints to pass to vite.
   repeated ViteBundleEntrypoint entrypoints = 2;

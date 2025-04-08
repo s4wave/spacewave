@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/bldr"
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 // DevtoolArgs contains common flags for the dev tools.

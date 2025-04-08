@@ -19,9 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// EsbuildAssetSubdir is the sub-directory for esbuild assets within the assets dir.
-var EsbuildAssetSubdir = "esb"
-
 // BuildEsbuildBundlerConfig builds the esbuild bundler controller config.
 func BuildEsbuildBundlerConfig(
 	bundleVars []*EsbuildBundleVarMeta,

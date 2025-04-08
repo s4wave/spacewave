@@ -22,11 +22,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/semaphore"
 )
 
 // ControllerID is the process host controller ID.
@@ -50,7 +50,7 @@ type WebHost struct {
 // NewWebHost constructs a new WebHost.
 func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string) (*WebHost, error) {
 	// determine the platform id for the host
-	platformID := (&bldr_platform.WebPlatform{}).GetPlatformID()
+	platformID := bldr_platform.NewWebPlatformJs().GetPlatformID()
 	return &WebHost{
 		b:                b,
 		le:               le,
@@ -114,14 +114,14 @@ func (h *WebHost) ExecutePlugin(
 
 	// restrict to .mjs and .js only
 	if !strings.HasSuffix(entrypoint, ".mjs") && !strings.HasSuffix(entrypoint, ".js") {
-		return errors.Errorf("entrypoint must have a .mjs or .js extension: %s", entrypoint)
+		return errors.Errorf("entrypoint must have a .mjs or .js extension: %q", entrypoint)
 	}
 
 	// double-check the entrypoint exists and is executable
 	entrypoint = filepath.Clean(entrypoint)
 	entrypointHandle, _, err := pluginDist.LookupPath(ctx, entrypoint)
 	if err != nil {
-		return errors.Wrap(err, "entrypoint")
+		return errors.Wrapf(err, "entrypoint at %s", entrypoint)
 	}
 
 	entrypointFi, err := entrypointHandle.GetFileInfo(ctx)
@@ -135,8 +135,6 @@ func (h *WebHost) ExecutePlugin(
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
 	}
 
-	entrypointHttpPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
-
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(4)
 	pluginStartInfo := &plugin.PluginStartInfo{
@@ -147,14 +145,8 @@ func (h *WebHost) ExecutePlugin(
 
 	// web worker create request
 	pluginWebWorkerID := "plugin/" + pluginID
-	pluginWebWorkerURL := entrypointHttpPath
+	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
 	pluginShared := true
-
-	// stderr: contains any logs
-	// TODO: logging?
-	// le := h.le.WithField("plugin-id", pluginID)
-	// debugWriter := le.WriterLevel(logrus.DebugLevel)
-	// entrypointProc.Stderr = debugWriter
 
 	webRuntime, _, webRuntimeRef, err := web_runtime.ExLookupWebRuntime(ctx, h.b, false, h.webRuntimeID)
 	if err != nil {
@@ -165,7 +157,7 @@ func (h *WebHost) ExecutePlugin(
 	h.le.
 		WithField("entrypoint", entrypoint).
 		WithField("web-runtime", h.webRuntimeID).
-		Debugf("executing plugin entrypoint via http: %s", pluginWebWorkerURL)
+		Debugf("executing plugin entrypoint via http: %s", pluginWebWorkerPath)
 
 	// Mount the RPC handler to the bus.
 	baseControllerID := ControllerID + "/" + pluginID
@@ -205,8 +197,8 @@ func (h *WebHost) ExecutePlugin(
 	//    - When that 1 instance exits, mark not running, then restart all web doc trackers.
 	// If any web documents cannot create shared workers, assume all cannot.
 
-	sema := semaphore.NewWeighted(1)
 	var singletonWorkerDoc string
+	var cmtx csync.Mutex
 
 	// Create the web worker on each document.
 	var webDocumentsKeyed *keyed.Keyed[string, struct{}]
@@ -217,10 +209,11 @@ func (h *WebHost) ExecutePlugin(
 	}
 
 	createWorkerWithDoc := func(ctx context.Context, doc web_document.WebDocument) error {
-		if err := sema.Acquire(ctx, 1); err != nil {
+		unlock, err := cmtx.Lock(ctx)
+		if err != nil {
 			return err
 		}
-		defer sema.Release(1)
+		defer unlock()
 
 		webDocumentID := doc.GetWebDocumentUuid()
 		if singletonWorkerDoc == webDocumentID {
@@ -243,7 +236,7 @@ func (h *WebHost) ExecutePlugin(
 		le.Debug("creating web worker")
 		createdWorker, err := doc.CreateWebWorker(ctx, &web_document.CreateWebWorkerRequest{
 			Id:       pluginWebWorkerID,
-			Url:      pluginWebWorkerURL,
+			Path:     pluginWebWorkerPath,
 			Shared:   pluginShared,
 			InitData: pluginStartInfoBin,
 		})
@@ -445,7 +438,8 @@ func (h *WebHost) ExecutePlugin(
 
 		// Track removed web documents to make sure we have at least one worker.
 		if len(removed) != 0 {
-			if err := sema.Acquire(ctx, 1); err != nil {
+			unlock, err := cmtx.Lock(ctx)
+			if err != nil {
 				return err
 			}
 
@@ -456,7 +450,7 @@ func (h *WebHost) ExecutePlugin(
 				singletonWorkerDoc = ""
 			}
 
-			sema.Release(1)
+			unlock()
 		}
 	}
 }

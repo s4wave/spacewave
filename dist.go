@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// DistSources contains the sources for the web entrypoint(s).
+// DistSources contains the sources for the web entrypoint(s) and sdk(s).
+//
+// These files must be checked out to .bldr/src so TypeScript + IDEs can see them.
 //
 //go:embed web/bldr-react/*.ts web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
@@ -35,6 +37,8 @@ import (
 //go:embed web/bundler/vite/vite.pb.ts web/bundler/vite/vite_srpc.pb.ts
 //go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
 //go:embed util/pipesock/pipesock.ts
+//go:embed plugin/compiler/js/entrypoint.ts
+//go:embed sdk/plugin.ts
 //go:embed .vscode/launch.json
 //go:embed README.md tsconfig.json go.mod go.sum global.d.ts
 var DistSources embed.FS

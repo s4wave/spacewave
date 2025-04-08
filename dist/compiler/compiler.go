@@ -323,7 +323,7 @@ func (c *Controller) BuildManifest(
 	result := manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
-		manifest_builder.NewInputManifest(nil),
+		manifest_builder.NewInputManifest(nil, nil),
 	)
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err

@@ -363,6 +363,7 @@ func BuildDistBundle(
 			outputPath,
 			"./entrypoint/"+entrypointHash+"/runtime-wasm.mjs",
 			entrypointToRootPrefix+"sw.mjs",
+			entrypointToRootPrefix+"shw.mjs",
 			webStartupSrcPath, // startupPath
 			entrypointHash,
 			isRelease, // minify

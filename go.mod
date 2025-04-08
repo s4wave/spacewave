@@ -12,7 +12,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-
 
 require (
 	github.com/aperturerobotics/hydra v0.0.0-20250331010840-d680128081c8 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.8.1 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.9.0 // master
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	github.com/aperturerobotics/bifrost v0.41.0 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
-	github.com/aperturerobotics/go-kvfile v0.7.3 // master
+	github.com/aperturerobotics/go-kvfile v0.9.2 // master
 	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20241223092408-d525fa878b3e // indirect; latest
 )
 
@@ -77,8 +77,8 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.49.3 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.37.1 // latest
-	github.com/aperturerobotics/util v1.29.2 // latest
+	github.com/aperturerobotics/starpc v0.38.0 // latest
+	github.com/aperturerobotics/util v1.29.3-0.20250403215349-2537d8db8437 // latest
 )
 
 // aperture: use compatibility forks
@@ -112,14 +112,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.50.1 // indirect
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli/v2 v2.27.6
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.36.0
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
+	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
 
 require (
+	github.com/aperturerobotics/cli v1.0.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.13
 	github.com/oklog/ulid/v2 v2.1.0
@@ -172,6 +172,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
+	github.com/urfave/cli/v2 v2.27.6 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect

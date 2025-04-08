@@ -218,7 +218,6 @@ func (c *Controller) BuildManifest(
 			buildCtrlConf.Merge(res.GetConfig())
 		}
 
-		le.Debug("compiling bundle")
 		baseEsbuildOpts, err := buildCtrlConf.ParseEsbuildFlags()
 		if err != nil {
 			return nil, err

@@ -120,6 +120,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		// web-document is located under /pkgs/@aptre/bldr
 		entrypointToRootPrefix+"entrypoint/runtime-wasm.mjs",
 		entrypointToRootPrefix+"sw.mjs",
+		entrypointToRootPrefix+"shw.mjs",
 		webStartupSrcPath,
 		"",
 		minifyEntrypoint,
@@ -133,7 +134,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	entrypointPkg := "devtool/web/entrypoint"
 
 	// compile the entrypoint wasm
-	buildPlatform := bldr_platform.NewWebPlatform()
+	buildPlatform := bldr_platform.NewWebPlatformJs()
 	entryBuildType := bldr_manifest.BuildType_DEV
 	if minifyEntrypoint {
 		entryBuildType = bldr_manifest.BuildType_RELEASE
