@@ -5,7 +5,7 @@ import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
 import { BackendAPI } from '@aptre/bldr-sdk'
 
 interface Global {
-  BLDR_BASE_URL: string,
+  BLDR_BASE_URL: string
   BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
     onMessage: (message: Uint8Array) => void,
     onClose: (errMsg?: string) => void,
