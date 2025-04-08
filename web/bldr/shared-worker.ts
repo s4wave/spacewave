@@ -1,29 +1,31 @@
-import { WebRuntimeClient } from './web-runtime-client.js'
+import { Client, HandleStreamCtr, HandleStreamFunc } from 'starpc'
 import { PluginWorker } from '../runtime/plugin-worker.js'
 import { BackendAPI } from '../../sdk/plugin.js'
-import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
+import { PluginHost, PluginHostClient } from '../../plugin/plugin_srpc.pb.js'
 
 declare let self: SharedWorkerGlobalScope
 
 // BackendAPI interface provided to the plugin module.
 class BackendApiImpl implements BackendAPI {
-  public startInfoB58: string
-  public handleStreamCtr: HandleStreamCtr
-  private _pluginWorker: PluginWorker
+  // startInfoB58 is the base58 encoded start information passed during initialization.
+  public readonly startInfoB58: string
+  // client is a connection to the Go WebRuntime via. WebWorkerRpc rpcstream.
+  public readonly client: Client
+  // pluginHost is the plugin host RPC service client.
+  readonly pluginHost: PluginHost
+  // handleStreamCtr allows the plugin module to register a function
+  // that will be called to handle incoming streams from the WebRuntime.
+  public readonly handleStreamCtr: HandleStreamCtr
 
   constructor(
-    pluginWorker: PluginWorker,
     startInfoB58: string,
+    client: Client,
     handleStreamCtr: HandleStreamCtr,
   ) {
-    this._pluginWorker = pluginWorker
     this.startInfoB58 = startInfoB58
+    this.client = client
     this.handleStreamCtr = handleStreamCtr
-  }
-
-  // Getter for the WebRuntimeClient, accessed via the PluginWorker.
-  get webRuntimeClient(): WebRuntimeClient {
-    return this._pluginWorker.webRuntimeClient
+    this.pluginHost = new PluginHostClient(client)
   }
 }
 
@@ -55,10 +57,21 @@ const startPluginCallback = async (startInfoB58: string) => {
     )
   }
 
-  // Call the imported module's main function, passing the API implementation.
-  await pluginModule.default(
-    new BackendApiImpl(pluginWorker, startInfoB58, handleIncomingStreamCtr),
+  // Construct the WebRuntimeHost client.
+  // This will call => WebRuntime (TypeScript) => rpcstream WebWorkerRpc => Go runtime
+  const webWorkerHostClient = new Client(
+    pluginWorker.webRuntimeClient.openStream.bind(pluginWorker.webRuntimeClient),
   )
+
+  // Construct the backend api
+  const backendAPI = new BackendApiImpl(
+    startInfoB58,
+    webWorkerHostClient,
+    handleIncomingStreamCtr,
+  )
+
+  // Call the imported module's main function, passing the API implementation.
+  await pluginModule.default(backendAPI)
 }
 
 // Initialize the PluginWorker.

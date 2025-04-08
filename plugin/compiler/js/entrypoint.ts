@@ -151,6 +151,12 @@ function loadFrontendEntrypoints(): void {
 export default async function main(backendAPI: BackendAPI) {
   console.debug('Starting Bldr JS plugin entrypoint...')
 
+  // Load the plugin info to determine the host volume info (unused currently in Js)
+  // const pluginInfo = await backendAPI.pluginHost.GetPluginInfo({})
+
+  // Load and start the hostConfigSet, if any.
+  // TODO
+
   // Load and execute backend entrypoints.
   await loadBackendEntrypoints(backendAPI)
 
