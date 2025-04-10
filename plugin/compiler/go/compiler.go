@@ -599,7 +599,7 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
-		publicPath := BuildAssetHref(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
+		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
 		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(esbuildBundleVarMeta, webPkgs, baseEsbuildFlags, sourcePath, publicPath)
 		if err == nil {
 			err = esbuildBundlerConf.Validate()
@@ -997,7 +997,7 @@ func (c *Controller) FastRebuildPlugin(
 	// Check for esbuild bundles to rebuild
 	if len(prevEsbuildBundles) > 0 {
 		// Build esbuild config based on previous metadata
-		publicPath := BuildAssetHref(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
+		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
 		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(prevEsbuildBundles, prevWebPkgs, baseEsbuildFlags, sourcePath, publicPath)
 		if err == nil {
 			err = esbuildBundlerConf.Validate()
@@ -1199,18 +1199,18 @@ func buildEsbuildGoVariableDefs(
 			case EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH:
 				var assetHref string
 				if outpEntrypointPath != "" {
-					assetHref = BuildAssetHref(pluginID, outpEntrypointPath)
+					assetHref = bldr_plugin.PluginAssetHTTPPath(pluginID, outpEntrypointPath)
 				} else {
-					assetHref = BuildAssetHref(pluginID, outpCssPath)
+					assetHref = bldr_plugin.PluginAssetHTTPPath(pluginID, outpCssPath)
 				}
 				varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_StringValue{StringValue: assetHref})
 			case EsbuildVarType_EsbuildVarType_WEB_BUNDLER_OUTPUT:
 				output := &bldr_web_bundler.WebBundlerOutput{}
 				if outpEntrypointPath != "" {
-					output.EntrypointHref = BuildAssetHref(pluginID, outpEntrypointPath)
+					output.EntrypointHref = bldr_plugin.PluginAssetHTTPPath(pluginID, outpEntrypointPath)
 				}
 				if outpCssPath != "" {
-					output.CssHref = BuildAssetHref(pluginID, outpCssPath)
+					output.CssHref = bldr_plugin.PluginAssetHTTPPath(pluginID, outpCssPath)
 				}
 				varDef = vardef.NewPluginVar(pkgImportPath, pkgVar, &vardef.PluginVar_WebBundlerOutput{
 					WebBundlerOutput: output,
@@ -1286,7 +1286,7 @@ func buildViteGoVariableDefs(
 				// Build asset href and create string variable
 				// Prepend ViteAssetSubdir to ensure the path is relative to the plugin assets root.
 				jsAssetPath := path.Join(bldr_plugin_compiler.ViteAssetSubdir, jsOutputPath)
-				assetHref := BuildAssetHref(pluginID, jsAssetPath)
+				assetHref := bldr_plugin.PluginAssetHTTPPath(pluginID, jsAssetPath)
 				goVariableDefs = append(goVariableDefs, vardef.NewPluginVar(
 					entrypointVar.GetPkgImportPath(),
 					entrypointVar.GetPkgVar(),
@@ -1299,11 +1299,11 @@ func buildViteGoVariableDefs(
 				output := &bldr_web_bundler.WebBundlerOutput{}
 				if jsOutputPath != "" {
 					jsAssetPath := path.Join(bldr_plugin_compiler.ViteAssetSubdir, jsOutputPath)
-					output.EntrypointHref = BuildAssetHref(pluginID, jsAssetPath)
+					output.EntrypointHref = bldr_plugin.PluginAssetHTTPPath(pluginID, jsAssetPath)
 				}
 				if cssOutputPath != "" {
 					cssAssetPath := path.Join(bldr_plugin_compiler.ViteAssetSubdir, cssOutputPath)
-					output.CssHref = BuildAssetHref(pluginID, cssAssetPath)
+					output.CssHref = bldr_plugin.PluginAssetHTTPPath(pluginID, cssAssetPath)
 				}
 
 				goVariableDefs = append(goVariableDefs, vardef.NewPluginVar(

@@ -73,8 +73,8 @@ func TestHashFileWithBlake3(t *testing.T) {
 		t.Errorf("HashFileWithBlake3() returned hash of length %d, want 8", len(hash))
 	}
 	for _, c := range hash {
-		if !strings.ContainsRune("abcdefghijklmnopqrstuvwxyz234567", c) {
-			t.Errorf("HashFileWithBlake3() returned hash with invalid character: %c", c)
+		if !strings.ContainsRune(strings.ToUpper("abcdefghijklmnopqrstuvwxyz234567"), c) {
+			t.Errorf("HashFileWithBlake3() returned hash with invalid character: %q => %c", hash, c)
 		}
 	}
 

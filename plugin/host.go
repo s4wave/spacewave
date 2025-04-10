@@ -99,14 +99,16 @@ const PluginAssetsServiceID = "plugin-assets/unixfs.rpc.FSCursorService"
 const PluginDistServiceID = "plugin-dist/unixfs.rpc.FSCursorService"
 
 // PluginHTTPPath adds the plugin http prefix to the given path.
-func PluginHTTPPath(pluginID, httpPath string) string {
+func PluginHTTPPath(pluginID string, httpPaths ...string) string {
 	var sb strings.Builder
 	_, _ = sb.WriteString(PluginHttpPrefix)
 	_, _ = sb.WriteString(pluginID)
-	if !strings.HasPrefix(httpPath, "/") {
+	if len(httpPaths) == 0 || !strings.HasPrefix(httpPaths[0], "/") {
 		_, _ = sb.WriteString("/")
 	}
-	_, _ = sb.WriteString(httpPath)
+	for _, httpPath := range httpPaths {
+		_, _ = sb.WriteString(httpPath)
+	}
 	return sb.String()
 }
 
@@ -119,6 +121,18 @@ func PluginHTTPPathFromContext(ctx context.Context, httpPath string) string {
 		return PluginHTTPPath(pluginID, httpPath)
 	}
 	return httpPath
+}
+
+// PluginAssetHTTPPath builds the path to an asset for a plugin id.
+// assets path is available at /p/{plugin-id}/a/{asset-path}
+// This constructs a URL path that can be used to access the asset via HTTP
+// Format: /p/{plugin-id}/a/{asset-path} where:
+// - /p/ is the plugin HTTP prefix
+// - {plugin-id} is the unique plugin identifier
+// - /a/ is the assets HTTP prefix
+// - {asset-path} is the relative path to the asset within the assets directory
+func PluginAssetHTTPPath(pluginID string, assetPath string) string {
+	return PluginHTTPPath(pluginID, PluginAssetsHttpPrefix, assetPath)
 }
 
 // ParseHTTPPathPluginID parses and validates a {plugin-id}/ prefix from a HTTP path.

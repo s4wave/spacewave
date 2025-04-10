@@ -59,7 +59,7 @@ func TestDetermineCjsExports_React(t *testing.T) {
 		"./determine-cjs-exports.mjs",
 		"react",
 	}
-	cmd := exec.NewCmd("node", args...)
+	cmd := exec.NewCmd(ctx, "node", args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Dir = wd
@@ -103,7 +103,7 @@ func TestDetermineCjsExports_ProtobufEsLite(t *testing.T) {
 		relScriptPath,
 		"./index.js",
 	}
-	cmd := exec.NewCmd("node", args...)
+	cmd := exec.NewCmd(ctx, "node", args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Dir = cmdDir

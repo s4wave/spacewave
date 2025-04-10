@@ -31,23 +31,6 @@ type AssetArgs struct {
 	ToPath string
 }
 
-// BuildAssetHref builds the path to an asset for a plugin id.
-// assets path is available at /p/{plugin-id}/a/{asset-path}
-// This constructs a URL path that can be used to access the asset via HTTP
-// Format: /p/{plugin-id}/a/{asset-path} where:
-// - /p/ is the plugin HTTP prefix
-// - {plugin-id} is the unique plugin identifier
-// - /a/ is the assets HTTP prefix
-// - {asset-path} is the relative path to the asset within the assets directory
-func BuildAssetHref(pluginID string, assetPath string) string {
-	return strings.Join([]string{
-		plugin.PluginHttpPrefix,
-		pluginID,
-		plugin.PluginAssetsHttpPrefix,
-		assetPath,
-	}, "")
-}
-
 // BuildFlagSet builds the set of flags for the args.
 func (a *AssetArgs) BuildFlagSet() *flag.FlagSet {
 	fs := flag.NewFlagSet(AssetTag, flag.ContinueOnError)
@@ -162,7 +145,7 @@ func BuildDefAssets(
 				pkgImportPath,
 				pkgVar,
 				&vardef.PluginVar_StringValue{
-					StringValue: BuildAssetHref(pluginID, destPathRel),
+					StringValue: plugin.PluginAssetHTTPPath(pluginID, destPathRel),
 				},
 			))
 		}

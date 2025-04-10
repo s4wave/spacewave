@@ -35,7 +35,7 @@ func HashFileWithBlake3(filePath string) (string, error) {
 }
 
 // AddHashToFilename adds a hash to a filename before the extension.
-// For example: "example.js" becomes "example-abc123.js"
+// For example: "example.js" becomes "example-ABC123.js"
 func AddHashToFilename(filename, hash string) string {
 	ext := filepath.Ext(filename)
 	base := strings.TrimSuffix(filename, ext)

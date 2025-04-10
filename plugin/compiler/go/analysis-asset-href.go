@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	vardef "github.com/aperturerobotics/bldr/plugin/vardef"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -108,7 +109,7 @@ func BuildDefAssetHrefs(
 				pkgImportPath,
 				pkgVar,
 				&vardef.PluginVar_StringValue{
-					StringValue: BuildAssetHref(pluginID, destPathRel),
+					StringValue: bldr_plugin.PluginAssetHTTPPath(pluginID, destPathRel),
 				},
 			))
 		}

@@ -135,7 +135,7 @@ func TestCodegen(t *testing.T) {
 	}
 
 	workDir, _ := os.Getwd()
-	workDir = filepath.Join(workDir, "../..")
+	workDir = filepath.Join(workDir, "../../..")
 	an, err := AnalyzePackages(ctx, le, workDir, packagePaths, []string{"build_type_dev"})
 	if err != nil {
 		t.Fatal(err.Error())
