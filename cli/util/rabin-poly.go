@@ -3,8 +3,8 @@ package cliutil
 import (
 	"fmt"
 
+	ucli "github.com/aperturerobotics/cli"
 	"github.com/restic/chunker"
-	ucli "github.com/urfave/cli/v2"
 )
 
 // RunGenerateRabinPoly generates a rabin polynomial.

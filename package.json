@@ -48,11 +48,11 @@
     "depcheck": "^1.4.7",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.8",
-    "starpc": "^0.37.1"
+    "starpc": "^0.38.0"
   },
   "resolutions": {
     "@aptre/protobuf-es-lite": "0.4.8"

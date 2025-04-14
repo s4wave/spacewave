@@ -10,6 +10,7 @@ import (
 	bcli "github.com/aperturerobotics/bifrost/cli"
 	"github.com/aperturerobotics/bifrost/keypem/keyfile"
 	floodsub_controller "github.com/aperturerobotics/bifrost/pubsub/floodsub/controller"
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
@@ -27,7 +28,6 @@ import (
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 type (

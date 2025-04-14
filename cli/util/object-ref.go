@@ -4,8 +4,8 @@ import (
 	"errors"
 	"os"
 
+	ucli "github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/hydra/bucket"
-	ucli "github.com/urfave/cli/v2"
 )
 
 // RunParseObjectRef parses the object ref provided.

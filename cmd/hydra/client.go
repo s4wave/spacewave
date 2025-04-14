@@ -4,8 +4,8 @@
 package main
 
 import (
+	"github.com/aperturerobotics/cli"
 	hcli "github.com/aperturerobotics/hydra/cli"
-	"github.com/urfave/cli/v2"
 )
 
 var clientArgs hcli.ClientArgs

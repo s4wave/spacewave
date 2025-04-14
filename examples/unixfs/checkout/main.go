@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/block/file"
 	hcli "github.com/aperturerobotics/hydra/cli"
@@ -23,7 +24,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 type hDaemonArgs = hcli.DaemonArgs

@@ -8,10 +8,10 @@ import (
 	"io"
 	"os"
 
+	"github.com/aperturerobotics/cli"
 	bucket_json "github.com/aperturerobotics/hydra/bucket/json"
 	"github.com/aperturerobotics/hydra/core"
 	reconciler_example "github.com/aperturerobotics/hydra/reconciler/example"
-	"github.com/urfave/cli/v2"
 )
 
 // RunApplyBucketConf runs applying a bucket configuration.

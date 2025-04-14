@@ -8,9 +8,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/hydra/block"
 	api "github.com/aperturerobotics/hydra/daemon/api"
-	"github.com/urfave/cli/v2"
 )
 
 // RunPutBlock runs putting a block into a bucket.

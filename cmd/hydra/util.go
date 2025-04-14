@@ -4,8 +4,8 @@
 package main
 
 import (
+	"github.com/aperturerobotics/cli"
 	util "github.com/aperturerobotics/hydra/cli/util"
-	"github.com/urfave/cli/v2"
 )
 
 var utilArgs util.UtilArgs

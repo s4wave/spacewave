@@ -3,8 +3,8 @@ package cliutil
 import (
 	"context"
 
+	ucli "github.com/aperturerobotics/cli"
 	"github.com/sirupsen/logrus"
-	ucli "github.com/urfave/cli/v2"
 )
 
 // UtilArgs contains the utility arguments and functions.

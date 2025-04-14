@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	store_kvtx_redis "github.com/aperturerobotics/hydra/store/kvtx/redis"
@@ -16,7 +17,6 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_kvtxinmem "github.com/aperturerobotics/hydra/volume/kvtxinmem"
 	volume_redis "github.com/aperturerobotics/hydra/volume/redis"
-	"github.com/urfave/cli/v2"
 )
 
 // CLIVolumeIDAlias is an alias applied to match the default CLI volume.

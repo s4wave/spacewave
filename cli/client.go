@@ -10,14 +10,14 @@ import (
 	"strings"
 
 	bifrost_cli "github.com/aperturerobotics/bifrost/cli"
+	"github.com/aperturerobotics/cli"
+	ucli "github.com/aperturerobotics/cli"
 	cbus_cli "github.com/aperturerobotics/controllerbus/cli"
 	"github.com/aperturerobotics/hydra/bucket"
 	api "github.com/aperturerobotics/hydra/daemon/api"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	ucli "github.com/urfave/cli/v2"
 )
 
 // ListBucketsConf is the list buckets request

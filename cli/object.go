@@ -9,8 +9,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/aperturerobotics/cli"
 	api "github.com/aperturerobotics/hydra/daemon/api"
-	"github.com/urfave/cli/v2"
 )
 
 // RunGetObject returns an object from the store.
