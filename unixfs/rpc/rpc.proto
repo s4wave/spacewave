@@ -500,7 +500,7 @@ service FSCursorService {
 
   // OpsSymlink creates a symbolic link from a location to a path.
   rpc OpsSymlink(OpsSymlinkRequest) returns (OpsSymlinkResponse) {};
-  
+
   // OpsReadlink reads a symbolic link contents.
   rpc OpsReadlink(OpsReadlinkRequest) returns (OpsReadlinkResponse) {};
 

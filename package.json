@@ -30,8 +30,9 @@
     "format:js": "prettier --write './!(vendor|dist)/**/(*.ts|*.tsx|*.js|*.html|*.css)'",
     "format:go": "make format",
     "gen": "make genproto",
-    "test": "make test && npm run check",
-    "test:js": "echo No JS tests.",
+    "test": "npm run test:go && npm run test:js && npm run check",
+    "test:go": "make test",
+    "test:js": "vitest run && npm run typecheck",
     "demo": "make demo",
     "lint": "npm run lint:go && npm run lint:js",
     "lint:go": "make lint",
@@ -46,9 +47,11 @@
   "devDependencies": {
     "@aptre/common": "^0.21.2",
     "depcheck": "^1.4.7",
+    "happy-dom": "^17.4.4",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.8",
