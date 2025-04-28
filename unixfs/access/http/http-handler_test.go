@@ -61,7 +61,7 @@ func TestHTTPHandlerController(t *testing.T) {
 		tb.Logger,
 		tb.Bus,
 		controller.NewInfo("hydra/unixfs/access/test", semver.MustParse("0.0.1"), "access test unixfs"),
-		unixFsID,
+		[]string{unixFsID},
 		rootRef,
 	)
 	accessRel, err := tb.Bus.AddController(ctx, accessCtrl, nil)

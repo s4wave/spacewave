@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/sirupsen/logrus"
+	"slices"
 )
 
 // Controller wraps a handle constructor to resolve AccessUnixFS.
@@ -17,8 +18,8 @@ type Controller struct {
 	le *logrus.Entry
 	// b is the bus
 	b bus.Bus
-	// fsId is the filesystem identifier
-	fsId string
+	// fsIds is the list of filesystem identifiers
+	fsIds []string
 	// cb is the callback
 	cb AccessUnixFSValue
 	// info is the controller info
@@ -30,15 +31,15 @@ func NewController(
 	le *logrus.Entry,
 	b bus.Bus,
 	info *controller.Info,
-	fsId string,
+	fsIds []string,
 	cb AccessUnixFSValue,
 ) *Controller {
 	return &Controller{
-		le:   le,
-		b:    b,
-		fsId: fsId,
-		cb:   cb,
-		info: info,
+		le:    le,
+		b:     b,
+		fsIds: fsIds,
+		cb:    cb,
+		info:  info,
 	}
 }
 
@@ -48,10 +49,10 @@ func NewControllerWithHandle(
 	le *logrus.Entry,
 	b bus.Bus,
 	info *controller.Info,
-	fsId string,
+	fsIds []string,
 	handle *unixfs.FSHandle,
 ) *Controller {
-	return NewController(le, b, info, fsId, func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+	return NewController(le, b, info, fsIds, func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 		fh, err := handle.Clone(ctx)
 		if err != nil {
 			return nil, nil, err
@@ -97,8 +98,10 @@ func (c *Controller) ResolveAccessUnixFS(
 	di directive.Instance,
 	d AccessUnixFS,
 ) (directive.Resolver, error) {
+	// Check if the requested fsID is in the list of supported fsIds.
 	fsID := d.AccessUnixFSID()
-	if c.fsId != fsID {
+	found := slices.Contains(c.fsIds, fsID)
+	if !found {
 		return nil, nil
 	}
 
