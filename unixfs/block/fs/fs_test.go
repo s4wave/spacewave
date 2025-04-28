@@ -138,7 +138,7 @@ func TestFS(t *testing.T) {
 		// NOTE: we pass releaseHandle to true below: the fsHandleCursor will release the fs handle.
 		// defer fsHandle.Release()
 
-		fsHandleCursor := unixfs.NewFSHandleCursor(fsHandle, true)
+		fsHandleCursor := unixfs.NewFSHandleCursor(fsHandle, true, nil)
 		fsHandleCursorHandle, err := unixfs.NewFSHandle(fsHandleCursor)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -162,7 +162,7 @@ func TestFS(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			return unixfs.NewFSHandleCursor(cursorHandle, true), nil
+			return unixfs.NewFSHandleCursor(cursorHandle, true, nil), nil
 		})
 
 		fsHandleCursorHandle, err := unixfs.NewFSHandle(fsHandleCursorGetter)

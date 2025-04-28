@@ -36,7 +36,7 @@ func NewFSCursorGetterWithHandle(handle *FSHandle) *FSCursorGetter {
 		}
 
 		// the "false" here indicates to not release the handle
-		return NewFSHandleCursor(handle, false), nil
+		return NewFSHandleCursor(handle, false, nil), nil
 	})
 }
 

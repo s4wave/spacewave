@@ -13,15 +13,19 @@ type FSHandleCursor struct {
 	released atomic.Bool
 	// handle is the FSHandle
 	handle *FSHandle
-	// releaseHandle indicates we should release the FSHandle when released..
+	// releaseHandle indicates we should release the FSHandle when released.
 	releaseHandle bool
+	// relFunc is the function to call when released
+	// may be nil
+	relFunc func()
 }
 
 // NewFSHandleCursor constructs a new FSHandleCursor attached to the given FSHandle.
 //
 // if releaseHandle is set, the Release function will also release the FSHandle.
-func NewFSHandleCursor(handle *FSHandle, releaseHandle bool) *FSHandleCursor {
-	return &FSHandleCursor{handle: handle, releaseHandle: releaseHandle}
+// if relFunc is set, the release function will be called when the FSHandleCursor is released.
+func NewFSHandleCursor(handle *FSHandle, releaseHandle bool, relFunc func()) *FSHandleCursor {
+	return &FSHandleCursor{handle: handle, releaseHandle: releaseHandle, relFunc: relFunc}
 }
 
 // CheckReleased checks if the fscursor is released without locking anything.
@@ -57,6 +61,9 @@ func (f *FSHandleCursor) GetCursorOps(ctx context.Context) (FSCursorOps, error) 
 func (f *FSHandleCursor) Release() {
 	if !f.released.Swap(true) && f.releaseHandle {
 		f.handle.Release()
+		if f.relFunc != nil {
+			f.relFunc()
+		}
 	}
 }
 
