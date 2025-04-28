@@ -208,7 +208,6 @@ export const FrontendEntrypoint: MessageType<FrontendEntrypoint> =
  * This will configure:
  *
  * - Vite compiler with two bundle entrypoints: frontend and backend.
- * - Code re-use between the frontend and backend
  * - Entrypoint which on the plugin backend:
  *   - imports and calls the backend package esmodule(s)
  *   - serves the frontend package to any WebView without a parent (a root WebView)

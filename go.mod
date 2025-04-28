@@ -12,7 +12,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-
 
 require (
 	github.com/aperturerobotics/cli v1.0.0
-	github.com/aperturerobotics/hydra v0.0.0-20250414235330-a83b3219bbdd // master
+	github.com/aperturerobotics/hydra v0.0.0-20250428045857-7c354d6fdb0d // master
 	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
 )
 
@@ -164,7 +164,6 @@ require (
 	github.com/pion/stun/v3 v3.0.0 // indirect
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pion/turn/v4 v4.0.0 // indirect
-	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
