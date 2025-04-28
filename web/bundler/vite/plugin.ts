@@ -90,7 +90,7 @@ export function createWebPkgRemapPlugin(
       if (debug) console.log(`[bldr-pkg-resolve] Resolved path: ${importPath}`)
 
       // Infer package root from the resolved import path
-      let pkgRoot = path.dirname(importPath)
+      const pkgRoot = path.dirname(importPath)
       let relSubPath = subPath // Default to the parsed subpath
 
       // Handle case with no subpath (e.g., package entry point)

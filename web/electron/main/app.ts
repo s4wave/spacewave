@@ -146,7 +146,7 @@ export class BldrElectronApp {
     })
 
     // Connect to the pipe and set up bidirectional communication
-    const sock = connectToPipe(ipcPath, socketConn, (_connection) => {
+    const sock = connectToPipe(ipcPath, socketConn, () => {
       this.webRuntimeHostOpenStreamCtr.set(socketConn.buildOpenStreamFunc())
     })
 

@@ -190,6 +190,8 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 	// /b/ is for bldr internals
 	if strings.HasPrefix(rpath, "/b/") {
+		c.le.Debugf("serve /b/ path: %s", rpath)
+
 		// /b/pkg/ is for Web module distribution files (like react)
 		bPkgPrefix := plugin.PluginWebPkgHttpPrefix
 		if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
@@ -199,7 +201,6 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		}
 
 		// /b/pd/ is for Web plugin distribution files
-		c.le.Debugf("serve /b/ path: %s", rpath)
 		bPdPrefix := plugin.PluginDistHttpPrefix
 		if strings.HasPrefix(rpath, bPdPrefix) && len(rpath) > len(bPdPrefix) {
 			pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginDistHttpPrefix):])
@@ -211,6 +212,21 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 			req.URL.Path = suffix
 			c.ServePluginDistFsHTTP(pluginID, rw, req)
+			return
+		}
+
+		// /b/pa/ is for Web plugin distribution files
+		bPaPrefix := plugin.PluginAssetsHttpPrefix
+		if strings.HasPrefix(rpath, bPaPrefix) && len(rpath) > len(bPaPrefix) {
+			pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginAssetsHttpPrefix):])
+			if err != nil {
+				rw.WriteHeader(404)
+				_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
+				return
+			}
+
+			req.URL.Path = suffix
+			c.ServePluginAssetsFsHTTP(pluginID, rw, req)
 			return
 		}
 
@@ -281,6 +297,30 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 		Debug("accessing plugin dist filesystem")
 	// see: plugin/host/controller/plugin-tracker.go distFsID
 	unixFsID := plugin.PluginDistFsId + "/" + pluginID
+	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
+	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
+	if err != nil {
+		rw.WriteHeader(500)
+		_, _ = rw.Write([]byte("bldr: request failed: " + err.Error()))
+		return
+	}
+	defer relHandler()
+
+	handler.ServeHTTP(rw, req)
+}
+
+// ServePluginAssetsFsHTTP serves a HTTP request for a plugin assets filesystem.
+func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
+	// access the fs with unixfs_access, return not found if the fs is not available
+	ctx, ctxCancel := context.WithCancel(req.Context())
+	defer ctxCancel()
+
+	c.le.
+		WithField("plugin-id", pluginID).
+		WithField("path", req.URL.Path).
+		Debug("accessing plugin assets filesystem")
+	// see: plugin/host/controller/plugin-tracker.go assetsFsID
+	unixFsID := plugin.PluginAssetsFsId + "/" + pluginID
 	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
 	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
 	if err != nil {

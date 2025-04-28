@@ -5,12 +5,13 @@ go 1.24
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
-require github.com/aperturerobotics/common v0.21.3-0.20250324012822-7b068d08a5f6 // latest
+require github.com/aperturerobotics/common v0.22.3-0.20250428021130-9962fbac3e3c // latest
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
 
 require (
+	github.com/aperturerobotics/cli v1.0.0
 	github.com/aperturerobotics/hydra v0.0.0-20250414235330-a83b3219bbdd // master
 	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
 )
@@ -98,6 +99,8 @@ replace (
 
 require (
 	filippo.io/edwards25519 v1.1.1-0.20250211130249-04b037b40df0 // indirect
+	github.com/blang/semver/v4 v4.0.0
+	github.com/coder/websocket v1.8.13
 	github.com/klauspost/compress v1.18.0
 	github.com/libp2p/go-libp2p v0.41.1
 	github.com/mr-tron/base58 v1.2.0
@@ -105,6 +108,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.11.1 // indirect
 	github.com/nats-io/nats.go v1.41.1 // indirect
 	github.com/nats-io/nkeys v0.4.10 // indirect
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
 	github.com/pion/sdp/v3 v3.0.11 // indirect
@@ -116,13 +120,6 @@ require (
 	golang.org/x/crypto v0.37.0
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
-)
-
-require (
-	github.com/aperturerobotics/cli v1.0.0
-	github.com/blang/semver/v4 v4.0.0
-	github.com/coder/websocket v1.8.13
-	github.com/oklog/ulid/v2 v2.1.0
 )
 
 require (
@@ -167,6 +164,7 @@ require (
 	github.com/pion/stun/v3 v3.0.0 // indirect
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pion/turn/v4 v4.0.0 // indirect
+	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/spaolacci/murmur3 v1.1.1-0.20190317074736-539464a789e9 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect

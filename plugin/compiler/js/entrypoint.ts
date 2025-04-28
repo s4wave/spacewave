@@ -102,7 +102,7 @@ async function loadBackendEntrypoints(backendAPI: BackendAPI): Promise<void> {
     // Promise.all will reject immediately if any promise rejects.
     await Promise.all(backendPromises)
     console.debug('All backend entrypoints completed successfully.')
-  } catch (error) {
+  } catch (_error) {
     // Individual errors during loading/execution are already logged by executeBackendEntrypoint.
     // This catch block handles the aggregate failure reported by Promise.all.
     const errMsg =

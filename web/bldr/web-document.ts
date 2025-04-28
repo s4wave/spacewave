@@ -519,11 +519,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         name: this.webRuntimeId,
         type: 'module',
       }
-      this.worker = new SharedWorker(
-        // eslint-disable-next-line
-        runtimeJsURL,
-        workerOptions,
-      )
+      this.worker = new SharedWorker(runtimeJsURL, workerOptions)
 
       this.webRuntimePort = this.worker!.port!
       const msg: WebDocumentToWebRuntime = {

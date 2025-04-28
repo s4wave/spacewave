@@ -36,7 +36,7 @@ export class ItState<T> {
       [Symbol.asyncIterator]: () => {
         const queue: T[] = []
         let resolveNext: ((value: IteratorResult<T>) => void) | null = null
-        let rejectNext: ((reason: any) => void) | null = null
+        let rejectNext: ((reason: unknown) => void) | null = null
         let done = false
         let mostRecentValue: { value: T; nonce?: number } | null = null
 
@@ -100,7 +100,7 @@ export class ItState<T> {
         return {
           next: async (): Promise<IteratorResult<T>> => {
             if (done) {
-              return { value: undefined as any, done: true }
+              return { value: undefined, done: true }
             }
 
             // If we have a most recent value waiting (mostRecentOnly mode)
@@ -131,20 +131,20 @@ export class ItState<T> {
             if (resolveNext) {
               const resolve = resolveNext
               resolveNext = null
-              resolve({ value: undefined as any, done: true })
+              resolve({ value: undefined, done: true })
             }
 
             rejectNext = null
-            return { value: undefined as any, done: true }
+            return { value: undefined, done: true }
           },
-          throw: async (error: any): Promise<IteratorResult<T>> => {
+          throw: async (): Promise<IteratorResult<T>> => {
             // Clean up
             this.listeners.delete(handleValue)
             this.errorListeners.delete(handleError)
             done = true
             resolveNext = null
             rejectNext = null
-            return { value: undefined as any, done: true }
+            return { value: undefined, done: true }
           },
         }
       },

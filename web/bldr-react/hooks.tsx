@@ -838,7 +838,7 @@ export function useFocusOnValueChange<T extends Focusable, V>(
  * - 'hidden': the page content is not visible (minimized or in background)
  * - 'prerender': the page content is being prerendered and not visible
  *
- * Updates when the visibility state changes.
+ * Automatically updates when the visibility state changes.
  *
  * @returns The current {@link DocumentVisibilityState} of the document
  */
