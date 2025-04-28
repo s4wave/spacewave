@@ -53,7 +53,7 @@ func (s *ObjectStore) DeleteObjectStore(
 }
 
 // GetObjectStoreMux returns the srpc.Mux for an object store.
-func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string) (srpc.Invoker, func(), error) {
+func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string, _ func()) (srpc.Invoker, func(), error) {
 	ref, tracker, _ := s.kvtxStores.AddKeyRef(objStoreID)
 
 	st, err := tracker.waitStore(ctx)
@@ -67,6 +67,7 @@ func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string) 
 		ref.Release()
 		return nil, nil, err
 	}
+
 	return mux, ref.Release, nil
 }
 

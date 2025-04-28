@@ -28,7 +28,7 @@ func (s *MqueueStore) MqueueRpc(
 }
 
 // GetMqueueMux returns the srpc.Mux for a message queue.
-func (s *MqueueStore) GetMqueueMux(ctx context.Context, mqueueID string) (srpc.Invoker, func(), error) {
+func (s *MqueueStore) GetMqueueMux(ctx context.Context, mqueueID string, _ func()) (srpc.Invoker, func(), error) {
 	queue, err := s.store.OpenMqueue(ctx, []byte(mqueueID))
 	if err != nil {
 		return nil, nil, err
