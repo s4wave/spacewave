@@ -145,6 +145,22 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 			)
 			defer distAccessCtrl.Close()
 
+			// expose the plugin assets as a unixfs on the host bus
+			// this enables serving /b/pa/... requests
+			assetsFsID := bldr_plugin.PluginAssetsFsId + "/" + pluginID
+			assetsAccessCtrl := unixfs_access.NewControllerWithHandle(
+				le,
+				t.c.bus,
+				&controller.Info{
+					Id:          t.c.info.GetId() + assetsFsID,
+					Version:     t.c.info.GetVersion(),
+					Description: "plugin assets fs for plugin: " + pluginID,
+				},
+				assetsFsID,
+				assetsFS,
+			)
+			defer assetsAccessCtrl.Close()
+
 			// mount the dist fs access controller
 			relDistAccessCtrl, err := t.c.bus.AddController(ctx, distAccessCtrl, nil)
 			if err != nil {
