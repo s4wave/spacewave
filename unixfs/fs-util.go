@@ -8,7 +8,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/aperturerobotics/hydra/block/blob"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	"github.com/pkg/errors"
 )
@@ -271,7 +270,8 @@ func WriteFile(ctx context.Context, fsh *FSHandle, data []byte, ts time.Time) er
 		return err
 	}
 	if optimalWriteSize == 0 {
-		optimalWriteSize = blob.DefChunkingMinSize
+		// copy the const here to avoid the blob import
+		optimalWriteSize = 2048 * 125 // 256KB - blob.DefChunkingMinSize
 	}
 
 	// Truncate the file
