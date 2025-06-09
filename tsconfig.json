@@ -6,7 +6,7 @@
     "jsx": "react",
     "baseUrl": "./",
     "paths": {
-      "@go/*": ["vendor/*"],
+      "@go/*": ["./vendor/*"],
       "@aptre/bldr": ["./web/bldr/index.js"],
       "@aptre/bldr-react": ["./web/bldr-react/index.js"],
       "@aptre/bldr-sdk": ["./sdk/plugin.ts"],

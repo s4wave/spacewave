@@ -143,11 +143,6 @@ type Config struct {
 	// The handler handles the Fetch service by consuming a set of HTTP handlers.
 	// This service is used for the ServiceWorker HTTP calls.
 	DisableRpcFetch bool `protobuf:"varint,11,opt,name=disable_rpc_fetch,json=disableRpcFetch,proto3" json:"disableRpcFetch,omitempty"`
-	// DisableFetchAssets disables the default web assets service handler.
-	// The handler handles Fetch directives with the assets FS.
-	// This service is used for the ServiceWorker HTTP calls.
-	// This usually should be disabled if using custom HTTP handlers.
-	DisableFetchAssets bool `protobuf:"varint,12,opt,name=disable_fetch_assets,json=disableFetchAssets,proto3" json:"disableFetchAssets,omitempty"`
 	// WebPluginId sets the plugin id for the web plugin.
 	// If set, the compiler automatically adds these controllers to the config set:
 	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
@@ -240,13 +235,6 @@ func (x *Config) GetHostConfigSet() map[string]*proto.ControllerConfig {
 func (x *Config) GetDisableRpcFetch() bool {
 	if x != nil {
 		return x.DisableRpcFetch
-	}
-	return false
-}
-
-func (x *Config) GetDisableFetchAssets() bool {
-	if x != nil {
-		return x.DisableFetchAssets
 	}
 	return false
 }
@@ -566,7 +554,6 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
 	r.DisableRpcFetch = m.DisableRpcFetch
-	r.DisableFetchAssets = m.DisableFetchAssets
 	r.WebPluginId = m.WebPluginId
 	if rhs := m.Modules; rhs != nil {
 		tmpContainer := make([]*JsModule, len(rhs))
@@ -942,9 +929,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 	}
 	if this.DisableRpcFetch != that.DisableRpcFetch {
-		return false
-	}
-	if this.DisableFetchAssets != that.DisableFetchAssets {
 		return false
 	}
 	if this.WebPluginId != that.WebPluginId {
@@ -1474,11 +1458,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableRpcFetch")
 		s.WriteBool(x.DisableRpcFetch)
 	}
-	if x.DisableFetchAssets || s.HasField("disableFetchAssets") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableFetchAssets")
-		s.WriteBool(x.DisableFetchAssets)
-	}
 	if x.WebPluginId != "" || s.HasField("webPluginId") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("webPluginId")
@@ -1653,9 +1632,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_rpc_fetch", "disableRpcFetch":
 			s.AddField("disable_rpc_fetch")
 			x.DisableRpcFetch = s.ReadBool()
-		case "disable_fetch_assets", "disableFetchAssets":
-			s.AddField("disable_fetch_assets")
-			x.DisableFetchAssets = s.ReadBool()
 		case "web_plugin_id", "webPluginId":
 			s.AddField("web_plugin_id")
 			x.WebPluginId = s.ReadString()
@@ -2202,16 +2178,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebPluginId)))
 		i--
 		dAtA[i] = 0x6a
-	}
-	if m.DisableFetchAssets {
-		i--
-		if m.DisableFetchAssets {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x60
 	}
 	if m.DisableRpcFetch {
 		i--
@@ -2765,9 +2731,6 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableRpcFetch {
 		n += 2
 	}
-	if m.DisableFetchAssets {
-		n += 2
-	}
 	l = len(m.WebPluginId)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
@@ -3113,13 +3076,6 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("disable_rpc_fetch: ")
 		sb.WriteString(strconv.FormatBool(x.DisableRpcFetch))
-	}
-	if x.DisableFetchAssets != false {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("disable_fetch_assets: ")
-		sb.WriteString(strconv.FormatBool(x.DisableFetchAssets))
 	}
 	if x.WebPluginId != "" {
 		if sb.Len() > 8 {
@@ -3853,26 +3809,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableRpcFetch = bool(v != 0)
-		case 12:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableFetchAssets", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.DisableFetchAssets = bool(v != 0)
 		case 13:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebPluginId", wireType)

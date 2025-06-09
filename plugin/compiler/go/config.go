@@ -149,10 +149,6 @@ func (c *Config) Merge(o *Config) {
 		c.DisableRpcFetch = true
 	}
 
-	if o.GetDisableFetchAssets() {
-		c.DisableFetchAssets = true
-	}
-
 	if daddr := o.GetDelveAddr(); daddr != "" {
 		c.DelveAddr = daddr
 	}

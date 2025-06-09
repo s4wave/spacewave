@@ -1,12 +1,9 @@
 syntax = "proto3";
 package bldr.web.bundler.vite.compiler;
 
-import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/bldr/web/bundler/bundler.proto";
 import "github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto";
 import "github.com/aperturerobotics/bldr/web/pkg/pkg.proto";
-import "github.com/aperturerobotics/bldr/plugin/vardef/vardef.proto";
-import "github.com/aperturerobotics/util/enabled/enabled.proto";
 
 // Config configures the vite plugin compiler controller.
 message Config {

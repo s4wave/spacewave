@@ -1,16 +1,16 @@
 module github.com/aperturerobotics/bldr
 
-go 1.24
+go 1.24.4
 
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20241128081004-9038c4b3a19a // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20250428230204-8c668b313064 // aperture
 
 require (
 	github.com/aperturerobotics/cli v1.0.0
-	github.com/aperturerobotics/common v0.22.4 // latest
+	github.com/aperturerobotics/common v0.22.5 // latest
 	github.com/aperturerobotics/hydra v0.0.0-20250526223814-452ebc826e50 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
 )
@@ -24,8 +24,8 @@ require (
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/tetratelabs/wazero v1.9.0 // latest
-	golang.org/x/mod v0.24.0 // latest
-	golang.org/x/tools v0.32.0 // latest
+	golang.org/x/mod v0.25.0 // latest
+	golang.org/x/tools v0.34.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
@@ -69,7 +69,7 @@ require (
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	go.etcd.io/bbolt v1.4.0-beta.0.0.20241216162354-7b2d3609bf79 // indirect
-	golang.org/x/sync v0.13.0
+	golang.org/x/sync v0.15.0
 )
 
 // Note: the below is from the Bifrost go.mod
@@ -116,7 +116,7 @@ require (
 	github.com/quic-go/quic-go v0.51.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.37.0
+	golang.org/x/crypto v0.39.0
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
@@ -171,8 +171,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect

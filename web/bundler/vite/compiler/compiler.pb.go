@@ -10,14 +10,11 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	_ "github.com/aperturerobotics/bldr/plugin/vardef"
 	bundler "github.com/aperturerobotics/bldr/web/bundler"
 	vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	pkg "github.com/aperturerobotics/bldr/web/pkg"
-	_ "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	_ "github.com/aperturerobotics/util/enabled"
 )
 
 // InputFileKind is the kind of file this is.

@@ -15,6 +15,8 @@ message PluginStatus {
 }
 
 // PluginHost is the service exposed by the plugin host.
+//
+// Available at service ID plugin-host.
 service PluginHost {
   // GetPluginInfo returns the information for the current plugin.
   rpc GetPluginInfo(GetPluginInfoRequest) returns (GetPluginInfoResponse) {};
@@ -31,6 +33,12 @@ service PluginHost {
   // The plugin will remain loaded as long as the RPC is active.
   // Component ID: plugin id
   rpc PluginRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+  // The plugin will remain loaded as long as the RPC is active.
+  // Component ID: plugin-assets or plugin-dist for current plugin
+  // Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+  rpc PluginFsRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 }
 
 // Plugin is the service exposed by the plugin.

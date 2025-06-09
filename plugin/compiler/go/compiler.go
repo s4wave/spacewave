@@ -16,7 +16,6 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
@@ -294,7 +293,6 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.GetWebPkgs(),
 			pluginBuildConf.GetWebPluginId(),
 			pluginBuildConf.GetDisableRpcFetch(),
-			pluginBuildConf.GetDisableFetchAssets(),
 			pluginBuildConf.GetDelveAddr(),
 			pluginBuildConf.GetConfigSet(),
 			pluginBuildConf.GetHostConfigSet(),
@@ -369,7 +367,7 @@ func (c *Controller) BuildPlugin(
 	goPkgs []string,
 	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	webPluginID string,
-	disableRpcFetch, disableFetchAssets bool,
+	disableRpcFetch bool,
 	delveAddr string,
 	configSet map[string]*configset_proto.ControllerConfig,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
@@ -433,15 +431,6 @@ func (c *Controller) BuildPlugin(
 		if err := applyToConfigSet(
 			"rpc-fetch",
 			web_fetch_controller.NewConfig(),
-		); err != nil {
-			return nil, nil, err
-		}
-	}
-	if !disableFetchAssets {
-		addGoPkg("github.com/aperturerobotics/bldr/plugin/assets/http")
-		if err := applyToConfigSet(
-			"plugin-assets",
-			plugin_assets_http.NewConfig(plugin.PluginAssetsHttpPrefix, ""),
 		); err != nil {
 			return nil, nil, err
 		}
@@ -722,7 +711,7 @@ func (c *Controller) BuildPlugin(
 		if err := applyToConfigSet(
 			"web-pkgs-fs",
 			web_pkg_fs_controller.NewConfig(
-				plugin.PluginAssetsFsId,
+				plugin.PluginAssetsFsId(pluginID),
 				plugin.PluginAssetsWebPkgsDir,
 				true,
 				webPkgIDs,

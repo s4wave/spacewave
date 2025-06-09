@@ -28,6 +28,11 @@ type SRPCPluginHostClient interface {
 	// The plugin will remain loaded as long as the RPC is active.
 	// Component ID: plugin id
 	PluginRpc(ctx context.Context) (SRPCPluginHost_PluginRpcClient, error)
+	// PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+	// The plugin will remain loaded as long as the RPC is active.
+	// Component ID: plugin-assets or plugin-dist for current plugin
+	// Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+	PluginFsRpc(ctx context.Context) (SRPCPluginHost_PluginFsRpcClient, error)
 }
 
 type srpcPluginHostClient struct {
@@ -164,6 +169,45 @@ func (x *srpcPluginHost_PluginRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) er
 	return x.MsgRecv(m)
 }
 
+func (c *srpcPluginHostClient) PluginFsRpc(ctx context.Context) (SRPCPluginHost_PluginFsRpcClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "PluginFsRpc", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginHost_PluginFsRpcClient{stream}
+	return strm, nil
+}
+
+type SRPCPluginHost_PluginFsRpcClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcPluginHost_PluginFsRpcClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_PluginFsRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+	if m == nil {
+		return nil
+	}
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHost_PluginFsRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_PluginFsRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCPluginHostServer interface {
 	// GetPluginInfo returns the information for the current plugin.
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
@@ -177,6 +221,11 @@ type SRPCPluginHostServer interface {
 	// The plugin will remain loaded as long as the RPC is active.
 	// Component ID: plugin id
 	PluginRpc(SRPCPluginHost_PluginRpcStream) error
+	// PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+	// The plugin will remain loaded as long as the RPC is active.
+	// Component ID: plugin-assets or plugin-dist for current plugin
+	// Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+	PluginFsRpc(SRPCPluginHost_PluginFsRpcStream) error
 }
 
 const SRPCPluginHostServiceID = "bldr.plugin.PluginHost"
@@ -209,6 +258,7 @@ func (SRPCPluginHostHandler) GetMethodIDs() []string {
 		"ExecController",
 		"LoadPlugin",
 		"PluginRpc",
+		"PluginFsRpc",
 	}
 }
 
@@ -229,6 +279,8 @@ func (d *SRPCPluginHostHandler) InvokeMethod(
 		return true, d.InvokeMethod_LoadPlugin(d.impl, strm)
 	case "PluginRpc":
 		return true, d.InvokeMethod_PluginRpc(d.impl, strm)
+	case "PluginFsRpc":
+		return true, d.InvokeMethod_PluginFsRpc(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -267,6 +319,11 @@ func (SRPCPluginHostHandler) InvokeMethod_LoadPlugin(impl SRPCPluginHostServer, 
 func (SRPCPluginHostHandler) InvokeMethod_PluginRpc(impl SRPCPluginHostServer, strm srpc.Stream) error {
 	clientStrm := &srpcPluginHost_PluginRpcStream{strm}
 	return impl.PluginRpc(clientStrm)
+}
+
+func (SRPCPluginHostHandler) InvokeMethod_PluginFsRpc(impl SRPCPluginHostServer, strm srpc.Stream) error {
+	clientStrm := &srpcPluginHost_PluginFsRpcStream{strm}
+	return impl.PluginFsRpc(clientStrm)
 }
 
 type SRPCPluginHost_GetPluginInfoStream interface {
@@ -357,6 +414,43 @@ func (x *srpcPluginHost_PluginRpcStream) Recv() (*rpcstream.RpcStreamPacket, err
 }
 
 func (x *srpcPluginHost_PluginRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
+
+type SRPCPluginHost_PluginFsRpcStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	SendAndClose(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcPluginHost_PluginFsRpcStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_PluginFsRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHost_PluginFsRpcStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+func (x *srpcPluginHost_PluginFsRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_PluginFsRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgRecv(m)
 }
 

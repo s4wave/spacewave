@@ -176,7 +176,7 @@ func (t *executePlugin) execPlugin(ctx context.Context, pluginManifest *bldr_man
 	) error {
 		// expose the plugin dist as a unixfs on the host bus
 		// this enables serving /b/pd/... requests
-		distFsID := bldr_plugin.PluginDistFsId + "/" + pluginID
+		distFsID := bldr_plugin.PluginDistFsId(pluginID)
 		distAccessCtrl := unixfs_access.NewControllerWithHandle(
 			le,
 			t.c.bus,
@@ -197,8 +197,32 @@ func (t *executePlugin) execPlugin(ctx context.Context, pluginManifest *bldr_man
 		}
 		defer relDistAccessCtrl()
 
+		// expose the plugin assets as a unixfs on the host bus
+		// this enables serving /b/pa/... requests
+		assetsFsID := bldr_plugin.PluginAssetsFsId(pluginID)
+		assetsAccessCtrl := unixfs_access.NewControllerWithHandle(
+			le,
+			t.c.bus,
+			&controller.Info{
+				Id:          t.c.info.GetId() + assetsFsID,
+				Version:     t.c.info.GetVersion(),
+				Description: "plugin assets fs for plugin: " + pluginID,
+			},
+			[]string{assetsFsID},
+			assetsFS,
+		)
+		defer distAccessCtrl.Close()
+
+		// mount the dist fs access controller
+		relAssetsAccessCtrl, err := t.c.bus.AddController(ctx, assetsAccessCtrl, nil)
+		if err != nil {
+			return err
+		}
+		defer relAssetsAccessCtrl()
+
 		// build the mux for handling incoming RPCs from the plugin
 		hostMux := t.c.buildPluginMux(
+			ctx,
 			pluginID,
 			pluginManifest,
 			proxyHostVol,

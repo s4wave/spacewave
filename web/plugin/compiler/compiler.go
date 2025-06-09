@@ -224,6 +224,9 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
+	// TODO build config set to forward plugin-assets UnixFS lookups to the host
+	// TODO build config set to forward plugin-dist UnixFS lookups to the host
+
 	// return result
 	return &plugin_compiler_go.PreBuildHookResult{
 		Config: &plugin_compiler_go.Config{

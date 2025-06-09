@@ -46,13 +46,14 @@ func ExLookupWebView(
 	returnIfIdle bool,
 	webViewID string,
 	wait bool,
+	valDisposeCallback func(),
 ) (LookupWebViewValue, directive.Instance, directive.Reference, error) {
 	return bus.ExecWaitValue[LookupWebViewValue](
 		ctx,
 		b,
 		NewLookupWebView(webViewID, wait),
 		bus.ReturnIfIdle(returnIfIdle),
-		nil,
+		valDisposeCallback,
 		nil,
 	)
 }

@@ -30,6 +30,13 @@ export interface Config {
    * @generated from field: string fs_path = 2;
    */
   fsPath?: string
+  /**
+   * PluginId is the plugin assets unixfs to look up.
+   * If unset, uses the current plugin, assuming we are running in a plugin.
+   *
+   * @generated from field: string plugin_id = 3;
+   */
+  pluginId?: string
 }
 
 // Config contains the message type declaration for Config.
@@ -38,6 +45,7 @@ export const Config: MessageType<Config> = createMessageType({
   fields: [
     { no: 1, name: 'serve_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'fs_path', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

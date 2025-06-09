@@ -187,12 +187,6 @@ type Config struct {
 	// You can also override config ID "rpc-fetch" in the config-set.
 	// This service is used for the ServiceWorker HTTP calls.
 	DisableRpcFetch bool `protobuf:"varint,6,opt,name=disable_rpc_fetch,json=disableRpcFetch,proto3" json:"disableRpcFetch,omitempty"`
-	// DisableFetchAssets disables the default web assets service handler.
-	// The handler handles Fetch directives with the assets FS.
-	// This service is used for the ServiceWorker HTTP calls.
-	// This usually should be disabled if using custom HTTP handlers.
-	// Override this using config ID "plugin-assets" in the config-set.
-	DisableFetchAssets bool `protobuf:"varint,7,opt,name=disable_fetch_assets,json=disableFetchAssets,proto3" json:"disableFetchAssets,omitempty"`
 	// DelveAddr is the address to listen for Delve remote connections.
 	// If the build mode is dev and this is set, uses delve to run the plugin.
 	// Ignored if build mode is not dev.
@@ -290,13 +284,6 @@ func (x *Config) GetViteDisableProjectConfig() bool {
 func (x *Config) GetDisableRpcFetch() bool {
 	if x != nil {
 		return x.DisableRpcFetch
-	}
-	return false
-}
-
-func (x *Config) GetDisableFetchAssets() bool {
-	if x != nil {
-		return x.DisableFetchAssets
 	}
 	return false
 }
@@ -768,7 +755,6 @@ func (m *Config) CloneVT() *Config {
 	r.ProjectId = m.ProjectId
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
 	r.DisableRpcFetch = m.DisableRpcFetch
-	r.DisableFetchAssets = m.DisableFetchAssets
 	r.DelveAddr = m.DelveAddr
 	r.EnableCgo = m.EnableCgo
 	r.EnableTinygo = m.EnableTinygo
@@ -1110,9 +1096,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		}
 	}
 	if this.DisableRpcFetch != that.DisableRpcFetch {
-		return false
-	}
-	if this.DisableFetchAssets != that.DisableFetchAssets {
 		return false
 	}
 	if this.DelveAddr != that.DelveAddr {
@@ -1854,11 +1837,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableRpcFetch")
 		s.WriteBool(x.DisableRpcFetch)
 	}
-	if x.DisableFetchAssets || s.HasField("disableFetchAssets") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("disableFetchAssets")
-		s.WriteBool(x.DisableFetchAssets)
-	}
 	if x.DelveAddr != "" || s.HasField("delveAddr") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("delveAddr")
@@ -1983,9 +1961,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_rpc_fetch", "disableRpcFetch":
 			s.AddField("disable_rpc_fetch")
 			x.DisableRpcFetch = s.ReadBool()
-		case "disable_fetch_assets", "disableFetchAssets":
-			s.AddField("disable_fetch_assets")
-			x.DisableFetchAssets = s.ReadBool()
 		case "delve_addr", "delveAddr":
 			s.AddField("delve_addr")
 			x.DelveAddr = s.ReadString()
@@ -2804,16 +2779,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x42
 	}
-	if m.DisableFetchAssets {
-		i--
-		if m.DisableFetchAssets {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x38
-	}
 	if m.DisableRpcFetch {
 		i--
 		if m.DisableRpcFetch {
@@ -3431,9 +3396,6 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableRpcFetch {
 		n += 2
 	}
-	if m.DisableFetchAssets {
-		n += 2
-	}
 	l = len(m.DelveAddr)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
@@ -3833,13 +3795,6 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("disable_rpc_fetch: ")
 		sb.WriteString(strconv.FormatBool(x.DisableRpcFetch))
-	}
-	if x.DisableFetchAssets != false {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("disable_fetch_assets: ")
-		sb.WriteString(strconv.FormatBool(x.DisableFetchAssets))
 	}
 	if x.DelveAddr != "" {
 		if sb.Len() > 8 {
@@ -4684,26 +4639,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisableRpcFetch = bool(v != 0)
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DisableFetchAssets", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.DisableFetchAssets = bool(v != 0)
 		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)

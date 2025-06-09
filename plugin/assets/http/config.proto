@@ -12,4 +12,7 @@ message Config {
   // Chroots the filesystem to this path.
   // If empty, defaults to the root directory.
   string fs_path = 2;
+  // PluginId is the plugin assets unixfs to look up.
+  // If unset, uses the current plugin, assuming we are running in a plugin.
+  string plugin_id = 3;
 }

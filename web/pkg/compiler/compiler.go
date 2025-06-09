@@ -74,7 +74,6 @@ func (c *Controller) BuildManifest(
 
 	pluginCompilerConf := plugin_compiler_go.NewConfig()
 	pluginCompilerConf.ProjectId = conf.GetProjectId()
-	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
 	pluginCompilerConf.DelveAddr = conf.GetDelveAddr()
 	pluginCompilerConf.ConfigSet = conf.GetConfigSet()

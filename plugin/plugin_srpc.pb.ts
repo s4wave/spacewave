@@ -77,6 +77,20 @@ export const PluginHostDefinition = {
       O: RpcStreamPacket,
       kind: MethodKind.BiDiStreaming,
     },
+    /**
+     * PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+     * The plugin will remain loaded as long as the RPC is active.
+     * Component ID: plugin-assets or plugin-dist for current plugin
+     * Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+     *
+     * @generated from rpc bldr.plugin.PluginHost.PluginFsRpc
+     */
+    PluginFsRpc: {
+      name: 'PluginFsRpc',
+      I: RpcStreamPacket,
+      O: RpcStreamPacket,
+      kind: MethodKind.BiDiStreaming,
+    },
   },
 } as const
 
@@ -129,6 +143,19 @@ export interface PluginHost {
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): MessageStream<RpcStreamPacket>
+
+  /**
+   * PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+   * The plugin will remain loaded as long as the RPC is active.
+   * Component ID: plugin-assets or plugin-dist for current plugin
+   * Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+   *
+   * @generated from rpc bldr.plugin.PluginHost.PluginFsRpc
+   */
+  PluginFsRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
 }
 
 export const PluginHostServiceName = PluginHostDefinition.typeName
@@ -143,6 +170,7 @@ export class PluginHostClient implements PluginHost {
     this.ExecController = this.ExecController.bind(this)
     this.LoadPlugin = this.LoadPlugin.bind(this)
     this.PluginRpc = this.PluginRpc.bind(this)
+    this.PluginFsRpc = this.PluginFsRpc.bind(this)
   }
   /**
    * GetPluginInfo returns the information for the current plugin.
@@ -217,6 +245,27 @@ export class PluginHostClient implements PluginHost {
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       PluginHostDefinition.methods.PluginRpc.name,
+      buildEncodeMessageTransform(RpcStreamPacket)(request),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(RpcStreamPacket)(result)
+  }
+
+  /**
+   * PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+   * The plugin will remain loaded as long as the RPC is active.
+   * Component ID: plugin-assets or plugin-dist for current plugin
+   * Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+   *
+   * @generated from rpc bldr.plugin.PluginHost.PluginFsRpc
+   */
+  PluginFsRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket> {
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      PluginHostDefinition.methods.PluginFsRpc.name,
       buildEncodeMessageTransform(RpcStreamPacket)(request),
       abortSignal || undefined,
     )

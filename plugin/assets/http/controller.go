@@ -39,7 +39,7 @@ func NewController(b bus.Bus, cc *Config) *Controller {
 		matchPathPrefixes,
 		true,
 		nil,
-		plugin.PluginAssetsFsId,
+		plugin.PluginAssetsFsId(cc.GetPluginId()),
 		unixfsPathPrefix,
 		"",
 		false,

@@ -136,10 +136,6 @@ func (c *Config) Merge(o *Config) {
 		c.DisableRpcFetch = true
 	}
 
-	if o.GetDisableFetchAssets() {
-		c.DisableFetchAssets = true
-	}
-
 	if esbuildFlags := o.GetEsbuildFlags(); len(esbuildFlags) != 0 {
 		c.EsbuildFlags = append(c.EsbuildFlags, esbuildFlags...)
 	}

@@ -80,7 +80,8 @@ func ResolveLookupRpcClient(ctx context.Context, dir bifrost_rpc.LookupRpcClient
 	})
 
 	var pluginID, stripServiceIDPrefix string
-	if matchedPrefix == PluginServiceIDPrefix {
+	switch matchedPrefix {
+	case PluginServiceIDPrefix:
 		var remoteServiceID string
 		var ok bool
 		pluginID, remoteServiceID, ok = strings.Cut(matchedService, "/")
@@ -94,9 +95,9 @@ func ResolveLookupRpcClient(ctx context.Context, dir bifrost_rpc.LookupRpcClient
 			return nil, err
 		}
 		stripServiceIDPrefix = serviceID[:len(PluginServiceIDPrefix)+len(pluginID)+1]
-	} else if matchedPrefix == HostServiceIDPrefix {
+	case HostServiceIDPrefix:
 		stripServiceIDPrefix = HostServiceIDPrefix
-	} else {
+	default:
 		// no match
 		return nil, nil
 	}

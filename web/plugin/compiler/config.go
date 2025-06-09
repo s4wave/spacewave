@@ -66,7 +66,6 @@ func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler_go.Config, error)
 	pluginCompilerConf.GoPkgs = []string{
 		basePkg + "/web/plugin/controller",
 	}
-	pluginCompilerConf.DisableFetchAssets = true
 	pluginCompilerConf.DisableRpcFetch = true
 	pluginCompilerConf.DelveAddr = c.GetDelveAddr()
 

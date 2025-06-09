@@ -225,7 +225,10 @@ func (c *Controller) WaitPluginClient(ctx context.Context, released func(), plug
 }
 
 // buildPluginMux builds the rpc mux for plugins.
+//
+// ctx should remain active as long as Mux is in use
 func (c *Controller) buildPluginMux(
+	ctx context.Context,
 	pluginID string,
 	manifest *bldr_manifest.ManifestSnapshot,
 	proxyHostVol *volume_rpc_server.ProxyVolume,
@@ -243,7 +246,7 @@ func (c *Controller) buildPluginMux(
 	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
 
 	// register plugin host service
-	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
+	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(ctx, c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
 
 	// register plugin dist fs service
 	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(

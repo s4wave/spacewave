@@ -54,20 +54,46 @@ const HostVolumeServiceIDPrefix = "host-volume/"
 // HostStorageID is the storage ID to use for the plugin host within a plugin.
 const HostStorageID = "default"
 
-// PluginAssetsFsId is the identifier to use for the plugin assets fs on the plugin bus.
-const PluginAssetsFsId = "plugin-assets"
+// PluginAssetsFsIdPrefix is the prefix to use for the plugin assets unixfs id on the plugin bus.
+const PluginAssetsFsIdPrefix = "plugin-assets/"
 
-// PluginDistFsId is the identifier to use for the plugin dist fs on the plugin bus.
-const PluginDistFsId = "plugin-dist"
+// PluginAssetsFsId returns the unixfs id for the assets filesystem for the given plugin id.
+//
+// Calling with an empty pluginID uses the PluginAssetsFsIdPrefix, which is an
+// alias to the current plugin's assets while running in a plugin.
+func PluginAssetsFsId(pluginID string) string {
+	if pluginID == "" {
+		return PluginAssetsFsIdPrefix[:len(PluginAssetsFsIdPrefix)-1]
+	}
+
+	return PluginAssetsFsIdPrefix + pluginID
+}
+
+// PluginDistFsIdPrefix is the prefix to use for the plugin dist unixfs id on the plugin bus.
+const PluginDistFsIdPrefix = "plugin-dist/"
+
+// PluginDistFsId returns the unixfs id for the dist filesystem for the given plugin id.
+//
+// Calling with an empty pluginID uses the PluginDistFsIdPrefix, which is an
+// alias to the current plugin's assets while running in a plugin.
+func PluginDistFsId(pluginID string) string {
+	if pluginID == "" {
+		return PluginDistFsIdPrefix[:len(PluginDistFsIdPrefix)-1]
+	}
+	return PluginDistFsIdPrefix + pluginID
+}
 
 // BldrHttpPrefix is the route prefix for bldr-controlled URL space.
 // /b/
 const BldrHttpPrefix = "/b/"
 
 // PluginDistHttpPrefix is the route prefix to use for plugin dist.
-// This is only available when the web plugin host is running.
-// /b/pd/
+// /b/pd/{plugin-id}
 const PluginDistHttpPrefix = BldrHttpPrefix + "pd/"
+
+// PluginAssetsHttpPrefix is the route prefix to use for plugin assets.
+// /b/pa/{plugin-id}
+const PluginAssetsHttpPrefix = BldrHttpPrefix + "pa/"
 
 // PluginWebPkgHttpPrefix is the public URL path prefix for web packages.
 // /b/pkg/
@@ -76,11 +102,6 @@ const PluginWebPkgHttpPrefix = BldrHttpPrefix + "pkg/"
 // PluginHttpPrefix is the route prefix for plugin-controlled URL space.
 // /p/{pluginId}/
 const PluginHttpPrefix = "/p/"
-
-// PluginAssetsHttpPrefix is the route prefix to use for plugin assets.
-// This is within the plugin HTTP url space:
-// /p/{plugin-id}/a/{assets-fs-path}
-const PluginAssetsHttpPrefix = "/a/"
 
 // PluginAssetsWebPkgsDir is the directory within assets fs for web pkgs.
 const PluginAssetsWebPkgsDir = "bldr-web-pkgs"
@@ -123,18 +144,6 @@ func PluginHTTPPathFromContext(ctx context.Context, httpPath string) string {
 	return httpPath
 }
 
-// PluginAssetHTTPPath builds the path to an asset for a plugin id.
-// assets path is available at /p/{plugin-id}/a/{asset-path}
-// This constructs a URL path that can be used to access the asset via HTTP
-// Format: /p/{plugin-id}/a/{asset-path} where:
-// - /p/ is the plugin HTTP prefix
-// - {plugin-id} is the unique plugin identifier
-// - /a/ is the assets HTTP prefix
-// - {asset-path} is the relative path to the asset within the assets directory
-func PluginAssetHTTPPath(pluginID string, assetPath string) string {
-	return PluginHTTPPath(pluginID, PluginAssetsHttpPrefix, assetPath)
-}
-
 // ParseHTTPPathPluginID parses and validates a {plugin-id}/ prefix from a HTTP path.
 func ParseHTTPPathPluginID(httpPath string) (pluginID string, suffix string, err error) {
 	httpPath = strings.TrimPrefix(httpPath, "/")
@@ -153,6 +162,18 @@ func ParseHTTPPathPluginID(httpPath string) (pluginID string, suffix string, err
 func PluginDistHTTPPath(pluginID, httpPath string) string {
 	var sb strings.Builder
 	_, _ = sb.WriteString(PluginDistHttpPrefix)
+	_, _ = sb.WriteString(pluginID)
+	if !strings.HasPrefix(httpPath, "/") {
+		_, _ = sb.WriteString("/")
+	}
+	_, _ = sb.WriteString(httpPath)
+	return sb.String()
+}
+
+// PluginAssetHTTPPath adds the plugin asset file prefix to the given path.
+func PluginAssetHTTPPath(pluginID string, httpPath string) string {
+	var sb strings.Builder
+	_, _ = sb.WriteString(PluginAssetsHttpPrefix)
 	_, _ = sb.WriteString(pluginID)
 	if !strings.HasPrefix(httpPath, "/") {
 		_, _ = sb.WriteString("/")

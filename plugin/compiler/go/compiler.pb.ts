@@ -206,16 +206,6 @@ export interface Config {
    */
   disableRpcFetch?: boolean
   /**
-   * DisableFetchAssets disables the default web assets service handler.
-   * The handler handles Fetch directives with the assets FS.
-   * This service is used for the ServiceWorker HTTP calls.
-   * This usually should be disabled if using custom HTTP handlers.
-   * Override this using config ID "plugin-assets" in the config-set.
-   *
-   * @generated from field: bool disable_fetch_assets = 7;
-   */
-  disableFetchAssets?: boolean
-  /**
    * DelveAddr is the address to listen for Delve remote connections.
    * If the build mode is dev and this is set, uses delve to run the plugin.
    * Ignored if build mode is not dev.
@@ -329,7 +319,6 @@ export const Config: MessageType<Config> = createMessageType({
       T: ScalarType.BOOL,
     },
     { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 7, name: 'disable_fetch_assets', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
     { no: 10, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },

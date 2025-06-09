@@ -28,5 +28,4 @@ Js plugin:
   - the function name to call is configurable
   - the promise should not resolve until the program is done executing
 - If no "entrypoint" is defined the plugin just contains static files.
-- The TypeScript code is responsible for registering handlers for http requests and/or accessing assets.
 

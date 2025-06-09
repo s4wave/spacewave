@@ -296,7 +296,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin dist filesystem")
 	// see: plugin/host/controller/plugin-tracker.go distFsID
-	unixFsID := plugin.PluginDistFsId + "/" + pluginID
+	unixFsID := plugin.PluginDistFsId(pluginID)
 	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
 	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
 	if err != nil {
@@ -320,7 +320,7 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin assets filesystem")
 	// see: plugin/host/controller/plugin-tracker.go assetsFsID
-	unixFsID := plugin.PluginAssetsFsId + "/" + pluginID
+	unixFsID := plugin.PluginAssetsFsId(pluginID)
 	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
 	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
 	if err != nil {

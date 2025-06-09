@@ -131,7 +131,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 		) error {
 			// expose the plugin dist as a unixfs on the host bus
 			// this enables serving /b/pd/... requests
-			distFsID := bldr_plugin.PluginDistFsId + "/" + pluginID
+			distFsID := bldr_plugin.PluginDistFsId(pluginID)
 			distAccessCtrl := unixfs_access.NewControllerWithHandle(
 				le,
 				t.c.bus,
@@ -147,7 +147,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 
 			// expose the plugin assets as a unixfs on the host bus
 			// this enables serving /b/pa/... requests
-			assetsFsID := bldr_plugin.PluginAssetsFsId + "/" + pluginID
+			assetsFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 			assetsAccessCtrl := unixfs_access.NewControllerWithHandle(
 				le,
 				t.c.bus,
@@ -170,6 +170,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 
 			// build the mux for handling incoming RPCs from the plugin
 			hostMux := t.c.buildPluginMux(
+				ctx,
 				pluginID,
 				pluginManifestSnapshot,
 				proxyHostVol,

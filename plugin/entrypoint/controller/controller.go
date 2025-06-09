@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	unixfs_access "github.com/aperturerobotics/hydra/unixfs/access"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
@@ -83,6 +84,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 		return directive.R(c.resolveLoadPlugin(ctx, di, dir))
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, c))
+	case unixfs_access.AccessUnixFS:
+		return directive.R(bldr_plugin.ResolveAccessUnixfs(ctx, dir, c))
 	}
 	return nil, nil
 }

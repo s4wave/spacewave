@@ -26,6 +26,9 @@ type Config struct {
 	// Chroots the filesystem to this path.
 	// If empty, defaults to the root directory.
 	FsPath string `protobuf:"bytes,2,opt,name=fs_path,json=fsPath,proto3" json:"fsPath,omitempty"`
+	// PluginId is the plugin assets unixfs to look up.
+	// If unset, uses the current plugin, assuming we are running in a plugin.
+	PluginId string `protobuf:"bytes,3,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -48,6 +51,13 @@ func (x *Config) GetFsPath() string {
 	return ""
 }
 
+func (x *Config) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -55,6 +65,7 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.ServePath = m.ServePath
 	r.FsPath = m.FsPath
+	r.PluginId = m.PluginId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -76,6 +87,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.FsPath != that.FsPath {
+		return false
+	}
+	if this.PluginId != that.PluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -107,6 +121,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("fsPath")
 		s.WriteString(x.FsPath)
 	}
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -130,6 +149,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "fs_path", "fsPath":
 			s.AddField("fs_path")
 			x.FsPath = s.ReadString()
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
 		}
 	})
 }
@@ -169,6 +191,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.PluginId) > 0 {
+		i -= len(m.PluginId)
+		copy(dAtA[i:], m.PluginId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.FsPath) > 0 {
 		i -= len(m.FsPath)
 		copy(dAtA[i:], m.FsPath)
@@ -200,6 +229,10 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.PluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -220,6 +253,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("fs_path: ")
 		sb.WriteString(strconv.Quote(x.FsPath))
+	}
+	if x.PluginId != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_id: ")
+		sb.WriteString(strconv.Quote(x.PluginId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -320,6 +360,38 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.FsPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

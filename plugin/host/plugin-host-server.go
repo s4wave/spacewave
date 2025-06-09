@@ -4,11 +4,15 @@ import (
 	"context"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -25,23 +29,35 @@ type PluginHostServer struct {
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
 	// hostVolumeInfo is the host volume information
 	hostVolumeInfo *volume.VolumeInfo
+	// pluginFsTracker tracks loaded plugin FSCursor servers
+	// TODO: we need a KeyedRefCountValue type which resolves a value with the same logic as refcount/refcount.go
+	// TODO: that would be a lot simpler and more robust here
+	pluginFsTracker *keyed.KeyedRefCount[string, *pluginHostServerFsTracker]
 }
 
 // NewPluginHostServer constructs a new PluginHostServer.
 func NewPluginHostServer(
+	ctx context.Context,
 	b bus.Bus,
 	le *logrus.Entry,
 	pluginID string,
 	manifest *bldr_manifest.ManifestSnapshot,
 	hostVolumeInfo *volume.VolumeInfo,
 ) *PluginHostServer {
-	return &PluginHostServer{
+	s := &PluginHostServer{
 		b:                b,
 		le:               le,
 		pluginID:         pluginID,
 		manifestSnapshot: manifest,
 		hostVolumeInfo:   hostVolumeInfo,
 	}
+	s.pluginFsTracker = keyed.NewKeyedRefCountWithLogger(
+		s.newPluginHostServerFsTracker,
+		le,
+		keyed.WithRetry[string, *pluginHostServerFsTracker](&backoff.Backoff{}),
+	)
+	s.pluginFsTracker.SetContext(ctx, true)
+	return s
 }
 
 // GetPluginInfo returns information about the currently running plugin.
@@ -97,14 +113,68 @@ func (s *PluginHostServer) PluginRpc(strm plugin.SRPCPluginHost_PluginRpcStream)
 	)
 }
 
+// PluginFsRpc accesses a FSCursorService to access the plugin assets or dist filesystems.
+// The plugin will remain loaded as long as the RPC is active.
+// Component ID: plugin-assets or plugin-dist
+func (s *PluginHostServer) PluginFsRpc(rpcStream plugin.SRPCPluginHost_PluginFsRpcStream) error {
+	return rpcstream.HandleRpcStream(
+		rpcStream,
+		func(
+			ctx context.Context,
+			unixfsID string,
+			released func(),
+		) (srpc.Invoker, func(), error) {
+			if unixfsID == "" {
+				return nil, nil, errors.New("component id must be set to filesystem id")
+			}
+
+			pluginID, matchedPrefix, err := plugin.ValidatePluginUnixfsID(unixfsID, true)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			// if id is empty set to ours
+			if pluginID == "" {
+				pluginID = s.pluginID
+			}
+
+			// wait for reference to be ready
+			pluginRef, data, _ := s.pluginFsTracker.AddKeyRef(pluginID)
+
+			// TODO: if ExecLoadPlugin returns an error, this might never cancel
+			// TODO: if the plugin is unloaded, we need to call released(), but do we do that here?
+			// luckily we don't expect that to happen
+			res, err := data.resultPromiseCtr.Await(ctx)
+			if err != nil {
+				pluginRef.Release()
+				return nil, nil, err
+			}
+
+			var mux srpc.Mux
+			switch matchedPrefix {
+			case bldr_plugin.PluginDistFsIdPrefix:
+				mux = res.distMux
+			case bldr_plugin.PluginAssetsFsIdPrefix:
+				mux = res.assetsMux
+			default:
+				return nil, nil, errors.Errorf("unexpected unixfs id prefix: %v", matchedPrefix)
+			}
+
+			// return release func
+			return mux, pluginRef.Release, nil
+		},
+	)
+}
+
 // ExecController executes a config set on the host bus.
 func (s *PluginHostServer) ExecController(
 	req *controller_exec.ExecControllerRequest,
 	strm plugin.SRPCPluginHost_ExecControllerStream,
 ) error {
-	ctx := strm.Context()
 	s.le.Debugf("plugin %q is applying a configset", s.pluginID)
 	defer s.le.Debugf("plugin %q exited applying a configset", s.pluginID)
+
+	ctx := strm.Context()
 	return req.Execute(ctx, s.b, true, strm.Send)
 }
 

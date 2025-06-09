@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/bldr/core"
 	manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_assets_http "github.com/aperturerobotics/bldr/plugin/assets/http"
 	plugin_entrypoint_controller "github.com/aperturerobotics/bldr/plugin/entrypoint/controller"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	plugin_host_storage "github.com/aperturerobotics/bldr/plugin/host/storage"
@@ -72,7 +71,6 @@ func ExecutePlugin(
 	}
 
 	// add built-in factories
-	sr.AddFactory(plugin_assets_http.NewFactory(b))
 	sr.AddFactory(plugin_host_configset.NewFactory(b))
 	sr.AddFactory(plugin_host_storage_volume.NewFactory(b))
 
@@ -180,7 +178,7 @@ func ExecutePlugin(
 	rels = append(rels, relHostVolumeController)
 
 	// serve the plugin assets filesystem
-	pluginAssetsFsCtrl := BuildPluginAssetsFSController(le, b, pluginHostClient)
+	pluginAssetsFsCtrl := BuildPluginAssetsFSController(le, b, pluginHostClient, meta.GetPluginId())
 	relPluginAssetsFsCtrl, err := b.AddController(ctx, pluginAssetsFsCtrl, handleErr)
 	if err != nil {
 		rel()
@@ -189,7 +187,7 @@ func ExecutePlugin(
 	rels = append(rels, relPluginAssetsFsCtrl)
 
 	// serve the plugin dist filesystem
-	pluginDistFsCtrl := BuildPluginDistFSController(le, b, pluginHostClient)
+	pluginDistFsCtrl := BuildPluginDistFSController(le, b, pluginHostClient, meta.GetPluginId())
 	relPluginDistFsCtrl, err := b.AddController(ctx, pluginDistFsCtrl, handleErr)
 	if err != nil {
 		rel()
@@ -277,7 +275,7 @@ func ExecutePlugin(
 }
 
 // BuildPluginAssetsFSController builds a unixfs_access controller for the plugin assets.
-func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginHostClient srpc.Client) *unixfs_access.Controller {
+func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginHostClient srpc.Client, pluginID string) *unixfs_access.Controller {
 	fsCursorSvcClient := unixfs_rpc.NewSRPCFSCursorServiceClientWithServiceID(pluginHostClient, bldr_plugin.PluginAssetsServiceID)
 	return unixfs_access.NewController(
 		le,
@@ -287,13 +285,13 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginHostClient
 			Version,
 			"plugin assets filesystem",
 		),
-		[]string{bldr_plugin.PluginAssetsFsId},
+		[]string{bldr_plugin.PluginAssetsFsId(""), bldr_plugin.PluginAssetsFsId(pluginID)},
 		unixfs_rpc_client.NewFSHandleBuilder(fsCursorSvcClient),
 	)
 }
 
 // BuildPluginDistFSController builds a unixfs_access controller for the plugin dist fs.
-func BuildPluginDistFSController(le *logrus.Entry, b bus.Bus, pluginHostClient srpc.Client) *unixfs_access.Controller {
+func BuildPluginDistFSController(le *logrus.Entry, b bus.Bus, pluginHostClient srpc.Client, pluginID string) *unixfs_access.Controller {
 	fsCursorSvcClient := unixfs_rpc.NewSRPCFSCursorServiceClientWithServiceID(pluginHostClient, bldr_plugin.PluginDistServiceID)
 	return unixfs_access.NewController(
 		le,
@@ -303,7 +301,7 @@ func BuildPluginDistFSController(le *logrus.Entry, b bus.Bus, pluginHostClient s
 			Version,
 			"plugin dist filesystem",
 		),
-		[]string{bldr_plugin.PluginDistFsId},
+		[]string{bldr_plugin.PluginDistFsId(""), bldr_plugin.PluginDistFsId(pluginID)},
 		unixfs_rpc_client.NewFSHandleBuilder(fsCursorSvcClient),
 	)
 }

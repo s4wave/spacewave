@@ -65,13 +65,6 @@ message Config {
   // This service is used for the ServiceWorker HTTP calls.
   bool disable_rpc_fetch = 6;
 
-  // DisableFetchAssets disables the default web assets service handler.
-  // The handler handles Fetch directives with the assets FS.
-  // This service is used for the ServiceWorker HTTP calls.
-  // This usually should be disabled if using custom HTTP handlers.
-  // Override this using config ID "plugin-assets" in the config-set.
-  bool disable_fetch_assets = 7;
-
   // DelveAddr is the address to listen for Delve remote connections.
   // If the build mode is dev and this is set, uses delve to run the plugin.
   // Ignored if build mode is not dev.

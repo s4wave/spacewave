@@ -320,15 +320,6 @@ export interface Config {
    */
   disableRpcFetch?: boolean
   /**
-   * DisableFetchAssets disables the default web assets service handler.
-   * The handler handles Fetch directives with the assets FS.
-   * This service is used for the ServiceWorker HTTP calls.
-   * This usually should be disabled if using custom HTTP handlers.
-   *
-   * @generated from field: bool disable_fetch_assets = 12;
-   */
-  disableFetchAssets?: boolean
-  /**
    * WebPluginId sets the plugin id for the web plugin.
    * If set, the compiler automatically adds these controllers to the config set:
    * - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
@@ -423,12 +414,6 @@ export const Config: MessageType<Config> = createMessageType({
       V: { kind: 'message', T: () => ControllerConfig },
     },
     { no: 11, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 12,
-      name: 'disable_fetch_assets',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
-    },
     { no: 13, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
     {
       no: 14,

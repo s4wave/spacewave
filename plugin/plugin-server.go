@@ -31,7 +31,7 @@ func (s *PluginServer) PluginRpc(rpcStream SRPCPlugin_PluginRpcStream) error {
 		func(
 			ctx context.Context,
 			remotePluginID string,
-			_ func(),
+			released func(),
 		) (srpc.Invoker, func(), error) {
 			if remotePluginID == "" {
 				return nil, nil, errors.Wrap(ErrEmptyPluginID, "remote plugin rpc")
