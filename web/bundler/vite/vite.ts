@@ -8,11 +8,11 @@ import {
 import { ViteBundler, ViteBundlerDefinition } from './vite_srpc.pb.js'
 import { BuildRequest, BuildResponse } from './vite.pb.js'
 import { buildAndAnalyze, buildConfig, isRollupError } from './build.js'
-import { LibraryOptions } from 'vite'
 import { createWebPkgRemapPlugin } from './plugin.js'
+import { UserConfig } from 'vite'
 
 // verboseDebug is the verbose debugging flag
-const verboseDebug = false
+const verboseDebug = true
 
 // Parse command line arguments
 function parseArgs() {
@@ -42,6 +42,7 @@ class ViteBundlerService implements ViteBundler {
       console.log(`[vite] build request: ${JSON.stringify(request)}`)
     }
 
+    let mergedConfig: UserConfig = {}
     try {
       const configPaths = request.configPaths || []
       const mode = request.mode || 'development'
@@ -68,7 +69,7 @@ class ViteBundlerService implements ViteBundler {
       )
 
       // Build the merged configuration
-      const mergedConfig = await buildConfig(
+      mergedConfig = await buildConfig(
         { mode, command: 'build' },
         ...absoluteConfigPaths,
       )
@@ -118,17 +119,8 @@ class ViteBundlerService implements ViteBundler {
 
       // Add entrypoints if provided
       if (request.entrypoints && request.entrypoints.length > 0) {
-        const entry: Record<string, string> = {}
-        const lib: LibraryOptions = {
-          ...mergedConfig.build.lib,
-          entry,
-        }
-        mergedConfig.build.lib = lib
-
-        // Set the output filename format to the default
-        delete lib.fileName
-
-        // Create entry object from entrypoints
+        // Build a Rollup input map (name -> absolute path)
+        const input: Record<string, string> = {} // InputOption
         for (const entrypoint of request.entrypoints) {
           if (entrypoint.inputPath) {
             const name =
@@ -137,14 +129,28 @@ class ViteBundlerService implements ViteBundler {
                 entrypoint.inputPath,
                 path.extname(entrypoint.inputPath),
               )
-            entry[name] = entrypoint.inputPath
+            input[name] = resolve(rootDir, entrypoint.inputPath)
           }
         }
 
-        // Set default formats if not already set
-        if (!lib.formats) {
-          lib.formats = ['es']
+        // Ensure rollupOptions exists
+        if (!mergedConfig.build.rollupOptions) {
+          mergedConfig.build.rollupOptions = {}
         }
+
+        // Merge the input map and guarantee we output ES-modules
+        mergedConfig.build.rollupOptions = {
+          ...mergedConfig.build.rollupOptions,
+          input,
+          preserveEntrySignatures: 'strict',
+          output: {
+            ...(mergedConfig.build.rollupOptions.output ?? {}),
+            format: 'es',
+          },
+        }
+
+        // Disable library mode entirely so assets are not inlined
+        delete mergedConfig.build.lib
       }
 
       // Run the build process with the merged config
@@ -206,12 +212,25 @@ class ViteBundlerService implements ViteBundler {
       return result
     } catch (err) {
       console.error(`[vite] build error:`, err)
-      return {
+      const failureResp = {
         success: false,
         error: err instanceof Error ? err.message : String(err),
         inputFiles: isRollupError(err) ? err.watchFiles : [],
         webPkgRefs: [],
       }
+
+      if (verboseDebug) {
+        fs.writeFileSync(
+          path.join(request.outDir || process.cwd(), 'vite-config.json'),
+          JSON.stringify(mergedConfig, null, 2),
+        )
+        fs.writeFileSync(
+          path.join(request.outDir || process.cwd(), 'vite-error.json'),
+          JSON.stringify(failureResp, null, 2),
+        )
+      }
+
+      return failureResp
     }
   }
 }

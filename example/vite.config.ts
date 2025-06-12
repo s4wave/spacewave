@@ -9,13 +9,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig({
   build: {
-    lib: {
-      entry: {
+    rollupOptions: {
+      input: {
         example: resolve(__dirname, './example.tsx'),
         'example-class': resolve(__dirname, './example-class.tsx'),
       },
-      name: 'Example',
-      formats: ['es'],
+      output: {
+        format: 'es',
+      },
     },
   },
   plugins: [react()],

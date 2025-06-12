@@ -98,7 +98,9 @@ manifests:
             id: bldr/example/demo
             config:
               # runs an extended demo of reading/writing to a key/value store
+              # requires the storage be empty on startup
               runDemo: false
+
         # example of a per-build-type config
         buildTypes:
           release:
