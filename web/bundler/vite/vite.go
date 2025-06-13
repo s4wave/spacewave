@@ -11,6 +11,6 @@ func SortViteOutputMetas(metas []*ViteOutputMeta) []*ViteOutputMeta {
 		return strings.Compare(a.GetPath(), b.GetPath())
 	})
 	return slices.CompactFunc(metas, func(a, b *ViteOutputMeta) bool {
-		return a.GetPath() == b.GetPath()
+		return a.EqualVT(b)
 	})
 }

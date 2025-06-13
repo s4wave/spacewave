@@ -655,7 +655,16 @@ func (c *Controller) BuildPlugin(
 		viteConfigPaths := conf.GetViteConfigPaths()
 		disableProjectConfig := conf.GetViteDisableProjectConfig()
 
-		viteBundlerConf, err := BuildViteBundlerConfig(viteBundleVarMeta, webPkgs, viteConfigPaths, disableProjectConfig)
+		// public path for assets
+		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.ViteAssetSubdir)
+
+		viteBundlerConf, err := BuildViteBundlerConfig(
+			viteBundleVarMeta,
+			webPkgs,
+			viteConfigPaths,
+			publicPath,
+			disableProjectConfig,
+		)
 		if err == nil {
 			err = viteBundlerConf.Validate()
 		}
@@ -1034,7 +1043,14 @@ func (c *Controller) FastRebuildPlugin(
 
 	if len(prevViteBundles) > 0 {
 		// Build vite config based on previous metadata
-		viteBundlerConf, err := BuildViteBundlerConfig(prevViteBundles, prevWebPkgs, prevViteConfigPaths, prevViteDisableProjectConfig)
+		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.ViteAssetSubdir)
+		viteBundlerConf, err := BuildViteBundlerConfig(
+			prevViteBundles,
+			prevWebPkgs,
+			prevViteConfigPaths,
+			publicPath,
+			prevViteDisableProjectConfig,
+		)
 		if err == nil {
 			err = viteBundlerConf.Validate()
 		}

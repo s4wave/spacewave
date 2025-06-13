@@ -21,6 +21,7 @@ func BuildViteBundlerConfig(
 	bundleVars []*ViteBundleVarMeta,
 	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	viteConfigPaths []string,
+	publicPath string,
 	disableProjectConfig bool,
 ) (*bldr_web_bundler_vite_compiler.Config, error) {
 	// build list of ViteBundleMeta from bundleVar list
@@ -56,6 +57,7 @@ func BuildViteBundlerConfig(
 		bundleMeta := &bldr_web_bundler_vite_compiler.ViteBundleMeta{
 			Id:                   bundleVar.Id,
 			Entrypoints:          entrypoints,
+			PublicPath:           publicPath,
 			ViteConfigPaths:      bundleConfigPaths,
 			DisableProjectConfig: bundleDisableProjectConfig,
 		}

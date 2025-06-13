@@ -21,7 +21,8 @@ export default defineConfig({
     },
     minify: false,
     sourcemap: true,
-    cssCodeSplit: true,
+    cssCodeSplit: true, // set to true by Go as well.
+    manifest: true, // set to true by Go as well.
     terserOptions: {
       compress: false,
       mangle: false,

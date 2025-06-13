@@ -264,6 +264,8 @@ func (c *Controller) BuildManifest(
 			}},
 			ViteConfigPaths:      mod.GetViteConfigPaths(),
 			DisableProjectConfig: mod.GetDisableProjectConfig(),
+
+			// TODO PublicPath?
 		}
 		buildCtrlConf.ViteBundles = append(buildCtrlConf.ViteBundles, vb)
 	}

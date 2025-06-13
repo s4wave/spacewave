@@ -9,6 +9,7 @@ import React, {
   useMemo,
   CSSProperties,
   useCallback,
+  forwardRef,
 } from 'react'
 
 type DebugInfoContextType = {
@@ -94,60 +95,74 @@ const useDebugInfo = (info?: ReactNode) => {
   }, [info, context])
 }
 
-const DebugInfoDisplay: FC = () => {
-  const [localDebugInfo, setLocalDebugInfo] = useState<React.ReactNode[]>([])
-  const context = useContext(DebugInfoContext)
-
-  useEffect(() => {
-    if (context) {
-      const unsubscribe = context.subscribeDebugInfo(setLocalDebugInfo)
-      return () => {
-        unsubscribe()
-      }
-    }
-  }, [context])
-
-  if (!localDebugInfo.length) {
-    return null
-  }
-
-  const debugInfoStyle: CSSProperties = {
-    fontFamily: 'monospace',
-    background: 'rgba(0, 0, 0, 0.8)',
-    color: 'white',
-    fontSize: '10px',
-    padding: '0.5rem',
-    margin: '1rem',
-    maxWidth: '33%',
-    minWidth: '10rem',
-    overflow: 'auto',
-    overflowWrap: 'break-word',
-    boxShadow: '0 0 0.5rem 0 rgba(0, 0, 0, 0.2)',
-    borderRadius: 0,
-    position: 'absolute',
-    userSelect: 'none',
-    top: 0,
-    right: 0,
-    zIndex: 1000,
-  }
-
-  return (
-    <div style={debugInfoStyle}>
-      {localDebugInfo.map((info, index) => (
-        <p
-          style={
-            index !== 0 ?
-              { margin: '0.33rem 0', marginBlockEnd: 0 }
-            : { margin: 0 }
-          }
-          key={index.toString()}
-        >
-          {info}
-        </p>
-      ))}
-    </div>
-  )
+const debugInfoStyle: CSSProperties = {
+  fontFamily: 'monospace',
+  background: 'rgba(0, 0, 0, 0.8)',
+  color: 'white',
+  fontSize: '10px',
+  padding: '0.5rem',
+  margin: '1rem',
+  maxWidth: '33%',
+  minWidth: '10rem',
+  overflow: 'auto',
+  overflowWrap: 'break-word',
+  boxShadow: '0 0 0.5rem 0 rgba(0, 0, 0, 0.2)',
+  borderRadius: 0,
+  position: 'absolute',
+  userSelect: 'none',
+  top: 0,
+  right: 0,
+  zIndex: 1000,
 }
+
+interface DebugInfoDisplayProps {
+  className?: string
+  style?: CSSProperties
+}
+
+const DebugInfoDisplay = forwardRef<HTMLDivElement, DebugInfoDisplayProps>(
+  ({ className, style, ...props }, ref) => {
+    const [localDebugInfo, setLocalDebugInfo] = useState<React.ReactNode[]>([])
+    const context = useContext(DebugInfoContext)
+
+    useEffect(() => {
+      if (!context) return
+      const unsubscribe = context.subscribeDebugInfo(setLocalDebugInfo)
+      return () => unsubscribe()
+    }, [context])
+
+    const mergedStyle = useMemo(
+      () => ({
+        ...debugInfoStyle,
+        ...style,
+      }),
+      [style],
+    )
+
+    if (!localDebugInfo.length) {
+      return null
+    }
+
+    return (
+      <div ref={ref} className={className} style={mergedStyle} {...props}>
+        {localDebugInfo.map((info, index) => (
+          <p
+            style={
+              index !== 0 ?
+                { margin: '0.33rem 0', marginBlockEnd: 0 }
+              : { margin: 0 }
+            }
+            key={index.toString()}
+          >
+            {info}
+          </p>
+        ))}
+      </div>
+    )
+  },
+)
+
+DebugInfoDisplay.displayName = 'DebugInfoDisplay'
 
 export {
   DebugInfo,

@@ -256,11 +256,6 @@ func (c *Controller) BuildManifest(
 				return nil, err
 			}
 
-			publicPath := bundle.GetPublicPath()
-			if publicPath == "" {
-				publicPath = "/"
-			}
-
 			bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err := BuildViteBundle(
 				ctx,
 				le,

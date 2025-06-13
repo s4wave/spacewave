@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	filehash "github.com/aperturerobotics/bldr/util/filehash"
 	"github.com/aperturerobotics/bldr/util/node"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
@@ -204,9 +203,25 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	return err
 }
 
-// TODO: publicPath?
-
 // BuildViteBundle builds a Vite bundle with the given bundle args.
+// Parameters:
+// - ctx: context for the build operation
+// - le: logger entry
+// - distSourcePath: root path to the dist sources
+// - codeRootPath: root path of the source code
+// - workingPath: path to the working directory
+// - baseViteConfigPaths: list of base Vite configuration file paths
+// - viteBundleMeta: metadata about the Vite bundle to build
+// - viteBundler: RPC client for the Vite bundler service
+// - webPkgs: list of web packages to externalize
+// - outAssetsPath: output path for assets
+// - pluginID: identifier for the plugin
+// - isRelease: whether this is a release build
+// Returns:
+// - Web package references used by the bundle
+// - Metadata about the Vite outputs
+// - List of source files used by Vite
+// - Any error that occurred
 func BuildViteBundle(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -225,6 +240,9 @@ func BuildViteBundle(
 	var sourceFilesList []string
 	var webPkgRefs []*web_pkg.WebPkgRef
 	var outputMetas []*bldr_web_bundler_vite.ViteOutputMeta
+
+	// Public path
+	publicPath := viteBundleMeta.GetPublicPath()
 
 	// Create a temporary output directory for Vite
 	viteBundleMetaID := viteBundleMeta.GetId()
@@ -342,6 +360,7 @@ func BuildViteBundle(
 		DistDir:      distSourcePath,
 		OutDir:       viteOutDir,
 		CacheDir:     cacheDir,
+		PublicPath:   publicPath,
 		Entrypoints:  entrypoints,
 		ExternalPkgs: web_pkg_esbuild.BldrExternal,
 		WebPkgs:      extWebPkgs,
@@ -375,100 +394,34 @@ func BuildViteBundle(
 		}
 	}
 
-	// Helper function to hash a file and update its source map reference
-	processAssetFile := func(
-		filename string,
-		entrypointPath string,
-		fileHashMap map[string]string,
-	) (string, error) {
-		originalPath := filepath.Join(outAssetsPath, outAssetsBundleDir, filename)
-
-		// Skip if the file doesn't exist or was already processed
-		if _, err := os.Stat(originalPath); err != nil {
-			return "", nil
-		}
-		if hashedPath, exists := fileHashMap[originalPath]; exists {
-			return filepath.Base(hashedPath), nil
-		}
-
-		// Hash the file
-		hash, err := filehash.HashFileWithBlake3(originalPath)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to hash file: %s", filename)
-		}
-
-		// Create new filename with hash
-		hashedFilename := filehash.AddHashToFilename(filename, hash)
-		hashedPath := filepath.Join(outAssetsPath, outAssetsBundleDir, hashedFilename)
-
-		// Store in map
-		fileHashMap[originalPath] = hashedPath
-
-		// Check for source map
-		mapFilename := filename + ".map"
-		mapPath := filepath.Join(outAssetsPath, outAssetsBundleDir, mapFilename)
-		if _, err := os.Stat(mapPath); err == nil {
-			hashedMapFilename := hashedFilename + ".map"
-			hashedMapPath := filepath.Join(outAssetsPath, outAssetsBundleDir, hashedMapFilename)
-			fileHashMap[mapPath] = hashedMapPath
-
-			// Update source map reference in the file
-			if err := filehash.UpdateSourceMapReference(originalPath, hashedMapFilename); err != nil {
-				return "", errors.Wrap(err, "failed to update source map reference")
-			}
-		}
-
-		// Add to output metadata
-		outputPath := filepath.Join(outAssetsBundleDir, hashedFilename)
-		outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
-			Path:           outputPath,
-			EntrypointPath: entrypointPath,
-		})
-
-		return hashedFilename, nil
-	}
-
-	// Map to store original to hashed filenames
-	fileHashMap := make(map[string]string)
-
-	// Process entrypoint outputs
+	// Process entrypoint outputs and create metadata
 	for _, entrypoint := range buildResp.GetEntrypointOutputs() {
-		// Process JS output
+		// Add JS output metadata
 		if entrypoint.JsOutput != "" {
-			hashedJsFilename, err := processAssetFile(entrypoint.JsOutput, entrypoint.Entrypoint, fileHashMap)
-			if err != nil {
-				return nil, nil, nil, errors.Wrap(err, "failed to process JS file")
-			}
-			if hashedJsFilename != "" {
-				entrypoint.JsOutput = hashedJsFilename
-			}
+			outputPath := filepath.Join(outAssetsBundleDir, entrypoint.JsOutput)
+			outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
+				Path:           outputPath,
+				EntrypointPath: entrypoint.Entrypoint,
+			})
 		}
 
-		// Process CSS outputs
-		for i, cssOutput := range entrypoint.CssOutputs {
-			hashedCssFilename, err := processAssetFile(cssOutput, entrypoint.Entrypoint, fileHashMap)
-			if err != nil {
-				return nil, nil, nil, errors.Wrap(err, "failed to process CSS file")
-			}
-			if hashedCssFilename != "" {
-				entrypoint.CssOutputs[i] = hashedCssFilename
-			}
+		// Add CSS output metadata
+		for _, cssOutput := range entrypoint.CssOutputs {
+			outputPath := filepath.Join(outAssetsBundleDir, cssOutput)
+			outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
+				Path:           outputPath,
+				EntrypointPath: entrypoint.Entrypoint,
+			})
 		}
 	}
 
 	// Process global CSS files
 	for _, cssFile := range buildResp.GetGlobalCssFiles() {
-		_, err := processAssetFile(cssFile, "", fileHashMap)
-		if err != nil {
-			return nil, nil, nil, errors.Wrap(err, "failed to process global CSS file")
-		}
-	}
-
-	// Rename all the files after processing
-	for originalPath, hashedPath := range fileHashMap {
-		if err := os.Rename(originalPath, hashedPath); err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "failed to rename file from %s to %s", originalPath, hashedPath)
-		}
+		outputPath := filepath.Join(outAssetsBundleDir, cssFile)
+		outputMetas = append(outputMetas, &bldr_vite.ViteOutputMeta{
+			Path:           outputPath,
+			EntrypointPath: "", // Global CSS files don't have a specific entrypoint
+		})
 	}
 
 	return webPkgRefs, outputMetas, sourceFilesList, nil

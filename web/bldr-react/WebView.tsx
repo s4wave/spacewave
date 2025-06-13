@@ -168,7 +168,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       async setRenderMode(
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
-        console.log(`WebView: set render mode for ${uuid}`, options)
+        console.log(`WebView: set render mode: ${uuid}`, options)
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
@@ -185,7 +185,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       async setHtmlLinks(
         options: SetHtmlLinksRequest,
       ): Promise<SetHtmlLinksResponse | void> {
-        // console.log('set html links', options)
+        console.log(`WebView: set html links: ${uuid}`, options)
         setWebViewState((prev) => {
           const links: IWebViewHtmlLink[] = [
             ...((!options.clear && prev.htmlLinks) || []),

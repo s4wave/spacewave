@@ -33,12 +33,14 @@ message BuildRequest {
   string cache_dir = 5;
   // DistDir is the bldr dist src directory for the build.
   string dist_dir = 6;
+  // PublicPath is the public URL path prefix for assets.
+  string public_path = 7;
   // Entrypoints contains the list of entrypoints to build.
-  repeated ViteBuildRequestEntrypoint entrypoints = 7;
+  repeated ViteBuildRequestEntrypoint entrypoints = 8;
   // ExternalPkgs is the list of packages to pass to External provided by importmap.
-  repeated string external_pkgs = 8;
+  repeated string external_pkgs = 9;
   // WebPkgs is the list of packages to be externalized as shared web pkgs.
-  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 9;
+  repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 10;
 }
 
 // ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.

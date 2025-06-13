@@ -19,6 +19,8 @@ import { Home, Settings, User } from 'lucide-react'
 import { EchoerClient } from '@go/github.com/aperturerobotics/starpc/echo/index.js'
 import { ExampleProps } from './example.pb.js'
 
+import bldrLogo from '../doc/img/bldr-logo.png'
+
 import './example.css'
 
 // Example is an example of a functional react component accessing a host rpc.
@@ -47,12 +49,25 @@ const Example: React.FC<ExampleProps> = (props) => {
 
   // Render the message along with some sample icons.
   return (
-    <p className="example-message flex items-center gap-2">
-      {message || 'Loading...'}
-      <Home className="h-4 w-4" />
-      <Settings className="h-4 w-4" />
-      <User className="h-4 w-4" />
-    </p>
+    <div className="example-container">
+      {isMac && isElectron && (
+        <div className="title-bar">
+          <div className="title-bar-controls">
+            <div className="title-bar-button close"></div>
+            <div className="title-bar-button minimize"></div>
+            <div className="title-bar-button maximize"></div>
+          </div>
+          <div className="title-bar-title">Example App</div>
+        </div>
+      )}
+      <div className="example-message">
+        {message || 'Loading...'}
+        <Home className="h-4 w-4" />
+        <Settings className="h-4 w-4" />
+        <User className="h-4 w-4" />
+        <img src={bldrLogo} width={256} />
+      </div>
+    </div>
   )
 }
 
@@ -60,7 +75,7 @@ const Example: React.FC<ExampleProps> = (props) => {
 const ExampleDebug: React.FC<ExampleProps> = (props) => {
   return (
     <DebugInfoProvider>
-      <DebugInfoDisplay />
+      <DebugInfoDisplay style={{ marginTop: '40px' }} />
       <BldrDebug />
       <DebugInfo>
         isElectron: {JSON.stringify(isElectron)}

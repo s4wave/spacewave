@@ -49,6 +49,7 @@ class ViteBundlerService implements ViteBundler {
       const rootDir = request.rootDir || process.cwd()
       const outDir = request.outDir || resolve(rootDir, 'dist')
       const distDir = request.distDir || resolve(rootDir, '.bldr/src')
+      const publicPath = request.publicPath || null
 
       // Store web package references
       const webPkgRefs: Map<string, { root: string; subPaths: Set<string> }> =
@@ -78,8 +79,18 @@ class ViteBundlerService implements ViteBundler {
       }
       mergedConfig.build.outDir = outDir
 
+      // Ensure CSS is split into separate files per entry
+      mergedConfig.build.cssCodeSplit = true
+      // Write manifest.json file to the output
+      mergedConfig.build.manifest = true
+
       // Set the root dir
       mergedConfig.root = rootDir
+
+      // Set the base path (public path for assets)
+      if (publicPath != null) {
+        mergedConfig.base = publicPath
+      }
 
       // Set the cache dir
       if (request.cacheDir) {
@@ -168,13 +179,10 @@ class ViteBundlerService implements ViteBundler {
       // Run the build process with the merged config
       const { analysis, viteOutput } = await buildAndAnalyze(mergedConfig)
 
-      // Map the analysis results to the response format and make paths relative to rootDir
+      // Map the analysis results to the response format
       const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
-        entrypoint:
-          entry.entrypoint ? path.relative(rootDir, entry.entrypoint) : '',
-        inputFiles: (entry.inputs || []).map((file) =>
-          path.relative(rootDir, file),
-        ),
+        entrypoint: entry.entrypoint || '',
+        inputFiles: entry.inputs || [],
 
         jsOutput: entry.outputs.js,
         cssOutputs: entry.outputs.css,
@@ -183,11 +191,13 @@ class ViteBundlerService implements ViteBundler {
       // Collect all input files (as relative paths)
       const allInputFiles = new Set<string>()
       entrypointOutputs.forEach((entry) => {
-        entry.inputFiles?.forEach((file) => allInputFiles.add(file))
+        entry.inputFiles?.forEach((file: string) => allInputFiles.add(file))
       })
 
       const allGlobalCssFiles = new Set<string>()
-      analysis.globalCssFiles?.forEach((file) => allGlobalCssFiles.add(file))
+      analysis.globalCssFiles?.forEach((file: string) =>
+        allGlobalCssFiles.add(file),
+      )
 
       const result = {
         success: true,

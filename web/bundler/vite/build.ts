@@ -1,8 +1,10 @@
 import { loadConfigFromFile, mergeConfig, build as viteBuild } from 'vite'
 import type { InlineConfig, UserConfig } from 'vite'
 import { existsSync } from 'node:fs'
+import { promises as fs } from 'node:fs'
+import path from 'path'
 import type { ConfigEnv } from 'vitest/config.js'
-import type { RollupOutput, OutputAsset, OutputChunk } from 'rollup'
+import type { RollupOutput } from 'rollup'
 import type { RollupError } from 'rollup'
 
 /**
@@ -46,64 +48,154 @@ export async function buildConfig(
   return mergedConfig
 }
 
-type DeepPartial<T> =
-  T extends object ?
-    {
-      [P in keyof T]?: DeepPartial<T[P]>
-    }
-  : T
+interface ViteManifestEntry {
+  file: string
+  css?: string[]
+  assets?: string[]
+  imports?: string[]
+  isEntry?: boolean
+  src?: string
+}
 
-type BuildOutput = [...(DeepPartial<OutputChunk> | DeepPartial<OutputAsset>)[]]
+type ViteManifest = Record<string, ViteManifestEntry>
 
-// Analyze the build output to extract entrypoints and their corresponding files
-export function analyzeOutput(rollupOutput: BuildOutput) {
-  // Get the entrypoints and their corresponding output files
-  const entrypointOutputs = rollupOutput
-    .filter(
-      (output): output is DeepPartial<OutputChunk> =>
-        output.type === 'chunk' &&
-        (output.isEntry === true || output.isDynamicEntry === true),
-    )
-    .map((chunk) => {
-      const facadeModuleId = chunk.facadeModuleId
-      const jsFile = chunk.fileName
+function collectReferencedFiles(
+  entryKey: string,
+  manifest: ViteManifest,
+  seen = new Set<string>(),
+  cssFiles = new Set<string>(),
+  assetFiles = new Set<string>(),
+): { cssFiles: Set<string>; assetFiles: Set<string> } {
+  if (seen.has(entryKey)) return { cssFiles, assetFiles }
+  seen.add(entryKey)
 
-      // Find corresponding CSS files for this entry
-      // Since viteMetadata.importedCss might contain the CSS files
-      const cssFiles =
-        (chunk.viteMetadata?.importedCss as Set<string>) ?? new Set<string>()
+  const entry = manifest[entryKey]
+  if (!entry) return { cssFiles, assetFiles }
 
-      // Track input files for this entrypoint
+  // Collect CSS files
+  entry.css?.forEach((c) => cssFiles.add(c))
+
+  // Collect asset files
+  entry.assets?.forEach((a) => assetFiles.add(a))
+
+  // Recursively collect from imports
+  entry.imports?.forEach((imp) =>
+    collectReferencedFiles(imp, manifest, seen, cssFiles, assetFiles),
+  )
+
+  return { cssFiles, assetFiles }
+}
+
+// Analyze the manifest to extract entrypoints and their corresponding files
+export async function analyzeManifest(
+  outDir: string,
+  outputChunks: any[],
+  rootDir: string,
+) {
+  const manifestPath = path.join(outDir, '.vite/manifest.json')
+  const manifest: ViteManifest = JSON.parse(
+    await fs.readFile(manifestPath, 'utf-8'),
+  )
+
+  // Build a map of JS output files to their input files from rollup chunks
+  const jsFileToInputs = new Map<string, string[]>()
+  for (const chunk of outputChunks) {
+    if (chunk.type === 'chunk' && chunk.fileName) {
+      // Track input files for this chunk
       const inputFiles = new Set<string>()
 
       // Add the entry module itself
-      if (facadeModuleId) {
-        inputFiles.add(facadeModuleId)
+      if (chunk.facadeModuleId) {
+        const relativePath = path.relative(rootDir, chunk.facadeModuleId)
+        inputFiles.add(relativePath)
       }
 
       // Add referenced files for this chunk
-      ;(chunk.moduleIds || []).forEach((file) => {
-        // file = absolute path to the file
-        if (file) inputFiles.add(file)
+      if (chunk.moduleIds) {
+        chunk.moduleIds.forEach((file: string) => {
+          if (file) {
+            const relativePath = path.relative(rootDir, file)
+            inputFiles.add(relativePath)
+          }
+        })
+      }
+
+      jsFileToInputs.set(chunk.fileName, Array.from(inputFiles))
+    }
+  }
+
+  // Build a lookup from output file -> source file for ALL types of files
+  const outputToSrc = new Map<string, string>()
+  Object.values(manifest).forEach((entry) => {
+    if (entry.src && entry.file) {
+      outputToSrc.set(entry.file, entry.src)
+    }
+  })
+
+  // Build CSS source file mapping by finding CSS files in JS chunk moduleIds
+  // CSS asset chunks don't have proper source paths, but JS chunks that import them do
+  const cssOutputToSrc = new Map<string, string>()
+  for (const chunk of outputChunks) {
+    if (chunk.type === 'chunk' && chunk.moduleIds) {
+      chunk.moduleIds.forEach((moduleId: string) => {
+        if (moduleId && moduleId.endsWith('.css')) {
+          const relativePath = path.relative(rootDir, moduleId)
+          // Find the CSS output file that corresponds to this source file
+          // We need to match by the base filename since we don't have a direct mapping
+          const baseFileName = path.basename(relativePath, '.css')
+          for (const assetChunk of outputChunks) {
+            if (assetChunk.type === 'asset' && 
+                assetChunk.fileName?.endsWith('.css') &&
+                assetChunk.names?.includes(baseFileName + '.css')) {
+              cssOutputToSrc.set(assetChunk.fileName, relativePath)
+              break
+            }
+          }
+        }
+      })
+    }
+  }
+
+  const entrypointOutputs = Object.entries(manifest)
+    .filter(([, v]) => v.isEntry)
+    .map(([key, v]) => {
+      const inputSet = new Set<string>(jsFileToInputs.get(v.file) || [])
+
+      // Collect all referenced files (CSS and assets)
+      const { cssFiles, assetFiles } = collectReferencedFiles(key, manifest)
+
+      // Add source files for CSS using rollup chunk mapping
+      cssFiles.forEach((cssFile) => {
+        const src = cssOutputToSrc.get(cssFile)
+        if (src) inputSet.add(src)
+      })
+
+      // Add source files for other assets using manifest mapping
+      assetFiles.forEach((assetFile) => {
+        const src = outputToSrc.get(assetFile)
+        if (src) inputSet.add(src)
       })
 
       return {
-        entrypoint: facadeModuleId,
+        entrypoint: v.src ?? key,
         outputs: {
-          js: jsFile,
+          js: v.file,
           css: Array.from(cssFiles),
         },
-        inputs: Array.from(inputFiles),
+        inputs: Array.from(inputSet),
       }
     })
 
-  // Find the global CSS file if it exists (not directly tied to an entrypoint)
-  const globalCssFiles = rollupOutput
-    .filter(
-      (output): output is DeepPartial<OutputAsset> =>
-        !!(output.type === 'asset' && output.fileName?.endsWith('.css')),
-    )
-    .map((asset) => asset.fileName as string)
+  // Global CSS files are any CSS assets not tied to specific entries
+  const allCssFromEntries = new Set<string>()
+  entrypointOutputs.forEach((entry) => {
+    entry.outputs.css.forEach((css) => allCssFromEntries.add(css))
+  })
+
+  const globalCssFiles = Object.values(manifest)
+    .filter((entry) => entry.file.endsWith('.css'))
+    .map((entry) => entry.file)
+    .filter((css) => !allCssFromEntries.has(css))
 
   return {
     entrypointOutputs,
@@ -121,7 +213,7 @@ export async function runBuild(
       configFile,
       mode,
       build: {
-        watch: null, // {}
+        watch: null,
       },
     })
   } catch (e) {
@@ -135,7 +227,7 @@ export async function buildAndAnalyze(config: UserConfig) {
   const buildOptions: InlineConfig = {
     build: {
       ...config.build,
-      watch: null, // {}
+      watch: null,
     },
     ...config,
   }
@@ -147,35 +239,46 @@ export async function buildAndAnalyze(config: UserConfig) {
     Array.isArray(viteOutput) ? viteOutput : [viteOutput]
 
   // merge the output chunks into one array
-  const outputChunks: BuildOutput = rollupOutputs.flatMap(
-    (output) => output.output,
+  const outputChunks = rollupOutputs.flatMap((output) => output.output)
+
+  // determine the output directory
+  const outDir = config.build?.outDir
+  if (!outDir) {
+    throw new Error('outDir is required')
+  }
+
+  // Analyze the manifest to extract entrypoints and their corresponding files
+  // This must happen BEFORE cleanup since we need access to moduleIds
+  const analysis = await analyzeManifest(
+    outDir,
+    outputChunks,
+    config.root ?? process.cwd(),
   )
 
   // drop some unnecessary detail from the result(s)
   for (const chunk of outputChunks) {
+    const mutableChunk = chunk as Record<string, any> // otherwise typescript complains
     if (chunk.type === 'chunk') {
       // the source code, too much info
-      delete chunk['code']
+      delete mutableChunk.code
       // sourcemap
-      delete chunk['map']
-
+      delete mutableChunk.map
       // list of modules that were bundled (source files)
-      delete chunk['modules']
+      delete mutableChunk.modules
       // list of keys in the modules map
-      // we need this to determine the input files
-      // delete chunk['moduleIds']
-
+      delete mutableChunk.moduleIds
       // could be useful to know which variables were imported from each module
-      delete chunk['importedBindings']
+      delete mutableChunk.importedBindings
     }
     if (chunk.type === 'asset') {
-      delete chunk['source']
+      delete mutableChunk.source
     }
   }
 
+  // Return the results
   return {
     viteOutput,
     outputChunks,
-    analysis: analyzeOutput(outputChunks),
+    analysis,
   }
 }

@@ -18,6 +18,7 @@ export default defineConfig({
         format: 'es',
       },
     },
+    assetsInlineLimit: 0, // force not-inlined assets
   },
   plugins: [react()],
 })

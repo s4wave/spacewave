@@ -125,21 +125,27 @@ export interface BuildRequest {
    */
   distDir?: string
   /**
+   * PublicPath is the public URL path prefix for assets.
+   *
+   * @generated from field: string public_path = 7;
+   */
+  publicPath?: string
+  /**
    * Entrypoints contains the list of entrypoints to build.
    *
-   * @generated from field: repeated bldr.web.bundler.vite.ViteBuildRequestEntrypoint entrypoints = 7;
+   * @generated from field: repeated bldr.web.bundler.vite.ViteBuildRequestEntrypoint entrypoints = 8;
    */
   entrypoints?: ViteBuildRequestEntrypoint[]
   /**
    * ExternalPkgs is the list of packages to pass to External provided by importmap.
    *
-   * @generated from field: repeated string external_pkgs = 8;
+   * @generated from field: repeated string external_pkgs = 9;
    */
   externalPkgs?: string[]
   /**
    * WebPkgs is the list of packages to be externalized as shared web pkgs.
    *
-   * @generated from field: repeated bldr.web.bundler.WebPkgRefConfig web_pkgs = 9;
+   * @generated from field: repeated bldr.web.bundler.WebPkgRefConfig web_pkgs = 10;
    */
   webPkgs?: WebPkgRefConfig[]
 }
@@ -160,22 +166,23 @@ export const BuildRequest: MessageType<BuildRequest> = createMessageType({
     { no: 4, name: 'out_dir', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'cache_dir', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'dist_dir', kind: 'scalar', T: ScalarType.STRING },
+    { no: 7, name: 'public_path', kind: 'scalar', T: ScalarType.STRING },
     {
-      no: 7,
+      no: 8,
       name: 'entrypoints',
       kind: 'message',
       T: () => ViteBuildRequestEntrypoint,
       repeated: true,
     },
     {
-      no: 8,
+      no: 9,
       name: 'external_pkgs',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
     },
     {
-      no: 9,
+      no: 10,
       name: 'web_pkgs',
       kind: 'message',
       T: () => WebPkgRefConfig,

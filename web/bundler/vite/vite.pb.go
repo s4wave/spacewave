@@ -68,12 +68,14 @@ type BuildRequest struct {
 	CacheDir string `protobuf:"bytes,5,opt,name=cache_dir,json=cacheDir,proto3" json:"cacheDir,omitempty"`
 	// DistDir is the bldr dist src directory for the build.
 	DistDir string `protobuf:"bytes,6,opt,name=dist_dir,json=distDir,proto3" json:"distDir,omitempty"`
+	// PublicPath is the public URL path prefix for assets.
+	PublicPath string `protobuf:"bytes,7,opt,name=public_path,json=publicPath,proto3" json:"publicPath,omitempty"`
 	// Entrypoints contains the list of entrypoints to build.
-	Entrypoints []*ViteBuildRequestEntrypoint `protobuf:"bytes,7,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`
+	Entrypoints []*ViteBuildRequestEntrypoint `protobuf:"bytes,8,rep,name=entrypoints,proto3" json:"entrypoints,omitempty"`
 	// ExternalPkgs is the list of packages to pass to External provided by importmap.
-	ExternalPkgs []string `protobuf:"bytes,8,rep,name=external_pkgs,json=externalPkgs,proto3" json:"externalPkgs,omitempty"`
+	ExternalPkgs []string `protobuf:"bytes,9,rep,name=external_pkgs,json=externalPkgs,proto3" json:"externalPkgs,omitempty"`
 	// WebPkgs is the list of packages to be externalized as shared web pkgs.
-	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,9,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
+	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,10,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
 }
 
 func (x *BuildRequest) Reset() {
@@ -120,6 +122,13 @@ func (x *BuildRequest) GetCacheDir() string {
 func (x *BuildRequest) GetDistDir() string {
 	if x != nil {
 		return x.DistDir
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetPublicPath() string {
+	if x != nil {
+		return x.PublicPath
 	}
 	return ""
 }
@@ -351,6 +360,7 @@ func (m *BuildRequest) CloneVT() *BuildRequest {
 	r.OutDir = m.OutDir
 	r.CacheDir = m.CacheDir
 	r.DistDir = m.DistDir
+	r.PublicPath = m.PublicPath
 	if rhs := m.ConfigPaths; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -551,6 +561,9 @@ func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
 		return false
 	}
 	if this.DistDir != that.DistDir {
+		return false
+	}
+	if this.PublicPath != that.PublicPath {
 		return false
 	}
 	if len(this.Entrypoints) != len(that.Entrypoints) {
@@ -865,6 +878,11 @@ func (x *BuildRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("distDir")
 		s.WriteString(x.DistDir)
 	}
+	if x.PublicPath != "" || s.HasField("publicPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("publicPath")
+		s.WriteString(x.PublicPath)
+	}
 	if len(x.Entrypoints) > 0 || s.HasField("entrypoints") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("entrypoints")
@@ -931,6 +949,9 @@ func (x *BuildRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "dist_dir", "distDir":
 			s.AddField("dist_dir")
 			x.DistDir = s.ReadString()
+		case "public_path", "publicPath":
+			s.AddField("public_path")
+			x.PublicPath = s.ReadString()
 		case "entrypoints":
 			s.AddField("entrypoints")
 			if s.ReadNil() {
@@ -1384,7 +1405,7 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x4a
+			dAtA[i] = 0x52
 		}
 	}
 	if len(m.ExternalPkgs) > 0 {
@@ -1393,7 +1414,7 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			copy(dAtA[i:], m.ExternalPkgs[iNdEx])
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExternalPkgs[iNdEx])))
 			i--
-			dAtA[i] = 0x42
+			dAtA[i] = 0x4a
 		}
 	}
 	if len(m.Entrypoints) > 0 {
@@ -1405,8 +1426,15 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x3a
+			dAtA[i] = 0x42
 		}
+	}
+	if len(m.PublicPath) > 0 {
+		i -= len(m.PublicPath)
+		copy(dAtA[i:], m.PublicPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PublicPath)))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if len(m.DistDir) > 0 {
 		i -= len(m.DistDir)
@@ -1762,6 +1790,10 @@ func (m *BuildRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.PublicPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	if len(m.Entrypoints) > 0 {
 		for _, e := range m.Entrypoints {
 			l = e.SizeVT()
@@ -1978,6 +2010,13 @@ func (x *BuildRequest) MarshalProtoText() string {
 		}
 		sb.WriteString("dist_dir: ")
 		sb.WriteString(strconv.Quote(x.DistDir))
+	}
+	if x.PublicPath != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("public_path: ")
+		sb.WriteString(strconv.Quote(x.PublicPath))
 	}
 	if len(x.Entrypoints) > 0 {
 		if sb.Len() > 14 {
@@ -2569,6 +2608,38 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PublicPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Entrypoints", wireType)
 			}
 			var msglen int
@@ -2601,7 +2672,7 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ExternalPkgs", wireType)
 			}
@@ -2633,7 +2704,7 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ExternalPkgs = append(m.ExternalPkgs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 9:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebPkgs", wireType)
 			}

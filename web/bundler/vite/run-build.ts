@@ -1,10 +1,12 @@
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { writeFileSync } from 'fs'
 import { buildAndAnalyze, buildConfig } from './build.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+// Debug the build process:
 // tsx run-build.ts
 
 async function main() {
@@ -22,9 +24,18 @@ async function main() {
       config.build = {}
     }
     config.build.outDir = outputDir
-    await buildAndAnalyze(config)
+
+    // Run the build
+    const result = await buildAndAnalyze(config)
+
+    // Write the result to vite-result.json
+    writeFileSync(
+      resolve(outputDir, 'vite-result.json'),
+      JSON.stringify(result, null, 2),
+    )
 
     console.log('Build completed successfully')
+    console.log('Result written to:', resolve(outputDir, 'vite-result.json'))
   } catch (e) {
     console.error('Build failed:', e)
     process.exit(1)
