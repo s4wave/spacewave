@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import path from 'path'
 import type { ConfigEnv } from 'vitest/config.js'
-import type { RollupOutput } from 'rollup'
+import type { OutputChunk, RollupOutput, OutputAsset } from 'rollup'
 import type { RollupError } from 'rollup'
 
 /**
@@ -89,7 +89,7 @@ function collectReferencedFiles(
 // Analyze the manifest to extract entrypoints and their corresponding files
 export async function analyzeManifest(
   outDir: string,
-  outputChunks: any[],
+  outputChunks: (OutputChunk | OutputAsset)[],
   rootDir: string,
 ) {
   const manifestPath = path.join(outDir, '.vite/manifest.json')
@@ -97,108 +97,79 @@ export async function analyzeManifest(
     await fs.readFile(manifestPath, 'utf-8'),
   )
 
-  // Build a map of JS output files to their input files from rollup chunks
-  const jsFileToInputs = new Map<string, string[]>()
+  // 1. Map each JS chunk to its constituent source modules.
+  const jsChunkToModules = new Map<string, Set<string>>()
   for (const chunk of outputChunks) {
     if (chunk.type === 'chunk' && chunk.fileName) {
-      // Track input files for this chunk
-      const inputFiles = new Set<string>()
-
-      // Add the entry module itself
+      const modules = new Set<string>()
+      // The facadeModuleId is the entry-point file for this chunk.
       if (chunk.facadeModuleId) {
-        const relativePath = path.relative(rootDir, chunk.facadeModuleId)
-        inputFiles.add(relativePath)
+        modules.add(
+          path.normalize(path.relative(rootDir, chunk.facadeModuleId)),
+        )
       }
-
-      // Add referenced files for this chunk
+      // The moduleIds are all the other files bundled into this chunk.
       if (chunk.moduleIds) {
-        chunk.moduleIds.forEach((file: string) => {
-          if (file) {
-            const relativePath = path.relative(rootDir, file)
-            inputFiles.add(relativePath)
-          }
-        })
+        chunk.moduleIds.forEach((id) =>
+          modules.add(path.normalize(path.relative(rootDir, id))),
+        )
       }
-
-      jsFileToInputs.set(chunk.fileName, Array.from(inputFiles))
+      jsChunkToModules.set(chunk.fileName, modules)
     }
   }
 
-  // Build a lookup from output file -> source file for ALL types of files
-  const outputToSrc = new Map<string, string>()
-  Object.values(manifest).forEach((entry) => {
-    if (entry.src && entry.file) {
-      outputToSrc.set(entry.file, entry.src)
-    }
-  })
-
-  // Build CSS source file mapping by finding CSS files in JS chunk moduleIds
-  // CSS asset chunks don't have proper source paths, but JS chunks that import them do
-  const cssOutputToSrc = new Map<string, string>()
-  for (const chunk of outputChunks) {
-    if (chunk.type === 'chunk' && chunk.moduleIds) {
-      chunk.moduleIds.forEach((moduleId: string) => {
-        if (moduleId && moduleId.endsWith('.css')) {
-          const relativePath = path.relative(rootDir, moduleId)
-          // Find the CSS output file that corresponds to this source file
-          // We need to match by the base filename since we don't have a direct mapping
-          const baseFileName = path.basename(relativePath, '.css')
-          for (const assetChunk of outputChunks) {
-            if (assetChunk.type === 'asset' && 
-                assetChunk.fileName?.endsWith('.css') &&
-                assetChunk.names?.includes(baseFileName + '.css')) {
-              cssOutputToSrc.set(assetChunk.fileName, relativePath)
-              break
-            }
-          }
-        }
-      })
-    }
-  }
-
+  // 2. Prepare the primary output structure for each entrypoint.
   const entrypointOutputs = Object.entries(manifest)
-    .filter(([, v]) => v.isEntry)
-    .map(([key, v]) => {
-      const inputSet = new Set<string>(jsFileToInputs.get(v.file) || [])
-
-      // Collect all referenced files (CSS and assets)
-      const { cssFiles, assetFiles } = collectReferencedFiles(key, manifest)
-
-      // Add source files for CSS using rollup chunk mapping
-      cssFiles.forEach((cssFile) => {
-        const src = cssOutputToSrc.get(cssFile)
-        if (src) inputSet.add(src)
-      })
-
-      // Add source files for other assets using manifest mapping
-      assetFiles.forEach((assetFile) => {
-        const src = outputToSrc.get(assetFile)
-        if (src) inputSet.add(src)
-      })
-
+    .filter(([, value]) => value.isEntry)
+    .map(([key, value]) => {
+      const modules = jsChunkToModules.get(value.file) ?? new Set<string>()
       return {
-        entrypoint: v.src ?? key,
+        entrypoint: value.src ?? key,
         outputs: {
-          js: v.file,
-          css: Array.from(cssFiles),
+          js: value.file,
+          css: new Set<string>(value.css ?? []),
         },
-        inputs: Array.from(inputSet),
+        inputs: modules,
       }
     })
 
-  // Global CSS files are any CSS assets not tied to specific entries
-  const allCssFromEntries = new Set<string>()
-  entrypointOutputs.forEach((entry) => {
-    entry.outputs.css.forEach((css) => allCssFromEntries.add(css))
-  })
+  // 3. Associate CSS assets with entrypoints.
+  const allCssAssets = new Set<string>()
+  const handledCssAssets = new Set<string>()
 
-  const globalCssFiles = Object.values(manifest)
-    .filter((entry) => entry.file.endsWith('.css'))
-    .map((entry) => entry.file)
-    .filter((css) => !allCssFromEntries.has(css))
+  for (const chunk of outputChunks) {
+    if (chunk.type !== 'asset' || !chunk.fileName.endsWith('.css')) continue
+    allCssAssets.add(chunk.fileName)
+
+    const asset = chunk as OutputAsset & { originalFileNames?: string[] }
+    const referencers = (asset.originalFileNames ?? []).map((f) =>
+      path.normalize(f),
+    )
+
+    for (const entry of entrypointOutputs) {
+      if (referencers.some((ref) => entry.inputs.has(ref))) {
+        entry.outputs.css.add(chunk.fileName)
+        handledCssAssets.add(chunk.fileName)
+      }
+    }
+  }
+
+  // 4. Finalize the output structure.
+  const finalEntrypointOutputs = entrypointOutputs.map((entry) => ({
+    entrypoint: entry.entrypoint,
+    outputs: {
+      js: entry.outputs.js,
+      css: Array.from(entry.outputs.css),
+    },
+    inputs: Array.from(entry.inputs),
+  }))
+
+  const globalCssFiles = [...allCssAssets].filter(
+    (css) => !handledCssAssets.has(css),
+  )
 
   return {
-    entrypointOutputs,
+    entrypointOutputs: finalEntrypointOutputs,
     globalCssFiles,
   }
 }
