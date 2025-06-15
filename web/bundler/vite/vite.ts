@@ -1,5 +1,4 @@
 import path, { resolve } from 'path'
-import fs from 'fs'
 import { Server, StreamConn, createHandler, createMux } from 'starpc'
 import {
   buildPipeName,
@@ -10,9 +9,6 @@ import { BuildRequest, BuildResponse } from './vite.pb.js'
 import { buildAndAnalyze, buildConfig, isRollupError } from './build.js'
 import { createWebPkgRemapPlugin } from './plugin.js'
 import { UserConfig } from 'vite'
-
-// verboseDebug is the verbose debugging flag
-const verboseDebug = true
 
 // Parse command line arguments
 function parseArgs() {
@@ -38,10 +34,6 @@ function parseArgs() {
 // Implementation of the ViteBundler service
 class ViteBundlerService implements ViteBundler {
   async Build(request: BuildRequest): Promise<BuildResponse> {
-    if (verboseDebug) {
-      console.log(`[vite] build request: ${JSON.stringify(request)}`)
-    }
-
     let mergedConfig: UserConfig = {}
     try {
       const configPaths = request.configPaths || []
@@ -78,11 +70,6 @@ class ViteBundlerService implements ViteBundler {
         mergedConfig.build = {}
       }
       mergedConfig.build.outDir = outDir
-
-      // Ensure CSS is split into separate files per entry
-      mergedConfig.build.cssCodeSplit = true
-      // Write manifest.json file to the output
-      mergedConfig.build.manifest = true
 
       // Set the root dir
       mergedConfig.root = rootDir
@@ -124,7 +111,7 @@ class ViteBundlerService implements ViteBundler {
             entry.subPaths.add(webPkgSubPath)
             webPkgRefs.set(webPkgID, entry)
           },
-          debug: verboseDebug,
+          debug: false,
         }),
       )
 
@@ -177,12 +164,15 @@ class ViteBundlerService implements ViteBundler {
       }
 
       // Run the build process with the merged config
-      const { analysis, viteOutput } = await buildAndAnalyze(mergedConfig)
+      const { analysis } = await buildAndAnalyze(mergedConfig)
 
-      // Map the analysis results to the response format
+      // Map the analysis results to the response format and make paths relative to rootDir
       const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
-        entrypoint: entry.entrypoint || '',
-        inputFiles: entry.inputs || [],
+        entrypoint:
+          entry.entrypoint ? path.relative(rootDir, entry.entrypoint) : '',
+        inputFiles: (entry.inputs || []).map((file) =>
+          path.relative(rootDir, file),
+        ),
 
         jsOutput: entry.outputs.js,
         cssOutputs: entry.outputs.css,
@@ -191,15 +181,13 @@ class ViteBundlerService implements ViteBundler {
       // Collect all input files (as relative paths)
       const allInputFiles = new Set<string>()
       entrypointOutputs.forEach((entry) => {
-        entry.inputFiles?.forEach((file: string) => allInputFiles.add(file))
+        entry.inputFiles?.forEach((file) => allInputFiles.add(file))
       })
 
       const allGlobalCssFiles = new Set<string>()
-      analysis.globalCssFiles?.forEach((file: string) =>
-        allGlobalCssFiles.add(file),
-      )
+      analysis.globalCssFiles?.forEach((file) => allGlobalCssFiles.add(file))
 
-      const result = {
+      return {
         success: true,
         entrypointOutputs,
         inputFiles: Array.from(allInputFiles),
@@ -210,49 +198,14 @@ class ViteBundlerService implements ViteBundler {
           subPaths: Array.from(entry.subPaths),
         })),
       }
-
-      if (verboseDebug) {
-        // Write all JSON files just before returning
-        fs.writeFileSync(
-          path.join(outDir, 'vite-config.json'),
-          JSON.stringify(mergedConfig, null, 2),
-        )
-        fs.writeFileSync(
-          path.join(outDir, 'vite-output.json'),
-          JSON.stringify(viteOutput, null, 2),
-        )
-        fs.writeFileSync(
-          path.join(outDir, 'vite-analysis.json'),
-          JSON.stringify(analysis, null, 2),
-        )
-        fs.writeFileSync(
-          path.join(outDir, 'vite-result.json'),
-          JSON.stringify(result, null, 2),
-        )
-      }
-
-      return result
     } catch (err) {
       console.error(`[vite] build error:`, err)
-      const failureResp = {
+      return {
         success: false,
         error: err instanceof Error ? err.message : String(err),
         inputFiles: isRollupError(err) ? err.watchFiles : [],
         webPkgRefs: [],
       }
-
-      if (verboseDebug) {
-        fs.writeFileSync(
-          path.join(request.outDir || process.cwd(), 'vite-config.json'),
-          JSON.stringify(mergedConfig, null, 2),
-        )
-        fs.writeFileSync(
-          path.join(request.outDir || process.cwd(), 'vite-error.json'),
-          JSON.stringify(failureResp, null, 2),
-        )
-      }
-
-      return failureResp
     }
   }
 }

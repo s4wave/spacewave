@@ -26,16 +26,9 @@ async function main() {
     config.build.outDir = outputDir
 
     // Run the build
-    const result = await buildAndAnalyze(config)
-
-    // Write the result to vite-result.json
-    writeFileSync(
-      resolve(outputDir, 'vite-result.json'),
-      JSON.stringify(result, null, 2),
-    )
+    await buildAndAnalyze(config)
 
     console.log('Build completed successfully')
-    console.log('Result written to:', resolve(outputDir, 'vite-result.json'))
   } catch (e) {
     console.error('Build failed:', e)
     process.exit(1)
