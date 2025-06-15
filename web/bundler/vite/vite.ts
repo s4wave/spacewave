@@ -1,4 +1,5 @@
 import path, { resolve } from 'path'
+import fs from 'fs'
 import { Server, StreamConn, createHandler, createMux } from 'starpc'
 import {
   buildPipeName,
@@ -9,6 +10,9 @@ import { BuildRequest, BuildResponse } from './vite.pb.js'
 import { buildAndAnalyze, buildConfig, isRollupError } from './build.js'
 import { createWebPkgRemapPlugin } from './plugin.js'
 import { UserConfig } from 'vite'
+
+// verboseDebug is the verbose debugging flag
+const verboseDebug = true
 
 // Parse command line arguments
 function parseArgs() {
@@ -34,179 +38,211 @@ function parseArgs() {
 // Implementation of the ViteBundler service
 class ViteBundlerService implements ViteBundler {
   async Build(request: BuildRequest): Promise<BuildResponse> {
-    let mergedConfig: UserConfig = {}
-    try {
-      const configPaths = request.configPaths || []
-      const mode = request.mode || 'development'
-      const rootDir = request.rootDir || process.cwd()
-      const outDir = request.outDir || resolve(rootDir, 'dist')
-      const distDir = request.distDir || resolve(rootDir, '.bldr/src')
-      const publicPath = request.publicPath || null
+    return await buildBundle(request)
+  }
+}
 
-      // Store web package references
-      const webPkgRefs: Map<string, { root: string; subPaths: Set<string> }> =
-        new Map()
+/**
+ * Core build function that processes Vite bundling requests
+ * @param {BuildRequest} request - The build configuration request
+ * @returns {Promise<BuildResponse>} The build results
+ */
+async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
+  if (verboseDebug) {
+    console.log(`[vite] build request: ${JSON.stringify(request)}`)
+  }
 
-      // set env vars to indicate the project root path
-      // these are used in vite-base.config.ts
-      process.env['BLDR_DIST_ROOT'] = distDir
-      process.env['BLDR_PROJECT_ROOT'] = rootDir
-      process.env['BLDR_OUT_ROOT'] = outDir
+  let mergedConfig: UserConfig = {}
+  try {
+    const configPaths = request.configPaths || []
+    const mode = request.mode || 'development'
+    const rootDir = request.rootDir || process.cwd()
+    const outDir = request.outDir || resolve(rootDir, 'dist')
+    const distDir = request.distDir || resolve(rootDir, '.bldr/src')
+    const publicPath = request.publicPath || null
 
-      // set node env
-      process.env['NODE_ENV'] = mode
+    // Store web package references
+    const webPkgRefs: Map<string, { root: string; subPaths: Set<string> }> =
+      new Map()
 
-      // configPaths are relative to rootDir, make them absolute paths.
-      const absoluteConfigPaths = configPaths.map((configPath) =>
-        path.resolve(rootDir, configPath),
-      )
+    // set env vars to indicate the project root path
+    // these are used in vite-base.config.ts
+    process.env['BLDR_DIST_ROOT'] = distDir
+    process.env['BLDR_PROJECT_ROOT'] = rootDir
+    process.env['BLDR_OUT_ROOT'] = outDir
 
-      // Build the merged configuration
-      mergedConfig = await buildConfig(
-        { mode, command: 'build' },
-        ...absoluteConfigPaths,
-      )
-      if (!mergedConfig.build) {
-        mergedConfig.build = {}
+    // set node env
+    process.env['NODE_ENV'] = mode
+
+    // configPaths are relative to rootDir, make them absolute paths.
+    const absoluteConfigPaths = configPaths.map((configPath) =>
+      path.resolve(rootDir, configPath),
+    )
+
+    // Build the merged configuration
+    mergedConfig = await buildConfig(
+      { mode, command: 'build' },
+      ...absoluteConfigPaths,
+    )
+    if (!mergedConfig.build) {
+      mergedConfig.build = {}
+    }
+    mergedConfig.build.outDir = outDir
+
+    // Set the root dir
+    mergedConfig.root = rootDir
+
+    // Ensure CSS is split into separate files per entry
+    mergedConfig.build.cssCodeSplit = true
+    // Write manifest.json to the output
+    mergedConfig.build.manifest = true
+
+    // Set the base path (public path for assets)
+    if (publicPath != null) {
+      mergedConfig.base = publicPath
+    }
+
+    // Set the cache dir
+    if (request.cacheDir) {
+      mergedConfig.cacheDir = request.cacheDir
+    }
+
+    // Add bldr external (importmap) packages.
+    if (!mergedConfig.build.rollupOptions) {
+      mergedConfig.build.rollupOptions = {}
+    }
+    mergedConfig.build.rollupOptions.external = request.externalPkgs ?? []
+
+    // Add external packages for web pkg remapping
+    const webPkgIDs: string[] = (request.webPkgs ?? [])
+      .map((pkg) => pkg.id)
+      .filter((pkg): pkg is string => !!pkg)
+
+    // Add our web pkg remap plugin with the callback
+    if (!mergedConfig.plugins) {
+      mergedConfig.plugins = []
+    }
+    mergedConfig.plugins.push(
+      createWebPkgRemapPlugin({
+        webPkgIDs,
+        addWebPkgImport: (webPkgID, webPkgRoot, webPkgSubPath) => {
+          // Track the web package import similar to esbuild implementation
+          const entry = webPkgRefs.get(webPkgID) || {
+            root: webPkgRoot,
+            subPaths: new Set<string>(),
+          }
+          entry.subPaths.add(webPkgSubPath)
+          webPkgRefs.set(webPkgID, entry)
+        },
+        debug: verboseDebug,
+      }),
+    )
+
+    // Add entrypoints if provided
+    if (request.entrypoints && request.entrypoints.length > 0) {
+      // Build a Rollup input map (name -> absolute path)
+      const input: Record<string, string> = {} // InputOption
+      for (const entrypoint of request.entrypoints) {
+        if (entrypoint.inputPath) {
+          const name =
+            entrypoint.name ||
+            path.basename(
+              entrypoint.inputPath,
+              path.extname(entrypoint.inputPath),
+            )
+          input[name] = resolve(rootDir, entrypoint.inputPath)
+        }
       }
-      mergedConfig.build.outDir = outDir
 
-      // Set the root dir
-      mergedConfig.root = rootDir
-
-      // Set the base path (public path for assets)
-      if (publicPath != null) {
-        mergedConfig.base = publicPath
-      }
-
-      // Set the cache dir
-      if (request.cacheDir) {
-        mergedConfig.cacheDir = request.cacheDir
-      }
-
-      // Add bldr external (importmap) packages.
+      // Ensure rollupOptions exists
       if (!mergedConfig.build.rollupOptions) {
         mergedConfig.build.rollupOptions = {}
       }
-      mergedConfig.build.rollupOptions.external = request.externalPkgs ?? []
 
-      // Add external packages for web pkg remapping
-      const webPkgIDs: string[] = (request.webPkgs ?? [])
-        .map((pkg) => pkg.id)
-        .filter((pkg): pkg is string => !!pkg)
-
-      // Add our web pkg remap plugin with the callback
-      if (!mergedConfig.plugins) {
-        mergedConfig.plugins = []
-      }
-      mergedConfig.plugins.push(
-        createWebPkgRemapPlugin({
-          webPkgIDs,
-          addWebPkgImport: (webPkgID, webPkgRoot, webPkgSubPath) => {
-            // Track the web package import similar to esbuild implementation
-            const entry = webPkgRefs.get(webPkgID) || {
-              root: webPkgRoot,
-              subPaths: new Set<string>(),
+      // Merge the input map and guarantee we output ES-modules
+      mergedConfig.build.rollupOptions = {
+        ...mergedConfig.build.rollupOptions,
+        input,
+        preserveEntrySignatures: 'strict',
+        output: {
+          ...(mergedConfig.build.rollupOptions.output ?? {}),
+          format: 'es',
+          entryFileNames: (chunkInfo) => {
+            // Preserve source directory structure for entry files
+            const facadeModuleId = chunkInfo.facadeModuleId
+            if (facadeModuleId) {
+              const relativePath = path.relative(rootDir, facadeModuleId)
+              const parsed = path.parse(relativePath)
+              return `${parsed.dir}/${parsed.name}-[hash].mjs`
             }
-            entry.subPaths.add(webPkgSubPath)
-            webPkgRefs.set(webPkgID, entry)
+            return '[name]-[hash].mjs'
           },
-          debug: false,
-        }),
-      )
-
-      // Add entrypoints if provided
-      if (request.entrypoints && request.entrypoints.length > 0) {
-        // Build a Rollup input map (name -> absolute path)
-        const input: Record<string, string> = {} // InputOption
-        for (const entrypoint of request.entrypoints) {
-          if (entrypoint.inputPath) {
-            const name =
-              entrypoint.name ||
-              path.basename(
-                entrypoint.inputPath,
-                path.extname(entrypoint.inputPath),
-              )
-            input[name] = resolve(rootDir, entrypoint.inputPath)
-          }
-        }
-
-        // Ensure rollupOptions exists
-        if (!mergedConfig.build.rollupOptions) {
-          mergedConfig.build.rollupOptions = {}
-        }
-
-        // Merge the input map and guarantee we output ES-modules
-        mergedConfig.build.rollupOptions = {
-          ...mergedConfig.build.rollupOptions,
-          input,
-          preserveEntrySignatures: 'strict',
-          output: {
-            ...(mergedConfig.build.rollupOptions.output ?? {}),
-            format: 'es',
-            entryFileNames: (chunkInfo) => {
-              // Preserve source directory structure for entry files
-              const facadeModuleId = chunkInfo.facadeModuleId
-              if (facadeModuleId) {
-                const relativePath = path.relative(rootDir, facadeModuleId)
-                const parsed = path.parse(relativePath)
-                return `${parsed.dir}/${parsed.name}-[hash].mjs`
-              }
-              return '[name]-[hash].mjs'
-            },
-            chunkFileNames: '[name]-[hash].mjs',
-            assetFileNames: '[name]-[hash][extname]',
-          },
-        }
-
-        // Disable library mode entirely so assets are not inlined
-        delete mergedConfig.build.lib
+          chunkFileNames: '[name]-[hash].mjs',
+          assetFileNames: '[name]-[hash][extname]',
+        },
       }
 
-      // Run the build process with the merged config
-      const { analysis } = await buildAndAnalyze(mergedConfig)
-
-      // Map the analysis results to the response format and make paths relative to rootDir
-      const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
-        entrypoint:
-          entry.entrypoint ? path.relative(rootDir, entry.entrypoint) : '',
-        inputFiles: (entry.inputs || []).map((file) =>
-          path.relative(rootDir, file),
-        ),
-
-        jsOutput: entry.outputs.js,
-        cssOutputs: entry.outputs.css,
-      }))
-
-      // Collect all input files (as relative paths)
-      const allInputFiles = new Set<string>()
-      entrypointOutputs.forEach((entry) => {
-        entry.inputFiles?.forEach((file) => allInputFiles.add(file))
-      })
-
-      const allGlobalCssFiles = new Set<string>()
-      analysis.globalCssFiles?.forEach((file) => allGlobalCssFiles.add(file))
-
-      return {
-        success: true,
-        entrypointOutputs,
-        inputFiles: Array.from(allInputFiles),
-        globalCssFiles: Array.from(allGlobalCssFiles),
-        webPkgRefs: Array.from(webPkgRefs.entries()).map(([pkgId, entry]) => ({
-          pkgId,
-          pkgRoot: entry.root,
-          subPaths: Array.from(entry.subPaths),
-        })),
-      }
-    } catch (err) {
-      console.error(`[vite] build error:`, err)
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-        inputFiles: isRollupError(err) ? err.watchFiles : [],
-        webPkgRefs: [],
-      }
+      // Disable library mode entirely so assets are not inlined
+      delete mergedConfig.build.lib
     }
+
+    // Run the build process with the merged config
+    const { analysis, viteOutput, result } = await buildAndAnalyze(mergedConfig, rootDir, webPkgRefs)
+
+    if (verboseDebug) {
+      // Ensure .vite directory exists
+      const viteDir = path.join(outDir, '.vite')
+      if (!fs.existsSync(viteDir)) {
+        fs.mkdirSync(viteDir, { recursive: true })
+      }
+
+      // Write all JSON files to .vite/ subdirectory
+      fs.writeFileSync(
+        path.join(viteDir, 'vite-config.json'),
+        JSON.stringify(mergedConfig, null, 2),
+      )
+      fs.writeFileSync(
+        path.join(viteDir, 'vite-output.json'),
+        JSON.stringify(viteOutput, null, 2),
+      )
+      fs.writeFileSync(
+        path.join(viteDir, 'vite-analysis.json'),
+        JSON.stringify(analysis, null, 2),
+      )
+      fs.writeFileSync(
+        path.join(viteDir, 'vite-result.json'),
+        JSON.stringify(result, null, 2),
+      )
+    }
+
+    return result
+  } catch (err) {
+    console.error(`[vite] build error:`, err)
+    const failureResp = {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+      inputFiles: isRollupError(err) ? err.watchFiles : [],
+      webPkgRefs: [],
+    }
+
+    if (verboseDebug) {
+      const errorOutDir = request.outDir || process.cwd()
+      const viteDir = path.join(errorOutDir, '.vite')
+      if (!fs.existsSync(viteDir)) {
+        fs.mkdirSync(viteDir, { recursive: true })
+      }
+
+      fs.writeFileSync(
+        path.join(viteDir, 'vite-config.json'),
+        JSON.stringify(mergedConfig, null, 2),
+      )
+      fs.writeFileSync(
+        path.join(viteDir, 'vite-error.json'),
+        JSON.stringify(failureResp, null, 2),
+      )
+    }
+
+    return failureResp
   }
 }
 

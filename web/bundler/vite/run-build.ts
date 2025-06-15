@@ -14,6 +14,7 @@ async function main() {
     const outputDir = resolve(__dirname, './vite-dist')
     const configFile = resolve(__dirname, '../../../vite.config.ts')
     const baseConfig = resolve(__dirname, './vite-base.config.ts')
+    const rootDir = resolve(__dirname, '../../..')
 
     const config = await buildConfig(
       { mode: 'development', command: 'build' },
@@ -25,8 +26,11 @@ async function main() {
     }
     config.build.outDir = outputDir
 
+    // Create empty web package references map for this build
+    const webPkgRefs = new Map<string, { root: string; subPaths: Set<string> }>()
+
     // Run the build
-    await buildAndAnalyze(config)
+    await buildAndAnalyze(config, rootDir, webPkgRefs)
 
     console.log('Build completed successfully')
   } catch (e) {

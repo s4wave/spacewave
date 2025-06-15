@@ -123,8 +123,11 @@ export async function analyzeManifest(
     .filter(([, value]) => value.isEntry)
     .map(([key, value]) => {
       const modules = jsChunkToModules.get(value.file) ?? new Set<string>()
+      const entrypointPath = value.src ?? key
       return {
-        entrypoint: value.src ?? key,
+        entrypoint: path.isAbsolute(entrypointPath) 
+          ? path.relative(rootDir, entrypointPath)
+          : entrypointPath,
         outputs: {
           js: value.file,
           css: new Set<string>(value.css ?? []),
@@ -194,7 +197,11 @@ export async function runBuild(
 }
 
 // Build and analyze the output
-export async function buildAndAnalyze(config: UserConfig) {
+export async function buildAndAnalyze(
+  config: UserConfig,
+  rootDir: string,
+  webPkgRefs: Map<string, { root: string; subPaths: Set<string> }>,
+) {
   const buildOptions: InlineConfig = {
     build: {
       ...config.build,
@@ -223,8 +230,44 @@ export async function buildAndAnalyze(config: UserConfig) {
   const analysis = await analyzeManifest(
     outDir,
     outputChunks,
-    config.root ?? process.cwd(),
+    rootDir,
   )
+
+  // Map the analysis results to the response format and make paths relative to rootDir
+  const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
+    entrypoint: entry.entrypoint ? (
+      path.isAbsolute(entry.entrypoint) 
+        ? path.relative(rootDir, entry.entrypoint)
+        : entry.entrypoint
+    ) : '',
+    inputFiles: (entry.inputs || []).map((file) =>
+      path.isAbsolute(file) ? path.relative(rootDir, file) : file,
+    ),
+
+    jsOutput: entry.outputs.js,
+    cssOutputs: entry.outputs.css,
+  }))
+
+  // Collect all input files (as relative paths)
+  const allInputFiles = new Set<string>()
+  entrypointOutputs.forEach((entry) => {
+    entry.inputFiles?.forEach((file) => allInputFiles.add(file))
+  })
+
+  const allGlobalCssFiles = new Set<string>()
+  analysis.globalCssFiles?.forEach((file) => allGlobalCssFiles.add(file))
+
+  const result = {
+    success: true,
+    entrypointOutputs,
+    inputFiles: Array.from(allInputFiles),
+    globalCssFiles: Array.from(allGlobalCssFiles),
+    webPkgRefs: Array.from(webPkgRefs.entries()).map(([pkgId, entry]) => ({
+      pkgId,
+      pkgRoot: entry.root,
+      subPaths: Array.from(entry.subPaths),
+    })),
+  }
 
   // drop some unnecessary detail from the result(s)
   for (const chunk of outputChunks) {
@@ -251,5 +294,6 @@ export async function buildAndAnalyze(config: UserConfig) {
     viteOutput,
     outputChunks,
     analysis,
+    result,
   }
 }
