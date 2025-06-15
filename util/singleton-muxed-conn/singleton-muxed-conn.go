@@ -167,8 +167,8 @@ func (l *SingletonMuxedConn) WaitConn(ctx context.Context) (network.MuxedConn, e
 		if err == nil {
 			if l.conn != nil {
 				if l.conn.IsClosed() {
-					l.conn = nil
 					_ = l.conn.Close()
+					l.conn = nil
 				} else {
 					conn = l.conn
 				}
