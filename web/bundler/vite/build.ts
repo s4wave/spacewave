@@ -125,8 +125,9 @@ export async function analyzeManifest(
       const modules = jsChunkToModules.get(value.file) ?? new Set<string>()
       const entrypointPath = value.src ?? key
       return {
-        entrypoint: path.isAbsolute(entrypointPath) 
-          ? path.relative(rootDir, entrypointPath)
+        entrypoint:
+          path.isAbsolute(entrypointPath) ?
+            path.relative(rootDir, entrypointPath)
           : entrypointPath,
         outputs: {
           js: value.file,
@@ -227,19 +228,16 @@ export async function buildAndAnalyze(
 
   // Analyze the manifest to extract entrypoints and their corresponding files
   // This must happen BEFORE cleanup since we need access to moduleIds
-  const analysis = await analyzeManifest(
-    outDir,
-    outputChunks,
-    rootDir,
-  )
+  const analysis = await analyzeManifest(outDir, outputChunks, rootDir)
 
   // Map the analysis results to the response format and make paths relative to rootDir
   const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
-    entrypoint: entry.entrypoint ? (
-      path.isAbsolute(entry.entrypoint) 
-        ? path.relative(rootDir, entry.entrypoint)
+    entrypoint:
+      entry.entrypoint ?
+        path.isAbsolute(entry.entrypoint) ?
+          path.relative(rootDir, entry.entrypoint)
         : entry.entrypoint
-    ) : '',
+      : '',
     inputFiles: (entry.inputs || []).map((file) =>
       path.isAbsolute(file) ? path.relative(rootDir, file) : file,
     ),

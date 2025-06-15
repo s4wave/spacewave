@@ -12,7 +12,7 @@ import { createWebPkgRemapPlugin } from './plugin.js'
 import { UserConfig } from 'vite'
 
 // verboseDebug is the verbose debugging flag
-const verboseDebug = true
+const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
 
 // Parse command line arguments
 function parseArgs() {
@@ -187,7 +187,11 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     }
 
     // Run the build process with the merged config
-    const { analysis, viteOutput, result } = await buildAndAnalyze(mergedConfig, rootDir, webPkgRefs)
+    const { analysis, viteOutput, result } = await buildAndAnalyze(
+      mergedConfig,
+      rootDir,
+      webPkgRefs,
+    )
 
     if (verboseDebug) {
       // Ensure .vite directory exists
