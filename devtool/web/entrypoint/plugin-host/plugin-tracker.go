@@ -140,7 +140,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 					Version:     t.c.info.GetVersion(),
 					Description: "plugin dist fs for plugin: " + pluginID,
 				},
-				distFsID,
+				[]string{distFsID},
 				distFS,
 			)
 			defer distAccessCtrl.Close()
@@ -156,7 +156,7 @@ func (t *pluginTracker) execPlugin(ctx context.Context) error {
 					Version:     t.c.info.GetVersion(),
 					Description: "plugin assets fs for plugin: " + pluginID,
 				},
-				assetsFsID,
+				[]string{assetsFsID},
 				assetsFS,
 			)
 			defer assetsAccessCtrl.Close()

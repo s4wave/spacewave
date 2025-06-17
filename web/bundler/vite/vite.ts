@@ -12,7 +12,7 @@ import { createWebPkgRemapPlugin } from './plugin.js'
 import { UserConfig } from 'vite'
 
 // verboseDebug is the verbose debugging flag
-const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
+const verboseDebug = true // process.env.BLDR_VITE_VERBOSE === 'true'
 
 // Parse command line arguments
 function parseArgs() {

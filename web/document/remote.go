@@ -328,7 +328,7 @@ func (r *Remote) GetWebDocumentMux(ctx context.Context, webDocumentId string) (s
 // GetWebViewHost returns the Invoker for serving incoming requests for the given WebView.
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebViewHost(ctx context.Context, webViewId string) (srpc.Invoker, func(), error) {
+func (r *Remote) GetWebViewHost(ctx context.Context, webViewId string, _ func()) (srpc.Invoker, func(), error) {
 	var invoker srpc.Invoker
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {

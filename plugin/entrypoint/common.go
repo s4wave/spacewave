@@ -287,7 +287,7 @@ func BuildPluginAssetsFSController(le *logrus.Entry, b bus.Bus, pluginHostClient
 			Version,
 			"plugin assets filesystem",
 		),
-		bldr_plugin.PluginAssetsFsId,
+		[]string{bldr_plugin.PluginAssetsFsId},
 		unixfs_rpc_client.NewFSHandleBuilder(fsCursorSvcClient),
 	)
 }
@@ -303,7 +303,7 @@ func BuildPluginDistFSController(le *logrus.Entry, b bus.Bus, pluginHostClient s
 			Version,
 			"plugin dist filesystem",
 		),
-		bldr_plugin.PluginDistFsId,
+		[]string{bldr_plugin.PluginDistFsId},
 		unixfs_rpc_client.NewFSHandleBuilder(fsCursorSvcClient),
 	)
 }

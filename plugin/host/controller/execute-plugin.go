@@ -185,7 +185,7 @@ func (t *executePlugin) execPlugin(ctx context.Context, pluginManifest *bldr_man
 				Version:     t.c.info.GetVersion(),
 				Description: "plugin dist fs for plugin: " + pluginID,
 			},
-			distFsID,
+			[]string{distFsID},
 			distFS,
 		)
 		defer distAccessCtrl.Close()

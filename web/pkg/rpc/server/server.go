@@ -31,7 +31,7 @@ func NewWebPkgServer(le *logrus.Entry, pkg web_pkg.WebPkg) *WebPkgServer {
 			return nil, err
 		}
 
-		return unixfs.NewFSHandleCursor(fsHandle, true), nil
+		return unixfs.NewFSHandleCursor(fsHandle, true, nil), nil
 	})
 	_ = unixfs_rpc.SRPCRegisterFSCursorService(
 		mux,
@@ -59,7 +59,7 @@ func (s *WebPkgServer) WebPkgFsRpc(strm web_pkg_rpc.SRPCAccessWebPkg_WebPkgFsRpc
 }
 
 // GetWebPkgFsMux returns the mux for the web pkg fs service.
-func (s *WebPkgServer) GetWebPkgFsMux(ctx context.Context, _ string) (srpc.Invoker, func(), error) {
+func (s *WebPkgServer) GetWebPkgFsMux(ctx context.Context, _ string, _ func()) (srpc.Invoker, func(), error) {
 	return s.fsMux, nil, nil
 }
 

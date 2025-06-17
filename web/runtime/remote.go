@@ -329,7 +329,7 @@ func (r *Remote) WebWorkerOpenStream(
 }
 
 // GetServiceWorkerHost returns the Invoker serving requests for the ServiceWorker.
-func (r *Remote) GetServiceWorkerHost(ctx context.Context, componentID string) (srpc.Invoker, func(), error) {
+func (r *Remote) GetServiceWorkerHost(ctx context.Context, componentID string, _ func()) (srpc.Invoker, func(), error) {
 	// wait for Execute() to be ready
 	if err := r.WaitReady(ctx); err != nil {
 		return nil, nil, err
@@ -496,7 +496,7 @@ func (r *Remote) WaitFirstWebDocument(ctx context.Context) (web_document.WebDocu
 // GetWebDocumentHost returns the Mux serving requests for the given WebDocument.
 //
 // Waits for the given web view ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (srpc.Invoker, func(), error) {
+func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string, _ func()) (srpc.Invoker, func(), error) {
 	var mux srpc.Mux
 	err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
 		if !r.ready {
@@ -515,7 +515,7 @@ func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (
 // GetWebWorkerHost returns the Mux serving requests for the given WebWorker.
 //
 // Waits for the given web worker ID to be available, or ctx to be canceled.
-func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string) (srpc.Invoker, func(), error) {
+func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string, _ func()) (srpc.Invoker, func(), error) {
 	// TODO: Separate mux for each WebWorker?
 	// TODO server ID should be plugin/[plugin-id]
 	/*

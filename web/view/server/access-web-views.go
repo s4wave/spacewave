@@ -62,6 +62,7 @@ func NewAccessWebViewsViaBusController(
 func (h *AccessWebViewsViaBus) GetWebViewInvoker(
 	ctx context.Context,
 	webViewID string,
+	_ func(),
 ) (srpc.Invoker, func(), error) {
 	webView, _, webViewRef, err := web_view.ExLookupWebView(ctx, h.b, false, webViewID, true)
 	if err != nil {
