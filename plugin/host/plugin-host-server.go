@@ -160,6 +160,9 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream plugin.SRPCPluginHost_PluginFsR
 				return nil, nil, errors.Errorf("unexpected unixfs id prefix: %v", matchedPrefix)
 			}
 
+			// wrap with verbose
+			// mux = srpc.NewVMux(mux, s.le.WithField("vmux", "plugin-fs-rpc"), true)
+
 			// return release func
 			return mux, pluginRef.Release, nil
 		},
