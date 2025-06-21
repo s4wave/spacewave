@@ -80,7 +80,8 @@ type localFSCursor struct {
 // release conditionally calls release on the fsCursor.
 func (l *localFSCursor) release() {
 	if l.released.Swap(2) != 2 && l.cursor != nil {
-		l.cursor.Release()
+		// Release in a separate routine to avoid deadlocks.
+		go l.cursor.Release()
 	}
 }
 
@@ -1296,6 +1297,7 @@ func (f *FSCursorService) Release(releaseRoot bool) {
 		if id == 1 && !releaseRoot {
 			continue
 		}
+		// NOTE: release calls the actual Release function in a separate goroutine to avoid deadlocks.
 		localCursor.release()
 		localCursor.opsHandleID, localCursor.proxyHandleID = nil, nil
 		localCursor.clients = nil
