@@ -75,8 +75,8 @@ manifests:
   web:
     builder:
       id: bldr/web/plugin/compiler
-      config: # {}
-        delveAddr: wait
+      config: {}
+        # delveAddr: wait
 
   bldr-demo:
     builder:
