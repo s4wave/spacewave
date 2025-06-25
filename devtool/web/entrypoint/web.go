@@ -26,6 +26,7 @@ import (
 	bucket_setup "github.com/aperturerobotics/hydra/bucket/setup"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/retry"
 	"github.com/sirupsen/logrus"
@@ -89,6 +90,7 @@ func main() {
 		sr.AddFactory(plugin_host_web.NewFactory(b))
 		sr.AddFactory(web_entrypoint_browser.NewFactory(b))
 		sr.AddFactory(bldr_web_plugin_browser_controller.NewFactory(b))
+		sr.AddFactory(world_block_engine.NewFactory(b))
 
 		sr.AddFactory(stream_srpc_client_controller.NewFactory(b))
 		sr.AddFactory(volume_rpc_server.NewFactory(b))

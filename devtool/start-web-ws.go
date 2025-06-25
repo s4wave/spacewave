@@ -70,19 +70,31 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// HACK: in future we can pass this via some other kind of signal.
 	os.Setenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON", "true")
 
-	// build the plugin host controller
-	_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
+	// build the plugin host scheduler
+	_, relPluginSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		b.GetBus(),
 		b.GetWorldEngineID(),
 		b.GetPluginHostObjectKey(),
 		pluginVolumeID,
 		b.GetVolume().GetPeerID().String(),
+		true,
+		true,
+		true,
+	)
+	if err != nil {
+		return err
+	}
+	if relPluginSched != nil {
+		defer relPluginSched()
+	}
+
+	// build the plugin host controller
+	_, relPluginHost, err := plugin_host_default.StartPluginHost(
+		ctx,
+		b.GetBus(),
 		b.GetPluginsStateRoot(),
 		b.GetPluginsDistRoot(),
-		true,
-		true,
-		true,
 		"", // ignored on native platform
 	)
 	if err != nil {

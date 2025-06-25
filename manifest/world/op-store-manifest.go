@@ -73,26 +73,15 @@ func (o *StoreManifestOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
-	// unmarshal the manifest
-	var out *manifest.Manifest
-	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, o.GetManifestRef().GetManifestRef(), func(bcs *block.Cursor) error {
-		var err error
-		out, err = manifest.UnmarshalManifest(ctx, bcs)
-		return err
-	})
-	if err != nil {
-		return false, err
-	}
-
 	// store the object for the manifest
-	_, changed, err := SetManifest(ctx, ws, sender, o.GetObjectKey(), manifestRef)
+	_, changed, err := SetManifest(ctx, ws, sender, o.GetObjectKey(), o.GetManifestRef().GetManifestRef())
 	if err != nil {
 		return false, err
 	}
 
 	// link any LinkObjectKeys
 	for _, objKey := range o.GetLinkObjectKeys() {
-		quad := NewManifestQuad(objKey, o.GetObjectKey(), out.GetMeta().GetManifestId())
+		quad := NewManifestQuad(objKey, o.GetObjectKey(), o.GetManifestRef().GetMeta().GetManifestId())
 		if err := ws.SetGraphQuad(ctx, quad); err != nil {
 			return false, err
 		}

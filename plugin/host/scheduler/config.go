@@ -1,13 +1,17 @@
-package plugin_host_controller
+package plugin_host_scheduler
 
 import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bifrost/util/confparse"
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/hydra/volume"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
 )
+
+// ConfigID is the config identifier.
+const ConfigID = ControllerID
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
@@ -59,6 +63,16 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// GetConfigID returns the unique string for this configuration type.
+func (c *Config) GetConfigID() string {
+	return ConfigID
+}
+
+// EqualsConfig checks if the config is equal to another.
+func (c *Config) EqualsConfig(other config.Config) bool {
+	return config.EqualsConfig[*Config](c, other)
+}
+
 // ParsePeerID parses the peer ID field.
 func (c *Config) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
@@ -95,3 +109,6 @@ func (c *Config) BuildFetchBackoff() *backoff.Backoff {
 	}
 	return backoffConf
 }
+
+// _ is a type assertion
+var _ config.Config = (*Config)(nil)

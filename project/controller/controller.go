@@ -339,7 +339,7 @@ func (c *Controller) HandleDirective(
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case bldr_manifest.FetchManifest:
-		return directive.R(c.resolveFetchManifest(ctx, di, d), nil)
+		return directive.R(c.resolveFetchManifest(di, d), nil)
 	}
 
 	return nil, nil

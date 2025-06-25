@@ -2,30 +2,13 @@ package plugin_host_controller
 
 import (
 	"context"
+	"slices"
 
-	"github.com/aperturerobotics/bifrost/peer"
-	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
-	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	web_view "github.com/aperturerobotics/bldr/web/view"
-	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/unixfs"
-	unixfs_rpc "github.com/aperturerobotics/hydra/unixfs/rpc"
-	unixfs_rpc_server "github.com/aperturerobotics/hydra/unixfs/rpc/server"
 	"github.com/aperturerobotics/hydra/volume"
-	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
-	"github.com/aperturerobotics/hydra/world"
-	world_vlogger "github.com/aperturerobotics/hydra/world/vlogger"
-	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/keyed"
-	"github.com/aperturerobotics/util/promise"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,29 +18,12 @@ type Controller struct {
 	le *logrus.Entry
 	// bus is the controller bus
 	bus bus.Bus
-	// conf is the config
-	conf *Config
 	// info contains the controller info
 	info *controller.Info
 	// host is the plugin host
 	host bldr_plugin_host.PluginHost
-	// hostClient is a loopback srpc client to the host.
-	hostClient srpc.Client
-	// hostPluginPlatformID is the plugin platform ID to use.
-	hostPluginPlatformID *promise.PromiseContainer[string]
-	// objKey is the PluginHost object key (from the config)
-	objKey string
-	// peerID is the parsed peer id for sending world ops
-	peerID peer.ID
-	// peerIDStr is the parsed peer id string
-	peerIDStr string
-	// worldStateCtr contains the world state handle
-	worldStateCtr *ccontainer.CContainer[world.WorldState]
-	// hostVolumeCtr is a container with the host volume.
-	hostVolumeCtr *ccontainer.CContainer[*hostVol]
-	// pluginInstances manages the list of running plugins by plugin ID.
-	// key: plugin ID
-	pluginInstances *keyed.KeyedRefCount[string, *executePlugin]
+	// platformID is the host platform id
+	platformID string
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -70,27 +36,16 @@ type hostVol struct {
 func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
-	conf *Config,
 	info *controller.Info,
 	host bldr_plugin_host.PluginHost,
 ) *Controller {
-	peerID, _ := conf.ParsePeerID()
-	c := &Controller{
-		le:                   le,
-		bus:                  bus,
-		conf:                 conf,
-		info:                 info,
-		host:                 host,
-		hostPluginPlatformID: promise.NewPromiseContainer[string](),
-		objKey:               conf.GetObjectKey(),
-		peerID:               peerID,
-		peerIDStr:            peerID.String(),
-		worldStateCtr:        ccontainer.NewCContainer[world.WorldState](nil),
-		hostVolumeCtr:        ccontainer.NewCContainer[*hostVol](nil),
+	return &Controller{
+		le:         le,
+		bus:        bus,
+		info:       info,
+		host:       host,
+		platformID: host.GetPlatformId(),
 	}
-	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newRunningPlugin, le.WithField("tracker", "running-plugin"))
-	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
-	return c
 }
 
 // GetControllerInfo returns information about the controller.
@@ -98,67 +53,17 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.info.Clone()
 }
 
+// GetPluginHost returns the plugin host.
+func (c *Controller) GetPluginHost() bldr_plugin_host.PluginHost {
+	return c.host
+}
+
 // Execute executes the controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
-func (c *Controller) Execute(rctx context.Context) (rerr error) {
+func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	c.le.Info("starting plugin host")
-	ctx, ctxCancel := context.WithCancel(rctx)
-	defer ctxCancel()
-
-	// get the platform id
-	pluginPlatformID, err := c.host.GetPlatformId(ctx)
-	if err != nil {
-		return err
-	}
-	c.hostPluginPlatformID.SetResult(pluginPlatformID, nil)
-
-	// lookup the host volume
-	vol, _, volRef, err := volume.ExLookupVolume(ctx, c.bus, c.conf.GetVolumeId(), "", false)
-	if err != nil {
-		return err
-	}
-	defer volRef.Release()
-
-	volInfo, err := volume.NewVolumeInfo(ctx, controller.NewInfo(
-		"hydra/volume/plugin-host",
-		volume_rpc_server.Version,
-		"proxy to plugin host volume",
-	), vol)
-	if err != nil {
-		return err
-	}
-
-	c.hostVolumeCtr.SetValue(&hostVol{
-		vol:  vol,
-		info: volInfo,
-	})
-	defer c.hostVolumeCtr.SetValue(nil)
-
-	// construct the world engine handle
-	busEngine := world_vlogger.NewEngine(c.le, world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId()))
-	ws := world.NewEngineWorldState(busEngine, true)
-
-	c.worldStateCtr.SetValue(ws)
-	defer c.worldStateCtr.SetValue(ws)
-
-	// run initial cleanup
-	if err := c.cleanupUnknownPlugins(ctx, ws, pluginPlatformID); err != nil {
-		return err
-	}
-
-	// startup manifest watchers & plugin instances
-	c.pluginInstances.SetContext(ctx, true)
-	defer c.pluginInstances.ClearContext()
-
-	// wait for context cancel
-	<-ctx.Done()
-	return context.Canceled
-}
-
-// resolveLoadPlugin resolves a LoadPlugin directive.
-func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
-	return plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID()), nil
+	return c.host.Execute(ctx)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -171,21 +76,26 @@ func (c *Controller) HandleDirective(
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
-	case bldr_plugin.LoadPlugin:
-		return directive.R(c.resolveLoadPlugin(d))
-	case bifrost_rpc.LookupRpcClient:
-		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
+	case bldr_plugin_host.LookupPluginHost:
+		return directive.R(c.resolveLookupPluginHost(d))
 	}
 	return nil, nil
 }
 
-// AddPluginReference adds a reference to the plugin, returning the RunningPlugin
-// handle and a release function.
-//
-// Returns nil, nil, err if any error occurs.
-func (c *Controller) AddPluginReference(pluginID string) (bldr_plugin.RunningPluginRef, func()) {
-	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginID)
-	return plg, ref.Release
+// resolveLookupPluginHost returns a resolver for looking up the plugin host.
+func (c *Controller) resolveLookupPluginHost(
+	dir bldr_plugin_host.LookupPluginHost,
+) (directive.Resolver, error) {
+	// check if we can immediately reject this directive
+	matchPlatformIDs := dir.LookupPluginHostPlatformIDs()
+	if len(matchPlatformIDs) != 0 {
+		if !slices.Contains(matchPlatformIDs, c.platformID) {
+			return nil, nil
+		}
+	}
+
+	// resolve with the host
+	return directive.NewValueResolver([]bldr_plugin_host.LookupPluginHostValue{c.host}), nil
 }
 
 // Close releases any resources used by the controller.
@@ -194,124 +104,5 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-// WaitPluginHostClient waits for an RPC client for the plugin host.
-//
-// Released is a function to call if the client becomes invalid.
-// Returns nil, nil, err if any error.
-// Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
-func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) (srpc.Client, func(), error) {
-	return c.hostClient, nil, nil
-}
-
-// WaitPluginClient waits for an RPC client for a plugin.
-//
-// if pluginID is invalid, returns an error.
-//
-// Released is a function to call if the client becomes invalid.
-// Returns nil, nil, err if any error.
-// Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
-func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
-	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
-		return nil, nil, err
-	}
-
-	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, released)
-	if err != nil {
-		return nil, nil, err
-	}
-	return client, ref.Release, nil
-}
-
-// buildPluginMux builds the rpc mux for plugins.
-//
-// ctx should remain active as long as Mux is in use
-func (c *Controller) buildPluginMux(
-	ctx context.Context,
-	pluginID string,
-	manifest *bldr_manifest.ManifestSnapshot,
-	proxyHostVol *volume_rpc_server.ProxyVolume,
-	proxyHostVolInfo *volume.VolumeInfo,
-	distFS,
-	assetsFS *unixfs.FSHandle,
-) srpc.Mux {
-	// fallback to a LookupRpcService on the bus
-	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
-
-	// register access host volume via rpc service
-	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
-
-	// register access web views via bus service
-	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
-
-	// register plugin host service
-	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(ctx, c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
-
-	// register plugin dist fs service
-	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
-		unixfs_rpc_server.NewFSCursorServiceWithHandle(distFS),
-		bldr_plugin.PluginDistServiceID,
-	))
-
-	// register plugin assets fs service
-	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(
-		unixfs_rpc_server.NewFSCursorServiceWithHandle(assetsFS),
-		bldr_plugin.PluginAssetsServiceID,
-	))
-
-	return mux
-}
-
-// buildWorldState builds the world state handle.
-func (c *Controller) getWorldState(ctx context.Context) (world.WorldState, error) {
-	return c.worldStateCtr.WaitValue(ctx, nil)
-}
-
-// cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
-func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string) error {
-	// fetch all known plugin manifests
-	pluginManifests, pluginManifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, filterPlatformID, c.objKey)
-	if err != nil {
-		return err
-	}
-	for _, err := range pluginManifestErrs {
-		c.le.WithError(err).Warn("ignoring invalid plugin manifest")
-	}
-
-	// list ids from the plugin host
-	loadedPlugins, err := c.host.ListPlugins(ctx)
-	if err != nil {
-		return err
-	}
-
-	// delete any unknowns
-	var unknownPlugins []string
-	for _, loadedPlugin := range loadedPlugins {
-		if _, ok := pluginManifests[loadedPlugin]; !ok {
-			unknownPlugins = append(unknownPlugins, loadedPlugin)
-		}
-	}
-	if len(unknownPlugins) == 0 {
-		return nil
-	}
-
-	c.le.Infof("clearing %d unknown / out of date plugins", len(unknownPlugins))
-	for _, unknownPlugin := range unknownPlugins {
-		if err := c.host.DeletePlugin(ctx, unknownPlugin); err != nil {
-			if err == context.Canceled {
-				return err
-			}
-			c.le.WithError(err).Warnf("unable to clear old plugin: %s", unknownPlugin)
-		}
-	}
-
-	return nil
-}
-
 // _ is a type assertion
-var (
-	_ controller.Controller                 = ((*Controller)(nil))
-	_ bldr_plugin.LookupRpcClientHandler    = ((*Controller)(nil))
-	_ bldr_plugin_host.PluginHostController = ((*Controller)(nil))
-)
+var _ controller.Controller = ((*Controller)(nil))

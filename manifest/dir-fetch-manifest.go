@@ -1,13 +1,9 @@
 package bldr_manifest
 
 import (
-	"context"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
-	"github.com/aperturerobotics/util/keyed"
 )
 
 // FetchManifest is a directive to fetch a manifest to storage.
@@ -17,175 +13,103 @@ type FetchManifest interface {
 	// Directive indicates FetchManifest is a directive.
 	directive.Directive
 
-	// FetchManifestMeta returns the manifest metadata to fetch.
-	// Cannot be empty.
-	FetchManifestMeta() *ManifestMeta
+	// GetManifestId returns the identifier of the manifest.
+	GetManifestId() string
+	// GetBuildTypes returns the build types to match, if empty match all.
+	GetBuildTypes() []BuildType
+	// GetPlatformIds returns the platform IDs to match, if empty match any.
+	GetPlatformIds() []string
+	// GetRev returns the minimum revision number of the manifest(s) to accept.
+	// If set to 0, match any.
+	GetRev() uint64
 }
 
 // fetchManifest implements FetchManifest
 type fetchManifest struct {
-	manifestMeta *ManifestMeta
+	// manifestId is the identifier of the manifest.
+	manifestId string
+	// buildTypes is a slice of BuildType which indicates which build types to match, if empty match all.
+	buildTypes []BuildType
+	// platformIds is a slice of strings with platform IDs to match, if empty match any.
+	platformIds []string
+	// rev is the minimum revision number of the manifest(s) to accept. If set to 0, match any.
+	rev uint64
 }
 
 // NewFetchManifest constructs a new FetchManifest directive.
-func NewFetchManifest(manifestMeta *ManifestMeta) FetchManifest {
-	return &fetchManifest{manifestMeta: manifestMeta}
+func NewFetchManifest(manifestId string, buildTypes []BuildType, platformIds []string, rev uint64) FetchManifest {
+	return &fetchManifest{
+		manifestId:  manifestId,
+		buildTypes:  buildTypes,
+		platformIds: platformIds,
+		rev:         rev,
+	}
 }
 
 // NewFetchManifestValue constructs a new FetchManifest result value.
-func NewFetchManifestValue(manifestRef *ManifestRef) *FetchManifestValue {
+func NewFetchManifestValue(manifestRefs []*ManifestRef) *FetchManifestValue {
 	return &FetchManifestValue{
-		ManifestRef: manifestRef,
+		ManifestRefs: manifestRefs,
 	}
 }
 
-// ExFetchManifest executes the FetchManifest directive waiting for a single result.
-//
-// Selects the most recent result from the available set (highest revision).
-func ExFetchManifest(
-	ctx context.Context,
-	b bus.Bus,
-	manifestMeta *ManifestMeta,
-	returnIfIdle bool,
-) (*FetchManifestValue, error) {
-	vals, _, ref, err := bus.ExecCollectValues[*FetchManifestValue](
-		ctx,
-		b,
-		NewFetchManifest(manifestMeta),
-		!returnIfIdle,
-		nil,
-	)
-	if err != nil {
-		return nil, err
+// NewFetchManifestBuildMatrix constructs a slice of ManifestMeta for each combination
+// of build type and platform ID specified in the directive.
+// Returns one meta per build type x platform ID combination.
+func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
+	buildTypes := directive.GetBuildTypes()
+	platformIds := directive.GetPlatformIds()
+	
+	// If no platform IDs specified, return nil
+	if len(platformIds) == 0 {
+		return nil
 	}
-	defer ref.Release()
-
-	var selected *FetchManifestValue
-	for _, val := range vals {
-		if selected == nil || selected.GetManifestRef().GetMeta().GetRev() < val.GetManifestRef().GetMeta().GetRev() {
-			selected = val
+	
+	// Determine the build type to use
+	var selectedBuildType BuildType
+	if len(buildTypes) == 0 {
+		// If no build type specified, use BuildType_DEV
+		selectedBuildType = BuildType_DEV
+	} else {
+		// Check if both DEV and RELEASE are present
+		hasDev := false
+		hasRelease := false
+		for _, bt := range buildTypes {
+			if bt == BuildType_DEV {
+				hasDev = true
+			}
+			if bt == BuildType_RELEASE {
+				hasRelease = true
+			}
 		}
-	}
-
-	return selected, nil
-}
-
-// NewTransformFetchManifestValueToSnapshot transforms *FetchManifestValue to *ManifestSnapshot.
-//
-// followRef should construct a bucket lookup cursor located at the FetchManifestValue.
-func NewTransformFetchManifestValueToSnapshot(
-	followRef func(ctx context.Context, val *FetchManifestValue) (*bucket_lookup.Cursor, error),
-) func(
-	ctx context.Context,
-	val directive.TypedAttachedValue[*FetchManifestValue],
-) (*ManifestSnapshot, bool, error) {
-	return func(ctx context.Context, val directive.TypedAttachedValue[*FetchManifestValue]) (*ManifestSnapshot, bool, error) {
-		manifestVal := val.GetValue()
-		manifestRef := manifestVal.GetManifestRef()
-		if manifestRef.GetEmpty() {
-			return nil, false, nil
-		}
-
-		manifestBls, err := followRef(ctx, manifestVal)
-		if err != nil {
-			return nil, false, err
-		}
-		if manifestBls == nil {
-			return nil, false, nil
-		}
-		defer manifestBls.Release()
-
-		_, bcs := manifestBls.BuildTransaction(nil)
-		manifest, err := UnmarshalManifest(ctx, bcs)
-		if err != nil {
-			return nil, false, err
-		}
-		if manifest == nil {
-			return nil, false, nil
-		}
-
-		manifestObjRef := manifestRef.GetManifestRef()
-		return &ManifestSnapshot{
-			ManifestRef: manifestObjRef,
-			Manifest:    manifest,
-		}, true, nil
-	}
-}
-
-// SelectLatestTransformedManifestSnapshot selects the latest revision from the set of vals.
-func SelectLatestTransformedManifestSnapshot(vals []directive.TransformedAttachedValue[*FetchManifestValue, *ManifestSnapshot]) int {
-	idx := -1
-	var idxRev uint64
-	for i, val := range vals {
-		snapshot := val.GetTransformedValue()
-		rev := snapshot.GetManifest().GetMeta().GetRev()
-		if idx == -1 || rev > idxRev {
-			idx = i
-			idxRev = rev
+		
+		if hasDev && hasRelease {
+			// If both DEV and RELEASE are set, use RELEASE
+			selectedBuildType = BuildType_RELEASE
+		} else {
+			// Otherwise use the first from the build types slice
+			selectedBuildType = buildTypes[0]
 		}
 	}
-	return idx
-}
-
-// FetchLatestManifestEffect watches a FetchManifest directive, resolves the
-// Manifest for each result, selects the value with the highest revision, and
-// calls the callback with the selected manifest version when it changes.
-//
-// followRef should construct a bucket lookup cursor located at the FetchManifestValue.
-func FetchLatestManifestEffect(
-	ctx context.Context,
-	b bus.Bus,
-	manifestMeta *ManifestMeta,
-	followRef func(ctx context.Context, val *FetchManifestValue) (*bucket_lookup.Cursor, error),
-	effect func(val directive.TransformedAttachedValue[*FetchManifestValue, *ManifestSnapshot]) func(),
-	keyedOpts ...keyed.Option[uint32, directive.TypedAttachedValue[*FetchManifestValue]],
-) (directive.Instance, directive.Reference, error) {
-	return bus.ExecOneOffWatchTransformEffect[*FetchManifestValue, *ManifestSnapshot](
-		ctx,
-		NewTransformFetchManifestValueToSnapshot(followRef),
-		SelectLatestTransformedManifestSnapshot,
-		effect,
-		b,
-		NewFetchManifest(manifestMeta),
-		keyedOpts...,
-	)
-}
-
-// SelectLatestFetchManifestValue selects the FetchManifestValue with the highest rev.
-//
-// If there are no manifests, returns -1.
-func SelectLatestFetchManifestValue(vals []directive.TypedAttachedValue[*FetchManifestValue]) int {
-	var latestRev uint64
-	var latestIdx int = -1
-	for i, aval := range vals {
-		val := aval.GetValue()
-		rev := val.GetManifestRef().GetMeta().GetRev()
-		if latestIdx == -1 || rev > latestRev {
-			latestIdx, latestRev = i, rev
-		}
+	
+	var metas []*ManifestMeta
+	for _, platformId := range platformIds {
+		meta := NewManifestMeta(
+			directive.GetManifestId(),
+			selectedBuildType,
+			platformId,
+			0, // Ignore GetRev field, set to zero
+		)
+		metas = append(metas, meta)
 	}
-	return latestIdx
-}
-
-// WatchLatestManifestValue executes FetchManifest and calls the callback with the FetchManifestValue with the highest rev.
-// If there is no value, calls callback with latest=nil.
-func WatchLatestManifestValue(
-	b bus.Bus,
-	manifestMeta *ManifestMeta,
-	cb func(latest directive.TypedAttachedValue[*FetchManifestValue]),
-) (directive.Instance, directive.Reference, error) {
-	return bus.ExecOneOffWatchSelectCb[*FetchManifestValue](
-		b,
-		NewFetchManifest(manifestMeta),
-		SelectLatestFetchManifestValue,
-		cb,
-	)
+	
+	return metas
 }
 
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *fetchManifest) Validate() error {
-	if d.manifestMeta.GetManifestId() == "" {
+	if d.manifestId == "" {
 		return ErrEmptyManifestID
 	}
 
@@ -202,10 +126,27 @@ func (d *fetchManifest) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// FetchManifestMeta returns the manifest metadata.
-func (d *fetchManifest) FetchManifestMeta() *ManifestMeta {
-	return d.manifestMeta
+// GetManifestId returns the identifier of the manifest.
+func (d *fetchManifest) GetManifestId() string {
+	return d.manifestId
 }
+
+// GetBuildTypes returns the build types to match, if empty match all.
+func (d *fetchManifest) GetBuildTypes() []BuildType {
+	return d.buildTypes
+}
+
+// GetPlatformIds returns the platform IDs to match, if empty match any.
+func (d *fetchManifest) GetPlatformIds() []string {
+	return d.platformIds
+}
+
+// GetRev returns the minimum revision number of the manifest(s) to accept.
+// If set to 0, match any.
+func (d *fetchManifest) GetRev() uint64 {
+	return d.rev
+}
+
 
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
@@ -216,10 +157,34 @@ func (d *fetchManifest) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
-	a, b := d.FetchManifestMeta(), od.FetchManifestMeta()
-	return a.GetBuildType() == b.GetBuildType() &&
-		a.GetManifestId() == b.GetManifestId() &&
-		a.GetPlatformId() == b.GetPlatformId()
+	// Compare manifest IDs
+	if d.GetManifestId() != od.GetManifestId() {
+		return false
+	}
+
+	// Compare build types
+	dBuildTypes, odBuildTypes := d.GetBuildTypes(), od.GetBuildTypes()
+	if len(dBuildTypes) != len(odBuildTypes) {
+		return false
+	}
+	for i, bt := range dBuildTypes {
+		if bt != odBuildTypes[i] {
+			return false
+		}
+	}
+
+	// Compare platform IDs
+	dPlatformIds, odPlatformIds := d.GetPlatformIds(), od.GetPlatformIds()
+	if len(dPlatformIds) != len(odPlatformIds) {
+		return false
+	}
+	for i, pid := range dPlatformIds {
+		if pid != odPlatformIds[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Superceeds checks if the directive overrides another.
@@ -230,7 +195,7 @@ func (d *fetchManifest) Superceeds(other directive.Directive) bool {
 		return false
 	}
 
-	return d.FetchManifestMeta().GetRev() > od.FetchManifestMeta().GetRev()
+	return d.GetRev() > od.GetRev()
 }
 
 // GetName returns the directive's type name.
@@ -244,7 +209,24 @@ func (d *fetchManifest) GetName() string {
 // This is not necessarily unique, and is primarily intended for display.
 func (d *fetchManifest) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
-	vals["manifest-id"] = []string{d.FetchManifestMeta().GetManifestId()}
+	vals["manifest-id"] = []string{d.GetManifestId()}
+
+	if len(d.GetBuildTypes()) != 0 {
+		buildTypeStrs := make([]string, len(d.GetBuildTypes()))
+		for i, bt := range d.GetBuildTypes() {
+			buildTypeStrs[i] = bt.String()
+		}
+		vals["build-types"] = buildTypeStrs
+	}
+
+	if len(d.GetPlatformIds()) != 0 {
+		vals["platform-ids"] = d.GetPlatformIds()
+	}
+
+	if d.GetRev() != 0 {
+		vals["rev"] = []string{string(rune(d.GetRev()))}
+	}
+
 	return vals
 }
 

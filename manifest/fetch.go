@@ -4,14 +4,27 @@ import "github.com/aperturerobotics/bldr/util/valuelist"
 
 // NewFetchManifestRequest constructs a new FetchManifestRequest.
 func NewFetchManifestRequest(dir FetchManifest) *FetchManifestRequest {
+	buildTypeStrs := make([]string, len(dir.GetBuildTypes()))
+	for i, bt := range dir.GetBuildTypes() {
+		buildTypeStrs[i] = bt.String()
+	}
+
 	return &FetchManifestRequest{
-		ManifestMeta: dir.FetchManifestMeta(),
+		ManifestId:  dir.GetManifestId(),
+		BuildTypes:  buildTypeStrs,
+		PlatformIds: dir.GetPlatformIds(),
+		Rev:         dir.GetRev(),
 	}
 }
 
 // ToDirective converts the request into a directive.
 func (r *FetchManifestRequest) ToDirective() FetchManifest {
-	return NewFetchManifest(r.GetManifestMeta())
+	buildTypes := make([]BuildType, len(r.GetBuildTypes()))
+	for i, btStr := range r.GetBuildTypes() {
+		buildTypes[i] = BuildType(btStr)
+	}
+
+	return NewFetchManifest(r.GetManifestId(), buildTypes, r.GetPlatformIds(), r.GetRev())
 }
 
 // SetValueId sets the value id field.

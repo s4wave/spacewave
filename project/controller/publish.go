@@ -105,11 +105,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			}
 			defer wtx.Discard()
 
-			var filterPlatformID string
-			if len(platformIDs) == 1 {
-				filterPlatformID = platformIDs[0]
-			}
-			cmanifests, cmanifestErrs, err = manifest_world.CollectManifests(ctx, wtx, filterPlatformID, srcObjectKeys...)
+			cmanifests, cmanifestErrs, err = manifest_world.CollectManifests(ctx, wtx, platformIDs, srcObjectKeys...)
 			return err
 		}(); err != nil {
 			return err

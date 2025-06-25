@@ -3,6 +3,7 @@ package bldr_core_devtool
 import (
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
+	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_rpc_server "github.com/aperturerobotics/hydra/volume/rpc/server"
@@ -19,6 +20,9 @@ func addCommonFactories(b bus.Bus, sr *static.Resolver) {
 
 	// plugin host
 	sr.AddFactory(plugin_host_default.NewPluginHostControllerFactory(b))
+
+	// plugin scheduler
+	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
 
 	// volume rpc server
 	sr.AddFactory(volume_rpc_server.NewFactory(b))

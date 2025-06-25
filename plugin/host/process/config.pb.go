@@ -10,7 +10,6 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
@@ -18,12 +17,10 @@ import (
 // Config is the Process PluginHost controller configuration.
 type Config struct {
 	unknownFields []byte
-	// HostConfig configures the plugin host controller.
-	HostConfig *controller.Config `protobuf:"bytes,1,opt,name=host_config,json=hostConfig,proto3" json:"hostConfig,omitempty"`
 	// StateDir is the directory to use for state.
-	StateDir string `protobuf:"bytes,2,opt,name=state_dir,json=stateDir,proto3" json:"stateDir,omitempty"`
+	StateDir string `protobuf:"bytes,1,opt,name=state_dir,json=stateDir,proto3" json:"stateDir,omitempty"`
 	// DistDir is the directory to use for plugin distribution files
-	DistDir string `protobuf:"bytes,3,opt,name=dist_dir,json=distDir,proto3" json:"distDir,omitempty"`
+	DistDir string `protobuf:"bytes,2,opt,name=dist_dir,json=distDir,proto3" json:"distDir,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -31,13 +28,6 @@ func (x *Config) Reset() {
 }
 
 func (*Config) ProtoMessage() {}
-
-func (x *Config) GetHostConfig() *controller.Config {
-	if x != nil {
-		return x.HostConfig
-	}
-	return nil
-}
 
 func (x *Config) GetStateDir() string {
 	if x != nil {
@@ -60,9 +50,6 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.StateDir = m.StateDir
 	r.DistDir = m.DistDir
-	if rhs := m.HostConfig; rhs != nil {
-		r.HostConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -78,9 +65,6 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if !this.HostConfig.EqualVT(that.HostConfig) {
 		return false
 	}
 	if this.StateDir != that.StateDir {
@@ -108,11 +92,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.HostConfig != nil || s.HasField("hostConfig") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("hostConfig")
-		x.HostConfig.MarshalProtoJSON(s.WithField("hostConfig"))
-	}
 	if x.StateDir != "" || s.HasField("stateDir") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("stateDir")
@@ -140,13 +119,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "host_config", "hostConfig":
-			if s.ReadNil() {
-				x.HostConfig = nil
-				return
-			}
-			x.HostConfig = &controller.Config{}
-			x.HostConfig.UnmarshalProtoJSON(s.WithField("host_config", true))
 		case "state_dir", "stateDir":
 			s.AddField("state_dir")
 			x.StateDir = s.ReadString()
@@ -197,22 +169,12 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.DistDir)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DistDir)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x12
 	}
 	if len(m.StateDir) > 0 {
 		i -= len(m.StateDir)
 		copy(dAtA[i:], m.StateDir)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StateDir)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.HostConfig != nil {
-		size, err := m.HostConfig.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -225,10 +187,6 @@ func (m *Config) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.HostConfig != nil {
-		l = m.HostConfig.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
 	l = len(m.StateDir)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
@@ -244,13 +202,6 @@ func (m *Config) SizeVT() (n int) {
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
-	if x.HostConfig != nil {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("host_config: ")
-		sb.WriteString(x.HostConfig.MarshalProtoText())
-	}
 	if x.StateDir != "" {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
@@ -303,42 +254,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HostConfig", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protobuf_go_lite.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.HostConfig == nil {
-				m.HostConfig = &controller.Config{}
-			}
-			if err := m.HostConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StateDir", wireType)
 			}
 			var stringLen uint64
@@ -369,7 +284,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StateDir = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DistDir", wireType)
 			}

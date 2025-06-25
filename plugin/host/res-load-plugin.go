@@ -10,13 +10,13 @@ import (
 // LoadPluginResolver resolves LoadPlugin with the controller.
 type LoadPluginResolver struct {
 	// c is the controller
-	c PluginHostController
+	c PluginHostScheduler
 	// pluginID is the plugin identifier
 	pluginID string
 }
 
 // NewLoadPluginResolver constructs a new LoadPluginResolver.
-func NewLoadPluginResolver(c PluginHostController, pluginID string) *LoadPluginResolver {
+func NewLoadPluginResolver(c PluginHostScheduler, pluginID string) *LoadPluginResolver {
 	return &LoadPluginResolver{c: c, pluginID: pluginID}
 }
 

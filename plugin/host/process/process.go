@@ -78,7 +78,6 @@ func NewProcessHostController(
 	hctrl := host_controller.NewController(
 		le,
 		b,
-		c.GetHostConfig(),
 		controller.NewInfo(ControllerID, Version, "plugin host with native processes"),
 		processHost,
 	)
@@ -86,9 +85,13 @@ func NewProcessHostController(
 }
 
 // GetPlatformId returns the plugin platform ID for this host.
-// Return empty if the host accepts any platform ID.
-func (h *ProcessHost) GetPlatformId(ctx context.Context) (string, error) {
-	return h.pluginPlatformID, nil
+func (h *ProcessHost) GetPlatformId() string {
+	return h.pluginPlatformID
+}
+
+// Execute is a stub as the process host does not need a global management goroutine.
+func (h *ProcessHost) Execute(ctx context.Context) error {
+	return nil
 }
 
 // ListPlugins lists the set of initialized plugins.

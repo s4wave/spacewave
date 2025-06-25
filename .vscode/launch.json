@@ -14,7 +14,7 @@
       "request": "launch",
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/bldr",
-      "cwd": "${workspaceFolder}/",
+      "cwd": "${workspaceFolder}/../alpha",
       "preLaunchTask": "clean",
       "args": [
         "--disable-cleanup",

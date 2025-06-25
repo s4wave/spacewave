@@ -11,6 +11,7 @@ import (
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
+	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -56,6 +57,8 @@ type DistBus struct {
 	engineObjectStoreID string
 	// pluginHostObjectKey is the object key used for the PluginHost
 	pluginHostObjectKey string
+	// pluginSchedCtrl is the plugin scheduler
+	pluginSchedCtrl *plugin_host_scheduler.Controller
 	// pluginHostCtrl is the plugin host controller
 	pluginHostCtrl *plugin_host_default.PluginHostController
 	// stateRoot is the .bldr state root dir.
@@ -361,16 +364,14 @@ func BuildDistBus(
 		return nil, err
 	}
 
-	// build the plugin host controller
-	pluginHostCtrl, pluginHostRel, err := plugin_host_default.StartBusPluginHost(
+	// build the plugin scheduler
+	pluginSchedCtrl, pluginSchedCtrlRel, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		b,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
 		vol.GetPeerID().String(),
-		pluginsStateRoot,
-		pluginsDistRoot,
 		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
 		false, // Enable copying the manifest root to the plugin host storage.
 
@@ -381,7 +382,19 @@ func BuildDistBus(
 		// situation where we depend on that plugin for the data to start it,
 		// but that plugin is not running, so nothing happens (stuck).
 		false,
+	)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, pluginSchedCtrlRel)
 
+	// build the plugin host controller
+	pluginHostCtrl, pluginHostRel, err := plugin_host_default.StartPluginHost(
+		ctx,
+		b,
+		pluginsStateRoot,
+		pluginsDistRoot,
 		webRuntimeID,
 	)
 	if err != nil {
@@ -411,6 +424,7 @@ func BuildDistBus(
 		engineBucketID:      engineBucketID,
 		engineObjectStoreID: engineObjStoreID,
 		pluginHostObjectKey: pluginHostObjectKey,
+		pluginSchedCtrl:     pluginSchedCtrl,
 		pluginHostCtrl:      pluginHostCtrl,
 		stateRoot:           stateRoot,
 		vol:                 vol,

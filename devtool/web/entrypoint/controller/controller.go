@@ -12,10 +12,11 @@ import (
 	"github.com/aperturerobotics/bifrost/transport/common/dialer"
 	"github.com/aperturerobotics/bifrost/transport/websocket"
 	devtool_web "github.com/aperturerobotics/bldr/devtool/web"
-	devtool_web_entrypoint_plugin_host "github.com/aperturerobotics/bldr/devtool/web/entrypoint/plugin-host"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	manifest_fetch_rpc "github.com/aperturerobotics/bldr/manifest/fetch/rpc"
+	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
+	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	storage_default "github.com/aperturerobotics/bldr/storage/default"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
@@ -27,8 +28,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	volume_rpc_client "github.com/aperturerobotics/hydra/volume/rpc/client"
+	"github.com/aperturerobotics/hydra/world"
+	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -74,14 +78,15 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller.
 // Returning nil ends execution.
+// NOTE: we le.Fatal a lot of things in here
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	b, le, devtoolInfo := c.b, c.le, c.devtoolInfo
 
 	// run the dist storage
 	storageID := storage_default.StorageID
-	_, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
+	storageVolCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
 		StorageId:       storageID,
-		StorageVolumeId: "devtool/" + devtoolInfo.GetAppId(),
+		StorageVolumeId: "devtool/dist/" + devtoolInfo.GetAppId(),
 		VolumeConfig: &volume_controller.Config{
 			VolumeIdAlias: []string{"dist"},
 		},
@@ -91,19 +96,25 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	defer volCtrlRef.Release()
 
+	storageVol, err := storageVolCtrl.GetVolume(ctx)
+	if err != nil {
+		return err
+	}
+
 	// run the browser web runtime controller
+	webRuntimeID := c.initm.GetWebRuntimeId()
 	_, _, rtRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(&browser.Config{
-			WebRuntimeId: c.initm.GetWebRuntimeId(),
+			WebRuntimeId: webRuntimeID,
 			MessagePort:  "BLDR_WEB_RUNTIME_CLIENT_OPEN",
 		}),
 		nil,
 	)
 	if err != nil {
 		err = errors.Wrap(err, "start runtime controller")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer rtRef.Release()
 
@@ -124,7 +135,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}), nil)
 	if err != nil {
 		err = errors.Wrap(err, "start websocket controller")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer wsRef.Release()
 
@@ -134,7 +145,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}), nil)
 	if err != nil {
 		err = errors.Wrap(err, "start websocket controller")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer wsEstRef.Release()
 
@@ -151,7 +162,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}), nil)
 	if err != nil {
 		err = errors.Wrap(err, "start fetch manifest via rpc controller")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer fwdDevtoolRpcRef.Release()
 
@@ -162,17 +173,17 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// forward LookupVolume directives via RPC to the devtool
 	devtoolVolumeInfo := devtoolInfo.GetDevtoolVolumeInfo()
+	devtoolVolumeID := devtool_web.HostVolumeID
 	devtoolVolumeController := volume_rpc_client.NewProxyVolumeControllerWithClient(
 		b,
 		le,
 		devtoolVolumeInfo,
-		[]string{devtool_web.HostVolumeID},
+		[]string{devtoolVolumeID},
 		devtoolBaseClient,
 		devtool_web.HostVolumeServiceIDPrefix,
 	)
 	relDevtoolVolumeController, err := b.AddController(ctx, devtoolVolumeController, func(err error) {
-		err = errors.Wrap(err, "devtool volume proxy controller failed")
-		le.Fatal(err.Error())
+		le.WithError(err).Error("devtool volume proxy controller failed")
 	})
 	if err != nil {
 		return err
@@ -186,53 +197,133 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}), nil)
 	if err != nil {
 		err = errors.Wrap(err, "start fetch manifest via rpc controller")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer fwdFmRef.Release()
 
 	// load the web plugin browser host controller
 	// services any web plugins forwarding their request to the plugin host
 	// starts the web plugin controller
-	_, _, webPluginBrowserHostRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&bldr_web_plugin_browser_controller.Config{}), nil)
+	_, _, webPluginBrowserHostRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&bldr_web_plugin_browser_controller.Config{}),
+		nil,
+	)
 	if err != nil {
 		err = errors.Wrap(err, "start web plugin browser host controller")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer webPluginBrowserHostRef.Release()
 
-	// run the browser plugin host controller
-	webPluginHost, err := plugin_host_web.NewWebHost(b, le, c.initm.GetWebRuntimeId())
+	// run a hydra world for storing plugin host state and manifests
+	engineID := "bldr/dev-plugin-host"
+	engineBucketID := engineID
+	engineObjStoreID := engineBucketID
+	pluginHostObjKey := "dev-plugin-host"
+	engineVolumeID := devtoolVolumeID
+
+	// create state bucket if it doesn't exist
+	engineBucketConf, err := bucket.NewConfig(engineBucketID, 1, nil, nil)
 	if err != nil {
-		err = errors.Wrap(err, "construct web plugin host")
-		le.Fatal(err.Error())
+		return err
 	}
-	webPluginHostCtrl := devtool_web_entrypoint_plugin_host.NewController(
-		le,
+	_, err = bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(engineBucketConf, engineVolumeID))
+	if err != nil {
+		return errors.Wrap(err, "apply bucket config")
+	}
+
+	// start the block engine
+	engConf := world_block_engine.NewConfig(
+		engineID,
+		engineVolumeID,
+		engineBucketID,
+		engineObjStoreID,
+		&bucket.ObjectRef{BucketId: engineBucketID},
+		nil,
+		false,
+	)
+	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
+		ctx,
 		b,
-		&devtool_web_entrypoint_plugin_host.Config{
-			VolumeId: devtool_web.HostVolumeID,
-		},
-		controller.NewInfo(
-			ControllerID+"/plugin-host",
-			Version,
-			"plugin host for dev entrypoint",
-		),
-		webPluginHost,
+		engConf,
 	)
 	if err != nil {
-		err = errors.Wrap(err, "start web plugin host")
-		le.Fatal(err.Error())
+		err = errors.Wrap(err, "start world controller")
+		return err
+	}
+	defer worldCtrlRef.Release()
+
+	eng, err := worldCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		return err
+	}
+	// worldState := world.NewEngineWorldState(eng, true)
+
+	// register the world operation types for plugin host
+	lookupOpCtrl := world.NewLookupOpController("bldr-plugin-host-ops", engineID, bldr_manifest_world.LookupOp)
+	relLookupCtrl, err := b.AddController(ctx, lookupOpCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer relLookupCtrl()
+
+	// ensure the plugin host exists in the world
+	engTx, err := eng.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+
+	_, err = bldr_manifest_world.CreateManifestStore(ctx, engTx, pluginHostObjKey)
+	if err != nil {
+		engTx.Discard()
+		return err
+	}
+
+	if err := engTx.Commit(ctx); err != nil {
+		engTx.Discard()
+		return err
+	}
+
+	// run the plugin scheduler
+	pluginSchedCtrl := plugin_host_scheduler.NewController(le, b, &plugin_host_scheduler.Config{
+		EngineId:  engineID,
+		ObjectKey: pluginHostObjKey,
+		PeerId:    storageVol.GetPeerID().String(),
+		VolumeId:  storageVol.GetID(),
+
+		// we want FetchManifest directives
+		WatchFetchManifest: true,
+		// we want to use the devtool volume (via websocket) to load assets
+		// no need to copy into the browser storage in devtool mode
+		DisableCopyManifest: true,
+		// we want to store manifests in the world state
+		DisableStoreManifest: false,
+	})
+	pluginSchecCtrlRel, err := b.AddController(ctx, pluginSchedCtrl, func(err error) {
+		le.WithError(err).Error("plugin scheduler controller failed")
+	})
+	if err != nil {
+		return err
+	}
+	defer pluginSchecCtrlRel()
+
+	// run the web browser plugin loader implementation
+	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{WebRuntimeId: webRuntimeID})
+	if err != nil {
+		err = errors.Wrap(err, "start web host controller")
+		return err
 	}
 	webPluginHostRel, err := b.AddController(ctx, webPluginHostCtrl, func(err error) {
-		err = errors.Wrap(err, "plugin host controller failed")
-		le.Fatal(err.Error())
+		le.WithError(err).Error("plugin host controller failed")
 	})
 	if err != nil {
 		err = errors.Wrap(err, "start web plugin host")
-		le.Fatal(err.Error())
+		return err
 	}
 	defer webPluginHostRel()
 	le.Info("web plugin host is running")
+	_ = webPluginHost
 
 	// Call LoadPlugin for the list of Start plugins.
 	for _, pluginID := range devtoolInfo.GetStartPlugins() {
@@ -244,6 +335,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		defer plugRef.Release()
 	}
 
+	// wait to run all the defer calls until context cancels
 	<-ctx.Done()
 	return nil
 }

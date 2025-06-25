@@ -7,6 +7,7 @@ import (
 	manifest_fetch_viaworld "github.com/aperturerobotics/bldr/manifest/fetch/world"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_host_default "github.com/aperturerobotics/bldr/plugin/host/default"
+	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
 	storage_default "github.com/aperturerobotics/bldr/storage/default"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
@@ -50,6 +51,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
+	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
 	sr.AddFactory(plugin_host_default.NewPluginHostControllerFactory(b))
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
 	sr.AddFactory(volume_rpc_client.NewFactory(b))

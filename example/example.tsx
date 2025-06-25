@@ -22,7 +22,7 @@ import { ExampleProps } from './example.pb.js'
 import bldrLogo from '../doc/img/bldr-logo.png'
 
 // Import file which imports .css file
-import './styles.js'
+import './example.css'
 
 // Example is an example of a functional react component accessing a host rpc.
 const Example: React.FC<ExampleProps> = (props) => {

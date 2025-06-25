@@ -2,7 +2,6 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/host/process/config.proto (package plugin.host.process, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from '../controller/config.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
@@ -15,21 +14,15 @@ export const protobufPackage = 'plugin.host.process'
  */
 export interface Config {
   /**
-   * HostConfig configures the plugin host controller.
-   *
-   * @generated from field: plugin.host.controller.Config host_config = 1;
-   */
-  hostConfig?: Config$1
-  /**
    * StateDir is the directory to use for state.
    *
-   * @generated from field: string state_dir = 2;
+   * @generated from field: string state_dir = 1;
    */
   stateDir?: string
   /**
    * DistDir is the directory to use for plugin distribution files
    *
-   * @generated from field: string dist_dir = 3;
+   * @generated from field: string dist_dir = 2;
    */
   distDir?: string
 }
@@ -38,9 +31,8 @@ export interface Config {
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'plugin.host.process.Config',
   fields: [
-    { no: 1, name: 'host_config', kind: 'message', T: () => Config$1 },
-    { no: 2, name: 'state_dir', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'dist_dir', kind: 'scalar', T: ScalarType.STRING },
+    { no: 1, name: 'state_dir', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'dist_dir', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

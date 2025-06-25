@@ -71,15 +71,22 @@ service ManifestFetch {
 
 // FetchManifestRequest is a request to fetch a manifest binary.
 message FetchManifestRequest {
-  // ManifestMeta is the metadata to fetch.
-  // May be partially empty.
-  ManifestMeta manifest_meta = 1;
+  // ManifestId is the identifier of the manifest.
+  string manifest_id = 1;
+  // BuildTypes is a slice of build types to match, if empty match all.
+  repeated string build_types = 2;
+  // PlatformIds is a slice of platform IDs to match, if empty match any.
+  repeated string platform_ids = 3;
+  // Rev is the minimum revision number of the manifest(s) to accept.
+  // If set to 0, match any.
+  uint64 rev = 4;
 }
 
 // FetchManifestValue is the result of the FetchManifest directive.
 message FetchManifestValue {
-  // ManifestRef is the reference to the Manifest.
-  ManifestRef manifest_ref = 1;
+  // ManifestRefs is the list of references to the fetched manifests.
+  // We fetch multiple in one pass to avoid race conditions.
+  repeated ManifestRef manifest_refs = 1;
 }
 
 // FetchManifestResponse is a response to a FetchManifest request.

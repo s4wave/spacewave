@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 )
 
-// LoadPlugin is a directive to execute a plugin.
+// LoadPlugin is a directive to execute a plugin by ID using the best available host.
 type LoadPlugin interface {
 	// Directive indicates LoadPlugin is a directive.
 	directive.Directive

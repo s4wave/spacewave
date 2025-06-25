@@ -121,7 +121,7 @@ func (c *Controller) HandleDirective(
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case web_pkg.LookupWebPkg:
-		return directive.R(c.resolveLookupWebPkg(ctx, di, d))
+		return directive.R(c.resolveLookupWebPkg(d))
 	}
 
 	return nil, nil

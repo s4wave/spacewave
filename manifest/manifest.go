@@ -29,8 +29,8 @@ func ValidateManifestID(id string, allowEmpty bool) error {
 }
 
 // Validate validates the request.
-func (f *FetchManifestRequest) Validate(allowEmptyID bool) error {
-	if err := f.GetManifestMeta().Validate(allowEmptyID); err != nil {
+func (f *FetchManifestRequest) Validate() error {
+	if err := f.ToDirective().Validate(); err != nil {
 		return err
 	}
 	return nil
@@ -48,11 +48,13 @@ func (r *FetchManifestResponse) Validate() error {
 
 // Validate validates the FetchManifestValue.
 func (r *FetchManifestValue) Validate() error {
-	if r.GetManifestRef().GetEmpty() {
-		return errors.New("manifest_ref: cannot be empty")
-	}
-	if err := r.GetManifestRef().Validate(); err != nil {
-		return errors.Wrap(err, "manifest_ref")
+	for i, ref := range r.GetManifestRefs() {
+		if ref.GetEmpty() {
+			return errors.Errorf("manifest_refs[%d]: cannot be empty", i)
+		}
+		if err := ref.Validate(); err != nil {
+			return errors.Wrapf(err, "manifest_refs[%d]", i)
+		}
 	}
 	return nil
 }

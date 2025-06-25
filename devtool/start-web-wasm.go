@@ -230,12 +230,10 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		for _, startPluginID := range startPlugins {
 			_, dir, err := b.b.AddDirective(
 				bldr_manifest.NewFetchManifest(
-					bldr_manifest.NewManifestMeta(
-						startPluginID,
-						buildType,
-						buildPlatform.GetPlatformID(),
-						1,
-					),
+					startPluginID,
+					[]bldr_manifest.BuildType{buildType},
+					[]string{buildPlatform.GetPlatformID()},
+					0,
 				),
 				nil,
 			)

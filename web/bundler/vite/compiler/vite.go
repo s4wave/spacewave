@@ -1,5 +1,3 @@
-//go:build !js
-
 package bldr_web_bundler_vite_compiler
 
 import (

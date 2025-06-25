@@ -209,9 +209,15 @@ func (x *ManifestSnapshot) GetManifest() *Manifest {
 // FetchManifestRequest is a request to fetch a manifest binary.
 type FetchManifestRequest struct {
 	unknownFields []byte
-	// ManifestMeta is the metadata to fetch.
-	// May be partially empty.
-	ManifestMeta *ManifestMeta `protobuf:"bytes,1,opt,name=manifest_meta,json=manifestMeta,proto3" json:"manifestMeta,omitempty"`
+	// ManifestId is the identifier of the manifest.
+	ManifestId string `protobuf:"bytes,1,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
+	// BuildTypes is a slice of build types to match, if empty match all.
+	BuildTypes []string `protobuf:"bytes,2,rep,name=build_types,json=buildTypes,proto3" json:"buildTypes,omitempty"`
+	// PlatformIds is a slice of platform IDs to match, if empty match any.
+	PlatformIds []string `protobuf:"bytes,3,rep,name=platform_ids,json=platformIds,proto3" json:"platformIds,omitempty"`
+	// Rev is the minimum revision number of the manifest(s) to accept.
+	// If set to 0, match any.
+	Rev uint64 `protobuf:"varint,4,opt,name=rev,proto3" json:"rev,omitempty"`
 }
 
 func (x *FetchManifestRequest) Reset() {
@@ -220,18 +226,40 @@ func (x *FetchManifestRequest) Reset() {
 
 func (*FetchManifestRequest) ProtoMessage() {}
 
-func (x *FetchManifestRequest) GetManifestMeta() *ManifestMeta {
+func (x *FetchManifestRequest) GetManifestId() string {
 	if x != nil {
-		return x.ManifestMeta
+		return x.ManifestId
+	}
+	return ""
+}
+
+func (x *FetchManifestRequest) GetBuildTypes() []string {
+	if x != nil {
+		return x.BuildTypes
 	}
 	return nil
+}
+
+func (x *FetchManifestRequest) GetPlatformIds() []string {
+	if x != nil {
+		return x.PlatformIds
+	}
+	return nil
+}
+
+func (x *FetchManifestRequest) GetRev() uint64 {
+	if x != nil {
+		return x.Rev
+	}
+	return 0
 }
 
 // FetchManifestValue is the result of the FetchManifest directive.
 type FetchManifestValue struct {
 	unknownFields []byte
-	// ManifestRef is the reference to the Manifest.
-	ManifestRef *ManifestRef `protobuf:"bytes,1,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifestRef,omitempty"`
+	// ManifestRefs is the list of references to the fetched manifests.
+	// We fetch multiple in one pass to avoid race conditions.
+	ManifestRefs []*ManifestRef `protobuf:"bytes,1,rep,name=manifest_refs,json=manifestRefs,proto3" json:"manifestRefs,omitempty"`
 }
 
 func (x *FetchManifestValue) Reset() {
@@ -240,9 +268,9 @@ func (x *FetchManifestValue) Reset() {
 
 func (*FetchManifestValue) ProtoMessage() {}
 
-func (x *FetchManifestValue) GetManifestRef() *ManifestRef {
+func (x *FetchManifestValue) GetManifestRefs() []*ManifestRef {
 	if x != nil {
-		return x.ManifestRef
+		return x.ManifestRefs
 	}
 	return nil
 }
@@ -412,7 +440,18 @@ func (m *FetchManifestRequest) CloneVT() *FetchManifestRequest {
 		return (*FetchManifestRequest)(nil)
 	}
 	r := new(FetchManifestRequest)
-	r.ManifestMeta = m.ManifestMeta.CloneVT()
+	r.ManifestId = m.ManifestId
+	r.Rev = m.Rev
+	if rhs := m.BuildTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.BuildTypes = tmpContainer
+	}
+	if rhs := m.PlatformIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.PlatformIds = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -429,7 +468,13 @@ func (m *FetchManifestValue) CloneVT() *FetchManifestValue {
 		return (*FetchManifestValue)(nil)
 	}
 	r := new(FetchManifestValue)
-	r.ManifestRef = m.ManifestRef.CloneVT()
+	if rhs := m.ManifestRefs; rhs != nil {
+		tmpContainer := make([]*ManifestRef, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.ManifestRefs = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -603,7 +648,28 @@ func (this *FetchManifestRequest) EqualVT(that *FetchManifestRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !this.ManifestMeta.EqualVT(that.ManifestMeta) {
+	if this.ManifestId != that.ManifestId {
+		return false
+	}
+	if len(this.BuildTypes) != len(that.BuildTypes) {
+		return false
+	}
+	for i, vx := range this.BuildTypes {
+		vy := that.BuildTypes[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.PlatformIds) != len(that.PlatformIds) {
+		return false
+	}
+	for i, vx := range this.PlatformIds {
+		vy := that.PlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Rev != that.Rev {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -622,8 +688,22 @@ func (this *FetchManifestValue) EqualVT(that *FetchManifestValue) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !this.ManifestRef.EqualVT(that.ManifestRef) {
+	if len(this.ManifestRefs) != len(that.ManifestRefs) {
 		return false
+	}
+	for i, vx := range this.ManifestRefs {
+		vy := that.ManifestRefs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ManifestRef{}
+			}
+			if q == nil {
+				q = &ManifestRef{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1007,10 +1087,25 @@ func (x *FetchManifestRequest) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.ManifestMeta != nil || s.HasField("manifestMeta") {
+	if x.ManifestId != "" || s.HasField("manifestId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("manifestMeta")
-		x.ManifestMeta.MarshalProtoJSON(s.WithField("manifestMeta"))
+		s.WriteObjectField("manifestId")
+		s.WriteString(x.ManifestId)
+	}
+	if len(x.BuildTypes) > 0 || s.HasField("buildTypes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildTypes")
+		s.WriteStringArray(x.BuildTypes)
+	}
+	if len(x.PlatformIds) > 0 || s.HasField("platformIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformIds")
+		s.WriteStringArray(x.PlatformIds)
+	}
+	if x.Rev != 0 || s.HasField("rev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rev")
+		s.WriteUint64(x.Rev)
 	}
 	s.WriteObjectEnd()
 }
@@ -1029,13 +1124,26 @@ func (x *FetchManifestRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "manifest_meta", "manifestMeta":
+		case "manifest_id", "manifestId":
+			s.AddField("manifest_id")
+			x.ManifestId = s.ReadString()
+		case "build_types", "buildTypes":
+			s.AddField("build_types")
 			if s.ReadNil() {
-				x.ManifestMeta = nil
+				x.BuildTypes = nil
 				return
 			}
-			x.ManifestMeta = &ManifestMeta{}
-			x.ManifestMeta.UnmarshalProtoJSON(s.WithField("manifest_meta", true))
+			x.BuildTypes = s.ReadStringArray()
+		case "platform_ids", "platformIds":
+			s.AddField("platform_ids")
+			if s.ReadNil() {
+				x.PlatformIds = nil
+				return
+			}
+			x.PlatformIds = s.ReadStringArray()
+		case "rev":
+			s.AddField("rev")
+			x.Rev = s.ReadUint64()
 		}
 	})
 }
@@ -1053,10 +1161,16 @@ func (x *FetchManifestValue) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.ManifestRef != nil || s.HasField("manifestRef") {
+	if len(x.ManifestRefs) > 0 || s.HasField("manifestRefs") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("manifestRef")
-		x.ManifestRef.MarshalProtoJSON(s.WithField("manifestRef"))
+		s.WriteObjectField("manifestRefs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ManifestRefs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("manifestRefs"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -1075,13 +1189,24 @@ func (x *FetchManifestValue) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "manifest_ref", "manifestRef":
+		case "manifest_refs", "manifestRefs":
+			s.AddField("manifest_refs")
 			if s.ReadNil() {
-				x.ManifestRef = nil
+				x.ManifestRefs = nil
 				return
 			}
-			x.ManifestRef = &ManifestRef{}
-			x.ManifestRef.UnmarshalProtoJSON(s.WithField("manifest_ref", true))
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ManifestRefs = append(x.ManifestRefs, nil)
+					return
+				}
+				v := &ManifestRef{}
+				v.UnmarshalProtoJSON(s.WithField("manifest_refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ManifestRefs = append(x.ManifestRefs, v)
+			})
 		}
 	})
 }
@@ -1481,13 +1606,33 @@ func (m *FetchManifestRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ManifestMeta != nil {
-		size, err := m.ManifestMeta.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
+	if m.Rev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.PlatformIds) > 0 {
+		for iNdEx := len(m.PlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.PlatformIds[iNdEx])
+			copy(dAtA[i:], m.PlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
 		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+	}
+	if len(m.BuildTypes) > 0 {
+		for iNdEx := len(m.BuildTypes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BuildTypes[iNdEx])
+			copy(dAtA[i:], m.BuildTypes[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildTypes[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ManifestId) > 0 {
+		i -= len(m.ManifestId)
+		copy(dAtA[i:], m.ManifestId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestId)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -1524,15 +1669,17 @@ func (m *FetchManifestValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ManifestRef != nil {
-		size, err := m.ManifestRef.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
+	if len(m.ManifestRefs) > 0 {
+		for iNdEx := len(m.ManifestRefs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ManifestRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
 		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1713,9 +1860,24 @@ func (m *FetchManifestRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.ManifestMeta != nil {
-		l = m.ManifestMeta.SizeVT()
+	l = len(m.ManifestId)
+	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.BuildTypes) > 0 {
+		for _, s := range m.BuildTypes {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.PlatformIds) > 0 {
+		for _, s := range m.PlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Rev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rev))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1727,9 +1889,11 @@ func (m *FetchManifestValue) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.ManifestRef != nil {
-		l = m.ManifestRef.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.ManifestRefs) > 0 {
+		for _, e := range m.ManifestRefs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1915,12 +2079,45 @@ func (x *ManifestSnapshot) String() string {
 func (x *FetchManifestRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchManifestRequest {")
-	if x.ManifestMeta != nil {
+	if x.ManifestId != "" {
 		if sb.Len() > 22 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("manifest_meta: ")
-		sb.WriteString(x.ManifestMeta.MarshalProtoText())
+		sb.WriteString("manifest_id: ")
+		sb.WriteString(strconv.Quote(x.ManifestId))
+	}
+	if len(x.BuildTypes) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_types: [")
+		for i, v := range x.BuildTypes {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.PlatformIds) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_ids: [")
+		for i, v := range x.PlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Rev != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Rev), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1932,12 +2129,18 @@ func (x *FetchManifestRequest) String() string {
 func (x *FetchManifestValue) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchManifestValue {")
-	if x.ManifestRef != nil {
+	if len(x.ManifestRefs) > 0 {
 		if sb.Len() > 20 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("manifest_ref: ")
-		sb.WriteString(x.ManifestRef.MarshalProtoText())
+		sb.WriteString("manifest_refs: [")
+		for i, v := range x.ManifestRefs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2739,9 +2942,9 @@ func (m *FetchManifestRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ManifestMeta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
 			}
-			var msglen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protobuf_go_lite.ErrIntOverflow
@@ -2751,28 +2954,107 @@ func (m *FetchManifestRequest) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return protobuf_go_lite.ErrInvalidLength
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.ManifestMeta == nil {
-				m.ManifestMeta = &ManifestMeta{}
-			}
-			if err := m.ManifestMeta.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
+			m.ManifestId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildTypes", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildTypes = append(m.BuildTypes, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformIds = append(m.PlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rev", wireType)
+			}
+			m.Rev = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Rev |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2826,7 +3108,7 @@ func (m *FetchManifestValue) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRef", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRefs", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2853,10 +3135,8 @@ func (m *FetchManifestValue) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.ManifestRef == nil {
-				m.ManifestRef = &ManifestRef{}
-			}
-			if err := m.ManifestRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+			m.ManifestRefs = append(m.ManifestRefs, &ManifestRef{})
+			if err := m.ManifestRefs[len(m.ManifestRefs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

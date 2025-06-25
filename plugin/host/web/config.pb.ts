@@ -2,7 +2,6 @@
 // @generated from file github.com/aperturerobotics/bldr/plugin/host/web/config.proto (package plugin.host.web, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from '../controller/config.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
@@ -15,15 +14,9 @@ export const protobufPackage = 'plugin.host.web'
  */
 export interface Config {
   /**
-   * HostConfig configures the plugin host controller.
-   *
-   * @generated from field: plugin.host.controller.Config host_config = 1;
-   */
-  hostConfig?: Config$1
-  /**
    * WebRuntimeId is the identifier of the web runtime.
    *
-   * @generated from field: string web_runtime_id = 2;
+   * @generated from field: string web_runtime_id = 1;
    */
   webRuntimeId?: string
 }
@@ -32,8 +25,7 @@ export interface Config {
 export const Config: MessageType<Config> = createMessageType({
   typeName: 'plugin.host.web.Config',
   fields: [
-    { no: 1, name: 'host_config', kind: 'message', T: () => Config$1 },
-    { no: 2, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

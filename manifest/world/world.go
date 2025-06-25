@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -205,11 +206,11 @@ func (c *CollectedManifest) GetRev() uint64 {
 // Maps the manifests by manifest ID.
 // Sorts the manifest lists by version number, higher is first in the list.
 // Returns a list of errors corresponding to skipped manifests (if any).
-// If filterPlatformID is not empty, filters to that platform ID.
+// If filterPlatformIDs is not empty, filters to those platform IDs.
 func CollectManifests(
 	ctx context.Context,
 	ws world.WorldState,
-	filterPlatformID string,
+	filterPlatformIDs []string,
 	objKeys ...string,
 ) (map[string][]*CollectedManifest, []error, error) {
 	manifestObjKeys, err := ListManifests(ctx, ws, objKeys...)
@@ -219,6 +220,7 @@ func CollectManifests(
 
 	var manifestErrors []error
 	manifestMap := make(map[string][]*CollectedManifest)
+
 	for _, objKey := range manifestObjKeys {
 		manifest, manifestRef, err := LookupManifest(ctx, ws, objKey)
 		if err != nil {
@@ -227,7 +229,7 @@ func CollectManifests(
 		}
 		manifestID := manifest.GetMeta().GetManifestId()
 		platformID := manifest.GetMeta().GetPlatformId()
-		if filterPlatformID != "" && filterPlatformID != platformID {
+		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
 			continue
 		}
 		manifestList := append(manifestMap[manifestID], &CollectedManifest{
@@ -300,6 +302,60 @@ func FilterCollectedManifestsByFirst(manifestList []*CollectedManifest) []*Colle
 	return manifestList
 }
 
+// FilterCollectedManifestsByLatestRev filters a list of collected manifests to the latest revision for each manifest ID and platform ID combination.
+// The resulting slice will have zero or one manifest per ManifestID+PlatformID combination with the highest revision.
+// The resulting slice will be sorted by ManifestID, then by Rev (descending), then by PlatformID.
+func FilterCollectedManifestsByLatestRev(manifestList []*CollectedManifest) []*CollectedManifest {
+	// Group by ManifestID+PlatformID and find the latest revision for each combination
+	type manifestPlatformKey struct {
+		manifestID string
+		platformID string
+	}
+
+	keyLatest := make(map[manifestPlatformKey]*CollectedManifest)
+	for _, manifest := range manifestList {
+		manifestID := manifest.Manifest.GetMeta().GetManifestId()
+		platformID := manifest.Manifest.GetMeta().GetPlatformId()
+		key := manifestPlatformKey{manifestID: manifestID, platformID: platformID}
+
+		existing, exists := keyLatest[key]
+		if !exists || manifest.GetRev() > existing.GetRev() {
+			keyLatest[key] = manifest
+		}
+	}
+
+	// Extract the latest manifests into a slice
+	result := make([]*CollectedManifest, 0, len(keyLatest))
+	for _, manifest := range keyLatest {
+		result = append(result, manifest)
+	}
+
+	// Sort by ManifestID, then Rev (descending), then PlatformID
+	slices.SortFunc(result, func(a, b *CollectedManifest) int {
+		aManifestID := a.Manifest.GetMeta().GetManifestId()
+		bManifestID := b.Manifest.GetMeta().GetManifestId()
+		if cmp := strings.Compare(aManifestID, bManifestID); cmp != 0 {
+			return cmp
+		}
+
+		aRev := a.GetRev()
+		bRev := b.GetRev()
+		if aRev != bRev {
+			// Sort by rev descending (higher rev first)
+			if aRev > bRev {
+				return -1
+			}
+			return 1
+		}
+
+		aPlatformID := a.Manifest.GetMeta().GetPlatformId()
+		bPlatformID := b.Manifest.GetMeta().GetPlatformId()
+		return strings.Compare(aPlatformID, bPlatformID)
+	})
+
+	return result
+}
+
 // FilterCollectedManifestsByBuildType filters a list of collected manifests by build type.
 // Maintains the sort order.
 func FilterCollectedManifestsByBuildType(manifestList []*CollectedManifest, buildType bldr_manifest.BuildType) []*CollectedManifest {
@@ -314,23 +370,60 @@ func FilterCollectedManifestsByBuildType(manifestList []*CollectedManifest, buil
 	return manifestList
 }
 
+// FilterCollectedManifestsByBuildTypes filters a list of collected manifests by build types.
+// Maintains the sort order.
+// If len(buildTypes) is zero, returns the original list.
+func FilterCollectedManifestsByBuildTypes(manifestList []*CollectedManifest, buildTypes []bldr_manifest.BuildType) []*CollectedManifest {
+	if len(buildTypes) == 0 {
+		return manifestList
+	}
+
+	for i := 0; i < len(manifestList); i++ {
+		v := manifestList[i]
+		vBuildType := bldr_manifest.BuildType(v.Manifest.GetMeta().GetBuildType())
+		if !slices.Contains(buildTypes, vBuildType) {
+			manifestList = slices.Delete(manifestList, i, i+1)
+			i--
+		}
+	}
+	return manifestList
+}
+
+// FilterCollectedManifestsByMinRev filters a list of collected manifests by minimum revision.
+// Maintains the sort order.
+// If minRev is zero, returns the original list.
+func FilterCollectedManifestsByMinRev(manifestList []*CollectedManifest, minRev uint64) []*CollectedManifest {
+	if minRev == 0 {
+		return manifestList
+	}
+
+	for i := 0; i < len(manifestList); i++ {
+		v := manifestList[i]
+		if v.GetRev() < minRev {
+			manifestList = slices.Delete(manifestList, i, i+1)
+			i--
+		}
+	}
+	return manifestList
+}
+
 // CollectManifestsForManifestID collects the list of Manifest for a specific manifest ID.
 //
 // Sorts the manifest lists by version number, higher is first in the list.
 // Returns a list of errors corresponding to skipped manifests (if any).
-// If filterPlatformID is not empty, filters to that platform ID.
+// If filterPlatformIDs is not empty, filters to those platform IDs.
 func CollectManifestsForManifestID(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestID string,
-	filterPlatformID string,
+	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*CollectedManifest, []error, error) {
-	// TODO: https://github.com/aperturerobotics/cayley/issues/977
+	// TODO: How do we filter properly for a label?
 	// - Use FilterContext to filter for label: empty string and/or manifest ID.
 	// - Unsure how to implement this with cayley currently.
 	// - For now, just filter after the fact.
-	manifests, manifestErrs, err := CollectManifests(ctx, ws, filterPlatformID, objKeys...)
+	manifests, manifestErrs, err := CollectManifests(ctx, ws, filterPlatformIDs, objKeys...)
 	if err != nil {
 		return nil, manifestErrs, err
 	}
@@ -447,7 +540,7 @@ func CreateManifestBundle(
 	bundle := &bldr_manifest.ManifestBundle{Timestamp: ts.CloneVT()}
 
 	// check for existing linked object keys
-	existingManifests, _, err := CollectManifests(ctx, ws, "", objKey)
+	existingManifests, _, err := CollectManifests(ctx, ws, nil, objKey)
 	if err != nil {
 		return nil, nil, err
 	}

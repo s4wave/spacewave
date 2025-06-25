@@ -213,12 +213,30 @@ export const ManifestSnapshot: MessageType<ManifestSnapshot> =
  */
 export interface FetchManifestRequest {
   /**
-   * ManifestMeta is the metadata to fetch.
-   * May be partially empty.
+   * ManifestId is the identifier of the manifest.
    *
-   * @generated from field: bldr.manifest.ManifestMeta manifest_meta = 1;
+   * @generated from field: string manifest_id = 1;
    */
-  manifestMeta?: ManifestMeta
+  manifestId?: string
+  /**
+   * BuildTypes is a slice of build types to match, if empty match all.
+   *
+   * @generated from field: repeated string build_types = 2;
+   */
+  buildTypes?: string[]
+  /**
+   * PlatformIds is a slice of platform IDs to match, if empty match any.
+   *
+   * @generated from field: repeated string platform_ids = 3;
+   */
+  platformIds?: string[]
+  /**
+   * Rev is the minimum revision number of the manifest(s) to accept.
+   * If set to 0, match any.
+   *
+   * @generated from field: uint64 rev = 4;
+   */
+  rev?: bigint
 }
 
 // FetchManifestRequest contains the message type declaration for FetchManifestRequest.
@@ -226,7 +244,22 @@ export const FetchManifestRequest: MessageType<FetchManifestRequest> =
   createMessageType({
     typeName: 'bldr.manifest.FetchManifestRequest',
     fields: [
-      { no: 1, name: 'manifest_meta', kind: 'message', T: () => ManifestMeta },
+      { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'build_types',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -238,11 +271,12 @@ export const FetchManifestRequest: MessageType<FetchManifestRequest> =
  */
 export interface FetchManifestValue {
   /**
-   * ManifestRef is the reference to the Manifest.
+   * ManifestRefs is the list of references to the fetched manifests.
+   * We fetch multiple in one pass to avoid race conditions.
    *
-   * @generated from field: bldr.manifest.ManifestRef manifest_ref = 1;
+   * @generated from field: repeated bldr.manifest.ManifestRef manifest_refs = 1;
    */
-  manifestRef?: ManifestRef
+  manifestRefs?: ManifestRef[]
 }
 
 // FetchManifestValue contains the message type declaration for FetchManifestValue.
@@ -250,7 +284,13 @@ export const FetchManifestValue: MessageType<FetchManifestValue> =
   createMessageType({
     typeName: 'bldr.manifest.FetchManifestValue',
     fields: [
-      { no: 1, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
+      {
+        no: 1,
+        name: 'manifest_refs',
+        kind: 'message',
+        T: () => ManifestRef,
+        repeated: true,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -15,34 +15,19 @@ import (
 // PluginHostController is an alias to the plugin host controller type.
 type PluginHostController = plugin_host_controller.Controller
 
-// StartBusPluginHost starts the plugin host.
-func StartBusPluginHost(
+// StartPluginHost starts the plugin host.
+//
+// webRuntimeID is ignored on the native platform as the web runtime is bundled into the web plugin.
+// pluginsStateRoot and pluginsDistRoot are ignored on the web platform as IndexedDB is used.
+func StartPluginHost(
 	ctx context.Context,
 	b bus.Bus,
-	engineID,
-	pluginHostObjectKey,
-	volID,
-	volPeerID,
 	pluginsStateRoot,
 	pluginsDistRoot string,
-	watchFetchManifest,
-	disableStoreManifest,
-	disableCopyManifest bool,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
-	pluginHostProcessConf := plugin_host_web.NewConfig(
-		plugin_host_controller.NewConfig(
-			engineID,
-			pluginHostObjectKey,
-			volID,
-			volPeerID,
-			watchFetchManifest,
-			disableStoreManifest,
-			disableCopyManifest,
-		),
-		webRuntimeID,
-	)
-	pluginHostCtrlObj, _, pluginHostRef, err := loader.WaitExecControllerRunning(
+	pluginHostProcessConf := plugin_host_web.NewConfig(webRuntimeID)
+	pluginHostCtrl, _, pluginHostRef, err := loader.WaitExecControllerRunningTyped[*PluginHostController](
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
@@ -51,7 +36,6 @@ func StartBusPluginHost(
 	if err != nil {
 		return nil, nil, err
 	}
-	pluginHostCtrl := pluginHostCtrlObj.(*PluginHostController)
 	return pluginHostCtrl, pluginHostRef.Release, nil
 }
 

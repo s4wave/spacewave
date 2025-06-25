@@ -190,7 +190,7 @@ func (c *Controller) BuildManifest(
 		rev uint64,
 	) (bool, error) {
 		// Scan for manifests we want to embed.
-		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, platformID, searchKeys...)
+		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, []string{platformID}, searchKeys...)
 		if err != nil {
 			return false, err
 		}

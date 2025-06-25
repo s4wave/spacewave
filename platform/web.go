@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// PlatformID_WEB builds Go binaries for the Web platform (WebAssembly).
+// PlatformID_WEB builds Go binaries for the Web platform (JavaScript and/or WebAssembly).
 const PlatformID_WEB = "web"
 
 // WebPlatform represents the web platform type.

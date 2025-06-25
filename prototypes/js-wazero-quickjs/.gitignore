@@ -1,0 +1,5 @@
+main.js
+vendor
+js-wazero-quickjs
+qjs-wasi.wasm
+*.wasm

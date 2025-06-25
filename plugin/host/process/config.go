@@ -3,7 +3,6 @@ package plugin_host_process
 import (
 	"path/filepath"
 
-	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 )
@@ -17,14 +16,12 @@ const ConfigID = ControllerID
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
 func NewConfig(
-	hostConfig *plugin_host_controller.Config,
 	stateDir,
 	distDir string,
 ) *Config {
 	return &Config{
-		HostConfig: hostConfig,
-		StateDir:   stateDir,
-		DistDir:    distDir,
+		StateDir: stateDir,
+		DistDir:  distDir,
 	}
 }
 
@@ -46,9 +43,6 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
-	if err := c.GetHostConfig().Validate(); err != nil {
-		return err
-	}
 	if !filepath.IsAbs(c.GetStateDir()) {
 		return errors.New("state dir: must be absolute path")
 	}

@@ -45,19 +45,29 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) error {
 	}
 	defer pluginStorageCtrlRef.Release()
 
-	// build the plugin host controller
-	_, relPluginHost, err := plugin_host_default.StartBusPluginHost(
+	// build the plugin scheduler
+	_, relSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		b.GetBus(),
 		b.GetWorldEngineID(),
 		b.GetPluginHostObjectKey(),
 		pluginVolumeID,
 		b.GetVolume().GetPeerID().String(),
+		true,
+		true,
+		true,
+	)
+	if err != nil {
+		return err
+	}
+	defer relSched()
+
+	// build the plugin host controller
+	_, relPluginHost, err := plugin_host_default.StartPluginHost(
+		ctx,
+		b.GetBus(),
 		b.GetPluginsStateRoot(),
 		b.GetPluginsDistRoot(),
-		true,
-		true,
-		true,
 		"",
 	)
 	if err != nil {

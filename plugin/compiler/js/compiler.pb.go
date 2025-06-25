@@ -144,7 +144,8 @@ type Config struct {
 	// This service is used for the ServiceWorker HTTP calls.
 	DisableRpcFetch bool `protobuf:"varint,11,opt,name=disable_rpc_fetch,json=disableRpcFetch,proto3" json:"disableRpcFetch,omitempty"`
 	// WebPluginId sets the plugin id for the web plugin.
-	// If set, the compiler automatically adds these controllers to the config set:
+	//
+	// TODO: If set, the compiler automatically adds these controllers to the config set:
 	// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
 	// - handle-web-view-rpc: handle incoming RPCs for web-view
 	// - handle-web-view-server: handle incoming RPCs for HandleWebView

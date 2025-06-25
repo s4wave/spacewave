@@ -1,7 +1,6 @@
 package web_pkg_controller
 
 import (
-	"context"
 	"slices"
 
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
@@ -9,11 +8,7 @@ import (
 )
 
 // resolveLookupWebPkg returns a resolver for looking up a volume.
-func (c *Controller) resolveLookupWebPkg(
-	ctx context.Context,
-	di directive.Instance,
-	dir web_pkg.LookupWebPkg,
-) (directive.Resolver, error) {
+func (c *Controller) resolveLookupWebPkg(dir web_pkg.LookupWebPkg) (directive.Resolver, error) {
 	// check if we can immediately reject this directive
 	pkgID := dir.LookupWebPkgID()
 	if len(c.webPkgIds) != 0 {
@@ -23,8 +18,5 @@ func (c *Controller) resolveLookupWebPkg(
 	}
 
 	// resolve by calling the getter func
-	return directive.NewKeyedGetterResolver[string, web_pkg.LookupWebPkgValue](
-		c.getter,
-		pkgID,
-	), nil
+	return directive.NewKeyedGetterResolver(c.getter, pkgID), nil
 }

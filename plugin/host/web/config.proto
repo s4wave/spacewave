@@ -1,12 +1,8 @@
 syntax = "proto3";
 package plugin.host.web;
 
-import "github.com/aperturerobotics/bldr/plugin/host/controller/config.proto";
-
 // Config is the WebWorker PluginHost controller configuration.
 message Config {
-  // HostConfig configures the plugin host controller.
-  .plugin.host.controller.Config host_config = 1;
   // WebRuntimeId is the identifier of the web runtime.
-  string web_runtime_id = 2;
+  string web_runtime_id = 1;
 }

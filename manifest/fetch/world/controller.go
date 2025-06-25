@@ -5,11 +5,9 @@ import (
 	"regexp"
 
 	manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/world"
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
@@ -76,58 +74,19 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
-// FetchManifest fetches a manifest, yielding the FetchManifestValue.
-// if returnIfIdle is set, returns an error if the directive becomes idle (not found)
-// Returns nil, nil if not found.
-// Returns if context is canceled.
-func (c *Controller) FetchManifest(
-	rctx context.Context,
-	manifestMeta *manifest.ManifestMeta,
-	returnIfIdle bool,
-) (*manifest.FetchManifestValue, error) {
-	ctx, ctxCancel := context.WithCancel(rctx)
-	defer ctxCancel()
-
-	engineID := c.conf.GetEngineId()
-	c.le.Debugf("fetching manifest %s via world %s", manifestMeta.GetManifestId(), engineID)
-	defer c.le.Debugf("exited fetching manifest %s via world %s", manifestMeta.GetManifestId(), engineID)
-
-	worldEngine, _, worldEngineRef, err := world.ExLookupWorldEngine(ctx, c.bus, returnIfIdle, engineID, ctxCancel)
-	if err != nil {
-		return nil, err
-	}
-	defer worldEngineRef.Release()
-
-	tx, err := worldEngine.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
+// resolveFetchManifest resolves a FetchManifest directive.
+func (c *Controller) resolveFetchManifest(
+	ctx context.Context,
+	di directive.Instance,
+	dir manifest.FetchManifest,
+) (directive.Resolver, error) {
+	if c.fetchManifestIdRe != nil && dir.GetManifestId() != "" {
+		if !c.fetchManifestIdRe.MatchString(dir.GetManifestId()) {
+			return nil, nil
+		}
 	}
 
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
-		ctx,
-		tx,
-		manifestMeta.GetManifestId(),
-		manifestMeta.GetPlatformId(),
-		c.conf.GetObjectKeys()...,
-	)
-	tx.Discard()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, err := range manifestErrs {
-		c.le.WithError(err).Warn("ignoring invalid manifest")
-	}
-
-	// take the first manifest only
-	if len(manifests) != 0 {
-		selManifest := manifests[0]
-		return manifest.NewFetchManifestValue(
-			manifest.NewManifestRef(selManifest.Manifest.Meta, selManifest.ManifestRef),
-		), nil
-	}
-
-	return nil, nil
+	return &fetchManifestResolver{c: c, dir: dir}, nil
 }
 
 // Close releases any resources used by the controller.

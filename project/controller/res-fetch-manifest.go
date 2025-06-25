@@ -10,13 +10,8 @@ import (
 )
 
 // resolveFetchManifest resolves a FetchManifest directive.
-func (c *Controller) resolveFetchManifest(
-	ctx context.Context,
-	di directive.Instance,
-	dir bldr_manifest.FetchManifest,
-) directive.Resolver {
-	manifestMeta := dir.FetchManifestMeta()
-	manifestID := manifestMeta.GetManifestId()
+func (c *Controller) resolveFetchManifest(di directive.Instance, dir bldr_manifest.FetchManifest) directive.Resolver {
+	manifestID := dir.GetManifestId()
 
 	conf := c.GetConfig()
 	isStart := conf.GetStart()
@@ -35,10 +30,16 @@ func (c *Controller) resolveFetchManifest(
 		return nil
 	}
 
+	// we need to know a platform id
+	if len(dir.GetPlatformIds()) == 0 {
+		c.le.Debugf("not building manifest %s because list of platform ids is emptyt", manifestID)
+		return nil
+	}
+
 	return &fetchManifestResolver{
-		c:            c,
-		di:           di,
-		manifestMeta: manifestMeta,
+		c:   c,
+		di:  di,
+		dir: dir,
 	}
 }
 
@@ -48,13 +49,44 @@ type fetchManifestResolver struct {
 	c *Controller
 	// di is the directive instance
 	di directive.Instance
-	// manifestMeta is the manifest meta
-	manifestMeta *bldr_manifest.ManifestMeta
+	//  dir is the directive
+	dir bldr_manifest.FetchManifest
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	manifestBuilderRef, remoteRef, err := r.c.AddFetchManifestBuilderRef(ctx, r.manifestMeta)
+	manifestMetas := bldr_manifest.NewFetchManifestBuildMatrix(r.dir)
+
+	for _, meta := range manifestMetas {
+		rel := handler.AddResolver(&fetchManifestWithMetaResolver{
+			c:    r.c,
+			di:   r.di,
+			dir:  r.dir,
+			meta: meta,
+		}, nil)
+		_ = context.AfterFunc(ctx, rel)
+	}
+	return nil
+}
+
+// _ is a type assertion
+var _ directive.Resolver = ((*fetchManifestResolver)(nil))
+
+// fetchManifestWithMetaResolver resolves FetchManifest with a ManifestMeta.
+type fetchManifestWithMetaResolver struct {
+	// c is the controller
+	c *Controller
+	// di is the directive instance
+	di directive.Instance
+	//  dir is the directive
+	dir bldr_manifest.FetchManifest
+	// meta is the manifest meta
+	meta *bldr_manifest.ManifestMeta
+}
+
+// Resolve resolves the values, emitting them to the handler.
+func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	manifestBuilderRef, remoteRef, err := r.c.AddFetchManifestBuilderRef(ctx, r.meta)
 	if err != nil {
 		return err
 	}
@@ -81,7 +113,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 			} else {
 				// result != nil
 				_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
-					result.GetBuilderResult().GetManifestRef().CloneVT(),
+					[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
 				))
 				if !watch {
 					return nil
@@ -98,4 +130,4 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*fetchManifestResolver)(nil))
+var _ directive.Resolver = ((*fetchManifestWithMetaResolver)(nil))

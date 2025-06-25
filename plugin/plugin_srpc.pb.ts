@@ -24,6 +24,8 @@ import {
 /**
  * PluginHost is the service exposed by the plugin host.
  *
+ * Available at service ID plugin-host.
+ *
  * @generated from service bldr.plugin.PluginHost
  */
 export const PluginHostDefinition = {
@@ -96,6 +98,8 @@ export const PluginHostDefinition = {
 
 /**
  * PluginHost is the service exposed by the plugin host.
+ *
+ * Available at service ID plugin-host.
  *
  * @generated from service bldr.plugin.PluginHost
  */

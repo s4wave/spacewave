@@ -81,7 +81,7 @@ manifests:
   bldr-demo:
     builder:
       id: bldr/plugin/compiler/go
-      rev: 4
+      rev: 5
       config:
         # delveAddr: wait
         webPluginId: web

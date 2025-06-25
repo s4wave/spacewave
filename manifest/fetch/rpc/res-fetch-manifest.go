@@ -13,9 +13,8 @@ func (c *Controller) resolveFetchManifest(
 	di directive.Instance,
 	dir manifest.FetchManifest,
 ) (directive.Resolver, error) {
-	manifestMeta := dir.FetchManifestMeta()
-	if c.fetchManifestIdRe != nil && manifestMeta.GetManifestId() != "" {
-		if !c.fetchManifestIdRe.MatchString(manifestMeta.GetManifestId()) {
+	if c.fetchManifestIdRe != nil && dir.GetManifestId() != "" {
+		if !c.fetchManifestIdRe.MatchString(dir.GetManifestId()) {
 			return nil, nil
 		}
 	}

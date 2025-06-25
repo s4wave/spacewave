@@ -75,17 +75,20 @@ func NewWebHostController(
 	hctrl := host_controller.NewController(
 		le,
 		b,
-		c.GetHostConfig(),
 		controller.NewInfo(ControllerID, Version, "plugin host with WebWorker processes"),
 		pluginHost,
 	)
 	return hctrl, pluginHost, nil
 }
 
+// Execute is a stub as the web host does not need a global management goroutine.
+func (h *WebHost) Execute(ctx context.Context) error {
+	return nil
+}
+
 // GetPlatformId returns the plugin platform ID for this host.
-// Return empty if the host accepts any platform ID.
-func (h *WebHost) GetPlatformId(ctx context.Context) (string, error) {
-	return h.pluginPlatformID, nil
+func (h *WebHost) GetPlatformId() string {
+	return h.pluginPlatformID
 }
 
 // ListPlugins lists the set of initialized plugins.
@@ -108,7 +111,6 @@ func (h *WebHost) ExecutePlugin(
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
-	h.le.Info("XXX Web ExecutePlugin Start")
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
