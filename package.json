@@ -47,11 +47,11 @@
   "devDependencies": {
     "@aptre/common": "^0.22.5",
     "depcheck": "^1.4.7",
-    "happy-dom": "^17.4.7",
-    "prettier": "^3.5.3",
+    "happy-dom": "^18.0.1",
+    "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.4"
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.4.9",
