@@ -59,12 +59,12 @@ func NewFetchManifestValue(manifestRefs []*ManifestRef) *FetchManifestValue {
 func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 	buildTypes := directive.GetBuildTypes()
 	platformIds := directive.GetPlatformIds()
-	
+
 	// If no platform IDs specified, return nil
 	if len(platformIds) == 0 {
 		return nil
 	}
-	
+
 	// Determine the build type to use
 	var selectedBuildType BuildType
 	if len(buildTypes) == 0 {
@@ -82,7 +82,7 @@ func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 				hasRelease = true
 			}
 		}
-		
+
 		if hasDev && hasRelease {
 			// If both DEV and RELEASE are set, use RELEASE
 			selectedBuildType = BuildType_RELEASE
@@ -91,7 +91,7 @@ func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 			selectedBuildType = buildTypes[0]
 		}
 	}
-	
+
 	var metas []*ManifestMeta
 	for _, platformId := range platformIds {
 		meta := NewManifestMeta(
@@ -102,7 +102,7 @@ func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 		)
 		metas = append(metas, meta)
 	}
-	
+
 	return metas
 }
 
@@ -146,7 +146,6 @@ func (d *fetchManifest) GetPlatformIds() []string {
 func (d *fetchManifest) GetRev() uint64 {
 	return d.rev
 }
-
 
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the

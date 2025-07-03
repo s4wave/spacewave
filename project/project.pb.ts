@@ -3,14 +3,11 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createMessageType,
-  ScalarType,
-  Timestamp,
-} from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { ObjectRef } from '@go/github.com/aperturerobotics/hydra/bucket/bucket.pb.js'
 import { Config } from '@go/github.com/aperturerobotics/hydra/block/transform/transform.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'bldr.project'
 

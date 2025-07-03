@@ -1,5 +1,21 @@
-import { HandleStreamCtr, Client, OpenStreamFunc } from 'starpc'
+import {
+  HandleStreamCtr,
+  Client,
+  OpenStreamFunc,
+  RpcStreamPacket,
+} from 'starpc'
+import { MessageType } from '@aptre/protobuf-es-lite'
+import {
+  ExecControllerRequest,
+  ExecControllerResponse,
+} from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { PluginHost } from '../plugin/plugin_srpc.pb.js'
+import {
+  GetPluginInfoRequest,
+  GetPluginInfoResponse,
+  LoadPluginRequest,
+  LoadPluginResponse,
+} from '../plugin/plugin.pb.js'
 
 // BackendAPI is the API exposed to Bldr plugin backends (running in a WebWorker).
 //
@@ -22,6 +38,20 @@ export interface BackendAPI {
   // handleStreamCtr allows the plugin module to register a function
   // that will be called to handle incoming streams from the WebRuntime.
   readonly handleStreamCtr: HandleStreamCtr
+
+  // protos contains the protobuf objects used by the BackendAPI.
+  readonly protos: {
+    GetPluginInfoRequest: MessageType<GetPluginInfoRequest>
+    GetPluginInfoResponse: MessageType<GetPluginInfoResponse>
+
+    ExecControllerRequest: MessageType<ExecControllerRequest>
+    ExecControllerResponse: MessageType<ExecControllerResponse>
+
+    LoadPluginRequest: MessageType<LoadPluginRequest>
+    LoadPluginResponse: MessageType<LoadPluginResponse>
+
+    RpcStreamPacket: MessageType<RpcStreamPacket>
+  }
 }
 
 // BackendEntrypointFunc is the default function exported from a plugin backend entrypoint.

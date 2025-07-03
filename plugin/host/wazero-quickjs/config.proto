@@ -1,0 +1,7 @@
+syntax = "proto3";
+package plugin.host.wazero_quickjs;
+
+// Config is the Wazero QuickJS PluginHost controller configuration.
+// Uses QuickJS running as WASI in Wazero to execute JavaScript plugins.
+// Implements the "web" platform ID.
+message Config {}

@@ -62,7 +62,9 @@ async function executeBackendEntrypoint(
     })
   } catch (error) {
     const errMsg = `Failed to load or execute backend entrypoint ${entrypointId}`
-    console.error(`${errMsg}: ${error instanceof Error ? error.message : error}`)
+    console.error(
+      `${errMsg}: ${error instanceof Error ? error.message : error}`,
+    )
     console.error(errMsg, error) // Also log full error object.
     // Propagate the error by returning a rejected promise.
     // This ensures Promise.all below will catch the failure.
@@ -128,7 +130,9 @@ function loadFrontendEntrypoints(): void {
     return
   }
 
-  console.debug(`Processing ${frontendEntrypoints.length} frontend entrypoints...`)
+  console.debug(
+    `Processing ${frontendEntrypoints.length} frontend entrypoints...`,
+  )
   // TODO: Implement frontend entrypoint loading mechanism when required.
   for (const entrypoint of frontendEntrypoints) {
     // Ensure entrypoint and importPath are valid before proceeding.
@@ -162,11 +166,15 @@ export default async function main(backendAPI: BackendAPI) {
   // TODO
 
   // Load host configSet directly from the defined constant.
-  const hostConfigSet: ConfigSet['configs'] | undefined = __BLDR_HOST_CONFIG_SET__ ?? undefined
+  const hostConfigSet: ConfigSet['configs'] | undefined =
+    __BLDR_HOST_CONFIG_SET__ ?? undefined
   if (hostConfigSet != null && Object.keys(hostConfigSet).length !== 0) {
     retryWithAbort(abortSignal, async (abortSignal) => {
-      console.debug("Starting host config set...", hostConfigSet)
-      backendAPI.pluginHost.ExecController({configSet: {configs: hostConfigSet}}, abortSignal)
+      console.debug('Starting host config set...', hostConfigSet)
+      backendAPI.pluginHost.ExecController(
+        { configSet: { configs: hostConfigSet } },
+        abortSignal,
+      )
     })
   }
 

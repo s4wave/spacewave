@@ -75,5 +75,16 @@
       "resolveSourceMapLocations": ["${workspaceFolder}"],
       "timeout": 30000
     },
+    {
+      "name": "Test wazero-quickjs",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}/plugin/host/wazero-quickjs",
+      "args": [
+        "-test.run",
+        "TestPluginHostWazeroQuickjs"
+      ]
+    }
   ]
 }

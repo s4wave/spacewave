@@ -8,10 +8,13 @@ replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.1
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20250428230204-8c668b313064 // aperture
 
+// https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
+replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20250706223739-81a39a0d5d54 // aperture
+
 require (
 	github.com/aperturerobotics/cli v1.0.0
-	github.com/aperturerobotics/common v0.22.5 // latest
-	github.com/aperturerobotics/hydra v0.0.0-20250621064729-b15ac1269cd6 // master
+	github.com/aperturerobotics/common v0.22.6 // latest
+	github.com/aperturerobotics/hydra v0.0.0-20250706041220-c842ebda431d // master
 	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
 )
 
@@ -22,8 +25,9 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kolesnikovae/go-winjob v1.0.1-0.20200702113133-049537be0656 // master
+	github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f // latest
 	github.com/sergi/go-diff v1.4.0
-	github.com/tetratelabs/wazero v1.9.0 // latest
+	github.com/tetratelabs/wazero v1.9.0
 	golang.org/x/mod v0.25.0 // latest
 	golang.org/x/tools v0.34.0 // latest
 )
@@ -75,10 +79,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.50.3-0.20250701225628-d4d2f01abe2f // latest
+	github.com/aperturerobotics/controllerbus v0.50.4-0.20250706040906-c1ba863ae6ba // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.39.1 // latest
-	github.com/aperturerobotics/util v1.30.1 // latest
+	github.com/aperturerobotics/starpc v0.39.5 // latest
+	github.com/aperturerobotics/util v1.30.2-0.20250704022301-ab7fb528390a // latest
 )
 
 // aperture: use compatibility forks

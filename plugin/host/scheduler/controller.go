@@ -201,13 +201,25 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 			if len(resErr) != 0 {
 				c.le.WithField("resolver-errs", resErr).Warn("one or more plugin hosts are erroring")
 			}
-			c.pluginHostsCtr.SetValue(&pluginHostSet{pluginHosts: vals})
 
+			// check and warn if there are any duplicate platform ids (not currently handled well)
 			var ids []string
 			for _, pluginHost := range vals {
 				ids = append(ids, pluginHost.GetPlatformId())
 			}
+			slices.Sort(ids)
+			originalLen := len(ids)
+			ids = slices.Compact(ids)
+
+			// update the host set
 			c.le.WithField("plugin-hosts", ids).Infof("scheduling with %d plugin host(s)", len(ids))
+			hostSet := &pluginHostSet{pluginHosts: vals}
+			c.pluginHostsCtr.SetValue(hostSet)
+
+			// Warn if we have multiple plugin hosts with the same platform ID
+			if originalLen > len(ids) {
+				c.le.WithField("plugin-hosts", ids).Warn("detected multiple plugin hosts with the same platform id")
+			}
 
 			return nil
 		},

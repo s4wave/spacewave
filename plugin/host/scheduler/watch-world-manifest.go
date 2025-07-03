@@ -62,6 +62,7 @@ func (t *pluginInstance) processManifestWorldState(
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 
+
 	// configure logger
 	le = le.WithFields(logrus.Fields{
 		"platform-ids":    platformIDs,

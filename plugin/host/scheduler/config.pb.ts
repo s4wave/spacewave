@@ -62,7 +62,7 @@ export interface Config {
   /**
    * DisableCopyManifest disables copying manifests to the plugin host world bucket.
    * This is used if the manifest bucket is always accessible and locally cached.
-   * No effect if disable_store_manifest is set.
+   * If unset, we will copy manifests to the same bucket as the plugin host world.
    *
    * @generated from field: bool disable_copy_manifest = 10;
    */

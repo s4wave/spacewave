@@ -46,6 +46,10 @@ type Testbed struct {
 	volCtrl volume.Controller
 	// peerID is the peerID to use for operations.
 	peerID peer.ID
+	// pluginHostID is the plugin host ID.
+	pluginHostID string
+	// pluginHostObjKey is the plugin host object key.
+	pluginHostObjKey string
 	// worldEngine is the world engine instance.
 	worldEngine world.Engine
 	// worldState is the world state instance.
@@ -184,6 +188,14 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	}
 	rels = append(rels, relLookupCtrl)
 
+	// create the manifest store in the engine
+	pluginHostID := "plugin-host"
+	pluginHostObjKey := pluginHostID
+	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, eng, pluginHostObjKey); err != nil {
+		rel()
+		return nil, err
+	}
+
 	return &Testbed{
 		ctx:                 ctx,
 		b:                   b,
@@ -196,6 +208,8 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		volInfo:             volInfo,
 		volCtrl:             volCtrl,
 		peerID:              vol.GetPeerID(),
+		pluginHostID:        pluginHostID,
+		pluginHostObjKey:    pluginHostObjKey,
 		worldEngine:         eng,
 		worldState:          worldState,
 		rels:                rels,
@@ -250,6 +264,16 @@ func (d *Testbed) GetWorldEngine() world.Engine {
 // GetWorldState returns the world state handle.
 func (d *Testbed) GetWorldState() world.WorldState {
 	return d.worldState
+}
+
+// GetPluginHostId returns the plugin host ID.
+func (d *Testbed) GetPluginHostId() string {
+	return d.pluginHostID
+}
+
+// GetPluginHostObjKey returns the plugin host object key.
+func (d *Testbed) GetPluginHostObjKey() string {
+	return d.pluginHostObjKey
 }
 
 // Release releases the devtool bus.

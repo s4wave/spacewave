@@ -1,41 +1,8 @@
-import {
-  Client,
-  HandleStreamCtr,
-  HandleStreamFunc,
-  OpenStreamFunc,
-} from 'starpc'
+import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 import { PluginWorker } from '../runtime/plugin-worker.js'
-import { BackendAPI } from '../../sdk/plugin.js'
-import { PluginHost, PluginHostClient } from '../../plugin/plugin_srpc.pb.js'
+import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
 
 declare let self: SharedWorkerGlobalScope
-
-// BackendAPI interface provided to the plugin module.
-class BackendApiImpl implements BackendAPI {
-  // startInfoB58 is the base58 encoded start information passed during initialization.
-  public readonly startInfoB58: string
-  // openStream is the open stream func for client
-  public readonly openStream: OpenStreamFunc
-  // client is a connection to the Go WebRuntime via. WebWorkerRpc rpcstream.
-  public readonly client: Client
-  // pluginHost is the plugin host RPC service client.
-  readonly pluginHost: PluginHost
-  // handleStreamCtr allows the plugin module to register a function
-  // that will be called to handle incoming streams from the WebRuntime.
-  public readonly handleStreamCtr: HandleStreamCtr
-
-  constructor(
-    startInfoB58: string,
-    openStream: OpenStreamFunc,
-    handleStreamCtr: HandleStreamCtr,
-  ) {
-    this.startInfoB58 = startInfoB58
-    this.openStream = openStream
-    this.client = new Client(openStream)
-    this.handleStreamCtr = handleStreamCtr
-    this.pluginHost = new PluginHostClient(this.client)
-  }
-}
 
 // handleIncomingStreamCtr is the container for the plugin handle stream func.
 const handleIncomingStreamCtr = new HandleStreamCtr()

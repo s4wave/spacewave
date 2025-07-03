@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	quickjs_wasi "github.com/paralin/go-quickjs-wasi"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"github.com/tetratelabs/wazero/sys"
@@ -35,15 +36,9 @@ func main() {
 	// This is required for the Wasm module to print to the console.
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
-	// Load the Wasm binary from a file.
-	mainWasm, err := os.ReadFile("qjs-wasi.wasm")
-	if err != nil {
-		log.Panicf("failed to read wasm file: %v", err)
-	}
-
 	// Instantiate the Wasm module.
 	// This will automatically run the "_start" function of the module.
-	mod, err := r.InstantiateWithConfig(ctx, mainWasm, config.WithArgs("qjs-wasi.wasm", "main.js"))
+	mod, err := r.InstantiateWithConfig(ctx, quickjs_wasi.QuickJSWASM, config.WithArgs(quickjs_wasi.QuickJSWASMFilename, "main.js"))
 	if err != nil {
 		// Note: Most compilers do not exit the module after running "_start",
 		// unless there was an error. This allows you to call exported functions.

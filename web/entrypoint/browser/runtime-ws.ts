@@ -5,7 +5,6 @@ import {
   combineUint8ArrayListTransform,
 } from 'starpc'
 import { pipe } from 'it-pipe'
-import { defaultLogger } from '@libp2p/logger'
 
 import { duplex } from '@aptre/it-ws'
 
@@ -71,10 +70,10 @@ async function startWsRuntime(msg: WebRuntimeHostInit) {
   const wsDuplex = duplex(ws as any)
   const runtimeConn = new StreamConn(webRuntime.getWebRuntimeServer(), {
     direction: 'inbound',
-    muxerFactory: yamux({
+    yamuxParams: {
       enableKeepAlive: false,
       maxMessageSize: 32 * 1024,
-    })({ logger: defaultLogger() }),
+    },
   })
   const openStream = runtimeConn.buildOpenStreamFunc()
   pipe(wsDuplex, runtimeConn, combineUint8ArrayListTransform(), wsDuplex)

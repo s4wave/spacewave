@@ -23,10 +23,6 @@ export default defineConfig({
     sourcemap: true,
     cssCodeSplit: true, // set to true by Go as well.
     manifest: true, // set to true by Go as well.
-    terserOptions: {
-      compress: false,
-      mangle: false,
-    },
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify(

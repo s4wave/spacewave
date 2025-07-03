@@ -23,5 +23,5 @@
     "strict": true,
     "lib": ["webworker", "dom"]
   },
-  "exclude": ["node_modules", "vendor", "dist"]
+  "exclude": ["node_modules", "vendor", "dist", "prototypes"]
 }
