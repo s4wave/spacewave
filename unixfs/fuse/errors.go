@@ -26,9 +26,9 @@ func UnixfsErrorToSyscall(err error) error {
 	case unixfs_errors.ErrNotExist:
 		return syscall.ENOENT
 	case unixfs_errors.ErrReleased:
-		return syscall.EPIPE
+		return syscall.EBADF
 	case unixfs_errors.ErrClosed:
-		return syscall.EPIPE
+		return syscall.EBADF
 	case unixfs_errors.ErrNotFile:
 		return syscall.EINVAL
 	case unixfs_errors.ErrNotDirectory:
