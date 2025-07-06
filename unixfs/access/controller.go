@@ -3,13 +3,13 @@ package unixfs_access
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/hydra/unixfs"
 	"github.com/sirupsen/logrus"
-	"slices"
 )
 
 // Controller wraps a handle constructor to resolve AccessUnixFS.

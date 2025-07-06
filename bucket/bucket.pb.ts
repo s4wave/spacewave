@@ -4,12 +4,9 @@
 
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createMessageType,
-  ScalarType,
-  Timestamp,
-} from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { BlockRef, PutOpts } from '../block/block.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { Config as Config$1 } from '../block/transform/transform.pb.js'
 
 export const protobufPackage = 'bucket'

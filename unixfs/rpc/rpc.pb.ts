@@ -3,14 +3,11 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createMessageType,
-  ScalarType,
-  Timestamp,
-} from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { UnixFSError } from '../errors/errors.pb.js'
 import type { NodeType } from '../block/fstree.pb.js'
 import { FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'unixfs.rpc'
 

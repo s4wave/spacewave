@@ -7,11 +7,11 @@ import {
   createEnumType,
   createMessageType,
   ScalarType,
-  Timestamp,
 } from '@aptre/protobuf-es-lite'
 import type { NodeType } from '../block/fstree.pb.js'
 import { FSPath, FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { BlockRef } from '../../block/block.pb.js'
 
 export const protobufPackage = 'unixfs.world'

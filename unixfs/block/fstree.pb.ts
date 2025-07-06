@@ -7,10 +7,10 @@ import {
   createEnumType,
   createMessageType,
   ScalarType,
-  Timestamp,
 } from '@aptre/protobuf-es-lite'
 import { BlockRef } from '../../block/block.pb.js'
 import { File } from '../../block/file/file.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'unixfs.block'
 

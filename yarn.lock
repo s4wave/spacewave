@@ -2,44 +2,35 @@
 # yarn lockfile v1
 
 
-"@aptre/common@^0.22.6":
-  version "0.22.6"
-  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.22.6.tgz#6b5ae201be849ab51eea930ba2c895956c1b91a6"
-  integrity sha512-NnslTPDacGJR3fuP09AymSqH/F8ydtry0sXE10ADmKVlkURf4PGn1qy99lyI9+6cSxAMYVCT5+9BPFn2U+ineA==
+"@aptre/common@^0.22.7":
+  version "0.22.7"
+  resolved "https://registry.yarnpkg.com/@aptre/common/-/common-0.22.7.tgz#8c98d48f6e556328b37031d37b531d5062e364cc"
+  integrity sha512-SlmI5zEm1yCIVG/P+7rBdu6DzD9ESbFkdn/WhNfRSU2nQRyRftO0ItxQsI9+7H6yWZhSjAWAkSgtfNk4E1pUpw==
   dependencies:
-    "@aptre/protobuf-es-lite" "^0.5.0"
+    "@aptre/protobuf-es-lite" "^0.5.2"
     "@typescript-eslint/eslint-plugin" "^8.18.0"
     "@typescript-eslint/parser" "^8.18.0"
     eslint "^9.26.0"
     eslint-config-prettier "^10.0.0"
     eslint-plugin-react-hooks "^5.1.0"
     eslint-plugin-unused-imports "^4.0.0"
-    starpc "^0.39.2"
+    starpc "^0.39.5"
     vitest "^3.0.0"
 
-"@aptre/it-ws@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@aptre/it-ws/-/it-ws-1.0.1.tgz#fd3e45d517849b7a76a37f19d5c25f5dbc3ba991"
-  integrity sha512-8gbaW9utMyVtAi317JX+CYm4uM2XUy+a4y62pok++sSkvlHjG4tjPYOkzVxeTer10BjgTHLek2K/1naWgYicgQ==
+"@aptre/it-ws@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@aptre/it-ws/-/it-ws-1.1.2.tgz#c158e7ee534e2ecd7e3b0f23c8ac7bb39a2e12bb"
+  integrity sha512-llC/rTR1YXs3sNven2QRyHp3PoUwxpe0/iohiFNIfUTjbThlv1vGuq6GZysOGwCqEgbYRJGMhu4A4pTjwqztJQ==
   dependencies:
     "@types/ws" "^8.2.2"
     event-iterator "^2.0.0"
     it-stream-types "^2.0.1"
-    uint8arrays "^5.1.0"
     ws "^8.17.1"
 
-"@aptre/protobuf-es-lite@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.4.8.tgz#722aa6b797a8907233bb0093ed690af673ffc1c7"
-  integrity sha512-PHUbfgZ02JpP/hAx8fa9AEIS5SS2GaR1RUA1UJRWGVIYs0wHrZ1puSkce1XGfljNiqsAZwLZI0QQ/zVmfjdFxA==
-  dependencies:
-    "@typescript/vfs" "^1.5.0"
-    lz-string "^1.5.0"
-
-"@aptre/protobuf-es-lite@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.5.0.tgz#e6f0abcb1f675ea4fd9a507e12ae92b5420cc2b9"
-  integrity sha512-2en1KctqqeCCtdWWCcR6KPln8bdlUCrgnGSaT6Gq/qm/TihpDnuM7wmRqKLFG+DqEq/gYoWfhr0F61nw+aRTzw==
+"@aptre/protobuf-es-lite@0.5.2", "@aptre/protobuf-es-lite@^0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@aptre/protobuf-es-lite/-/protobuf-es-lite-0.5.2.tgz#5e962eaea3e9153be445f72c3534c733ade842db"
+  integrity sha512-AUUiBZP/2C2W3ig50loSWKfhOvr8Gb7uL9vl49kFRsXQJOcNbcDMRSKOS7HNYcDIM6ZhASGL9EasghmNesNa7Q==
   dependencies:
     "@typescript/vfs" "^1.5.0"
     lz-string "^1.5.0"
@@ -429,7 +420,7 @@
     progress-events "^1.0.1"
     uint8arraylist "^2.4.8"
 
-"@libp2p/logger@^5.1.11", "@libp2p/logger@^5.1.13":
+"@libp2p/logger@^5.1.13":
   version "5.1.13"
   resolved "https://registry.yarnpkg.com/@libp2p/logger/-/logger-5.1.13.tgz#f0ecfe4ead772f8210337f09f727870e08860341"
   integrity sha512-JKyMlySG8T+LpItsj9Vma57yap/A0HqJ8ZdaHvgdoThhSOfqcRs8oRWO/2EG0Q5hUXugw//EAT+Ptj8MyNdbjQ==
@@ -2507,16 +2498,15 @@ stackback@0.0.2:
   resolved "https://registry.yarnpkg.com/stackback/-/stackback-0.0.2.tgz#1ac8a0d9483848d1695e418b6d031a3c3ce68e3b"
   integrity sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==
 
-starpc@^0.39.2:
-  version "0.39.2"
-  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.39.2.tgz#c142e5daee3b82a09492c1afff101787eff32376"
-  integrity sha512-doPEQP7YxppiL0nCUy7MzSVJDJaPVRA7KDjZEZswyHy0EmmyZYikfxl7btBtqu6y8z6c9CQXgg9qlNQhqPaGJw==
+starpc@^0.39.5:
+  version "0.39.5"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.39.5.tgz#4e5da18e52c7679fedf097491606e1eb806e2ff5"
+  integrity sha512-ilMs3Ek5V5u4txKzhGD1SZEozT86wDHylz8xgOM/h0gv+XgY64B3PsSVn041zi4DYutcIOmnLDene+enzKz9Vg==
   dependencies:
-    "@aptre/it-ws" "^1.0.1"
-    "@aptre/protobuf-es-lite" "^0.5.0"
+    "@aptre/it-ws" "^1.1.2"
+    "@aptre/protobuf-es-lite" "^0.5.2"
     "@chainsafe/libp2p-yamux" "^7.0.1"
     "@libp2p/interface" "^2.6.1"
-    "@libp2p/logger" "^5.1.11"
     event-iterator "^2.0.0"
     isomorphic-ws "^5.0.0"
     it-first "^3.0.6"

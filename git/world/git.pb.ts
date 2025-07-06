@@ -5,11 +5,8 @@
 import { UnixfsRef } from '../../unixfs/world/unixfs.pb.js'
 import { CheckoutOpts, Index, Reference } from '../block/git.pb.js'
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createMessageType,
-  ScalarType,
-  Timestamp,
-} from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 
 export const protobufPackage = 'git.world'
