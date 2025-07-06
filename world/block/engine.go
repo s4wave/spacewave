@@ -199,11 +199,14 @@ func (e *Engine) AccessWorldState(
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
+
+	// follow the root block ref
 	ncs, err := e.root.FollowRef(subCtx, ref)
 	if err != nil {
 		return err
 	}
 	defer ncs.Release()
+
 	return cb(ncs)
 }
 
