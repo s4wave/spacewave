@@ -177,18 +177,7 @@ func BuildRendererIndex(buildDir, entrypointHash string) error {
 	pkgsPathPrefix += "/pkgs/"
 
 	// build the import map
-	importMap := web_entrypoint_index.ImportMap{
-		Imports: map[string]string{
-			"react":                   pkgsPathPrefix + "react/index.mjs",
-			"react/jsx-runtime":       pkgsPathPrefix + "react/jsx-runtime.mjs",
-			"react-dom":               pkgsPathPrefix + "react-dom/index.mjs",
-			"react-dom/client":        pkgsPathPrefix + "react-dom/client.mjs",
-			"react-dom/test-utils":    pkgsPathPrefix + "react-dom/test-utils.mjs",
-			"@aptre/bldr":             pkgsPathPrefix + "@aptre/bldr/index.mjs",
-			"@aptre/bldr-react":       pkgsPathPrefix + "@aptre/bldr-react/index.mjs",
-			"@aptre/protobuf-es-lite": pkgsPathPrefix + "@aptre/protobuf-es-lite/index.mjs",
-		},
-	}
+	importMap := web_pkg_esbuild.GetBldrDistImportMap(pkgsPathPrefix)
 
 	// render index.html
 	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{

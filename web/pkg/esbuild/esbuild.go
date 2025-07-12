@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
 	determine_cjs_exports_exec "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports/exec"
@@ -44,8 +45,27 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 	}, {
 		WebPkgId:   "@aptre/protobuf-es-lite",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@aptre/protobuf-es-lite/dist"),
-		Imports:    []string{"index.js"},
+		Imports:    []string{"index.js", "google/protobuf/empty.pb.js"},
 	}}
+}
+
+// GetBldrDistImportMap returns the import map for BldrExternal.
+func GetBldrDistImportMap(pkgsPathPrefix string) web_entrypoint_index.ImportMap {
+	return web_entrypoint_index.ImportMap{
+		// NOTE: be sure to update the WebPkgs list as well
+		Imports: map[string]string{
+			"react":                pkgsPathPrefix + "react/index.mjs",
+			"react/jsx-runtime":    pkgsPathPrefix + "react/jsx-runtime.mjs",
+			"react-dom":            pkgsPathPrefix + "react-dom/index.mjs",
+			"react-dom/client":     pkgsPathPrefix + "react-dom/client.mjs",
+			"react-dom/test-utils": pkgsPathPrefix + "react-dom/test-utils.mjs",
+			"@aptre/bldr":          pkgsPathPrefix + "@aptre/bldr/index.mjs",
+			"@aptre/bldr-react":    pkgsPathPrefix + "@aptre/bldr-react/index.mjs",
+
+			"@aptre/protobuf-es-lite":                       pkgsPathPrefix + "@aptre/protobuf-es-lite/index.mjs",
+			"@aptre/protobuf-es-lite/google/protobuf/empty": pkgsPathPrefix + "@aptre/protobuf-es-lite/google/protobuf/empty.pb.mjs",
+		},
+	}
 }
 
 // pkgRootAlias is an alias to the root of the bldr web pkg.
