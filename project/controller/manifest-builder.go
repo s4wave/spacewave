@@ -183,7 +183,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 			tx,
 			manifestID,
 			[]string{platformID},
-			storeObjKey,
+			storeLinkObjKeys...,
 		)
 		tx.Discard()
 		if err != nil {

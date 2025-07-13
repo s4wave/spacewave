@@ -1,4 +1,4 @@
-package plugin_host_wazero_quickjs
+package wazerofs
 
 import (
 	"io"

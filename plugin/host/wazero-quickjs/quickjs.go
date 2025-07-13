@@ -17,6 +17,7 @@ import (
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
+	"github.com/aperturerobotics/bldr/util/wazerofs"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/hydra/unixfs"
@@ -237,7 +238,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		fsConfig = fsConfig.WithFSMount(PluginQuickjsBoot, "/boot")
 
 		// Create the stdin buffer.
-		stdinBuf := &StdinBuffer{}
+		stdinBuf := &wazerofs.StdinBuffer{}
 		defer stdinBuf.Close()
 
 		// Create the output pipe + buffer.

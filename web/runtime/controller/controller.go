@@ -285,6 +285,13 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	}
 }
 
+// setNoCacheHeaders sets headers that prevent client-side caching.
+func setNoCacheHeaders(hdr http.Header) {
+	hdr.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	hdr.Set("Pragma", "no-cache")
+	hdr.Set("Expires", "0")
+}
+
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
 func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
 	// access the fs with unixfs_access, return not found if the fs is not available
@@ -305,6 +312,10 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 		return
 	}
 	defer relHandler()
+
+	// set headers preventing caching
+	// TODO: tell ServiceWorker to flush cache when plugin is updated!
+	setNoCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
 }
@@ -330,6 +341,11 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	}
 	defer relHandler()
 
+	// TODO: tell ServiceWorker to flush cache when plugin is updated!
+	// TODO: set cache retention headers, store the hash for last loaded plugin revision,
+	// TODO: store version info of each of the cached files, compare all + flush when plugin is updated.
+	// setNoCacheHeaders(rw.Header())
+
 	handler.ServeHTTP(rw, req)
 }
 
@@ -339,6 +355,12 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 // The first element(s) of the path (split by /) are used as the package name.
 // If the path begins with @, it is treated as a scope: @scope/package/...
 func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {
+	// set headers preventing caching
+	// we always want to do this since WebModule might be loaded from an alternative source
+
+	// TODO: This causes an issue where the request never loads. Why?
+	// setNoCacheHeaders(rw.Header())
+
 	c.pkgServer.ServeWebModuleHTTP(pkgPath, rw, req)
 }
 

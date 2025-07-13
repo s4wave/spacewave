@@ -34,6 +34,9 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 		// Compare the manifest references for equality
 		manifestEqual = a.manifestSnapshot.GetManifestRef().EqualVT(b.manifestSnapshot.GetManifestRef())
 	}
+	if !manifestEqual {
+		return false
+	}
 
 	// Compare plugin hosts
 	pluginHostEqual := (a.pluginHost == nil) == (b.pluginHost == nil)
@@ -41,7 +44,7 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 		pluginHostEqual = a.pluginHost == b.pluginHost
 	}
 
-	return manifestEqual && pluginHostEqual
+	return pluginHostEqual
 }
 
 // execPlugin executes the plugin.
@@ -111,7 +114,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			[]string{assetsFsID},
 			assetsFS,
 		)
-		defer distAccessCtrl.Close()
+		defer assetsAccessCtrl.Close()
 
 		// mount the dist fs access controller
 		relAssetsAccessCtrl, err := t.c.bus.AddController(ctx, assetsAccessCtrl, nil)
@@ -131,7 +134,6 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			assetsFS,
 		)
 
-		// execute the plugin
 		execErr := args.pluginHost.ExecutePlugin(
 			ctx,
 			pluginID,
@@ -166,7 +168,7 @@ func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 		if rp != nil {
 			val = rp.GetRpcClient()
 		}
-		changed := ((client == nil) != (val == nil)) || (val != nil && val != client)
+		changed := val != client
 		if !changed {
 			return rp
 		}

@@ -147,6 +147,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var prevErr error
 	var changedFiles []*manifest_builder.InputManifest_File
 
+	// TODO: We do not increment the manifest revision when hot reloading.
+	// TODO: Should that be done here?
+
 	for {
 		if ctx.Err() != nil {
 			return context.Canceled

@@ -137,13 +137,13 @@ func (c *RemoteConfig) ParsePeerID() (peer.ID, error) {
 }
 
 // CleanupLinkObjectKeys returns a compacted and sorted copy of the list of
-// object keys to link including the base remote object key.
+// object keys to link including storeObjKey.
 func (c *RemoteConfig) CleanupLinkObjectKeys() (storeObjKey string, linkObjKeys []string) {
 	storeObjKey = c.GetObjectKey()
 	linkObjKeys = append([]string{storeObjKey}, c.GetLinkObjectKeys()...)
-	sort.Strings(linkObjKeys)
+	slices.Sort(linkObjKeys)
 	linkObjKeys = slices.Compact(linkObjKeys)
-	return
+	return storeObjKey, linkObjKeys
 }
 
 // Validate validates the start configuration.

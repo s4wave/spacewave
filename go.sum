@@ -8,8 +8,8 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:tykjLki/ShxJNz56wc5zYpz02oo/zNEYRpOb9g+uFuA=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
-github.com/aperturerobotics/bifrost v0.42.4-0.20250629223807-7a96775a8c75 h1:dkdboOZffjjzV3PSAvhAXW+F41nRVwVd0eAX/NbvYrs=
-github.com/aperturerobotics/bifrost v0.42.4-0.20250629223807-7a96775a8c75/go.mod h1:7umQSM4ePsaIWeBHSiD7QC04eImRPa1SMclGIpIYZP8=
+github.com/aperturerobotics/bifrost v0.42.4-0.20250713225909-9284b43aab6e h1:dQIJ3aFod6Gq7vJ41fcd7gAExTTET9PQgCbWQpshJ0s=
+github.com/aperturerobotics/bifrost v0.42.4-0.20250713225909-9284b43aab6e/go.mod h1:9dAMiC/w5t23fSqiZvAe00fSxn9fuSfxWLILbYXqcQc=
 github.com/aperturerobotics/cayley v0.9.1 h1:fPW0kYZamDbRVzBfpHNou5uqFlLIIF/JFeh6laP/Wuc=
 github.com/aperturerobotics/cayley v0.9.1/go.mod h1:jAi3MXAWz07Ds2rERJd13auScsyt4Vkf2Mbqi4Tx/40=
 github.com/aperturerobotics/cli v1.0.0 h1:s3xT2h7eBih4/4yZKTn/HQ6P+qpk6ygWZl2416xAI1M=
@@ -34,8 +34,8 @@ github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/go-multihash v0.2.3 h1:/dzKxmtr0eadFUcG/8uJdKtcQ5yHwmhwx6oqe1PoMMU=
 github.com/aperturerobotics/go-multihash v0.2.3/go.mod h1:jEGfK9IqlKuD9BaFHgadXORk3i9Rw7DmVOOM6UgauGU=
-github.com/aperturerobotics/hydra v0.0.0-20250706041220-c842ebda431d h1:UtFTAGb7o+FNueGunpqaPr+s7WiWk6kdtgBuYvmSz2o=
-github.com/aperturerobotics/hydra v0.0.0-20250706041220-c842ebda431d/go.mod h1:bWdJHqJKOUIhIUdxdzfAN2LJPHIiW59g5pdQzMCTrF0=
+github.com/aperturerobotics/hydra v0.0.0-20250713224130-2c38f1cadef5 h1:WD4/aFZeXFpHQQUhP4ZAwqO6IQOmFtBBDsAGF1kjCoA=
+github.com/aperturerobotics/hydra v0.0.0-20250713224130-2c38f1cadef5/go.mod h1:/En4ZwUhyR8gEa3+J7GixwVbZpBBsOjqrL7MMveS/Hc=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20241223092408-d525fa878b3e h1:9KDK70CSnHCUGShpq3sEg/t8zEEnKePlhJ4775ekpeI=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20241223092408-d525fa878b3e/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=

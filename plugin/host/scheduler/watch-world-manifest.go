@@ -62,7 +62,6 @@ func (t *pluginInstance) processManifestWorldState(
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 
-
 	// configure logger
 	le = le.WithFields(logrus.Fields{
 		"platform-ids":    platformIDs,
@@ -162,19 +161,32 @@ func (t *pluginInstance) processManifestWorldState(
 
 			// download the downloadManifest
 			// if downloadManifest is nil this will stop that routine
+			var anyChanged bool
 			if !t.c.conf.GetDisableCopyManifest() {
-				t.downloadManifestRoutine.SetState(downloadManifest)
+				_, changed, _, _ := t.downloadManifestRoutine.SetState(downloadManifest)
+				anyChanged = anyChanged || changed
 			}
 
 			// execute the executeManifest
 			if executeManifest != nil {
 				// update the state container (which automatically diffs the manifest and restarts if changed)
-				t.executePluginRoutine.SetState(&executePluginArgs{
+				_, changed, _, _ := t.executePluginRoutine.SetState(&executePluginArgs{
 					manifestSnapshot: executeManifest,
 					pluginHost:       executeManifestHost,
 				})
+				anyChanged = anyChanged || changed
 			} else {
-				t.executePluginRoutine.SetState(nil)
+				_, changed, _, _ := t.executePluginRoutine.SetState(nil)
+				anyChanged = anyChanged || changed
+			}
+
+			if anyChanged {
+				le.WithFields(logrus.Fields{
+					"download-manifest-rev": downloadManifest.GetManifest().GetMeta().GetRev(),
+					"download-manifest-ref": downloadManifest.GetManifestRef().MarshalB58(),
+					"execute-manifest-ref":  executeManifest.GetManifestRef().MarshalB58(),
+					"execute-manifest-rev":  executeManifest.GetManifest().GetMeta().GetRev(),
+				}).Debug("selected download and execute manifests for plugin")
 			}
 
 			// done

@@ -6,6 +6,7 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/hydra/bucket"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
@@ -127,12 +128,24 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 	}
 
 	manifestKey := bldr_manifest.NewManifestKey(t.pi.c.objKey, meta)
-	_, prevManifestFound, err := ws.GetObject(ctx, manifestKey)
+	prevManifest, prevManifestFound, err := ws.GetObject(ctx, manifestKey)
 	if err != nil {
 		return err
 	}
-	if prevManifestFound {
+	var prevManifestRootRef *bucket.ObjectRef
+	if prevManifest != nil {
+		prevManifestRootRef, _, err = prevManifest.GetRootRef(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO: See manifest/builder/controller/controller.go
+	// TODO: We don't increment the manifest revision in devtool mode when hot reloading.
+	// TODO: Instead make sure the root ref is the same in storage here.
+	if prevManifestFound && prevManifestRootRef.EqualVT(manifestRef.GetManifestRef()) {
 		// manifest exists, do nothing.
+		le.Debug("manifest is identical, skipping")
 		return nil
 	}
 

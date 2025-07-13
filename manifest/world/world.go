@@ -237,6 +237,7 @@ func CollectManifests(
 			ManifestRef: manifestRef,
 			ManifestKey: objKey,
 		})
+		// sort by rev descending
 		sort.SliceStable(manifestList, func(i, j int) bool {
 			return manifestList[i].GetRev() > manifestList[j].GetRev()
 		})
