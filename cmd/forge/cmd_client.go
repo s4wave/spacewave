@@ -4,7 +4,7 @@ package main
 
 import (
 	fcli "github.com/aperturerobotics/forge/cli"
-	"github.com/urfave/cli/v2"
+	"github.com/aperturerobotics/cli"
 )
 
 var clientArgs fcli.ClientArgs

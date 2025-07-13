@@ -3,12 +3,9 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  Timestamp,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
 import { Result } from '../value/value.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'forge.job'
 

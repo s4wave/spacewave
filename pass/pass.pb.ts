@@ -7,12 +7,12 @@ import {
   createEnumType,
   createMessageType,
   ScalarType,
-  Timestamp,
 } from '@aptre/protobuf-es-lite'
 import type { State as State$1 } from '../execution/execution.pb.js'
 import { State_Enum as State_Enum$1 } from '../execution/execution.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 
 export const protobufPackage = 'forge.pass'

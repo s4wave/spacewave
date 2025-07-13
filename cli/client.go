@@ -13,8 +13,8 @@ import (
 	hydra_cli "github.com/aperturerobotics/hydra/cli"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	ucli "github.com/urfave/cli/v2"
+	"github.com/aperturerobotics/cli"
+	ucli "github.com/aperturerobotics/cli"
 )
 
 // ClientArgs contains the client arguments and functions.

@@ -7,11 +7,11 @@ import {
   createEnumType,
   createMessageType,
   ScalarType,
-  Timestamp,
 } from '@aptre/protobuf-es-lite'
 import { ValueSet } from '../target/target.pb.js'
 import { BlockRef } from '@go/github.com/aperturerobotics/hydra/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'forge.execution'
 

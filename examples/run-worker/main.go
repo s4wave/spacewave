@@ -12,7 +12,7 @@ import (
 	world_testbed "github.com/aperturerobotics/hydra/world/testbed"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/aperturerobotics/cli"
 )
 
 func main() {
