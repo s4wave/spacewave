@@ -58,8 +58,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:tykjLki/ShxJNz56wc5zYpz02oo/zNEYRpOb9g+uFuA=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
-github.com/aperturerobotics/bifrost v0.42.4-0.20250629223807-7a96775a8c75 h1:dkdboOZffjjzV3PSAvhAXW+F41nRVwVd0eAX/NbvYrs=
-github.com/aperturerobotics/bifrost v0.42.4-0.20250629223807-7a96775a8c75/go.mod h1:7umQSM4ePsaIWeBHSiD7QC04eImRPa1SMclGIpIYZP8=
+github.com/aperturerobotics/bifrost v0.42.4-0.20250713224013-af96ea274ef5 h1:ozeUQ9783mNQwTmutuOAynTWkfjE+Y1zCae6ItQ7LcE=
+github.com/aperturerobotics/bifrost v0.42.4-0.20250713224013-af96ea274ef5/go.mod h1:9dAMiC/w5t23fSqiZvAe00fSxn9fuSfxWLILbYXqcQc=
 github.com/aperturerobotics/cayley v0.9.1 h1:fPW0kYZamDbRVzBfpHNou5uqFlLIIF/JFeh6laP/Wuc=
 github.com/aperturerobotics/cayley v0.9.1/go.mod h1:jAi3MXAWz07Ds2rERJd13auScsyt4Vkf2Mbqi4Tx/40=
 github.com/aperturerobotics/cli v1.0.0 h1:s3xT2h7eBih4/4yZKTn/HQ6P+qpk6ygWZl2416xAI1M=

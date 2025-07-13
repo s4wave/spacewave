@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.3
 
 require (
-	github.com/aperturerobotics/bifrost v0.42.4-0.20250629223807-7a96775a8c75 // master
+	github.com/aperturerobotics/bifrost v0.42.4-0.20250713224013-af96ea274ef5 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -89,7 +89,7 @@ require (
 	github.com/pion/sdp/v3 v3.0.14 // indirect
 	github.com/pion/webrtc/v4 v4.1.2 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.52.0 // indirect
+	github.com/quic-go/quic-go v0.53.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
 	golang.org/x/crypto v0.39.0
