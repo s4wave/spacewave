@@ -8,9 +8,17 @@ import (
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	plugin_host_web "github.com/aperturerobotics/bldr/plugin/host/web"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 )
+
+// PluginHostControllerFactories construct the plugin host controller factory.
+var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
+	func(b bus.Bus) controller.Factory {
+		return plugin_host_web.NewFactory(b)
+	},
+}
 
 // PluginHostController is an alias to the plugin host controller type.
 type PluginHostController = plugin_host_controller.Controller
@@ -38,6 +46,3 @@ func StartPluginHost(
 	}
 	return pluginHostCtrl, pluginHostRef.Release, nil
 }
-
-// NewPluginHostControllerFactory constructs the plugin host controller factory.
-var NewPluginHostControllerFactory = plugin_host_web.NewFactory

@@ -20,14 +20,13 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   // file that has been converted to a CommonJS file using a Babel-
   // compatible transform (i.e. "__esModule" has not been set), then set
   // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  __defProp(target, "default", { value: mod, enumerable: true }) ,
   mod
 ));
 
 // ../../../node_modules/event-iterator/lib/event-iterator.js
 var require_event_iterator = __commonJS({
   "../../../node_modules/event-iterator/lib/event-iterator.js"(exports) {
-    "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var EventQueue = class {
       constructor() {
@@ -145,7 +144,6 @@ var require_event_iterator = __commonJS({
 // ../../../node_modules/event-iterator/lib/dom.js
 var require_dom = __commonJS({
   "../../../node_modules/event-iterator/lib/dom.js"(exports) {
-    "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var event_iterator_1 = require_event_iterator();
     exports.EventIterator = event_iterator_1.EventIterator;
@@ -1642,7 +1640,7 @@ function wrapField(fieldWrapper, value) {
 function unwrapField(fieldWrapper, value) {
   return fieldWrapper ? fieldWrapper.unwrapField(value) : value;
 }
-var wktWrapperToScalarType = {
+({
   "google.protobuf.Timestamp": ScalarType.DATE,
   "google.protobuf.DoubleValue": ScalarType.DOUBLE,
   "google.protobuf.FloatValue": ScalarType.FLOAT,
@@ -1653,7 +1651,7 @@ var wktWrapperToScalarType = {
   "google.protobuf.BoolValue": ScalarType.BOOL,
   "google.protobuf.StringValue": ScalarType.STRING,
   "google.protobuf.BytesValue": ScalarType.BYTES
-};
+});
 
 // ../../../node_modules/@aptre/protobuf-es-lite/dist/binary-encoding.js
 var WireType;
@@ -2558,8 +2556,7 @@ function readMessage2(fields, typeName, json, options, message) {
       }
       readField2(message, jsonValue, field, options);
     } else {
-      const found = false;
-      if (!found && !options.ignoreUnknownFields) {
+      if (!options.ignoreUnknownFields) {
         throw new Error(`cannot decode message ${typeName} from JSON: key "${jsonKey}" is unknown`);
       }
     }
@@ -2927,28 +2924,28 @@ function writeField2(field, value, options) {
   if (field.kind == "map") {
     const jsonObj = /* @__PURE__ */ Object.create(null);
     assert(!value || typeof value === "object");
-    const entries = value ? Object.entries(value) : [];
+    const entries2 = value ? Object.entries(value) : [];
     switch (field.V.kind) {
       case "scalar":
-        for (const [entryKey, entryValue] of entries) {
+        for (const [entryKey, entryValue] of entries2) {
           jsonObj[entryKey.toString()] = writeScalar2(field.V.T, entryValue);
         }
         break;
       case "message":
-        for (const [entryKey, entryValue] of entries) {
+        for (const [entryKey, entryValue] of entries2) {
           const messageType = resolveMessageType(field.V.T);
           jsonObj[entryKey.toString()] = messageType.toJson(entryValue, options);
         }
         break;
       case "enum": {
         const enumType = field.V.T;
-        for (const [entryKey, entryValue] of entries) {
+        for (const [entryKey, entryValue] of entries2) {
           jsonObj[entryKey.toString()] = writeEnum(enumType, entryValue, options.enumAsInteger);
         }
         break;
       }
     }
-    return options.emitDefaultValues || entries.length > 0 ? jsonObj : void 0;
+    return options.emitDefaultValues || entries2.length > 0 ? jsonObj : void 0;
   }
   if (field.repeated) {
     assert(!value || Array.isArray(value));
@@ -3258,8 +3255,6 @@ function createCompleteMessage(fields) {
       case "map":
         message[localName2] = /* @__PURE__ */ Object.create(null);
         break;
-      default:
-        field;
     }
   }
   return message;
@@ -3278,50 +3273,6 @@ var MethodIdempotency;
   MethodIdempotency2[MethodIdempotency2["NoSideEffects"] = 1] = "NoSideEffects";
   MethodIdempotency2[MethodIdempotency2["Idempotent"] = 2] = "Idempotent";
 })(MethodIdempotency || (MethodIdempotency = {}));
-
-// ../../../node_modules/@aptre/protobuf-es-lite/dist/proto-double.js
-var protoDouble = {
-  NaN: Number.NaN,
-  POSITIVE_INFINITY: Number.POSITIVE_INFINITY,
-  NEGATIVE_INFINITY: Number.NEGATIVE_INFINITY
-};
-
-// ../../../node_modules/@aptre/protobuf-es-lite/dist/codegen-info.js
-var packageName = "@aptre/protobuf-es-lite";
-var symbolInfo = (typeOnly, privateImportPath) => ({
-  typeOnly,
-  privateImportPath,
-  publicImportPath: packageName
-});
-var symbols = {
-  Message: symbolInfo(false, "./message.js"),
-  FieldList: symbolInfo(true, "./field-list.js"),
-  PartialFieldInfo: symbolInfo(true, "./field.js"),
-  MessageType: symbolInfo(true, "./message-type.js"),
-  Extension: symbolInfo(true, "./extension.js"),
-  IMessageTypeRegistry: symbolInfo(true, "./type-registry.js"),
-  BinaryReadOptions: symbolInfo(true, "./binary-format.js"),
-  BinaryWriteOptions: symbolInfo(true, "./binary-format.js"),
-  JsonReadOptions: symbolInfo(true, "./json.js"),
-  JsonWriteOptions: symbolInfo(true, "./json.js"),
-  JsonValue: symbolInfo(true, "./json.js"),
-  JsonObject: symbolInfo(true, "./json.js"),
-  jsonReadEnum: symbolInfo(false, "./json.js"),
-  jsonReadScalar: symbolInfo(false, "./json.js"),
-  jsonWriteEnum: symbolInfo(false, "./json.js"),
-  jsonWriteScalar: symbolInfo(false, "./json.js"),
-  jsonDebugValue: symbolInfo(false, "./json.js"),
-  protoDouble: symbolInfo(false, "./proto-double.js"),
-  protoInt64: symbolInfo(false, "./proto-int64.js"),
-  applyPartialMessage: symbolInfo(false, "./partial.js"),
-  ScalarType: symbolInfo(false, "./scalar.js"),
-  LongType: symbolInfo(false, "./scalar.js"),
-  ScalarValue: symbolInfo(false, "./scalar.js"),
-  MethodKind: symbolInfo(false, "./service-type.js"),
-  MethodIdempotency: symbolInfo(false, "./service-type.js"),
-  createEnumType: symbolInfo(false, "./enum.js"),
-  createMessageType: symbolInfo(false, "./message.js")
-};
 
 // ../../../node_modules/starpc/dist/srpc/rpcproto.pb.js
 var CallStart = createMessageType({
@@ -4311,7 +4262,6 @@ function setMaxListeners() {
 
 // ../../../node_modules/@libp2p/interface/dist/src/index.js
 var serviceCapabilities = Symbol.for("@libp2p/service-capabilities");
-var serviceDependencies = Symbol.for("@libp2p/service-dependencies");
 
 // ../../../node_modules/get-iterator/dist/src/index.js
 function getIterator(obj) {
@@ -4449,7 +4399,7 @@ var Flag;
   Flag2[Flag2["FIN"] = 4] = "FIN";
   Flag2[Flag2["RST"] = 8] = "RST";
 })(Flag || (Flag = {}));
-var flagCodes = Object.values(Flag).filter((x) => typeof x !== "string");
+Object.values(Flag).filter((x) => typeof x !== "string");
 var YAMUX_VERSION = 0;
 var GoAwayCode;
 (function(GoAwayCode2) {
@@ -5435,7 +5385,6 @@ var YamuxMuxer = class {
     this.log?.trace("muxer close reason=%s", reason);
     if (options.signal == null) {
       const signal = AbortSignal.timeout(CLOSE_TIMEOUT);
-      setMaxListeners(Infinity, signal);
       options = {
         ...options,
         signal
@@ -5801,13 +5750,13 @@ var StreamConn = class {
 };
 
 // ../../../node_modules/@aptre/it-ws/dist/src/source.js
-var import_event_iterator = __toESM(require_dom(), 1);
+__toESM(require_dom());
 
 // ../../../node_modules/starpc/dist/srpc/broadcast-channel.js
-var import_event_iterator2 = __toESM(require_dom(), 1);
+__toESM(require_dom());
 
 // ../../../node_modules/starpc/dist/srpc/message-port.js
-var import_event_iterator3 = __toESM(require_dom(), 1);
+__toESM(require_dom());
 
 // ../../../node_modules/starpc/dist/srpc/handle-stream-ctr.js
 var HandleStreamCtr = class extends ValueCtr {
@@ -5852,7 +5801,7 @@ var RpcStreamPacket = createMessageType({
 });
 
 // ../../../node_modules/starpc/dist/echo/echo.pb.js
-var EchoMsg = createMessageType({
+createMessageType({
   typeName: "echo.EchoMsg",
   fields: [
     { no: 1, name: "body", kind: "scalar", T: ScalarType.STRING }
@@ -5861,15 +5810,14 @@ var EchoMsg = createMessageType({
 });
 
 // ../../../node_modules/@aptre/protobuf-es-lite/dist/google/protobuf/empty.pb.js
-var Empty = createMessageType({
+createMessageType({
   typeName: "google.protobuf.Empty",
   fields: [],
   packedByDefault: true
 });
 
 // ../../../node_modules/starpc/dist/echo/echo_srpc.pb.js
-var EchoerDefinition = {
-  typeName: "echo.Echoer",
+({
   methods: {
     /**
      * Echo returns the given message.
@@ -5877,9 +5825,6 @@ var EchoerDefinition = {
      * @generated from rpc echo.Echoer.Echo
      */
     Echo: {
-      name: "Echo",
-      I: EchoMsg,
-      O: EchoMsg,
       kind: MethodKind.Unary
     },
     /**
@@ -5888,9 +5833,6 @@ var EchoerDefinition = {
      * @generated from rpc echo.Echoer.EchoServerStream
      */
     EchoServerStream: {
-      name: "EchoServerStream",
-      I: EchoMsg,
-      O: EchoMsg,
       kind: MethodKind.ServerStreaming
     },
     /**
@@ -5899,9 +5841,6 @@ var EchoerDefinition = {
      * @generated from rpc echo.Echoer.EchoClientStream
      */
     EchoClientStream: {
-      name: "EchoClientStream",
-      I: EchoMsg,
-      O: EchoMsg,
       kind: MethodKind.ClientStreaming
     },
     /**
@@ -5910,9 +5849,6 @@ var EchoerDefinition = {
      * @generated from rpc echo.Echoer.EchoBidiStream
      */
     EchoBidiStream: {
-      name: "EchoBidiStream",
-      I: EchoMsg,
-      O: EchoMsg,
       kind: MethodKind.BiDiStreaming
     },
     /**
@@ -5921,9 +5857,6 @@ var EchoerDefinition = {
      * @generated from rpc echo.Echoer.RpcStream
      */
     RpcStream: {
-      name: "RpcStream",
-      I: RpcStreamPacket,
-      O: RpcStreamPacket,
       kind: MethodKind.BiDiStreaming
     },
     /**
@@ -5932,14 +5865,10 @@ var EchoerDefinition = {
      * @generated from rpc echo.Echoer.DoNothing
      */
     DoNothing: {
-      name: "DoNothing",
-      I: Empty,
-      O: Empty,
       kind: MethodKind.Unary
     }
   }
-};
-var EchoerServiceName = EchoerDefinition.typeName;
+});
 
 // quickjs/quickjs.ts
 function writeCompleteChunk(os, fd, data) {
@@ -6291,30 +6220,6 @@ function decoderError(fatal, opt_code_point) {
   }
   return opt_code_point || 65533;
 }
-function Decoder2() {
-}
-Decoder2.prototype = {
-  /**
-   * @param {Stream} stream The stream of bytes being decoded.
-   * @param {number} bite The next byte read from the stream.
-   * @return {?(number|!Array.<number>)} The next code point(s)
-   *     decoded, or null if not enough data exists in the input
-   *     stream to decode a complete code point, or |finished|.
-   */
-  handler: function(stream, bite) {
-  }
-};
-function Encoder() {
-}
-Encoder.prototype = {
-  /**
-   * @param {Stream} stream The stream of code points being encoded.
-   * @param {number} code_point Next code point read from the stream.
-   * @return {(number|!Array.<number>)} Byte(s) to emit, or |finished|.
-   */
-  handler: function(stream, code_point) {
-  }
-};
 var DEFAULT_ENCODING = "utf-8";
 function TextDecoder2(encoding, options) {
   if (!(this instanceof TextDecoder2)) {
@@ -6544,7 +6449,7 @@ function UTF8Decoder(options) {
   };
 }
 function UTF8Encoder(options) {
-  var fatal = options.fatal;
+  options.fatal;
   this.handler = function(stream, code_point) {
     if (code_point === end_of_stream) {
       return finished;
@@ -6573,16 +6478,712 @@ function UTF8Encoder(options) {
   };
 }
 
+// quickjs/console-util.js
+function extend(origin, add) {
+  if (!add || !isObject(add)) {
+    return origin;
+  }
+  var keys = Object.keys(add);
+  var i = keys.length;
+  while (i--) {
+    origin[keys[i]] = add[keys[i]];
+  }
+  return origin;
+}
+var formatRegExp = /%[sdjif%]/g;
+function format(f) {
+  if (!isString(f)) {
+    var objects = [];
+    for (let i2 = 0; i2 < arguments.length; i2++) {
+      objects.push(inspect(arguments[i2]));
+    }
+    return objects.join(" ");
+  }
+  let i = 1;
+  var args = arguments;
+  var len = args.length;
+  var str = String(f).replace(formatRegExp, function(x2) {
+    if (x2 === "%%") {
+      return "%";
+    }
+    if (i >= len) {
+      return x2;
+    }
+    switch (x2) {
+      case "%s":
+        return String(args[i++]);
+      case "%d":
+      // eslint-disable-next-line padding-line-between-statements, no-fallthrough
+      case "%i": {
+        const arg = args[i++];
+        return typeof arg === "symbol" ? NaN : parseInt(arg, 10);
+      }
+      case "%f": {
+        const arg = args[i++];
+        return typeof arg === "symbol" ? NaN : parseFloat(arg);
+      }
+      case "%j":
+        try {
+          return JSON.stringify(args[i++]);
+        } catch (_) {
+          return "[Circular]";
+        }
+      default:
+        return x2;
+    }
+  });
+  for (var x = args[i]; i < len; x = args[++i]) {
+    if (x === null || !["object", "symbol"].includes(typeof x)) {
+      str += " " + x;
+    } else {
+      str += " " + inspect(x);
+    }
+  }
+  return str;
+}
+function inspect(obj, opts) {
+  var ctx = {
+    seen: [],
+    stylize: stylizeNoColor
+  };
+  if (arguments.length >= 3) {
+    ctx.depth = arguments[2];
+  }
+  if (arguments.length >= 4) {
+    ctx.colors = arguments[3];
+  }
+  if (opts) {
+    extend(ctx, opts);
+  }
+  if (ctx.showHidden === void 0) {
+    ctx.showHidden = false;
+  }
+  if (ctx.depth === void 0) {
+    ctx.depth = 2;
+  }
+  if (ctx.colors === void 0) {
+    ctx.colors = false;
+  }
+  if (ctx.colors) {
+    ctx.stylize = stylizeWithColor;
+  }
+  return formatValue(ctx, obj, ctx.depth);
+}
+inspect.colors = {
+  bold: [1, 22],
+  italic: [3, 23],
+  underline: [4, 24],
+  inverse: [7, 27],
+  white: [37, 39],
+  grey: [90, 39],
+  black: [30, 39],
+  blue: [34, 39],
+  cyan: [36, 39],
+  green: [32, 39],
+  magenta: [35, 39],
+  red: [31, 39],
+  yellow: [33, 39]
+};
+inspect.styles = {
+  special: "cyan",
+  number: "yellow",
+  boolean: "yellow",
+  undefined: "grey",
+  null: "bold",
+  string: "green",
+  date: "magenta",
+  // "name": intentionally not styling
+  regexp: "red"
+};
+function stylizeWithColor(str, styleType) {
+  var style = inspect.styles[styleType];
+  if (style) {
+    return "\x1B[" + inspect.colors[style][0] + "m" + str + "\x1B[" + inspect.colors[style][1] + "m";
+  } else {
+    return str;
+  }
+}
+function stylizeNoColor(str) {
+  return str;
+}
+function formatValue(ctx, value, recurseTimes) {
+  const primitive = formatPrimitive(ctx, value);
+  if (primitive) {
+    return primitive;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const descriptorsArr = Reflect.ownKeys(descriptors).map((k) => [
+    k,
+    descriptors[k]
+  ]);
+  let keys = descriptorsArr.filter(([_v, desc]) => desc.enumerable).map(([v, _desc]) => v);
+  const visibleKeys = new Set(keys);
+  if (ctx.showHidden) {
+    keys = descriptorsArr.map(([v, _desc]) => v);
+  }
+  if (keys.length === 0) {
+    if (typeof value === "function") {
+      const name = value.name ? ": " + value.name : "";
+      return ctx.stylize("[Function" + name + "]", "special");
+    }
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), "regexp");
+    }
+    if (isDate(value)) {
+      return ctx.stylize(Date.prototype.toString.call(value), "date");
+    }
+    if (isError(value)) {
+      return formatError(value);
+    }
+  }
+  var base = "", array = false, braces = ["{", "}"];
+  if (Array.isArray(value)) {
+    array = true;
+    braces = ["[", "]"];
+  }
+  if (typeof value === "function") {
+    var n = value.name ? ": " + value.name : "";
+    base = " [Function" + n + "]";
+  }
+  if (isRegExp(value)) {
+    base = " " + RegExp.prototype.toString.call(value);
+  }
+  if (isDate(value)) {
+    base = " " + Date.prototype.toUTCString.call(value);
+  }
+  if (isError(value)) {
+    base = " " + formatError(value);
+  }
+  if (keys.length === 0 && (!array || value.length === 0)) {
+    return braces[0] + base + braces[1];
+  }
+  if (recurseTimes < 0) {
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), "regexp");
+    } else {
+      return ctx.stylize("[Object]", "special");
+    }
+  }
+  ctx.seen.push(value);
+  var output;
+  if (array) {
+    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+  } else {
+    output = keys.map(function(key) {
+      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
+    });
+  }
+  ctx.seen.pop();
+  return reduceToSingleString(output, base, braces);
+}
+function formatPrimitive(ctx, value) {
+  if (value === void 0) {
+    return ctx.stylize("undefined", "undefined");
+  }
+  if (isString(value)) {
+    var simple = "'" + JSON.stringify(value).replace(/^"|"$/g, "").replace(/'/g, "\\'").replace(/\\"/g, '"') + "'";
+    return ctx.stylize(simple, "string");
+  }
+  if (isNumber(value)) {
+    return ctx.stylize("" + value, "number");
+  }
+  if (typeof value === "boolean") {
+    return ctx.stylize("" + value, "boolean");
+  }
+  if (value === null) {
+    return ctx.stylize("null", "null");
+  }
+  if (isSymbol(value)) {
+    return ctx.stylize(value.toString(), "symbol");
+  }
+}
+function formatError(value) {
+  return value.toString() + "\n" + value.stack;
+}
+function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
+  var output = [];
+  for (var i = 0, l = value.length; i < l; ++i) {
+    if (Object.prototype.hasOwnProperty.call(value, String(i))) {
+      output.push(
+        formatProperty(ctx, value, recurseTimes, visibleKeys, String(i), true)
+      );
+    } else {
+      output.push("");
+    }
+  }
+  keys.forEach(function(key) {
+    if (!key.match(/^\d+$/)) {
+      output.push(
+        formatProperty(ctx, value, recurseTimes, visibleKeys, key, true)
+      );
+    }
+  });
+  return output;
+}
+function formatKey(ctx, key, visible) {
+  let str = visible ? "" : "[";
+  if (typeof key === "symbol") {
+    str += ctx.stylize("[" + formatValue(ctx, key, null) + "]", "special");
+  } else if (key.match(/^([a-zA-Z_][a-zA-Z_0-9]*)$/)) {
+    str += ctx.stylize(key, "name");
+  } else {
+    str += ctx.stylize(
+      "'" + JSON.stringify(key).slice(1, -1).replace(/\\"/g, '"') + "'",
+      "string"
+    );
+  }
+  if (!visible) {
+    str += "]";
+  }
+  return str;
+}
+function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
+  var name, str, desc;
+  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+  if (desc.get) {
+    if (desc.set) {
+      str = ctx.stylize("[Getter/Setter]", "special");
+    } else {
+      str = ctx.stylize("[Getter]", "special");
+    }
+  } else {
+    if (desc.set) {
+      str = ctx.stylize("[Setter]", "special");
+    }
+  }
+  if (!str) {
+    if (ctx.seen.indexOf(desc.value) < 0) {
+      if (recurseTimes === null) {
+        str = formatValue(ctx, desc.value, null);
+      } else {
+        str = formatValue(ctx, desc.value, recurseTimes - 1);
+      }
+      if (str.indexOf("\n") > -1) {
+        if (array) {
+          str = str.split("\n").map(function(line) {
+            return "  " + line;
+          }).join("\n").slice(2);
+        } else {
+          str = "\n" + str.split("\n").map(function(line) {
+            return "   " + line;
+          }).join("\n");
+        }
+      }
+    } else {
+      str = ctx.stylize("[Circular]", "special");
+    }
+  }
+  if (name === void 0) {
+    if (array && typeof key === "string" && key.match(/^\d+$/)) {
+      return str;
+    }
+    name = formatKey(ctx, key, visibleKeys.has(key));
+  }
+  return name + ": " + str;
+}
+function reduceToSingleString(output, base, braces) {
+  var length = output.reduce(function(prev, cur) {
+    return prev + cur.replace(/\u001b\[\d\d?m/g, "").length + 1;
+  }, 0);
+  if (length > 60) {
+    return braces[0] + (base === "" ? "\n" : base + "\n ") + " " + output.join(",\n  ") + "\n" + braces[1];
+  }
+  return braces[0] + base + " " + output.join(", ") + " " + braces[1];
+}
+function isNumber(arg) {
+  return typeof arg === "number";
+}
+function isString(arg) {
+  return typeof arg === "string";
+}
+function isSymbol(arg) {
+  return typeof arg === "symbol";
+}
+function isRegExp(re) {
+  return isObject(re) && Object.prototype.toString.call(re) === "[object RegExp]";
+}
+function isObject(arg) {
+  return typeof arg === "object" && arg !== null;
+}
+function isDate(d) {
+  return isObject(d) && Object.prototype.toString.call(d) === "[object Date]";
+}
+function isError(e) {
+  return isObject(e) && (Object.prototype.toString.call(e) === "[object Error]" || e instanceof Error);
+}
+
+// quickjs/console.js
+function createConsole({
+  logger,
+  clearConsole,
+  printer,
+  formatter = (args) => format(...args),
+  inspect: inspect2 = inspect
+}) {
+  if (!printer) {
+    throw new Error("Printer is required");
+  }
+  const _printer = (logLevel, args, options) => {
+    printer(logLevel, args, { ...options, indent: groupCount });
+  };
+  if (!logger) {
+    logger = function Logger(logLevel, args, options) {
+      if (args.length === 1) {
+        _printer(logLevel, args, options);
+      } else if (args.length > 1) {
+        _printer(logLevel, [formatter(args)], options);
+      }
+    };
+  }
+  let groupCount = 0;
+  const countMap = /* @__PURE__ */ new Map();
+  const timers = /* @__PURE__ */ new Map();
+  const consoleObj = /* @__PURE__ */ Object.create({});
+  consoleObj.assert = function(condition = false, ...data) {
+    if (condition) {
+      return;
+    }
+    const message = "Assertion failed";
+    if (data.length === 0) {
+      data.push(message);
+    } else if (typeof data[0] !== "string") {
+      data.unshift(message);
+    } else {
+      data[0] = message + ": " + data[0];
+    }
+    logger("assert", data);
+  };
+  consoleObj.clear = function() {
+    groupCount = 0;
+    clearConsole();
+  };
+  consoleObj.table = function(data, properties) {
+    if (properties !== void 0 && !Array.isArray(properties)) {
+      throw new Error(
+        "The 'properties' argument must be of type Array. Received type string"
+      );
+    }
+    if (data === null || typeof data !== "object") {
+      return _printer("table", data);
+    }
+    function getProperties(data2) {
+      const props = [];
+      const propsS = /* @__PURE__ */ new Set();
+      for (const i in data2) {
+        if (typeof data2[i] === "object") {
+          for (const key in data2[i]) {
+            if (!propsS.has(key)) {
+              props.push(key);
+              propsS.add(key);
+            }
+          }
+        }
+      }
+      return props;
+    }
+    if (!properties) {
+      properties = getProperties(data);
+    }
+    function normalize(data2) {
+      const colorRegExp = /\u001b\[\d\d?m/g;
+      return inspect2(data2).replace(colorRegExp, "");
+    }
+    function countBytes(str) {
+      return encoder.encode(str).byteLength;
+    }
+    function getTableData(data2, properties2, addIndex = true) {
+      const rows2 = [addIndex ? ["(index)", ...properties2] : [...properties2]];
+      for (const i in data2) {
+        const row = addIndex ? [i] : [];
+        for (const p of properties2) {
+          row.push(normalize(data2[i][p] || ""));
+        }
+        rows2.push(row);
+      }
+      return rows2;
+    }
+    const rows = getTableData(data, properties);
+    const cols = [];
+    for (let ci = 0; ci < rows[0].length; ci++) {
+      for (let ri = 0; ri < rows.length; ri++) {
+        cols[ci] = {
+          width: Math.max(cols[ci]?.width ?? 0, countBytes(rows[ri][ci]))
+        };
+      }
+    }
+    function renderTable(rows2, cols2) {
+      const tableChars = {
+        middleMiddle: "\u2500",
+        rowMiddle: "\u253C",
+        topRight: "\u2510",
+        topLeft: "\u250C",
+        leftMiddle: "\u251C",
+        topMiddle: "\u252C",
+        bottomRight: "\u2518",
+        bottomLeft: "\u2514",
+        bottomMiddle: "\u2534",
+        rightMiddle: "\u2524",
+        left: "\u2502",
+        right: "\u2502",
+        middle: "\u2502"
+      };
+      let str = "";
+      function drawHorizLine(left, right, middle) {
+        str += left;
+        for (let ci = 0; ci < cols2.length; ci++) {
+          if (ci > 0) {
+            str += middle;
+          }
+          str += tableChars.middleMiddle.repeat(cols2[ci].width + 2);
+        }
+        str += right;
+      }
+      function drawRow(row) {
+        for (let ci = 0; ci < cols2.length; ci++) {
+          if (ci === 0) {
+            str += tableChars.left;
+          } else {
+            str += tableChars.middle;
+          }
+          str += " " + row[ci] + " ".repeat(cols2[ci].width - countBytes(row[ci]) + 1);
+        }
+        str += tableChars.right + "\n";
+      }
+      for (let ri = 0; ri < rows2.length; ri++) {
+        if (ri === 0) {
+          drawHorizLine(
+            tableChars.topLeft,
+            tableChars.topRight + "\n",
+            tableChars.topMiddle
+          );
+        } else if (ri === 1) {
+          drawHorizLine(
+            tableChars.leftMiddle,
+            tableChars.rightMiddle + "\n",
+            tableChars.rowMiddle
+          );
+        }
+        drawRow(rows2[ri]);
+      }
+      drawHorizLine(
+        tableChars.bottomLeft,
+        tableChars.bottomRight,
+        tableChars.bottomMiddle
+      );
+      return str;
+    }
+    _printer("table", [renderTable(rows, cols)]);
+  };
+  consoleObj.trace = function(...data) {
+    const stack = new Error().stack.trim().split("\n").slice(1).join("\n");
+    _printer("trace", ["Trace: " + formatter(data) + "\n" + stack]);
+  };
+  consoleObj.dir = function(item, options) {
+    _printer("dir", [inspect2(item)], options);
+  };
+  consoleObj.dirxml = function(...data) {
+    logger("dirxml", data);
+  };
+  consoleObj.count = function(label = "default") {
+    label = String(label);
+    let count = countMap.get(label) ?? 0;
+    count++;
+    countMap.set(label, count);
+    _printer("count", [label + ": " + count]);
+  };
+  consoleObj.countReset = function(label = "default") {
+    if (!countMap.delete(label)) {
+      logger("countReset", ["countReset: No counter named " + label], {
+        isWarn: true
+      });
+    }
+  };
+  consoleObj.group = function(...data) {
+    if (data.length > 0) {
+      logger("group", data);
+    }
+    groupCount++;
+  };
+  consoleObj.groupCollapsed = function(...data) {
+    consoleObj.group(...data);
+  };
+  consoleObj.groupEnd = function() {
+    groupCount = Math.max(0, groupCount - 1);
+  };
+  consoleObj.time = function(label = "default") {
+    label = String(label);
+    if (timers.has(label)) {
+      logger("time", ["Timer " + label + " already exists"], { isWarn: true });
+    } else {
+      timers.set(label, performance.now());
+    }
+  };
+  consoleObj.timeLog = function(label = "default", ...data) {
+    label = String(label);
+    if (!timers.has(label)) {
+      logger("timeLog", ["timeLog: No such timer: " + label], { isWarn: true });
+    } else {
+      const duration = performance.now() - timers.get(label);
+      data.unshift(label + ": " + duration + "ms");
+      _printer("timeLog", data);
+    }
+  };
+  consoleObj.timeEnd = function(label = "default") {
+    label = String(label);
+    if (!timers.has(label)) {
+      logger("timeEnd", ["timeEnd: No such timer: " + label], { isWarn: true });
+    } else {
+      const start = timers.get(label);
+      timers.delete(label);
+      const duration = performance.now() - start;
+      _printer("timeEnd", [label + ": " + duration + "ms"]);
+    }
+  };
+  const loggingFuncs = ["debug", "error", "info", "log", "warn"];
+  for (const func of loggingFuncs) {
+    consoleObj[func] = function(...args) {
+      logger(func, args);
+    };
+  }
+  return consoleObj;
+}
+var encoder = new TextEncoder2();
+function createQuickjsConsole(originalConsole) {
+  return createConsole({
+    clearConsole() {
+      originalConsole.log("\x1B[2J\x1B[0f");
+    },
+    printer(logLevel, args, { indent = 0, isWarn = false }) {
+      const msg = args.map((arg) => {
+        if (typeof arg === "string") {
+          return arg;
+        } else {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch {
+            return String(arg);
+          }
+        }
+      }).join(" ");
+      const indentStr = " ".repeat(indent * 2);
+      const output = indentStr + msg;
+      if (["error", "trace", "warn"].includes(logLevel) || isWarn) {
+        originalConsole.log("ERROR:", output);
+      } else {
+        originalConsole.log(output);
+      }
+    }
+  });
+}
+
+// quickjs/performance.js
+var entries = [];
+var marksIndex = /* @__PURE__ */ Object.create(null);
+function mark(name) {
+  const mark2 = {
+    name,
+    entryType: "mark",
+    startTime: globalThis.performance.now(),
+    duration: 0
+  };
+  entries.push(mark2);
+  marksIndex[name] = mark2;
+  return mark2;
+}
+function measure(name, startMark, endMark) {
+  let startTime;
+  let endTime;
+  if (endMark !== void 0 && marksIndex[endMark] === void 0) {
+    throw new SyntaxError(
+      "Failed to execute 'measure' on 'Performance': The mark '" + endMark + "' does not exist."
+    );
+  }
+  if (startMark !== void 0 && marksIndex[startMark] === void 0) {
+    throw new SyntaxError(
+      "Failed to execute 'measure' on 'Performance': The mark '" + startMark + "' does not exist."
+    );
+  }
+  if (marksIndex[startMark]) {
+    startTime = marksIndex[startMark].startTime;
+  } else {
+    startTime = 0;
+  }
+  if (marksIndex[endMark]) {
+    endTime = marksIndex[endMark].startTime;
+  } else {
+    endTime = globalThis.performance.now();
+  }
+  const mark2 = {
+    name,
+    entryType: "measure",
+    startTime,
+    duration: endTime - startTime
+  };
+  entries.push(mark2);
+  return mark2;
+}
+function getEntriesByType(type) {
+  return entries.filter((entry) => entry.entryType === type);
+}
+function getEntriesByName(name) {
+  return entries.filter((entry) => entry.name === name);
+}
+function clearMarks(name) {
+  if (typeof name === "undefined") {
+    entries = entries.filter((entry) => entry.entryType !== "mark");
+  } else {
+    const entry = entries.find(
+      (e) => e.entryType === "mark" && e.name === name
+    );
+    entries.splice(entries.indexOf(entry), 1);
+    delete marksIndex[name];
+  }
+}
+function clearMeasures(name) {
+  if (typeof name === "undefined") {
+    entries = entries.filter((entry) => entry.entryType !== "measure");
+  } else {
+    const entry = entries.find(
+      (e) => e.entryType === "measure" && e.name === name
+    );
+    entries.splice(entries.indexOf(entry), 1);
+  }
+}
+function createQuickjsPerformance(originalPerformance) {
+  const enhancedPerformance = Object.create(originalPerformance);
+  enhancedPerformance.mark = mark;
+  enhancedPerformance.measure = measure;
+  enhancedPerformance.getEntriesByType = getEntriesByType;
+  enhancedPerformance.getEntriesByName = getEntriesByName;
+  enhancedPerformance.clearMarks = clearMarks;
+  enhancedPerformance.clearMeasures = clearMeasures;
+  return enhancedPerformance;
+}
+
 // quickjs/polyfill.ts
 function applyPolyfills(to) {
   const target = to;
+  const globalRefs = ["global", "window", "self"];
+  globalRefs.forEach((name) => {
+    Object.defineProperty(to, name, {
+      enumerable: true,
+      get() {
+        return to;
+      },
+      set() {
+      }
+    });
+  });
+  target.console = createQuickjsConsole(target.console);
+  target.performance = createQuickjsPerformance(target.performance);
   target.Event = createEvent();
   target.AbortController = createAbortController();
   target.TextEncoder = TextEncoder2;
   target.TextDecoder = TextDecoder2;
-  target.console.error = (...args) => {
-    target.console.log("ERROR", ...args);
-  };
+  target.setTimeout = to.os.setTimeout;
+  target.clearTimeout = to.os.clearTimeout;
+  target.setInterval = to.os.setInterval;
+  target.clearInterval = to.os.clearInterval;
   return target;
 }
 
@@ -6673,7 +7274,7 @@ var Hash = createMessageType({
 });
 
 // ../../../vendor/github.com/aperturerobotics/hydra/block/block.pb.ts
-var OverlayMode_Enum = createEnumType("block.OverlayMode", [
+createEnumType("block.OverlayMode", [
   { no: 0, name: "UPPER_ONLY" },
   { no: 1, name: "LOWER_ONLY" },
   { no: 2, name: "UPPER_CACHE" },
@@ -6854,7 +7455,7 @@ var BucketInfo = createMessageType({
   ],
   packedByDefault: true
 });
-var ApplyBucketConfigResult = createMessageType({
+createMessageType({
   typeName: "bucket.ApplyBucketConfigResult",
   fields: [
     { no: 1, name: "volume_id", kind: "scalar", T: ScalarType.STRING },
@@ -6877,7 +7478,7 @@ var ObjectRef = createMessageType({
   ],
   packedByDefault: true
 });
-var BucketOpArgs = createMessageType({
+createMessageType({
   typeName: "bucket.BucketOpArgs",
   fields: [
     { no: 1, name: "bucket_id", kind: "scalar", T: ScalarType.STRING },
@@ -6915,7 +7516,7 @@ var ManifestRef = createMessageType({
   ],
   packedByDefault: true
 });
-var ManifestBundle = createMessageType({
+createMessageType({
   typeName: "bldr.manifest.ManifestBundle",
   fields: [
     {
@@ -6929,7 +7530,7 @@ var ManifestBundle = createMessageType({
   ],
   packedByDefault: true
 });
-var ManifestSnapshot = createMessageType({
+createMessageType({
   typeName: "bldr.manifest.ManifestSnapshot",
   fields: [
     { no: 1, name: "manifest_ref", kind: "message", T: () => ObjectRef },
@@ -6937,7 +7538,7 @@ var ManifestSnapshot = createMessageType({
   ],
   packedByDefault: true
 });
-var FetchManifestRequest = createMessageType({
+createMessageType({
   typeName: "bldr.manifest.FetchManifestRequest",
   fields: [
     { no: 1, name: "manifest_id", kind: "scalar", T: ScalarType.STRING },
@@ -6972,7 +7573,7 @@ var FetchManifestValue = createMessageType({
   ],
   packedByDefault: true
 });
-var FetchManifestResponse = createMessageType({
+createMessageType({
   typeName: "bldr.manifest.FetchManifestResponse",
   fields: [
     { no: 1, name: "value_id", kind: "scalar", T: ScalarType.UINT32 },
@@ -6995,7 +7596,7 @@ var VolumeInfo = createMessageType({
   ],
   packedByDefault: true
 });
-var VolumeBucketInfo = createMessageType({
+createMessageType({
   typeName: "volume.VolumeBucketInfo",
   fields: [
     { no: 1, name: "bucket_info", kind: "message", T: () => BucketInfo },
@@ -7003,7 +7604,7 @@ var VolumeBucketInfo = createMessageType({
   ],
   packedByDefault: true
 });
-var ListBucketsRequest = createMessageType({
+createMessageType({
   typeName: "volume.ListBucketsRequest",
   fields: [
     { no: 1, name: "bucket_id", kind: "scalar", T: ScalarType.STRING },
@@ -7066,14 +7667,14 @@ var PluginMeta = createMessageType({
   ],
   packedByDefault: true
 });
-var PluginStartInfo = createMessageType({
+createMessageType({
   typeName: "bldr.plugin.PluginStartInfo",
   fields: [
     { no: 1, name: "instance_id", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });
-var PluginContextInfo = createMessageType({
+createMessageType({
   typeName: "bldr.plugin.PluginContextInfo",
   fields: [
     { no: 1, name: "plugin_meta", kind: "message", T: () => PluginMeta }
@@ -7117,8 +7718,6 @@ var PluginHostDefinition = {
      */
     GetPluginInfo: {
       name: "GetPluginInfo",
-      I: GetPluginInfoRequest,
-      O: GetPluginInfoResponse,
       kind: MethodKind.Unary
     },
     /**
@@ -7128,8 +7727,6 @@ var PluginHostDefinition = {
      */
     ExecController: {
       name: "ExecController",
-      I: ExecControllerRequest,
-      O: ExecControllerResponse,
       kind: MethodKind.ServerStreaming
     },
     /**
@@ -7141,8 +7738,6 @@ var PluginHostDefinition = {
      */
     LoadPlugin: {
       name: "LoadPlugin",
-      I: LoadPluginRequest,
-      O: LoadPluginResponse,
       kind: MethodKind.ServerStreaming
     },
     /**
@@ -7154,8 +7749,6 @@ var PluginHostDefinition = {
      */
     PluginRpc: {
       name: "PluginRpc",
-      I: RpcStreamPacket2,
-      O: RpcStreamPacket2,
       kind: MethodKind.BiDiStreaming
     },
     /**
@@ -7168,8 +7761,6 @@ var PluginHostDefinition = {
      */
     PluginFsRpc: {
       name: "PluginFsRpc",
-      I: RpcStreamPacket2,
-      O: RpcStreamPacket2,
       kind: MethodKind.BiDiStreaming
     }
   }
@@ -7268,8 +7859,7 @@ var PluginHostClient = class {
     return buildDecodeMessageTransform(RpcStreamPacket2)(result);
   }
 };
-var PluginDefinition = {
-  typeName: "bldr.plugin.Plugin",
+({
   methods: {
     /**
      * PluginRpc handles an RPC call from a remote plugin.
@@ -7278,14 +7868,10 @@ var PluginDefinition = {
      * @generated from rpc bldr.plugin.Plugin.PluginRpc
      */
     PluginRpc: {
-      name: "PluginRpc",
-      I: RpcStreamPacket2,
-      O: RpcStreamPacket2,
       kind: MethodKind.BiDiStreaming
     }
   }
-};
-var PluginServiceName = PluginDefinition.typeName;
+});
 
 // ../../../sdk/impl/backend-api.ts
 var BackendApiImpl = class {
@@ -7388,6 +7974,10 @@ async function startPlugin() {
   await script.default(backendAPI);
 }
 startPlugin().catch((err) => {
+  console.error("startPlugin exited w/error");
   console.error(err);
+  if ("stack" in err) {
+    console.error(err.stack);
+  }
   globalThis.std.exit(1);
 });

@@ -118,6 +118,10 @@ async function startPlugin() {
 
 // immediately call startPlugin
 startPlugin().catch((err) => {
+  console.error('startPlugin exited w/error')
   console.error(err)
+  if ('stack' in err) {
+    console.error(err.stack)
+  }
   globalThis.std.exit(1)
 })

@@ -163,9 +163,6 @@ export default async function main(backendAPI: BackendAPI) {
   // const pluginInfo = await backendAPI.pluginHost.GetPluginInfo({})
 
   // Load and start the hostConfigSet, if any.
-  // TODO
-
-  // Load host configSet directly from the defined constant.
   const hostConfigSet: ConfigSet['configs'] | undefined =
     __BLDR_HOST_CONFIG_SET__ ?? undefined
   if (hostConfigSet != null && Object.keys(hostConfigSet).length !== 0) {

@@ -1,12 +1,18 @@
 package main
 
 import (
+	"os"
+	"os/exec"
+
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 
 // Equivalent of:
-// esbuild --tree-shaking=true --bundle --format=esm --platform=browser plugin-quickjs.ts --outfile=plugin-quickjs.esm.js
+// esbuild --tree-shaking=true --bundle --format=esm --platform=browser plugin-quickjs.ts --outfile=plugin-quickjs.esb.js
+// followed by:
+// rollup plugin-quickjs.esb.js --file plugin-quickjs.esm.js --format es --plugin @rollup/plugin-terser
+// Note: We use rollup with terser for minification while keeping the code readable
 
 func main() {
 	log := logrus.New()
@@ -15,7 +21,7 @@ func main() {
 
 	result := esbuild_api.Build(esbuild_api.BuildOptions{
 		EntryPoints: []string{"./plugin-quickjs.ts"},
-		Outfile:     "./plugin-quickjs.esm.js",
+		Outfile:     "./plugin-quickjs.esb.js",
 		Bundle:      true,
 		TreeShaking: esbuild_api.TreeShakingTrue,
 		Format:      esbuild_api.FormatESModule,
@@ -34,4 +40,28 @@ func main() {
 	}
 
 	le.Info("esbuild completed successfully")
+
+	// Run rollup to minify the output
+	le.Info("running rollup to tree-shake output")
+	rollupCmd := exec.Command(
+		"../../../node_modules/.bin/rollup",
+		"plugin-quickjs.esb.js",
+		"--file", "plugin-quickjs.esm.js",
+		"--format", "es",
+		// "--plugin", "@rollup/plugin-terser",
+	)
+
+	if err := rollupCmd.Run(); err != nil {
+		le.WithError(err).Fatal("rollup failed")
+		return
+	}
+
+	le.Info("rollup completed successfully")
+
+	// Clean up intermediate file
+	if err := os.Remove("plugin-quickjs.esb.js"); err != nil {
+		le.WithError(err).Warn("failed to remove intermediate file")
+	} else {
+		le.Info("cleaned up intermediate file")
+	}
 }

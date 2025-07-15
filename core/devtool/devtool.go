@@ -19,7 +19,9 @@ func addCommonFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(websocket.NewFactory(b))
 
 	// plugin host
-	sr.AddFactory(plugin_host_default.NewPluginHostControllerFactory(b))
+	for _, factory := range plugin_host_default.PluginHostControllerFactories {
+		sr.AddFactory(factory(b))
+	}
 
 	// plugin scheduler
 	sr.AddFactory(plugin_host_scheduler.NewFactory(b))

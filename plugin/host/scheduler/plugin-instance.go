@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"sync/atomic"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
@@ -23,6 +24,8 @@ type pluginInstance struct {
 	le *logrus.Entry
 	// pluginID is the plugin id
 	pluginID string
+	// loggedNotFound indicates if we logged no manifests were found
+	loggedNotFound atomic.Bool
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]

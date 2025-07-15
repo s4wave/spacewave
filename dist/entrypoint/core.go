@@ -51,19 +51,27 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
+
 	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
-	sr.AddFactory(plugin_host_default.NewPluginHostControllerFactory(b))
+	for _, factory := range plugin_host_default.PluginHostControllerFactories {
+		sr.AddFactory(factory(b))
+	}
+
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
+	sr.AddFactory(world_block_engine.NewFactory(b))
+
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
-	sr.AddFactory(world_block_engine.NewFactory(b))
+
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))
+
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(block_store_rpc.NewFactory(b))
 	sr.AddFactory(block_store_rpc_lookup.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server.NewFactory(b))
 	sr.AddFactory(block_store_s3_lookup.NewFactory(b))
+
 	sr.AddFactory(storage_volume.NewFactory(b))
 	for _, st := range storage_default.BuildStorage(b, "") {
 		st.AddFactories(b, sr)

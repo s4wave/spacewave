@@ -8,13 +8,28 @@ import (
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
+	plugin_host_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 )
 
+// PluginHostControllerFactories construct the plugin host controller factory.
+var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
+	func(b bus.Bus) controller.Factory {
+		return plugin_host_process.NewFactory(b)
+	},
+	func(b bus.Bus) controller.Factory {
+		return plugin_host_quickjs.NewFactory(b)
+	},
+}
+
 // PluginHostController is an alias to the plugin host controller type.
-type PluginHostController = plugin_host_controller.Controller
+type PluginHostController struct {
+	ProcessHost *plugin_host_controller.Controller
+	QuickjsHost *plugin_host_controller.Controller
+}
 
 // StartPluginHost starts the plugin host on the controller bus.
 //
@@ -28,7 +43,7 @@ func StartPluginHost(
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
 	pluginHostProcessConf := host_process.NewConfig(pluginsStateRoot, pluginsDistRoot)
-	pluginHostCtrl, _, pluginHostRef, err := loader.WaitExecControllerRunningTyped[*PluginHostController](
+	processPluginHostCtrl, _, processPluginHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(pluginHostProcessConf),
@@ -37,8 +52,24 @@ func StartPluginHost(
 	if err != nil {
 		return nil, nil, err
 	}
-	return pluginHostCtrl, pluginHostRef.Release, nil
-}
 
-// NewPluginHostControllerFactory constructs the plugin host controller factory.
-var NewPluginHostControllerFactory = plugin_host_process.NewFactory
+	pluginHostQuickjsConf := plugin_host_quickjs.NewConfig()
+	quickjsHostCtrl, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(pluginHostQuickjsConf),
+		nil,
+	)
+	if err != nil {
+		processPluginHostRef.Release()
+		return nil, nil, err
+	}
+
+	return &PluginHostController{
+			ProcessHost: processPluginHostCtrl,
+			QuickjsHost: quickjsHostCtrl,
+		}, func() {
+			quickjsHostRef.Release()
+			processPluginHostRef.Release()
+		}, nil
+}

@@ -63,7 +63,6 @@ const Example: React.FC<ExampleProps> = (props) => {
       )}
       <div className="example-message">
         {message || 'Loading...'}
-        testing15
         <Home className="h-4 w-4" />
         <Settings className="h-4 w-4" />
         <User className="h-4 w-4" />

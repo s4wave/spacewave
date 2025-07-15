@@ -83,7 +83,11 @@ func (t *pluginInstance) processManifestWorldState(
 		le.WithError(manifestErr).Warn("skipping manifest due to error")
 	}
 	if len(manifests) == 0 {
-		le.Infof("no manifests for plugin found in world")
+		_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
+		_, changed2, _, _ := t.executePluginRoutine.SetState(nil)
+		if changed1 || changed2 || !t.loggedNotFound.Swap(true) {
+			le.Infof("no manifests for plugin found in world")
+		}
 		return true, nil
 	}
 
@@ -157,6 +161,10 @@ func (t *pluginInstance) processManifestWorldState(
 			if executeManifest == nil {
 				executeManifest = downloadManifest
 				executeManifestHost = downloadManifestHost
+			}
+
+			if executeManifest != nil || downloadManifest != nil {
+				t.loggedNotFound.Store(false)
 			}
 
 			// download the downloadManifest
