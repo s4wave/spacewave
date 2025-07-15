@@ -133,7 +133,7 @@ function loadFrontendEntrypoints(): void {
   console.debug(
     `Processing ${frontendEntrypoints.length} frontend entrypoints...`,
   )
-  // TODO: Implement frontend entrypoint loading mechanism when required.
+  // TODO: Implement frontend entrypoint loading mechanism
   for (const entrypoint of frontendEntrypoints) {
     // Ensure entrypoint and importPath are valid before proceeding.
     if (!entrypoint?.importPath) {
@@ -163,11 +163,10 @@ export default async function main(backendAPI: BackendAPI) {
   // const pluginInfo = await backendAPI.pluginHost.GetPluginInfo({})
 
   // Load and start the hostConfigSet, if any.
-  const hostConfigSet: ConfigSet['configs'] | undefined =
-    __BLDR_HOST_CONFIG_SET__ ?? undefined
+  const hostConfigSet = __BLDR_HOST_CONFIG_SET__ ?? undefined
   if (hostConfigSet != null && Object.keys(hostConfigSet).length !== 0) {
     retryWithAbort(abortSignal, async (abortSignal) => {
-      console.debug('Starting host config set...', hostConfigSet)
+      console.debug('starting host config set:', JSON.stringify(hostConfigSet))
       backendAPI.pluginHost.ExecController(
         { configSet: { configs: hostConfigSet } },
         abortSignal,

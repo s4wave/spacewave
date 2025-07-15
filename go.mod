@@ -13,7 +13,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/cli v1.0.0
-	github.com/aperturerobotics/common v0.22.6 // latest
+	github.com/aperturerobotics/common v0.22.7 // latest
 	github.com/aperturerobotics/hydra v0.0.0-20250713224130-2c38f1cadef5 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
 )
@@ -81,8 +81,8 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.50.4-0.20250706040906-c1ba863ae6ba // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.39.5 // latest
-	github.com/aperturerobotics/util v1.30.2-0.20250704022301-ab7fb528390a // latest
+	github.com/aperturerobotics/starpc v0.39.6 // latest
+	github.com/aperturerobotics/util v1.31.0 // latest
 )
 
 // aperture: use compatibility forks
@@ -166,7 +166,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )

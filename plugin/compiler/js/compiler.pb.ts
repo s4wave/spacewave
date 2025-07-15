@@ -8,6 +8,7 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
+import { StringFilter } from '@go/github.com/aperturerobotics/util/filter/filter.pb.js'
 import { EsbuildBundleMeta } from '../../../web/bundler/esbuild/compiler/compiler.pb.js'
 import { ViteBundleMeta } from '../../../web/bundler/vite/compiler/compiler.pb.js'
 import { WebPkgRefConfig } from '../../../web/bundler/bundler.pb.js'
@@ -176,6 +177,18 @@ export interface FrontendEntrypoint {
    * @generated from field: string import_path = 1;
    */
   importPath?: string
+  /**
+   * WebViewId filters by web view id.
+   *
+   * @generated from field: filter.StringFilter web_view_id = 2;
+   */
+  webViewId?: StringFilter
+  /**
+   * WebViewParentId filters by web view parent id.
+   *
+   * @generated from field: filter.StringFilter web_view_parent_id = 3;
+   */
+  webViewParentId?: StringFilter
 }
 
 // FrontendEntrypoint contains the message type declaration for FrontendEntrypoint.
@@ -184,6 +197,13 @@ export const FrontendEntrypoint: MessageType<FrontendEntrypoint> =
     typeName: 'bldr.plugin.compiler.js.FrontendEntrypoint',
     fields: [
       { no: 1, name: 'import_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'web_view_id', kind: 'message', T: () => StringFilter },
+      {
+        no: 3,
+        name: 'web_view_parent_id',
+        kind: 'message',
+        T: () => StringFilter,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

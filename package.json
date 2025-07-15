@@ -82,21 +82,21 @@
     "prettier": "^3.6.2",
     "pumpify": "^2.0.1",
     "rimraf": "^6.0.1",
-    "rollup": "^4.44.2",
+    "rollup": "^4.45.1",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.35.1",
+    "typescript-eslint": "^8.37.0",
     "unzip-crx-3": "^0.2.0",
-    "vite": "^7.0.2",
+    "vite": "^7.0.5",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "^0.5.2",
     "@libp2p/logger": "^5.1.21",
     "console": "^0.7.2",
-    "electron": "^37.2.0",
+    "electron": "^37.2.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "starpc": "^0.39.5",
+    "starpc": "^0.39.6",
     "workbox-window": "^7.3.0"
   },
   "resolutions": {

@@ -19,6 +19,7 @@ import (
 	proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	filter "github.com/aperturerobotics/util/filter"
 )
 
 // JsModuleKind specifies the kind of the JS module.
@@ -481,6 +482,10 @@ type FrontendEntrypoint struct {
 	// Example: "vite/frontend/index.js"
 	// The path must export a React component to load into a WebView.
 	ImportPath string `protobuf:"bytes,1,opt,name=import_path,json=importPath,proto3" json:"importPath,omitempty"`
+	// WebViewId filters by web view id.
+	WebViewId *filter.StringFilter `protobuf:"bytes,2,opt,name=web_view_id,json=webViewId,proto3" json:"webViewId,omitempty"`
+	// WebViewParentId filters by web view parent id.
+	WebViewParentId *filter.StringFilter `protobuf:"bytes,3,opt,name=web_view_parent_id,json=webViewParentId,proto3" json:"webViewParentId,omitempty"`
 }
 
 func (x *FrontendEntrypoint) Reset() {
@@ -494,6 +499,20 @@ func (x *FrontendEntrypoint) GetImportPath() string {
 		return x.ImportPath
 	}
 	return ""
+}
+
+func (x *FrontendEntrypoint) GetWebViewId() *filter.StringFilter {
+	if x != nil {
+		return x.WebViewId
+	}
+	return nil
+}
+
+func (x *FrontendEntrypoint) GetWebViewParentId() *filter.StringFilter {
+	if x != nil {
+		return x.WebViewParentId
+	}
+	return nil
 }
 
 type Config_HostConfigSetEntry struct {
@@ -769,6 +788,12 @@ func (m *FrontendEntrypoint) CloneVT() *FrontendEntrypoint {
 	}
 	r := new(FrontendEntrypoint)
 	r.ImportPath = m.ImportPath
+	if rhs := m.WebViewId; rhs != nil {
+		r.WebViewId = rhs.CloneVT()
+	}
+	if rhs := m.WebViewParentId; rhs != nil {
+		r.WebViewParentId = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1192,6 +1217,12 @@ func (this *FrontendEntrypoint) EqualVT(that *FrontendEntrypoint) bool {
 		return false
 	}
 	if this.ImportPath != that.ImportPath {
+		return false
+	}
+	if !this.WebViewId.EqualVT(that.WebViewId) {
+		return false
+	}
+	if !this.WebViewParentId.EqualVT(that.WebViewParentId) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2092,6 +2123,16 @@ func (x *FrontendEntrypoint) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("importPath")
 		s.WriteString(x.ImportPath)
 	}
+	if x.WebViewId != nil || s.HasField("webViewId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webViewId")
+		x.WebViewId.MarshalProtoJSON(s.WithField("webViewId"))
+	}
+	if x.WebViewParentId != nil || s.HasField("webViewParentId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webViewParentId")
+		x.WebViewParentId.MarshalProtoJSON(s.WithField("webViewParentId"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2112,6 +2153,20 @@ func (x *FrontendEntrypoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "import_path", "importPath":
 			s.AddField("import_path")
 			x.ImportPath = s.ReadString()
+		case "web_view_id", "webViewId":
+			if s.ReadNil() {
+				x.WebViewId = nil
+				return
+			}
+			x.WebViewId = &filter.StringFilter{}
+			x.WebViewId.UnmarshalProtoJSON(s.WithField("web_view_id", true))
+		case "web_view_parent_id", "webViewParentId":
+			if s.ReadNil() {
+				x.WebViewParentId = nil
+				return
+			}
+			x.WebViewParentId = &filter.StringFilter{}
+			x.WebViewParentId.UnmarshalProtoJSON(s.WithField("web_view_parent_id", true))
 		}
 	})
 }
@@ -2649,6 +2704,26 @@ func (m *FrontendEntrypoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.WebViewParentId != nil {
+		size, err := m.WebViewParentId.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.WebViewId != nil {
+		size, err := m.WebViewId.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.ImportPath) > 0 {
 		i -= len(m.ImportPath)
 		copy(dAtA[i:], m.ImportPath)
@@ -2887,6 +2962,14 @@ func (m *FrontendEntrypoint) SizeVT() (n int) {
 	_ = l
 	l = len(m.ImportPath)
 	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WebViewId != nil {
+		l = m.WebViewId.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WebViewParentId != nil {
+		l = m.WebViewParentId.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -3336,6 +3419,20 @@ func (x *FrontendEntrypoint) MarshalProtoText() string {
 		}
 		sb.WriteString("import_path: ")
 		sb.WriteString(strconv.Quote(x.ImportPath))
+	}
+	if x.WebViewId != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_view_id: ")
+		sb.WriteString(x.WebViewId.MarshalProtoText())
+	}
+	if x.WebViewParentId != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_view_parent_id: ")
+		sb.WriteString(x.WebViewParentId.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4800,6 +4897,78 @@ func (m *FrontendEntrypoint) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ImportPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebViewId", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WebViewId == nil {
+				m.WebViewId = &filter.StringFilter{}
+			}
+			if err := m.WebViewId.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebViewParentId", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WebViewParentId == nil {
+				m.WebViewParentId = &filter.StringFilter{}
+			}
+			if err := m.WebViewParentId.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

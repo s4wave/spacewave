@@ -18,9 +18,13 @@ manifests:
       rev: 1
       config:
         webPluginId: web
+
         modules:
         - kind: JS_MODULE_KIND_FRONTEND
           path: ./example/example.tsx
+          # match the root
+          webViewParentId:
+            empty: true
 
         # webPkgs externalizes packages
         webPkgs:

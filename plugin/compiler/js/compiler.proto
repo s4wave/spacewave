@@ -8,6 +8,7 @@ import "github.com/aperturerobotics/bldr/web/bundler/esbuild/compiler/compiler.p
 import "github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto";
 import "github.com/aperturerobotics/bldr/web/bundler/vite/compiler/compiler.proto";
 import "github.com/aperturerobotics/bldr/web/pkg/pkg.proto";
+import "github.com/aperturerobotics/util/filter/filter.proto";
 
 // Config configures the Js/TypeScript plugin compiler controller.
 //
@@ -205,4 +206,8 @@ message FrontendEntrypoint {
   // Example: "vite/frontend/index.js"
   // The path must export a React component to load into a WebView.
   string import_path = 1;
+  // WebViewId filters by web view id.
+  .filter.StringFilter web_view_id = 2;
+  // WebViewParentId filters by web view parent id.
+  .filter.StringFilter web_view_parent_id = 3;
 }

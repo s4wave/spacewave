@@ -3,7 +3,6 @@ package plugin_host_wazero_quickjs_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
@@ -15,16 +14,46 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/sirupsen/logrus"
+
+	_ "embed"
 )
+
+//go:embed plugin-quickjs_test.ts
+var TestScriptSrc string
 
 func TestPluginHostWazeroQuickjs(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
+
+	// Build the TypeScript source to ESM format ES2022
+	result := esbuild_api.Build(esbuild_api.BuildOptions{
+		Stdin: &esbuild_api.StdinOptions{
+			Contents:   TestScriptSrc,
+			Loader:     esbuild_api.LoaderTS,
+			Sourcefile: "plugin-quickjs_test.ts",
+		},
+		Bundle:      true,
+		Format:      esbuild_api.FormatESModule,
+		Target:      esbuild_api.ES2022,
+		TreeShaking: esbuild_api.TreeShakingTrue,
+		Platform:    esbuild_api.PlatformBrowser,
+	})
+
+	if len(result.Errors) > 0 {
+		t.Fatalf("esbuild errors: %v", result.Errors)
+	}
+
+	if len(result.OutputFiles) == 0 {
+		t.Fatal("no output files from esbuild")
+	}
+
+	scriptContents := string(result.OutputFiles[0].Contents)
 
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {
@@ -76,7 +105,6 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 	manifestID := pluginID
 	platformID := quickjsHost.GetPluginHost().GetPlatformId()
 	scriptPath := "test-plugin.js"
-	scriptContents := `export default async function main(backendAPI) { console.log('waiting for plugin info...'); const pluginInfo = await backendAPI.pluginHost.GetPluginInfo({}); console.log('loaded plugin info', backendAPI.protos.GetPluginInfoResponse.toJsonString(pluginInfo)); }`
 	_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -140,7 +168,4 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 	// TODO verify it ran successfully
 	rpcClient := runningPlugin.GetRpcClient()
 	_ = rpcClient
-
-	<-time.After(time.Second * 2)
-	<-ctx.Done()
 }
