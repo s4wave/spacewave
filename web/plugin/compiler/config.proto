@@ -1,8 +1,6 @@
 syntax = "proto3";
 package bldr.web.plugin.compiler;
 
-import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
-
 // Config configures the web plugin builder.
 message Config {
   // ProjectId overrides the project id set in the project config.

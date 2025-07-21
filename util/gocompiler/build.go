@@ -28,15 +28,15 @@ func ExecBuildEntrypoint(
 ) error {
 	isRelease := buildType.IsRelease()
 	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_NATIVE
-	isWebBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
+	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".wasm"
 
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
 		return err
 	}
 
-	// always disable cgo if not native platform or not go compiler
-	if !isNativeBuildPlatform {
+	// always disable cgo if not native platform or not go compiler or webassembly
+	if !isNativeBuildPlatform || isWebBuildPlatform {
 		enableCgo = false
 	}
 

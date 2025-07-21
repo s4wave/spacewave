@@ -338,24 +338,12 @@ func PluginDevInfoFromFile(filePath string) (*vardef.PluginDevInfo, error) {
 	return info, nil
 }
 
+// UnmarshalPluginMeta unmarshals the plugin meta information.
+func UnmarshalPluginMeta(pluginMetaB58 string) (*bldr_plugin.PluginMeta, error) {
+	return bldr_plugin.UnmarshalPluginMetaB58(pluginMetaB58)
+}
+
 // UnmarshalPluginStartInfo unmarshals the plugin start information.
-func UnmarshalPluginStartInfo(
-	pluginStartInfoB58,
-	pluginMetaB58 string,
-) (
-	*bldr_plugin.PluginStartInfo,
-	*bldr_plugin.PluginMeta,
-	error,
-) {
-	pluginMeta, err := bldr_plugin.UnmarshalPluginMetaB58(pluginMetaB58)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pluginStartInfo, err := bldr_plugin.UnmarshalPluginStartInfoB58(pluginStartInfoB58)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return pluginStartInfo, pluginMeta, nil
+func UnmarshalPluginStartInfo(pluginStartInfoJsonB64 string) (*bldr_plugin.PluginStartInfo, error) {
+	return bldr_plugin.UnmarshalPluginStartInfoJsonBase64(pluginStartInfoJsonB64)
 }

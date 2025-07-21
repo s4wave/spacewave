@@ -136,7 +136,7 @@ func CodegenPluginWrapperFromAnalysis(
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: &gast.CommentGroup{
 			List: []*gast.Comment{{
-				Text: "// PluginStartInfo contains the b58 encoded startup information.\n",
+				Text: "// PluginStartInfo contains the json-base64 encoded startup information.\n",
 			}},
 		},
 		Tok: token.VAR,

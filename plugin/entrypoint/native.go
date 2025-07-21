@@ -23,7 +23,7 @@ var Version = semver.MustParse("0.0.1")
 
 // Main runs the default main entrypoint for a plugin.
 func Main(
-	pluginStartInfoB58,
+	pluginStartInfoJsonB64,
 	pluginMetaB58 string,
 	logLevel logrus.Level,
 	addFactoryFuncs []AddFactoryFunc,
@@ -49,7 +49,7 @@ func Main(
 
 		// If the environment variable with the startup info was empty, try to load
 		// it from the .plugin-start-info file in the current working dir.
-		if pluginStartInfoB58 == "" {
+		if pluginStartInfoJsonB64 == "" {
 			startInfoBin, err := os.ReadFile(filepath.Join(wd, ".plugin-start-info"))
 			if err != nil {
 				if err == os.ErrNotExist {
@@ -57,10 +57,15 @@ func Main(
 				}
 				return errors.Wrap(err, "load start info")
 			}
-			pluginStartInfoB58 = string(startInfoBin)
+			pluginStartInfoJsonB64 = string(startInfoBin)
 		}
 
-		pluginStartInfo, pluginMeta, err := UnmarshalPluginStartInfo(pluginStartInfoB58, pluginMetaB58)
+		pluginStartInfo, err := UnmarshalPluginStartInfo(pluginStartInfoJsonB64)
+		if err != nil {
+			return err
+		}
+
+		pluginMeta, err := UnmarshalPluginMeta(pluginMetaB58)
 		if err != nil {
 			return err
 		}

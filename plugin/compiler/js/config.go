@@ -219,15 +219,11 @@ func (m *BackendEntrypoint) Validate() error {
 
 // Validate validates the FrontendEntrypoint configuration.
 func (m *FrontendEntrypoint) Validate() error {
-	importPath := m.GetImportPath()
-	if importPath == "" {
-		return errors.New("frontend entrypoint import path cannot be empty")
+	if err := m.GetSetRenderMode().Validate(); err != nil {
+		return errors.Wrap(err, "set_render_mode")
 	}
-	// Clean the path and check for path traversal attempts.
-	// Note: path.Clean uses forward slashes regardless of OS.
-	cleanedPath := path.Clean(importPath)
-	if strings.HasPrefix(cleanedPath, "../") {
-		return errors.Errorf("frontend entrypoint import path cannot start with '..': %s", importPath)
+	if err := m.GetSetHtmlLinks().Validate(); err != nil {
+		return errors.Wrap(err, "set_html_links")
 	}
 	return nil
 }

@@ -2,6 +2,8 @@ syntax = "proto3";
 package bldr.web.plugin;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
+import "github.com/aperturerobotics/util/filter/filter.proto";
+import "github.com/aperturerobotics/bldr/web/view/handler/handler.proto";
 
 // WebPlugin implements the bldr web plugin service.
 // The service is used to tell the Web plugin where to forward requests.
@@ -12,6 +14,10 @@ service WebPlugin {
   rpc HandleWebPkgViaPlugin(HandleWebPkgViaPluginRequest) returns (stream HandleWebPkgViaPluginResponse) {}
   // HandleRpcViaPlugin configures handling rpcs via a plugin.
   rpc HandleRpcViaPlugin(HandleRpcViaPluginRequest) returns (stream HandleRpcViaPluginResponse) {}
+  // HandleWebViewViaHandlers configures web view handlers with filtering.
+  rpc HandleWebViewViaHandlers(HandleWebViewViaHandlersRequest) returns (stream HandleWebViewViaHandlersResponse) {}
+  // HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
+  rpc HandleWebPkgsViaPluginAssets(HandleWebPkgsViaPluginAssetsRequest) returns (stream HandleWebPkgsViaPluginAssetsResponse) {}
 }
 
 // HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.
@@ -78,3 +84,37 @@ message HandleRpcViaPluginResponse {
     bool ready = 1;
   }
 }
+
+// HandleWebViewViaHandlersRequest is a request to configure web view handlers.
+message HandleWebViewViaHandlersRequest {
+  // Config is the web view handlers configuration.
+  .web.view.handler.WebViewHandlersConfig config = 1;
+}
+
+// HandleWebViewViaHandlersResponse is the response to HandleWebViewViaHandlers.
+message HandleWebViewViaHandlersResponse {
+  oneof body {
+    // Ready indicates the handlers have been configured.
+    bool ready = 1;
+  }
+}
+
+// HandleWebPkgsViaPluginAssetsRequest is a request to serve web pkgs via a plugin assets fs.
+message HandleWebPkgsViaPluginAssetsRequest {
+  // HandlePluginId is the plugin the web plugin should use for serving assets.
+  string handle_plugin_id = 1;
+  // WebPkgsPath is the sub-directory of the plugin assets fs to look up the web pkgs root.
+  string web_pkgs_path = 2;
+  // WebPkgIdList is a list of web pkg IDs to resolve with the plugin assets fs.
+  // Must be at least one web pkg listed.
+  repeated string web_pkg_id_list = 3;
+}
+
+// HandleWebPkgsViaPluginAssetsResponse is the response to HandleWebPkgsViaPluginAssets.
+message HandleWebPkgsViaPluginAssetsResponse {
+  oneof body {
+    // Ready indicates the service has been configured.
+    bool ready = 1;
+  }
+}
+

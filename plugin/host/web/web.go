@@ -50,11 +50,16 @@ type WebHost struct {
 // NewWebHost constructs a new WebHost.
 func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string) (*WebHost, error) {
 	// determine the platform id for the host
-	platformID := bldr_platform.NewWebPlatformJs().GetPlatformID()
+	// TODO: also support "js" and "native/wasi/wasm"
+	platform, err := bldr_platform.ParsePlatform("native/js/wasm")
+	if err != nil {
+		return nil, err
+	}
+
 	return &WebHost{
 		b:                b,
 		le:               le,
-		pluginPlatformID: platformID,
+		pluginPlatformID: platform.GetPlatformID(),
 		webRuntimeID:     webRuntimeID,
 	}, nil
 }
@@ -139,11 +144,12 @@ func (h *WebHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(4)
-	pluginStartInfo := &plugin.PluginStartInfo{
-		InstanceId: pluginInstanceID,
+	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
+	if err != nil {
+		return err
 	}
-	pluginStartInfoB58 := pluginStartInfo.MarshalB58()
-	pluginStartInfoBin := []byte(pluginStartInfoB58)
+	pluginStartInfoBin := []byte(pluginStartInfoJsonB64)
 
 	// web worker create request
 	pluginWebWorkerID := "plugin/" + pluginID

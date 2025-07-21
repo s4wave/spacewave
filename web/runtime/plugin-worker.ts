@@ -3,6 +3,7 @@ import { HandleStreamFunc } from 'starpc'
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
 import { WebDocumentToWorker } from './runtime.js'
 import { WebRuntimeClientType } from './runtime.pb.js'
+import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 
 export function checkSharedWorker(
   scope: SharedWorkerGlobalScope | DedicatedWorkerGlobalScope,
@@ -45,7 +46,7 @@ export class PluginWorker {
     public readonly global:
       | SharedWorkerGlobalScope
       | DedicatedWorkerGlobalScope,
-    private readonly startPlugin: (startInfoB58: string) => void,
+    private readonly startPlugin: (startInfo: PluginStartInfo) => void,
     handleIncomingStream: HandleStreamFunc | null,
   ) {
     // webDocumentTracker tracks the set of connected remote WebDocument.
@@ -93,13 +94,16 @@ export class PluginWorker {
   }
 
   // handleStartPlugin handles the message to start the plugin.
-  private handleStartPlugin(startInfo: Uint8Array) {
+  private handleStartPlugin(startInfoBin: Uint8Array) {
     if (this.pluginStarted) return
     this.pluginStarted = true
 
-    // startInfo is b58 encoded with utf8
-    const startInfoB58 = new TextDecoder().decode(startInfo)
-    this.startPlugin(startInfoB58)
+    // startInfo is b64 encoded json
+    const startInfoJsonB64 = new TextDecoder().decode(startInfoBin)
+    const startInfoJson = atob(startInfoJsonB64)
+    const startInfo = PluginStartInfo.fromJsonString(startInfoJson)
+
+    this.startPlugin(startInfo)
   }
 
   private handleWorkerMessage(msgEvent: MessageEvent<WebDocumentToWorker>) {

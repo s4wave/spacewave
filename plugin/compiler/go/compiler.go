@@ -30,8 +30,8 @@ import (
 	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
 	web_pkg_rpc_server "github.com/aperturerobotics/bldr/web/pkg/rpc/server"
 	bldr_web_plugin_handle_rpc "github.com/aperturerobotics/bldr/web/plugin/handle-rpc"
-	bldr_web_plugin_handle_web_pkg "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg"
-	bldr_web_plugin_handle_web_view "github.com/aperturerobotics/bldr/web/plugin/handle-web-view"
+	bldr_web_plugin_handle_web_pkg_assets "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg-assets"
+	bldr_web_plugin_handle_web_view_rpc "github.com/aperturerobotics/bldr/web/plugin/handle-web-view-rpc"
 	web_runtime_wasm_build "github.com/aperturerobotics/bldr/web/runtime/wasm/build"
 	web_view_handler_server "github.com/aperturerobotics/bldr/web/view/handler/server"
 	bldr_web_view_observer "github.com/aperturerobotics/bldr/web/view/observer"
@@ -147,8 +147,7 @@ func (c *Controller) BuildManifest(
 	isRelease := buildType.IsRelease()
 
 	// platform
-	basePlatformID := buildPlatform.GetBasePlatformID()
-	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
+	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".mjs"
 
 	// output paths
 	workingPath := builderConf.GetWorkingPath()
@@ -176,6 +175,13 @@ func (c *Controller) BuildManifest(
 		WithField("plugin-id", pluginID).
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
+
+	// Do nothing if we are not targeting a supported platform (by the Go compiler).
+	// We could theoretically target "js" with gopherjs or goscript in future.
+	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); !ok {
+		le.Warnf("skipping build for non-go platform: %v", buildPlatform.GetInputPlatformID())
+		return nil, nil
+	}
 	le.Debug("building plugin manifest")
 
 	// if we are in dev mode, use the dev info file for hot reload compatibility.
@@ -387,9 +393,7 @@ func (c *Controller) BuildPlugin(
 	webPkgs = protobuf_go_lite.CloneVTSlice(webPkgs)
 
 	// platform
-	basePlatformID := buildPlatform.GetBasePlatformID()
-	isNativeBuildPlatform := basePlatformID == bldr_platform.PlatformID_NATIVE
-	isWebBuildPlatform := basePlatformID == bldr_platform.PlatformID_WEB
+	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".mjs"
 
 	// disable cgo on default (false means default value is false)
 	enableCgo := enableCgoOpt.IsEnabled(false)
@@ -451,9 +455,9 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
-		// - handle-web-view-rpc: handle incoming RPCs for web-view
+		// - handle-rpc: handle incoming RPCs for web-view
 		addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-rpc")
-		if err := applyToConfigSet("handle-web-view-rpc", &bldr_web_plugin_handle_rpc.Config{
+		if err := applyToConfigSet("handle-rpc", &bldr_web_plugin_handle_rpc.Config{
 			WebPluginId:    webPluginID,
 			HandlePluginId: pluginID,
 			ServerIdRe:     "web-view/.*",
@@ -461,9 +465,9 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
-		// - handle-web-view: handle web views via HandleWebView
-		addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-view")
-		if err := applyToConfigSet("handle-web-view", &bldr_web_plugin_handle_web_view.Config{
+		// - handle-web-view-rpc: handle web views via HandleWebView
+		addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-view-rpc")
+		if err := applyToConfigSet("handle-web-view-rpc", &bldr_web_plugin_handle_web_view_rpc.Config{
 			WebPluginId:    webPluginID,
 			HandlePluginId: pluginID,
 		}); err != nil {
@@ -479,14 +483,10 @@ func (c *Controller) BuildPlugin(
 		// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
 		if len(webPkgs) != 0 {
 			// NOTE: add the actual config later after we build the web pkgs
-			addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg")
+			addGoPkg("github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg-assets")
+			addGoPkg("github.com/aperturerobotics/bldr/web/pkg/rpc/server")
+			addGoPkg("github.com/aperturerobotics/bldr/web/pkg/fs/controller")
 		}
-	}
-
-	// add web pkg controllers if necessary
-	if len(webPkgs) != 0 {
-		addGoPkg("github.com/aperturerobotics/bldr/web/pkg/rpc/server")
-		addGoPkg("github.com/aperturerobotics/bldr/web/pkg/fs/controller")
 	}
 
 	// apply host config set
@@ -701,7 +701,10 @@ func (c *Controller) BuildPlugin(
 	if len(webPkgIDs) != 0 {
 		// add the web packages rpc server to the config set.
 		// resolves AccessRpcService directive
-		if err := applyToConfigSet("web-pkgs-rpc", web_pkg_rpc_server.NewConfig("", webPkgIDs)); err != nil {
+		if err := applyToConfigSet(
+			"web-pkgs-rpc",
+			web_pkg_rpc_server.NewConfig("", webPkgIDs),
+		); err != nil {
 			return nil, nil, err
 		}
 
@@ -720,11 +723,12 @@ func (c *Controller) BuildPlugin(
 			return nil, nil, err
 		}
 
-		// tell the web plugin to forward rpc requests to lookup web pkgs to our plugin.
+		// tell the web plugin to forward web pkgs to our plugin assets fs.
 		if webPluginID != "" {
-			if err := applyToConfigSet("handle-web-pkgs", &bldr_web_plugin_handle_web_pkg.Config{
+			if err := applyToConfigSet("handle-web-pkgs", &bldr_web_plugin_handle_web_pkg_assets.Config{
 				WebPluginId:    webPluginID,
 				HandlePluginId: pluginID,
+				WebPkgsPath:    bldr_plugin.PluginAssetsWebPkgsDir,
 				WebPkgIdList:   webPkgIDs,
 			}); err != nil {
 				return nil, nil, err
@@ -767,8 +771,8 @@ func (c *Controller) BuildPlugin(
 	var copyFiles []string
 	outDistBinary := filepath.Join(outDistPath, outBinName)
 
-	// only use dev wrapper if !isRelease && delveAddr != "" && platform == native
-	if isRelease || delveAddr == "" || !isNativeBuildPlatform {
+	// only use dev wrapper if not web platform
+	if isRelease || delveAddr == "" || isWebBuildPlatform {
 		le.Info("compiling plugin binary")
 		if err := mc.CompilePlugin(
 			ctx,

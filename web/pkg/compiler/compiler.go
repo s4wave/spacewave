@@ -11,7 +11,7 @@ import (
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
-	bldr_web_plugin_handle_web_pkg "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg"
+	bldr_web_plugin_handle_web_pkg_rpc "github.com/aperturerobotics/bldr/web/plugin/handle-web-pkg-rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -92,7 +92,7 @@ func (c *Controller) BuildManifest(
 	if len(webPkgs) != 0 {
 		if _, err := configset_proto.ConfigSetMap(pluginCompilerConf.ConfigSet).ApplyConfig(
 			"handle-web-pkgs",
-			&bldr_web_plugin_handle_web_pkg.Config{
+			&bldr_web_plugin_handle_web_pkg_rpc.Config{
 				WebPluginId:    conf.GetWebPluginId(),
 				HandlePluginId: pluginID,
 				WebPkgIdList:   bldr_web_bundler.WebPkgRefConfigSlice(webPkgs).ToIdList(),

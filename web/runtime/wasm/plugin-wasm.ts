@@ -3,6 +3,7 @@ import { Pushable, pushable } from 'it-pushable'
 import { MessagePortDuplex, PacketStream, castToError } from 'starpc'
 import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
 import { BackendAPI } from '@aptre/bldr-sdk'
+import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 interface Global {
   BLDR_BASE_URL: string
@@ -25,14 +26,17 @@ declare const BLDR_PLUGIN_ENTRYPOINT: string
 const pluginEntrypointPath = BLDR_PLUGIN_ENTRYPOINT!
 
 // startGoPlugin starts the go wasm process.
-function startGoPlugin(startInfoB58: string) {
+function startGoPlugin(startInfo: PluginStartInfo) {
+  // re-encode the start info to json-base64 for go
+  const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
+
   // construct the go wasm process
   const goProcess = new GoWasmProcess(
     new URL(pluginEntrypointPath, baseURL).toString(),
     {
       argv: ['plugin.wasm'],
       env: {
-        BLDR_PLUGIN_START_INFO: startInfoB58,
+        BLDR_PLUGIN_START_INFO: pluginStartInfoJsonB64,
       },
       retryOpts: {
         errorCb: (err) => {
@@ -96,5 +100,5 @@ export default async function main(api: BackendAPI): Promise<void> {
   }
 
   // Start the Go plugin, passing the startInfo from the API
-  startGoPlugin(api.startInfoB58)
+  startGoPlugin(api.startInfo)
 }

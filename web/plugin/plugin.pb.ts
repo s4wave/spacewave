@@ -5,6 +5,7 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
+import { WebViewHandlersConfig } from '../view/handler/handler.pb.js'
 
 export const protobufPackage = 'bldr.web.plugin'
 
@@ -261,6 +262,162 @@ export interface HandleRpcViaPluginResponse {
 export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse> =
   createMessageType({
     typeName: 'bldr.web.plugin.HandleRpcViaPluginResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'ready',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+        oneof: 'body',
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * HandleWebViewViaHandlersRequest is a request to configure web view handlers.
+ *
+ * @generated from message bldr.web.plugin.HandleWebViewViaHandlersRequest
+ */
+export interface HandleWebViewViaHandlersRequest {
+  /**
+   * Config is the web view handlers configuration.
+   *
+   * @generated from field: web.view.handler.WebViewHandlersConfig config = 1;
+   */
+  config?: WebViewHandlersConfig
+}
+
+// HandleWebViewViaHandlersRequest contains the message type declaration for HandleWebViewViaHandlersRequest.
+export const HandleWebViewViaHandlersRequest: MessageType<HandleWebViewViaHandlersRequest> =
+  createMessageType({
+    typeName: 'bldr.web.plugin.HandleWebViewViaHandlersRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'config',
+        kind: 'message',
+        T: () => WebViewHandlersConfig,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * HandleWebViewViaHandlersResponse is the response to HandleWebViewViaHandlers.
+ *
+ * @generated from message bldr.web.plugin.HandleWebViewViaHandlersResponse
+ */
+export interface HandleWebViewViaHandlersResponse {
+  /**
+   * @generated from oneof bldr.web.plugin.HandleWebViewViaHandlersResponse.body
+   */
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Ready indicates the handlers have been configured.
+         *
+         * @generated from field: bool ready = 1;
+         */
+        value: boolean
+        case: 'ready'
+      }
+}
+
+// HandleWebViewViaHandlersResponse contains the message type declaration for HandleWebViewViaHandlersResponse.
+export const HandleWebViewViaHandlersResponse: MessageType<HandleWebViewViaHandlersResponse> =
+  createMessageType({
+    typeName: 'bldr.web.plugin.HandleWebViewViaHandlersResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'ready',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+        oneof: 'body',
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * HandleWebPkgsViaPluginAssetsRequest is a request to serve web pkgs via a plugin assets fs.
+ *
+ * @generated from message bldr.web.plugin.HandleWebPkgsViaPluginAssetsRequest
+ */
+export interface HandleWebPkgsViaPluginAssetsRequest {
+  /**
+   * HandlePluginId is the plugin the web plugin should use for serving assets.
+   *
+   * @generated from field: string handle_plugin_id = 1;
+   */
+  handlePluginId?: string
+  /**
+   * WebPkgsPath is the sub-directory of the plugin assets fs to look up the web pkgs root.
+   *
+   * @generated from field: string web_pkgs_path = 2;
+   */
+  webPkgsPath?: string
+  /**
+   * WebPkgIdList is a list of web pkg IDs to resolve with the plugin assets fs.
+   * Must be at least one web pkg listed.
+   *
+   * @generated from field: repeated string web_pkg_id_list = 3;
+   */
+  webPkgIdList?: string[]
+}
+
+// HandleWebPkgsViaPluginAssetsRequest contains the message type declaration for HandleWebPkgsViaPluginAssetsRequest.
+export const HandleWebPkgsViaPluginAssetsRequest: MessageType<HandleWebPkgsViaPluginAssetsRequest> =
+  createMessageType({
+    typeName: 'bldr.web.plugin.HandleWebPkgsViaPluginAssetsRequest',
+    fields: [
+      { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'web_pkgs_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'web_pkg_id_list',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * HandleWebPkgsViaPluginAssetsResponse is the response to HandleWebPkgsViaPluginAssets.
+ *
+ * @generated from message bldr.web.plugin.HandleWebPkgsViaPluginAssetsResponse
+ */
+export interface HandleWebPkgsViaPluginAssetsResponse {
+  /**
+   * @generated from oneof bldr.web.plugin.HandleWebPkgsViaPluginAssetsResponse.body
+   */
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Ready indicates the service has been configured.
+         *
+         * @generated from field: bool ready = 1;
+         */
+        value: boolean
+        case: 'ready'
+      }
+}
+
+// HandleWebPkgsViaPluginAssetsResponse contains the message type declaration for HandleWebPkgsViaPluginAssetsResponse.
+export const HandleWebPkgsViaPluginAssetsResponse: MessageType<HandleWebPkgsViaPluginAssetsResponse> =
+  createMessageType({
+    typeName: 'bldr.web.plugin.HandleWebPkgsViaPluginAssetsResponse',
     fields: [
       {
         no: 1,

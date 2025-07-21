@@ -1,4 +1,4 @@
-package bldr_web_plugin_handle_web_view
+package web_view_handler_controller
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/blang/semver/v4"
 )
 
-// Factory constructs the controller.
+// Factory constructs a plugin host.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
@@ -44,11 +44,7 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	if err := cc.Validate(); err != nil {
-		return nil, err
-	}
-
-	return NewController(le, t.bus, cc), nil
+	return NewControllerWithConfig(le, cc)
 }
 
 // GetVersion returns the version of this controller.

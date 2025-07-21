@@ -1,5 +1,5 @@
 syntax = "proto3";
-package bldr.web.plugin.handle_web_pkg;
+package bldr.web.plugin.handle_web_pkg_rpc;
 
 // Config configures a controller to forward LookupWebPkg to a plugin.
 // webPluginId should correspond to a bldr/web/plugin plugin.

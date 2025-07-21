@@ -142,15 +142,13 @@ export class Retry<T = void> {
 export interface RetryWithAbortOpts extends Omit<RetryOpts, 'abortSignal'> {}
 
 // retryWithAbort builds a retry with the given abort signal & abort func.
-// does not return an error (promise is never rejected)
-export async function retryWithAbort<T = void>(
+export function retryWithAbort<T = void>(
   abortSignal: AbortSignal,
   cb: (abortSignal: AbortSignal) => Promise<T>,
   opts?: RetryWithAbortOpts,
 ) {
-  const retry = new Retry(cb.bind(undefined, abortSignal), {
+  return new Retry(cb.bind(undefined, abortSignal), {
     ...opts,
     abortSignal,
-  })
-  return retry.result.then(() => {}).catch(() => {})
+  }).result
 }

@@ -6,40 +6,40 @@ import (
 	"github.com/pkg/errors"
 )
 
-// PlatformID_WEB builds Go binaries for the Web platform (JavaScript and/or WebAssembly).
-const PlatformID_WEB = "web"
+// PlatformID_JS builds binaries for JavaScript environments (quickjs or WebWorker).
+const PlatformID_JS = "js"
 
-// WebPlatform represents the web platform type.
-type WebPlatform struct {
+// JsPlatform represents the JavaScript platform type.
+type JsPlatform struct {
 	// InputPlatformID was the parsed platform ID string, if any.
 	InputPlatformID string
 }
 
-// NewWebPlatformJs constructs a new default WebPlatform with WebArchJS.
-func NewWebPlatformJs() *WebPlatform {
-	return &WebPlatform{
-		InputPlatformID: PlatformID_WEB,
+// NewJsPlatform constructs a new default JsPlatform.
+func NewJsPlatform() *JsPlatform {
+	return &JsPlatform{
+		InputPlatformID: PlatformID_JS,
 	}
 }
 
-// ParseWebPlatform parses web platform based platform ID.
-func ParseWebPlatform(str string) (*WebPlatform, error) {
+// ParseJsPlatform parses JavaScript platform based platform ID.
+func ParseJsPlatform(str string) (*JsPlatform, error) {
 	components := strings.Split(str, "/")
 
-	if len(components) == 0 || components[0] != PlatformID_WEB {
-		return nil, errors.Errorf("not a web platform id: %s", str)
+	if len(components) == 0 || components[0] != PlatformID_JS {
+		return nil, errors.Errorf("not a js platform id: %s", str)
 	}
 
 	if len(components) > 1 {
-		return nil, errors.Errorf("unrecognized portion of web platform id: %s", strings.Join(components[1:], "/"))
+		return nil, errors.Errorf("unrecognized portion of js platform id: %s", strings.Join(components[1:], "/"))
 	}
 
-	return &WebPlatform{InputPlatformID: str}, nil
+	return &JsPlatform{InputPlatformID: str}, nil
 }
 
 // GetInputPlatformID returns the platform ID used when parsing.
 // If unknown, return the output of GetPlatformID instead.
-func (n *WebPlatform) GetInputPlatformID() string {
+func (n *JsPlatform) GetInputPlatformID() string {
 	if n.InputPlatformID != "" {
 		return n.InputPlatformID
 	}
@@ -48,20 +48,20 @@ func (n *WebPlatform) GetInputPlatformID() string {
 
 // GetPlatformID converts the platform into a fully qualified platform ID.
 // There should be exactly one representation of the platform ID possible.
-func (n *WebPlatform) GetPlatformID() string {
-	return PlatformID_WEB
+func (n *JsPlatform) GetPlatformID() string {
+	return PlatformID_JS
 }
 
 // GetBasePlatformID returns the base platform identifier w/o arch specifics.
-// Values: PlatformID_NATIVE and PlatformID_WEB
-func (n *WebPlatform) GetBasePlatformID() string {
-	return PlatformID_WEB
+// Values: PlatformID_NATIVE, PlatformID_JS, and PlatformID_NONE
+func (n *JsPlatform) GetBasePlatformID() string {
+	return PlatformID_JS
 }
 
 // GetExecutableExt returns the extension used for the primary executable artifact.
-func (n *WebPlatform) GetExecutableExt() string {
+func (n *JsPlatform) GetExecutableExt() string {
 	return ".mjs"
 }
 
 // _ is a type assertion
-var _ Platform = (*WebPlatform)(nil)
+var _ Platform = (*JsPlatform)(nil)

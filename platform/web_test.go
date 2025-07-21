@@ -2,23 +2,21 @@ package bldr_platform
 
 import "testing"
 
-// TestParseWebPlatform tests the ParseWebPlatform function.
-func TestParseWebPlatform(t *testing.T) {
+// TestParseJsPlatform tests the ParseJsPlatform function.
+func TestParseJsPlatform(t *testing.T) {
 	testCases := []struct {
 		input       string
 		expectError bool
 	}{
-		{"web", false},
-		{"web/js", true},     // Invalid format now
-		{"web/wasip2", true}, // Invalid format now
-		{"web/invalid", true},
-		{"web/js/extra", true},
+		{"js", false},
+		{"js/invalid", true},
+		{"js/extra/params", true},
 		{"invalid", true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
-			_, err := ParseWebPlatform(tc.input)
+			_, err := ParseJsPlatform(tc.input)
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("%s: expected error but got none", tc.input)
@@ -29,10 +27,10 @@ func TestParseWebPlatform(t *testing.T) {
 	}
 }
 
-// TestWebPlatform_GetBasePlatformID tests the GetBasePlatformID method.
-func TestWebPlatform_GetBasePlatformID(t *testing.T) {
-	platform := &WebPlatform{}
-	expectedOutput := PlatformID_WEB
+// TestJsPlatform_GetBasePlatformID tests the GetBasePlatformID method.
+func TestJsPlatform_GetBasePlatformID(t *testing.T) {
+	platform := &JsPlatform{}
+	expectedOutput := PlatformID_JS
 	out := platform.GetBasePlatformID()
 
 	if out != expectedOutput {
@@ -40,10 +38,10 @@ func TestWebPlatform_GetBasePlatformID(t *testing.T) {
 	}
 }
 
-// TestWebPlatform_GetExecutableExt tests the GetExecutableExt method.
-func TestWebPlatform_GetExecutableExt(t *testing.T) {
-	platform := &WebPlatform{}
-	expectedOutput := ".mjs"
+// TestJsPlatform_GetExecutableExt tests the GetExecutableExt method.
+func TestJsPlatform_GetExecutableExt(t *testing.T) {
+	platform := &JsPlatform{}
+	expectedOutput := ".js"
 	out := platform.GetExecutableExt()
 
 	if out != expectedOutput {
@@ -51,33 +49,32 @@ func TestWebPlatform_GetExecutableExt(t *testing.T) {
 	}
 }
 
-// TestNewWebPlatformJs tests the NewWebPlatformJs constructor.
-func TestNewWebPlatformJs(t *testing.T) {
-	platform := NewWebPlatformJs()
+// TestNewJsPlatform tests the NewJsPlatform constructor.
+func TestNewJsPlatform(t *testing.T) {
+	platform := NewJsPlatform()
 	if platform == nil {
-		t.Fatal("NewWebPlatformJs returned nil")
+		t.Fatal("NewJsPlatform returned nil")
 	}
-	// Check if InputPlatformID is set correctly, though it's simple now.
-	if platform.GetInputPlatformID() != PlatformID_WEB {
-		t.Errorf("NewWebPlatformJs did not set InputPlatformID correctly: expected %s, got %s", PlatformID_WEB, platform.GetInputPlatformID())
+	// Check if InputPlatformID is set correctly.
+	if platform.GetInputPlatformID() != PlatformID_JS {
+		t.Errorf("NewJsPlatform did not set InputPlatformID correctly: expected %s, got %s", PlatformID_JS, platform.GetInputPlatformID())
 	}
-	// Check other methods behave as expected for the default web platform.
-	if platform.GetPlatformID() != PlatformID_WEB {
-		t.Errorf("NewWebPlatformJs platform ID mismatch: expected %s, got %s", PlatformID_WEB, platform.GetPlatformID())
+	// Check other methods behave as expected for the default js platform.
+	if platform.GetPlatformID() != PlatformID_JS {
+		t.Errorf("NewJsPlatform platform ID mismatch: expected %s, got %s", PlatformID_JS, platform.GetPlatformID())
 	}
-	if platform.GetBasePlatformID() != PlatformID_WEB {
-		t.Errorf("NewWebPlatformJs base platform ID mismatch: expected %s, got %s", PlatformID_WEB, platform.GetBasePlatformID())
+	if platform.GetBasePlatformID() != PlatformID_JS {
+		t.Errorf("NewJsPlatform base platform ID mismatch: expected %s, got %s", PlatformID_JS, platform.GetBasePlatformID())
 	}
-	if platform.GetExecutableExt() != ".mjs" {
-		t.Errorf("NewWebPlatformJs executable extension mismatch: expected %s, got %s", ".mjs", platform.GetExecutableExt())
+	if platform.GetExecutableExt() != ".js" {
+		t.Errorf("NewJsPlatform executable extension mismatch: expected %s, got %s", ".js", platform.GetExecutableExt())
 	}
 }
 
-// TestWebPlatform_GetPlatformID tests the GetPlatformID method.
-func TestWebPlatform_GetPlatformID(t *testing.T) {
-	// Since WEBARCH is removed, the platform ID is always "web".
-	platform := &WebPlatform{}
-	expectedOutput := "web"
+// TestJsPlatform_GetPlatformID tests the GetPlatformID method.
+func TestJsPlatform_GetPlatformID(t *testing.T) {
+	platform := &JsPlatform{}
+	expectedOutput := "js"
 	out := platform.GetPlatformID()
 
 	if out != expectedOutput {
@@ -85,27 +82,27 @@ func TestWebPlatform_GetPlatformID(t *testing.T) {
 	}
 }
 
-// TestWebPlatform_GetInputPlatformID tests the GetInputPlatformID method.
-func TestWebPlatform_GetInputPlatformID(t *testing.T) {
+// TestJsPlatform_GetInputPlatformID tests the GetInputPlatformID method.
+func TestJsPlatform_GetInputPlatformID(t *testing.T) {
 	testCases := []struct {
 		name           string
-		input          *WebPlatform
+		input          *JsPlatform
 		expectedOutput string
 	}{
 		{
 			name:           "With InputPlatformID",
-			input:          &WebPlatform{InputPlatformID: "web"},
-			expectedOutput: "web",
+			input:          &JsPlatform{InputPlatformID: "js"},
+			expectedOutput: "js",
 		},
 		{
 			name:           "Without InputPlatformID",
-			input:          &WebPlatform{},
-			expectedOutput: "web", // Falls back to GetPlatformID()
+			input:          &JsPlatform{},
+			expectedOutput: "js", // Falls back to GetPlatformID()
 		},
 		{
-			name:           "Constructed with NewWebPlatformJs",
-			input:          NewWebPlatformJs(),
-			expectedOutput: "web",
+			name:           "Constructed with NewJsPlatform",
+			input:          NewJsPlatform(),
+			expectedOutput: "js",
 		},
 	}
 

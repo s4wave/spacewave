@@ -1,4 +1,4 @@
-package bldr_web_plugin_handle_web_view
+package bldr_web_plugin_handle_web_pkg_rpc
 
 import (
 	"context"
@@ -15,12 +15,12 @@ import (
 )
 
 // ControllerID is the controller ID.
-const ControllerID = "bldr/web/plugin/handle-web-view"
+const ControllerID = "bldr/web/plugin/handle-web-pkg-rpc"
 
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")
 
-// Controller calls the web plugin to enable forwarding web rpcs to the handler plugin.
+// Controller calls the web plugin to enable forwarding web pkg lookups to the handler plugin.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -35,12 +35,12 @@ func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	conf *Config,
-) *Controller {
+) (*Controller, error) {
 	return &Controller{
 		le:   le,
 		bus:  bus,
 		conf: conf,
-	}
+	}, nil
 }
 
 // GetControllerInfo returns information about the controller.
@@ -48,7 +48,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		fmt.Sprintf("configures plugin %s to handle web views via %s", c.conf.GetWebPluginId(), c.conf.GetHandlePluginId()),
+		fmt.Sprintf("configures plugin %s to handle web pkgs via %s", c.conf.GetWebPluginId(), c.conf.GetHandlePluginId()),
 	)
 }
 
@@ -61,9 +61,9 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		c.bus,
 		c.conf.GetWebPluginId(),
 		func(ctx context.Context, cc srpc.Client) error {
-			// Call the RPC service to start forwarding web view requests.
+			// Call the RPC service to start forwarding web pkg requests.
 			client := bldr_web_plugin.NewSRPCWebPluginClient(cc)
-			call, err := client.HandleWebViewViaPlugin(ctx, c.conf.ToRequest())
+			call, err := client.HandleWebPkgViaPlugin(ctx, c.conf.ToRequest())
 			if err != nil {
 				return err
 			}
@@ -73,11 +73,11 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 					return err
 				}
 				switch b := rsp.GetBody().(type) {
-				case *bldr_web_plugin.HandleWebViewViaPluginResponse_Ready:
+				case *bldr_web_plugin.HandleWebPkgViaPluginResponse_Ready:
 					if b.Ready {
-						c.le.Debugf("web plugin: forwarding web views to plugin %s is ready", c.conf.GetHandlePluginId())
+						c.le.Debugf("web plugin: forwarding web pkgs to plugin %s is ready", c.conf.GetHandlePluginId())
 					} else {
-						c.le.Debugf("web plugin: forwarding web views to plugin %s is not ready", c.conf.GetHandlePluginId())
+						c.le.Debugf("web plugin: forwarding web pkgs to plugin %s is not ready", c.conf.GetHandlePluginId())
 					}
 				}
 			}

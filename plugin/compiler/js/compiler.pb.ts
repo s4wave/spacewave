@@ -8,6 +8,10 @@ import {
   createMessageType,
   ScalarType,
 } from '@aptre/protobuf-es-lite'
+import {
+  SetHtmlLinksRequest,
+  SetRenderModeRequest,
+} from '../../../web/view/view.pb.js'
 import { StringFilter } from '@go/github.com/aperturerobotics/util/filter/filter.pb.js'
 import { EsbuildBundleMeta } from '../../../web/bundler/esbuild/compiler/compiler.pb.js'
 import { ViteBundleMeta } from '../../../web/bundler/vite/compiler/compiler.pb.js'
@@ -170,23 +174,31 @@ export const BackendEntrypoint: MessageType<BackendEntrypoint> =
  */
 export interface FrontendEntrypoint {
   /**
-   * ImportPath is the path to the module within the assets fs to import().
-   * Example: "vite/frontend/index.js"
-   * The path must export a React component to load into a WebView.
+   * SetRenderMode contains the set render mode request for the web view.
+   * The script path will have /b/pa/{plugin-id}/ prepended to it automatically.
+   * Ignored if empty.
    *
-   * @generated from field: string import_path = 1;
+   * @generated from field: web.view.SetRenderModeRequest set_render_mode = 1;
    */
-  importPath?: string
+  setRenderMode?: SetRenderModeRequest
+  /**
+   * SetHtmlLinks contains the set html links request for the web view.
+   * The html links paths will have /b/pa/{plugin-id}/ prepended to them automatically.
+   * Ignored if empty.
+   *
+   * @generated from field: web.view.SetHtmlLinksRequest set_html_links = 2;
+   */
+  setHtmlLinks?: SetHtmlLinksRequest
   /**
    * WebViewId filters by web view id.
    *
-   * @generated from field: filter.StringFilter web_view_id = 2;
+   * @generated from field: filter.StringFilter web_view_id = 3;
    */
   webViewId?: StringFilter
   /**
    * WebViewParentId filters by web view parent id.
    *
-   * @generated from field: filter.StringFilter web_view_parent_id = 3;
+   * @generated from field: filter.StringFilter web_view_parent_id = 4;
    */
   webViewParentId?: StringFilter
 }
@@ -196,10 +208,21 @@ export const FrontendEntrypoint: MessageType<FrontendEntrypoint> =
   createMessageType({
     typeName: 'bldr.plugin.compiler.js.FrontendEntrypoint',
     fields: [
-      { no: 1, name: 'import_path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'web_view_id', kind: 'message', T: () => StringFilter },
       {
-        no: 3,
+        no: 1,
+        name: 'set_render_mode',
+        kind: 'message',
+        T: () => SetRenderModeRequest,
+      },
+      {
+        no: 2,
+        name: 'set_html_links',
+        kind: 'message',
+        T: () => SetHtmlLinksRequest,
+      },
+      { no: 3, name: 'web_view_id', kind: 'message', T: () => StringFilter },
+      {
+        no: 4,
         name: 'web_view_parent_id',
         kind: 'message',
         T: () => StringFilter,
@@ -335,6 +358,7 @@ export interface Config {
    * DisableRpcFetch disables the default Fetch RPC service handler.
    * The handler handles the Fetch service by consuming a set of HTTP handlers.
    * This service is used for the ServiceWorker HTTP calls.
+   * TODO: unimplemented
    *
    * @generated from field: bool disable_rpc_fetch = 11;
    */
@@ -342,13 +366,7 @@ export interface Config {
   /**
    * WebPluginId sets the plugin id for the web plugin.
    *
-   * TODO: If set, the compiler automatically adds these controllers to the config set:
-   * - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
-   * - handle-web-view-rpc: handle incoming RPCs for web-view
-   * - handle-web-view-server: handle incoming RPCs for HandleWebView
-   * - handle-web-view: handle web views via HandleWebView
-   * - load-web: loads the web plugin on startup
-   * - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+   * If set, the plugin will load the web plugin with the given ID and load frontend entrypoints.
    *
    * @generated from field: string web_plugin_id = 13;
    */

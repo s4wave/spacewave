@@ -1,5 +1,5 @@
 syntax = "proto3";
-package bldr.web.plugin.handle_web_view;
+package bldr.web.plugin.handle_web_view_rpc;
 
 // Config configures a controller to forward HandleWebView to a plugin.
 // Loads webPluginId with LoadPlugin and uses the RPC client.

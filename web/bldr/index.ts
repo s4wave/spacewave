@@ -37,3 +37,4 @@ export {
   SetHtmlLinksResponse,
   HtmlLink,
 } from '../view/view.pb.js'
+export { createAbortController } from './abort.js'

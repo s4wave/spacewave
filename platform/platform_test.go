@@ -16,17 +16,35 @@ func TestParsePlatform(t *testing.T) {
 		t.Fail()
 	}
 
-	p, err = ParsePlatform("web")
+	p, err = ParsePlatform("js")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, ok = p.(*WebPlatform)
+	_, ok = p.(*JsPlatform)
 	if !ok {
 		t.Fail()
 	}
 
-	p, err = ParsePlatform("web/invalid/params")
+	p, err = ParsePlatform("js/invalid/params")
 	if err == nil {
+		t.Fail()
+	}
+
+	p, err = ParsePlatform("native/js/wasm")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, ok = p.(*NativePlatform)
+	if !ok {
+		t.Fail()
+	}
+
+	p, err = ParsePlatform("native/wasi/wasm")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, ok = p.(*NativePlatform)
+	if !ok {
 		t.Fail()
 	}
 	_ = p

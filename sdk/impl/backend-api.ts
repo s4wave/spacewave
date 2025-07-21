@@ -1,4 +1,5 @@
 import {
+  buildRpcStreamOpenStream,
   Client,
   HandleStreamCtr,
   OpenStreamFunc,
@@ -15,24 +16,28 @@ import {
   GetPluginInfoResponse,
   LoadPluginRequest,
   LoadPluginResponse,
+  PluginStartInfo,
 } from '../../plugin/plugin.pb.js'
+import { Retry, retryWithAbort } from '@aptre/bldr'
 
 // BackendAPIImpl implements the interface provided to the plugin module.
 export class BackendApiImpl implements BackendAPI {
-  // startInfoB58 is the base58 encoded start information passed during initialization.
-  public readonly startInfoB58: string
+  // startInfo is the start information passed during initialization.
+  public readonly startInfo: PluginStartInfo
   // openStream is the open stream func for client
   public readonly openStream: OpenStreamFunc
   // client is a connection to the Go WebRuntime via. WebWorkerRpc rpcstream.
   public readonly client: Client
   // pluginHost is the plugin host RPC service client.
-  readonly pluginHost: PluginHost
+  public readonly pluginHost: PluginHost
   // handleStreamCtr allows the plugin module to register a function
   // that will be called to handle incoming streams from the WebRuntime.
   public readonly handleStreamCtr: HandleStreamCtr
 
   // protos contains the protobuf objects used by the BackendAPI.
   public readonly protos = {
+    PluginStartInfo: PluginStartInfo,
+
     GetPluginInfoRequest: GetPluginInfoRequest,
     GetPluginInfoResponse: GetPluginInfoResponse,
 
@@ -45,15 +50,64 @@ export class BackendApiImpl implements BackendAPI {
     RpcStreamPacket: RpcStreamPacket,
   } as const
 
+  // HTTP prefix constants
+  public readonly constants = {
+    BLDR_HTTP_PREFIX: '/b/',
+    PLUGIN_DIST_HTTP_PREFIX: '/b/pd/',
+    PLUGIN_ASSETS_HTTP_PREFIX: '/b/pa/',
+    PLUGIN_WEB_PKG_HTTP_PREFIX: '/b/pkg/',
+    PLUGIN_HTTP_PREFIX: '/p/',
+  } as const
+
+  // HTTP path utility functions
+  public readonly utils = {
+    // pluginHttpPath adds the plugin http prefix to the given path.
+    pluginHttpPath: (pluginId: string, ...httpPaths: string[]): string => {
+      let result = this.constants.PLUGIN_HTTP_PREFIX + pluginId
+      if (httpPaths.length === 0 || !httpPaths[0].startsWith('/')) {
+        result += '/'
+      }
+      for (const httpPath of httpPaths) {
+        result += httpPath
+      }
+      return result
+    },
+
+    // pluginDistHttpPath adds the plugin distribution file prefix to the given path.
+    pluginDistHttpPath: (pluginId: string, httpPath: string): string => {
+      let result = this.constants.PLUGIN_DIST_HTTP_PREFIX + pluginId
+      if (!httpPath.startsWith('/')) {
+        result += '/'
+      }
+      result += httpPath
+      return result
+    },
+
+    // pluginAssetHttpPath adds the plugin asset file prefix to the given path.
+    pluginAssetHttpPath: (pluginId: string, httpPath: string): string => {
+      let result = this.constants.PLUGIN_ASSETS_HTTP_PREFIX + pluginId
+      if (!httpPath.startsWith('/')) {
+        result += '/'
+      }
+      result += httpPath
+      return result
+    },
+  } as const
+
   constructor(
-    startInfoB58: string,
+    startInfo: PluginStartInfo,
     openStream: OpenStreamFunc,
     handleStreamCtr: HandleStreamCtr,
   ) {
-    this.startInfoB58 = startInfoB58
+    this.startInfo = startInfo
     this.openStream = openStream
     this.client = new Client(openStream)
     this.handleStreamCtr = handleStreamCtr
     this.pluginHost = new PluginHostClient(this.client)
+  }
+
+  // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.
+  public buildPluginOpenStream(pluginID: string): OpenStreamFunc {
+    return buildRpcStreamOpenStream(pluginID, this.pluginHost.PluginRpc)
   }
 }

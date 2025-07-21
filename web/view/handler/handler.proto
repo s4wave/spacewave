@@ -1,0 +1,30 @@
+syntax = "proto3";
+package web.view.handler;
+
+import "github.com/aperturerobotics/util/filter/filter.proto";
+import "github.com/aperturerobotics/bldr/web/view/view.proto";
+
+// WebViewHandlersConfig is a configuration for web view handlers.
+message WebViewHandlersConfig {
+  // Handlers is the list of handler configurations to attach.
+  repeated WebViewHandlerConfig handlers = 1;
+  // WebViewId filters by web view id (applies to all handlers if set).
+  .filter.StringFilter web_view_id = 2;
+  // WebViewParentId filters by web view parent id (applies to all handlers if set).
+  .filter.StringFilter web_view_parent_id = 3;
+}
+
+// WebViewHandlerConfig configures a web view handler.
+message WebViewHandlerConfig {
+  // WebViewId filters by web view id (specific to this handler).
+  .filter.StringFilter web_view_id = 1;
+  // WebViewParentId filters by web view parent id (specific to this handler).
+  .filter.StringFilter web_view_parent_id = 2;
+  // Handler configuration.
+  oneof handler {
+    // SetRenderModeHandler sets the render mode.
+    .web.view.SetRenderModeRequest set_render_mode = 3;
+    // SetHtmlLinksHandler sets html links.
+    .web.view.SetHtmlLinksRequest set_html_links = 4;
+  }
+}

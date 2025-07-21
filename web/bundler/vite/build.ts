@@ -137,24 +137,38 @@ export async function analyzeManifest(
       }
     })
 
-  // 3. Associate CSS assets with entrypoints.
+  // 3. Associate CSS assets with entrypoints using manifest data.
   const allCssAssets = new Set<string>()
   const handledCssAssets = new Set<string>()
 
+  // Collect all CSS assets
   for (const chunk of outputChunks) {
-    if (chunk.type !== 'asset' || !chunk.fileName.endsWith('.css')) continue
-    allCssAssets.add(chunk.fileName)
+    if (chunk.type === 'asset' && chunk.fileName.endsWith('.css')) {
+      allCssAssets.add(chunk.fileName)
+    }
+  }
 
-    const asset = chunk as OutputAsset & { originalFileNames?: string[] }
-    const referencers = (asset.originalFileNames ?? []).map((f) =>
-      path.normalize(f),
-    )
+  // Associate CSS files with entrypoints using the manifest
+  for (const [key, value] of Object.entries(manifest)) {
+    if (!value.isEntry) continue
 
-    for (const entry of entrypointOutputs) {
-      if (referencers.some((ref) => entry.inputs.has(ref))) {
-        entry.outputs.css.add(chunk.fileName)
-        handledCssAssets.add(chunk.fileName)
-      }
+    const { cssFiles } = collectReferencedFiles(key, manifest)
+
+    // Find the corresponding entrypoint output
+    const entryOutput = entrypointOutputs.find((entry) => {
+      const entrypointPath = value.src ?? key
+      const normalizedEntrypoint =
+        path.isAbsolute(entrypointPath) ?
+          path.relative(rootDir, entrypointPath)
+        : entrypointPath
+      return entry.entrypoint === normalizedEntrypoint
+    })
+
+    if (entryOutput) {
+      cssFiles.forEach((cssFile) => {
+        entryOutput.outputs.css.add(cssFile)
+        handledCssAssets.add(cssFile)
+      })
     }
   }
 

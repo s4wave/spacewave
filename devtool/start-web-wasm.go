@@ -134,7 +134,11 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	entrypointPkg := "devtool/web/entrypoint"
 
 	// compile the entrypoint wasm
-	buildPlatform := bldr_platform.NewWebPlatformJs()
+	buildPlatform, err := bldr_platform.ParseNativePlatform("native/js/wasm")
+	if err != nil {
+		return err
+	}
+
 	entryBuildType := bldr_manifest.BuildType_DEV
 	if minifyEntrypoint {
 		entryBuildType = bldr_manifest.BuildType_RELEASE

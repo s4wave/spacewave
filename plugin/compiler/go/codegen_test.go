@@ -37,7 +37,7 @@ import (
 //go:embed config-set.bin
 var StaticFS embed.FS
 
-// PluginStartInfo contains the b58 encoded startup information.
+// PluginStartInfo contains the json-base64 encoded startup information.
 var PluginStartInfo = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_START_INFO"))
 
 // PluginMeta contains the b58 encoded plugin metadata.

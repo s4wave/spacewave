@@ -25,7 +25,7 @@ const (
 )
 
 // ViteAssetSubdir is the sub-directory for vite assets within the assets dir.
-var ViteAssetSubdir = "vite"
+var ViteAssetSubdir = "v"
 
 // BuildAndCheckoutViteSubManifest builds the vite sub-manifest and checks out the results.
 // It returns the web package references and vite output metadata extracted from the sub-manifest.

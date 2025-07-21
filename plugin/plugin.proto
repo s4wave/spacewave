@@ -93,6 +93,9 @@ message PluginMeta {
 message PluginStartInfo {
   // InstanceId is the plugin instance id.
   string instance_id = 1;
+  // PluginId is the plugin identifier.
+  // Must be a valid-dns-label.
+  string plugin_id = 2;
 }
 
 // PluginContextInfo contains information about the running plugin attached to

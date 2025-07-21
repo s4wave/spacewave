@@ -1,6 +1,7 @@
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
 import { PluginWorker } from '../runtime/plugin-worker.js'
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
+import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 
 declare let self: SharedWorkerGlobalScope
 
@@ -13,7 +14,7 @@ const handleIncomingStream: HandleStreamFunc =
 
 // Function passed to PluginWorker, called when the first WebDocument connects
 // and sends initialization data.
-const startPluginCallback = async (startInfoB58: string) => {
+const startPluginCallback = async (startInfo: PluginStartInfo) => {
   // Parse the script path from the worker's URL hash.
   const url = new URL(self.location.href)
   let scriptPath: string | null = null
@@ -40,13 +41,17 @@ const startPluginCallback = async (startInfoB58: string) => {
 
   // Construct the backend api
   const backendAPI = new BackendApiImpl(
-    startInfoB58,
+    startInfo,
     openStream,
     handleIncomingStreamCtr,
   )
 
+  // Build abort signal
+  const abortController = new AbortController()
+  const abortSignal = abortController.signal
+
   // Call the imported module's main function, passing the API implementation.
-  await pluginModule.default(backendAPI)
+  await pluginModule.default(backendAPI, abortSignal)
 }
 
 // Initialize the PluginWorker.

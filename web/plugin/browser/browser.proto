@@ -1,7 +1,6 @@
 syntax = "proto3";
 package bldr.web.plugin.browser;
 
-import "github.com/aperturerobotics/util/backoff/backoff.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 
 // WebPluginBrowserHost proxies requests to the web plugin to the plugin host.

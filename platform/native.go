@@ -49,8 +49,7 @@ func ParseNativePlatform(str string) (*NativePlatform, error) {
 	pt := &NativePlatform{InputPlatformID: str}
 	var arches []string
 	for _, component := range components[1:] {
-		if strings.HasPrefix(component, "armv") {
-			armVerStr := strings.TrimPrefix(component, "armv")
+		if armVerStr, ok := strings.CutPrefix(component, "armv"); ok {
 			armVer, err := strconv.Atoi(armVerStr)
 			if err != nil || armVer < 5 || armVer > 8 {
 				return nil, errors.Wrapf(err, "invalid arm version: %s", armVerStr)
@@ -75,6 +74,16 @@ func ParseNativePlatform(str string) (*NativePlatform, error) {
 			} else if goarm == nil || *pt.GOARM != *goarm {
 				return nil, errors.Errorf("conflicting values: %v and %v", *pt.GOARM, *goarm)
 			}
+			continue
+		}
+		// Handle special js/wasm and wasi/wasm combinations
+		if component == "js" || component == "wasi" {
+			goos := component
+			if pt.GOOS != nil {
+				return nil, errors.Errorf("multiple GOOS values: %s and %s", *pt.GOOS, goos)
+			}
+			pt.GOOS = &goos
+			arches = []string{"wasm"}
 			continue
 		}
 		if goosArches, isGoos := goOsArches[component]; isGoos {
@@ -173,16 +182,26 @@ func (n *NativePlatform) GetPlatformID() string {
 }
 
 // GetBasePlatformID returns the base platform identifier w/o arch specifics.
-// Values: PlatformID_NATIVE and PlatformID_WEB
+// Values: PlatformID_NATIVE and PlatformID_JS
 func (n *NativePlatform) GetBasePlatformID() string {
 	return PlatformID_NATIVE
 }
 
 // GetExecutableExt returns the extension used for executables.
 func (n *NativePlatform) GetExecutableExt() string {
-	if n.GetGOOS() == "windows" {
+	goos := n.GetGOOS()
+	goarch := n.GetGOARCH()
+
+	if goos == "windows" {
 		return ".exe"
 	}
+	if goos == "js" {
+		return ".mjs"
+	}
+	if goarch == "wasm" || goarch == "wasm32" || goarch == "wasm64" {
+		return ".wasm"
+	}
+
 	return ""
 }
 

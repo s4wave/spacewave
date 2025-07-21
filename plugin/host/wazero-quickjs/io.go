@@ -41,12 +41,12 @@ func (d *devFS) Lstat(name string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	switch name {
 	case ".":
 		return wazero_sys.Stat_t{
-			Mode: fs.ModeDir | 0555, // read-only directory
+			Mode: fs.ModeDir | 0o555, // read-only directory
 			Size: 0,
 		}, 0
 	case "out":
 		return wazero_sys.Stat_t{
-			Mode: fs.ModeCharDevice | 0200, // write-only character device
+			Mode: fs.ModeCharDevice | 0o200, // write-only character device
 			Size: 0,
 		}, 0
 	default:
@@ -139,7 +139,7 @@ func (f *DevDirFile) SetAppend(enable bool) wazero_exp_sys.Errno {
 func (f *DevDirFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	now := time.Now().UnixNano()
 	return wazero_sys.Stat_t{
-		Mode: fs.ModeDir | 0555, // read-only directory
+		Mode: fs.ModeDir | 0o555, // read-only directory
 		Size: 0,
 		Mtim: now,
 		Atim: now,
@@ -248,7 +248,7 @@ func (f *DevOutFile) SetAppend(enable bool) wazero_exp_sys.Errno {
 func (f *DevOutFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	now := time.Now().UnixNano()
 	return wazero_sys.Stat_t{
-		Mode: fs.ModeCharDevice | 0200, // write-only character device
+		Mode: fs.ModeCharDevice | 0o200, // write-only character device
 		Size: 0,
 		Mtim: now,
 		Atim: now,
@@ -316,6 +316,8 @@ func (f *DevOutFile) Close() wazero_exp_sys.Errno {
 }
 
 // _ is a type assertion
-var _ wazero_exp_sys.FS = (*devFS)(nil)
-var _ wazero_exp_sys.File = (*DevDirFile)(nil)
-var _ wazero_exp_sys.File = (*DevOutFile)(nil)
+var (
+	_ wazero_exp_sys.FS   = (*devFS)(nil)
+	_ wazero_exp_sys.File = (*DevDirFile)(nil)
+	_ wazero_exp_sys.File = (*DevOutFile)(nil)
+)

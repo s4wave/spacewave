@@ -4,6 +4,7 @@ import { createAbortController } from './polyfill-abort-controller.js'
 import { TextEncoder, TextDecoder } from './text-encoding.js'
 import { createQuickjsConsole, type Console } from './console.js'
 import { createQuickjsPerformance, type Performance } from './performance.js'
+import { atob, btoa } from './base64.js'
 
 // quickjs has a reduced standard library.
 // this file polyfills exactly what we need and probably will need to be expanded over time.
@@ -59,6 +60,11 @@ export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   window: QuickjsPolyfillGlobalScope
   // self is the polyfilled self reference.
   self: QuickjsPolyfillGlobalScope
+
+  // atob decodes a base64 encoded string.
+  atob: typeof atob
+  // btoa encodes a string to base64.
+  btoa: typeof btoa
 }
 
 // applyPolyfills applies the polyfills to the global scope.
@@ -90,6 +96,9 @@ export function applyPolyfills(
   target.clearTimeout = to.os.clearTimeout
   target.setInterval = to.os.setInterval
   target.clearInterval = to.os.clearInterval
+
+  target.atob = atob
+  target.btoa = btoa
 
   return target
 }

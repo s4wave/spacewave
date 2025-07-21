@@ -1,9 +1,6 @@
-package bldr_web_plugin_handle_web_pkg
+package bldr_web_plugin_handle_web_pkg_assets
 
 import (
-	"regexp"
-
-	"github.com/aperturerobotics/bifrost/util/confparse"
 	plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -20,11 +17,7 @@ func (c *Config) GetConfigID() string {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	ot, ok := other.(*Config)
-	if !ok {
-		return false
-	}
-	return c.EqualVT(ot)
+	return config.EqualsConfig(c, other)
 }
 
 // Validate checks the config.
@@ -35,25 +28,15 @@ func (c *Config) Validate() error {
 	if c.GetHandlePluginId() == "" {
 		return errors.Wrap(plugin.ErrEmptyPluginID, "handle_plugin_id")
 	}
-	if _, err := c.ParseWebPkgIdRe(); err != nil {
-		return err
-	}
 	return nil
 }
 
-// ParseWebPkgIdRe parses the handle web view id regex.
-// Returns nil if the field was empty.
-func (c *Config) ParseWebPkgIdRe() (*regexp.Regexp, error) {
-	return confparse.ParseRegexp(c.GetWebPkgIdRe())
-}
-
 // ToRequest converts the config into a request.
-func (c *Config) ToRequest() *bldr_web_plugin.HandleWebPkgViaPluginRequest {
-	return &bldr_web_plugin.HandleWebPkgViaPluginRequest{
-		HandlePluginId:   c.GetHandlePluginId(),
-		WebPkgIdRe:       c.GetWebPkgIdRe(),
-		WebPkgIdPrefixes: c.GetWebPkgIdPrefixes(),
-		WebPkgIdList:     c.GetWebPkgIdList(),
+func (c *Config) ToRequest() *bldr_web_plugin.HandleWebPkgsViaPluginAssetsRequest {
+	return &bldr_web_plugin.HandleWebPkgsViaPluginAssetsRequest{
+		HandlePluginId: c.GetHandlePluginId(),
+		WebPkgsPath:    c.GetWebPkgsPath(),
+		WebPkgIdList:   c.GetWebPkgIdList(),
 	}
 }
 

@@ -34,8 +34,12 @@ message BuilderConfig {
 // BuilderResult is the result of a builder run.
 message BuilderResult {
 	// Manifest is the manifest object.
+  //
+  // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
 	.bldr.manifest.Manifest manifest = 1;
 	// ManifestRef is the manifest object ref.
+  //
+  // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
 	.bldr.manifest.ManifestRef manifest_ref = 2;
   // InputManifest details which files were used to produce Manifest.
   // Used for change detection.

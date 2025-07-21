@@ -15,7 +15,7 @@ type Platform interface {
 	// There should be exactly one representation of the platform ID possible.
 	GetPlatformID() string
 	// GetBasePlatformID returns the base platform identifier w/o arch specifics.
-	// Values: PlatformID_NATIVE and PlatformID_WEB
+	// Values: PlatformID_NATIVE and PlatformID_JS
 	GetBasePlatformID() string
 	// GetExecutableExt returns the extension used for executables. May be empty.
 	GetExecutableExt() string
@@ -29,8 +29,8 @@ func ParsePlatform(id string) (Platform, error) {
 	switch firstCmp {
 	case PlatformID_NATIVE:
 		return ParseNativePlatform(id)
-	case PlatformID_WEB:
-		return ParseWebPlatform(id)
+	case PlatformID_JS:
+		return ParseJsPlatform(id)
 	default:
 		return nil, errors.Errorf("unknown platform id: %s", id)
 	}

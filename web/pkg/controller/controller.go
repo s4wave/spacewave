@@ -16,7 +16,9 @@ import (
 // release is a function to call if the web pkg is released.
 // return nil, nil, nil for not found.
 // return a release function if necessary
-type WebPkgGetter = directive.KeyedGetterFunc[string, web_pkg.LookupWebPkgValue] // func(ctx context.Context, webPkgID string, release func()) (web_pkg.LookupWebPkgValue, func(), error)
+//
+// func(ctx context.Context, webPkgID string, release func()) (web_pkg.LookupWebPkgValue, func(), error)
+type WebPkgGetter = directive.KeyedGetterFunc[string, web_pkg.LookupWebPkgValue]
 
 // Controller implements the generic web pkg controller.
 //

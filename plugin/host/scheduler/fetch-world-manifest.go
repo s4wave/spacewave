@@ -90,7 +90,6 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 	// we are done
 	_ = context.AfterFunc(ctx, ref.Release)
 	return nil
-
 }
 
 type fetchManifestValueStorer struct {

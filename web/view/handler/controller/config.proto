@@ -1,0 +1,10 @@
+syntax = "proto3";
+package web.view.handler.controller;
+
+import "github.com/aperturerobotics/bldr/web/view/handler/handler.proto";
+
+// Config configures the web view handler controller.
+message Config {
+  // Handlers configures the set of web view handlers.
+  .web.view.handler.WebViewHandlersConfig handlers = 1;
+}

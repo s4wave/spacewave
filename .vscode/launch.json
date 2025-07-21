@@ -76,6 +76,27 @@
       "timeout": 30000
     },
     {
+      "name": "Debug Prototype bundle-js-vite",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/bldr",
+      "cwd": "${workspaceFolder}/prototypes/bundle-js-vite",
+      "preLaunchTask": "clean",
+      "args": [
+        "--disable-cleanup",
+        "--bldr-version-sum=",
+        "--bldr-src-path=../../",
+        "-c", "./prototypes/bundle-js-vite/bldr.yaml",
+        "start",
+        "web", "--wasm"
+      ],
+      "env": {
+        "GOOS": "",
+        "GOARCH": ""
+      }
+    },
+    {
       "name": "Test wazero-quickjs",
       "type": "go",
       "request": "launch",

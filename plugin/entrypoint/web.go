@@ -24,7 +24,7 @@ var Version = semver.MustParse("0.0.1")
 
 // Main runs the default main entrypoint for a plugin.
 func Main(
-	pluginStartInfoB58,
+	pluginStartInfoJsonB64,
 	pluginMetaB58 string,
 	logLevel logrus.Level,
 	addFactoryFuncs []AddFactoryFunc,
@@ -48,7 +48,12 @@ func Main(
 			return err
 		}
 
-		pluginStartInfo, pluginMeta, err := UnmarshalPluginStartInfo(pluginStartInfoB58, pluginMetaB58)
+		pluginStartInfo, err := UnmarshalPluginStartInfo(pluginStartInfoJsonB64)
+		if err != nil {
+			return err
+		}
+
+		pluginMeta, err := UnmarshalPluginMeta(pluginMetaB58)
 		if err != nil {
 			return err
 		}

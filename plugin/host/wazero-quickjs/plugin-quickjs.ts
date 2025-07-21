@@ -9,6 +9,7 @@ import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import { applyPolyfills } from './quickjs/polyfill.js'
 import { BackendApiImpl } from '../../../sdk/impl/backend-api.js'
+import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 // globalThis is the top level quickjs global scope.
 declare const globalThis: QuickjsGlobalScope
@@ -23,7 +24,7 @@ if (!scriptPath) {
 }
 
 // polyfill Event, AbortController, etc.
-applyPolyfills(globalThis)
+const polyGlobalThis = applyPolyfills(globalThis)
 
 // asynchronously import the script module
 const scriptPromise = import(scriptPath)
@@ -33,7 +34,7 @@ scriptPromise.catch((err) => {
 })
 
 // expect the start info via the environment variable.
-const startInfoB58 = globalThis.std.getenv('BLDR_PLUGIN_START_INFO') ?? ''
+const startInfoB64 = globalThis.std.getenv('BLDR_PLUGIN_START_INFO') ?? ''
 
 // handleIncomingStreamCtr is the container for the plugin handle stream func.
 const handleIncomingStreamCtr = new HandleStreamCtr()
@@ -102,9 +103,18 @@ async function startPlugin() {
     )
   }
 
+  // Decode the start info
+  let startInfo: PluginStartInfo
+  if (startInfoB64) {
+    const startInfoJson = polyGlobalThis.atob(startInfoB64)
+    startInfo = PluginStartInfo.fromJsonString(startInfoJson)
+  } else {
+    startInfo = {}
+  }
+
   // Construct the backend api
   const backendAPI = new BackendApiImpl(
-    startInfoB58,
+    startInfo,
     openStream,
     handleIncomingStreamCtr,
   )
@@ -112,8 +122,12 @@ async function startPlugin() {
   // Garbage collect
   globalThis.gc?.()
 
+  // Build abort signal
+  const abortController = new AbortController()
+  const abortSignal = abortController.signal
+
   // Call the imported module's main function, passing the API implementation.
-  await script.default(backendAPI)
+  await script.default(backendAPI, abortSignal)
 }
 
 // immediately call startPlugin

@@ -2,8 +2,11 @@ package web_view
 
 import (
 	context "context"
+	"path"
+	"strings"
 
 	srpc "github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 )
 
 // WebView is a HTML/CSS/JavaScript container.
@@ -46,4 +49,34 @@ type WebView interface {
 // WebViewServerID builds the server id for services called on the WebViewHost mux.
 func WebViewServerID(webViewID string) string {
 	return "web-view/" + webViewID
+}
+
+// Validate validates the SetRenderModeRequest configuration.
+func (m *SetRenderModeRequest) Validate() error {
+	scriptPath := m.GetScriptPath()
+	if scriptPath != "" {
+		// Clean the path and check for path traversal attempts.
+		// Note: path.Clean uses forward slashes regardless of OS.
+		cleanedPath := path.Clean(scriptPath)
+		if strings.HasPrefix(cleanedPath, "../") {
+			return errors.Errorf("script path cannot start with '..': %s", scriptPath)
+		}
+	}
+	return nil
+}
+
+// Validate validates the SetHtmlLinksRequest configuration.
+func (m *SetHtmlLinksRequest) Validate() error {
+	for key, htmlLink := range m.GetSetLinks() {
+		href := htmlLink.GetHref()
+		if href != "" {
+			// Clean the path and check for path traversal attempts.
+			// Note: path.Clean uses forward slashes regardless of OS.
+			cleanedPath := path.Clean(href)
+			if strings.HasPrefix(cleanedPath, "../") {
+				return errors.Errorf("html link href cannot start with '..': %s (key: %s)", href, key)
+			}
+		}
+	}
+	return nil
 }

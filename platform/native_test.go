@@ -21,6 +21,8 @@ func TestParseNativePlatform(t *testing.T) {
 		{"native/linux/armv6", "linux", "arm", newInt(6), false},
 		{"native/linux/armv7", "linux", "arm", newInt(7), false},
 		{"native/darwin", "darwin", runtime.GOARCH, nil, false},
+		{"native/js/wasm", "js", "wasm", nil, false},
+		{"native/wasi/wasm", "wasi", "wasm", nil, false},
 		{"native/invalid", "", "", nil, true},
 	}
 
@@ -74,6 +76,8 @@ func TestNativePlatform_GetPlatformID(t *testing.T) {
 		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm64")}, "native/linux/arm64"},
 		{&NativePlatform{GOOS: newStr("linux"), GOARCH: newStr("arm")}, "native/linux/armv7"},
 		{&NativePlatform{GOOS: newStr("darwin"), GOARCH: newStr("386")}, "native/darwin/386"},
+		{&NativePlatform{GOOS: newStr("js"), GOARCH: newStr("wasm")}, "native/js/wasm"},
+		{&NativePlatform{GOOS: newStr("wasi"), GOARCH: newStr("wasm")}, "native/wasi/wasm"},
 	}
 
 	for _, tc := range testCases {

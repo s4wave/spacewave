@@ -9,12 +9,14 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
@@ -25,6 +27,8 @@ import (
 	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
+	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
+	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -123,20 +127,29 @@ func (c *Controller) BuildManifest(
 ) (*manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
-	meta, _, err := builderConf.GetManifestMeta().Resolve()
+	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
 
-	// Override buildPlatform to the "js" platform
-	buildPlatform := bldr_platform.NewWebPlatformJs()
-	meta.PlatformId = buildPlatform.GetPlatformID()
-
+	pluginID := meta.GetManifestId()
 	platformID := meta.GetPlatformId()
 	manifestID := strings.TrimSpace(meta.GetManifestId())
 	// sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
+
+	le := c.GetLogger().
+		WithField("manifest-id", manifestID).
+		WithField("build-type", buildType).
+		WithField("platform-id", platformID)
+
+	// Do nothing if we are not targeting a supported platform.
+	if buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_JS {
+		le.Warnf("skipping build for non-js platform: %v", buildPlatform.GetInputPlatformID())
+		return nil, nil
+	}
+	le.Debug("building js plugin")
 
 	// output paths, dist is unused for JS compiler
 	workingPath := builderConf.GetWorkingPath()
@@ -149,12 +162,6 @@ func (c *Controller) BuildManifest(
 
 	// build output world engine
 	buildWorld := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
-
-	le := c.GetLogger().
-		WithField("manifest-id", manifestID).
-		WithField("build-type", buildType).
-		WithField("platform-id", platformID)
-	le.Debug("building js plugin")
 
 	// create build directories if they don't exist
 	if err := fsutil.CreateDir(outDistPath); err != nil {
@@ -203,7 +210,7 @@ func (c *Controller) BuildManifest(
 		buildCtrlConf.Merge(res.GetConfig())
 	}
 
-	webPkgs := buildCtrlConf.GetWebPkgs() // pass to bundlers if needed
+	webPkgs := bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(buildCtrlConf.GetWebPkgs()))
 
 	// Esbuild configuration
 	esbuildBundleMetas := buildCtrlConf.GetEsbuildBundles()
@@ -217,49 +224,26 @@ func (c *Controller) BuildManifest(
 
 	// Configure bundles and potentially add default entrypoints based on jsModules.
 	// This adds default Vite bundles for modules defined with the shortcut syntax.
-	// If bundles with the same name ("backend" or "frontend") are already defined
-	// in vite_bundles, they will be merged later during the Vite compiler build step.
+	// If bundles with the same name ("fe" or "be") are already defined in vite_bundles,
+	// they will be merged later during the Vite compiler build step.
 	for _, mod := range buildCtrlConf.GetModules() {
-		inputPath := path.Clean(mod.GetPath())
-		ext := filepath.Ext(inputPath)
-
-		// assume the output path corresponding to inputPath is InputPath sub extension plus .mjs
-		// add the b/vite prefix
-		outputPath := path.Join(
-			bldr_plugin_compiler.ViteAssetSubdir,
-			strings.TrimSuffix(inputPath, ext)+buildPlatform.GetExecutableExt(),
-		)
-
 		// configure the bundle type
 		var bundleID string
 		modKind := mod.GetKind()
 		switch modKind {
 		case JsModuleKind_JS_MODULE_KIND_BACKEND:
 			// vite bundle id
-			bundleID = "backend"
-
-			// set entrypoint if enabled
-			if !mod.GetDisableEntrypoint() {
-				backendEntrypoints = append(backendEntrypoints, &BackendEntrypoint{
-					ImportPath: outputPath,
-				})
-			}
+			bundleID = "be"
 		case JsModuleKind_JS_MODULE_KIND_FRONTEND:
 			// vite bundle id
-			bundleID = "frontend"
-
-			// set entrypoint if enabled
-			if !mod.GetDisableEntrypoint() {
-				frontendEntrypoints = append(frontendEntrypoints, &FrontendEntrypoint{
-					ImportPath: outputPath,
-				})
-			}
+			bundleID = "fe"
 		default:
 			return nil, errors.Errorf("unknown js module kind: %s", modKind.String())
 		}
 
 		// add a bundle for this module
-		vb := &bldr_web_bundler_vite_compiler.ViteBundleMeta{
+		inputPath := path.Clean(mod.GetPath())
+		buildCtrlConf.ViteBundles = append(buildCtrlConf.ViteBundles, &bldr_web_bundler_vite_compiler.ViteBundleMeta{
 			Id: bundleID,
 			Entrypoints: []*bldr_web_bundler_vite_compiler.ViteBundleEntrypoint{{
 				InputPath: inputPath,
@@ -267,9 +251,10 @@ func (c *Controller) BuildManifest(
 			ViteConfigPaths:      mod.GetViteConfigPaths(),
 			DisableProjectConfig: mod.GetDisableProjectConfig(),
 
-			// TODO PublicPath?
-		}
-		buildCtrlConf.ViteBundles = append(buildCtrlConf.ViteBundles, vb)
+			// TODO: is there a way we can set this dynamically at runtime?
+			// TODO: if the plugin ID changes this URL will change.
+			PublicPath: bldr_plugin.PluginAssetHTTPPath(pluginID, path.Join("v", "b", bundleID)),
+		})
 	}
 
 	// Vite configuration
@@ -347,6 +332,14 @@ func (c *Controller) BuildManifest(
 		}
 		viteOutputMeta = viteOutMeta
 		allWebPkgRefs = append(allWebPkgRefs, viteWebPkgRefs...)
+
+		// Match outputs to the input modules and create entrypoints with actual hashed paths
+		backendEntrypoints, frontendEntrypoints = CreateEntrypointsFromViteOutputs(
+			buildCtrlConf.GetModules(),
+			viteOutputMeta,
+			backendEntrypoints,
+			frontendEntrypoints,
+		)
 	}
 
 	// Sort collected web package references
@@ -386,11 +379,29 @@ func (c *Controller) BuildManifest(
 		hostConfigSetJsonStr = string(hostConfigSetJson)
 	}
 
+	// Marshal web pkgs configuration to JSON
+	handleWebPkgsJsonStr := "undefined"
+	webPkgIds := allWebPkgRefs.ToWebPkgIDList()
+	if len(webPkgIds) != 0 {
+		// HandlePluginId is filled in at runtime.
+		handleWebPkgs := &bldr_web_plugin.HandleWebPkgsViaPluginAssetsRequest{
+			WebPkgsPath:  bldr_plugin.PluginAssetsWebPkgsDir,
+			WebPkgIdList: webPkgIds,
+		}
+		handleWebPkgsJson, err := handleWebPkgs.MarshalJSON()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal handle web pkgs request")
+		}
+		handleWebPkgsJsonStr = string(handleWebPkgsJson)
+	}
+
 	defines := map[string]string{
 		// Pass JSON array strings to esbuild define
 		"__BLDR_BACKEND_ENTRYPOINTS__":  backendEpJsonStr,
 		"__BLDR_FRONTEND_ENTRYPOINTS__": frontendEpJsonStr,
 		"__BLDR_HOST_CONFIG_SET__":      hostConfigSetJsonStr,
+		"__BLDR_HANDLE_WEB_PKGS__":      handleWebPkgsJsonStr,
+		"__BLDR_WEB_PLUGIN_ID__":        strconv.Quote(conf.GetWebPluginId()),
 	}
 
 	// Relative path to the entrypoint within the distSourcePath directory.
@@ -456,7 +467,7 @@ func (c *Controller) BuildManifest(
 	// Build final input manifest metadata
 	inputManifestMeta := &InputManifestMeta{
 		WebPkgRefs: allWebPkgRefs,
-		WebPkgs:    bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(webPkgs)),
+		WebPkgs:    webPkgs,
 
 		EsbuildBundles: esbuildBundleMetas,
 		EsbuildFlags:   baseEsbuildFlags,
@@ -513,6 +524,86 @@ func (c *Controller) BuildManifest(
 	}
 
 	return builderResult, nil
+}
+
+// CreateEntrypointsFromViteOutputs matches Vite outputs to JS modules and creates backend/frontend entrypoints.
+// Returns the updated backend and frontend entrypoint slices.
+func CreateEntrypointsFromViteOutputs(
+	modules []*JsModule,
+	viteOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta,
+	existingBackendEntrypoints []*BackendEntrypoint,
+	existingFrontendEntrypoints []*FrontendEntrypoint,
+) ([]*BackendEntrypoint, []*FrontendEntrypoint) {
+	backendEntrypoints := slices.Clone(existingBackendEntrypoints)
+	frontendEntrypoints := slices.Clone(existingFrontendEntrypoints)
+
+	for _, mod := range modules {
+		inputPath := path.Clean(mod.GetPath())
+		modKind := mod.GetKind()
+
+		// Skip if entrypoint is disabled
+		if mod.GetDisableEntrypoint() {
+			continue
+		}
+
+		// Find the corresponding Vite output for this module
+		var jsOutputPath string
+		var cssOutputPaths []string
+
+		for _, output := range viteOutputMeta {
+			if output.GetEntrypointPath() == inputPath {
+				outputPath := output.GetPath()
+				if strings.HasSuffix(outputPath, ".mjs") || strings.HasSuffix(outputPath, ".js") {
+					jsOutputPath = path.Join(bldr_plugin_compiler.ViteAssetSubdir, outputPath)
+				} else if strings.HasSuffix(outputPath, ".css") {
+					cssOutputPaths = append(cssOutputPaths, path.Join(bldr_plugin_compiler.ViteAssetSubdir, outputPath))
+				}
+			}
+		}
+
+		// Add entrypoints based on module kind
+		switch modKind {
+		case JsModuleKind_JS_MODULE_KIND_BACKEND:
+			if jsOutputPath == "" {
+				break
+			}
+			backendEntrypoints = append(backendEntrypoints, &BackendEntrypoint{
+				ImportPath: jsOutputPath,
+			})
+		case JsModuleKind_JS_MODULE_KIND_FRONTEND:
+			if jsOutputPath == "" {
+				break
+			}
+			// Create frontend entrypoint
+			frontendEp := &FrontendEntrypoint{
+				SetRenderMode: &web_view.SetRenderModeRequest{
+					RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
+					ScriptPath: jsOutputPath,
+					Refresh:    true,
+				},
+			}
+
+			// Add CSS links if any
+			if len(cssOutputPaths) > 0 {
+				frontendEp.SetHtmlLinks = &web_view.SetHtmlLinksRequest{
+					Clear:    true,
+					SetLinks: make(map[string]*web_view.HtmlLink),
+				}
+
+				for _, cssPath := range cssOutputPaths {
+					linkKey := "css-" + path.Base(cssPath)
+					frontendEp.SetHtmlLinks.SetLinks[linkKey] = &web_view.HtmlLink{
+						Rel:  "stylesheet",
+						Href: cssPath,
+					}
+				}
+			}
+
+			frontendEntrypoints = append(frontendEntrypoints, frontendEp)
+		}
+	}
+
+	return backendEntrypoints, frontendEntrypoints
 }
 
 // _ is a type assertion

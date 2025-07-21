@@ -66,7 +66,7 @@ func BuildDistBundle(
 	enableCompressionOpt enabled.Enabled,
 ) error {
 	isRelease := buildType.IsRelease()
-	isWebPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB
+	isWebPlatform := buildPlatform.GetExecutableExt() == ".wasm"
 
 	// disable cgo on default
 	enableCgo := enableCgoOpt.IsEnabled(false)

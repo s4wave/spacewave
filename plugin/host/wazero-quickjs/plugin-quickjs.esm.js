@@ -3298,9 +3298,27 @@ var CallData = createMessageType({
 var Packet = createMessageType({
   typeName: "srpc.Packet",
   fields: [
-    { no: 1, name: "call_start", kind: "message", T: () => CallStart, oneof: "body" },
-    { no: 2, name: "call_data", kind: "message", T: () => CallData, oneof: "body" },
-    { no: 3, name: "call_cancel", kind: "scalar", T: ScalarType.BOOL, oneof: "body" }
+    {
+      no: 1,
+      name: "call_start",
+      kind: "message",
+      T: () => CallStart,
+      oneof: "body"
+    },
+    {
+      no: 2,
+      name: "call_data",
+      kind: "message",
+      T: () => CallData,
+      oneof: "body"
+    },
+    {
+      no: 3,
+      name: "call_cancel",
+      kind: "scalar",
+      T: ScalarType.BOOL,
+      oneof: "body"
+    }
   ],
   packedByDefault: true
 });
@@ -5775,6 +5793,86 @@ var HandleStreamCtr = class extends ValueCtr {
   }
 };
 
+// ../../../node_modules/starpc/dist/rpcstream/rpcstream.js
+async function openRpcStream(componentId, caller, waitAck) {
+  const packetTx = pushable({
+    objectMode: true
+  });
+  const packetRx = caller(packetTx);
+  packetTx.push({
+    body: {
+      case: "init",
+      value: { componentId }
+    }
+  });
+  const packetIt = packetRx[Symbol.asyncIterator]();
+  return new RpcStream(packetTx, packetIt);
+}
+function buildRpcStreamOpenStream(componentId, caller) {
+  return async () => {
+    return openRpcStream(componentId, caller);
+  };
+}
+var RpcStream = class {
+  // source is the source for incoming Uint8Array packets.
+  source;
+  // sink is the sink for outgoing Uint8Array packets.
+  sink;
+  // _packetRx receives packets from the remote.
+  _packetRx;
+  // _packetTx writes packets to the remote.
+  _packetTx;
+  // packetTx writes packets to the remote.
+  // packetRx receives packets from the remote.
+  constructor(packetTx, packetRx) {
+    this._packetTx = packetTx;
+    this._packetRx = packetRx;
+    this.sink = this._createSink();
+    this.source = this._createSource();
+  }
+  // _createSink initializes the sink field.
+  _createSink() {
+    return async (source) => {
+      try {
+        for await (const arr of source) {
+          this._packetTx.push({
+            body: { case: "data", value: arr }
+          });
+        }
+        this._packetTx.end();
+      } catch (err) {
+        this._packetTx.end(err);
+      }
+    };
+  }
+  // _createSource initializes the source field.
+  _createSource() {
+    return async function* (packetRx) {
+      while (true) {
+        const msgIt = await packetRx.next();
+        if (msgIt.done) {
+          return;
+        }
+        const value = msgIt.value;
+        const body = value?.body;
+        if (!body) {
+          continue;
+        }
+        switch (body.case) {
+          case "ack":
+            if (body.value.error?.length) {
+              throw new Error(body.value.error);
+            }
+            break;
+          case "data":
+            yield body.value;
+            break;
+        }
+      }
+    }(this._packetRx);
+  }
+};
+
 // ../../../node_modules/starpc/dist/rpcstream/rpcstream.pb.js
 var RpcStreamInit = createMessageType({
   typeName: "rpcstream.RpcStreamInit",
@@ -5793,7 +5891,13 @@ var RpcAck = createMessageType({
 var RpcStreamPacket = createMessageType({
   typeName: "rpcstream.RpcStreamPacket",
   fields: [
-    { no: 1, name: "init", kind: "message", T: () => RpcStreamInit, oneof: "body" },
+    {
+      no: 1,
+      name: "init",
+      kind: "message",
+      T: () => RpcStreamInit,
+      oneof: "body"
+    },
     { no: 2, name: "ack", kind: "message", T: () => RpcAck, oneof: "body" },
     { no: 3, name: "data", kind: "scalar", T: ScalarType.BYTES, oneof: "body" }
   ],
@@ -7160,6 +7264,95 @@ function createQuickjsPerformance(originalPerformance) {
   return enhancedPerformance;
 }
 
+// quickjs/base64.js
+var keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function atob(data) {
+  if (arguments.length === 0) {
+    throw new TypeError("1 argument required, but only 0 present.");
+  }
+  data = `${data}`;
+  data = data.replace(/[ \t\n\f\r]/g, "");
+  if (data.length % 4 === 0) {
+    data = data.replace(/==?$/, "");
+  }
+  if (data.length % 4 === 1 || /[^+/0-9A-Za-z]/.test(data)) {
+    throw new DOMException(
+      "Failed to decode base64: invalid character",
+      "InvalidCharacterError"
+    );
+  }
+  let output = "";
+  let buffer = 0;
+  let accumulatedBits = 0;
+  for (let i = 0; i < data.length; i++) {
+    buffer <<= 6;
+    buffer |= atobLookup(data[i]);
+    accumulatedBits += 6;
+    if (accumulatedBits === 24) {
+      output += String.fromCharCode((buffer & 16711680) >> 16);
+      output += String.fromCharCode((buffer & 65280) >> 8);
+      output += String.fromCharCode(buffer & 255);
+      buffer = accumulatedBits = 0;
+    }
+  }
+  if (accumulatedBits === 12) {
+    buffer >>= 4;
+    output += String.fromCharCode(buffer);
+  } else if (accumulatedBits === 18) {
+    buffer >>= 2;
+    output += String.fromCharCode((buffer & 65280) >> 8);
+    output += String.fromCharCode(buffer & 255);
+  }
+  return output;
+}
+function atobLookup(chr) {
+  const index = keystr.indexOf(chr);
+  return index < 0 ? void 0 : index;
+}
+function btoa(s) {
+  if (arguments.length === 0) {
+    throw new TypeError("1 argument required, but only 0 present.");
+  }
+  let i;
+  s = `${s}`;
+  for (i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) > 255) {
+      throw new DOMException(
+        "The string to be encoded contains characters outside of the Latin1 range.",
+        "InvalidCharacterError"
+      );
+    }
+  }
+  let out = "";
+  for (i = 0; i < s.length; i += 3) {
+    const groupsOfSix = [void 0, void 0, void 0, void 0];
+    groupsOfSix[0] = s.charCodeAt(i) >> 2;
+    groupsOfSix[1] = (s.charCodeAt(i) & 3) << 4;
+    if (s.length > i + 1) {
+      groupsOfSix[1] |= s.charCodeAt(i + 1) >> 4;
+      groupsOfSix[2] = (s.charCodeAt(i + 1) & 15) << 2;
+    }
+    if (s.length > i + 2) {
+      groupsOfSix[2] |= s.charCodeAt(i + 2) >> 6;
+      groupsOfSix[3] = s.charCodeAt(i + 2) & 63;
+    }
+    for (let j = 0; j < groupsOfSix.length; j++) {
+      if (typeof groupsOfSix[j] === "undefined") {
+        out += "=";
+      } else {
+        out += btoaLookup(groupsOfSix[j]);
+      }
+    }
+  }
+  return out;
+}
+function btoaLookup(index) {
+  if (index >= 0 && index < 64) {
+    return keystr[index];
+  }
+  return void 0;
+}
+
 // quickjs/polyfill.ts
 function applyPolyfills(to) {
   const target = to;
@@ -7184,6 +7377,8 @@ function applyPolyfills(to) {
   target.clearTimeout = to.os.clearTimeout;
   target.setInterval = to.os.setInterval;
   target.clearInterval = to.os.clearInterval;
+  target.atob = atob;
+  target.btoa = btoa;
   return target;
 }
 
@@ -7667,10 +7862,11 @@ var PluginMeta = createMessageType({
   ],
   packedByDefault: true
 });
-createMessageType({
+var PluginStartInfo = createMessageType({
   typeName: "bldr.plugin.PluginStartInfo",
   fields: [
-    { no: 1, name: "instance_id", kind: "scalar", T: ScalarType.STRING }
+    { no: 1, name: "instance_id", kind: "scalar", T: ScalarType.STRING },
+    { no: 2, name: "plugin_id", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });
@@ -7700,7 +7896,13 @@ var RpcAck2 = createMessageType({
 var RpcStreamPacket2 = createMessageType({
   typeName: "rpcstream.RpcStreamPacket",
   fields: [
-    { no: 1, name: "init", kind: "message", T: () => RpcStreamInit2, oneof: "body" },
+    {
+      no: 1,
+      name: "init",
+      kind: "message",
+      T: () => RpcStreamInit2,
+      oneof: "body"
+    },
     { no: 2, name: "ack", kind: "message", T: () => RpcAck2, oneof: "body" },
     { no: 3, name: "data", kind: "scalar", T: ScalarType.BYTES, oneof: "body" }
   ],
@@ -7875,8 +8077,8 @@ var PluginHostClient = class {
 
 // ../../../sdk/impl/backend-api.ts
 var BackendApiImpl = class {
-  // startInfoB58 is the base58 encoded start information passed during initialization.
-  startInfoB58;
+  // startInfo is the start information passed during initialization.
+  startInfo;
   // openStream is the open stream func for client
   openStream;
   // client is a connection to the Go WebRuntime via. WebWorkerRpc rpcstream.
@@ -7888,6 +8090,7 @@ var BackendApiImpl = class {
   handleStreamCtr;
   // protos contains the protobuf objects used by the BackendAPI.
   protos = {
+    PluginStartInfo,
     GetPluginInfoRequest,
     GetPluginInfoResponse,
     ExecControllerRequest,
@@ -7896,12 +8099,56 @@ var BackendApiImpl = class {
     LoadPluginResponse,
     RpcStreamPacket
   };
-  constructor(startInfoB582, openStream2, handleStreamCtr) {
-    this.startInfoB58 = startInfoB582;
+  // HTTP prefix constants
+  constants = {
+    BLDR_HTTP_PREFIX: "/b/",
+    PLUGIN_DIST_HTTP_PREFIX: "/b/pd/",
+    PLUGIN_ASSETS_HTTP_PREFIX: "/b/pa/",
+    PLUGIN_WEB_PKG_HTTP_PREFIX: "/b/pkg/",
+    PLUGIN_HTTP_PREFIX: "/p/"
+  };
+  // HTTP path utility functions
+  utils = {
+    // pluginHttpPath adds the plugin http prefix to the given path.
+    pluginHttpPath: (pluginId, ...httpPaths) => {
+      let result = this.constants.PLUGIN_HTTP_PREFIX + pluginId;
+      if (httpPaths.length === 0 || !httpPaths[0].startsWith("/")) {
+        result += "/";
+      }
+      for (const httpPath of httpPaths) {
+        result += httpPath;
+      }
+      return result;
+    },
+    // pluginDistHttpPath adds the plugin distribution file prefix to the given path.
+    pluginDistHttpPath: (pluginId, httpPath) => {
+      let result = this.constants.PLUGIN_DIST_HTTP_PREFIX + pluginId;
+      if (!httpPath.startsWith("/")) {
+        result += "/";
+      }
+      result += httpPath;
+      return result;
+    },
+    // pluginAssetHttpPath adds the plugin asset file prefix to the given path.
+    pluginAssetHttpPath: (pluginId, httpPath) => {
+      let result = this.constants.PLUGIN_ASSETS_HTTP_PREFIX + pluginId;
+      if (!httpPath.startsWith("/")) {
+        result += "/";
+      }
+      result += httpPath;
+      return result;
+    }
+  };
+  constructor(startInfo, openStream2, handleStreamCtr) {
+    this.startInfo = startInfo;
     this.openStream = openStream2;
     this.client = new Client(openStream2);
     this.handleStreamCtr = handleStreamCtr;
     this.pluginHost = new PluginHostClient(this.client);
+  }
+  // buildPluginOpenStream builds an OpenStreamFunc for RPCs to a remote plugin.
+  buildPluginOpenStream(pluginID) {
+    return buildRpcStreamOpenStream(pluginID, this.pluginHost.PluginRpc);
   }
 };
 
@@ -7911,13 +8158,13 @@ if (!scriptPath) {
   globalThis.console.log("BLDR_SCRIPT_PATH must be defined");
   globalThis.std.exit(1);
 }
-applyPolyfills(globalThis);
+var polyGlobalThis = applyPolyfills(globalThis);
 var scriptPromise = import(scriptPath);
 scriptPromise.catch((err) => {
   console.error("error importing script: " + scriptPath, err);
   globalThis.std.exit(1);
 });
-var startInfoB58 = globalThis.std.getenv("BLDR_PLUGIN_START_INFO") ?? "";
+var startInfoB64 = globalThis.std.getenv("BLDR_PLUGIN_START_INFO") ?? "";
 var handleIncomingStreamCtr = new HandleStreamCtr();
 var handleIncomingStream = handleIncomingStreamCtr.handleStreamFunc;
 var openStreamCtr = new OpenStreamCtr();
@@ -7965,13 +8212,22 @@ async function startPlugin() {
       `shared-worker: Imported module "${scriptPath}" does not have a default export function.`
     );
   }
+  let startInfo;
+  if (startInfoB64) {
+    const startInfoJson = polyGlobalThis.atob(startInfoB64);
+    startInfo = PluginStartInfo.fromJsonString(startInfoJson);
+  } else {
+    startInfo = {};
+  }
   const backendAPI = new BackendApiImpl(
-    startInfoB58,
+    startInfo,
     openStream,
     handleIncomingStreamCtr
   );
   globalThis.gc?.();
-  await script.default(backendAPI);
+  const abortController = new AbortController();
+  const abortSignal = abortController.signal;
+  await script.default(backendAPI, abortSignal);
 }
 startPlugin().catch((err) => {
   console.error("startPlugin exited w/error");

@@ -186,21 +186,22 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(0)
-	pluginStartInfo := &plugin.PluginStartInfo{
-		InstanceId: pluginInstanceID,
+	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
+	if err != nil {
+		return err
 	}
-	pluginStartInfoB58 := pluginStartInfo.MarshalB58()
 
 	// NOTE: the pluginID is validated to be a valid-dns-identifier
 	entrypointProc.Env = append(
 		os.Environ(),
-		"BLDR_PLUGIN_START_INFO="+pluginStartInfoB58,
+		"BLDR_PLUGIN_START_INFO="+pluginStartInfoJsonB64,
 		"BLDR_PLUGIN_STATE_PATH="+pluginStateDir,
 	)
 
 	// write start info to a file as well
 	instanceDetailsPath := filepath.Join(pluginDistDir, ".plugin-start-info")
-	if err := os.WriteFile(instanceDetailsPath, []byte(pluginStartInfoB58), 0o600); err != nil {
+	if err := os.WriteFile(instanceDetailsPath, []byte(pluginStartInfoJsonB64), 0o600); err != nil {
 		return err
 	}
 

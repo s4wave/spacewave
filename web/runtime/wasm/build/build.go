@@ -50,7 +50,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 		if entrypointPath == "" {
 			entrypointPath = "<empty>"
 		}
-		return errors.Errorf("plugin-wasm: entrypoint path must end in .wasm or .wasm.br or .wasm.gz: %s", entrypointPath)
+		return errors.Errorf("plugin-wasm: entrypoint path must end in %s: %s", strings.Join(validWasmSuffixes, " or "), entrypointPath)
 	}
 
 	wasmExecFile, err := gocompiler.GetWasmExecPath(ctx, le, useTinygo)

@@ -1,4 +1,4 @@
-package bldr_web_plugin_handle_web_view
+package bldr_web_plugin_handle_web_view_rpc
 
 import (
 	"regexp"

@@ -2,6 +2,7 @@ package plugin_host_wazero_quickjs
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
 	"os"
 	"path"
@@ -66,7 +67,7 @@ type quickjsVm struct {
 // NewWazeroQuickJsHost constructs a new WazeroQuickJsHost.
 func NewWazeroQuickJsHost(b bus.Bus, le *logrus.Entry) (*WazeroQuickJsHost, error) {
 	// determine the platform id for the host
-	platformID := bldr_platform.NewWebPlatformJs().GetPlatformID()
+	platformID := bldr_platform.NewJsPlatform().GetPlatformID()
 	h := &WazeroQuickJsHost{
 		b:                b,
 		le:               le,
@@ -190,12 +191,12 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(4)
-	pluginStartInfo := &plugin.PluginStartInfo{
-		InstanceId: pluginInstanceID,
+	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfoJson, err := pluginStartInfo.MarshalJSON()
+	if err != nil {
+		return err
 	}
-	pluginStartInfoB58 := pluginStartInfo.MarshalB58()
-	pluginStartInfoBin := []byte(pluginStartInfoB58)
-	_ = pluginStartInfoBin
+	pluginStartInfoB64 := base64.StdEncoding.EncodeToString(pluginStartInfoJson)
 
 	// Mount the RPC handler to the bus.
 	baseControllerID := ControllerID + "/" + pluginID
@@ -218,7 +219,10 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	}
 	defer relRpcServiceCtrl()
 
-	le := h.le.WithField("plugin-instance-id", pluginInstanceID)
+	le := h.le.WithFields(logrus.Fields{
+		"plugin-instance-id": pluginInstanceID,
+		"plugin-id":          pluginID,
+	})
 	le.Debug("starting wazero quickjs plugin instance")
 
 	// this restarts if the quickjs vm is reloaded or unloaded
@@ -301,7 +305,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			WithSysNanotime().
 			WithSysWalltime().
 			WithEnv("BLDR_SCRIPT_PATH", scriptPath).
-			WithEnv("BLDR_PLUGIN_START_INFO", pluginStartInfoB58).
+			WithEnv("BLDR_PLUGIN_START_INFO", pluginStartInfoB64).
 			WithArgs(quickjs_wasi.QuickJSWASMFilename, "--std", "/boot/plugin-quickjs.esm.js")
 
 		// Execute the Wasm module.

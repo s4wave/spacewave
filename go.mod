@@ -13,9 +13,9 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/cli v1.0.0
-	github.com/aperturerobotics/common v0.22.7 // latest
+	github.com/aperturerobotics/common v0.22.8
 	github.com/aperturerobotics/hydra v0.0.0-20250713224130-2c38f1cadef5 // master
-	github.com/aperturerobotics/protobuf-go-lite v0.9.1 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.10.1 // master
 )
 
 require (
@@ -28,8 +28,8 @@ require (
 	github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f // latest
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.9.0
-	golang.org/x/mod v0.25.0 // latest
-	golang.org/x/tools v0.34.0 // latest
+	golang.org/x/mod v0.26.0 // latest
+	golang.org/x/tools v0.35.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
@@ -73,7 +73,7 @@ require (
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	go.etcd.io/bbolt v1.4.0-beta.0.0.20241216162354-7b2d3609bf79 // indirect
-	golang.org/x/sync v0.15.0
+	golang.org/x/sync v0.16.0
 )
 
 // Note: the below is from the Bifrost go.mod
@@ -113,7 +113,7 @@ require (
 	github.com/quic-go/quic-go v0.53.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.39.0
+	golang.org/x/crypto v0.40.0
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
@@ -165,7 +165,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect

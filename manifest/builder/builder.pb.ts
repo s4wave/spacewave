@@ -175,11 +175,15 @@ export interface BuilderResult {
   /**
    * Manifest is the manifest object.
    *
+   * If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
+   *
    * @generated from field: bldr.manifest.Manifest manifest = 1;
    */
   manifest?: Manifest
   /**
    * ManifestRef is the manifest object ref.
+   *
+   * If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
    *
    * @generated from field: bldr.manifest.ManifestRef manifest_ref = 2;
    */

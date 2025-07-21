@@ -1,4 +1,4 @@
-package bldr_web_plugin_handle_web_pkg
+package bldr_web_plugin_handle_web_pkg_rpc
 
 import (
 	"github.com/aperturerobotics/controllerbus/bus"

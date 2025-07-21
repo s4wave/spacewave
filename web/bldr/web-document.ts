@@ -119,6 +119,7 @@ class WebDocumentWebWorker {
 
     // pass the shared worker wrapper
     const shwURL = new URL(sharedWorkerPath, baseURL)
+
     // Use the hash to pass the script path to avoid potential conflicts with
     // query parameters used by the script itself.
     // Encode necessary characters using encodeURIComponent, but then replace

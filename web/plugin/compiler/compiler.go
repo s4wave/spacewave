@@ -87,6 +87,16 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Do nothing if we are not targeting a supported platform.
+	//
+	// TODO: how do we definitively know that the plugin host will run the web plugin?
+	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); !ok {
+		c.GetLogger().Warnf("skipping build for non-go platform: %v", buildPlatform.GetInputPlatformID())
+		return nil, nil
+	}
+
+	// When targeting native/js/wasm or js we assume that we are on the web platform.
+	//
 	// The web platform has the WebRuntime running on the plugin host. This is
 	// because the web browser is responsible for loading the app and as such
 	// the WebRuntime must already be running before starting plugins.
@@ -94,7 +104,9 @@ func (c *Controller) BuildManifest(
 	// Instead of bundling an entire Go program for the plugin in this case, we
 	// can instead include a small .mjs shim which will load the desired config
 	// sets to the host plugin bus via the WebRuntimeClient.
-	if buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB {
+	//
+	// TODO: how do we definitively know that the plugin host will run the web plugin?
+	if buildPlatform.GetExecutableExt() == ".mjs" {
 		return c.buildBrowserShimManifest(ctx, args)
 	}
 
@@ -224,9 +236,6 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
-	// TODO build config set to forward plugin-assets UnixFS lookups to the host
-	// TODO build config set to forward plugin-dist UnixFS lookups to the host
-
 	// return result
 	return &plugin_compiler_go.PreBuildHookResult{
 		Config: &plugin_compiler_go.Config{
@@ -242,7 +251,7 @@ func (c *Controller) BundleElectronHook(
 
 // buildBrowserShimManifest attempts to compile the web browser shim manifest once.
 //
-// TODO: most of the below code can be extracted into a common implementation
+// TODO: replace the below code with a call to the js plugin compiler
 func (c *Controller) buildBrowserShimManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,

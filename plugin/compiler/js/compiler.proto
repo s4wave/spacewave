@@ -8,6 +8,7 @@ import "github.com/aperturerobotics/bldr/web/bundler/esbuild/compiler/compiler.p
 import "github.com/aperturerobotics/bldr/web/bundler/vite/vite.proto";
 import "github.com/aperturerobotics/bldr/web/bundler/vite/compiler/compiler.proto";
 import "github.com/aperturerobotics/bldr/web/pkg/pkg.proto";
+import "github.com/aperturerobotics/bldr/web/view/view.proto";
 import "github.com/aperturerobotics/util/filter/filter.proto";
 
 // Config configures the Js/TypeScript plugin compiler controller.
@@ -102,17 +103,12 @@ message Config {
   // DisableRpcFetch disables the default Fetch RPC service handler.
   // The handler handles the Fetch service by consuming a set of HTTP handlers.
   // This service is used for the ServiceWorker HTTP calls.
+  // TODO: unimplemented
   bool disable_rpc_fetch = 11;
 
   // WebPluginId sets the plugin id for the web plugin.
   //
-  // TODO: If set, the compiler automatically adds these controllers to the config set:
-  // - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
-  // - handle-web-view-rpc: handle incoming RPCs for web-view
-  // - handle-web-view-server: handle incoming RPCs for HandleWebView
-  // - handle-web-view: handle web views via HandleWebView
-  // - load-web: loads the web plugin on startup
-  // - observe-web-view: handle LookupWebView with incoming HandleWebView directives
+  // If set, the plugin will load the web plugin with the given ID and load frontend entrypoints.
   string web_plugin_id = 13;
 
   // BuildTypes contains a mapping of BuildType to Config override.
@@ -202,12 +198,17 @@ message BackendEntrypoint {
 
 // FrontendEntrypoint configures a frontend entrypoint.
 message FrontendEntrypoint {
-  // ImportPath is the path to the module within the assets fs to import().
-  // Example: "vite/frontend/index.js"
-  // The path must export a React component to load into a WebView.
-  string import_path = 1;
+  // SetRenderMode contains the set render mode request for the web view.
+  // The script path will have /b/pa/{plugin-id}/ prepended to it automatically.
+  // Ignored if empty.
+  .web.view.SetRenderModeRequest set_render_mode = 1;
+  // SetHtmlLinks contains the set html links request for the web view.
+  // The html links paths will have /b/pa/{plugin-id}/ prepended to them automatically.
+  // Ignored if empty.
+  .web.view.SetHtmlLinksRequest set_html_links = 2;
+
   // WebViewId filters by web view id.
-  .filter.StringFilter web_view_id = 2;
+  .filter.StringFilter web_view_id = 3;
   // WebViewParentId filters by web view parent id.
-  .filter.StringFilter web_view_parent_id = 3;
+  .filter.StringFilter web_view_parent_id = 4;
 }

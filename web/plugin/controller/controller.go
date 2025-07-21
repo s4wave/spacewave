@@ -8,10 +8,12 @@ import (
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_forward_rpc_service "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	plugin_handle_web_view "github.com/aperturerobotics/bldr/plugin/handle-web-view"
+	web_pkg_fs_controller "github.com/aperturerobotics/bldr/web/pkg/fs/controller"
 	web_pkg_rpc "github.com/aperturerobotics/bldr/web/pkg/rpc"
 	web_pkg_rpc_client "github.com/aperturerobotics/bldr/web/pkg/rpc/client"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
+	web_view_handler_controller "github.com/aperturerobotics/bldr/web/view/handler/controller"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -110,6 +112,9 @@ func (c *Controller) HandleWebViewViaPlugin(
 	req *bldr_web_plugin.HandleWebViewViaPluginRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebViewViaPluginStream,
 ) error {
+	if err := req.Validate(); err != nil {
+		return err
+	}
 	conf := &plugin_handle_web_view.Config{
 		PluginId:    req.GetHandlePluginId(),
 		WebViewIdRe: req.GetWebViewIdRe(),
@@ -119,14 +124,6 @@ func (c *Controller) HandleWebViewViaPlugin(
 	}
 
 	ctrl := plugin_handle_web_view.NewController(c.le, c.bus, conf)
-	exitErrCh := make(chan error, 1)
-	relCtrl, err := c.bus.AddController(strm.Context(), ctrl, func(exitErr error) {
-		exitErrCh <- exitErr
-	})
-	if err != nil {
-		return err
-	}
-	defer relCtrl()
 
 	if err := strm.Send(&bldr_web_plugin.HandleWebViewViaPluginResponse{
 		Body: &bldr_web_plugin.HandleWebViewViaPluginResponse_Ready{Ready: true},
@@ -134,12 +131,7 @@ func (c *Controller) HandleWebViewViaPlugin(
 		return err
 	}
 
-	select {
-	case <-strm.Context().Done():
-		return context.Canceled
-	case err := <-exitErrCh:
-		return err
-	}
+	return c.addControllerAndWait(strm.Context(), ctrl)
 }
 
 // HandleWebPkgViaPlugin starts a controller to forward web pkgs to a plugin RPC.
@@ -147,7 +139,7 @@ func (c *Controller) HandleWebPkgViaPlugin(
 	req *bldr_web_plugin.HandleWebPkgViaPluginRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleWebPkgViaPluginStream,
 ) error {
-	if err := bldr_plugin.ValidatePluginID(req.GetHandlePluginId(), false); err != nil {
+	if err := req.Validate(); err != nil {
 		return err
 	}
 	conf := &web_pkg_rpc_client.Config{
@@ -170,27 +162,13 @@ func (c *Controller) HandleWebPkgViaPlugin(
 		return err
 	}
 
-	exitErrCh := make(chan error, 1)
-	relCtrl, err := c.bus.AddController(strm.Context(), ctrl, func(exitErr error) {
-		exitErrCh <- exitErr
-	})
-	if err != nil {
-		return err
-	}
-	defer relCtrl()
-
 	if err := strm.Send(&bldr_web_plugin.HandleWebPkgViaPluginResponse{
 		Body: &bldr_web_plugin.HandleWebPkgViaPluginResponse_Ready{Ready: true},
 	}); err != nil {
 		return err
 	}
 
-	select {
-	case <-strm.Context().Done():
-		return context.Canceled
-	case err := <-exitErrCh:
-		return err
-	}
+	return c.addControllerAndWait(strm.Context(), ctrl)
 }
 
 // HandleRpcViaPlugin starts a controller to forward rpcs to a plugin.
@@ -198,6 +176,10 @@ func (c *Controller) HandleRpcViaPlugin(
 	req *bldr_web_plugin.HandleRpcViaPluginRequest,
 	strm bldr_web_plugin.SRPCWebPlugin_HandleRpcViaPluginStream,
 ) error {
+	if err := req.Validate(); err != nil {
+		return err
+	}
+
 	conf := &plugin_forward_rpc_service.Config{
 		PluginId:    req.GetHandlePluginId(),
 		ServiceIdRe: req.GetServiceIdRe(),
@@ -208,15 +190,8 @@ func (c *Controller) HandleRpcViaPlugin(
 		return err
 	}
 
+	ctx := strm.Context()
 	ctrl := plugin_forward_rpc_service.NewController(c.le, c.bus, conf)
-	exitErrCh := make(chan error, 1)
-	relCtrl, err := c.bus.AddController(strm.Context(), ctrl, func(exitErr error) {
-		exitErrCh <- exitErr
-	})
-	if err != nil {
-		return err
-	}
-	defer relCtrl()
 
 	if err := strm.Send(&bldr_web_plugin.HandleRpcViaPluginResponse{
 		Body: &bldr_web_plugin.HandleRpcViaPluginResponse_Ready{Ready: true},
@@ -224,8 +199,63 @@ func (c *Controller) HandleRpcViaPlugin(
 		return err
 	}
 
+	return c.addControllerAndWait(ctx, ctrl)
+}
+
+// HandleWebViewViaHandlers configures web view handlers with filtering.
+func (c *Controller) HandleWebViewViaHandlers(
+	req *bldr_web_plugin.HandleWebViewViaHandlersRequest,
+	strm bldr_web_plugin.SRPCWebPlugin_HandleWebViewViaHandlersStream,
+) error {
+	if err := req.Validate(); err != nil {
+		return err
+	}
+
+	// Add a new WebViewHandlers controller.
+	conf := &web_view_handler_controller.Config{Handlers: req.GetConfig()}
+	ctrl, err := web_view_handler_controller.NewControllerWithConfig(c.le, conf)
+	if err != nil {
+		return err
+	}
+
+	return c.addControllerAndWait(strm.Context(), ctrl)
+}
+
+// HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
+func (c *Controller) HandleWebPkgsViaPluginAssets(
+	req *bldr_web_plugin.HandleWebPkgsViaPluginAssetsRequest,
+	strm bldr_web_plugin.SRPCWebPlugin_HandleWebPkgsViaPluginAssetsStream,
+) error {
+	if err := req.Validate(); err != nil {
+		return err
+	}
+
+	ctrl, err := web_pkg_fs_controller.NewController(c.le, c.bus, &web_pkg_fs_controller.Config{
+		UnixfsId:     bldr_plugin.PluginAssetsFsId(req.GetHandlePluginId()),
+		UnixfsPrefix: req.GetWebPkgsPath(),
+		WebPkgIdList: req.GetWebPkgIdList(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.addControllerAndWait(strm.Context(), ctrl)
+}
+
+// addControllerAndWait adds a controller to the bus and waits for either context cancellation or controller exit.
+// Returns the exit error or context.Canceled if the context was cancelled.
+func (c *Controller) addControllerAndWait(ctx context.Context, ctrl controller.Controller) error {
+	exitErrCh := make(chan error, 1)
+	relCtrl, err := c.bus.AddController(ctx, ctrl, func(exitErr error) {
+		exitErrCh <- exitErr
+	})
+	if err != nil {
+		return err
+	}
+	defer relCtrl()
+
 	select {
-	case <-strm.Context().Done():
+	case <-ctx.Done():
 		return context.Canceled
 	case err := <-exitErrCh:
 		return err

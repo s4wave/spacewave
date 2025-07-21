@@ -55,13 +55,13 @@ func TestWazeroFS(t *testing.T) {
 	defer fsh.Release()
 
 	// create a sample JavaScript file
-	err = billy_util.WriteFile(bfs, "index.js", []byte(jsScript), 0644)
+	err = billy_util.WriteFile(bfs, "index.js", []byte(jsScript), 0o644)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// create a test file with expected content
-	err = billy_util.WriteFile(bfs, "test.txt", []byte(testFileContent), 0644)
+	err = billy_util.WriteFile(bfs, "test.txt", []byte(testFileContent), 0o644)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

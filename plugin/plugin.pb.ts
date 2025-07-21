@@ -199,6 +199,13 @@ export interface PluginStartInfo {
    * @generated from field: string instance_id = 1;
    */
   instanceId?: string
+  /**
+   * PluginId is the plugin identifier.
+   * Must be a valid-dns-label.
+   *
+   * @generated from field: string plugin_id = 2;
+   */
+  pluginId?: string
 }
 
 // PluginStartInfo contains the message type declaration for PluginStartInfo.
@@ -206,6 +213,7 @@ export const PluginStartInfo: MessageType<PluginStartInfo> = createMessageType({
   typeName: 'bldr.plugin.PluginStartInfo',
   fields: [
     { no: 1, name: 'instance_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

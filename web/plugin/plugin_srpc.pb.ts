@@ -5,8 +5,12 @@
 import {
   HandleRpcViaPluginRequest,
   HandleRpcViaPluginResponse,
+  HandleWebPkgsViaPluginAssetsRequest,
+  HandleWebPkgsViaPluginAssetsResponse,
   HandleWebPkgViaPluginRequest,
   HandleWebPkgViaPluginResponse,
+  HandleWebViewViaHandlersRequest,
+  HandleWebViewViaHandlersResponse,
   HandleWebViewViaPluginRequest,
   HandleWebViewViaPluginResponse,
 } from './plugin.pb.js'
@@ -55,6 +59,28 @@ export const WebPluginDefinition = {
       O: HandleRpcViaPluginResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * HandleWebViewViaHandlers configures web view handlers with filtering.
+     *
+     * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaHandlers
+     */
+    HandleWebViewViaHandlers: {
+      name: 'HandleWebViewViaHandlers',
+      I: HandleWebViewViaHandlersRequest,
+      O: HandleWebViewViaHandlersResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
+     *
+     * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgsViaPluginAssets
+     */
+    HandleWebPkgsViaPluginAssets: {
+      name: 'HandleWebPkgsViaPluginAssets',
+      I: HandleWebPkgsViaPluginAssetsRequest,
+      O: HandleWebPkgsViaPluginAssetsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -94,6 +120,26 @@ export interface WebPlugin {
     request: HandleRpcViaPluginRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<HandleRpcViaPluginResponse>
+
+  /**
+   * HandleWebViewViaHandlers configures web view handlers with filtering.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaHandlers
+   */
+  HandleWebViewViaHandlers(
+    request: HandleWebViewViaHandlersRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HandleWebViewViaHandlersResponse>
+
+  /**
+   * HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgsViaPluginAssets
+   */
+  HandleWebPkgsViaPluginAssets(
+    request: HandleWebPkgsViaPluginAssetsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HandleWebPkgsViaPluginAssetsResponse>
 }
 
 export const WebPluginServiceName = WebPluginDefinition.typeName
@@ -107,6 +153,9 @@ export class WebPluginClient implements WebPlugin {
     this.HandleWebViewViaPlugin = this.HandleWebViewViaPlugin.bind(this)
     this.HandleWebPkgViaPlugin = this.HandleWebPkgViaPlugin.bind(this)
     this.HandleRpcViaPlugin = this.HandleRpcViaPlugin.bind(this)
+    this.HandleWebViewViaHandlers = this.HandleWebViewViaHandlers.bind(this)
+    this.HandleWebPkgsViaPluginAssets =
+      this.HandleWebPkgsViaPluginAssets.bind(this)
   }
   /**
    * HandleWebViewViaPlugin configures handling web views via a plugin.
@@ -163,5 +212,45 @@ export class WebPluginClient implements WebPlugin {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(HandleRpcViaPluginResponse)(result)
+  }
+
+  /**
+   * HandleWebViewViaHandlers configures web view handlers with filtering.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaHandlers
+   */
+  HandleWebViewViaHandlers(
+    request: HandleWebViewViaHandlersRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HandleWebViewViaHandlersResponse> {
+    const requestMsg = HandleWebViewViaHandlersRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      WebPluginDefinition.methods.HandleWebViewViaHandlers.name,
+      HandleWebViewViaHandlersRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(HandleWebViewViaHandlersResponse)(result)
+  }
+
+  /**
+   * HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgsViaPluginAssets
+   */
+  HandleWebPkgsViaPluginAssets(
+    request: HandleWebPkgsViaPluginAssetsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HandleWebPkgsViaPluginAssetsResponse> {
+    const requestMsg = HandleWebPkgsViaPluginAssetsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      WebPluginDefinition.methods.HandleWebPkgsViaPluginAssets.name,
+      HandleWebPkgsViaPluginAssetsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(HandleWebPkgsViaPluginAssetsResponse)(
+      result,
+    )
   }
 }

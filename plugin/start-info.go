@@ -1,35 +1,33 @@
 package bldr_plugin
 
 import (
+	"encoding/base64"
+
 	"github.com/aperturerobotics/bifrost/util/labels"
-	"github.com/klauspost/compress/s2"
-	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 )
 
 // NewPluginStartInfo constructs a new PluginStartInfo.
-func NewPluginStartInfo(instanceID string) *PluginStartInfo {
+func NewPluginStartInfo(instanceID, pluginID string) *PluginStartInfo {
 	return &PluginStartInfo{
 		InstanceId: instanceID,
+		PluginId:   pluginID,
 	}
 }
 
-// UnmarshalPluginStartInfoB58 unmarshals a b58 meta.
-// Note: we compress with s2 compression.
-func UnmarshalPluginStartInfoB58(str string) (*PluginStartInfo, error) {
-	m := &PluginStartInfo{}
-	data, err := b58.Decode(str)
+// UnmarshalPluginStartInfoJsonBase64 unmarshals a base64-encoded JSON string into a PluginStartInfo.
+func UnmarshalPluginStartInfoJsonBase64(data string) (*PluginStartInfo, error) {
+	jdat, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "decode base64")
 	}
-	data, err = s2.Decode(nil, data)
-	if err != nil {
-		return nil, err
+
+	startInfo := &PluginStartInfo{}
+	if err := startInfo.UnmarshalJSON(jdat); err != nil {
+		return nil, errors.Wrap(err, "unmarshal json")
 	}
-	if err := m.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-	return m, nil
+
+	return startInfo, nil
 }
 
 // Validate checks the plugin meta.
@@ -37,13 +35,18 @@ func (m *PluginStartInfo) Validate() error {
 	if err := labels.ValidateDNSLabel(m.GetInstanceId()); err != nil {
 		return errors.Wrap(err, "instance_id")
 	}
+	if err := ValidatePluginID(m.GetPluginId(), true); err != nil {
+		return errors.Wrap(err, "plugin_id")
+	}
 	return nil
 }
 
-// MarshalB58 marshals the conf to a b58 string.
-// note: we compress with s2 compression & encrypt with a psk.
-func (m *PluginStartInfo) MarshalB58() string {
-	dat, _ := m.MarshalVT()
-	dat = s2.EncodeBest(nil, dat)
-	return b58.Encode(dat)
+// MarshalJsonBase64 marshals the start info to base64-encoded json.
+func (m *PluginStartInfo) MarshalJsonBase64() (string, error) {
+	jdat, err := m.MarshalJSON()
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(jdat), nil
 }

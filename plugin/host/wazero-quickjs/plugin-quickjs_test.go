@@ -120,7 +120,7 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 
 		assetsFS, distFS := memfs.New(), memfs.New()
 		nowTs := timestamppb.Now()
-		err := billy_util.WriteFile(distFS, scriptPath, []byte(scriptContents), 0644)
+		err := billy_util.WriteFile(distFS, scriptPath, []byte(scriptContents), 0o644)
 		if err != nil {
 			return err
 		}

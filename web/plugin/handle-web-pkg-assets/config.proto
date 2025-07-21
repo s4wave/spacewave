@@ -1,0 +1,16 @@
+syntax = "proto3";
+package bldr.web.plugin.handle_web_pkg_assets;
+
+// Config configures a controller to serve LookupWebPkg from a plugin assets fs.
+// webPluginId should correspond to a bldr/web/plugin plugin.
+// Resolves the LookupWebPkg directive on the web plugin bus.
+message Config {
+  // WebPluginId is the id of the web plugin.
+  string web_plugin_id = 1;
+  // HandlePluginId is the plugin to serve assets from.
+  string handle_plugin_id = 2;
+  // WebPkgsPath is the sub-directory of the plugin assets fs to look up the web pkgs root.
+  string web_pkgs_path = 3;
+  // WebPkgIdList is a list of web pkg IDs to resolve.
+  repeated string web_pkg_id_list = 4;
+}
