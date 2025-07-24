@@ -2,5 +2,7 @@
 set -eo pipefail
 set -x
 
-esbuild --bundle --minify --tree-shaking=true --outfile=main.js main.ts
+if [ ! -f ./main.js ]; then
+  esbuild --bundle --minify --tree-shaking=true --outfile=main.js main.ts
+fi
 go run -v ./run.go
