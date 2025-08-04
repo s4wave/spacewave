@@ -202,7 +202,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Delete any sub-manifests that were not observed this run
-		var anySubManifests bool
+		var subManifestCount int
 		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 			tkr := prevSubManifestTracker.Data
 			tkr.mtx.Lock()
@@ -211,7 +211,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			if !resultPcObserved {
 				c.subManifestBuilderTrackers.RemoveKey(prevSubManifestTracker.Key)
 			} else {
-				anySubManifests = true
+				subManifestCount++
 			}
 		}
 
@@ -222,6 +222,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		prevErr = err
 
+		// NOTE: prevResult is the most recent result iif err == nil
 		inputFiles := prevResult.GetInputManifest().GetFiles()
 		if err == nil {
 			le.Debugf("input manifest returned with %d files", len(inputFiles))
@@ -229,7 +230,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le.WithError(err).Warn("build failed")
 		}
 
-		if !c.c.GetWatch() || len(inputFiles) == 0 {
+		if !c.c.GetWatch() || (len(inputFiles) == 0 && subManifestCount == 0) {
 			buildCtxCancel()
 			return prevErr
 		}
@@ -255,7 +256,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if len(watchedFiles) == 0 {
 			le.Debug("builder provided no files to watch")
 
-			if !anySubManifests {
+			if subManifestCount == 0 {
 				// nothing to wait for, return.
 				buildCtxCancel()
 				return nil
@@ -312,7 +313,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 
-		le.Debugf("watching for changes in %d files and %d directories", len(watchedFiles), len(watchedSourceDirs))
+		le.Debugf("watching for changes in %d files and %d directories and %d sub-manifests", len(watchedFiles), len(watchedSourceDirs), subManifestCount)
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
 			buildCtx,
 			watcher,

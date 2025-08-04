@@ -112,11 +112,11 @@
       ]
     },
     {
-      "name": "Attach to Delve Replay",
+      "name": "Replay RR Recording",
       "type": "go",
       "request": "launch",
       "mode": "replay",
-      "traceDirPath": "${workspaceFolder}/.rr/__debug_bin"
+      "traceDirPath": "${workspaceFolder}/.rr"
     }
   ]
 }

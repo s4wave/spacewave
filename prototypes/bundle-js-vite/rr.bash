@@ -6,6 +6,7 @@ if [ -d ./.bldr ]; then
 fi
 
 cd ../../cmd/bldr
+export DELVE_RR_RECORD_FLAGS="--output-trace-dir=../../.rr/"
 dlv debug \
     --wd ../../prototypes/bundle-js-vite \
     --backend rr \
