@@ -72,7 +72,9 @@
       "request": "attach",
       "port": 9222,
       "webRoot": "${workspaceFolder}",
-      "resolveSourceMapLocations": ["${workspaceFolder}"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}"
+      ],
       "timeout": 30000
     },
     {
@@ -87,9 +89,11 @@
         "--disable-cleanup",
         "--bldr-version-sum=",
         "--bldr-src-path=../../",
-        "-c", "./prototypes/bundle-js-vite/bldr.yaml",
+        "-c",
+        "./prototypes/bundle-js-vite/bldr.yaml",
         "start",
-        "web", "--wasm"
+        "web",
+        "--wasm"
       ],
       "env": {
         "GOOS": "",
@@ -106,6 +110,13 @@
         "-test.run",
         "TestPluginHostWazeroQuickjs"
       ]
+    },
+    {
+      "name": "Attach to Delve Replay",
+      "type": "go",
+      "request": "launch",
+      "mode": "replay",
+      "traceDirPath": "${workspaceFolder}/.rr/__debug_bin"
     }
   ]
 }

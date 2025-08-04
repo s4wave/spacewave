@@ -1,6 +1,7 @@
 /node_modules
 /coverage
 /.log
+/.rr
 /.husky
 /.bldr
 /vite-dist
