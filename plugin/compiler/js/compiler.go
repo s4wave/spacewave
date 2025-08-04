@@ -485,7 +485,9 @@ func (c *Controller) BuildManifest(
 		return nil, errors.Wrap(err, "failed to marshal input manifest metadata")
 	}
 
-	// Create the InputManifest object (no input files tracked for JS compiler currently)
+	// Create the InputManifest object
+	//
+	// NOTE: All input files are tracked by the sub-manifest system.
 	inputManifest := manifest_builder.NewInputManifest(nil, inputManifestMetaBin)
 
 	// -- Commit assets to the manifest store --
@@ -495,10 +497,10 @@ func (c *Controller) BuildManifest(
 	}
 	defer tx.Discard()
 
-	le.Debug("committing assets to manifest")
 	// Commit manifest with assets.
 	// Dist path and entrypoint name are empty for JS plugins, as the primary
 	// entrypoint is the compiled asset specified in InputManifestMeta.
+	le.Debug("committing assets to manifest")
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
 		le,

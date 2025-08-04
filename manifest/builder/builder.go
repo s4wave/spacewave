@@ -42,7 +42,9 @@ type BuildManifestHost interface {
 	//
 	// subManifestID must be a valid manifest-id.
 	// in development mode the compiler will watch for changes to the sub-manifest.
-	// once a value is returned from the Promise any change to the sub-manifest will restart parent BuildManifest attempt.
+	//
+	// once a value is returned from the Promise any change to the sub-manifest
+	// will restart parent BuildManifest attempt (implementing hot reloading).
 	BuildSubManifest(
 		ctx context.Context,
 		subManifestID string,
