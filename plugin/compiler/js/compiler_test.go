@@ -55,9 +55,9 @@ func TestPluginCompilerJs(t *testing.T) {
 
 	// create the directive to load the plugin
 	// the plugin scheduler will watch the world and wait for the manifest
-	// it will create a FetchManifest directive to look up the manifest.
 	pluginID := "test-plugin"
 	platformID := quickjsHost.GetPluginHost().GetPlatformId()
+
 	_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -140,4 +140,13 @@ func TestPluginCompilerJs(t *testing.T) {
 
 	le.Infof("compiled js plugin manifest: %v", string(jdat))
 
+	// wait for the plugin to load fully
+	pluginClient, pluginClientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, pluginID, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer pluginClientRef.Release()
+	_ = pluginClient
+
+	le.Infof("plugin %q loaded successfully", pluginID)
 }
