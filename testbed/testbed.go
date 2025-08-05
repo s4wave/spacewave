@@ -6,11 +6,13 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/bldr/core"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
+	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
 	storage_inmem "github.com/aperturerobotics/bldr/storage/inmem"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/hydra/bucket"
@@ -54,6 +56,8 @@ type Testbed struct {
 	worldEngine world.Engine
 	// worldState is the world state instance.
 	worldState world.WorldState
+	// scheduler is the plugin scheduler controller.
+	scheduler *plugin_host_scheduler.Controller
 	// rels are the release funcs
 	rels []func()
 }
@@ -80,6 +84,7 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	// add controller factories
 	sr.AddFactory(storage_volume.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
+	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
 
 	// add the configset controller
 	configSetCtrl, _ := configset_controller.NewController(le, b)
@@ -196,6 +201,27 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		return nil, err
 	}
 
+	// load the plugin scheduler
+	sched, _, schedRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(plugin_host_scheduler.NewConfig(
+			engineID,
+			pluginHostObjKey,
+			vol.GetID(),
+			vol.GetPeerID().String(),
+			true,
+			false,
+			false,
+		)),
+		nil,
+	)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, schedRef.Release)
+
 	return &Testbed{
 		ctx:                 ctx,
 		b:                   b,
@@ -212,6 +238,7 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		pluginHostObjKey:    pluginHostObjKey,
 		worldEngine:         eng,
 		worldState:          worldState,
+		scheduler:           sched,
 		rels:                rels,
 	}, nil
 }
@@ -274,6 +301,11 @@ func (d *Testbed) GetPluginHostId() string {
 // GetPluginHostObjKey returns the plugin host object key.
 func (d *Testbed) GetPluginHostObjKey() string {
 	return d.pluginHostObjKey
+}
+
+// GetScheduler returns the plugin scheduler controller.
+func (d *Testbed) GetScheduler() *plugin_host_scheduler.Controller {
+	return d.scheduler
 }
 
 // Release releases the devtool bus.

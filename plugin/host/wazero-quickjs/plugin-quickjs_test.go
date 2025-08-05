@@ -7,7 +7,6 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	plugin_host_wazero_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
 	"github.com/aperturerobotics/bldr/testbed"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -63,28 +62,6 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
-	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
-
-	// load the plugin scheduler
-	sched, _, schedRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
-		ctx,
-		tb.GetBus(),
-		resolver.NewLoadControllerWithConfig(plugin_host_scheduler.NewConfig(
-			tb.GetWorldEngineID(),
-			tb.GetPluginHostObjKey(),
-			tb.GetVolumeInfo().GetVolumeId(),
-			tb.GetVolumeInfo().GetPeerId(),
-			true,
-			false,
-			false,
-		)),
-		nil,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer schedRef.Release()
-	_ = sched
 
 	// load the plugin host
 	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
