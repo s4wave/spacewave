@@ -114,6 +114,13 @@ export interface ViteBundleMeta {
    * @generated from field: bool disable_project_config = 5;
    */
   disableProjectConfig?: boolean
+  /**
+   * ExternalPkgs is a list of imported node packages to treat as external.
+   * These won't be bundled or included and are assumed to be available in the target environment.
+   *
+   * @generated from field: repeated string external_pkgs = 6;
+   */
+  externalPkgs?: string[]
 }
 
 // ViteBundleMeta contains the message type declaration for ViteBundleMeta.
@@ -141,6 +148,13 @@ export const ViteBundleMeta: MessageType<ViteBundleMeta> = createMessageType({
       name: 'disable_project_config',
       kind: 'scalar',
       T: ScalarType.BOOL,
+    },
+    {
+      no: 6,
+      name: 'external_pkgs',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

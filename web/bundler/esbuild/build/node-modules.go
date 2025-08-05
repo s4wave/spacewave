@@ -1,6 +1,7 @@
 package bldr_web_bundler_esbuild_build
 
 import (
+	"path/filepath"
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -34,12 +35,18 @@ func ExternalNodeModulesPlugin() esbuild.Plugin {
 					})
 
 					// Check if the resolved path points to a file within a node_modules directory.
-					// Use platform-independent path separator checks.
-					// Check for both absolute and relative paths to node_modules.
-					isNodeModule := strings.Contains(resolveResult.Path, "/node_modules/") ||
-						strings.Contains(resolveResult.Path, "\\node_modules\\") ||
-						strings.HasPrefix(resolveResult.Path, "node_modules/") ||
-						strings.HasPrefix(resolveResult.Path, "node_modules\\")
+					// Clean the path to normalize separators and handle relative paths properly.
+					cleanPath := filepath.Clean(resolveResult.Path)
+					pathParts := strings.Split(filepath.ToSlash(cleanPath), "/")
+					
+					// Check if any part of the path is "node_modules"
+					isNodeModule := false
+					for _, part := range pathParts {
+						if part == "node_modules" {
+							isNodeModule = true
+							break
+						}
+					}
 					if isNodeModule {
 						// If it is, mark it as external.
 						// Return the original path requested, not the resolved path.

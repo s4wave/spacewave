@@ -91,6 +91,9 @@ message ViteBundleMeta {
   repeated string vite_config_paths = 4;
   // DisableProjectConfig disables searching for the vite.config.ts in the project root.
   bool disable_project_config = 5;
+  // ExternalPkgs is a list of imported node packages to treat as external.
+  // These won't be bundled or included and are assumed to be available in the target environment.
+  repeated string external_pkgs = 6;
 }
 
 

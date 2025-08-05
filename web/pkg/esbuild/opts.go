@@ -1,6 +1,7 @@
 package web_pkg_esbuild
 
 import (
+	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
@@ -113,7 +114,7 @@ func BuildEsbuildBuildOpts(
 	}
 
 	// bldr provides itself and react via an importmap
-	buildOpts.External = append(buildOpts.External, BldrExternal...)
+	buildOpts.External = append(buildOpts.External, web_pkg_external.BldrExternal...)
 
 	return buildOpts
 }

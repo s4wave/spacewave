@@ -13,6 +13,7 @@ import (
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_entrypoint_index "github.com/aperturerobotics/bldr/web/entrypoint/index"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -80,7 +81,7 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 // BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
 func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
 	buildOpts := BrowserBuildOpts(bldrDistRoot, minify)
-	buildOpts.External = slices.Clone(web_pkg_esbuild.BldrExternal)
+	buildOpts.External = slices.Clone(web_pkg_external.BldrExternal)
 	buildOpts.EntryPointsAdvanced = []esbuild.EntryPoint{{
 		InputPath:  "web/entrypoint/entrypoint.tsx",
 		OutputPath: "entrypoint",
@@ -177,7 +178,7 @@ func BuildRendererIndex(buildDir, entrypointHash string) error {
 	pkgsPathPrefix += "/pkgs/"
 
 	// build the import map
-	importMap := web_pkg_esbuild.GetBldrDistImportMap(pkgsPathPrefix)
+	importMap := web_pkg_external.GetBldrDistImportMap(pkgsPathPrefix)
 
 	// render index.html
 	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
@@ -368,7 +369,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 	}
 
 	// web pkgs we distribute with bldr
-	refs := web_pkg_esbuild.GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot)
+	refs := web_pkg_external.GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot)
 
 	// if we are in development mode: include test-utils to react-dom
 	if devMode {

@@ -139,6 +139,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			pluginID,
 			manifest.GetEntrypoint(),
 			distFS,
+			assetsFS,
 			hostMux,
 			func(client srpc.Client) error { t.updateRpcClient(client); return nil },
 		)

@@ -20,6 +20,8 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	starpc_mock "github.com/aperturerobotics/starpc/mock"
+	"github.com/aperturerobotics/util/promise"
 	"github.com/sirupsen/logrus"
 )
 
@@ -63,6 +65,17 @@ func TestPluginCompilerJs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer pluginRef.Release()
+
+	// run a service on the plugin host that our plugin will call
+	calledPromise := promise.NewPromise[*starpc_mock.MockMsg]()
+	mockServer := &starpc_mock.MockServer{
+		MockRequestCb: func(ctx context.Context, msg *starpc_mock.MockMsg) (*starpc_mock.MockMsg, error) {
+			calledPromise.SetResult(msg, nil)
+			return &starpc_mock.MockMsg{Body: "hello from js compiler test"}, nil
+		},
+	}
+	mux := tb.GetMux()
+	mockServer.Register(mux)
 
 	// create the plugin compiler config which defines how to build the plugin
 	jsCompilerConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(
@@ -149,4 +162,16 @@ func TestPluginCompilerJs(t *testing.T) {
 	_ = pluginClient
 
 	le.Infof("plugin %q loaded successfully", pluginID)
+
+	// wait for rpc to be called
+	calledMsg, err := calledPromise.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	calledMsgDat, err := calledMsg.MarshalJSON()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
 }

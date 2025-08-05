@@ -13,6 +13,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	starpc_mock "github.com/aperturerobotics/starpc/mock"
+	"github.com/aperturerobotics/util/promise"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
@@ -62,6 +64,17 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
+
+	// run a service on the plugin host that our plugin will call
+	calledPromise := promise.NewPromise[*starpc_mock.MockMsg]()
+	mockServer := &starpc_mock.MockServer{
+		MockRequestCb: func(ctx context.Context, msg *starpc_mock.MockMsg) (*starpc_mock.MockMsg, error) {
+			calledPromise.SetResult(msg, nil)
+			return &starpc_mock.MockMsg{Body: "hello from js compiler test"}, nil
+		},
+	}
+	mux := tb.GetMux()
+	mockServer.Register(mux)
 
 	// load the plugin host
 	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
@@ -142,7 +155,21 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 	}
 	defer runningPluginRef.Release()
 
-	// TODO verify it ran successfully
+	le.Info("plugin started successfully")
+
+	// TODO call the plugin service
 	rpcClient := runningPlugin.GetRpcClient()
 	_ = rpcClient
+
+	// wait for rpc to be called
+	calledMsg, err := calledPromise.Await(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	calledMsgDat, err := calledMsg.MarshalJSON()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
 }

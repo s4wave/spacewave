@@ -256,6 +256,7 @@ func (c *Controller) BuildManifest(
 				return nil, err
 			}
 
+			// TODO: make this concurrent
 			bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err := BuildViteBundle(
 				ctx,
 				le,

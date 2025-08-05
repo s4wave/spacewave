@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/bifrost/peer"
+	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/core"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
@@ -11,6 +12,7 @@ import (
 	storage_inmem "github.com/aperturerobotics/bldr/storage/inmem"
 	storage_volume "github.com/aperturerobotics/bldr/storage/volume"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -21,6 +23,8 @@ import (
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 
@@ -58,6 +62,10 @@ type Testbed struct {
 	worldState world.WorldState
 	// scheduler is the plugin scheduler controller.
 	scheduler *plugin_host_scheduler.Controller
+	// mux is the RPC service mux
+	mux srpc.Mux
+	// rpcServiceCtrl is the RPC service controller
+	rpcServiceCtrl *bifrost_rpc.RpcServiceController
 	// rels are the release funcs
 	rels []func()
 }
@@ -222,6 +230,28 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	}
 	rels = append(rels, schedRef.Release)
 
+	// create the RPC mux
+	mux := srpc.NewMux()
+
+	// register the rpc service controller
+	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
+		controller.NewInfo("testbed/rpc-host", semver.MustParse("0.0.1"), "rpc host for testbed"),
+		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
+			return mux, nil, nil
+		},
+		nil,
+		false,
+		nil,
+		nil,
+		nil,
+	)
+	rpcServiceCtrlRel, err := b.AddController(ctx, rpcServiceCtrl, nil)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels = append(rels, rpcServiceCtrlRel)
+
 	return &Testbed{
 		ctx:                 ctx,
 		b:                   b,
@@ -239,6 +269,8 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		worldEngine:         eng,
 		worldState:          worldState,
 		scheduler:           sched,
+		mux:                 mux,
+		rpcServiceCtrl:      rpcServiceCtrl,
 		rels:                rels,
 	}, nil
 }
@@ -306,6 +338,16 @@ func (d *Testbed) GetPluginHostObjKey() string {
 // GetScheduler returns the plugin scheduler controller.
 func (d *Testbed) GetScheduler() *plugin_host_scheduler.Controller {
 	return d.scheduler
+}
+
+// GetMux returns the RPC service mux.
+func (d *Testbed) GetMux() srpc.Mux {
+	return d.mux
+}
+
+// GetRpcServiceCtrl returns the RPC service controller.
+func (d *Testbed) GetRpcServiceCtrl() *bifrost_rpc.RpcServiceController {
+	return d.rpcServiceCtrl
 }
 
 // Release releases the devtool bus.

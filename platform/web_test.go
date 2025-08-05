@@ -41,7 +41,7 @@ func TestJsPlatform_GetBasePlatformID(t *testing.T) {
 // TestJsPlatform_GetExecutableExt tests the GetExecutableExt method.
 func TestJsPlatform_GetExecutableExt(t *testing.T) {
 	platform := &JsPlatform{}
-	expectedOutput := ".js"
+	expectedOutput := ".mjs"
 	out := platform.GetExecutableExt()
 
 	if out != expectedOutput {
@@ -66,8 +66,8 @@ func TestNewJsPlatform(t *testing.T) {
 	if platform.GetBasePlatformID() != PlatformID_JS {
 		t.Errorf("NewJsPlatform base platform ID mismatch: expected %s, got %s", PlatformID_JS, platform.GetBasePlatformID())
 	}
-	if platform.GetExecutableExt() != ".js" {
-		t.Errorf("NewJsPlatform executable extension mismatch: expected %s, got %s", ".js", platform.GetExecutableExt())
+	if platform.GetExecutableExt() != ".mjs" {
+		t.Errorf("NewJsPlatform executable extension mismatch: expected %s, got %s", ".mjs", platform.GetExecutableExt())
 	}
 }
 

@@ -54,7 +54,7 @@ async function executeBackendEntrypoint(
     return Promise.resolve()
   }
 
-  const importPath = entrypoint.importPath
+  const importPath =  entrypoint.importPath
   // Default to 'default' export if import_name is not specified.
   const importName = entrypoint.importName || 'default'
   const entrypointId = `${importPath}#${importName}`
@@ -285,7 +285,7 @@ function loadWebPlugin(
   // Load the web plugin.
   const webPluginID = __BLDR_WEB_PLUGIN_ID__ ?? ''
   if (!webPluginID?.length) {
-    console.warn(
+    console.debug(
       'Skipping frontend entrypoints as no webPluginId was configured.',
     )
     return

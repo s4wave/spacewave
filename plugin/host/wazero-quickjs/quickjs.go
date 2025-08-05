@@ -44,6 +44,26 @@ type Controller = host_controller.Controller
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")
 
+var (
+	// BootFsMount is the path we mount the quickjs vm entrypoint.
+	BootFsMount = "/boot"
+
+	// DistFsMount is the path we mount the dist fs within the vm.
+	DistFsMount = "/dist"
+
+	// AssetsFsMount is the path we mount the assets fs within the vm.
+	AssetsFsMount = "/assets"
+
+	// DevFsMount is the path we mount the system device files within the vm.
+	DevFsMount = "/dev"
+
+	// BDirMount is the path we mount the /b/ tree within the vm
+	BDirMount = "/b"
+
+	// BDirWebPkgsMount is the path within BDir we mount the web pkgs within the vm.
+	BDirWebPkgsMount = "pkg"
+)
+
 // WazeroQuickJsHost implements the plugin host with QuickJS running as WASI in Wazero.
 type WazeroQuickJsHost struct {
 	// b is the bus
@@ -155,7 +175,7 @@ func (h *WazeroQuickJsHost) ListPlugins(ctx context.Context) ([]string, error) {
 func (h *WazeroQuickJsHost) ExecutePlugin(
 	rctx context.Context,
 	pluginID, entrypoint string,
-	pluginDist *unixfs.FSHandle,
+	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
@@ -231,15 +251,18 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		// this makes /dist read-only which is what we want.
 		// wazeroFs := wazerofs.NewFS(ctx, pluginDist, nil)
 		pluginDistIofs := unixfs_iofs.NewFS(ctx, pluginDist)
+		pluginAssetsIoFs := unixfs_iofs.NewFS(ctx, pluginAssets)
 
 		// construct the fs config
-		fsConfig := wazero.NewFSConfig().WithFSMount(pluginDistIofs, "/dist")
+		fsConfig := wazero.NewFSConfig().
+			WithFSMount(pluginDistIofs, DistFsMount).
+			WithFSMount(pluginAssetsIoFs, AssetsFsMount)
 
-		// script is within /dist
-		scriptPath := path.Join("/dist", entrypoint)
+		// script is within dist
+		scriptPath := path.Join(DistFsMount, entrypoint)
 
 		// mount the boot js file to /boot/plugin-quickjs.esm.js
-		fsConfig = fsConfig.WithFSMount(PluginQuickjsBoot, "/boot")
+		fsConfig = fsConfig.WithFSMount(PluginQuickjsBoot, BootFsMount)
 
 		// Create the stdin buffer.
 		stdinBuf := &wazerofs.StdinBuffer{}
@@ -272,7 +295,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		//
 		// See prototype under prototypes/js-wazero-quickjs/nonblock/
 		devFS := newDevFS(remoteWrite)
-		fsConfig = fsConfig.(wazero_exp_sysfs.FSConfig).WithSysFSMount(devFS, "/dev")
+		fsConfig = fsConfig.(wazero_exp_sysfs.FSConfig).WithSysFSMount(devFS, DevFsMount)
 
 		// Initialize the rpc client for calling the plugin.
 		var openStreamFn srpc.OpenStreamFunc = srpc.NewOpenStreamWithMuxedConn(muxedConn)
@@ -306,7 +329,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			WithSysWalltime().
 			WithEnv("BLDR_SCRIPT_PATH", scriptPath).
 			WithEnv("BLDR_PLUGIN_START_INFO", pluginStartInfoB64).
-			WithArgs(quickjs_wasi.QuickJSWASMFilename, "--std", "/boot/plugin-quickjs.esm.js")
+			WithArgs(quickjs_wasi.QuickJSWASMFilename, "--std", path.Join(BootFsMount, "plugin-quickjs.esm.js"))
 
 		// Execute the Wasm module.
 		// This will automatically run the "_start" function of the module.

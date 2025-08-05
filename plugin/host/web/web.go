@@ -112,7 +112,7 @@ func (h *WebHost) ListPlugins(ctx context.Context) ([]string, error) {
 func (h *WebHost) ExecutePlugin(
 	rctx context.Context,
 	pluginID, entrypoint string,
-	pluginDist *unixfs.FSHandle,
+	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {

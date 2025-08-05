@@ -13,7 +13,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/cli v1.0.0
-	github.com/aperturerobotics/common v0.22.8
+	github.com/aperturerobotics/common v0.22.9
 	github.com/aperturerobotics/hydra v0.0.0-20250713224130-2c38f1cadef5 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.10.1 // master
 )
@@ -81,7 +81,7 @@ require (
 require (
 	github.com/aperturerobotics/controllerbus v0.50.4-0.20250706040906-c1ba863ae6ba // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.39.6 // latest
+	github.com/aperturerobotics/starpc v0.39.7 // latest
 	github.com/aperturerobotics/util v1.31.0 // latest
 )
 
@@ -101,7 +101,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.13
 	github.com/klauspost/compress v1.18.0
-	github.com/libp2p/go-libp2p v0.42.0
+	github.com/libp2p/go-libp2p v0.42.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.16.0 // indirect
 	github.com/oklog/ulid/v2 v2.1.0

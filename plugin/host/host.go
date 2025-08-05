@@ -43,6 +43,7 @@ type PluginHost interface {
 		pluginID,
 		entrypoint string,
 		pluginDist *unixfs.FSHandle,
+		pluginAssets *unixfs.FSHandle,
 		hostRpcMux srpc.Mux,
 		rpcInit PluginRpcInitCb,
 	) error

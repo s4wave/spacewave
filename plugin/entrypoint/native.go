@@ -120,7 +120,7 @@ func Run(
 	}
 	defer muxedConn.Close()
 
-	return ExecutePlugin(
+	return ExecutePluginEntrypoint(
 		ctx,
 		le,
 		pluginMeta,

@@ -70,7 +70,7 @@
   },
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
-    "@aptre/common": "^0.22.8",
+    "@aptre/common": "^0.22.9",
     "@types/random-string": "^0.2.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
@@ -85,7 +85,7 @@
     "rimraf": "^6.0.1",
     "rollup": "^4.46.2",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.38.0",
+    "typescript-eslint": "^8.39.0",
     "unzip-crx-3": "^0.2.0",
     "vite": "^7.0.6",
     "vitest": "^3.2.4"
@@ -97,7 +97,7 @@
     "electron": "^37.2.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "starpc": "^0.39.6",
+    "starpc": "^0.39.7",
     "workbox-window": "^7.3.0"
   },
   "resolutions": {

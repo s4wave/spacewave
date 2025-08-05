@@ -27,6 +27,7 @@ import (
 	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
+	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -210,6 +211,7 @@ func (c *Controller) BuildManifest(
 		buildCtrlConf.Merge(res.GetConfig())
 	}
 
+	// Compact web packages list
 	webPkgs := bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(buildCtrlConf.GetWebPkgs()))
 
 	// Esbuild configuration
@@ -227,6 +229,9 @@ func (c *Controller) BuildManifest(
 	// If bundles with the same name ("fe" or "be") are already defined in vite_bundles,
 	// they will be merged later during the Vite compiler build step.
 	for _, mod := range buildCtrlConf.GetModules() {
+		// on the frontend, pass BldrExternal as external packages.
+		var externalPkgs []string
+
 		// configure the bundle type
 		var bundleID string
 		modKind := mod.GetKind()
@@ -237,6 +242,9 @@ func (c *Controller) BuildManifest(
 		case JsModuleKind_JS_MODULE_KIND_FRONTEND:
 			// vite bundle id
 			bundleID = "fe"
+
+			// external pkgs
+			externalPkgs = web_pkg_external.BldrExternal
 		default:
 			return nil, errors.Errorf("unknown js module kind: %s", modKind.String())
 		}
@@ -254,6 +262,8 @@ func (c *Controller) BuildManifest(
 			// TODO: is there a way we can set this dynamically at runtime?
 			// TODO: if the plugin ID changes this URL will change.
 			PublicPath: bldr_plugin.PluginAssetHTTPPath(pluginID, path.Join("v", "b", bundleID)),
+
+			ExternalPkgs: externalPkgs,
 		})
 	}
 
@@ -264,6 +274,7 @@ func (c *Controller) BuildManifest(
 
 	// Collect web package references from bundlers
 	var allWebPkgRefs web_pkg.WebPkgRefSlice
+
 	// Store output metadata from bundlers
 	var esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta
 	var viteOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
@@ -570,12 +581,13 @@ func CreateEntrypointsFromViteOutputs(
 				break
 			}
 			backendEntrypoints = append(backendEntrypoints, &BackendEntrypoint{
-				ImportPath: jsOutputPath,
+				ImportPath: path.Join("/assets", jsOutputPath),
 			})
 		case JsModuleKind_JS_MODULE_KIND_FRONTEND:
 			if jsOutputPath == "" {
 				break
 			}
+
 			// Create frontend entrypoint
 			frontendEp := &FrontendEntrypoint{
 				SetRenderMode: &web_view.SetRenderModeRequest{

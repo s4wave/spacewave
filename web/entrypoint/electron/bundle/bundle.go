@@ -13,7 +13,7 @@ import (
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
+	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -134,7 +134,7 @@ func BuildRendererBundle(
 	opts.EntryPoints = []string{
 		"web/entrypoint/entrypoint.tsx",
 	}
-	opts.External = append(opts.External, web_pkg_esbuild.BldrExternal...)
+	opts.External = append(opts.External, web_pkg_external.BldrExternal...)
 	opts.Write = true
 
 	if runtimeJsPath != "" {

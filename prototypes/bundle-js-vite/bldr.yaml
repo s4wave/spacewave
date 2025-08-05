@@ -8,11 +8,10 @@ start:
     - web
 
 manifests:
-  #web:
-  #  builder:
-  #    id: bldr/web/plugin/compiler
-  #    config:
-  #      delveAddr: wait
+  web:
+    builder:
+      id: bldr/web/plugin/compiler
+      # config: {delveAddr: wait}
 
   app:
     builder:

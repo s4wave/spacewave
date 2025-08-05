@@ -20,7 +20,6 @@ import (
 	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
-	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
@@ -344,11 +343,6 @@ func BuildViteBundle(
 	// Run these through the web pkg plugin to remap to /p/...
 	extWebPkgs := slices.Clone(webPkgs)
 
-	// Exclude BldrExternal since that's already passed as external.
-	extWebPkgs = slices.DeleteFunc(extWebPkgs, func(conf *bldr_web_bundler.WebPkgRefConfig) bool {
-		return slices.Contains(web_pkg_esbuild.BldrExternal, conf.GetId())
-	})
-
 	// Sort and compact
 	extWebPkgs = bldr_web_bundler.CompactWebPkgRefConfigs(extWebPkgs)
 
@@ -362,7 +356,7 @@ func BuildViteBundle(
 		CacheDir:     cacheDir,
 		PublicPath:   publicPath,
 		Entrypoints:  entrypoints,
-		ExternalPkgs: web_pkg_esbuild.BldrExternal,
+		ExternalPkgs: viteBundleMeta.GetExternalPkgs(),
 		WebPkgs:      extWebPkgs,
 	})
 	if ctx.Err() != nil {

@@ -38,8 +38,8 @@ type AddFactoryFunc func(b bus.Bus) []controller.Factory
 // BuildConfigSetFunc is a function to build a list of ConfigSet to apply.
 type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) ([]configset.ConfigSet, error)
 
-// ExecutePlugin builds the bus & starts common controllers.
-func ExecutePlugin(
+// ExecutePluginEntrypoint builds the bus & starts common controllers.
+func ExecutePluginEntrypoint(
 	rctx context.Context,
 	le *logrus.Entry,
 	meta *bldr_plugin.PluginMeta,

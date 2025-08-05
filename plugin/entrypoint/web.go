@@ -96,7 +96,7 @@ func Run(
 		return nil
 	}
 
-	return ExecutePlugin(
+	return ExecutePluginEntrypoint(
 		ctx,
 		le,
 		pluginMeta,

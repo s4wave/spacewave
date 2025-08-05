@@ -12,6 +12,7 @@ import (
 
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
+	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -60,6 +61,9 @@ func BuildViteBundlerConfig(
 			PublicPath:           publicPath,
 			ViteConfigPaths:      bundleConfigPaths,
 			DisableProjectConfig: bundleDisableProjectConfig,
+
+			// frontend
+			ExternalPkgs: web_pkg_external.BldrExternal,
 		}
 
 		// add to the bundle meta list
