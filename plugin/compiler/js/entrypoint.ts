@@ -14,7 +14,10 @@ import {
   WebPluginClient,
 } from '../../../web/plugin/plugin_srpc.pb.js'
 import { WebViewHandlerConfig } from '../../../web/view/handler/handler.pb.js'
-import { HandleWebPkgsViaPluginAssetsRequest } from 'web/plugin/plugin.pb.js'
+import {
+  HandleWebPkgsViaPluginAssetsRequest,
+  HandleWebViewViaHandlersRequest,
+} from 'web/plugin/plugin.pb.js'
 
 // Defines the list of backend entrypoints to load.
 declare const __BLDR_BACKEND_ENTRYPOINTS__: BackendEntrypoint[] | undefined
@@ -54,7 +57,7 @@ async function executeBackendEntrypoint(
     return Promise.resolve()
   }
 
-  const importPath =  entrypoint.importPath
+  const importPath = entrypoint.importPath
   // Default to 'default' export if import_name is not specified.
   const importName = entrypoint.importName || 'default'
   const entrypointId = `${importPath}#${importName}`
@@ -214,9 +217,11 @@ async function loadFrontendEntrypoints(
         SetRenderModeRequest.toBinary(entrypoint.setRenderMode)
       : null
     if (setRenderModeRequestBin?.length) {
+      // Clone the message via fromBinary
       const setRenderModeRequest = SetRenderModeRequest.fromBinary(
         setRenderModeRequestBin,
       )
+
       // Override the script path to be /b/pa/{plugin-id}/...
       if (setRenderModeRequest.scriptPath) {
         setRenderModeRequest.scriptPath = backendAPI.utils.pluginAssetHttpPath(
@@ -224,6 +229,8 @@ async function loadFrontendEntrypoints(
           setRenderModeRequest.scriptPath,
         )
       }
+
+      // Set the handler
       pushHandler({ case: 'setRenderMode', value: setRenderModeRequest })
     }
 
@@ -236,6 +243,7 @@ async function loadFrontendEntrypoints(
       const setHtmlLinksRequest = SetHtmlLinksRequest.fromBinary(
         setHtmlLinksRequestBin,
       )
+
       // Override the href paths to be /b/pa/{plugin-id}/...
       if (setHtmlLinksRequest.setLinks) {
         for (const [_, link] of Object.entries(setHtmlLinksRequest.setLinks)) {
@@ -247,19 +255,25 @@ async function loadFrontendEntrypoints(
           }
         }
       }
+
       pushHandler({ case: 'setHtmlLinks', value: setHtmlLinksRequest })
     }
   }
 
   if (!handlers.length) {
+    console.debug(`No web view handlers were configured.`)
     return
   }
 
+  const handlersRequest: HandleWebViewViaHandlersRequest = {
+    config: { handlers },
+  }
+  console.debug(
+    `Configuring ${handlers.length} web view handlers: ${HandleWebViewViaHandlersRequest.toJsonString(handlersRequest)}`,
+  )
+
   await retryWithAbort(abortSignal, async (signal) => {
-    const response = webPlugin.HandleWebViewViaHandlers(
-      { config: { handlers } },
-      signal,
-    )
+    const response = webPlugin.HandleWebViewViaHandlers(handlersRequest, signal)
     for await (const result of response) {
       if (result.body?.case !== 'ready') continue
       const isReady = result.body.value || false

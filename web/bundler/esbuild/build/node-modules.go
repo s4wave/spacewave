@@ -38,7 +38,7 @@ func ExternalNodeModulesPlugin() esbuild.Plugin {
 					// Clean the path to normalize separators and handle relative paths properly.
 					cleanPath := filepath.Clean(resolveResult.Path)
 					pathParts := strings.Split(filepath.ToSlash(cleanPath), "/")
-					
+
 					// Check if any part of the path is "node_modules"
 					isNodeModule := false
 					for _, part := range pathParts {
