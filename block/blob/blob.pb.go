@@ -64,6 +64,8 @@ const (
 	ChunkerType_ChunkerType_DEFAULT ChunkerType = 0
 	// ChunkerType_RABIN uses rabin fingerprinting to chunk.
 	ChunkerType_ChunkerType_RABIN ChunkerType = 1
+	// ChunkerType_JC uses JC content defined chunk algorithm.
+	ChunkerType_ChunkerType_JC ChunkerType = 2
 )
 
 // Enum value maps for ChunkerType.
@@ -71,10 +73,12 @@ var (
 	ChunkerType_name = map[int32]string{
 		0: "ChunkerType_DEFAULT",
 		1: "ChunkerType_RABIN",
+		2: "ChunkerType_JC",
 	}
 	ChunkerType_value = map[string]int32{
 		"ChunkerType_DEFAULT": 0,
 		"ChunkerType_RABIN":   1,
+		"ChunkerType_JC":      2,
 	}
 )
 
@@ -206,11 +210,14 @@ func (x *ChunkIndex) GetChunkerArgs() *ChunkerArgs {
 type ChunkerArgs struct {
 	unknownFields []byte
 	// ChunkerType is the chunking algorithm used.
-	// Defaults to ChunkerType_RABIN if not set.
+	// Defaults to ChunkerType_JC if not set.
 	ChunkerType ChunkerType `protobuf:"varint,1,opt,name=chunker_type,json=chunkerType,proto3" json:"chunkerType,omitempty"`
 	// RabinArgs are arguments for the rabin chunker.
 	// ChunkerType_RABIN
 	RabinArgs *RabinArgs `protobuf:"bytes,2,opt,name=rabin_args,json=rabinArgs,proto3" json:"rabinArgs,omitempty"`
+	// JcArgs are arguments for the jc chunker.
+	// ChunkerType_JC
+	JcArgs *JcArgs `protobuf:"bytes,3,opt,name=jc_args,json=jcArgs,proto3" json:"jcArgs,omitempty"`
 }
 
 func (x *ChunkerArgs) Reset() {
@@ -233,9 +240,18 @@ func (x *ChunkerArgs) GetRabinArgs() *RabinArgs {
 	return nil
 }
 
+func (x *ChunkerArgs) GetJcArgs() *JcArgs {
+	if x != nil {
+		return x.JcArgs
+	}
+	return nil
+}
+
 // RabinArgs are arguments for the rabin chunker.
 //
-// The default polynomial is 0x2df7f4e3b27061
+// # The default polynomial is 0x2df7f4e3b27061
+//
+// ChunkerType_RABIN
 type RabinArgs struct {
 	unknownFields []byte
 	// Rabin polynomial.
@@ -246,10 +262,10 @@ type RabinArgs struct {
 	// If pol != 0 this field is ignored.
 	RandomPol bool `protobuf:"varint,4,opt,name=random_pol,json=randomPol,proto3" json:"randomPol,omitempty"`
 	// ChunkingMinSize is the minimum size for a chunk.
-	// Defaults to 256KB.
+	// Defaults to 256000 bytes.
 	ChunkingMinSize uint64 `protobuf:"varint,2,opt,name=chunking_min_size,json=chunkingMinSize,proto3" json:"chunkingMinSize,omitempty"`
 	// ChunkingMaxSize is the maxmium size for a chunk.
-	// Defaults to ~786KB (786432 bytes).
+	// Defaults to 786432 bytes.
 	ChunkingMaxSize uint64 `protobuf:"varint,3,opt,name=chunking_max_size,json=chunkingMaxSize,proto3" json:"chunkingMaxSize,omitempty"`
 }
 
@@ -281,6 +297,59 @@ func (x *RabinArgs) GetChunkingMinSize() uint64 {
 }
 
 func (x *RabinArgs) GetChunkingMaxSize() uint64 {
+	if x != nil {
+		return x.ChunkingMaxSize
+	}
+	return 0
+}
+
+// JcArgs are arguments for the jc chunker.
+//
+// ChunkerType_JC
+type JcArgs struct {
+	unknownFields []byte
+	// Key is the key for the chunker.
+	// Optional.
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// ChunkingMinSize is the minimum size for a chunk.
+	// Defaults to 256000 bytes.
+	ChunkingMinSize uint64 `protobuf:"varint,2,opt,name=chunking_min_size,json=chunkingMinSize,proto3" json:"chunkingMinSize,omitempty"`
+	// ChunkingTargetSize is the target size for a chunk.
+	// Defaults to 512000 bytes.
+	ChunkingTargetSize uint64 `protobuf:"varint,3,opt,name=chunking_target_size,json=chunkingTargetSize,proto3" json:"chunkingTargetSize,omitempty"`
+	// ChunkingMaxSize is the maximum size for a chunk.
+	// Defaults to 786432 bytes.
+	ChunkingMaxSize uint64 `protobuf:"varint,4,opt,name=chunking_max_size,json=chunkingMaxSize,proto3" json:"chunkingMaxSize,omitempty"`
+}
+
+func (x *JcArgs) Reset() {
+	*x = JcArgs{}
+}
+
+func (*JcArgs) ProtoMessage() {}
+
+func (x *JcArgs) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *JcArgs) GetChunkingMinSize() uint64 {
+	if x != nil {
+		return x.ChunkingMinSize
+	}
+	return 0
+}
+
+func (x *JcArgs) GetChunkingTargetSize() uint64 {
+	if x != nil {
+		return x.ChunkingTargetSize
+	}
+	return 0
+}
+
+func (x *JcArgs) GetChunkingMaxSize() uint64 {
 	if x != nil {
 		return x.ChunkingMaxSize
 	}
@@ -394,6 +463,7 @@ func (m *ChunkerArgs) CloneVT() *ChunkerArgs {
 	r := new(ChunkerArgs)
 	r.ChunkerType = m.ChunkerType
 	r.RabinArgs = m.RabinArgs.CloneVT()
+	r.JcArgs = m.JcArgs.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -420,6 +490,27 @@ func (m *RabinArgs) CloneVT() *RabinArgs {
 }
 
 func (m *RabinArgs) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *JcArgs) CloneVT() *JcArgs {
+	if m == nil {
+		return (*JcArgs)(nil)
+	}
+	r := new(JcArgs)
+	r.ChunkingMinSize = m.ChunkingMinSize
+	r.ChunkingTargetSize = m.ChunkingTargetSize
+	r.ChunkingMaxSize = m.ChunkingMaxSize
+	if rhs := m.Key; rhs != nil {
+		r.Key = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *JcArgs) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -541,6 +632,9 @@ func (this *ChunkerArgs) EqualVT(that *ChunkerArgs) bool {
 	if !this.RabinArgs.EqualVT(that.RabinArgs) {
 		return false
 	}
+	if !this.JcArgs.EqualVT(that.JcArgs) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -574,6 +668,34 @@ func (this *RabinArgs) EqualVT(that *RabinArgs) bool {
 
 func (this *RabinArgs) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*RabinArgs)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *JcArgs) EqualVT(that *JcArgs) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if string(this.Key) != string(that.Key) {
+		return false
+	}
+	if this.ChunkingMinSize != that.ChunkingMinSize {
+		return false
+	}
+	if this.ChunkingTargetSize != that.ChunkingTargetSize {
+		return false
+	}
+	if this.ChunkingMaxSize != that.ChunkingMaxSize {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *JcArgs) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*JcArgs)
 	if !ok {
 		return false
 	}
@@ -902,6 +1024,11 @@ func (x *ChunkerArgs) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rabinArgs")
 		x.RabinArgs.MarshalProtoJSON(s.WithField("rabinArgs"))
 	}
+	if x.JcArgs != nil || s.HasField("jcArgs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jcArgs")
+		x.JcArgs.MarshalProtoJSON(s.WithField("jcArgs"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -929,6 +1056,13 @@ func (x *ChunkerArgs) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RabinArgs = &RabinArgs{}
 			x.RabinArgs.UnmarshalProtoJSON(s.WithField("rabin_args", true))
+		case "jc_args", "jcArgs":
+			if s.ReadNil() {
+				x.JcArgs = nil
+				return
+			}
+			x.JcArgs = &JcArgs{}
+			x.JcArgs.UnmarshalProtoJSON(s.WithField("jc_args", true))
 		}
 	})
 }
@@ -1001,6 +1135,72 @@ func (x *RabinArgs) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the RabinArgs from JSON.
 func (x *RabinArgs) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the JcArgs message to JSON.
+func (x *JcArgs) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Key) > 0 || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteBytes(x.Key)
+	}
+	if x.ChunkingMinSize != 0 || s.HasField("chunkingMinSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("chunkingMinSize")
+		s.WriteUint64(x.ChunkingMinSize)
+	}
+	if x.ChunkingTargetSize != 0 || s.HasField("chunkingTargetSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("chunkingTargetSize")
+		s.WriteUint64(x.ChunkingTargetSize)
+	}
+	if x.ChunkingMaxSize != 0 || s.HasField("chunkingMaxSize") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("chunkingMaxSize")
+		s.WriteUint64(x.ChunkingMaxSize)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the JcArgs to JSON.
+func (x *JcArgs) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the JcArgs message from JSON.
+func (x *JcArgs) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadBytes()
+		case "chunking_min_size", "chunkingMinSize":
+			s.AddField("chunking_min_size")
+			x.ChunkingMinSize = s.ReadUint64()
+		case "chunking_target_size", "chunkingTargetSize":
+			s.AddField("chunking_target_size")
+			x.ChunkingTargetSize = s.ReadUint64()
+		case "chunking_max_size", "chunkingMaxSize":
+			s.AddField("chunking_max_size")
+			x.ChunkingMaxSize = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the JcArgs from JSON.
+func (x *JcArgs) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1259,6 +1459,16 @@ func (m *ChunkerArgs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.JcArgs != nil {
+		size, err := m.JcArgs.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.RabinArgs != nil {
 		size, err := m.RabinArgs.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1331,6 +1541,61 @@ func (m *RabinArgs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Pol))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *JcArgs) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *JcArgs) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *JcArgs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ChunkingMaxSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ChunkingMaxSize))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.ChunkingTargetSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ChunkingTargetSize))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.ChunkingMinSize != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ChunkingMinSize))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1462,6 +1727,10 @@ func (m *ChunkerArgs) SizeVT() (n int) {
 		l = m.RabinArgs.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.JcArgs != nil {
+		l = m.JcArgs.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1483,6 +1752,29 @@ func (m *RabinArgs) SizeVT() (n int) {
 	}
 	if m.RandomPol {
 		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *JcArgs) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ChunkingMinSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ChunkingMinSize))
+	}
+	if m.ChunkingTargetSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ChunkingTargetSize))
+	}
+	if m.ChunkingMaxSize != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ChunkingMaxSize))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1629,6 +1921,13 @@ func (x *ChunkerArgs) MarshalProtoText() string {
 		sb.WriteString("rabin_args: ")
 		sb.WriteString(x.RabinArgs.MarshalProtoText())
 	}
+	if x.JcArgs != nil {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("jc_args: ")
+		sb.WriteString(x.JcArgs.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -1672,6 +1971,46 @@ func (x *RabinArgs) MarshalProtoText() string {
 }
 
 func (x *RabinArgs) String() string {
+	return x.MarshalProtoText()
+}
+func (x *JcArgs) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("JcArgs {")
+	if x.Key != nil {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Key))
+		sb.WriteString("\"")
+	}
+	if x.ChunkingMinSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("chunking_min_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ChunkingMinSize), 10))
+	}
+	if x.ChunkingTargetSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("chunking_target_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ChunkingTargetSize), 10))
+	}
+	if x.ChunkingMaxSize != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("chunking_max_size: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ChunkingMaxSize), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *JcArgs) String() string {
 	return x.MarshalProtoText()
 }
 func (x *Chunk) MarshalProtoText() string {
@@ -2175,6 +2514,42 @@ func (m *ChunkerArgs) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JcArgs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.JcArgs == nil {
+				m.JcArgs = &JcArgs{}
+			}
+			if err := m.JcArgs.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2303,6 +2678,148 @@ func (m *RabinArgs) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.RandomPol = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *JcArgs) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: JcArgs: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: JcArgs: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkingMinSize", wireType)
+			}
+			m.ChunkingMinSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkingMinSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkingTargetSize", wireType)
+			}
+			m.ChunkingTargetSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkingTargetSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkingMaxSize", wireType)
+			}
+			m.ChunkingMaxSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkingMaxSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

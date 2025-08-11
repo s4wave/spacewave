@@ -2,6 +2,8 @@ package jc
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -17,8 +19,8 @@ func TestNewJCDefaults(t *testing.T) {
 	if c.minSize != 2*1024 {
 		t.Fatalf("minSize = %d, want %d", c.minSize, 2*1024)
 	}
-	if c.normalSize != 8*1024 {
-		t.Fatalf("normalSize = %d, want %d", c.normalSize, 8*1024)
+	if c.targetSize != 8*1024 {
+		t.Fatalf("targetSize = %d, want %d", c.targetSize, 8*1024)
 	}
 	if c.maxSize != 64*1024 {
 		t.Fatalf("maxSize = %d, want %d", c.maxSize, 64*1024)
@@ -26,15 +28,15 @@ func TestNewJCDefaults(t *testing.T) {
 }
 
 func TestNewWithOptionsValidation(t *testing.T) {
-	// invalid normalSize
-	if _, err := NewWithOptions(1024, 8192, 0, nil); err != ErrNormalSize {
-		t.Fatalf("expected ErrNormalSize, got %v", err)
+	// invalid targetSize
+	if _, err := NewWithOptions(1024, 8192, 0, nil); err != ErrTargetSize {
+		t.Fatalf("expected ErrTargetSize, got %v", err)
 	}
-	if _, err := NewWithOptions(1024, 8192, 32, nil); err != ErrNormalSize {
-		t.Fatalf("expected ErrNormalSize for <64, got %v", err)
+	if _, err := NewWithOptions(1024, 8192, 32, nil); err != ErrTargetSize {
+		t.Fatalf("expected ErrTargetSize for <64, got %v", err)
 	}
-	if _, err := NewWithOptions(1024, 8192, 2*1024*1024*1024, nil); err != ErrNormalSize {
-		t.Fatalf("expected ErrNormalSize for >1GB, got %v", err)
+	if _, err := NewWithOptions(1024, 8192, 2*1024*1024*1024, nil); err != ErrTargetSize {
+		t.Fatalf("expected ErrTargetSize for >1GB, got %v", err)
 	}
 
 	// invalid minSize
@@ -42,7 +44,7 @@ func TestNewWithOptionsValidation(t *testing.T) {
 		t.Fatalf("expected ErrMinSize for <64, got %v", err)
 	}
 	if _, err := NewWithOptions(16*1024, 8192, 4096, nil); err != ErrMinSize {
-		t.Fatalf("expected ErrMinSize for min>=normal, got %v", err)
+		t.Fatalf("expected ErrMinSize for min>=target, got %v", err)
 	}
 	if _, err := NewWithOptions(2*1024*1024*1024, 8192, 4096, nil); err != ErrMinSize {
 		t.Fatalf("expected ErrMinSize for >1GB, got %v", err)
@@ -53,7 +55,7 @@ func TestNewWithOptionsValidation(t *testing.T) {
 		t.Fatalf("expected ErrMaxSize for <64, got %v", err)
 	}
 	if _, err := NewWithOptions(1024, 4096, 4096, nil); err != ErrMaxSize {
-		t.Fatalf("expected ErrMaxSize for max<=normal, got %v", err)
+		t.Fatalf("expected ErrMaxSize for max<=target, got %v", err)
 	}
 	if _, err := NewWithOptions(1024, 2*1024*1024*1024, 4096, nil); err != ErrMaxSize {
 		t.Fatalf("expected ErrMaxSize for >1GB, got %v", err)
@@ -66,22 +68,22 @@ func TestNewWithOptionsValidation(t *testing.T) {
 }
 
 func TestAlgorithm_SmallDataReturnsN(t *testing.T) {
-	minSize := 128
-	maxSize := 1024
-	normalSize := 256
-	c, err := NewWithOptions(minSize, maxSize, normalSize, nil)
+	minSize := uint64(128)
+	maxSize := uint64(1024)
+	targetSize := uint64(256)
+	c, err := NewWithOptions(minSize, maxSize, targetSize, nil)
 	if err != nil {
 		t.Fatalf("NewWithOptions error: %v", err)
 	}
 
-	data := make([]byte, 200) // < normalSize
+	data := make([]byte, 200) // < targetSize
 	for i := range data {
 		data[i] = byte(i)
 	}
 
 	got := c.Algorithm(data, len(data))
 	if got != len(data) {
-		t.Fatalf("Algorithm returned %d, want %d (n<=normalSize should return n)", got, len(data))
+		t.Fatalf("Algorithm returned %d, want %d (n<=targetSize should return n)", got, len(data))
 	}
 }
 
@@ -100,7 +102,7 @@ func TestAlgorithm_MaxClampAndBounds(t *testing.T) {
 	if got > c.maxSize {
 		t.Fatalf("Algorithm returned %d > maxSize %d", got, c.maxSize)
 	}
-	// When n>normalSize, if a boundary is found it must be >= minSize
+	// When n>targetSize, if a boundary is found it must be >= minSize
 	// Otherwise, if none found, it returns n (clamped to maxSize).
 	if got < c.minSize {
 		t.Fatalf("Algorithm returned %d < minSize %d", got, c.minSize)
@@ -108,7 +110,7 @@ func TestAlgorithm_MaxClampAndBounds(t *testing.T) {
 }
 
 func chunkAll(c *JC, data []byte) []int {
-	out := make([]int, 0, len(data)/max(1, c.normalSize))
+	out := make([]int, 0, len(data)/max(1, c.targetSize))
 	offset := 0
 	for offset < len(data) {
 		n := len(data) - offset
@@ -169,12 +171,137 @@ func TestChunkingInvariantsAndDeterminism_DefaultKey(t *testing.T) {
 	}
 }
 
-func TestKeyAffectsGAndChunking(t *testing.T) {
-	minSize := 2048
-	maxSize := 65536
-	normalSize := 8192
+func TestStreamingChunker_DefaultKey(t *testing.T) {
+	// Generate reproducible data
+	rng := rand.New(rand.NewSource(1))
+	total := 2 * 1024 * 1024 // 2 MiB
+	data := make([]byte, total)
+	for i := range data {
+		data[i] = byte(rng.Intn(256))
+	}
 
-	cDefault, err := NewWithOptions(minSize, maxSize, normalSize, nil)
+	// Test streaming chunker
+	chunker, err := NewChunker(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("NewChunker error: %v", err)
+	}
+
+	chunks, err := chunkAllStreaming(chunker)
+	if err != nil {
+		t.Fatalf("chunkAllStreaming error: %v", err)
+	}
+
+	// invariant checks
+	sum := 0
+	for i, sz := range chunks {
+		if sz <= 0 {
+			t.Fatalf("chunk %d size <= 0", i)
+		}
+		if i < len(chunks)-1 {
+			if sz < chunker.jc.minSize {
+				t.Fatalf("chunk %d size %d < minSize %d", i, sz, chunker.jc.minSize)
+			}
+			if sz > chunker.jc.maxSize {
+				t.Fatalf("chunk %d size %d > maxSize %d", i, sz, chunker.jc.maxSize)
+			}
+		} else {
+			// last chunk can be anything between 1 and maxSize
+			if sz > chunker.jc.maxSize {
+				t.Fatalf("last chunk size %d > maxSize %d", sz, chunker.jc.maxSize)
+			}
+		}
+		sum += sz
+	}
+	if sum != len(data) {
+		t.Fatalf("sum of chunks = %d, want %d", sum, len(data))
+	}
+
+	// Test determinism by comparing with non-streaming version
+	jc, err := NewJC()
+	if err != nil {
+		t.Fatalf("NewJC error: %v", err)
+	}
+	expectedChunks := chunkAll(jc, data)
+	if !reflect.DeepEqual(chunks, expectedChunks) {
+		t.Fatalf("streaming chunker produced different results than non-streaming; got %v vs %v", chunks[:min(5, len(chunks))], expectedChunks[:min(5, len(expectedChunks))])
+	}
+}
+
+func TestChunkingWithLargeDefaultValues(t *testing.T) {
+	// Test with the default values used in the blob chunker
+	minSize := uint64(2048 * 125)    // 256000 bytes
+	targetSize := uint64(512000)     // 512000 bytes  
+	maxSize := uint64(4096 * (64 * 3)) // 786432 bytes
+
+	c, err := NewWithOptions(minSize, maxSize, targetSize, nil)
+	if err != nil {
+		t.Fatalf("NewWithOptions error: %v", err)
+	}
+
+	// Generate reproducible data larger than maxSize to test chunking behavior
+	rng := rand.New(rand.NewSource(42))
+	total := 2 * int(maxSize) // 2x maxSize to ensure multiple chunks
+	data := make([]byte, total)
+	for i := range data {
+		data[i] = byte(rng.Intn(256))
+	}
+
+	// Test non-streaming chunker
+	chunks := chunkAll(c, data)
+	
+	// Verify invariants
+	sum := 0
+	for i, sz := range chunks {
+		if sz <= 0 {
+			t.Fatalf("chunk %d size <= 0", i)
+		}
+		if i < len(chunks)-1 {
+			if sz < c.minSize {
+				t.Fatalf("chunk %d size %d < minSize %d", i, sz, c.minSize)
+			}
+			if sz > c.maxSize {
+				t.Fatalf("chunk %d size %d > maxSize %d", i, sz, c.maxSize)
+			}
+		} else {
+			// last chunk can be anything between 1 and maxSize
+			if sz > c.maxSize {
+				t.Fatalf("last chunk size %d > maxSize %d", sz, c.maxSize)
+			}
+		}
+		sum += sz
+	}
+	if sum != len(data) {
+		t.Fatalf("sum of chunks = %d, want %d", sum, len(data))
+	}
+
+	// Test streaming chunker produces same results
+	chunker, err := NewChunkerWithOptions(bytes.NewReader(data), minSize, maxSize, targetSize, nil)
+	if err != nil {
+		t.Fatalf("NewChunkerWithOptions error: %v", err)
+	}
+
+	streamingChunks, err := chunkAllStreaming(chunker)
+	if err != nil {
+		t.Fatalf("chunkAllStreaming error: %v", err)
+	}
+
+	if !reflect.DeepEqual(chunks, streamingChunks) {
+		t.Fatalf("streaming chunker produced different results than non-streaming; got %v vs %v", streamingChunks[:min(3, len(streamingChunks))], chunks[:min(3, len(chunks))])
+	}
+
+	// Verify we get reasonable chunk count (not too many tiny chunks)
+	expectedChunks := (total / int(targetSize)) + 2 // rough estimate with some buffer
+	if len(chunks) > expectedChunks {
+		t.Fatalf("got %d chunks, expected roughly %d or fewer (may indicate chunking issues)", len(chunks), expectedChunks)
+	}
+}
+
+func TestKeyAffectsGAndChunking(t *testing.T) {
+	minSize := uint64(2048)
+	maxSize := uint64(65536)
+	targetSize := uint64(8192)
+
+	cDefault, err := NewWithOptions(minSize, maxSize, targetSize, nil)
 	if err != nil {
 		t.Fatalf("NewWithOptions default key error: %v", err)
 	}
@@ -182,15 +309,15 @@ func TestKeyAffectsGAndChunking(t *testing.T) {
 	keyB := []byte("key-A") // same key, should produce same G
 	keyC := []byte("key-C") // different key, likely different G
 
-	cA, err := NewWithOptions(minSize, maxSize, normalSize, keyA)
+	cA, err := NewWithOptions(minSize, maxSize, targetSize, keyA)
 	if err != nil {
 		t.Fatalf("NewWithOptions keyA error: %v", err)
 	}
-	cB, err := NewWithOptions(minSize, maxSize, normalSize, keyB)
+	cB, err := NewWithOptions(minSize, maxSize, targetSize, keyB)
 	if err != nil {
 		t.Fatalf("NewWithOptions keyB error: %v", err)
 	}
-	cC, err := NewWithOptions(minSize, maxSize, normalSize, keyC)
+	cC, err := NewWithOptions(minSize, maxSize, targetSize, keyC)
 	if err != nil {
 		t.Fatalf("NewWithOptions keyC error: %v", err)
 	}
@@ -209,7 +336,7 @@ func TestKeyAffectsGAndChunking(t *testing.T) {
 	}
 
 	// Also verify chunking still respects invariants with different keys
-	data := bytes.Repeat([]byte{0xAB}, 3*maxSize+1234)
+	data := bytes.Repeat([]byte{0xAB}, int(3*maxSize+1234))
 	chunks := chunkAll(cC, data)
 	total := 0
 	for i, sz := range chunks {
@@ -262,7 +389,7 @@ func BenchmarkChunking_DefaultKey(b *testing.B) {
 		data[i] = byte(rng.Intn(256))
 	}
 	// Reusable slice to avoid reallocation noise
-	chunks := make([]int, 0, size/c.normalSize)
+	chunks := make([]int, 0, size/c.targetSize)
 
 	b.ReportAllocs()
 
@@ -272,12 +399,12 @@ func BenchmarkChunking_DefaultKey(b *testing.B) {
 }
 
 func BenchmarkChunking_CustomKey_32MiB(b *testing.B) {
-	minSize := 2048
-	maxSize := 128 * 1024
-	normalSize := 16 * 1024
+	minSize := uint64(2048)
+	maxSize := uint64(128 * 1024)
+	targetSize := uint64(16 * 1024)
 	key := []byte("benchmark-key-" + time.Now().Format(time.RFC3339Nano)) // just to avoid constant folding
 
-	c, err := NewWithOptions(minSize, maxSize, normalSize, key)
+	c, err := NewWithOptions(minSize, maxSize, targetSize, key)
 	if err != nil {
 		b.Fatalf("NewWithOptions error: %v", err)
 	}
@@ -287,13 +414,37 @@ func BenchmarkChunking_CustomKey_32MiB(b *testing.B) {
 	for i := range data {
 		data[i] = byte(rng.Intn(256))
 	}
-	chunks := make([]int, 0, size/c.normalSize)
+	chunks := make([]int, 0, size/c.targetSize)
 
 	b.ReportAllocs()
 
 	for b.Loop() {
 		_ = chunkAllReuse(c, data, &chunks)
 	}
+}
+
+func chunkAllStreaming(chunker *Chunker) ([]int, error) {
+	var out []int
+	var buf []byte
+	for {
+		chunk, err := chunker.Next(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		if chunk.Length <= 0 {
+			return nil, errors.New("chunker returned non-positive chunk size")
+		}
+		out = append(out, chunk.Length)
+		
+		// Grow buffer if needed for next iteration
+		if len(buf) < chunk.Length*2 {
+			buf = make([]byte, chunk.Length*2)
+		}
+	}
+	return out, nil
 }
 
 // chunkAllReuse is like chunkAll but reuses the provided slice to reduce allocations in benchmarks.

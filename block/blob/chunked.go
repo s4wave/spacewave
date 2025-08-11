@@ -20,14 +20,6 @@ func BuildChunkIndex(
 	bcs *block.Cursor,
 	chunkerArgs *ChunkerArgs,
 ) (*ChunkIndex, uint64, error) {
-	// TODO: support other chunk types
-	chunkerType := chunkerArgs.GetChunkerType()
-	switch chunkerType {
-	case ChunkerType_ChunkerType_DEFAULT:
-	case ChunkerType_ChunkerType_RABIN:
-	default:
-		return nil, 0, errors.Wrap(ErrUnknownChunkerType, chunkerType.String())
-	}
 
 	ci, err := UnmarshalChunkIndex(ctx, bcs)
 	if err != nil {
@@ -43,10 +35,21 @@ func BuildChunkIndex(
 	}
 	ci.ChunkerArgs.ApplyArgs(chunkerArgs)
 
-	totalSize, err := buildChunkIndexRabin(ctx, rdr, bcs, ci)
+	// TODO: support other chunk types
+	chunkerType := chunkerArgs.GetChunkerType()
+	var totalSize uint64
+	switch chunkerType {
+	case ChunkerType_ChunkerType_JC, ChunkerType_ChunkerType_DEFAULT:
+		totalSize, err = buildChunkIndexJC(ctx, rdr, bcs, ci)
+	case ChunkerType_ChunkerType_RABIN:
+		totalSize, err = buildChunkIndexRabin(ctx, rdr, bcs, ci)
+	default:
+		err = errors.Wrap(ErrUnknownChunkerType, chunkerType.String())
+	}
 	if err != nil {
 		return nil, 0, err
 	}
+
 	return ci, totalSize, err
 }
 

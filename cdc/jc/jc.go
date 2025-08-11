@@ -24,6 +24,7 @@ package jc
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 	"math"
 	"sync"
 
@@ -31,9 +32,9 @@ import (
 )
 
 var (
-	ErrNormalSize = errors.New("NormalSize is required and must be 64B <= NormalSize <= 1GB")
-	ErrMinSize    = errors.New("MinSize is required and must be 64B <= MinSize <= 1GB && MinSize < NormalSize")
-	ErrMaxSize    = errors.New("MaxSize is required and must be 64B <= MaxSize <= 1GB && MaxSize > NormalSize")
+	ErrTargetSize = errors.New("TargetSize is required and must be 64B <= TargetSize <= 1GB")
+	ErrMinSize    = errors.New("MinSize is required and must be 64B <= MinSize <= 1GB && MinSize < TargetSize")
+	ErrMaxSize    = errors.New("MaxSize is required and must be 64B <= MaxSize <= 1GB && MaxSize > TargetSize")
 )
 
 func generateSpacedMask(oneCount int, totalBits int) uint64 {
@@ -70,6 +71,13 @@ const nonceBlake3Context = "aperturerobotics/hydra 2025-08-10 jc nonce v1."
 // gLen is the length of G
 const gLen = 256
 
+// Default chunking parameters
+const (
+	DefaultMinSize    uint64 = 2 * 1024  // 2KB
+	DefaultMaxSize    uint64 = 64 * 1024 // 64KB
+	DefaultTargetSize uint64 = 8 * 1024  // 8KB
+)
+
 // defaultG is the default value for G pre-computed and used if len(key) == 0
 // returns [256]uint64 as a []uint64
 var defaultG = sync.OnceValue(func() []uint64 {
@@ -92,39 +100,56 @@ func hashKeyForG(key []byte, out []uint64) {
 	}
 }
 
+// Chunk represents a chunk of data with its position and data.
+type Chunk struct {
+	// Start is the absolute position in the stream where this chunk begins
+	Start uint64
+	// Length is the length of the chunk
+	Length int
+	// Data contains the actual chunk data
+	Data []byte
+}
+
 type JC struct {
 	G          [gLen]uint64
 	maskC      uint64
 	maskJ      uint64
 	jumpLength int
 
-	minSize, maxSize, normalSize int
+	minSize, maxSize, targetSize int
+}
+
+// Chunker wraps JC to provide streaming chunking functionality.
+type Chunker struct {
+	jc     *JC
+	reader io.Reader
+	buf    []byte // sliding window buffer
+	bufLen int    // current valid data length in buf
+	bufPos int    // current read position in buf
+	pos    uint64 // absolute position in stream
+	eof    bool
 }
 
 // NewJC constructs the JC with the default parameters.
 func NewJC() (*JC, error) {
-	var minSize = 2 * 1024
-	var maxSize = 64 * 1024
-	var normalSize = 8 * 1024
-
-	return NewWithOptions(minSize, maxSize, normalSize, nil)
+	return NewWithOptions(DefaultMinSize, DefaultMaxSize, DefaultTargetSize, nil)
 }
 
 // NewWithOptions constructs the JC with the given options.
-func NewWithOptions(minSize, maxSize, normalSize int, key []byte) (*JC, error) {
+func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error) {
 	// validate parameters
-	if normalSize == 0 || normalSize < 64 || normalSize > 1024*1024*1024 {
-		return nil, ErrNormalSize
+	if targetSize == 0 || targetSize < 64 || targetSize > 1024*1024*1024 {
+		return nil, ErrTargetSize
 	}
-	if minSize < 64 || minSize > 1024*1024*1024 || minSize >= normalSize {
+	if minSize < 64 || minSize > 1024*1024*1024 || minSize >= targetSize {
 		return nil, ErrMinSize
 	}
-	if maxSize < 64 || maxSize > 1024*1024*1024 || maxSize <= normalSize {
+	if maxSize < 64 || maxSize > 1024*1024*1024 || maxSize <= targetSize {
 		return nil, ErrMaxSize
 	}
 
-	c := &JC{minSize: minSize, maxSize: maxSize, normalSize: normalSize}
-	bits := uint64(math.Log2(float64(normalSize)))
+	c := &JC{minSize: int(minSize), maxSize: int(maxSize), targetSize: int(targetSize)}
+	bits := uint64(math.Log2(float64(targetSize)))
 
 	cOnes := bits - 1
 	jOnes := cOnes - 1
@@ -145,30 +170,149 @@ func NewWithOptions(minSize, maxSize, normalSize int, key []byte) (*JC, error) {
 	return c, nil
 }
 
-// Algorithm implements the JC algorithm.
-func (c *JC) Algorithm(data []byte, n int) int {
+// NewChunker creates a new streaming chunker with the default parameters.
+func NewChunker(reader io.Reader) (*Chunker, error) {
+	jc, err := NewJC()
+	if err != nil {
+		return nil, err
+	}
+	return &Chunker{
+		jc:     jc,
+		reader: reader,
+		buf:    make([]byte, jc.maxSize+jc.minSize), // just enough for sliding window
+	}, nil
+}
+
+// NewChunkerWithOptions creates a new streaming chunker with the given options.
+func NewChunkerWithOptions(reader io.Reader, minSize, maxSize, targetSize uint64, key []byte) (*Chunker, error) {
+	jc, err := NewWithOptions(minSize, maxSize, targetSize, key)
+	if err != nil {
+		return nil, err
+	}
+	return &Chunker{
+		jc:     jc,
+		reader: reader,
+		buf:    make([]byte, jc.maxSize+jc.minSize), // just enough for sliding window
+	}, nil
+}
+
+// Algorithm implements the JC algorithm as a top-level function.
+func Algorithm(data []byte, n int, G []uint64, maskC, maskJ uint64, jumpLength, minSize, maxSize, targetSize int) int {
 	switch {
-	case n <= c.normalSize:
+	case n <= targetSize:
 		return n
-	case n >= c.maxSize:
-		n = c.maxSize
+	case n >= maxSize:
+		n = maxSize
 	}
 
 	fp := uint64(0)
-	i := c.minSize
+	i := minSize
 
 	for i < n {
-		fp = (fp << 1) + c.G[data[i]]
-		if (fp & c.maskJ) == 0 {
-			if (fp & c.maskC) == 0 {
+		fp = (fp << 1) + G[data[i]]
+		if (fp & maskJ) == 0 {
+			if (fp & maskC) == 0 {
 				return i
 			}
 			fp = 0
-			i = i + c.jumpLength
+			i = i + jumpLength
 		} else {
 			i++
 		}
 	}
 
 	return min(i, n)
+}
+
+// Algorithm implements the JC algorithm.
+func (c *JC) Algorithm(data []byte, n int) int {
+	return Algorithm(data, n, c.G[:], c.maskC, c.maskJ, c.jumpLength, c.minSize, c.maxSize, c.targetSize)
+}
+
+// Next returns the position and length of the next chunk of data. If an error
+// occurs while reading, the error is returned. Afterwards, the state of the
+// current chunk is undefined. When the last chunk has been returned, all
+// subsequent calls yield an io.EOF error.
+func (c *Chunker) Next(data []byte) (Chunk, error) {
+	availableData := c.bufLen - c.bufPos
+	if c.eof && availableData == 0 {
+		return Chunk{}, io.EOF
+	}
+
+	// Keep reading until we have enough data for chunk boundary detection or reach EOF
+	for !c.eof {
+		// If we have enough data to potentially find a boundary, try that first
+		if availableData >= c.jc.minSize {
+			// Check if we can find a chunk boundary
+			chunkSize := c.jc.Algorithm(c.buf[c.bufPos:c.bufLen], availableData)
+
+			// If we found a boundary before maxSize, use it
+			if chunkSize < availableData || availableData >= c.jc.maxSize {
+				break
+			}
+		}
+
+		// Compact buffer if needed - only compact when we've consumed a significant portion
+		if c.bufPos > len(c.buf)/4 && c.bufLen > c.bufPos {
+			copy(c.buf, c.buf[c.bufPos:c.bufLen])
+			c.bufLen -= c.bufPos
+			c.bufPos = 0
+		} else if c.bufPos > 0 && c.bufLen == c.bufPos {
+			// All data consumed, reset positions
+			c.bufLen = 0
+			c.bufPos = 0
+		}
+
+		// Read more data into buffer
+		if c.bufLen < len(c.buf) {
+			n, err := c.reader.Read(c.buf[c.bufLen:])
+			if n > 0 {
+				c.bufLen += n
+				availableData = c.bufLen - c.bufPos
+			}
+			if err != nil {
+				if err == io.EOF {
+					c.eof = true
+				} else {
+					return Chunk{}, err
+				}
+			}
+		} else {
+			// Buffer is full but we still need more data - this shouldn't happen
+			// with proper maxSize, but handle gracefully
+			break
+		}
+	}
+
+	// If no data left, return EOF
+	if availableData == 0 {
+		return Chunk{}, io.EOF
+	}
+
+	// Find chunk boundary using JC algorithm
+	chunkSize := c.jc.Algorithm(c.buf[c.bufPos:c.bufLen], availableData)
+
+	// Extract chunk data - avoid allocation when possible
+	var chunkData []byte
+	if data != nil && len(data) >= chunkSize {
+		// Use provided buffer - copy data into it
+		chunkData = data[:chunkSize]
+		copy(chunkData, c.buf[c.bufPos:c.bufPos+chunkSize])
+	} else {
+		// Return a slice of our internal buffer - caller must not modify
+		chunkData = c.buf[c.bufPos : c.bufPos+chunkSize]
+	}
+
+	// Create chunk
+	chunk := Chunk{
+		Start:  c.pos,
+		Length: chunkSize,
+		Data:   chunkData,
+	}
+
+	// Update state
+	c.bufPos += chunkSize
+	c.pos += uint64(chunkSize)
+
+	return chunk, nil
 }

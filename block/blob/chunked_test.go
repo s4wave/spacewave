@@ -15,8 +15,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBlob_Chunked tests building a chunked blob.
-func TestBlob_Chunked(t *testing.T) {
+// testBlobChunked contains the common test logic for chunked blob tests.
+func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -28,10 +28,6 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// vol := tb.Volume
-	// volID := vol.GetID()
-	// t.Log(volID)
-
 	oc, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -39,7 +35,7 @@ func TestBlob_Chunked(t *testing.T) {
 
 	btx, bcs := oc.BuildTransaction(nil)
 	t1 := time.Now()
-	b1, err := buildMockChunkedBlob(bcs)
+	b1, err := buildMockChunkedBlob(bcs, chunkerArgs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -64,7 +60,8 @@ func TestBlob_Chunked(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	le.Infof(
-		"built & wrote %s blob with %d chunks in %s (%v / sec)",
+		"[%s] built & wrote %s blob with %d chunks in %s (%v / sec)",
+		chunkerType,
 		humanize.Bytes(b1.GetTotalSize()),
 		len(b1.GetChunkIndex().GetChunks()),
 		opDur,
@@ -77,7 +74,8 @@ func TestBlob_Chunked(t *testing.T) {
 	rootBlobData, _, _ := bcs.Fetch(ctx)
 	rootBlobSize := uint64(len(rootBlobData))
 	le.Infof(
-		"index block is %s (overhead of %v%%)",
+		"[%s] index block is %s (overhead of %v%%)",
+		chunkerType,
 		humanize.Bytes(rootBlobSize),
 		math.Ceil(float64(rootBlobSize)/float64(b1.GetTotalSize())*100000)/1000,
 	)
@@ -96,7 +94,8 @@ func TestBlob_Chunked(t *testing.T) {
 	}
 	opDur = t2.Sub(t1)
 	le.Infof(
-		"read and verified %s bytes in %s (%s / sec)",
+		"[%s] read and verified %s bytes in %s (%s / sec)",
+		chunkerType,
 		humanize.Bytes(uint64(len(dat))),
 		opDur.String(),
 		humanize.Bytes(uint64(float64(len(dat))/opDur.Seconds())),
@@ -244,5 +243,24 @@ func TestBlob_Chunked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	le.Infof("storage size: %d total size: %d", storageSize, totalSize)
+	le.Infof("[%s] storage size: %d total size: %d", chunkerType, storageSize, totalSize)
+}
+
+// TestBlob_ChunkedRabin tests building a chunked blob with Rabin chunker.
+func TestBlob_ChunkedRabin(t *testing.T) {
+	chunkerArgs := &ChunkerArgs{
+		ChunkerType: ChunkerType_ChunkerType_RABIN,
+		RabinArgs: &RabinArgs{
+			Pol: 13388372929173625,
+		},
+	}
+	testBlobChunked(t, "Rabin", chunkerArgs)
+}
+
+// TestBlob_ChunkedJC tests building a chunked blob with JC chunker.
+func TestBlob_ChunkedJC(t *testing.T) {
+	chunkerArgs := &ChunkerArgs{
+		ChunkerType: ChunkerType_ChunkerType_JC,
+	}
+	testBlobChunked(t, "JC", chunkerArgs)
 }

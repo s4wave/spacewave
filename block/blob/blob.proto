@@ -52,25 +52,33 @@ message ChunkIndex {
 // ChunkerArgs configures the chunking algorithm.
 message ChunkerArgs {
   // ChunkerType is the chunking algorithm used.
-  // Defaults to ChunkerType_RABIN if not set.
+  // Defaults to ChunkerType_JC if not set.
   ChunkerType chunker_type = 1;
 
   // RabinArgs are arguments for the rabin chunker.
   // ChunkerType_RABIN
   RabinArgs rabin_args = 2;
+
+  // JcArgs are arguments for the jc chunker.
+  // ChunkerType_JC
+  JcArgs jc_args = 3;
 }
 
 // ChunkerType is the set of known chunker types.
 enum ChunkerType {
-  // ChunkerType_DEFAULT builds/appends using the default chunker (RABIN).
+  // ChunkerType_DEFAULT builds/appends using the default chunker (JC).
   ChunkerType_DEFAULT = 0;
   // ChunkerType_RABIN uses rabin fingerprinting to chunk.
   ChunkerType_RABIN = 1;
+  // ChunkerType_JC uses JC content defined chunk algorithm.
+  ChunkerType_JC = 2;
 }
 
 // RabinArgs are arguments for the rabin chunker.
 //
 // The default polynomial is 0x2df7f4e3b27061
+//
+// ChunkerType_RABIN
 message RabinArgs {
   // Rabin polynomial.
   // Optional.
@@ -81,11 +89,30 @@ message RabinArgs {
   bool random_pol = 4;
 
   // ChunkingMinSize is the minimum size for a chunk.
-  // Defaults to 256KB.
+  // Defaults to 256000 bytes.
   uint64 chunking_min_size = 2;
   // ChunkingMaxSize is the maxmium size for a chunk.
-  // Defaults to ~786KB (786432 bytes).
+  // Defaults to 786432 bytes.
   uint64 chunking_max_size = 3;
+}
+
+// JcArgs are arguments for the jc chunker.
+//
+// ChunkerType_JC
+message JcArgs {
+  // Key is the key for the chunker.
+  // Optional.
+  bytes key = 1;
+
+  // ChunkingMinSize is the minimum size for a chunk.
+  // Defaults to 256000 bytes.
+  uint64 chunking_min_size = 2;
+  // ChunkingTargetSize is the target size for a chunk.
+  // Defaults to 512000 bytes.
+  uint64 chunking_target_size = 3;
+  // ChunkingMaxSize is the maximum size for a chunk.
+  // Defaults to 786432 bytes.
+  uint64 chunking_max_size = 4;
 }
 
 // Chunk contains in-line information about a data chunk.

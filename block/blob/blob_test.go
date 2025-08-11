@@ -18,8 +18,8 @@ func buildMockRawBlob() *Blob {
 	}
 }
 
-// buildMockChunkedBlob builds a new mock chunked blob
-func buildMockChunkedBlob(bcs *block.Cursor) (*Blob, error) {
+// buildMockChunkedBlob builds a new mock chunked blob with the specified chunker args
+func buildMockChunkedBlob(bcs *block.Cursor, chunkerArgs *ChunkerArgs) (*Blob, error) {
 	// generate 100Mb of data
 	rd := prng.BuildSeededReader([]byte("test-chunk-blob"))
 	data := make([]byte, 100e6)
@@ -34,13 +34,7 @@ func buildMockChunkedBlob(bcs *block.Cursor) (*Blob, error) {
 		bcs,
 		&BuildBlobOpts{
 			RawHighWaterMark: 1,
-			// pre-compute polynomial to save time
-			ChunkerArgs: &ChunkerArgs{
-				ChunkerType: ChunkerType_ChunkerType_RABIN,
-				RabinArgs: &RabinArgs{
-					Pol: 13388372929173625,
-				},
-			},
+			ChunkerArgs:      chunkerArgs,
 		},
 	)
 }

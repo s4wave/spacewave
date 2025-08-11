@@ -9,11 +9,13 @@ import (
 )
 
 const (
-	// defChunkingMinSize is the default chunk min size.
-	DefChunkingMinSize = 2048 * 125 // 256KB
-	// defChunkingMaxSize is the default chunk max size.
-	// most systems have a max block size of 1MiB: use 786KB
-	DefChunkingMaxSize = 4096 * (64 * 3) // 786432 bytes or ~786KB
+	// DefChunkingMinSize is the default chunk min size.
+	DefChunkingMinSize = 2048 * 125 // 256000 bytes
+	// DefChunkingTargetSize is the default chunk target size.
+	// Only used by the JC chunker.
+	DefChunkingTargetSize = 512000 // 512000 bytes
+	// DefChunkingMaxSize is the default chunk max size.
+	DefChunkingMaxSize = 4096 * (64 * 3) // 786432 bytes
 	// DefRawHighWaterMark is the default high water mark for a raw blob.
 	// define this to be the max size of a single chunk
 	DefRawHighWaterMark = DefChunkingMaxSize

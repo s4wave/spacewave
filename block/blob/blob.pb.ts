@@ -61,12 +61,20 @@ export enum ChunkerType {
    * @generated from enum value: ChunkerType_RABIN = 1;
    */
   ChunkerType_RABIN = 1,
+
+  /**
+   * ChunkerType_JC uses JC content defined chunk algorithm.
+   *
+   * @generated from enum value: ChunkerType_JC = 2;
+   */
+  ChunkerType_JC = 2,
 }
 
 // ChunkerType_Enum is the enum type for ChunkerType.
 export const ChunkerType_Enum = createEnumType('blob.ChunkerType', [
   { no: 0, name: 'ChunkerType_DEFAULT' },
   { no: 1, name: 'ChunkerType_RABIN' },
+  { no: 2, name: 'ChunkerType_JC' },
 ])
 
 /**
@@ -113,6 +121,8 @@ export const Chunk: MessageType<Chunk> = createMessageType({
  *
  * The default polynomial is 0x2df7f4e3b27061
  *
+ * ChunkerType_RABIN
+ *
  * @generated from message blob.RabinArgs
  */
 export interface RabinArgs {
@@ -133,14 +143,14 @@ export interface RabinArgs {
   randomPol?: boolean
   /**
    * ChunkingMinSize is the minimum size for a chunk.
-   * Defaults to 256KB.
+   * Defaults to 256000 bytes.
    *
    * @generated from field: uint64 chunking_min_size = 2;
    */
   chunkingMinSize?: bigint
   /**
    * ChunkingMaxSize is the maxmium size for a chunk.
-   * Defaults to ~786KB (786432 bytes).
+   * Defaults to 786432 bytes.
    *
    * @generated from field: uint64 chunking_max_size = 3;
    */
@@ -160,6 +170,61 @@ export const RabinArgs: MessageType<RabinArgs> = createMessageType({
 })
 
 /**
+ * JcArgs are arguments for the jc chunker.
+ *
+ * ChunkerType_JC
+ *
+ * @generated from message blob.JcArgs
+ */
+export interface JcArgs {
+  /**
+   * Key is the key for the chunker.
+   * Optional.
+   *
+   * @generated from field: bytes key = 1;
+   */
+  key?: Uint8Array
+  /**
+   * ChunkingMinSize is the minimum size for a chunk.
+   * Defaults to 256000 bytes.
+   *
+   * @generated from field: uint64 chunking_min_size = 2;
+   */
+  chunkingMinSize?: bigint
+  /**
+   * ChunkingTargetSize is the target size for a chunk.
+   * Defaults to 512000 bytes.
+   *
+   * @generated from field: uint64 chunking_target_size = 3;
+   */
+  chunkingTargetSize?: bigint
+  /**
+   * ChunkingMaxSize is the maximum size for a chunk.
+   * Defaults to 786432 bytes.
+   *
+   * @generated from field: uint64 chunking_max_size = 4;
+   */
+  chunkingMaxSize?: bigint
+}
+
+// JcArgs contains the message type declaration for JcArgs.
+export const JcArgs: MessageType<JcArgs> = createMessageType({
+  typeName: 'blob.JcArgs',
+  fields: [
+    { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 2, name: 'chunking_min_size', kind: 'scalar', T: ScalarType.UINT64 },
+    {
+      no: 3,
+      name: 'chunking_target_size',
+      kind: 'scalar',
+      T: ScalarType.UINT64,
+    },
+    { no: 4, name: 'chunking_max_size', kind: 'scalar', T: ScalarType.UINT64 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * ChunkerArgs configures the chunking algorithm.
  *
  * @generated from message blob.ChunkerArgs
@@ -167,7 +232,7 @@ export const RabinArgs: MessageType<RabinArgs> = createMessageType({
 export interface ChunkerArgs {
   /**
    * ChunkerType is the chunking algorithm used.
-   * Defaults to ChunkerType_RABIN if not set.
+   * Defaults to ChunkerType_JC if not set.
    *
    * @generated from field: blob.ChunkerType chunker_type = 1;
    */
@@ -179,6 +244,13 @@ export interface ChunkerArgs {
    * @generated from field: blob.RabinArgs rabin_args = 2;
    */
   rabinArgs?: RabinArgs
+  /**
+   * JcArgs are arguments for the jc chunker.
+   * ChunkerType_JC
+   *
+   * @generated from field: blob.JcArgs jc_args = 3;
+   */
+  jcArgs?: JcArgs
 }
 
 // ChunkerArgs contains the message type declaration for ChunkerArgs.
@@ -187,6 +259,7 @@ export const ChunkerArgs: MessageType<ChunkerArgs> = createMessageType({
   fields: [
     { no: 1, name: 'chunker_type', kind: 'enum', T: ChunkerType_Enum },
     { no: 2, name: 'rabin_args', kind: 'message', T: () => RabinArgs },
+    { no: 3, name: 'jc_args', kind: 'message', T: () => JcArgs },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
