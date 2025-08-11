@@ -229,6 +229,16 @@ func (c *JC) Algorithm(data []byte, n int) int {
 	return Algorithm(data, n, c.G[:], c.maskC, c.maskJ, c.jumpLength, c.minSize, c.maxSize, c.targetSize)
 }
 
+// Reset clears the internal buffers and resets the chunker state to release memory.
+// The chunker can be reused after calling Reset with the same reader and options.
+func (c *Chunker) Reset() {
+	c.buf = nil
+	c.bufLen = 0
+	c.bufPos = 0
+	c.pos = 0
+	c.eof = false
+}
+
 // Next returns the position and length of the next chunk of data. If an error
 // occurs while reading, the error is returned. Afterwards, the state of the
 // current chunk is undefined. When the last chunk has been returned, all

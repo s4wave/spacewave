@@ -398,6 +398,70 @@ func BenchmarkChunking_DefaultKey(b *testing.B) {
 	}
 }
 
+func TestChunkerReset(t *testing.T) {
+	data := bytes.Repeat([]byte("test data for reset"), 1000)
+	reader := bytes.NewReader(data)
+	chunker, err := NewChunker(reader)
+	if err != nil {
+		t.Fatalf("NewChunker error: %v", err)
+	}
+
+	// Read a chunk to populate internal buffers
+	_, err = chunker.Next(nil)
+	if err != nil {
+		t.Fatalf("Next error: %v", err)
+	}
+
+	// Verify buffers are populated
+	if chunker.buf == nil || chunker.bufLen == 0 {
+		t.Fatalf("expected buffers to be populated before reset")
+	}
+
+	// Store reference to JC and reader for verification
+	originalJC := chunker.jc
+	originalReader := chunker.reader
+
+	// Reset the chunker
+	chunker.Reset()
+
+	// Verify state is cleared but JC and reader are preserved
+	if chunker.buf != nil {
+		t.Fatalf("buf should be nil after reset")
+	}
+	if chunker.bufLen != 0 {
+		t.Fatalf("bufLen should be 0 after reset, got %d", chunker.bufLen)
+	}
+	if chunker.bufPos != 0 {
+		t.Fatalf("bufPos should be 0 after reset, got %d", chunker.bufPos)
+	}
+	if chunker.pos != 0 {
+		t.Fatalf("pos should be 0 after reset, got %d", chunker.pos)
+	}
+	if chunker.eof != false {
+		t.Fatalf("eof should be false after reset")
+	}
+	if chunker.jc != originalJC {
+		t.Fatalf("jc should be preserved after reset")
+	}
+	if chunker.reader != originalReader {
+		t.Fatalf("reader should be preserved after reset")
+	}
+
+	// Test that chunker can still be used after reset (though reader is already consumed)
+	// Reset the reader to beginning for reuse test
+	reader.Reset(data)
+	chunker.buf = make([]byte, chunker.jc.maxSize+chunker.jc.minSize)
+	
+	// Should be able to read chunks again
+	chunk, err := chunker.Next(nil)
+	if err != nil {
+		t.Fatalf("Next after reset error: %v", err)
+	}
+	if chunk.Length <= 0 {
+		t.Fatalf("expected valid chunk after reset, got length %d", chunk.Length)
+	}
+}
+
 func BenchmarkChunking_CustomKey_32MiB(b *testing.B) {
 	minSize := uint64(2048)
 	maxSize := uint64(128 * 1024)

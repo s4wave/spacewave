@@ -48,6 +48,7 @@ func buildChunkIndexJC(
 	if err != nil {
 		return 0, err
 	}
+	defer chunker.Reset() // clear internal buffers
 
 	var idx int
 	var totalSize uint64
@@ -88,6 +89,10 @@ func buildChunkIndexJC(
 		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice)
 		chkStart += uint64(nchk.Length)
 		idx++
+
+		if err := ctx.Err(); err != nil {
+			return 0, context.Canceled
+		}
 	}
 
 	bcs.SetBlock(ci, true)
