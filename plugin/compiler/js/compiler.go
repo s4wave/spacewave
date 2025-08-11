@@ -564,11 +564,15 @@ func CreateEntrypointsFromViteOutputs(
 		var cssOutputPaths []string
 
 		for _, output := range viteOutputMeta {
-			if output.GetEntrypointPath() == inputPath {
-				outputPath := output.GetPath()
-				if strings.HasSuffix(outputPath, ".mjs") || strings.HasSuffix(outputPath, ".js") {
+			matchesEntrypoint := output.GetEntrypointPath() != "" && output.GetEntrypointPath() == inputPath
+			outputPath := output.GetPath()
+			if strings.HasSuffix(outputPath, ".mjs") || strings.HasSuffix(outputPath, ".js") {
+				if matchesEntrypoint {
 					jsOutputPath = path.Join(bldr_plugin_compiler.ViteAssetSubdir, outputPath)
-				} else if strings.HasSuffix(outputPath, ".css") {
+				}
+			} else if strings.HasSuffix(outputPath, ".css") {
+				// empty entrypointPath = global css files
+				if matchesEntrypoint || output.GetEntrypointPath() == "" {
 					cssOutputPaths = append(cssOutputPaths, path.Join(bldr_plugin_compiler.ViteAssetSubdir, outputPath))
 				}
 			}
@@ -598,7 +602,7 @@ func CreateEntrypointsFromViteOutputs(
 			}
 
 			// Add CSS links if any
-			if len(cssOutputPaths) > 0 {
+			if len(cssOutputPaths) != 0 {
 				frontendEp.SetHtmlLinks = &web_view.SetHtmlLinksRequest{
 					Clear:    true,
 					SetLinks: make(map[string]*web_view.HtmlLink),
