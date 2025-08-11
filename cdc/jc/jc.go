@@ -28,6 +28,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/aperturerobotics/util/scrub"
 	"github.com/zeebo/blake3"
 )
 
@@ -232,7 +233,9 @@ func (c *JC) Algorithm(data []byte, n int) int {
 // Reset clears the internal buffers and resets the chunker state to release memory.
 // The chunker can be reused after calling Reset with the same reader and options.
 func (c *Chunker) Reset() {
-	c.buf = nil
+	if c.buf != nil {
+		scrub.Scrub(c.buf)
+	}
 	c.bufLen = 0
 	c.bufPos = 0
 	c.pos = 0

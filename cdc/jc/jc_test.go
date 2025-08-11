@@ -229,8 +229,8 @@ func TestStreamingChunker_DefaultKey(t *testing.T) {
 
 func TestChunkingWithLargeDefaultValues(t *testing.T) {
 	// Test with the default values used in the blob chunker
-	minSize := uint64(2048 * 125)    // 256000 bytes
-	targetSize := uint64(512000)     // 512000 bytes  
+	minSize := uint64(2048 * 125)      // 256000 bytes
+	targetSize := uint64(512000)       // 512000 bytes
 	maxSize := uint64(4096 * (64 * 3)) // 786432 bytes
 
 	c, err := NewWithOptions(minSize, maxSize, targetSize, nil)
@@ -248,7 +248,7 @@ func TestChunkingWithLargeDefaultValues(t *testing.T) {
 
 	// Test non-streaming chunker
 	chunks := chunkAll(c, data)
-	
+
 	// Verify invariants
 	sum := 0
 	for i, sz := range chunks {
@@ -425,8 +425,10 @@ func TestChunkerReset(t *testing.T) {
 	chunker.Reset()
 
 	// Verify state is cleared but JC and reader are preserved
-	if chunker.buf != nil {
-		t.Fatalf("buf should be nil after reset")
+	for _, v := range chunker.buf {
+		if v != 0 {
+			t.Fatalf("buf should be zeroed after reset")
+		}
 	}
 	if chunker.bufLen != 0 {
 		t.Fatalf("bufLen should be 0 after reset, got %d", chunker.bufLen)
@@ -451,7 +453,7 @@ func TestChunkerReset(t *testing.T) {
 	// Reset the reader to beginning for reuse test
 	reader.Reset(data)
 	chunker.buf = make([]byte, chunker.jc.maxSize+chunker.jc.minSize)
-	
+
 	// Should be able to read chunks again
 	chunk, err := chunker.Next(nil)
 	if err != nil {
@@ -502,7 +504,7 @@ func chunkAllStreaming(chunker *Chunker) ([]int, error) {
 			return nil, errors.New("chunker returned non-positive chunk size")
 		}
 		out = append(out, chunk.Length)
-		
+
 		// Grow buffer if needed for next iteration
 		if len(buf) < chunk.Length*2 {
 			buf = make([]byte, chunk.Length*2)
