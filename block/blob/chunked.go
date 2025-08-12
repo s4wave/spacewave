@@ -20,7 +20,6 @@ func BuildChunkIndex(
 	bcs *block.Cursor,
 	chunkerArgs *ChunkerArgs,
 ) (*ChunkIndex, uint64, error) {
-
 	ci, err := UnmarshalChunkIndex(ctx, bcs)
 	if err != nil {
 		if err != block.ErrUnexpectedType {

@@ -28,20 +28,20 @@ type Iterator struct {
 	closed  bool
 
 	// Precomputed queries for advance operation
-	advanceForwardQuery         string
-	advanceForwardPrefixQuery   string
-	advanceBackwardQuery        string
-	advanceBackwardPrefixQuery  string
+	advanceForwardQuery        string
+	advanceForwardPrefixQuery  string
+	advanceBackwardQuery       string
+	advanceBackwardPrefixQuery string
 
 	// Precomputed queries for seek operation
-	seekForwardQuery            string
-	seekForwardPrefixQuery      string
-	seekForwardPrefixNilQuery   string
-	seekBackwardQuery           string
-	seekBackwardPrefixQuery     string
-	seekBackwardPrefixNilQuery  string
-	seekAbsoluteStartQuery      string
-	seekAbsoluteEndQuery        string
+	seekForwardQuery           string
+	seekForwardPrefixQuery     string
+	seekForwardPrefixNilQuery  string
+	seekBackwardQuery          string
+	seekBackwardPrefixQuery    string
+	seekBackwardPrefixNilQuery string
+	seekAbsoluteStartQuery     string
+	seekAbsoluteEndQuery       string
 }
 
 // NewIterator constructs a new high-performance SQLite iterator.

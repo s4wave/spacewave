@@ -18,13 +18,13 @@ type Tx struct {
 	discardOnce sync.Once
 
 	// Precomputed queries
-	getQuery         string
-	sizeQuery        string
-	setQuery         string
-	scanAllQuery     string
-	scanPrefixQuery  string
-	deleteQuery      string
-	existsQuery      string
+	getQuery        string
+	sizeQuery       string
+	setQuery        string
+	scanAllQuery    string
+	scanPrefixQuery string
+	deleteQuery     string
+	existsQuery     string
 }
 
 // NewTx constructs a new SQLite transaction.

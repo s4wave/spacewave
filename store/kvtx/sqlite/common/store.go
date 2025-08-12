@@ -73,6 +73,9 @@ func (s *Store[T]) initTable() error {
 		value BLOB
 	)`
 	_, err := s.db.Exec(query)
+	if err == nil {
+		_, err = s.db.Exec("PRAGMA journal_mode=WAL;")
+	}
 	return err
 }
 
