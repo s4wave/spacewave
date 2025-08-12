@@ -60,7 +60,7 @@ func (x BlobType) String() string {
 type ChunkerType int32
 
 const (
-	// ChunkerType_DEFAULT builds/appends using the default chunker (RABIN).
+	// ChunkerType_DEFAULT builds/appends using the default chunker (JC).
 	ChunkerType_ChunkerType_DEFAULT ChunkerType = 0
 	// ChunkerType_RABIN uses rabin fingerprinting to chunk.
 	ChunkerType_ChunkerType_RABIN ChunkerType = 1

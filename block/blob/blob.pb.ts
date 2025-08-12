@@ -49,7 +49,7 @@ export const BlobType_Enum = createEnumType('blob.BlobType', [
  */
 export enum ChunkerType {
   /**
-   * ChunkerType_DEFAULT builds/appends using the default chunker (RABIN).
+   * ChunkerType_DEFAULT builds/appends using the default chunker (JC).
    *
    * @generated from enum value: ChunkerType_DEFAULT = 0;
    */
