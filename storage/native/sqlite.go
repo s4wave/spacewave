@@ -1,4 +1,4 @@
-//go:build !js && bldr_bolt
+//go:build !js && !bldr_bolt
 
 package storage_native
 
@@ -10,56 +10,56 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
-	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
+	volume_sqlite "github.com/aperturerobotics/hydra/volume/sqlite"
 	"github.com/pkg/errors"
 )
 
-const BoltDBExt = ".bdb"
+const SqliteDBExt = ".db"
 
-// BoltDB implements the BoltDB database.
-type BoltDB struct {
+// SqliteDB implements the SqliteDB database.
+type SqliteDB struct {
 	verbose bool
 	rootDir string
 }
 
-// NewBoltDB constructs an BoltDB storage handle.
-func NewBoltDB(verbose bool, rootDir string) storage.Storage {
-	return &BoltDB{verbose: verbose, rootDir: rootDir}
+// NewSqliteDB constructs an SqliteDB storage handle.
+func NewSqliteDB(verbose bool, rootDir string) storage.Storage {
+	return &SqliteDB{verbose: verbose, rootDir: rootDir}
 }
 
 // GetStorageInfo returns StorageInfo.
-func (i *BoltDB) GetStorageInfo() *storage.StorageInfo {
+func (i *SqliteDB) GetStorageInfo() *storage.StorageInfo {
 	return &storage.StorageInfo{}
 }
 
 // AddFactories adds the factories to the resolver.
-func (i *BoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
-	sr.AddFactory(volume_bolt.NewFactory(b))
+func (i *SqliteDB) AddFactories(b bus.Bus, sr *static.Resolver) {
+	sr.AddFactory(volume_sqlite.NewFactory(b))
 }
 
 // BuildVolumeConfig creates the volume config for the store ID.
 // Returns nil if the storage cannot produce Volume.
-func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
+func (i *SqliteDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
 	// replace any slashes with underscores
-	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
+	filename := strings.ReplaceAll(id, "/", "_") + SqliteDBExt
 	if cleanFilename := filepath.Clean(filename); cleanFilename != filename {
 		return nil, errors.Errorf("invalid storage id: %s", filename)
 	}
 
-	return &volume_bolt.Config{
+	return &volume_sqlite.Config{
 		Path:         filepath.Join(i.rootDir, filename),
+		Table:        "bldr",
 		Verbose:      i.verbose,
-		Sync:         true,
 		VolumeConfig: baseVolCtrlConf,
 	}, nil
 }
 
 func init() {
 	storageMethods = append(storageMethods, func(b bus.Bus, rootDir string) []storage.Storage {
-		return []storage.Storage{NewBoltDB(false, rootDir)}
+		return []storage.Storage{NewSqliteDB(false, rootDir)}
 	})
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*BoltDB)(nil))
+var _ storage.Storage = ((*SqliteDB)(nil))

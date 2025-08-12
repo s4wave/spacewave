@@ -140,6 +140,8 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 		return nil, err
 	}
 
+	// add storage factories
+
 	// attach the default storage controller
 	// this provides separate named volumes with the storage volume controller.
 	storageID := default_storage.StorageID
@@ -156,6 +158,11 @@ func BuildDevtoolBus(rctx context.Context, le *logrus.Entry, stateRoot string, w
 	if len(storageMethods) == 0 {
 		ctxCancel()
 		return nil, errors.New("no available storage methods")
+	}
+
+	// add the storage method factories
+	for _, storageMethod := range storageMethods {
+		storageMethod.AddFactories(b, sr)
 	}
 
 	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{

@@ -16,12 +16,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	volume_bolt "github.com/aperturerobotics/hydra/volume/bolt"
+	volume_sqlite "github.com/aperturerobotics/hydra/volume/sqlite"
 )
 
 // AddFactories adds the devtool factories.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// volumes
 	sr.AddFactory(volume_bolt.NewFactory(b))
+	sr.AddFactory(volume_sqlite.NewFactory(b))
 
 	addCommonFactories(b, sr)
 
