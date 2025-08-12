@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/hydra/kvtx"
-	"github.com/aperturerobotics/hydra/store/kvtx"
+	store_kvtx "github.com/aperturerobotics/hydra/store/kvtx"
 )
 
 // Store represents a SQLite-based key-value store.
@@ -32,6 +32,6 @@ func OpenWithMode(path string, mode os.FileMode, table string) (Store, error) {
 }
 
 // NewStore constructs a new key-value store from an existing SQLite database connection.
-func NewStore(db *sql.DB, table string) Store {
+func NewStore(db *sql.DB, table string) (Store, error) {
 	return newStore(db, table)
 }

@@ -17,6 +17,6 @@ func openWithMode(path string, mode os.FileMode, table string) (Store, error) {
 	return cgo.OpenWithMode(path, mode, table)
 }
 
-func newStore(db *sql.DB, table string) Store {
+func newStore(db *sql.DB, table string) (Store, error) {
 	return cgo.NewStore(db, table)
 }

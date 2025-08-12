@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/common"
 	"modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite/lib"
 	_ "modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // PureGoConfig implements the SQLiteDriverConfig interface for pure Go SQLite driver.
@@ -36,7 +36,7 @@ func (c PureGoConfig) IsBusyError(err error) bool {
 type Store = common.Store[PureGoConfig]
 
 // NewStore constructs a new key-value store from a SQLite database.
-func NewStore(db *sql.DB, table string) *Store {
+func NewStore(db *sql.DB, table string) (*Store, error) {
 	return common.NewStore(db, table, PureGoConfig{})
 }
 

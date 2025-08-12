@@ -6,10 +6,30 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
+
+// ValidateTableName validates that a table name is safe to use in SQL queries.
+// It only allows alphanumeric characters and underscores, and must start with a letter or underscore.
+func ValidateTableName(table string) error {
+	if table == "" {
+		return errors.New("table name cannot be empty")
+	}
+
+	// Table name must match: start with letter/underscore, followed by letters/digits/underscores
+	matched, err := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_]*$`, table)
+	if err != nil {
+		return err
+	}
+	if !matched {
+		return errors.New("invalid table name: must start with letter or underscore and contain only alphanumeric characters and underscores")
+	}
+
+	return nil
+}
 
 // SQLiteDriverConfig defines the interface for SQLite driver configuration.
 type SQLiteDriverConfig interface {
@@ -29,14 +49,17 @@ type Store[T SQLiteDriverConfig] struct {
 }
 
 // NewStore constructs a new key-value store from a SQLite database.
-func NewStore[T SQLiteDriverConfig](db *sql.DB, table string, config T) *Store[T] {
-	return &Store[T]{db: db, table: table, config: config}
+func NewStore[T SQLiteDriverConfig](db *sql.DB, table string, config T) (*Store[T], error) {
+	if err := ValidateTableName(table); err != nil {
+		return nil, err
+	}
+	return &Store[T]{db: db, table: table, config: config}, nil
 }
 
 // Open opens a SQLite database store using the configured driver.
 func Open[T SQLiteDriverConfig](path string, table string, config T) (*Store[T], error) {
-	if table == "" {
-		return nil, errors.New("table name cannot be empty")
+	if err := ValidateTableName(table); err != nil {
+		return nil, err
 	}
 
 	// Set WAL mode and a default busy_timeout in DSN for basic waiting on non-transactional ops.
@@ -47,7 +70,12 @@ func Open[T SQLiteDriverConfig](path string, table string, config T) (*Store[T],
 		return nil, err
 	}
 
-	store := NewStore(db, table, config)
+	store, err := NewStore(db, table, config)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	if err := store.initTable(); err != nil {
 		db.Close()
 		return nil, err
@@ -64,6 +92,7 @@ func OpenWithMode[T SQLiteDriverConfig](path string, mode os.FileMode, table str
 			file.Close()
 		}
 	}
+
 	return Open(path, table, config)
 }
 

@@ -1,3 +1,5 @@
+//go:build cgo
+
 package cgo
 
 import (
@@ -33,7 +35,7 @@ func (c CGOConfig) IsBusyError(err error) bool {
 type Store = common.Store[CGOConfig]
 
 // NewStore constructs a new key-value store from a SQLite database.
-func NewStore(db *sql.DB, table string) *Store {
+func NewStore(db *sql.DB, table string) (*Store, error) {
 	return common.NewStore(db, table, CGOConfig{})
 }
 
