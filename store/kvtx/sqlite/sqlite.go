@@ -5,11 +5,13 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/hydra/kvtx"
+	"github.com/aperturerobotics/hydra/store/kvtx"
 )
 
 // Store represents a SQLite-based key-value store.
 type Store interface {
 	kvtx.Store
+	store_kvtx.Store
 
 	// GetDB returns the underlying SQL database connection.
 	GetDB() *sql.DB
@@ -25,7 +27,6 @@ func Open(path string, table string) (Store, error) {
 }
 
 // OpenWithMode opens a SQLite database store with file mode.
-// For compatibility with bolt API - mode parameter is used for file creation.
 func OpenWithMode(path string, mode os.FileMode, table string) (Store, error) {
 	return openWithMode(path, mode, table)
 }
