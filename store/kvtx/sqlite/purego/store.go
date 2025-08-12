@@ -6,6 +6,8 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/common"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 	_ "modernc.org/sqlite"
 )
 
@@ -20,6 +22,14 @@ func (c PureGoConfig) DriverName() string {
 // Description returns a description for pure Go SQLite.
 func (c PureGoConfig) Description() string {
 	return "SQLite database key-value store using pure Go SQLite driver"
+}
+
+// IsBusyError checks if the error is a SQLITE_BUSY error for pure Go driver.
+func (c PureGoConfig) IsBusyError(err error) bool {
+	if sqliteErr, ok := err.(*sqlite.Error); ok {
+		return sqliteErr.Code() == sqlite3.SQLITE_BUSY
+	}
+	return false
 }
 
 // Store is a SQLite database key-value store using pure Go SQLite driver.

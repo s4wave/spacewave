@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"time"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 )
@@ -16,6 +17,8 @@ type SQLiteDriverConfig interface {
 	DriverName() string
 	// Description returns a human-readable description of the driver
 	Description() string
+	// IsBusyError checks if the error is a SQLITE_BUSY error for this driver
+	IsBusyError(err error) bool
 }
 
 // Store represents a generic SQLite store that can work with any driver.
@@ -36,7 +39,10 @@ func Open[T SQLiteDriverConfig](path string, table string, config T) (*Store[T],
 		return nil, errors.New("table name cannot be empty")
 	}
 
-	db, err := sql.Open(config.DriverName(), path)
+	// Set WAL mode and a default busy_timeout in DSN for basic waiting on non-transactional ops.
+	// For transaction-level waiting, we handle retries in NewTransaction.
+	dsn := path + "?_journal_mode=WAL&_busy_timeout=5000"
+	db, err := sql.Open(config.DriverName(), dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -73,24 +79,54 @@ func (s *Store[T]) initTable() error {
 		value BLOB
 	)`
 	_, err := s.db.Exec(query)
-	if err == nil {
-		_, err = s.db.Exec("PRAGMA journal_mode=WAL;")
-	}
 	return err
 }
 
 // NewTransaction returns a new transaction against the store.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	var opts *sql.TxOptions
 	if !write {
-		opts = &sql.TxOptions{ReadOnly: true}
+		// Read-only tx: allows multiple concurrent readers.
+		opts := &sql.TxOptions{ReadOnly: true}
+		txn, err := s.db.BeginTx(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		return NewTx(txn, s.table, write), nil
 	}
 
-	txn, err := s.db.BeginTx(ctx, opts)
-	if err != nil {
-		return nil, err
+	// Write tx: acquire RESERVED lock early to serialize writers.
+	// Retry on SQLITE_BUSY
+	backoff := 10 * time.Millisecond
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, context.Canceled
+		default:
+		}
+
+		txn, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		// Dummy non-modifying DELETE to acquire RESERVED lock early.
+		_, err = txn.ExecContext(ctx, "DELETE FROM "+s.table+" WHERE 1=0")
+		if err == nil {
+			// Success: RESERVED acquired, proceed.
+			return NewTx(txn, s.table, write), nil
+		}
+
+		// Rollback on failure.
+		txn.Rollback()
+
+		// Check if SQLITE_BUSY; if so, backoff and retry.
+		if !s.config.IsBusyError(err) {
+			return nil, err
+		}
+
+		// Constant-time backoff.
+		time.Sleep(backoff)
 	}
-	return NewTx(txn, s.table, write), nil
 }
 
 // Execute executes the given store.
@@ -102,3 +138,6 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 func (s *Store[T]) Close() error {
 	return s.db.Close()
 }
+
+// _ is a type assertion
+var _ kvtx.Store = ((*Store[SQLiteDriverConfig])(nil))

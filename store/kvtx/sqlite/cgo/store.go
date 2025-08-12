@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	"github.com/aperturerobotics/hydra/store/kvtx/sqlite/common"
+	"github.com/mattn/go-sqlite3"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -20,6 +21,12 @@ func (c CGOConfig) DriverName() string {
 // Description returns a description for CGO SQLite.
 func (c CGOConfig) Description() string {
 	return "SQLite database key-value store using CGO SQLite driver"
+}
+
+// IsBusyError checks if the error is a SQLITE_BUSY error for CGO driver.
+func (c CGOConfig) IsBusyError(err error) bool {
+	sqliteErr, ok := err.(sqlite3.Error)
+	return ok && sqliteErr.Code == sqlite3.ErrBusy
 }
 
 // Store is a SQLite database key-value store using CGO SQLite driver.
