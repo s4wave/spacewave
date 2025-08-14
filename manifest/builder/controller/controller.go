@@ -216,9 +216,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Set the result promise
-		resultPromise.SetResult(result, err)
 		if err == nil {
+			resultPromise.SetResult(result, nil)
 			prevResult = result
+		} else {
+			resultPromise.SetResult(nil, err)
 		}
 		prevErr = err
 

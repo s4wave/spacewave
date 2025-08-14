@@ -74,16 +74,8 @@ func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	var equal bool
-	t.builderRoutine.SwapValue(func(val *bldr_project.ManifestConfig) *bldr_project.ManifestConfig {
-		equal = val.EqualMessageVT(manifestConf)
-		if equal {
-			return val
-		}
-		return manifestConf
-	})
-
-	if !equal && t.resultPcObserved && (t.result != nil || t.resultErr != nil) {
+	_, changed, _, _ := t.builderRoutine.SetState(manifestConf)
+	if changed && t.resultPcObserved && (t.result != nil || t.resultErr != nil) {
 		// don't allow this, could cause infinite loops
 		return nil, errors.New("called BuildSubManifest with different configuration after a value was already resolved")
 	}
