@@ -28,14 +28,14 @@ require (
 	github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f // latest
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.9.0
-	golang.org/x/mod v0.26.0 // latest
-	golang.org/x/tools v0.35.0 // latest
+	golang.org/x/mod v0.27.0 // latest
+	golang.org/x/tools v0.36.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.43.0 // master
+	github.com/aperturerobotics/bifrost v0.43.1 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.2 // master
@@ -79,10 +79,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.50.4 // latest
+	github.com/aperturerobotics/controllerbus v0.50.5 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
 	github.com/aperturerobotics/starpc v0.39.7 // latest
-	github.com/aperturerobotics/util v1.31.1 // latest
+	github.com/aperturerobotics/util v1.31.2 // latest
 )
 
 // aperture: use compatibility forks
@@ -101,9 +101,9 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.13
 	github.com/klauspost/compress v1.18.0
-	github.com/libp2p/go-libp2p v0.42.1
+	github.com/libp2p/go-libp2p v0.43.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.16.0 // indirect
+	github.com/multiformats/go-multiaddr v0.16.1 // indirect
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
@@ -113,7 +113,7 @@ require (
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.40.0
+	golang.org/x/crypto v0.41.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
@@ -168,8 +168,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	modernc.org/libc v1.66.3 // indirect

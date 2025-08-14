@@ -15,6 +15,7 @@ import (
 	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	web_pkg_esbuild "github.com/aperturerobotics/bldr/web/pkg/esbuild"
@@ -157,41 +158,25 @@ func (c *Controller) BuildManifest(
 		WithField("platform-id", platformID)
 	le.Debug("building vite bundle")
 
-	// If no web package references changed, rebuild vite assets only (hot reload)
-	// If the fast rebuild detects changes to the web package references, a full rebuild will occur.
-	prevResult := args.GetPrevBuilderResult()
+	// Try fast rebuild first if we have a previous result and not in release mode
 	var updatedManifestMeta *manifest_builder.InputManifest
+	prevResult := args.GetPrevBuilderResult()
 	if !prevResult.GetManifestRef().GetEmpty() && !isRelease {
-		// Check out the previous result to disk.
-		prevManifestRef := prevResult.GetManifestRef()
-		_, err = builderConf.CheckoutManifest(
+		var err error
+		updatedManifestMeta, err = c.tryFastRebuild(
 			ctx,
 			le,
-			busEngine.AccessWorldState,
-			prevManifestRef.GetManifestRef(),
+			builderConf,
+			busEngine,
+			manifestID,
+			sourcePath,
+			distSourcePath,
+			workingPath,
 			outDistPath,
 			outAssetsPath,
+			prevResult,
+			args.GetChangedFiles(),
 		)
-		if err != nil {
-			err = errors.Wrap(err, "failed to check out previous manifest")
-		}
-
-		// Run the fast rebuild.
-		if err == nil {
-			updatedManifestMeta, err = c.FastRebuildBundle(
-				ctx,
-				le,
-				manifestID,
-				sourcePath,
-				distSourcePath,
-				workingPath,
-				outDistPath,
-				outAssetsPath,
-				prevResult.GetInputManifest(),
-				args.GetChangedFiles(),
-			)
-		}
-
 		if err != nil {
 			le.WithError(err).Warn("fast rebuild failed: continuing with normal build")
 			updatedManifestMeta = nil
@@ -200,147 +185,27 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
-	// if fast-rebuild skipped or failed, use the full rebuild process (slower)
+	// If fast rebuild was skipped or failed, perform a full rebuild
 	if updatedManifestMeta == nil {
-		// clean/create build directories
-		if err := fsutil.CleanCreateDir(outDistPath); err != nil {
-			return nil, err
-		}
-		if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
-			return nil, err
-		}
-
-		// build base config
-		buildCtrlConf := conf.CloneVT()
-		if buildCtrlConf == nil {
-			buildCtrlConf = &Config{}
-		}
-
-		// apply the per-build-type configs
-		buildCtrlConf.FlattenBuildTypes(buildType)
-
-		// call any pre-build hooks
-		for _, hook := range c.preBuildHooks {
-			res, err := hook(ctx, builderConf, busEngine)
-			if err != nil {
-				return nil, err
-			}
-
-			// merge the returned config
-			buildCtrlConf.Merge(res.GetConfig())
-		}
-
-		// Process each bundle
-		bundleList, err := BuildViteBundleMeta(buildCtrlConf.GetBundles())
-		if err != nil {
-			return nil, err
-		}
-
-		// Build each bundle
-		var webPkgRefs []*web_pkg.WebPkgRef
-		var viteOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
-		var sourceFilesList []string
-		var viteBundles []*ViteBundleMeta
-
-		for _, bundle := range bundleList {
-			bundleID := bundle.Id
-			ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(newViteBundlerKey(
-				distSourcePath,
-				sourcePath,
-				workingPath,
-				bundleID,
-			))
-			bundler, err := bundlerTkr.instancePromiseCtr.Await(ctx)
-			if err != nil {
-				ref.Release()
-				return nil, err
-			}
-
-			// TODO: make this concurrent
-			bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err := BuildViteBundle(
-				ctx,
-				le,
-				distSourcePath,
-				sourcePath,
-				workingPath,
-				conf.GetViteConfigPaths(),
-				bundle,
-				bundler,
-				conf.GetWebPkgs(),
-				outAssetsPath,
-				manifestID,
-				isRelease,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			webPkgRefs = append(webPkgRefs, bundleWebPkgRefs...)
-			viteOutputMeta = append(viteOutputMeta, bundleOutputMeta...)
-			sourceFilesList = append(sourceFilesList, bundleSrcFiles...)
-			viteBundles = append(viteBundles, bundle)
-		}
-
-		// Sort and deduplicate
-		web_pkg.SortWebPkgRefs(webPkgRefs)
-		viteOutputMeta = bldr_web_bundler_vite.SortViteOutputMetas(viteOutputMeta)
-		slices.Sort(sourceFilesList)
-		sourceFilesList = slices.Compact(sourceFilesList)
-
-		// build manifest metadata
-		inputManifestMeta := &InputManifestMeta{
-			WebPkgRefs:      webPkgRefs,
-			WebPkgs:         buildCtrlConf.GetWebPkgs(),
-			ViteBundles:     viteBundles,
-			ViteConfigPaths: buildCtrlConf.GetViteConfigPaths(),
-			ViteOutputs:     viteOutputMeta,
-		}
-		inputManifestMetaBin, err := inputManifestMeta.MarshalVT()
-		if err != nil {
-			return nil, err
-		}
-
-		updatedManifestMeta = &manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
-		inputFileKinds := map[InputFileKind][]string{
-			InputFileKind_InputFileKind_VITE: sourceFilesList,
-		}
-
-		// Run esbuild on the web pkgs (if any)
-		outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
-		_, webPkgSrcFiles, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
+		var err error
+		updatedManifestMeta, err = c.performFullRebuild(
 			ctx,
 			le,
+			conf,
+			builderConf,
+			busEngine,
+			manifestID,
 			sourcePath,
-			webPkgRefs,
-			outWebPkgsPath,
-			plugin.PluginWebPkgHttpPrefix,
+			distSourcePath,
+			workingPath,
+			outDistPath,
+			outAssetsPath,
+			buildType,
 			isRelease,
 		)
 		if err != nil {
 			return nil, err
 		}
-		inputFileKinds[InputFileKind_InputFileKind_WEB_PKG] = webPkgSrcFiles
-
-		for kind, srcPaths := range inputFileKinds {
-			meta := &InputFileMeta{Kind: kind}
-			metaBin, err := meta.MarshalVT()
-			if err != nil {
-				return nil, err
-			}
-
-			err = fsutil.ConvertPathsToRelative(sourcePath, srcPaths)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, srcPath := range srcPaths {
-				updatedManifestMeta.Files = append(updatedManifestMeta.Files, &manifest_builder.InputManifest_File{
-					Path:     srcPath,
-					Metadata: metaBin,
-				})
-			}
-		}
-		updatedManifestMeta.SortFiles()
 	}
 
 	tx, err := busEngine.NewTransaction(ctx, true)
@@ -380,70 +245,35 @@ func (c *Controller) BuildManifest(
 	return result, nil
 }
 
-// FastRebuildBundle compiles the plugin once skipping running the web pkgs build process if possible.
-// Assumes we are in dev mode (not release mode).
-// Assumes the previous result is already checked out to outDistPath and outAssetsPath.
-// Returns nil, nil if fast rebuild is not applicable.
-func (c *Controller) FastRebuildBundle(
+// viteBuildResult stores the results of building Vite bundles.
+type viteBuildResult struct {
+	webPkgRefs   []*web_pkg.WebPkgRef
+	viteOutputs  []*bldr_web_bundler_vite.ViteOutputMeta
+	viteSrcFiles []string
+	viteBundles  []*ViteBundleMeta
+}
+
+// buildViteBundles builds all Vite bundles and returns the aggregated results.
+func (c *Controller) buildViteBundles(
 	ctx context.Context,
 	le *logrus.Entry,
-	manifestID,
-	sourcePath,
 	distSourcePath,
-	workingPath,
-	outDistPath,
-	outAssetsPath string,
-	prevInputManifest *manifest_builder.InputManifest,
-	changedFiles []*manifest_builder.InputManifest_File,
-) (*manifest_builder.InputManifest, error) {
-	// Skip if there is no previous result.
-	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
-		return nil, nil
-	}
+	sourcePath,
+	workingPath string,
+	viteConfigPaths []string,
+	bundleList []*ViteBundleMeta,
+	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
+	outAssetsPath,
+	manifestID string,
+	isRelease bool,
+) (*viteBuildResult, error) {
+	var webPkgRefs []*web_pkg.WebPkgRef
+	var viteOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
+	var sourceFilesList []string
+	var viteBundles []*ViteBundleMeta
 
-	// Skip if there is no valid input manifest metadata.
-	prevMetaBin := prevInputManifest.Metadata
-	if len(prevMetaBin) == 0 {
-		return nil, nil
-	}
-	inputMeta := &InputManifestMeta{}
-	if err := inputMeta.UnmarshalVT(prevMetaBin); err != nil {
-		return nil, errors.Wrap(err, "unmarshal input metadata")
-	}
-
-	webPkgs := inputMeta.GetWebPkgs()
-
-	// If any non-vite assets changed, skip fast rebuild.
-	meta := &InputFileMeta{}
-	for _, changedFile := range changedFiles {
-		meta.Reset()
-		err := meta.UnmarshalVT(changedFile.GetMetadata())
-		if err != nil {
-			// parsing error
-			return nil, errors.Wrap(err, "failed to parse file metadata")
-		}
-		kind := meta.GetKind()
-		if kind != InputFileKind_InputFileKind_VITE {
-			// Skip fast rebuild: non-vite asset
-			return nil, nil
-		}
-	}
-
-	// Perform fast rebuild by running the vite compiler only.
-	le.Info("performing fast rebuild")
-
-	// Process each bundle
-	bundleList, err := BuildViteBundleMeta(inputMeta.GetViteBundles())
-	if err != nil {
-		return nil, err
-	}
-
-	// execute the build
-	var updatedWebPkgRefs []*web_pkg.WebPkgRef
-	var viteSrcFiles []string
-	var updatedViteOutputs []*bldr_web_bundler_vite.ViteOutputMeta
-	for _, bundleDef := range bundleList {
-		bundleID := bundleDef.GetId()
+	for _, bundle := range bundleList {
+		bundleID := bundle.Id
 		ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(newViteBundlerKey(
 			distSourcePath,
 			sourcePath,
@@ -456,62 +286,65 @@ func (c *Controller) FastRebuildBundle(
 			return nil, err
 		}
 
-		viteWebPkgRefs, viteOutputs, viteSrcs, err := BuildViteBundle(
+		// TODO: make this concurrent
+		bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err := BuildViteBundle(
 			ctx,
 			le,
 			distSourcePath,
 			sourcePath,
 			workingPath,
-			inputMeta.GetViteConfigPaths(),
-			bundleDef,
+			viteConfigPaths,
+			bundle,
 			bundler,
 			webPkgs,
 			outAssetsPath,
 			manifestID,
-			false, // Not release mode for fast rebuild
+			isRelease,
 		)
 		ref.Release()
 		if err != nil {
 			return nil, err
 		}
 
-		viteSrcFiles = append(viteSrcFiles, viteSrcs...)
-		updatedViteOutputs = append(updatedViteOutputs, viteOutputs...)
-		for _, webPkgRef := range viteWebPkgRefs {
-			for _, impPath := range webPkgRef.Imports {
-				updatedWebPkgRefs, _ = web_pkg.WebPkgRefSlice(updatedWebPkgRefs).AppendWebPkgRef(
-					webPkgRef.WebPkgId,
-					webPkgRef.WebPkgRoot,
-					impPath,
-				)
-			}
-		}
+		webPkgRefs = append(webPkgRefs, bundleWebPkgRefs...)
+		viteOutputMeta = append(viteOutputMeta, bundleOutputMeta...)
+		sourceFilesList = append(sourceFilesList, bundleSrcFiles...)
+		viteBundles = append(viteBundles, bundle)
 	}
 
-	// cleanup vite src files list
-	slices.Sort(viteSrcFiles)
-	viteSrcFiles = slices.Compact(viteSrcFiles)
+	// Sort and deduplicate
+	web_pkg.SortWebPkgRefs(webPkgRefs)
+	viteOutputMeta = bldr_web_bundler_vite.SortViteOutputMetas(viteOutputMeta)
+	slices.Sort(sourceFilesList)
+	sourceFilesList = slices.Compact(sourceFilesList)
 
-	// cleanup outputs list
-	updatedViteOutputs = bldr_web_bundler_vite.SortViteOutputMetas(updatedViteOutputs)
+	return &viteBuildResult{
+		webPkgRefs:   webPkgRefs,
+		viteOutputs:  viteOutputMeta,
+		viteSrcFiles: sourceFilesList,
+		viteBundles:  viteBundles,
+	}, nil
+}
 
-	// compare the outputs list with the old outputs list.
-	// delete any output file from the old outputs that was not overwritten by vite.
-	// for example: changed files with hashes in the filename will delete the old hash.
-	updatedOutputs := make(map[string]struct{}, len(updatedViteOutputs))
-	for _, updatedOutput := range updatedViteOutputs {
-		updatedOutputs[updatedOutput.GetPath()] = struct{}{}
+// cleanupOldViteOutputs removes old Vite output files that are no longer needed.
+func (c *Controller) cleanupOldViteOutputs(
+	le *logrus.Entry,
+	outAssetsPath string,
+	oldOutputs []*bldr_web_bundler_vite.ViteOutputMeta,
+	newOutputs []*bldr_web_bundler_vite.ViteOutputMeta,
+) error {
+	newOutputPaths := make(map[string]struct{}, len(newOutputs))
+	for _, output := range newOutputs {
+		newOutputPaths[output.GetPath()] = struct{}{}
 	}
 
-	// Clean up old vite outputs
-	// TODO: is this necessary?
-	for _, oldOutput := range inputMeta.GetViteOutputs() {
-		if _, ok := updatedOutputs[oldOutput.GetPath()]; !ok {
+	for _, oldOutput := range oldOutputs {
+		if _, exists := newOutputPaths[oldOutput.GetPath()]; !exists {
 			oldOutputPath := oldOutput.GetPath()
 			absPath := filepath.Join(outAssetsPath, oldOutputPath)
 			relPath, err := filepath.Rel(outAssetsPath, absPath)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if strings.HasPrefix(relPath, "..") {
 				// prevent deleting things outside the assets dir
@@ -521,26 +354,177 @@ func (c *Controller) FastRebuildBundle(
 			if _, err := os.Stat(absPath); os.IsNotExist(err) {
 				le.Warnf("old output path not found: %s", oldOutputPath)
 			} else if err := os.Remove(absPath); err != nil {
-				return nil, err
+				return err
 			} else {
 				le.Debugf("removed old output: %s", oldOutputPath)
 			}
 		}
 	}
+	return nil
+}
 
-	// compare the web pkg refs to see if they changed.
-	// if so: we must perform a full rebuild to pick up the new refs + rebuild the web pkgs.
-	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: updatedWebPkgRefs}) {
+// buildInputManifest creates an InputManifest from the build results.
+func (c *Controller) buildInputManifest(
+	sourcePath string,
+	viteBuildResult *viteBuildResult,
+	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
+	viteConfigPaths []string,
+	webPkgSrcFiles []string,
+) (*manifest_builder.InputManifest, error) {
+	inputManifestMeta := &InputManifestMeta{
+		WebPkgRefs:      viteBuildResult.webPkgRefs,
+		WebPkgs:         webPkgs,
+		ViteBundles:     viteBuildResult.viteBundles,
+		ViteConfigPaths: viteConfigPaths,
+		ViteOutputs:     viteBuildResult.viteOutputs,
+	}
+	inputManifestMetaBin, err := inputManifestMeta.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+
+	updatedManifestMeta := &manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
+	inputFileKinds := map[InputFileKind][]string{
+		InputFileKind_InputFileKind_VITE: viteBuildResult.viteSrcFiles,
+	}
+
+	if len(webPkgSrcFiles) != 0 {
+		inputFileKinds[InputFileKind_InputFileKind_WEB_PKG] = webPkgSrcFiles
+	}
+
+	for kind, srcPaths := range inputFileKinds {
+		meta := &InputFileMeta{Kind: kind}
+		metaBin, err := meta.MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+
+		srcPathsCopy := make([]string, len(srcPaths))
+		copy(srcPathsCopy, srcPaths)
+		err = fsutil.ConvertPathsToRelative(sourcePath, srcPathsCopy)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, srcPath := range srcPathsCopy {
+			updatedManifestMeta.Files = append(updatedManifestMeta.Files, &manifest_builder.InputManifest_File{
+				Path:     srcPath,
+				Metadata: metaBin,
+			})
+		}
+	}
+	updatedManifestMeta.SortFiles()
+
+	return updatedManifestMeta, nil
+}
+
+// tryFastRebuild attempts to perform a fast rebuild if conditions are met.
+// Returns nil, nil if fast rebuild is not applicable or if web pkg refs changed.
+func (c *Controller) tryFastRebuild(
+	ctx context.Context,
+	le *logrus.Entry,
+	builderConf *manifest_builder.BuilderConfig,
+	busEngine world.Engine,
+	manifestID,
+	sourcePath,
+	distSourcePath,
+	workingPath,
+	outDistPath,
+	outAssetsPath string,
+	prevResult *manifest_builder.BuilderResult,
+	changedFiles []*manifest_builder.InputManifest_File,
+) (*manifest_builder.InputManifest, error) {
+	// Check out the previous result to disk
+	prevManifestRef := prevResult.GetManifestRef()
+	_, err := builderConf.CheckoutManifest(
+		ctx,
+		le,
+		busEngine.AccessWorldState,
+		prevManifestRef.GetManifestRef(),
+		outDistPath,
+		outAssetsPath,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check out previous manifest")
+	}
+
+	prevInputManifest := prevResult.GetInputManifest()
+
+	// Skip if there is no previous result or no changed files
+	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
+		return nil, nil
+	}
+
+	// Skip if there is no valid input manifest metadata
+	prevMetaBin := prevInputManifest.Metadata
+	if len(prevMetaBin) == 0 {
+		return nil, nil
+	}
+	inputMeta := &InputManifestMeta{}
+	if err := inputMeta.UnmarshalVT(prevMetaBin); err != nil {
+		return nil, errors.Wrap(err, "unmarshal input metadata")
+	}
+
+	// If any non-vite assets changed, skip fast rebuild
+	meta := &InputFileMeta{}
+	for _, changedFile := range changedFiles {
+		meta.Reset()
+		err := meta.UnmarshalVT(changedFile.GetMetadata())
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse file metadata")
+		}
+		kind := meta.GetKind()
+		if kind != InputFileKind_InputFileKind_VITE {
+			// Skip fast rebuild: non-vite asset changed
+			return nil, nil
+		}
+	}
+
+	le.Info("performing fast rebuild")
+
+	// Process each bundle
+	bundleList, err := BuildViteBundleMeta(inputMeta.GetViteBundles())
+	if err != nil {
+		return nil, err
+	}
+
+	// Build Vite bundles
+	viteBuildResult, err := c.buildViteBundles(
+		ctx,
+		le,
+		distSourcePath,
+		sourcePath,
+		workingPath,
+		inputMeta.GetViteConfigPaths(),
+		bundleList,
+		inputMeta.GetWebPkgs(),
+		outAssetsPath,
+		manifestID,
+		false, // Not release mode for fast rebuild
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Clean up old vite outputs that are no longer needed
+	err = c.cleanupOldViteOutputs(le, outAssetsPath, inputMeta.GetViteOutputs(), viteBuildResult.viteOutputs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compare web pkg refs to see if they changed
+	// If so, we must perform a full rebuild to pick up the new refs + rebuild the web pkgs
+	if !(&InputManifestMeta{WebPkgRefs: inputMeta.WebPkgRefs}).EqualVT(&InputManifestMeta{WebPkgRefs: viteBuildResult.webPkgRefs}) {
 		le.Info("references to web pkgs changed: forcing a full re-build")
 		return nil, nil
 	}
 
-	// build the updated input manifest
+	// Build the updated input manifest, preserving non-vite files
 	updatedInputManifest := prevInputManifest.CloneVT()
 	updatedInputMeta := inputMeta.CloneVT()
-	updatedInputMeta.ViteOutputs = updatedViteOutputs
+	updatedInputMeta.ViteOutputs = viteBuildResult.viteOutputs
 
-	// drop all vite files from the set (we will add them back next)
+	// Remove all vite files from the set (we will add them back next)
 	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
 		meta.Reset()
 		err := meta.UnmarshalVT(f.GetMetadata())
@@ -551,8 +535,10 @@ func (c *Controller) FastRebuildBundle(
 		return kind == InputFileKind_InputFileKind_VITE
 	})
 
-	// add the updated vite files to the list
-	if err := fsutil.ConvertPathsToRelative(sourcePath, viteSrcFiles); err != nil {
+	// Add the updated vite files to the list
+	viteSrcFilesCopy := make([]string, len(viteBuildResult.viteSrcFiles))
+	copy(viteSrcFilesCopy, viteBuildResult.viteSrcFiles)
+	if err := fsutil.ConvertPathsToRelative(sourcePath, viteSrcFilesCopy); err != nil {
 		return nil, err
 	}
 	viteFileMeta := &InputFileMeta{Kind: InputFileKind_InputFileKind_VITE}
@@ -560,7 +546,7 @@ func (c *Controller) FastRebuildBundle(
 	if err != nil {
 		return nil, err
 	}
-	for _, srcPath := range viteSrcFiles {
+	for _, srcPath := range viteSrcFilesCopy {
 		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
 			Path:     srcPath,
 			Metadata: viteFileMetaBin,
@@ -568,7 +554,7 @@ func (c *Controller) FastRebuildBundle(
 	}
 	updatedInputManifest.SortFiles()
 
-	// encode the updated meta
+	// Encode the updated metadata
 	updMeta, err := updatedInputMeta.MarshalVT()
 	if err != nil {
 		return nil, err
@@ -577,6 +563,102 @@ func (c *Controller) FastRebuildBundle(
 
 	le.Debug("fast rebuild complete")
 	return updatedInputManifest, nil
+}
+
+// performFullRebuild performs a complete rebuild including web packages.
+func (c *Controller) performFullRebuild(
+	ctx context.Context,
+	le *logrus.Entry,
+	conf *Config,
+	builderConf *manifest_builder.BuilderConfig,
+	busEngine world.Engine,
+	manifestID,
+	sourcePath,
+	distSourcePath,
+	workingPath,
+	outDistPath,
+	outAssetsPath string,
+	buildType bldr_manifest.BuildType,
+	isRelease bool,
+) (*manifest_builder.InputManifest, error) {
+	// Clean/create build directories
+	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
+		return nil, err
+	}
+	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
+		return nil, err
+	}
+
+	// Build base config
+	buildCtrlConf := conf.CloneVT()
+	if buildCtrlConf == nil {
+		buildCtrlConf = &Config{}
+	}
+
+	// Apply the per-build-type configs
+	buildCtrlConf.FlattenBuildTypes(buildType)
+
+	// Call any pre-build hooks
+	for _, hook := range c.preBuildHooks {
+		res, err := hook(ctx, builderConf, busEngine)
+		if err != nil {
+			return nil, err
+		}
+
+		// Merge the returned config
+		buildCtrlConf.Merge(res.GetConfig())
+	}
+
+	// Process each bundle
+	bundleList, err := BuildViteBundleMeta(buildCtrlConf.GetBundles())
+	if err != nil {
+		return nil, err
+	}
+
+	// Build Vite bundles
+	viteBuildResult, err := c.buildViteBundles(
+		ctx,
+		le,
+		distSourcePath,
+		sourcePath,
+		workingPath,
+		buildCtrlConf.GetViteConfigPaths(),
+		bundleList,
+		buildCtrlConf.GetWebPkgs(),
+		outAssetsPath,
+		manifestID,
+		isRelease,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Run esbuild on the web pkgs (if any)
+	var webPkgSrcFiles []string
+	if len(viteBuildResult.webPkgRefs) != 0 {
+		outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
+		_, webPkgSrcFiles, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
+			ctx,
+			le,
+			sourcePath,
+			viteBuildResult.webPkgRefs,
+			outWebPkgsPath,
+			plugin.PluginWebPkgHttpPrefix,
+			isRelease,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build the input manifest
+	return c.buildInputManifest(
+		sourcePath,
+		viteBuildResult,
+		buildCtrlConf.GetWebPkgs(),
+		buildCtrlConf.GetViteConfigPaths(),
+		webPkgSrcFiles,
+	)
 }
 
 // _ is a type assertion
