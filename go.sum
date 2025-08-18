@@ -14,8 +14,8 @@ github.com/aperturerobotics/cayley v0.9.1 h1:fPW0kYZamDbRVzBfpHNou5uqFlLIIF/JFeh
 github.com/aperturerobotics/cayley v0.9.1/go.mod h1:jAi3MXAWz07Ds2rERJd13auScsyt4Vkf2Mbqi4Tx/40=
 github.com/aperturerobotics/cli v1.0.0 h1:s3xT2h7eBih4/4yZKTn/HQ6P+qpk6ygWZl2416xAI1M=
 github.com/aperturerobotics/cli v1.0.0/go.mod h1:wtlINjMcKuwyV1x4ftReuA6hHZcPB8kPMXHyQqGFCSc=
-github.com/aperturerobotics/common v0.22.10 h1:XFfXq9NGrirjW6rtqq525qiY1IN+1siGBZwIsvBJGfQ=
-github.com/aperturerobotics/common v0.22.10/go.mod h1:xMXHNN6oCvG0FfG1tY6+2Si7iWh1QfSSCSrqohFUeIk=
+github.com/aperturerobotics/common v0.22.12 h1:uSo+fDQg6xCoNI34Y7gueW1cW9Cy4d/2FQb/T006LZQ=
+github.com/aperturerobotics/common v0.22.12/go.mod h1:xMXHNN6oCvG0FfG1tY6+2Si7iWh1QfSSCSrqohFUeIk=
 github.com/aperturerobotics/controllerbus v0.50.5 h1:DsQFT0VHtnoTOfhSoanaqx1M06zroOdntiLJmsoJXlY=
 github.com/aperturerobotics/controllerbus v0.50.5/go.mod h1:oi56KiVYm9szcbHffzeNCEGWi3iauDMzaDNz2SSfUlA=
 github.com/aperturerobotics/entitygraph v0.11.0 h1:nPnT0SXsEMqsxmn/lWGR50JHbfmSd3pVanyJAm6v8rI=
@@ -44,10 +44,10 @@ github.com/aperturerobotics/protobuf-go-lite v0.11.0 h1:IAaZISqrEpodqECYxk0yKWgR
 github.com/aperturerobotics/protobuf-go-lite v0.11.0/go.mod h1:c4kGy7Dkfz6B1m0t4QBIMQoNeQ7m+nYj3Qxxnlwhygo=
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89 h1:MUXLrLDjCw36dx8OeBwF/B7YP5akyoU6Ps+v50qR5Lo=
 github.com/aperturerobotics/quic-go v0.48.2-0.20241029082227-fa76c393ee89/go.mod h1:vhhkHYq2i9lb0bOllqKhOdtg/3i7r4o/7zc8XI/T4lo=
-github.com/aperturerobotics/starpc v0.39.7 h1:ztYLrVD5KfzBU6CP3rE0M4/K0lNx9S/I6E2slJXGBHI=
-github.com/aperturerobotics/starpc v0.39.7/go.mod h1:2+rc+xB4EMF3StlJGyqO5Jaq7OyDFQR0J0McVtOA7CI=
-github.com/aperturerobotics/util v1.31.2 h1:ZDPmeQO502CgWAIXL55ZcsFNIJQ+yAXGXxGGCH0erSI=
-github.com/aperturerobotics/util v1.31.2/go.mod h1:Ff2UQHCBERfRsaRMBfmaukS4yUzQTNB6syNTLXzWmJo=
+github.com/aperturerobotics/starpc v0.39.8 h1:4g4tBiU+dcpcHw65DZ7SwJ7u0apxJ7rOyw3NlYxajO8=
+github.com/aperturerobotics/starpc v0.39.8/go.mod h1:T4JI3BAX/GkinxMS+LqN4T250rdxX6zSctNqgsZrIi8=
+github.com/aperturerobotics/util v1.31.3 h1:3irvlwlwwvOl4jD2lHg/N8bBp9B/3kx9Ec4qlJxQKEU=
+github.com/aperturerobotics/util v1.31.3/go.mod h1:G5yKUDojt6uzVvs7kGByey0lBfKdDg4O4jXmdkSqO6Y=
 github.com/aperturerobotics/wazero v0.0.0-20250706223739-81a39a0d5d54 h1:NDfiGotph6x6zkuCUjXp91woQwjyOc+vn309+L37WuI=
 github.com/aperturerobotics/wazero v0.0.0-20250706223739-81a39a0d5d54/go.mod h1:TSbcXCfFP0L2FGkRPxHphadXPjo1T6W+CseNNY7EkjM=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
@@ -364,8 +364,8 @@ google.golang.org/protobuf v1.22.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2
 google.golang.org/protobuf v1.23.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
 google.golang.org/protobuf v1.23.1-0.20200526195155-81db48ad09cc/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
 google.golang.org/protobuf v1.25.0/go.mod h1:9JNX74DMeImyA3h4bdi1ymwjUzf21/xIlbajtzgsN7c=
-google.golang.org/protobuf v1.36.6 h1:z1NpPI8ku2WgiWnf+t9wTPsn6eP1L7ksHUlkfLvd9xY=
-google.golang.org/protobuf v1.36.6/go.mod h1:jduwjTPXsFjZGTmRluh+L6NjiWu7pchiJ2/5YcXBHnY=
+google.golang.org/protobuf v1.36.7 h1:IgrO7UwFQGJdRNXH/sQux4R1Dj1WAKcLElzeeRaXV2A=
+google.golang.org/protobuf v1.36.7/go.mod h1:jduwjTPXsFjZGTmRluh+L6NjiWu7pchiJ2/5YcXBHnY=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=

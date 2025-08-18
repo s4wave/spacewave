@@ -70,7 +70,7 @@
   },
   "devDependencies": {
     "@aptre-cjs/esm-cjs-lexer": "^0.1.0",
-    "@aptre/common": "^0.22.10",
+    "@aptre/common": "^0.22.12",
     "@types/random-string": "^0.2.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
@@ -94,10 +94,10 @@
     "@aptre/protobuf-es-lite": "^0.5.2",
     "@libp2p/logger": "^5.1.21",
     "console": "^0.7.2",
-    "electron": "^37.2.6",
+    "electron": "^37.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "starpc": "^0.39.7",
+    "starpc": "^0.39.8",
     "workbox-window": "^7.3.0"
   },
   "resolutions": {
