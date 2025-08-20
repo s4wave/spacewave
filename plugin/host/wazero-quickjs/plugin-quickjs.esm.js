@@ -6194,6 +6194,26 @@ function createAbortController() {
   return AbortControllerImpl;
 }
 
+// quickjs/polyfill-symbol.ts
+function createSymbolPolyfills() {
+  if (!Symbol.dispose) {
+    Object.defineProperty(Symbol, "dispose", {
+      value: Symbol("Symbol.dispose"),
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  }
+  if (!Symbol.asyncDispose) {
+    Object.defineProperty(Symbol, "asyncDispose", {
+      value: Symbol("Symbol.asyncDispose"),
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  }
+}
+
 // quickjs/text-encoding.js
 function inRange(a, min, max) {
   return min <= a && a <= max;
@@ -7367,6 +7387,7 @@ function applyPolyfills(to) {
       }
     });
   });
+  createSymbolPolyfills();
   target.console = createQuickjsConsole(target.console);
   target.performance = createQuickjsPerformance(target.performance);
   target.Event = createEvent();

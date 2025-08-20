@@ -1,6 +1,7 @@
 import { QuickjsGlobalScope } from './quickjs.js'
 import { createEvent } from './polyfill-event.js'
 import { createAbortController } from './polyfill-abort-controller.js'
+import { createSymbolPolyfills } from './polyfill-symbol.js'
 import { TextEncoder, TextDecoder } from './text-encoding.js'
 import { createQuickjsConsole, type Console } from './console.js'
 import { createQuickjsPerformance, type Performance } from './performance.js'
@@ -84,6 +85,8 @@ export function applyPolyfills(
       set() {},
     })
   })
+
+  createSymbolPolyfills()
 
   target.console = createQuickjsConsole(target.console)
   target.performance = createQuickjsPerformance(target.performance)

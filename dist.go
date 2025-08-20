@@ -38,7 +38,7 @@ import (
 //go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
 //go:embed util/pipesock/pipesock.ts
 //go:embed plugin/compiler/js/entrypoint.ts
-//go:embed sdk/plugin.ts sdk/impl/backend-api.ts
+//go:embed sdk/plugin.ts sdk/defer.ts sdk/impl/backend-api.ts
 //go:embed .vscode/launch.json
 //go:embed README.md tsconfig.json go.mod go.sum global.d.ts
 var DistSources embed.FS
