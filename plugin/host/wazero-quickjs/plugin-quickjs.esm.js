@@ -4919,7 +4919,7 @@ function isPromise3(thing) {
 function forEach(source, fn) {
   let index = 0;
   if (isAsyncIterable3(source)) {
-    return async function* () {
+    return (async function* () {
       for await (const val of source) {
         const res2 = fn(val, index++);
         if (isPromise3(res2)) {
@@ -4927,17 +4927,17 @@ function forEach(source, fn) {
         }
         yield val;
       }
-    }();
+    })();
   }
   const peekable2 = src_default2(source);
   const { value, done } = peekable2.next();
   if (done === true) {
-    return function* () {
-    }();
+    return (function* () {
+    })();
   }
   const res = fn(value, index++);
   if (typeof res?.then === "function") {
-    return async function* () {
+    return (async function* () {
       yield value;
       for (const val of peekable2) {
         const res2 = fn(val, index++);
@@ -4946,16 +4946,16 @@ function forEach(source, fn) {
         }
         yield val;
       }
-    }();
+    })();
   }
   const func = fn;
-  return function* () {
+  return (function* () {
     yield value;
     for (const val of peekable2) {
       func(val, index++);
       yield val;
     }
-  }();
+  })();
 }
 var src_default3 = forEach;
 
@@ -5847,7 +5847,7 @@ var RpcStream = class {
   }
   // _createSource initializes the source field.
   _createSource() {
-    return async function* (packetRx) {
+    return (async function* (packetRx) {
       while (true) {
         const msgIt = await packetRx.next();
         if (msgIt.done) {
@@ -5869,7 +5869,7 @@ var RpcStream = class {
             break;
         }
       }
-    }(this._packetRx);
+    })(this._packetRx);
   }
 };
 

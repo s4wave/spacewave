@@ -6,7 +6,7 @@ go 1.24.4
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
 
 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20250428230204-8c668b313064 // aperture
+replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-0.20250820074906-f8001962030a // aperture
 
 // https://github.com/tetratelabs/wazero/issues/1500#issuecomment-3041125375
 replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20250706223739-81a39a0d5d54 // aperture
