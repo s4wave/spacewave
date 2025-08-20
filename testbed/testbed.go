@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/bifrost/peer"
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/bldr/core"
+	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	plugin_host_scheduler "github.com/aperturerobotics/bldr/plugin/host/scheduler"
 	default_storage "github.com/aperturerobotics/bldr/storage/default"
@@ -18,13 +19,16 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/hydra/bucket"
+	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	node_controller "github.com/aperturerobotics/hydra/node/controller"
 	"github.com/aperturerobotics/hydra/volume"
 	volume_controller "github.com/aperturerobotics/hydra/volume/controller"
 	"github.com/aperturerobotics/hydra/world"
 	world_block_engine "github.com/aperturerobotics/hydra/world/block/engine"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	"github.com/go-git/go-billy/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -348,6 +352,54 @@ func (d *Testbed) GetMux() srpc.Mux {
 // GetRpcServiceCtrl returns the RPC service controller.
 func (d *Testbed) GetRpcServiceCtrl() *bifrost_rpc.RpcServiceController {
 	return d.rpcServiceCtrl
+}
+
+// CreateManifestWithBilly creates a manifest with billyfs and links it to the plugin host.
+// This is used by end to end tests to create plugin manifests ad-hoc.
+// distFs and assetsFs can both be nil to create empty fs.
+func (d *Testbed) CreateManifestWithBilly(
+	ctx context.Context,
+	manifestMeta *bldr_manifest.ManifestMeta,
+	entrypoint string,
+	distFs, assetsFs billy.Filesystem,
+	ts *timestamppb.Timestamp,
+) (manifest *bldr_manifest.Manifest, manifestRef *bldr_manifest.ManifestRef, err error) {
+	err = d.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
+
+		manifest, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifestMeta, entrypoint, distFs, assetsFs, ts)
+		if err != nil {
+			return err
+		}
+
+		manifestBlockRef, _, err := btx.Write(ctx, true)
+		if err != nil {
+			return err
+		}
+
+		manifestObjRef := bls.GetRef().Clone()
+		manifestObjRef.RootRef = manifestBlockRef
+		manifestRef = bldr_manifest.NewManifestRef(manifestMeta, manifestObjRef)
+		return err
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// link it with the plugin host
+	err = bldr_manifest_world.ExStoreManifestOp(
+		ctx,
+		d.GetWorldState(),
+		d.GetVolume().GetPeerID(),
+		"manifests/"+manifestMeta.GetManifestId(),
+		[]string{d.GetPluginHostObjKey()},
+		manifestRef,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return manifest, manifestRef, nil
 }
 
 // Release releases the devtool bus.

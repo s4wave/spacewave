@@ -5,13 +5,11 @@ import (
 	"testing"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host_wazero_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
 	"github.com/aperturerobotics/bldr/testbed"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	starpc_mock "github.com/aperturerobotics/starpc/mock"
 	"github.com/aperturerobotics/util/promise"
@@ -19,12 +17,7 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	billy_util "github.com/go-git/go-billy/v5/util"
 	"github.com/sirupsen/logrus"
-
-	_ "embed"
 )
-
-//go:embed plugin-quickjs_test.ts
-var TestScriptSrc string
 
 func TestPluginHostWazeroQuickjs(t *testing.T) {
 	ctx := context.Background()
@@ -34,11 +27,7 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 
 	// Build the TypeScript source to ESM format ES2022
 	result := esbuild_api.Build(esbuild_api.BuildOptions{
-		Stdin: &esbuild_api.StdinOptions{
-			Contents:   TestScriptSrc,
-			Loader:     esbuild_api.LoaderTS,
-			Sourcefile: "plugin-quickjs_test.ts",
-		},
+		EntryPoints: []string{"plugin-quickjs_test.ts"},
 		Bundle:      true,
 		Format:      esbuild_api.FormatESModule,
 		Target:      esbuild_api.ES2022,
@@ -101,52 +90,22 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 	}
 	defer pluginRef.Release()
 
+	// create the contents of the plugin manifest
+	assetsFS, distFS := memfs.New(), memfs.New()
+	nowTs := timestamppb.Now()
+	err = billy_util.WriteFile(distFS, scriptPath, []byte(scriptContents), 0o644)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// create a basic plugin manifest
-	var manifest *bldr_manifest.Manifest
-	var manifestRef *bldr_manifest.ManifestRef
 	manifestMeta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, 1)
-	err = tb.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
-
-		assetsFS, distFS := memfs.New(), memfs.New()
-		nowTs := timestamppb.Now()
-		err := billy_util.WriteFile(distFS, scriptPath, []byte(scriptContents), 0o644)
-		if err != nil {
-			return err
-		}
-
-		manifest, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
-		if err != nil {
-			return err
-		}
-
-		manifestBlockRef, _, err := btx.Write(ctx, true)
-		if err != nil {
-			return err
-		}
-
-		manifestObjRef := bls.GetRef().Clone()
-		manifestObjRef.RootRef = manifestBlockRef
-		manifestRef = bldr_manifest.NewManifestRef(manifestMeta, manifestObjRef)
-		return err
-	})
+	manifest, manifestRef, err := tb.CreateManifestWithBilly(ctx, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// link it with the plugin host
-	err = bldr_manifest_world.ExStoreManifestOp(
-		ctx,
-		tb.GetWorldState(),
-		tb.GetVolume().GetPeerID(),
-		"manifests/"+manifestID,
-		[]string{tb.GetPluginHostObjKey()},
-		manifestRef,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	_ = manifest
+	_ = manifestRef
+	manifest.GetMeta().Logger(le).Info("created manifest")
 
 	// expect the plugin to startup and run
 	runningPlugin, _, runningPluginRef, err := bldr_plugin.ExLoadPlugin(ctx, b, false, pluginID, nil)
