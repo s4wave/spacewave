@@ -17,7 +17,6 @@ import {
   LoadPluginResponse,
   PluginStartInfo,
 } from '../plugin/plugin.pb.js'
-import { Retry } from '@aptre/bldr'
 
 // BackendAPI is the API exposed to Bldr plugin backends (running in a WebWorker).
 //
@@ -97,4 +96,7 @@ export interface BackendAPI {
 }
 
 // BackendEntrypointFunc is the default function exported from a plugin backend entrypoint.
-export type BackendEntrypointFunc = (api: BackendAPI) => Promise<void>
+export type BackendEntrypointFunc = (
+  api: BackendAPI,
+  abortSignal: AbortSignal,
+) => Promise<void>

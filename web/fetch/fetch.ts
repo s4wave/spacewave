@@ -73,8 +73,9 @@ export function buildResponseStream(
     controller: ReadableStreamController<Uint8Array>,
   ) {
     // note: workaround type mismatch error here (types are fine)
-    const enqueue: (data: Uint8Array) => void =
-      controller.enqueue.bind(controller)
+    const enqueue = (controller.enqueue as (data: Uint8Array) => void).bind(
+      controller,
+    )
     while (it) {
       const next = await it.next()
       if (next.done) {
@@ -88,7 +89,7 @@ export function buildResponseStream(
       const responseDataPkt = value.body.value
       const responseData = responseDataPkt?.data
       if (responseData && responseData.length) {
-        enqueue(responseData as Uint8Array)
+        enqueue(responseData)
       }
       if (responseDataPkt?.done) {
         controller.close()

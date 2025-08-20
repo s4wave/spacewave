@@ -42,11 +42,13 @@ declare const __BLDR_HANDLE_WEB_PKGS__:
  * Loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
  * @param backendAPI - The backend API object to pass to the entrypoint function.
+ * @param abortSignal - The abort signal to pass to the entrypoint function.
  * @returns A promise that resolves when the entrypoint function completes, or rejects on error.
  */
 async function executeBackendEntrypoint(
   entrypoint: BackendEntrypoint,
   backendAPI: BackendAPI,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   // Ensure entrypoint and importPath are valid before proceeding.
   if (!entrypoint?.importPath) {
@@ -82,7 +84,7 @@ async function executeBackendEntrypoint(
     // Execute the function, passing the PluginAPI.
     // Wrap the call in Promise.resolve() to handle both Promise<void> and void return values.
     // Chain a .then() to log completion.
-    return Promise.resolve(modFunc(backendAPI)).then(() => {
+    return Promise.resolve(modFunc(backendAPI, abortSignal)).then(() => {
       console.debug(`Backend entrypoint finished: ${entrypointId}`)
     })
   } catch (error) {
@@ -101,7 +103,10 @@ async function executeBackendEntrypoint(
  * Loads and executes all configured backend entrypoints.
  * @param backendAPI - The backend API object.
  */
-async function loadBackendEntrypoints(backendAPI: BackendAPI): Promise<void> {
+async function loadBackendEntrypoints(
+  backendAPI: BackendAPI,
+  abortSignal: AbortSignal,
+): Promise<void> {
   // Load backend entrypoints directly from the defined constant.
   const backendEntrypoints = __BLDR_BACKEND_ENTRYPOINTS__ ?? []
 
@@ -118,7 +123,7 @@ async function loadBackendEntrypoints(backendAPI: BackendAPI): Promise<void> {
       // Wrap execution in a promise chain to catch individual errors
       // without stopping the loading of other entrypoints immediately.
       // We still want Promise.all to report the aggregate failure.
-      executeBackendEntrypoint(entrypoint, backendAPI),
+      executeBackendEntrypoint(entrypoint, backendAPI, abortSignal),
   )
 
   // Wait for all backend entrypoint promises to settle (resolve or reject).
@@ -380,7 +385,7 @@ export default async function main(
   }
 
   // Load and execute backend entrypoints.
-  await loadBackendEntrypoints(backendAPI)
+  await loadBackendEntrypoints(backendAPI, abortSignal)
 
   // Process frontend entrypoints (currently just logs them).
   loadWebPlugin(backendAPI, pluginId, abortSignal)

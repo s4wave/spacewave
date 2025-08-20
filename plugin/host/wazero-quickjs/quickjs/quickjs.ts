@@ -273,9 +273,9 @@ export interface QuickjsGlobalScope {
      * @param offset - Byte position in buffer
      * @param length - Number of bytes to write
      */
-    write(
+    write<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike>(
       fd: number,
-      buffer: ArrayBuffer,
+      buffer: TArrayBuffer,
       offset: number,
       length: number,
     ): number
