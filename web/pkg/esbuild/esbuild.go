@@ -346,7 +346,9 @@ func BuildWebPkgsEsbuild(
 		buildOpts.Alias[webPkgID] = webPkgRef.WebPkgRoot
 
 		// see: https://github.com/evanw/esbuild/issues/399
-		buildOpts.Splitting = false
+		// TODO: is this still an issue? having splitting set to false is quite bad for bundle size.
+		// buildOpts.Splitting = false
+		buildOpts.Splitting = true
 
 		// externalize some packages we remap with an import map
 		for _, toExternalize := range web_pkg_external.BldrExternal {
