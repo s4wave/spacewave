@@ -232,7 +232,10 @@ func BuildWebPkgsEsbuild(
 			}
 		}
 
+		// pkg public path is webPkgBasePath/webPkgID
 		pkgPublicPath := path.Join(webPkgBasePath, webPkgID)
+
+		// keep the ./ prefix if present
 		if strings.HasPrefix(webPkgBasePath, "./") {
 			pkgPublicPath = "./" + pkgPublicPath
 		}

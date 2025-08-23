@@ -217,12 +217,18 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, bldrDistRoot, bu
 		return err
 	}
 
-	// set entrypointHash to empty string as we do not add a hash to the entrypoint for the electron bundle.
-	var entrypointHash string
-
 	// build to the entrypoint dir
 	entrypointDir := filepath.Join(buildDir, "entrypoint")
-	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(ctx, le, bldrNativePlatform, bldrDistRoot, entrypointDir, entrypointHash, minify, devMode); err != nil {
+	if err := entrypoint_browser_bundle.BuildWebPkgsBundle(
+		ctx,
+		le,
+		bldrNativePlatform,
+		bldrDistRoot,
+		entrypointDir,
+		"/entrypoint/", // set the pathPrefix to /entrypoint/ so web pkg paths are correct
+		minify,
+		devMode,
+	); err != nil {
 		return err
 	}
 

@@ -373,7 +373,11 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 
 	// if we are in development mode: include test-utils to react-dom
 	if devMode {
-		refs[1].Imports = append(refs[1].Imports, "test-utils.js")
+		for _, ref := range refs {
+			if ref.WebPkgId == "react-dom" {
+				ref.Imports = append(ref.Imports, "test-utils.js")
+			}
+		}
 	}
 
 	_, _, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
@@ -382,7 +386,6 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, plat bldr_platfor
 		buildDir,
 		refs,
 		outDir,
-		// pkgsPathPrefix+"",
 		pathPrefix+"/pkgs/",
 		minify,
 	)
