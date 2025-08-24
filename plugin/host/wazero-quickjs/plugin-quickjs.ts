@@ -12,11 +12,11 @@ import { BackendApiImpl } from '../../../sdk/impl/backend-api.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 // Utility function to properly log errors
-function logError(message: string, err: unknown) {
+function logError(message: string, err: unknown): void {
   console.error(message)
-  console.error(err?.message || String(err))
+  console.error(("message" in (err as Error) ? (err as Error)?.message : null) ?? String(err))
   if (err && typeof err === 'object' && 'stack' in err) {
-    console.error(err.stack)
+    console.error((err as Error).stack)
   }
 }
 

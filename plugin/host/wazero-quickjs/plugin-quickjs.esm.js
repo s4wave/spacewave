@@ -8176,7 +8176,7 @@ var BackendApiImpl = class {
 // plugin-quickjs.ts
 function logError(message, err) {
   console.error(message);
-  console.error(err?.message || String(err));
+  console.error(("message" in err ? err?.message : null) ?? String(err));
   if (err && typeof err === "object" && "stack" in err) {
     console.error(err.stack);
   }
