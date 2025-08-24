@@ -20,8 +20,6 @@ import (
 //
 // The server and client track FSCursor and CursorOps handles via integer IDs.
 // The handle IDs start at 1, a zero ID indicates nil (empty).
-// This service expects to have a single client access it at a time (calling FSCursorClient).
-// Wrap the service in FSAccessService to construct one cursor service per client session.
 type FSCursorService struct {
 	// mtx guards below fields
 	// note: mtx is only ever locked for very short periods of time.
@@ -1290,7 +1288,7 @@ func (f *FSCursorService) Release(releaseRoot bool) {
 	for _, client := range f.clients {
 		client.released, client.cursors, client.txQueue = true, nil, nil
 	}
-	f.handleIDCtr = 1
+	// f.handleIDCtr = 1
 	f.clients = make(map[uint64]*fsCursorClient)
 	f.handleIDToOps = make(map[uint64]unixfs.FSCursorOps)
 	for id, localCursor := range f.handleIDToCursor {

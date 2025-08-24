@@ -143,7 +143,7 @@ OPTIONS:
    --establish-peers value [ --establish-peers value ]  if set, request establish links to list of peer ids [$BIFROST_ESTABLISH_PEERS]
    --udp-peers value [ --udp-peers value ]              list of peer-id@address known UDP peers [$BIFROST_UDP_PEERS]
    --websocket-peers value [ --websocket-peers value ]  list of peer-id@address known WebSocket peers [$BIFROST_WS_PEERS]
-   --pubsub value                                       if set, will configure pubsub from options: [floodsub, nats] [$BIFROST_PUBSUB]
+   --pubsub value                                       if set, will configure pubsub from options: [floodsub] [$BIFROST_PUBSUB]
 ```
 
 If `--write-config` is set, the options configured on the CLI will be written to
@@ -265,7 +265,6 @@ my-bolt-db-volume:
     verbose: true
 
 # Starts the floodsub implementation of pub-sub.
-# Also available: nats
 pubsub:
   id: bifrost/floodsub
   config: {}
