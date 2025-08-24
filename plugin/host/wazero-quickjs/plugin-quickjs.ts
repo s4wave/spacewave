@@ -11,6 +11,15 @@ import { applyPolyfills } from './quickjs/polyfill.js'
 import { BackendApiImpl } from '../../../sdk/impl/backend-api.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
+// Utility function to properly log errors
+function logError(message: string, err: unknown) {
+  console.error(message)
+  console.error(err?.message || String(err))
+  if (err && typeof err === 'object' && 'stack' in err) {
+    console.error(err.stack)
+  }
+}
+
 // globalThis is the top level quickjs global scope.
 declare const globalThis: QuickjsGlobalScope
 
@@ -29,7 +38,7 @@ const polyGlobalThis = applyPolyfills(globalThis)
 // asynchronously import the script module
 const scriptPromise = import(scriptPath)
 scriptPromise.catch((err) => {
-  console.error('error importing script: ' + scriptPath, err)
+  logError('error importing script: ' + scriptPath, err)
   globalThis.std.exit(1)
 })
 
@@ -86,7 +95,7 @@ globalThis.os.setReadHandler(stdinFd, stdinReadHandler)
 pipe(stdinStream, runtimeConn, async (source) =>
   writeSourceToFd(globalThis.os, source, '/dev/out'),
 ).catch((err) => {
-  console.error('caught error in pipe', err)
+  logError('caught error in pipe', err)
   globalThis.std.exit(1)
 })
 
@@ -132,10 +141,6 @@ async function startPlugin() {
 
 // immediately call startPlugin
 startPlugin().catch((err) => {
-  console.error('startPlugin exited w/error')
-  console.error(err)
-  if ('stack' in err) {
-    console.error(err.stack)
-  }
+  logError('startPlugin exited w/error', err)
   globalThis.std.exit(1)
 })

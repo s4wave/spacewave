@@ -8174,6 +8174,13 @@ var BackendApiImpl = class {
 };
 
 // plugin-quickjs.ts
+function logError(message, err) {
+  console.error(message);
+  console.error(err?.message || String(err));
+  if (err && typeof err === "object" && "stack" in err) {
+    console.error(err.stack);
+  }
+}
 var scriptPath = globalThis.std.getenv("BLDR_SCRIPT_PATH");
 if (!scriptPath) {
   globalThis.console.log("BLDR_SCRIPT_PATH must be defined");
@@ -8182,7 +8189,7 @@ if (!scriptPath) {
 var polyGlobalThis = applyPolyfills(globalThis);
 var scriptPromise = import(scriptPath);
 scriptPromise.catch((err) => {
-  console.error("error importing script: " + scriptPath, err);
+  logError("error importing script: " + scriptPath, err);
   globalThis.std.exit(1);
 });
 var startInfoB64 = globalThis.std.getenv("BLDR_PLUGIN_START_INFO") ?? "";
@@ -8222,7 +8229,7 @@ pipe(
   runtimeConn,
   async (source) => writeSourceToFd(globalThis.os, source, "/dev/out")
 ).catch((err) => {
-  console.error("caught error in pipe", err);
+  logError("caught error in pipe", err);
   globalThis.std.exit(1);
 });
 openStreamCtr.set(runtimeConn.buildOpenStreamFunc());
@@ -8251,10 +8258,6 @@ async function startPlugin() {
   await script.default(backendAPI, abortSignal);
 }
 startPlugin().catch((err) => {
-  console.error("startPlugin exited w/error");
-  console.error(err);
-  if ("stack" in err) {
-    console.error(err.stack);
-  }
+  logError("startPlugin exited w/error", err);
   globalThis.std.exit(1);
 });
