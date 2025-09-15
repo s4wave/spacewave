@@ -115,7 +115,7 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 				// result != nil
 				if result.GetBuilderResult().GetManifest().GetMeta().GetManifestId() == "" {
 					// continue to waitChanged
-					le.Warn("FetchManifest: manifest builder returned empty result")
+					le.Debug("FetchManifest: manifest builder returned empty result, ignoring")
 				} else {
 					_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
 						[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
