@@ -112,11 +112,16 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 				continue
 			} else {
 				// result != nil
-				_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
-					[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
-				))
-				if !watch {
-					return nil
+				if result.GetBuilderResult().GetManifest().GetMeta().GetManifestId() == "" {
+					// continue to waitChanged
+					r.c.le.WithError(err).Warn("FetchManifest: manifest builder returned empty result")
+				} else {
+					_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
+						[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
+					))
+					if !watch {
+						return nil
+					}
 				}
 			}
 		}
