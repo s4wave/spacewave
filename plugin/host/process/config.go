@@ -7,9 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ControllerID is the process host controller ID.
-const ControllerID = "bldr/plugin/host/process"
-
 // ConfigID is the config identifier.
 const ConfigID = ControllerID
 

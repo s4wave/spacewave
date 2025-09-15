@@ -27,6 +27,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ControllerID is the process host controller ID.
+const ControllerID = "bldr/plugin/host/process"
+
+// Controller is the plugin host controller tytpe.
+type Controller = host_controller.Controller
+
 // Version is the version of this controller.
 var Version = semver.MustParse("0.0.1")
 
