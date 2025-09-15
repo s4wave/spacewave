@@ -86,6 +86,7 @@ type fetchManifestWithMetaResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	le := r.meta.Logger(r.c.le)
 	manifestBuilderRef, remoteRef, err := r.c.AddFetchManifestBuilderRef(ctx, r.meta)
 	if err != nil {
 		return err
@@ -105,7 +106,7 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 				if !watch {
 					return err
 				} else {
-					r.c.le.WithError(err).Warn("FetchManifest: manifest builder failed")
+					le.WithError(err).Warn("FetchManifest: manifest builder failed")
 				}
 			} else if result == nil {
 				// waitChanged closed
@@ -114,7 +115,7 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 				// result != nil
 				if result.GetBuilderResult().GetManifest().GetMeta().GetManifestId() == "" {
 					// continue to waitChanged
-					r.c.le.WithError(err).Warn("FetchManifest: manifest builder returned empty result")
+					le.Warn("FetchManifest: manifest builder returned empty result")
 				} else {
 					_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
 						[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
