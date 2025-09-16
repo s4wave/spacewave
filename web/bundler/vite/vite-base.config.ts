@@ -30,11 +30,20 @@ export default defineConfig({
     ),
   },
   resolve: {
-    alias: {
-      '@go/*': resolve(bldrProjectRoot, './vendor/*'),
-      '@aptre/bldr': resolve(bldrDistRoot, './web/bldr/index.js'),
-      '@aptre/bldr-react': resolve(bldrDistRoot, './web/bldr-react/index.js'),
-    },
+    alias: [
+      {
+        find: /^@go\/(.*)$/,
+        replacement: resolve(bldrProjectRoot, './vendor/$1'),
+      },
+      {
+        find: '@aptre/bldr',
+        replacement: resolve(bldrDistRoot, './web/bldr/index.js'),
+      },
+      {
+        find: '@aptre/bldr-react',
+        replacement: resolve(bldrDistRoot, './web/bldr-react/index.js'),
+      },
+    ],
   },
   plugins: [
     // This plugin fixes issues with resolving paths like @go/foo/bar/baz.js where baz.ts exists only.
