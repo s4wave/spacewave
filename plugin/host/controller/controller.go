@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/hydra/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,12 +23,6 @@ type Controller struct {
 	host bldr_plugin_host.PluginHost
 	// platformID is the host platform id
 	platformID string
-}
-
-// hostVol contains a snapshot of the host volume.
-type hostVol struct {
-	vol  volume.Volume
-	info *volume.VolumeInfo
 }
 
 // NewController constructs a new controller.
