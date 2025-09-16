@@ -50,9 +50,9 @@ func (t *proxyVolumeTracker) execute(ctx context.Context) error {
 	}
 	defer valRef.Release()
 
+	var vol volume.Volume
 WaitLoop:
 	for {
-		var vol volume.Volume
 		select {
 		case <-ctx.Done():
 			return context.Canceled
