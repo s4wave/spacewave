@@ -11,7 +11,6 @@ import (
 	strconv "strconv"
 	strings "strings"
 
-	_ "github.com/aperturerobotics/bifrost/hash"
 	block "github.com/aperturerobotics/hydra/block"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
