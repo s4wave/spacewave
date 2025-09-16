@@ -79,6 +79,9 @@ func (t *pluginInstance) processManifestWorldState(
 	if err != nil {
 		return true, err
 	}
+	if ctx.Err() != nil {
+		return true, context.Canceled
+	}
 	for _, manifestErr := range manifestErrs {
 		le.WithError(manifestErr).Warn("skipping manifest due to error")
 	}
