@@ -14,7 +14,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 require (
 	github.com/aperturerobotics/cli v1.0.0
 	github.com/aperturerobotics/common v0.22.12 // latest
-	github.com/aperturerobotics/hydra v0.0.0-20250916081026-6f274dfbdfce // master
+	github.com/aperturerobotics/hydra v0.0.0-20250916225828-4946214e6e23 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // master
 )
 

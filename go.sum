@@ -34,8 +34,8 @@ github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755 h
 github.com/aperturerobotics/go-multiaddr v0.12.4-0.20240407071906-6f0354cc6755/go.mod h1:sBXrNzucqkFJhvKOiwwLyqamGa/P5EIXNPLovyhQCII=
 github.com/aperturerobotics/go-multihash v0.2.3 h1:/dzKxmtr0eadFUcG/8uJdKtcQ5yHwmhwx6oqe1PoMMU=
 github.com/aperturerobotics/go-multihash v0.2.3/go.mod h1:jEGfK9IqlKuD9BaFHgadXORk3i9Rw7DmVOOM6UgauGU=
-github.com/aperturerobotics/hydra v0.0.0-20250916081026-6f274dfbdfce h1:j7UHd10JeySY+P+nB2AJmcFT4u0dnrwNd0DEULYZPvk=
-github.com/aperturerobotics/hydra v0.0.0-20250916081026-6f274dfbdfce/go.mod h1:6PU4MZTI76gWCKnxz/8Mrxrp3nN905UHvHQpDwbVJjo=
+github.com/aperturerobotics/hydra v0.0.0-20250916225828-4946214e6e23 h1:pgw4E0mkuJitLDktZFRZ8JAyvRsW43VdRdQmzW9DW/0=
+github.com/aperturerobotics/hydra v0.0.0-20250916225828-4946214e6e23/go.mod h1:6PU4MZTI76gWCKnxz/8Mrxrp3nN905UHvHQpDwbVJjo=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20250712004945-4e5f8882b0b8 h1:ht7OY1rv7oVmki0/pRYL7e4W0iWtisX+RqS/2yXOwxQ=
 github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20250712004945-4e5f8882b0b8/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/logrus v1.9.4-0.20240119050608-13332fb58195 h1:uyeD1J23j/kFiCFO7rx+GQA4tCqOEy3IJyMK4f6vamE=

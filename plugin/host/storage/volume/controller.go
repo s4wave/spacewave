@@ -143,6 +143,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.volProm.SetResult(volCtrl, nil)
 	defer c.volProm.SetPromise(nil)
 
+	// Wait for context cancel to release everything.
 	<-ctx.Done()
 	return context.Canceled
 }

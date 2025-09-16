@@ -36,14 +36,14 @@ func (s *PluginServer) PluginRpc(rpcStream SRPCPlugin_PluginRpcStream) error {
 			if remotePluginID == "" {
 				return nil, nil, errors.Wrap(ErrEmptyPluginID, "remote plugin rpc")
 			}
-			baseRemoteServerID := PluginServerIDPrefix + remotePluginID
+			baseRemoteServerID := PluginServerID(remotePluginID, "")
 			invoker := bifrost_rpc.NewInvoker(s.b, baseRemoteServerID, true)
 			mux := srpc.NewMux(invoker)
 			accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
 				s.b,
 				true,
 				func(remoteServerID string) (string, error) {
-					return baseRemoteServerID + "/" + remoteServerID, nil
+					return PluginServerID(remotePluginID, remoteServerID), nil
 				},
 			)
 			_ = bifrost_rpc_access.SRPCRegisterAccessRpcService(mux, accessRpcServiceServer)

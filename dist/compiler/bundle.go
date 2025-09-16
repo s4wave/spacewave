@@ -119,6 +119,7 @@ func BuildDistBundle(
 
 	// construct a new bus to hold our working volume
 	le.Info("initializing embedded volume")
+	// TODO: this includes all the volume providers, we probably just need the ones we actually use!
 	workBus, workSr, err := hydra_core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
