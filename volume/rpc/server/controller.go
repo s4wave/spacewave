@@ -3,6 +3,7 @@ package volume_rpc_server
 import (
 	"context"
 	"regexp"
+	"slices"
 
 	bifrost_rpc "github.com/aperturerobotics/bifrost/rpc"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -199,12 +200,7 @@ func (c *Controller) checkVolumeID(volumeID string) bool {
 	if c.matchVolumeIdRe != nil && c.matchVolumeIdRe.MatchString(volumeID) {
 		return true
 	}
-	for _, val := range c.cc.GetVolumeIdList() {
-		if val == volumeID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.cc.GetVolumeIdList(), volumeID)
 }
 
 // _ is a type assertion
