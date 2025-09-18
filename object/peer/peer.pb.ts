@@ -2,11 +2,11 @@
 // @generated from file github.com/aperturerobotics/hydra/object/peer/peer.proto (package object.peer, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from "../../block/transform/transform.pb.js";
-import type { MessageType, PartialFieldInfo } from "@aptre/protobuf-es-lite";
-import { createMessageType, ScalarType } from "@aptre/protobuf-es-lite";
+import { Config as Config$1 } from '../../block/transform/transform.pb.js'
+import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 
-export const protobufPackage = "object.peer";
+export const protobufPackage = 'object.peer'
 
 /**
  * Config configures the object store peer controller.
@@ -23,14 +23,14 @@ export interface Config {
    *
    * @generated from field: string object_store_id = 1;
    */
-  objectStoreId?: string;
+  objectStoreId?: string
   /**
    * VolumeId is the volume id to use for the object store.
    * Can be empty to select any.
    *
    * @generated from field: string volume_id = 2;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * ObjectStoreKey is the key to use in the object store for the private key.
    *
@@ -38,27 +38,26 @@ export interface Config {
    *
    * @generated from field: string object_store_key = 3;
    */
-  objectStoreKey?: string;
+  objectStoreKey?: string
   /**
    * TransformConf transforms the private key before storing it in storage.
    *
    * @generated from field: block.transform.Config transform_conf = 4;
    */
-  transformConf?: Config$1;
-
-};
+  transformConf?: Config$1
+}
 
 // Config contains the message type declaration for Config.
 export const Config: MessageType<Config> = createMessageType({
-    typeName: "object.peer.Config",
-    fields: [
-        { no: 1, name: "object_store_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 2, name: "volume_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 3, name: "object_store_key", kind: "scalar", T: ScalarType.STRING },
-        { no: 4, name: "transform_conf", kind: "message", T: () => Config$1 },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-});
+  typeName: 'object.peer.Config',
+  fields: [
+    { no: 1, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'object_store_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'transform_conf', kind: 'message', T: () => Config$1 },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * StoredValue is the value for the ObjectStore containing the private key.
@@ -71,16 +70,14 @@ export interface StoredValue {
    *
    * @generated from field: string priv_key_pem = 1;
    */
-  privKeyPem?: string;
-
-};
+  privKeyPem?: string
+}
 
 // StoredValue contains the message type declaration for StoredValue.
 export const StoredValue: MessageType<StoredValue> = createMessageType({
-    typeName: "object.peer.StoredValue",
-    fields: [
-        { no: 1, name: "priv_key_pem", kind: "scalar", T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-});
-
+  typeName: 'object.peer.StoredValue',
+  fields: [
+    { no: 1, name: 'priv_key_pem', kind: 'scalar', T: ScalarType.STRING },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

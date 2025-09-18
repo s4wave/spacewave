@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.24.0
 
 require (
-	github.com/aperturerobotics/bifrost v0.43.2-0.20250912205306-926a04d7f3c2 // master
+	github.com/aperturerobotics/bifrost v0.43.2 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -58,10 +58,10 @@ require (
 
 require (
 	github.com/aperturerobotics/common v0.22.12 // latest
-	github.com/aperturerobotics/controllerbus v0.50.6-0.20250916080338-596decbd37ed // latest
+	github.com/aperturerobotics/controllerbus v0.51.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // latest
-	github.com/aperturerobotics/starpc v0.39.8 // latest
+	github.com/aperturerobotics/starpc v0.39.9 // latest
 	github.com/aperturerobotics/util v1.31.3 // latest
 )
 
@@ -188,11 +188,12 @@ require (
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/telemetry v0.0.0-20250908211612-aef8a434d053 // indirect
 	golang.org/x/text v0.29.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

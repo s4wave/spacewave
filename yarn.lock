@@ -2346,6 +2346,24 @@ starpc@^0.39.8:
     uint8arraylist "^2.4.7"
     ws "^8.18.1"
 
+starpc@^0.39.9:
+  version "0.39.9"
+  resolved "https://registry.yarnpkg.com/starpc/-/starpc-0.39.9.tgz#280161d5cfbae0789e334fd579781b93119b144f"
+  integrity sha512-5LjvIjnhfNKsaefmPdh7o+2DvS0TbeTVPoX3sInfYEKc29phghOwiYiv0PXxolGPAQr9sr5L1qgD+9zf0FAY3Q==
+  dependencies:
+    "@aptre/it-ws" "^1.1.2"
+    "@aptre/protobuf-es-lite" "^0.5.2"
+    "@chainsafe/libp2p-yamux" "^7.0.1"
+    "@libp2p/interface" "^2.6.1"
+    event-iterator "^2.0.0"
+    isomorphic-ws "^5.0.0"
+    it-first "^3.0.6"
+    it-pipe "^3.0.1"
+    it-pushable "^3.2.3"
+    it-stream-types "^2.0.2"
+    uint8arraylist "^2.4.7"
+    ws "^8.18.1"
+
 std-env@^3.9.0:
   version "3.9.0"
   resolved "https://registry.yarnpkg.com/std-env/-/std-env-3.9.0.tgz#1a6f7243b339dca4c9fd55e1c7504c77ef23e8f1"

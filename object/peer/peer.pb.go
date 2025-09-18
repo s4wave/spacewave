@@ -6,13 +6,14 @@ package object_peer
 
 import (
 	fmt "fmt"
-	transform "github.com/aperturerobotics/hydra/block/transform"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	io "io"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
+
+	transform "github.com/aperturerobotics/hydra/block/transform"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Config configures the object store peer controller.
