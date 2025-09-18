@@ -14,7 +14,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 require (
 	github.com/aperturerobotics/cli v1.0.0
 	github.com/aperturerobotics/common v0.22.12 // latest
-	github.com/aperturerobotics/hydra v0.0.0-20250916225828-4946214e6e23 // master
+	github.com/aperturerobotics/hydra v0.0.0-20250918225351-0ad2dcb93252 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // master
 )
 
@@ -28,14 +28,14 @@ require (
 	github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f // latest
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.9.0
-	golang.org/x/mod v0.27.0 // latest
-	golang.org/x/tools v0.36.0 // latest
+	golang.org/x/mod v0.28.0 // latest
+	golang.org/x/tools v0.37.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.43.2-0.20250912205306-926a04d7f3c2 // master
+	github.com/aperturerobotics/bifrost v0.43.2 // master
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.2 // master
@@ -79,9 +79,9 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.50.6-0.20250916080338-596decbd37ed // latest
+	github.com/aperturerobotics/controllerbus v0.51.0 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.39.8 // latest
+	github.com/aperturerobotics/starpc v0.39.9 // latest
 	github.com/aperturerobotics/util v1.31.3 // latest
 )
 
@@ -168,7 +168,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
