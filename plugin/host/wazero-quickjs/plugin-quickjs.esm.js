@@ -5690,6 +5690,7 @@ function createDisabledLogger(namespace) {
   logger.debug = logger;
   logger.error = logger;
   logger.trace = logger;
+  logger.newScope = () => logger;
   return logger;
 }
 function createDisabledComponentLogger() {
