@@ -39,6 +39,20 @@ declare const __BLDR_HANDLE_WEB_PKGS__:
   | undefined
 
 /**
+ * Logs an error message and the full error object consistently.
+ * @param message - The base error message.
+ * @param error - The error object to log.
+ */
+function logError(message: string, error: unknown): void {
+  let errMsg = message
+  if (error instanceof Error) {
+    errMsg += ': ' + error.message
+  }
+  console.error(errMsg)
+  console.error(error)
+}
+
+/**
  * Loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
  * @param backendAPI - The backend API object to pass to the entrypoint function.
@@ -88,13 +102,10 @@ async function executeBackendEntrypoint(
       console.debug(`Backend entrypoint finished: ${entrypointId}`)
     })
   } catch (error) {
-    const errMsg = `Failed to load or execute backend entrypoint ${entrypointId}`
-    console.error(
-      `${errMsg}: ${error instanceof Error ? error.message : error}`,
+    logError(
+      `Failed to load or execute backend entrypoint ${entrypointId}`,
+      error,
     )
-    console.error(errMsg, error) // Also log full error object.
-    // Propagate the error by returning a rejected promise.
-    // This ensures Promise.all below will catch the failure.
     return Promise.reject(error)
   }
 }
@@ -134,15 +145,8 @@ async function loadBackendEntrypoints(
     // Promise.all will reject immediately if any promise rejects.
     await Promise.all(backendPromises)
     console.debug('All backend entrypoints completed successfully.')
-  } catch (_error) {
-    // Individual errors during loading/execution are already logged by executeBackendEntrypoint.
-    // This catch block handles the aggregate failure reported by Promise.all.
-    const errMsg =
-      'Error occurred while waiting for one or more backend entrypoints to complete'
-    // Log a summary error; specific error details were logged earlier.
-    console.error(`${errMsg}. See previous logs for details.`)
-    // Optionally re-throw or handle the aggregate error further if needed.
-    // For now, just logging it is sufficient as individual errors are logged.
+  } catch (error) {
+    logError(`One or more backend entrypoints threw errors`, error)
   }
 }
 
@@ -347,8 +351,9 @@ function loadWebPlugin(
           ])
         },
         {
-          errorCb: (err) =>
-            console.error('error loading frontend entrypoints', err),
+          errorCb: (err) => {
+            logError('error loading frontend entrypoints', err)
+          },
         },
       )
     }
