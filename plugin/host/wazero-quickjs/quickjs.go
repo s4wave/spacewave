@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -315,13 +314,14 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			}
 		}()
 
-		// TODO: log to a logger instead of stderr
+		// Log to the logger instead of directly to stderr.
+		debugWriter := le.WriterLevel(logrus.DebugLevel)
 		moduleConfig := wazero.NewModuleConfig().
 			// required for concurrency
 			WithName("").
 			WithStdin(stdinBuf).
-			WithStdout(os.Stderr).
-			WithStderr(os.Stderr).
+			WithStdout(debugWriter).
+			WithStderr(debugWriter).
 			WithFS(pluginDistIofs).
 			WithFSConfig(fsConfig).
 			WithSysNanosleep().
