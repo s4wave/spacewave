@@ -64,10 +64,9 @@ func InitTx(
 	openStream := rpcstream.NewRpcStreamOpenStream(opsCaller, txID, false)
 	openStreamClient := srpc.NewClient(openStream)
 	opsClient := kvtx_rpc.NewSRPCKvtxOpsClient(openStreamClient)
-	return &Tx{
-		Ops:    NewOps(opsClient),
-		client: client,
-	}, nil
+	tx := &Tx{client: client}
+	tx.Ops = NewOps(opsClient, &tx.released)
+	return tx, nil
 }
 
 // Commit commits the transaction to storage.

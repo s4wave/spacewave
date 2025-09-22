@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/hydra/kvtx"
 	kvtx_rpc "github.com/aperturerobotics/hydra/kvtx/rpc"
@@ -14,23 +15,35 @@ import (
 type Ops struct {
 	// client is the service client
 	client kvtx_rpc.SRPCKvtxOpsClient
+	// released indicates if the operations have been released
+	released *atomic.Bool
 }
 
 // NewOps constructs a new TxOps.
-func NewOps(client kvtx_rpc.SRPCKvtxOpsClient) *Ops {
+func NewOps(client kvtx_rpc.SRPCKvtxOpsClient, released *atomic.Bool) *Ops {
+	if released == nil {
+		released = &atomic.Bool{}
+	}
 	return &Ops{
-		client: client,
+		client:   client,
+		released: released,
 	}
 }
 
 // Size checks the number of key/value pairs in the store.
 func (o *Ops) Size(ctx context.Context) (uint64, error) {
+	if o.released.Load() {
+		return 0, kvtx.ErrDiscarded
+	}
 	resp, err := o.client.KeyCount(ctx, &kvtx_rpc.KeyCountRequest{})
 	return resp.GetKeyCount(), err
 }
 
 // Get looks up a key and data from the store.
 func (o *Ops) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
+	if o.released.Load() {
+		return nil, false, kvtx.ErrDiscarded
+	}
 	resp, err := o.client.KeyData(ctx, kvtx_rpc.NewKeyRequest(key))
 	if err != nil {
 		return nil, false, err
@@ -43,6 +56,9 @@ func (o *Ops) Get(ctx context.Context, key []byte) (data []byte, found bool, err
 
 // Set sets a key in the store.
 func (o *Ops) Set(ctx context.Context, key []byte, value []byte) error {
+	if o.released.Load() {
+		return kvtx.ErrDiscarded
+	}
 	resp, err := o.client.SetKey(ctx, &kvtx_rpc.KvtxSetKeyRequest{
 		Key:   key,
 		Value: value,
@@ -55,6 +71,9 @@ func (o *Ops) Set(ctx context.Context, key []byte, value []byte) error {
 
 // Delete removes a key from the store.
 func (o *Ops) Delete(ctx context.Context, key []byte) error {
+	if o.released.Load() {
+		return kvtx.ErrDiscarded
+	}
 	resp, err := o.client.DeleteKey(ctx, &kvtx_rpc.KvtxDeleteKeyRequest{
 		Key: key,
 	})
@@ -66,6 +85,9 @@ func (o *Ops) Delete(ctx context.Context, key []byte) error {
 
 // Exists checks if a key exists in the store.
 func (o *Ops) Exists(ctx context.Context, key []byte) (bool, error) {
+	if o.released.Load() {
+		return false, kvtx.ErrDiscarded
+	}
 	resp, err := o.client.KeyExists(ctx, kvtx_rpc.NewKeyRequest(key))
 	if err := o.err(err, resp.GetError()); err != nil {
 		return false, err
@@ -75,6 +97,9 @@ func (o *Ops) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Iterate iterates over the store.
 func (o *Ops) Iterate(ctx context.Context, prefix []byte, sort bool, reverse bool) kvtx.Iterator {
+	if o.released.Load() {
+		return kvtx.NewErrIterator(kvtx.ErrDiscarded)
+	}
 	itClient, err := o.client.Iterate(ctx)
 	if err != nil {
 		return kvtx.NewErrIterator(err)
@@ -116,6 +141,9 @@ func (o *Ops) Iterate(ctx context.Context, prefix []byte, sort bool, reverse boo
 
 // ScanPrefix scans for key/value pairs with a key prefix.
 func (o *Ops) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	if o.released.Load() {
+		return kvtx.ErrDiscarded
+	}
 	if cb == nil {
 		// nothing to do
 		return nil
@@ -125,6 +153,9 @@ func (o *Ops) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value 
 
 // ScanPrefixKeys scans for keys with a key prefix.
 func (o *Ops) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	if o.released.Load() {
+		return kvtx.ErrDiscarded
+	}
 	if cb == nil {
 		// nothing to do
 		return nil
