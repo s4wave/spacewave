@@ -84,6 +84,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 		return directive.R(c.resolveLoadPlugin(ctx, di, dir))
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, c))
+	case bifrost_rpc.LookupRpcService:
+		return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, dir, c))
 	case unixfs_access.AccessUnixFS:
 		return directive.R(bldr_plugin.ResolveAccessUnixfs(ctx, dir, c))
 	}

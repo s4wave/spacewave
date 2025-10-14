@@ -258,6 +258,8 @@ func (c *Controller) HandleDirective(
 		return directive.R(c.resolveLoadPlugin(d))
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
+	case bifrost_rpc.LookupRpcService:
+		return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, d, c))
 	}
 	return nil, nil
 }
