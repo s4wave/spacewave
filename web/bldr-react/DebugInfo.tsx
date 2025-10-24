@@ -146,7 +146,7 @@ const DebugInfoDisplay = forwardRef<HTMLDivElement, DebugInfoDisplayProps>(
     return (
       <div ref={ref} className={className} style={mergedStyle} {...props}>
         {localDebugInfo.map((info, index) => (
-          <p
+          <div
             style={
               index !== 0 ?
                 { margin: '0.33rem 0', marginBlockEnd: 0 }
@@ -155,7 +155,7 @@ const DebugInfoDisplay = forwardRef<HTMLDivElement, DebugInfoDisplayProps>(
             key={index.toString()}
           >
             {info}
-          </p>
+          </div>
         ))}
       </div>
     )
