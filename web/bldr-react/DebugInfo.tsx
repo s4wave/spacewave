@@ -96,7 +96,7 @@ const useDebugInfo = (info?: ReactNode) => {
 }
 
 const debugInfoStyle: CSSProperties = {
-  fontFamily: 'monospace',
+  fontFamily: 'var(--font-mono), ui-monospace, monospace',
   background: 'rgba(0, 0, 0, 0.8)',
   color: 'white',
   fontSize: '10px',
