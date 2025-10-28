@@ -3,7 +3,7 @@ import type { InlineConfig, UserConfig } from 'vite'
 import { existsSync } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import path from 'path'
-import type { ConfigEnv } from 'vitest/config.js'
+import type { ConfigEnv } from 'vitest/config'
 import type { OutputChunk, RollupOutput, OutputAsset } from 'rollup'
 import type { RollupError } from 'rollup'
 
