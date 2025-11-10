@@ -1,6 +1,8 @@
 package world
 
 import (
+	"time"
+
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
@@ -46,7 +48,10 @@ func (d *lookupWorldOp) Validate() error {
 
 // GetValueLookupWorldOpOptions returns options relating to value handling.
 func (d *lookupWorldOp) GetValueOptions() directive.ValueOptions {
-	return directive.ValueOptions{}
+	return directive.ValueOptions{
+		UnrefDisposeDur:            time.Second,
+		UnrefDisposeEmptyImmediate: true,
+	}
 }
 
 // LookupWorldOpOperationTypeID returns the bucket config.
