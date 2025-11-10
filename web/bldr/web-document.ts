@@ -313,7 +313,6 @@ export interface WebDocumentOptions {
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
   // return a function to use to unregister the callback.
-  // if unset, defaults to using the document.visibilityState API
   watchVisibility?: (cb: (hidden: boolean) => void) => DisposeCallback | null
 }
 

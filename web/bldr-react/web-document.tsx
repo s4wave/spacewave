@@ -30,7 +30,22 @@ export class WebDocument extends React.Component<IWebDocumentProps> {
       this.externalRuntime = true
       this.webDocument = props.webDocument
     } else {
-      this.webDocument = new BldrWebDocument(props.webDocumentOpts)
+      let opts = props.webDocumentOpts || {}
+
+      if (!opts.watchVisibility) {
+        opts = {
+          ...opts,
+          watchVisibility: (cb: (hidden: boolean) => void) => {
+            const handler = () => cb(document.hidden)
+            handler()
+            document.addEventListener('visibilitychange', handler)
+            return () =>
+              document.removeEventListener('visibilitychange', handler)
+          },
+        }
+      }
+
+      this.webDocument = new BldrWebDocument(opts)
     }
     this.state = {}
     this.childContext = { webDocument: this.webDocument }
