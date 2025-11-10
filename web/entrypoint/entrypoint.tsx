@@ -9,6 +9,13 @@ import { WebDocumentOptions } from '@aptre/bldr'
 
 const webDocumentOpts: WebDocumentOptions = {}
 
+// Extract webDocumentId from URL query parameters (for Electron)
+const urlParams = new URLSearchParams(window.location.search)
+const webDocumentId = urlParams.get('webDocumentId')
+if (webDocumentId) {
+  webDocumentOpts.webDocumentId = webDocumentId
+}
+
 // BLDR_RUNTIME_JS is an injected variable with the path to the runtime.js
 declare const BLDR_RUNTIME_JS: string | undefined
 if (typeof BLDR_RUNTIME_JS === 'string') {

@@ -133,6 +133,7 @@ export class WebDocumentTracker {
         delete this.webDocuments[webDocumentId]
         continue
       }
+
       const ackChannel = new MessageChannel()
       const ackPromise = new Promise<ConnectWebRuntimeAck>((resolve) => {
         const ackPort = ackChannel.port1
@@ -145,6 +146,7 @@ export class WebDocumentTracker {
         }
         ackPort.start()
       })
+
       try {
         console.log(
           `WebDocumentTracker: ${this.clientUuid}: connecting via WebDocument: ${webDocumentId}`,

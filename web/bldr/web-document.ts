@@ -284,6 +284,9 @@ export interface WebDocumentOptions {
   // webRuntimeId sets the ID to use for the web runtime.
   // If unset, defaults to "default"
   webRuntimeId?: string
+  // webDocumentId sets the ID to use for this WebDocument.
+  // If unset, a random ID will be generated.
+  webDocumentId?: string
   // createWebViewCb is used to create web views (usually new tabs or windows).
   // if unset, the Go runtime will not be able to create new WebViews.
   createWebViewCb?: CreateWebViewFunc
@@ -400,7 +403,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   constructor(opts?: WebDocumentOptions) {
     super()
     this.webRuntimeId = opts?.webRuntimeId || 'default'
-    this.webDocumentUuid = randomId()
+    this.webDocumentUuid = opts?.webDocumentId || randomId()
     this.hidden = false
     if (isElectron) {
       this.isElectron = true

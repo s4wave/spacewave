@@ -13,7 +13,7 @@ declare let BLDR_DEBUG: boolean
 declare let self: ServiceWorkerGlobalScope
 
 // note: logs don't appear in console in firefox
-const serviceWorkerId = `service-worker:${self.location.host}`
+const serviceWorkerId = `service-worker-${self.location.host.replace(/:/g, '-')}`
 
 // baseURL is the base URL to use for paths.
 const baseURL = new URL(self.location.toString())

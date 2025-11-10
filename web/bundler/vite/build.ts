@@ -283,7 +283,7 @@ export async function buildAndAnalyze(
 
   // drop some unnecessary detail from the result(s)
   for (const chunk of outputChunks) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mutableChunk = chunk as Record<string, any> // otherwise typescript complains
     if (chunk.type === 'chunk') {
       // the source code, too much info

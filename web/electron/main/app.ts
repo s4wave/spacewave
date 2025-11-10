@@ -97,7 +97,7 @@ export class BldrElectronApp {
     return proxyFetch(
       this.serviceWorkerHostServiceClient,
       req,
-      clientId ?? 'electron:main',
+      clientId ?? 'electron-main',
     )
   }
 
@@ -114,7 +114,7 @@ export class BldrElectronApp {
     this.setupWebRuntimeClientPort()
 
     // create the first window
-    this.createWebDocument({ id: 'electron:init' })
+    this.createWebDocument({ id: 'electron-init' })
   }
 
   private setupWebRuntimeClientPort() {
@@ -165,7 +165,7 @@ export class BldrElectronApp {
   }
 
   // createWindow creates a new browser window.
-  private createWindow() {
+  private createWindow(webDocumentId?: string) {
     const preload = path.join(this.distPath, 'preload.mjs')
     const nwindow = new electron.BrowserWindow({
       // Only show the OS window frame on MacOS.
@@ -181,14 +181,19 @@ export class BldrElectronApp {
         contextIsolation: true,
         preload,
 
-        // Disable background throttling to avoid WebDocument timeouts.
-        // We will still unload the WebViews when the document is hidden.
-        backgroundThrottling: false,
+        // Background throttling was re-enabled after fixing timeout-based lifecycle issues.
+        // WebDocument uses visibility-aware reconnect with exponential backoff.
+        // However, this could be set to false to prevent background throttling altogether.
+        backgroundThrottling: true,
       },
     })
 
     nwindow.webContents.openDevTools()
-    nwindow.loadURL(`${APP_SCHEME}://index.html`)
+    const url =
+      webDocumentId ?
+        `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
+      : `${APP_SCHEME}://index.html`
+    nwindow.loadURL(url)
 
     return nwindow
   }
@@ -201,7 +206,7 @@ export class BldrElectronApp {
     if (!id) {
       return { created: false }
     }
-    const nwindow = this.createWindow()
+    const nwindow = this.createWindow(id)
     this.browserWindows[id] = nwindow
     nwindow.on('closed', () => {
       if (this.browserWindows[id] === nwindow) {
