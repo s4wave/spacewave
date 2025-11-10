@@ -1,6 +1,6 @@
 module github.com/aperturerobotics/bldr
 
-go 1.24.4
+go 1.25
 
 // This fork avoids importing net/http on wasm.
 replace github.com/coder/websocket => github.com/paralin/nhooyr-websocket v1.8.13-0.20240820051708-db89d1b29ef8 // aperture-2
@@ -12,7 +12,7 @@ replace github.com/evanw/esbuild => github.com/aperturerobotics/esbuild v0.24.1-
 replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20250706223739-81a39a0d5d54 // aperture
 
 require (
-	github.com/aperturerobotics/cli v1.0.0
+	github.com/aperturerobotics/cli v1.0.1
 	github.com/aperturerobotics/common v0.22.12 // latest
 	github.com/aperturerobotics/hydra v0.0.0-20250918225351-0ad2dcb93252 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // master
@@ -28,8 +28,8 @@ require (
 	github.com/paralin/go-quickjs-wasi v0.10.2-0.20250704023701-828038c31a0f // latest
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.9.0
-	golang.org/x/mod v0.28.0 // latest
-	golang.org/x/tools v0.37.0 // latest
+	golang.org/x/mod v0.29.0 // latest
+	golang.org/x/tools v0.38.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
@@ -39,7 +39,7 @@ require (
 	github.com/aperturerobotics/cayley v0.9.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.2 // master
-	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20250712004945-4e5f8882b0b8 // indirect; latest
+	github.com/aperturerobotics/json-iterator-lite v1.0.1-0.20251104042408-0c9eb8a3f726 // indirect; latest
 )
 
 // aperture: use ext-engines forks
@@ -79,10 +79,10 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.51.0 // latest
+	github.com/aperturerobotics/controllerbus v0.51.2 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.39.9 // latest
-	github.com/aperturerobotics/util v1.31.3 // latest
+	github.com/aperturerobotics/starpc v0.39.10 // latest
+	github.com/aperturerobotics/util v1.31.4 // latest
 )
 
 // aperture: use compatibility forks
@@ -113,7 +113,7 @@ require (
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.42.0
+	golang.org/x/crypto v0.43.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
@@ -165,11 +165,11 @@ require (
 	github.com/tylertreat/BoomFilters v0.0.0-20210315201527-1a82519a3e43 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	modernc.org/libc v1.66.3 // indirect

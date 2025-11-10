@@ -1,4 +1,5 @@
 export { formatBytes } from './format.js'
+export { compareUint8Arrays } from './binary.js'
 export {
   Retry,
   retryWithAbort,

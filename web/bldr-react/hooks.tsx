@@ -15,6 +15,7 @@ import {
   WebView as BldrWebView,
   RetryOpts,
   retryWithAbort,
+  compareUint8Arrays,
 } from '@aptre/bldr'
 import { ValueCallback } from './callback.js'
 
@@ -220,16 +221,6 @@ export function useLatestRef<T>(
     }
   }, [value])
   return ref
-}
-
-// compareUint8Arrays compares two Uint8Array for equality.
-// this is (unfortunately) the fastest known method for such a comparison.
-function compareUint8Arrays(a: Uint8Array, b: Uint8Array) {
-  if (a.length !== b.length) return false
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false
-  }
-  return true
 }
 
 /**
