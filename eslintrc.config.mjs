@@ -1,14 +1,15 @@
 // @ts-check
 
+import { defineConfig } from 'eslint/config'
 import globals from 'globals'
-import eslint from '@eslint/js'
+import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
-import reactHooks from 'eslint-plugin-react-hooks';
+import reactHooks from 'eslint-plugin-react-hooks'
 
-export default tseslint.config(
-  eslint.configs.recommended,
-  tseslint.configs.recommended,
-  reactHooks.configs['recommended-latest'],
+export default defineConfig([
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  reactHooks.configs.flat['recommended-latest'],
   {
     ignores: [
       '**/*.gs.ts',
@@ -35,7 +36,14 @@ export default tseslint.config(
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { caughtErrors: 'none' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          caughtErrors: 'none',
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+        },
+      ],
     },
   },
-)
+])
