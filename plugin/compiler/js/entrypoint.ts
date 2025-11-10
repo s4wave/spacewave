@@ -255,7 +255,7 @@ async function loadFrontendEntrypoints(
 
       // Override the href paths to be /b/pa/{plugin-id}/...
       if (setHtmlLinksRequest.setLinks) {
-        for (const [_, link] of Object.entries(setHtmlLinksRequest.setLinks)) {
+        for (const link of Object.values(setHtmlLinksRequest.setLinks)) {
           if (link?.href) {
             link.href = backendAPI.utils.pluginAssetHttpPath(
               ourPluginID,

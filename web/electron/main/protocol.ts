@@ -58,11 +58,14 @@ export async function appRequestHandler(
     // TODO: We know that .map files are not being fetched properly.
     // https://issues.chromium.org/issues/40765087
     // superceeds: https://issues.chromium.org/issues/41486524#comment4
-    if (filePath.endsWith(".map")) {
-      return new Response('Source maps are not loaded via ServiceWorker correctly: see: https://issues.chromium.org/issues/40765087', {
-        status: 503,
-        headers: { 'Content-Type': 'text/plain' },
-      })
+    if (filePath.endsWith('.map')) {
+      return new Response(
+        'Source maps are not loaded via ServiceWorker correctly: see: https://issues.chromium.org/issues/40765087',
+        {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' },
+        },
+      )
     }
 
     console.warn(`appRequestHandler: failed fetch: ${filePath} -> ${err}`)

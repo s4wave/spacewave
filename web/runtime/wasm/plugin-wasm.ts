@@ -15,6 +15,7 @@ interface Global {
 }
 
 // globalScope is globalThis but with the bldr globals.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalScope: Global = globalThis as any
 
 // baseURL is the base URL to use for paths relative to this module.

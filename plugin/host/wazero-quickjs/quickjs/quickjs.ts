@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { isUint8ArrayList, Uint8ArrayList } from 'uint8arraylist'
 
 /**
@@ -648,9 +649,6 @@ export async function writeSourceToFd(
         )
       }
     }
-  } catch (error) {
-    // Re-throw the error so the caller knows the pipe failed
-    throw error
   } finally {
     // Ensure the file descriptor is always closed, even if errors occur
     if (fd !== undefined && fd >= 0) {

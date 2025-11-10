@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Console interface provides console functionality for QuickJS polyfills.
 export interface Console {
   assert(condition?: boolean, ...data: any[]): void

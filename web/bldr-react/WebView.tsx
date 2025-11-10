@@ -140,14 +140,17 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const [isComponentReady, setIsComponentReady] = useState(false)
 
   // TODO: hack: improve this
+  /* eslint-disable */
   useEffect(() => {
     setIsComponentReady(false)
   }, [webViewState.scriptPath, webViewState.refreshNonce])
+  /* eslint-enable */
 
   // onRemoveRef is a ref to the latest onRemove callback
   const onRemoveRef = useLatestRef(props.onRemove)
 
   const bldrWebViewRef = useRef<BldrWebView | null>(null)
+  // eslint-disable-next-line
   const bldrWebView: BldrWebView = useMemo(
     () => ({
       // getUuid returns the web-view unique identifier.
@@ -260,6 +263,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     [bldrWebView, bldrWebDocument],
   )
 
+  /* eslint-disable */
   useLayoutEffect(() => {
     let nextReg: WebViewRegistration | null = null
     if (bldrWebDocument) {
@@ -284,6 +288,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       }
     }
   }, [uuid, bldrWebDocument, bldrWebView])
+  /* eslint-enable */
 
   return (
     <BldrContext.Provider value={childContext}>

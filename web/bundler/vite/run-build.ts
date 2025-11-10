@@ -1,7 +1,6 @@
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
-import { writeFileSync } from 'fs'
 import { buildAndAnalyze, buildConfig } from './build.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

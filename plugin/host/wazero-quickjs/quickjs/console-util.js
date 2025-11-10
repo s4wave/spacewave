@@ -28,83 +28,82 @@
 function extend(origin, add) {
   // Don't do anything if add isn't an object
   if (!add || !isObject(add)) {
-    return origin;
+    return origin
   }
 
-  var keys = Object.keys(add);
-  var i = keys.length;
+  var keys = Object.keys(add)
+  var i = keys.length
 
   while (i--) {
-    origin[keys[i]] = add[keys[i]];
+    origin[keys[i]] = add[keys[i]]
   }
 
-  return origin;
+  return origin
 }
 
-var formatRegExp = /%[sdjif%]/g;
+var formatRegExp = /%[sdjif%]/g
 
 export function format(f) {
   if (!isString(f)) {
-    var objects = [];
+    var objects = []
 
     for (let i = 0; i < arguments.length; i++) {
-      objects.push(inspect(arguments[i]));
+      objects.push(inspect(arguments[i]))
     }
 
-    return objects.join(' ');
+    return objects.join(' ')
   }
 
-  let i = 1;
-  var args = arguments;
-  var len = args.length;
+  let i = 1
+  var args = arguments
+  var len = args.length
   var str = String(f).replace(formatRegExp, function (x) {
     if (x === '%%') {
-      return '%';
+      return '%'
     }
 
     if (i >= len) {
-      return x;
+      return x
     }
 
     switch (x) {
       case '%s':
-        return String(args[i++]);
+        return String(args[i++])
 
       case '%d':
-      // eslint-disable-next-line padding-line-between-statements, no-fallthrough
       case '%i': {
-        const arg = args[i++];
+        const arg = args[i++]
 
-        return typeof arg === 'symbol' ? NaN : parseInt(arg, 10);
+        return typeof arg === 'symbol' ? NaN : parseInt(arg, 10)
       }
 
       case '%f': {
-        const arg = args[i++];
+        const arg = args[i++]
 
-        return typeof arg === 'symbol' ? NaN : parseFloat(arg);
+        return typeof arg === 'symbol' ? NaN : parseFloat(arg)
       }
 
       case '%j':
         try {
-          return JSON.stringify(args[i++]);
+          return JSON.stringify(args[i++])
         } catch (_) {
-          return '[Circular]';
+          return '[Circular]'
         }
 
       default:
-        return x;
+        return x
     }
-  });
+  })
 
   for (var x = args[i]; i < len; x = args[++i]) {
     if (x === null || !['object', 'symbol'].includes(typeof x)) {
-      str += ' ' + x;
+      str += ' ' + x
     } else {
-      str += ' ' + inspect(x);
+      str += ' ' + inspect(x)
     }
   }
 
-  return str;
+  return str
 }
 
 /**
@@ -120,40 +119,40 @@ export function inspect(obj, opts) {
   var ctx = {
     seen: [],
     stylize: stylizeNoColor,
-  };
+  }
 
   // legacy...
   if (arguments.length >= 3) {
-    ctx.depth = arguments[2];
+    ctx.depth = arguments[2]
   }
 
   if (arguments.length >= 4) {
-    ctx.colors = arguments[3];
+    ctx.colors = arguments[3]
   }
 
   if (opts) {
     // got an "options" object
-    extend(ctx, opts);
+    extend(ctx, opts)
   }
 
   // set default options
   if (ctx.showHidden === void 0) {
-    ctx.showHidden = false;
+    ctx.showHidden = false
   }
 
   if (ctx.depth === void 0) {
-    ctx.depth = 2;
+    ctx.depth = 2
   }
 
   if (ctx.colors === void 0) {
-    ctx.colors = false;
+    ctx.colors = false
   }
 
   if (ctx.colors) {
-    ctx.stylize = stylizeWithColor;
+    ctx.stylize = stylizeWithColor
   }
 
-  return formatValue(ctx, obj, ctx.depth);
+  return formatValue(ctx, obj, ctx.depth)
 }
 
 // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
@@ -171,7 +170,7 @@ inspect.colors = {
   magenta: [35, 39],
   red: [31, 39],
   yellow: [33, 39],
-};
+}
 
 // Don't use 'blue' not visible on cmd.exe
 inspect.styles = {
@@ -184,10 +183,10 @@ inspect.styles = {
   date: 'magenta',
   // "name": intentionally not styling
   regexp: 'red',
-};
+}
 
 function stylizeWithColor(str, styleType) {
-  var style = inspect.styles[styleType];
+  var style = inspect.styles[styleType]
 
   if (style) {
     return (
@@ -198,124 +197,124 @@ function stylizeWithColor(str, styleType) {
       '\u001b[' +
       inspect.colors[style][1] +
       'm'
-    );
+    )
   } else {
-    return str;
+    return str
   }
 }
 
 function stylizeNoColor(str) {
-  return str;
+  return str
 }
 
 function formatValue(ctx, value, recurseTimes) {
   // Primitive types cannot have properties
-  const primitive = formatPrimitive(ctx, value);
+  const primitive = formatPrimitive(ctx, value)
 
   if (primitive) {
-    return primitive;
+    return primitive
   }
 
   // Look up the keys of the object.
-  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const descriptors = Object.getOwnPropertyDescriptors(value)
   const descriptorsArr = Reflect.ownKeys(descriptors).map((k) => [
     k,
     descriptors[k],
-  ]);
+  ])
   let keys = descriptorsArr
     .filter(([_v, desc]) => desc.enumerable)
-    .map(([v, _desc]) => v);
-  const visibleKeys = new Set(keys);
+    .map(([v, _desc]) => v)
+  const visibleKeys = new Set(keys)
 
   if (ctx.showHidden) {
-    keys = descriptorsArr.map(([v, _desc]) => v);
+    keys = descriptorsArr.map(([v, _desc]) => v)
   }
 
   // Some type of object without properties can be shortcutted.
   if (keys.length === 0) {
     if (typeof value === 'function') {
-      const name = value.name ? ': ' + value.name : '';
+      const name = value.name ? ': ' + value.name : ''
 
-      return ctx.stylize('[Function' + name + ']', 'special');
+      return ctx.stylize('[Function' + name + ']', 'special')
     }
 
     if (isRegExp(value)) {
-      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp')
     }
 
     if (isDate(value)) {
-      return ctx.stylize(Date.prototype.toString.call(value), 'date');
+      return ctx.stylize(Date.prototype.toString.call(value), 'date')
     }
 
     if (isError(value)) {
-      return formatError(value);
+      return formatError(value)
     }
   }
 
   var base = '',
     array = false,
-    braces = ['{', '}'];
+    braces = ['{', '}']
 
   // Make Array say that they are Array
   if (Array.isArray(value)) {
-    array = true;
-    braces = ['[', ']'];
+    array = true
+    braces = ['[', ']']
   }
 
   // Make functions say that they are functions
   if (typeof value === 'function') {
-    var n = value.name ? ': ' + value.name : '';
+    var n = value.name ? ': ' + value.name : ''
 
-    base = ' [Function' + n + ']';
+    base = ' [Function' + n + ']'
   }
 
   // Make RegExps say that they are RegExps
   if (isRegExp(value)) {
-    base = ' ' + RegExp.prototype.toString.call(value);
+    base = ' ' + RegExp.prototype.toString.call(value)
   }
 
   // Make dates with properties first say the date
   if (isDate(value)) {
-    base = ' ' + Date.prototype.toUTCString.call(value);
+    base = ' ' + Date.prototype.toUTCString.call(value)
   }
 
   // Make error with message first say the error
   if (isError(value)) {
-    base = ' ' + formatError(value);
+    base = ' ' + formatError(value)
   }
 
   if (keys.length === 0 && (!array || value.length === 0)) {
-    return braces[0] + base + braces[1];
+    return braces[0] + base + braces[1]
   }
 
   if (recurseTimes < 0) {
     if (isRegExp(value)) {
-      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp')
     } else {
-      return ctx.stylize('[Object]', 'special');
+      return ctx.stylize('[Object]', 'special')
     }
   }
 
-  ctx.seen.push(value);
+  ctx.seen.push(value)
 
-  var output;
+  var output
 
   if (array) {
-    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys)
   } else {
     output = keys.map(function (key) {
-      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
-    });
+      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array)
+    })
   }
 
-  ctx.seen.pop();
+  ctx.seen.pop()
 
-  return reduceToSingleString(output, base, braces);
+  return reduceToSingleString(output, base, braces)
 }
 
 function formatPrimitive(ctx, value) {
   if (value === void 0) {
-    return ctx.stylize('undefined', 'undefined');
+    return ctx.stylize('undefined', 'undefined')
   }
 
   if (isString(value)) {
@@ -325,43 +324,43 @@ function formatPrimitive(ctx, value) {
         .replace(/^"|"$/g, '')
         .replace(/'/g, "\\'")
         .replace(/\\"/g, '"') +
-      "'";
+      "'"
 
-    return ctx.stylize(simple, 'string');
+    return ctx.stylize(simple, 'string')
   }
 
   if (isNumber(value)) {
-    return ctx.stylize('' + value, 'number');
+    return ctx.stylize('' + value, 'number')
   }
 
   if (typeof value === 'boolean') {
-    return ctx.stylize('' + value, 'boolean');
+    return ctx.stylize('' + value, 'boolean')
   }
 
   // For some reason typeof null is "object", so special case here.
   if (value === null) {
-    return ctx.stylize('null', 'null');
+    return ctx.stylize('null', 'null')
   }
 
   if (isSymbol(value)) {
-    return ctx.stylize(value.toString(), 'symbol');
+    return ctx.stylize(value.toString(), 'symbol')
   }
 }
 
 function formatError(value) {
-  return value.toString() + '\n' + value.stack;
+  return value.toString() + '\n' + value.stack
 }
 
 function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
-  var output = [];
+  var output = []
 
   for (var i = 0, l = value.length; i < l; ++i) {
     if (Object.prototype.hasOwnProperty.call(value, String(i))) {
       output.push(
         formatProperty(ctx, value, recurseTimes, visibleKeys, String(i), true),
-      );
+      )
     } else {
-      output.push('');
+      output.push('')
     }
   }
 
@@ -369,57 +368,57 @@ function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
     if (!key.match(/^\d+$/)) {
       output.push(
         formatProperty(ctx, value, recurseTimes, visibleKeys, key, true),
-      );
+      )
     }
-  });
+  })
 
-  return output;
+  return output
 }
 
 function formatKey(ctx, key, visible) {
-  let str = visible ? '' : '[';
+  let str = visible ? '' : '['
 
   if (typeof key === 'symbol') {
-    str += ctx.stylize('[' + formatValue(ctx, key, null) + ']', 'special');
+    str += ctx.stylize('[' + formatValue(ctx, key, null) + ']', 'special')
   } else if (key.match(/^([a-zA-Z_][a-zA-Z_0-9]*)$/)) {
-    str += ctx.stylize(key, 'name');
+    str += ctx.stylize(key, 'name')
   } else {
     str += ctx.stylize(
       "'" + JSON.stringify(key).slice(1, -1).replace(/\\"/g, '"') + "'",
       'string',
-    );
+    )
   }
 
   if (!visible) {
-    str += ']';
+    str += ']'
   }
 
-  return str;
+  return str
 }
 
 function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
-  var name, str, desc;
+  var name, str, desc
 
-  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] }
 
   if (desc.get) {
     if (desc.set) {
-      str = ctx.stylize('[Getter/Setter]', 'special');
+      str = ctx.stylize('[Getter/Setter]', 'special')
     } else {
-      str = ctx.stylize('[Getter]', 'special');
+      str = ctx.stylize('[Getter]', 'special')
     }
   } else {
     if (desc.set) {
-      str = ctx.stylize('[Setter]', 'special');
+      str = ctx.stylize('[Setter]', 'special')
     }
   }
 
   if (!str) {
     if (ctx.seen.indexOf(desc.value) < 0) {
       if (recurseTimes === null) {
-        str = formatValue(ctx, desc.value, null);
+        str = formatValue(ctx, desc.value, null)
       } else {
-        str = formatValue(ctx, desc.value, recurseTimes - 1);
+        str = formatValue(ctx, desc.value, recurseTimes - 1)
       }
 
       if (str.indexOf('\n') > -1) {
@@ -427,42 +426,42 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
           str = str
             .split('\n')
             .map(function (line) {
-              return '  ' + line;
+              return '  ' + line
             })
             .join('\n')
-            .slice(2);
+            .slice(2)
         } else {
           str =
             '\n' +
             str
               .split('\n')
               .map(function (line) {
-                return '   ' + line;
+                return '   ' + line
               })
-              .join('\n');
+              .join('\n')
         }
       }
     } else {
-      str = ctx.stylize('[Circular]', 'special');
+      str = ctx.stylize('[Circular]', 'special')
     }
   }
 
   if (name === void 0) {
     if (array && typeof key === 'string' && key.match(/^\d+$/)) {
-      return str;
+      return str
     }
 
-    name = formatKey(ctx, key, visibleKeys.has(key));
+    name = formatKey(ctx, key, visibleKeys.has(key))
   }
 
-  return name + ': ' + str;
+  return name + ': ' + str
 }
 
 function reduceToSingleString(output, base, braces) {
   var length = output.reduce(function (prev, cur) {
     // eslint-disable-next-line no-control-regex
-    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
-  }, 0);
+    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1
+  }, 0)
 
   if (length > 60) {
     return (
@@ -472,36 +471,36 @@ function reduceToSingleString(output, base, braces) {
       output.join(',\n  ') +
       '\n' +
       braces[1]
-    );
+    )
   }
 
-  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
+  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1]
 }
 
 function isNumber(arg) {
-  return typeof arg === 'number';
+  return typeof arg === 'number'
 }
 
 function isString(arg) {
-  return typeof arg === 'string';
+  return typeof arg === 'string'
 }
 
 function isSymbol(arg) {
-  return typeof arg === 'symbol';
+  return typeof arg === 'symbol'
 }
 
 function isRegExp(re) {
   return (
     isObject(re) && Object.prototype.toString.call(re) === '[object RegExp]'
-  );
+  )
 }
 
 function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
+  return typeof arg === 'object' && arg !== null
 }
 
 function isDate(d) {
-  return isObject(d) && Object.prototype.toString.call(d) === '[object Date]';
+  return isObject(d) && Object.prototype.toString.call(d) === '[object Date]'
 }
 
 function isError(e) {
@@ -509,5 +508,5 @@ function isError(e) {
     isObject(e) &&
     (Object.prototype.toString.call(e) === '[object Error]' ||
       e instanceof Error)
-  );
+  )
 }

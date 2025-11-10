@@ -215,5 +215,7 @@ func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*LookupRpcServiceResolver)(nil))
-var _ srpc.Invoker = ((*clientForwardingInvoker)(nil))
+var (
+	_ directive.Resolver = ((*LookupRpcServiceResolver)(nil))
+	_ srpc.Invoker       = ((*clientForwardingInvoker)(nil))
+)

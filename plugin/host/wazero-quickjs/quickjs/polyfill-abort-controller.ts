@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // createAbortController creates an AbortController polyfill implementation.
 export function createAbortController(): new () => AbortController {
   class AbortSignalImpl implements AbortSignal {

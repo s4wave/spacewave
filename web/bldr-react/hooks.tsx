@@ -532,6 +532,7 @@ export function useMemoEqual<T>(
 ): T {
   const ref = useRef<T>(value)
 
+  /* eslint-disable react-hooks/refs */
   const isEqual =
     value === ref.current ||
     (value != null &&
@@ -544,6 +545,7 @@ export function useMemoEqual<T>(
   }
 
   return ref.current
+  /* eslint-enable react-hooks/refs */
 }
 
 /**
@@ -575,11 +577,13 @@ export function useMemoEqualGetter<T, V = T>(
     [value, memoValue, checkEqual],
   )
   const outValue = memoEquiv ? memoState.outValue : getter(value)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!memoEquiv) {
       setMemoState({ memoValue: value, outValue: outValue })
     }
   }, [memoEquiv, value, outValue])
+  /* eslint-enable react-hooks/set-state-in-effect */
   return outValue
 }
 
@@ -755,16 +759,15 @@ export function useSetValueRpc<T, R = unknown>(
  * @param value - The value to monitor for changes
  * @param targetValue - The value that triggers the callback
  * @param callback - Function to execute on change. Can return boolean to control update
- * @param deps - Optional dependencies that trigger effect re-runs
  */
 export function useOnChangeToValue<T>(
   value: T,
   targetValue: T,
   callback: () => void | boolean,
-  deps?: DependencyList,
 ): void {
   const [, setCurrValue] = useState<T>(() => value)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setCurrValue((prev) => {
       if (prev !== value) {
@@ -777,12 +780,8 @@ export function useOnChangeToValue<T>(
       }
       return prev
     })
-  }, [
-    value,
-    targetValue,
-    callback,
-    ...(deps || []), // eslint-disable-line
-  ])
+  }, [value, targetValue, callback])
+  /* eslint-enable react-hooks/set-state-in-effect */
 }
 
 /**
@@ -803,13 +802,11 @@ type Focusable = {
  * @param ref - React ref containing focusable element
  * @param value - The value to monitor for changes
  * @param targetValue - The value that triggers focus
- * @param deps - Optional dependencies that trigger effect re-runs
  */
 export function useFocusOnValueChange<T extends Focusable, V>(
   ref: RefObject<T>,
   value: V,
   targetValue: V,
-  deps?: DependencyList,
 ): void {
   const callback = useCallback(() => {
     if (ref.current) {
@@ -818,7 +815,7 @@ export function useFocusOnValueChange<T extends Focusable, V>(
     }
     return false // Return false to prevent updating previousValue.current
   }, [ref])
-  useOnChangeToValue(value, targetValue, callback, deps)
+  useOnChangeToValue(value, targetValue, callback)
 }
 
 /**

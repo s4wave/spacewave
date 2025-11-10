@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { QuickjsGlobalScope } from './quickjs.js'
 import { createEvent } from './polyfill-event.js'
 import { createAbortController } from './polyfill-abort-controller.js'

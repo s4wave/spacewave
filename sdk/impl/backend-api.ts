@@ -18,7 +18,6 @@ import {
   LoadPluginResponse,
   PluginStartInfo,
 } from '../../plugin/plugin.pb.js'
-import { Retry, retryWithAbort } from '@aptre/bldr'
 
 // BackendAPIImpl implements the interface provided to the plugin module.
 export class BackendApiImpl implements BackendAPI {

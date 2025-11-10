@@ -58,6 +58,21 @@ func main() {
 
 	le.Info("rollup completed successfully")
 
+	// Add eslint-disable comment to the top of the generated file
+	le.Info("adding eslint-disable comment to generated file")
+	content, err := os.ReadFile("plugin-quickjs.esm.js")
+	if err != nil {
+		le.WithError(err).Fatal("failed to read generated file")
+		return
+	}
+
+	eslintDisable := "/* eslint-disable */\n"
+	newContent := eslintDisable + string(content)
+	if err := os.WriteFile("plugin-quickjs.esm.js", []byte(newContent), 0o644); err != nil {
+		le.WithError(err).Fatal("failed to write eslint-disable comment")
+		return
+	}
+
 	// Clean up intermediate file
 	if err := os.Remove("plugin-quickjs.esb.js"); err != nil {
 		le.WithError(err).Warn("failed to remove intermediate file")

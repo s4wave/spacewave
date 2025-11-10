@@ -1,4 +1,3 @@
-import { yamux } from '@chainsafe/libp2p-yamux'
 import {
   OpenStreamCtr,
   StreamConn,

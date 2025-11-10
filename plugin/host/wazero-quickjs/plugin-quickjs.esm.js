@@ -1,3 +1,4 @@
+/* eslint-disable */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -1926,11 +1927,11 @@ var BinaryReader = class {
         while (this.buf[this.pos++] & 128) {
         }
         break;
-      // eslint-disable-next-line
+       
       // @ts-ignore TS7029: Fallthrough case in switch
       case WireType.Bit64:
         this.pos += 4;
-      // eslint-disable-next-line
+       
       // @ts-ignore TS7029: Fallthrough case in switch
       case WireType.Bit32:
         this.pos += 4;
@@ -2252,7 +2253,7 @@ function readMessage(message, fields, reader, lengthOrEndTagFieldNo, options, de
     }
     readField(message, reader, field, wireType, options);
   }
-  if (delimitedMessageEncoding && // eslint-disable-line @typescript-eslint/strict-boolean-expressions
+  if (delimitedMessageEncoding &&  
   (wireType != WireType.EndGroup || fieldNo !== lengthOrEndTagFieldNo)) {
     throw new Error(`invalid end group tag`);
   }
@@ -6638,7 +6639,7 @@ function format(f) {
       case "%s":
         return String(args[i++]);
       case "%d":
-      // eslint-disable-next-line padding-line-between-statements, no-fallthrough
+       
       case "%i": {
         const arg = args[i++];
         return typeof arg === "symbol" ? NaN : parseInt(arg, 10);
