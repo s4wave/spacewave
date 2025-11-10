@@ -37,7 +37,10 @@ export function prependPacketLen(msgData: Uint8Array): Uint8Array {
 
 // compareUint8Arrays compares two Uint8Array for equality.
 // this is (unfortunately) the fastest known method for such a comparison.
-export function compareUint8Arrays(a: Uint8Array, b: Uint8Array): boolean {
+export function compareUint8Arrays(
+  a: Uint8Array | undefined | null,
+  b: Uint8Array | undefined | null,
+): boolean {
   if (a === b) return true
   if (!a || !b) return false
   if (a.length !== b.length) return false
