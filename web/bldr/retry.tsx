@@ -10,6 +10,21 @@ export function constantBackoff(waitMs: number = 500): BackoffFn {
   }
 }
 
+// exponentialBackoff constructs a new exponential BackoffFn.
+//
+// Starts at initialMs and doubles on each call up to maxMs.
+export function exponentialBackoff(
+  initialMs: number = 100,
+  maxMs: number = 5000,
+): BackoffFn {
+  let current = initialMs
+  return () => {
+    const wait = current
+    current = Math.min(current * 2, maxMs)
+    return wait
+  }
+}
+
 // RetryOpts are options passed to Retry.
 export interface RetryOpts {
   // backoffFn controls backoff timing.
