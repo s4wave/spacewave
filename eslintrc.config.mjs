@@ -23,6 +23,7 @@ export default defineConfig([
       '**/determine-cjs-exports.mjs',
       '.bldr',
       '**/*.pb.ts',
+      '**/*.esm.js',
     ],
   },
   {

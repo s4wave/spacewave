@@ -27,8 +27,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // ../../../node_modules/event-iterator/lib/event-iterator.js
 var require_event_iterator = __commonJS({
-  "../../../node_modules/event-iterator/lib/event-iterator.js"(exports) {
-    Object.defineProperty(exports, "__esModule", { value: true });
+  "../../../node_modules/event-iterator/lib/event-iterator.js"(exports$1) {
+    Object.defineProperty(exports$1, "__esModule", { value: true });
     var EventQueue = class {
       constructor() {
         this.pullQueue = [];
@@ -137,25 +137,25 @@ var require_event_iterator = __commonJS({
         Object.freeze(this);
       }
     };
-    exports.EventIterator = EventIterator4;
-    exports.default = EventIterator4;
+    exports$1.EventIterator = EventIterator4;
+    exports$1.default = EventIterator4;
   }
 });
 
 // ../../../node_modules/event-iterator/lib/dom.js
 var require_dom = __commonJS({
-  "../../../node_modules/event-iterator/lib/dom.js"(exports) {
-    Object.defineProperty(exports, "__esModule", { value: true });
+  "../../../node_modules/event-iterator/lib/dom.js"(exports$1) {
+    Object.defineProperty(exports$1, "__esModule", { value: true });
     var event_iterator_1 = require_event_iterator();
-    exports.EventIterator = event_iterator_1.EventIterator;
+    exports$1.EventIterator = event_iterator_1.EventIterator;
     function subscribe(event, options, evOptions) {
       return new event_iterator_1.EventIterator(({ push }) => {
         this.addEventListener(event, push, options);
         return () => this.removeEventListener(event, push, options);
       }, evOptions);
     }
-    exports.subscribe = subscribe;
-    exports.default = event_iterator_1.EventIterator;
+    exports$1.subscribe = subscribe;
+    exports$1.default = event_iterator_1.EventIterator;
   }
 });
 
@@ -1927,11 +1927,11 @@ var BinaryReader = class {
         while (this.buf[this.pos++] & 128) {
         }
         break;
-       
+      // eslint-disable-next-line
       // @ts-ignore TS7029: Fallthrough case in switch
       case WireType.Bit64:
         this.pos += 4;
-       
+      // eslint-disable-next-line
       // @ts-ignore TS7029: Fallthrough case in switch
       case WireType.Bit32:
         this.pos += 4;
@@ -2253,7 +2253,7 @@ function readMessage(message, fields, reader, lengthOrEndTagFieldNo, options, de
     }
     readField(message, reader, field, wireType, options);
   }
-  if (delimitedMessageEncoding &&  
+  if (delimitedMessageEncoding && // eslint-disable-line @typescript-eslint/strict-boolean-expressions
   (wireType != WireType.EndGroup || fieldNo !== lengthOrEndTagFieldNo)) {
     throw new Error(`invalid end group tag`);
   }
@@ -6019,8 +6019,6 @@ async function writeSourceToFd(os, source, filePath) {
         );
       }
     }
-  } catch (error) {
-    throw error;
   } finally {
     if (fd !== void 0 && fd >= 0) {
       os.close(fd);
@@ -6639,7 +6637,6 @@ function format(f) {
       case "%s":
         return String(args[i++]);
       case "%d":
-       
       case "%i": {
         const arg = args[i++];
         return typeof arg === "symbol" ? NaN : parseInt(arg, 10);
@@ -8178,7 +8175,9 @@ var BackendApiImpl = class {
 // plugin-quickjs.ts
 function logError(message, err) {
   console.error(message);
-  console.error(("message" in err ? err?.message : null) ?? String(err));
+  console.error(
+    ("message" in err ? err?.message : null) ?? String(err)
+  );
   if (err && typeof err === "object" && "stack" in err) {
     console.error(err.stack);
   }

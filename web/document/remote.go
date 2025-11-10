@@ -261,6 +261,12 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 
 	var out web_worker.WebWorker
 	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
+		// Return immediately if document is hidden
+		if r.hidden {
+			r.le.Debug("CreateWebWorker: document is hidden, returning nil")
+			return false, nil
+		}
+
 		_, rwv := r.lookupRemoteWebWorker(webWorkerID)
 		if rwv != nil {
 			out = rwv

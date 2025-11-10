@@ -102,6 +102,10 @@ const getLinkPreloadAsValue = (rel: string | undefined): string | undefined => {
   }
 }
 
+// useMemoManual signals to the React Compiler we want this to be manually memoized.
+// see: https://github.com/facebook/react/issues/34172#issuecomment-3367496138
+const useMemoManual = useMemo
+
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export const WebView: React.FC<IWebViewProps> = (props) => {
@@ -150,8 +154,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const onRemoveRef = useLatestRef(props.onRemove)
 
   const bldrWebViewRef = useRef<BldrWebView | null>(null)
-  // eslint-disable-next-line
-  const bldrWebView: BldrWebView = useMemo(
+  const bldrWebView: BldrWebView = useMemoManual(
     () => ({
       // getUuid returns the web-view unique identifier.
       getUuid(): string {
@@ -237,8 +240,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         if (!removableRef.current) {
           return false
         }
-        if (onRemoveRef.current) {
-          onRemoveRef.current(bldrWebView)
+        if (onRemoveRef.current && bldrWebViewRef.current) {
+          onRemoveRef.current(bldrWebViewRef.current)
           return true
         }
         if (canCloseWindow()) {
@@ -248,7 +251,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         return false
       },
     }),
-    [uuid, removableRef, parentUuidRef, onRemoveRef],
+    [uuid, removableRef, parentUuidRef, onRemoveRef, bldrWebViewRef],
   )
 
   useEffect(() => {

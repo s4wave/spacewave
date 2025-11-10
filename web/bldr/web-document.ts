@@ -719,6 +719,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
     this.closed = err ?? true
+
     this.client.setOpenStreamFn(undefined)
     this.webRuntimeClient.close()
     for (const viewId in this.webViews) {
