@@ -214,6 +214,22 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 		}
 	}
 
+	// collect unreachable nodes for later cleanup
+	var unreachableNodes []*handle
+	if clearTree {
+		for ni := len(nods) - 1; ni >= 0; ni-- {
+			nod := nods[ni]
+			nodID := nod.ID()
+			bn, ok := nod.(*handle)
+			if !ok || bn == nil {
+				continue
+			}
+			if _, blkReachable := reachable[nodID]; !blkReachable {
+				unreachableNodes = append(unreachableNodes, bn)
+			}
+		}
+	}
+
 	// process the topological sort to schedule write jobs
 	// determine if the blocks are dirty or not before scheduling writing.
 	// nods is sorted by [root, ..., furthest child]
@@ -232,12 +248,6 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 		// skip if not reachable
 		reachableNod, blkReachable := reachable[nodID]
 		if !blkReachable {
-			if clearTree {
-				bn.blk = nil
-				bn.ref = nil
-				t.blockGraph.RemoveNode(bn.ID())
-			}
-
 			// we can skip closing encodeDone here since nobody waits on this node.
 			continue
 		}
@@ -398,6 +408,15 @@ func (t *Transaction) Write(ctx context.Context, clearTree bool) (
 	case err := <-errCh:
 		return nil, nil, err
 	default:
+	}
+
+	// clean up unreachable nodes after all workers complete
+	if clearTree {
+		for _, bn := range unreachableNodes {
+			bn.blk = nil
+			bn.ref = nil
+			t.blockGraph.RemoveNode(bn.ID())
+		}
 	}
 
 	// note: defer func builds new root cursor (second field)
