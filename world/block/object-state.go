@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/bifrost/peer"
 	"github.com/aperturerobotics/hydra/block"
@@ -79,9 +78,9 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		return root.GetRev(), nil
 	}
 
-	// TODO: should we instead make a new block cursor here?
 	prevBlk := root.Clone()
 
+	root = root.Clone()
 	root.RootRef = nref
 	root.Rev++
 	r := root.Rev
@@ -161,6 +160,7 @@ func (o *ObjectState) incrementRev(ctx context.Context, addToChangelog bool) (ui
 			return 0, err
 		}
 	}
+	root = root.Clone()
 	root.Rev = nrev
 	o.bcs.SetBlock(root, true)
 	return nrev, nil
@@ -175,8 +175,37 @@ func (o *ObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	// TODO
-	return 0, errors.New("TODO: world/block: ObjectState: WaitRev not implemented")
+	for {
+		if err := ctx.Err(); err != nil {
+			return 0, err
+		}
+
+		currSeqno, err := o.w.GetSeqno(ctx)
+		if err != nil {
+			return 0, err
+		}
+
+		_, currRev, err := o.GetRootRef(ctx)
+		if err != nil {
+			if err == world.ErrObjectNotFound && ignoreNotFound {
+				_, err = o.w.WaitSeqno(ctx, currSeqno+1)
+				if err != nil {
+					return 0, err
+				}
+				continue
+			}
+			return 0, err
+		}
+
+		if currRev >= rev {
+			return currRev, nil
+		}
+
+		_, err = o.w.WaitSeqno(ctx, currSeqno+1)
+		if err != nil {
+			return 0, err
+		}
+	}
 }
 
 // GetRoot unmarshals root from the block cursor
