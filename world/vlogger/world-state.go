@@ -99,14 +99,21 @@ func (w *WorldState) DeleteObject(ctx context.Context, key string) (found bool, 
 
 // LookupGraphQuads searches for graph quads in the store.
 // If the filter fields are empty, matches any for that field.
+// If filter is nil, matches all quads.
 // If not found, returns nil, nil
 // If limit is set, stops after finding that number of matching quads.
 func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) (qs []world.GraphQuad, err error) {
 	defer func() {
-		cq, _ := world.GraphQuadToCayleyQuad(filter, false)
+		var filterStr string
+		if filter == nil {
+			filterStr = "<nil>"
+		} else {
+			cq, _ := world.GraphQuadToCayleyQuad(filter, false)
+			filterStr = cq.String()
+		}
 		w.le.Debugf(
 			"LookupGraphQuads(%s, %d) => found(%d) err(%v)",
-			cq.String(), limit, len(qs), err,
+			filterStr, limit, len(qs), err,
 		)
 	}()
 	return w.WorldState.LookupGraphQuads(ctx, filter, limit)

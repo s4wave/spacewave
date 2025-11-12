@@ -30,6 +30,11 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 		return nil, tx.ErrDiscarded
 	}
 
+	// Treat nil filter as empty filter (matches all quads)
+	if filter == nil {
+		filter = world.NewGraphQuad("", "", "", "")
+	}
+
 	cq, err := world.GraphQuadToCayleyQuad(filter, false)
 	if err != nil {
 		return nil, err
