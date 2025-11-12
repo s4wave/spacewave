@@ -99,9 +99,11 @@ type WorldStateObject interface {
 	// Returns ErrObjectExists if the object already exists.
 	// Appends a OBJECT_SET change to the changelog.
 	CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error)
+
 	// GetObject looks up an object by key.
 	// Returns nil, false if not found.
 	GetObject(ctx context.Context, key string) (ObjectState, bool, error)
+
 	// IterateObjects returns an iterator with the given object key prefix.
 	// The prefix is NOT clipped from the output keys.
 	// Keys are returned in sorted order.
@@ -109,6 +111,7 @@ type WorldStateObject interface {
 	// Call Close when done with the iterator.
 	// Any init errors will be available via the iterator's Err() method.
 	IterateObjects(ctx context.Context, prefix string, reversed bool) ObjectIterator
+
 	// DeleteObject deletes an object and associated graph quads by ID.
 	// Calls DeleteGraphObject internally.
 	// Returns false, nil if not found.
@@ -122,20 +125,25 @@ type ObjectIterator interface {
 	// Err returns any error that has closed the iterator.
 	// May return context.Canceled if closed.
 	Err() error
+
 	// Valid returns if the iterator points to a valid entry.
 	//
 	// If err is set, returns false.
 	Valid() bool
+
 	// Key returns the current entry key, or nil if not valid.
 	Key() string
+
 	// Next advances to the next entry and returns Valid.
 	Next() bool
+
 	// Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 	// Pass nil to seek to the beginning (or end if reversed).
 	// Seek has two failure modes:
 	//  - return an error without modifying the iterator
 	//  - set the iterator Err to the error and return nil
 	Seek(k string) error
+
 	// Close releases the iterator.
 	Close()
 }
@@ -147,20 +155,24 @@ type WorldStateGraph interface {
 	// Try to make access (queries) as short as possible.
 	// Write operations will fail if the store is read-only.
 	AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h CayleyHandle) error) error
+
 	// LookupGraphQuads searches for graph quads in the store.
 	// If the filter fields are empty, matches any for that field.
 	// If not found, returns nil, nil
 	// If limit is set, stops after finding that number of matching quads.
 	LookupGraphQuads(ctx context.Context, filter GraphQuad, limit uint32) ([]GraphQuad, error)
+
 	// SetGraphQuad sets a quad in the graph store.
 	// Subject: must be an existing object IRI: <object-key>
 	// Predicate: a predicate string, e.x. IRI: <ref>
 	// Object: an existing object IRI: <object-key>
 	// If already exists, returns nil.
 	SetGraphQuad(ctx context.Context, q GraphQuad) error
+
 	// DeleteGraphQuad deletes a quad from the graph store.
 	// Note: if quad did not exist, returns nil.
 	DeleteGraphQuad(ctx context.Context, q GraphQuad) error
+
 	// DeleteGraphObject deletes all quads with Subject or Object set to value.
 	// Note: value should be the object key, NOT the object key <iri> format.
 	DeleteGraphObject(ctx context.Context, value string) error
