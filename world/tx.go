@@ -8,6 +8,6 @@ import "github.com/aperturerobotics/hydra/tx"
 type Tx interface {
 	// WorldState contains the world read/write ops.
 	WorldState
-	// Tx contains the transaction Confirm/Discard ops.
+	// Tx contains the transaction Commit/Discard ops.
 	tx.Tx
 }

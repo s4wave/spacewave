@@ -3,7 +3,7 @@ module github.com/aperturerobotics/hydra
 go 1.25
 
 require (
-	github.com/aperturerobotics/bifrost v0.43.4-0.20251104055635-f38a3b36d219 // master
+	github.com/aperturerobotics/bifrost v0.43.4-0.20251113003038-c3daed1090d0 // master
 	github.com/aperturerobotics/cayley v0.10.0 // latest
 	github.com/aperturerobotics/go-brotli-decoder v0.1.1 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.2 // master
@@ -57,8 +57,8 @@ require (
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/common v0.22.12 // latest
-	github.com/aperturerobotics/controllerbus v0.51.2 // latest
+	github.com/aperturerobotics/common v0.22.13 // latest
+	github.com/aperturerobotics/controllerbus v0.51.4-0.20251113002647-ff3f278bc709 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // latest
 	github.com/aperturerobotics/starpc v0.39.10 // latest
@@ -188,7 +188,7 @@ require (
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251008203120-078029d740a8 // indirect
