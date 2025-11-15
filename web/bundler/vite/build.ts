@@ -97,25 +97,88 @@ export async function analyzeManifest(
     await fs.readFile(manifestPath, 'utf-8'),
   )
 
+  /**
+   * Normalize a module ID to a clean relative path
+   * - Strips query strings (e.g., ?commonjs-module)
+   * - Strips null byte prefixes (Rollup virtual modules)
+   * - Converts absolute paths to relative paths
+   * - Returns null for virtual/special modules that shouldn't be watched
+   */
+  function normalizeModuleId(id: string): string | null {
+    // Skip virtual modules (prefixed with \x00)
+    if (id.startsWith('\x00')) {
+      return null
+    }
+
+    // Strip query strings
+    const withoutQuery = id.split('?')[0]
+
+    // If it's already relative, return as-is
+    if (!path.isAbsolute(withoutQuery)) {
+      return path.normalize(withoutQuery)
+    }
+
+    // Convert absolute to relative
+    return path.normalize(path.relative(rootDir, withoutQuery))
+  }
+
   // 1. Map each JS chunk to its constituent source modules.
   const jsChunkToModules = new Map<string, Set<string>>()
   for (const chunk of outputChunks) {
     if (chunk.type === 'chunk' && chunk.fileName) {
       const modules = new Set<string>()
+
       // The facadeModuleId is the entry-point file for this chunk.
       if (chunk.facadeModuleId) {
-        modules.add(
-          path.normalize(path.relative(rootDir, chunk.facadeModuleId)),
-        )
+        const normalized = normalizeModuleId(chunk.facadeModuleId)
+        if (normalized) {
+          modules.add(normalized)
+        }
       }
+
       // The moduleIds are all the other files bundled into this chunk.
-      if (chunk.moduleIds) {
-        chunk.moduleIds.forEach((id) =>
-          modules.add(path.normalize(path.relative(rootDir, id))),
+      let foundModules = false
+      if (chunk.moduleIds && chunk.moduleIds.length > 0) {
+        foundModules = true
+        chunk.moduleIds.forEach((id) => {
+          const normalized = normalizeModuleId(id)
+          if (normalized) {
+            modules.add(normalized)
+          }
+        })
+      } else if (chunk.modules && Object.keys(chunk.modules).length > 0) {
+        // Fallback: use modules field if moduleIds is not available
+        foundModules = true
+        Object.keys(chunk.modules).forEach((id) => {
+          const normalized = normalizeModuleId(id)
+          if (normalized) {
+            modules.add(normalized)
+          }
+        })
+      }
+
+      // Log if we couldn't find module information
+      if (!foundModules && process.env.DEBUG_VITE_MODULES) {
+        console.warn(
+          `[vite] Warning: chunk ${chunk.fileName} has no moduleIds or modules field - only facadeModuleId will be tracked!`,
+        )
+        console.warn(
+          `[vite] This means transitive dependencies will NOT be tracked for hot reload!`,
         )
       }
+
       jsChunkToModules.set(chunk.fileName, modules)
     }
+  }
+
+  if (process.env.DEBUG_VITE_MODULES) {
+    console.log(`[vite] jsChunkToModules size: ${jsChunkToModules.size}`)
+    jsChunkToModules.forEach((mods, chunk) => {
+      console.log(
+        `[vite] Chunk ${chunk} has ${mods.size} modules:`,
+        Array.from(mods).slice(0, 5),
+      )
+    })
   }
 
   // 2. Prepare the primary output structure for each entrypoint.
