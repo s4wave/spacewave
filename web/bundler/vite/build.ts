@@ -138,8 +138,11 @@ export async function analyzeManifest(
 
       // The moduleIds are all the other files bundled into this chunk.
       let foundModules = false
+      let moduleSource = 'none'
+
       if (chunk.moduleIds && chunk.moduleIds.length > 0) {
         foundModules = true
+        moduleSource = 'moduleIds'
         chunk.moduleIds.forEach((id) => {
           const normalized = normalizeModuleId(id)
           if (normalized) {
@@ -149,6 +152,7 @@ export async function analyzeManifest(
       } else if (chunk.modules && Object.keys(chunk.modules).length > 0) {
         // Fallback: use modules field if moduleIds is not available
         foundModules = true
+        moduleSource = 'modules'
         Object.keys(chunk.modules).forEach((id) => {
           const normalized = normalizeModuleId(id)
           if (normalized) {
@@ -157,14 +161,20 @@ export async function analyzeManifest(
         })
       }
 
-      // Log if we couldn't find module information
-      if (!foundModules && process.env.DEBUG_VITE_MODULES) {
-        console.warn(
-          `[vite] Warning: chunk ${chunk.fileName} has no moduleIds or modules field - only facadeModuleId will be tracked!`,
-        )
-        console.warn(
-          `[vite] This means transitive dependencies will NOT be tracked for hot reload!`,
-        )
+      // Log what we found
+      if (process.env.DEBUG_VITE_MODULES) {
+        console.log(`[vite] Chunk ${chunk.fileName}:`)
+        console.log(`  - Module source: ${moduleSource}`)
+        console.log(`  - Modules collected: ${modules.size}`)
+
+        if (!foundModules) {
+          console.warn(
+            `[vite] Warning: chunk has no moduleIds or modules field - only facadeModuleId will be tracked!`,
+          )
+          console.warn(
+            `[vite] This means transitive dependencies will NOT be tracked for hot reload!`,
+          )
+        }
       }
 
       jsChunkToModules.set(chunk.fileName, modules)
@@ -172,12 +182,11 @@ export async function analyzeManifest(
   }
 
   if (process.env.DEBUG_VITE_MODULES) {
-    console.log(`[vite] jsChunkToModules size: ${jsChunkToModules.size}`)
+    console.log(
+      `\n[vite] jsChunkToModules final size: ${jsChunkToModules.size}`,
+    )
     jsChunkToModules.forEach((mods, chunk) => {
-      console.log(
-        `[vite] Chunk ${chunk} has ${mods.size} modules:`,
-        Array.from(mods).slice(0, 5),
-      )
+      console.log(`[vite] Chunk ${chunk} has ${mods.size} tracked modules`)
     })
   }
 
