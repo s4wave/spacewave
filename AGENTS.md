@@ -7,12 +7,18 @@
 - DO NOT make git commits
 - DO NOT modify `bldr.yaml` (ignore any changes in this file)
 - DO NOT use emojis
+- DO NOT use polling, always wait properly, like using a channel receive in go
+- DO NOT add obvious comments like "(not persisted)" or "(ephemeral UI state)"
+- DO NOT disable linter warnings unless absolutely necessary - if you need to disable a linter warning, it usually means you are doing something wrong and should rethink your approach
 - AVOID `try`/`catch` where possible
 - AVOID `else` statements
 - AVOID using `any` type
 - AVOID `let` statements
+- AVOID using refs to store mutable state that affects rendering - use proper React state instead
 - PREFER single word variable names where possible
 - PREFER to merge multiple `useState` together into one if applicable
+- ALWAYS investigate all existing implementation details before making changes
+- ALWAYS import useMemo, useCallback, etc, instead of using React.useMemo, React.useCallback, etc.
 
 ## Imports
 
