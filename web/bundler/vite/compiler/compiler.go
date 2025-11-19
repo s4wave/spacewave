@@ -274,35 +274,54 @@ func (c *Controller) buildViteBundles(
 
 	for _, bundle := range bundleList {
 		bundleID := bundle.Id
-		ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(newViteBundlerKey(
+		key := newViteBundlerKey(
 			distSourcePath,
 			sourcePath,
 			workingPath,
 			bundleID,
-		))
-		bundler, err := bundlerTkr.instancePromiseCtr.Await(ctx)
-		if err != nil {
-			ref.Release()
-			return nil, err
-		}
-
-		// TODO: make this concurrent
-		bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err := BuildViteBundle(
-			ctx,
-			le,
-			distSourcePath,
-			sourcePath,
-			workingPath,
-			viteConfigPaths,
-			bundle,
-			bundler,
-			webPkgs,
-			outAssetsPath,
-			manifestID,
-			isRelease,
 		)
-		ref.Release()
-		if err != nil {
+
+		var bundleWebPkgRefs []*web_pkg.WebPkgRef
+		var bundleOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
+		var bundleSrcFiles []string
+		var err error
+
+		// Retry up to 3 times if we get "stream reset" errors.
+		for attempt := range 3 {
+			ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(key)
+			bundler, awaitErr := bundlerTkr.instancePromiseCtr.Await(ctx)
+			if awaitErr != nil {
+				ref.Release()
+				return nil, awaitErr
+			}
+
+			// TODO: make this concurrent
+			bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err = BuildViteBundle(
+				ctx,
+				le,
+				distSourcePath,
+				sourcePath,
+				workingPath,
+				viteConfigPaths,
+				bundle,
+				bundler,
+				webPkgs,
+				outAssetsPath,
+				manifestID,
+				isRelease,
+			)
+			ref.Release()
+
+			if err == nil {
+				break
+			}
+
+			if strings.HasSuffix(err.Error(), "stream reset") {
+				le.WithField("attempt", attempt+1).Warn("restarting vite: got stream reset error")
+				_, _ = c.viteBundlers.RestartRoutine(key)
+				continue
+			}
+
 			return nil, err
 		}
 
