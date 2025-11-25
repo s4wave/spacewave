@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
@@ -28,6 +29,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // ControllerID is the compiler controller ID.
@@ -253,7 +255,15 @@ type viteBuildResult struct {
 	viteBundles  []*ViteBundleMeta
 }
 
-// buildViteBundles builds all Vite bundles and returns the aggregated results.
+// bundleBuildResult holds the result of building a single bundle.
+type bundleBuildResult struct {
+	webPkgRefs  []*web_pkg.WebPkgRef
+	outputMeta  []*bldr_web_bundler_vite.ViteOutputMeta
+	srcFiles    []string
+	bundleMeta  *ViteBundleMeta
+}
+
+// buildViteBundles builds all Vite bundles concurrently and returns the aggregated results.
 func (c *Controller) buildViteBundles(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -267,71 +277,105 @@ func (c *Controller) buildViteBundles(
 	manifestID string,
 	isRelease bool,
 ) (*viteBuildResult, error) {
+	if len(bundleList) == 0 {
+		return &viteBuildResult{}, nil
+	}
+
+	// Build bundles concurrently using errgroup.
+	eg, egCtx := errgroup.WithContext(ctx)
+	results := make([]*bundleBuildResult, len(bundleList))
+	var mu sync.Mutex
+
+	for i, bundle := range bundleList {
+		i, bundle := i, bundle
+		eg.Go(func() error {
+			bundleID := bundle.Id
+			key := newViteBundlerKey(
+				distSourcePath,
+				sourcePath,
+				workingPath,
+				bundleID,
+			)
+
+			var bundleWebPkgRefs []*web_pkg.WebPkgRef
+			var bundleOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
+			var bundleSrcFiles []string
+			var err error
+
+			// Retry up to 3 times if we get "stream reset" errors.
+			for attempt := range 3 {
+				ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(key)
+				bundler, awaitErr := bundlerTkr.instancePromiseCtr.Await(egCtx)
+				if awaitErr != nil {
+					ref.Release()
+					return awaitErr
+				}
+
+				bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err = BuildViteBundle(
+					egCtx,
+					le.WithField("bundle", bundleID),
+					distSourcePath,
+					sourcePath,
+					workingPath,
+					viteConfigPaths,
+					bundle,
+					bundler,
+					webPkgs,
+					outAssetsPath,
+					manifestID,
+					isRelease,
+				)
+				ref.Release()
+
+				if err == nil {
+					break
+				}
+
+				if strings.HasSuffix(err.Error(), "stream reset") {
+					le.WithField("bundle", bundleID).WithField("attempt", attempt+1).Warn("restarting vite: got stream reset error")
+					mu.Lock()
+					_, _ = c.viteBundlers.RestartRoutine(key)
+					mu.Unlock()
+					continue
+				}
+
+				return err
+			}
+
+			if err != nil {
+				return err
+			}
+
+			results[i] = &bundleBuildResult{
+				webPkgRefs: bundleWebPkgRefs,
+				outputMeta: bundleOutputMeta,
+				srcFiles:   bundleSrcFiles,
+				bundleMeta: bundle,
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Aggregate results.
 	var webPkgRefs []*web_pkg.WebPkgRef
 	var viteOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
 	var sourceFilesList []string
 	var viteBundles []*ViteBundleMeta
 
-	for _, bundle := range bundleList {
-		bundleID := bundle.Id
-		key := newViteBundlerKey(
-			distSourcePath,
-			sourcePath,
-			workingPath,
-			bundleID,
-		)
-
-		var bundleWebPkgRefs []*web_pkg.WebPkgRef
-		var bundleOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
-		var bundleSrcFiles []string
-		var err error
-
-		// Retry up to 3 times if we get "stream reset" errors.
-		for attempt := range 3 {
-			ref, bundlerTkr, _ := c.viteBundlers.AddKeyRef(key)
-			bundler, awaitErr := bundlerTkr.instancePromiseCtr.Await(ctx)
-			if awaitErr != nil {
-				ref.Release()
-				return nil, awaitErr
-			}
-
-			// TODO: make this concurrent
-			bundleWebPkgRefs, bundleOutputMeta, bundleSrcFiles, err = BuildViteBundle(
-				ctx,
-				le,
-				distSourcePath,
-				sourcePath,
-				workingPath,
-				viteConfigPaths,
-				bundle,
-				bundler,
-				webPkgs,
-				outAssetsPath,
-				manifestID,
-				isRelease,
-			)
-			ref.Release()
-
-			if err == nil {
-				break
-			}
-
-			if strings.HasSuffix(err.Error(), "stream reset") {
-				le.WithField("attempt", attempt+1).Warn("restarting vite: got stream reset error")
-				_, _ = c.viteBundlers.RestartRoutine(key)
-				continue
-			}
-
-			return nil, err
+	for _, r := range results {
+		if r != nil {
+			webPkgRefs = append(webPkgRefs, r.webPkgRefs...)
+			viteOutputMeta = append(viteOutputMeta, r.outputMeta...)
+			sourceFilesList = append(sourceFilesList, r.srcFiles...)
+			viteBundles = append(viteBundles, r.bundleMeta)
 		}
-
-		webPkgRefs = append(webPkgRefs, bundleWebPkgRefs...)
-		viteOutputMeta = append(viteOutputMeta, bundleOutputMeta...)
-		sourceFilesList = append(sourceFilesList, bundleSrcFiles...)
-		viteBundles = append(viteBundles, bundle)
 	}
 
-	// Sort and deduplicate
+	// Sort and deduplicate.
 	web_pkg.SortWebPkgRefs(webPkgRefs)
 	viteOutputMeta = bldr_web_bundler_vite.SortViteOutputMetas(viteOutputMeta)
 	slices.Sort(sourceFilesList)

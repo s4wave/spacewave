@@ -49,7 +49,7 @@ func Run(
 		return err
 	}
 
-	verbose := true // TODO
+	verbose := false // TODO
 	staticBlockStoreReaderBuilder := newStaticBlockStoreReaderBuilder(le, assetsFS, verbose)
 
 	distBus, err := BuildDistBus(

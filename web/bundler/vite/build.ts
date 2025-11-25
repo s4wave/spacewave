@@ -86,7 +86,76 @@ function collectReferencedFiles(
   return { cssFiles, assetFiles }
 }
 
-// Analyze the manifest to extract entrypoints and their corresponding files
+/**
+ * Normalize a module ID to a clean relative path.
+ * - Strips query strings (e.g., ?commonjs-module)
+ * - Strips null byte prefixes (Rollup virtual modules)
+ * - Converts absolute paths to relative paths
+ * - Returns null for virtual/special modules that shouldn't be watched
+ */
+function normalizeModuleId(id: string, rootDir: string): string | null {
+  if (id.startsWith('\x00')) {
+    return null
+  }
+  const withoutQuery = id.split('?')[0]
+  if (!path.isAbsolute(withoutQuery)) {
+    return path.normalize(withoutQuery)
+  }
+  return path.normalize(path.relative(rootDir, withoutQuery))
+}
+
+/**
+ * Build a map of chunk fileName to its imported chunk fileNames.
+ * This allows us to traverse the chunk dependency graph.
+ */
+function buildChunkImportsMap(
+  outputChunks: (OutputChunk | OutputAsset)[],
+): Map<string, string[]> {
+  const chunkImports = new Map<string, string[]>()
+  for (const chunk of outputChunks) {
+    if (chunk.type === 'chunk' && chunk.fileName) {
+      chunkImports.set(chunk.fileName, chunk.imports || [])
+    }
+  }
+  return chunkImports
+}
+
+/**
+ * Collect all modules from a chunk and all its imported chunks (transitive).
+ * This ensures we track dependencies in shared/split chunks.
+ */
+function collectAllModulesForChunk(
+  chunkFileName: string,
+  jsChunkToModules: Map<string, Set<string>>,
+  chunkImports: Map<string, string[]>,
+  visited: Set<string> = new Set(),
+): Set<string> {
+  if (visited.has(chunkFileName)) {
+    return new Set()
+  }
+  visited.add(chunkFileName)
+
+  const allModules = new Set<string>()
+  const directModules = jsChunkToModules.get(chunkFileName)
+  if (directModules) {
+    directModules.forEach((m) => allModules.add(m))
+  }
+
+  const imports = chunkImports.get(chunkFileName) || []
+  for (const importedChunk of imports) {
+    const importedModules = collectAllModulesForChunk(
+      importedChunk,
+      jsChunkToModules,
+      chunkImports,
+      visited,
+    )
+    importedModules.forEach((m) => allModules.add(m))
+  }
+
+  return allModules
+}
+
+// analyzeManifest extracts entrypoints and their corresponding files from the build output.
 export async function analyzeManifest(
   outDir: string,
   outputChunks: (OutputChunk | OutputAsset)[],
@@ -97,104 +166,61 @@ export async function analyzeManifest(
     await fs.readFile(manifestPath, 'utf-8'),
   )
 
-  /**
-   * Normalize a module ID to a clean relative path
-   * - Strips query strings (e.g., ?commonjs-module)
-   * - Strips null byte prefixes (Rollup virtual modules)
-   * - Converts absolute paths to relative paths
-   * - Returns null for virtual/special modules that shouldn't be watched
-   */
-  function normalizeModuleId(id: string): string | null {
-    // Skip virtual modules (prefixed with \x00)
-    if (id.startsWith('\x00')) {
-      return null
-    }
-
-    // Strip query strings
-    const withoutQuery = id.split('?')[0]
-
-    // If it's already relative, return as-is
-    if (!path.isAbsolute(withoutQuery)) {
-      return path.normalize(withoutQuery)
-    }
-
-    // Convert absolute to relative
-    return path.normalize(path.relative(rootDir, withoutQuery))
-  }
-
-  // 1. Map each JS chunk to its constituent source modules.
+  // 1. Map each JS chunk to its direct source modules.
   const jsChunkToModules = new Map<string, Set<string>>()
   for (const chunk of outputChunks) {
     if (chunk.type === 'chunk' && chunk.fileName) {
       const modules = new Set<string>()
 
-      // The facadeModuleId is the entry-point file for this chunk.
       if (chunk.facadeModuleId) {
-        const normalized = normalizeModuleId(chunk.facadeModuleId)
+        const normalized = normalizeModuleId(chunk.facadeModuleId, rootDir)
         if (normalized) {
           modules.add(normalized)
         }
       }
 
-      // The moduleIds are all the other files bundled into this chunk.
       let foundModules = false
-      let moduleSource = 'none'
-
       if (chunk.moduleIds && chunk.moduleIds.length > 0) {
         foundModules = true
-        moduleSource = 'moduleIds'
         chunk.moduleIds.forEach((id) => {
-          const normalized = normalizeModuleId(id)
+          const normalized = normalizeModuleId(id, rootDir)
           if (normalized) {
             modules.add(normalized)
           }
         })
       } else if (chunk.modules && Object.keys(chunk.modules).length > 0) {
-        // Fallback: use modules field if moduleIds is not available
         foundModules = true
-        moduleSource = 'modules'
         Object.keys(chunk.modules).forEach((id) => {
-          const normalized = normalizeModuleId(id)
+          const normalized = normalizeModuleId(id, rootDir)
           if (normalized) {
             modules.add(normalized)
           }
         })
       }
 
-      // Log what we found
-      if (process.env.DEBUG_VITE_MODULES) {
-        console.log(`[vite] Chunk ${chunk.fileName}:`)
-        console.log(`  - Module source: ${moduleSource}`)
-        console.log(`  - Modules collected: ${modules.size}`)
-
-        if (!foundModules) {
-          console.warn(
-            `[vite] Warning: chunk has no moduleIds or modules field - only facadeModuleId will be tracked!`,
-          )
-          console.warn(
-            `[vite] This means transitive dependencies will NOT be tracked for hot reload!`,
-          )
-        }
+      if (process.env.DEBUG_VITE_MODULES && !foundModules) {
+        console.warn(
+          `[vite] Warning: chunk ${chunk.fileName} has no moduleIds - transitive deps may not be tracked`,
+        )
       }
 
       jsChunkToModules.set(chunk.fileName, modules)
     }
   }
 
-  if (process.env.DEBUG_VITE_MODULES) {
-    console.log(
-      `\n[vite] jsChunkToModules final size: ${jsChunkToModules.size}`,
-    )
-    jsChunkToModules.forEach((mods, chunk) => {
-      console.log(`[vite] Chunk ${chunk} has ${mods.size} tracked modules`)
-    })
-  }
+  // 2. Build chunk import graph for traversing shared chunks.
+  const chunkImports = buildChunkImportsMap(outputChunks)
 
-  // 2. Prepare the primary output structure for each entrypoint.
+  // 3. Prepare the primary output structure for each entrypoint.
+  // Collect modules from the entry chunk AND all its imported chunks (transitive).
   const entrypointOutputs = Object.entries(manifest)
     .filter(([, value]) => value.isEntry)
     .map(([key, value]) => {
-      const modules = jsChunkToModules.get(value.file) ?? new Set<string>()
+      const allModules = collectAllModulesForChunk(
+        value.file,
+        jsChunkToModules,
+        chunkImports,
+      )
       const entrypointPath = value.src ?? key
       return {
         entrypoint:
@@ -205,11 +231,11 @@ export async function analyzeManifest(
           js: value.file,
           css: new Set<string>(value.css ?? []),
         },
-        inputs: modules,
+        inputs: allModules,
       }
     })
 
-  // 3. Associate CSS assets with entrypoints using manifest data.
+  // 4. Associate CSS assets with entrypoints using manifest data.
   const allCssAssets = new Set<string>()
   const handledCssAssets = new Set<string>()
 
@@ -244,7 +270,7 @@ export async function analyzeManifest(
     }
   }
 
-  // 4. Finalize the output structure.
+  // 5. Finalize the output structure.
   const finalEntrypointOutputs = entrypointOutputs.map((entry) => ({
     entrypoint: entry.entrypoint,
     outputs: {
