@@ -1,6 +1,7 @@
 ## IMPORTANT
 
 - Try to keep things in one function unless composable or reusable
+- Always use yarn instead of npm or pnpm
 - DO NOT do unnecessary destructuring of variables
 - DO NOT use `else` statements unless necessary
 - DO NOT use `try`/`catch` if it can be avoided
