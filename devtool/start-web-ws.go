@@ -43,13 +43,13 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 
 	// initialize the storage + bus
 	buildType := bldr_manifest.BuildType(a.BuildType)
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	d, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}
-	defer b.Release()
+	defer d.Release()
 
-	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
+	if err := d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
 		return err
 	}
 
@@ -58,7 +58,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 
 	// start the plugin storage volume
 	pluginVolumeID := bldr_plugin.PluginVolumeID
-	_, pluginStorageCtrlRef, err := b.StartStorageVolume(ctx, "plugins", &volume_controller.Config{
+	_, pluginStorageCtrlRef, err := d.StartStorageVolume(ctx, "plugins", &volume_controller.Config{
 		VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
 	})
 	if err != nil {
@@ -73,11 +73,11 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// build the plugin host scheduler
 	_, relPluginSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
-		b.GetBus(),
-		b.GetWorldEngineID(),
-		b.GetPluginHostObjectKey(),
+		d.GetBus(),
+		d.GetWorldEngineID(),
+		d.GetPluginHostObjectKey(),
 		pluginVolumeID,
-		b.GetVolume().GetPeerID().String(),
+		d.GetVolume().GetPeerID().String(),
 		true,
 		true,
 		true,
@@ -92,9 +92,9 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	// build the plugin host controller
 	_, relPluginHost, err := plugin_host_default.StartPluginHost(
 		ctx,
-		b.GetBus(),
-		b.GetPluginsStateRoot(),
-		b.GetPluginsDistRoot(),
+		d.GetBus(),
+		d.GetPluginsStateRoot(),
+		d.GetPluginsDistRoot(),
 		"", // ignored on native platform
 	)
 	if err != nil {
@@ -105,9 +105,9 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 
 	// execute the project controller
-	_, projCtrlRef, err := b.StartProjectController(
+	_, projCtrlRef, err := d.StartProjectController(
 		ctx,
-		b.GetBus(),
+		d.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
@@ -117,19 +117,19 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) error {
 	}
 	defer projCtrlRef.Release()
 
-	return b.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr)
+	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr)
 }
 
 // ExecuteWebWs starts the application in the browser with a websocket.
-func (b *DevtoolBus) ExecuteWebWs(
+func (d *DevtoolBus) ExecuteWebWs(
 	ctx context.Context,
 	repoRoot string,
 	minifyEntrypoint, devMode bool,
 	listenAddr string,
 ) error {
-	le := b.GetLogger()
-	stateDir := b.GetStateRoot()
-	distSrcDir := b.GetDistSrcDir()
+	le := d.GetLogger()
+	stateDir := d.GetStateRoot()
+	distSrcDir := d.GetDistSrcDir()
 	entrypointDataDir := filepath.Join(stateDir, "entry")
 	entrypointDir := filepath.Join(entrypointDataDir, "web/ws")
 
@@ -189,8 +189,8 @@ func (b *DevtoolBus) ExecuteWebWs(
 				_, _ = rw.Write([]byte(err.Error()))
 				return
 			}
-			ctrl := buildWsWebRuntime(le, b.GetBus(), runtimeID, wc)
-			err = b.GetBus().ExecuteController(req.Context(), ctrl)
+			ctrl := buildWsWebRuntime(le, d.GetBus(), runtimeID, wc)
+			err = d.GetBus().ExecuteController(req.Context(), ctrl)
 			if err != nil && err != context.Canceled && err != io.EOF {
 				le.WithError(err).Warn("websocket disconnected with error")
 			} else {

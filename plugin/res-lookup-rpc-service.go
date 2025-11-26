@@ -198,7 +198,7 @@ func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 
 	// Create an invoker that forwards calls to the client and strips the service id prefix
 	invoker := newClientForwardingInvoker(client, r.stripServiceIDPrefix)
-	var value bifrost_rpc.LookupRpcServiceValue = invoker
+	value := invoker
 	valueID, valueOk := handler.AddValue(value)
 	handler.MarkIdle(true)
 

@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
@@ -28,7 +28,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 // Validate checks the ApplyBucketConfig.
 func (c *Config) Validate() error {
 	if c.GetPluginId() == "" {
-		return plugin.ErrEmptyPluginID
+		return bldr_plugin.ErrEmptyPluginID
 	}
 	if _, err := c.ParseWebViewIdRe(); err != nil {
 		return err

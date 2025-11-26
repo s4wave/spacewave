@@ -3,26 +3,26 @@ package web_view
 import "github.com/sirupsen/logrus"
 
 // Logger builds the logger for the request.
-func (r *SetRenderModeRequest) Logger(le *logrus.Entry) *logrus.Entry {
+func (m *SetRenderModeRequest) Logger(le *logrus.Entry) *logrus.Entry {
 	fields := logrus.Fields{
-		"render-mode": r.GetRenderMode().String(),
+		"render-mode": m.GetRenderMode().String(),
 	}
-	if p := r.GetScriptPath(); p != "" {
+	if p := m.GetScriptPath(); p != "" {
 		fields["script-path"] = p
 	}
 	return le.WithFields(fields)
 }
 
 // Logger builds the logger for the request.
-func (r *SetHtmlLinksRequest) Logger(le *logrus.Entry) *logrus.Entry {
+func (m *SetHtmlLinksRequest) Logger(le *logrus.Entry) *logrus.Entry {
 	fields := logrus.Fields{}
-	if r.GetClear() {
+	if m.GetClear() {
 		fields["clear"] = true
 	}
-	if remove := r.GetRemove(); len(remove) != 0 {
+	if remove := m.GetRemove(); len(remove) != 0 {
 		fields["remove"] = remove
 	}
-	for id, link := range r.GetSetLinks() {
+	for id, link := range m.GetSetLinks() {
 		fields["set-"+id] = link.GetRel() + "@" + link.GetHref()
 	}
 	return le.WithFields(fields)

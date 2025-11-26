@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
@@ -35,10 +35,10 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 func (c *Config) Validate() error {
 	ids := c.CleanupPluginIds()
 	if len(ids) == 0 {
-		return plugin.ErrEmptyPluginID
+		return bldr_plugin.ErrEmptyPluginID
 	}
 	for _, id := range ids {
-		if err := plugin.ValidatePluginID(id, false); err != nil {
+		if err := bldr_plugin.ValidatePluginID(id, false); err != nil {
 			return err
 		}
 	}

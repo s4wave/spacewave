@@ -4,7 +4,7 @@ import (
 	"path"
 	"strings"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	unixfs_access_http "github.com/aperturerobotics/hydra/unixfs/access/http"
@@ -39,7 +39,7 @@ func NewController(b bus.Bus, cc *Config) *Controller {
 		matchPathPrefixes,
 		true,
 		nil,
-		plugin.PluginAssetsFsId(cc.GetPluginId()),
+		bldr_plugin.PluginAssetsFsId(cc.GetPluginId()),
 		unixfsPathPrefix,
 		"",
 		false,

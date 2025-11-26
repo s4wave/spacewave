@@ -9,7 +9,6 @@ import (
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_host "github.com/aperturerobotics/bldr/plugin/host"
-	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	web_view "github.com/aperturerobotics/bldr/web/view"
 	web_view_server "github.com/aperturerobotics/bldr/web/view/server"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -197,7 +196,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 		bldr_plugin_host.NewLookupPluginHost(nil),
 		// true: wait for directive to be idle before emitting initial set of values.
 		true,
-		func(resErr []error, vals []bldr_plugin_host.LookupPluginHostValue) error {
+		func(resErr []error, vals []bldr_plugin_host.PluginHost) error {
 			if len(resErr) != 0 {
 				c.le.WithField("resolver-errs", resErr).Warn("one or more plugin hosts are erroring")
 			}
@@ -241,7 +240,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
-	return plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID()), nil
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID()), nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -350,7 +349,7 @@ func (c *Controller) buildPluginMux(
 
 /*
 // cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
-func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string, host plugin_host.PluginHost) error {
+func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string, host bldr_plugin_host.PluginHost) error {
 	// list ids from the plugin host
 	loadedPlugins, err := host.ListPlugins(ctx)
 	if err != nil {

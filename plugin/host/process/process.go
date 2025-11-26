@@ -12,7 +12,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	plugin_host "github.com/aperturerobotics/bldr/plugin/host"
 	host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
 	"github.com/aperturerobotics/bldr/util/pipesock"
@@ -114,7 +114,7 @@ func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 			continue
 		}
 		entName := ent.Name()
-		if err := plugin.ValidatePluginID(entName, false); err != nil {
+		if err := bldr_plugin.ValidatePluginID(entName, false); err != nil {
 			h.le.Warnf("ignoring unknown directory in plugin bins dir: %s", entName)
 			continue
 		}
@@ -192,7 +192,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(0)
-	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
+	pluginStartInfo := bldr_plugin.NewPluginStartInfo(pluginInstanceID, pluginID)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
 	if err != nil {
 		return err

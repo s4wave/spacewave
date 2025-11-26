@@ -12,7 +12,6 @@ import (
 	bldr_dist "github.com/aperturerobotics/bldr/dist"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -80,7 +79,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // PreBuildHook is a callback called before building the dist.
 // Returns an optional PreBuildResult.
-type PreBuildHook func(ctx context.Context, builderConf *manifest_builder.BuilderConfig, worldEng world.Engine) (*PreBuildHookResult, error)
+type PreBuildHook func(ctx context.Context, builderConf *bldr_manifest_builder.BuilderConfig, worldEng world.Engine) (*PreBuildHookResult, error)
 
 // AddPreBuildHook adds a callback that is called just after constructing the dist working dir.
 // Called before calling the Go compiler or bundling the assets or dist fs.
@@ -99,9 +98,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest once with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
-	args *manifest_builder.BuildManifestArgs,
+	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
-) (*manifest_builder.BuilderResult, error) {
+) (*bldr_manifest_builder.BuilderResult, error) {
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
@@ -320,10 +319,10 @@ func (c *Controller) BuildManifest(
 	}
 
 	le.Debug("dist build complete")
-	result := manifest_builder.NewBuilderResult(
+	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
-		manifest_builder.NewInputManifest(nil, nil),
+		bldr_manifest_builder.NewInputManifest(nil, nil),
 	)
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
@@ -333,4 +332,4 @@ func (c *Controller) BuildManifest(
 }
 
 // _ is a type assertion
-var _ manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

@@ -33,7 +33,7 @@ func (r *lookupWebDocumentResolver) Resolve(ctx context.Context, handler directi
 		return nil
 	}
 
-	var val web_document.LookupWebDocumentValue = doc
+	val := doc
 	_, _ = handler.AddValue(val)
 	return nil
 }

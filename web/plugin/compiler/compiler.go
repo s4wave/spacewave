@@ -11,7 +11,6 @@ import (
 	random_id "github.com/aperturerobotics/bifrost/util/randstring"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	"github.com/aperturerobotics/bldr/util/npm"
@@ -125,7 +124,7 @@ func (c *Controller) BuildManifest(
 // BundleElectronHook bundles electron.
 func (c *Controller) BundleElectronHook(
 	ctx context.Context,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*plugin_compiler_go.PreBuildHookResult, error) {
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
@@ -307,7 +306,7 @@ func (c *Controller) buildBrowserShimManifest(
 	}
 
 	le.Debug("plugin build complete")
-	result := manifest_builder.NewBuilderResult(
+	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
 		nil,
@@ -321,6 +320,6 @@ func (c *Controller) buildBrowserShimManifest(
 
 // _ is a type assertion
 var (
-	_ plugin_compiler_go.PreBuildHook = ((*Controller)(nil)).BundleElectronHook
-	_ manifest_builder.Controller     = ((*Controller)(nil))
+	_ plugin_compiler_go.PreBuildHook  = ((*Controller)(nil)).BundleElectronHook
+	_ bldr_manifest_builder.Controller = ((*Controller)(nil))
 )

@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	"github.com/aperturerobotics/bifrost/util/labels"
 	manifest "github.com/aperturerobotics/bldr/manifest"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/hydra/world"
 	"github.com/ghodss/yaml"
@@ -149,7 +149,7 @@ func (c *RemoteConfig) CleanupLinkObjectKeys() (storeObjKey string, linkObjKeys 
 // Validate validates the start configuration.
 func (c *StartConfig) Validate() error {
 	for _, pluginID := range c.GetPlugins() {
-		if err := plugin.ValidatePluginID(pluginID, false); err != nil {
+		if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
 			return errors.Wrapf(err, "plugins[%s]: invalid plugin id", pluginID)
 		}
 	}

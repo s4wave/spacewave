@@ -5,7 +5,7 @@ import (
 
 	"github.com/aperturerobotics/bifrost/util/confparse"
 	manifest_fetch "github.com/aperturerobotics/bldr/manifest/fetch"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 )
 
@@ -29,7 +29,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 // Validate checks the config.
 func (c *Config) Validate() error {
 	if c.GetPluginId() == "" {
-		return plugin.ErrEmptyPluginID
+		return bldr_plugin.ErrEmptyPluginID
 	}
 	if _, err := c.ParseFetchManifestIdRe(); err != nil {
 		return err

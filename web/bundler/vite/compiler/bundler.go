@@ -18,7 +18,6 @@ import (
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
-	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
@@ -234,11 +233,11 @@ func BuildViteBundle(
 	outAssetsPath string,
 	pluginID string,
 	isRelease bool,
-) ([]*web_pkg.WebPkgRef, []*bldr_web_bundler_vite.ViteOutputMeta, []string, error) {
+) ([]*web_pkg.WebPkgRef, []*bldr_vite.ViteOutputMeta, []string, error) {
 	// outputs
 	var sourceFilesList []string
 	var webPkgRefs []*web_pkg.WebPkgRef
-	var outputMetas []*bldr_web_bundler_vite.ViteOutputMeta
+	var outputMetas []*bldr_vite.ViteOutputMeta
 
 	// Public path
 	publicPath := viteBundleMeta.GetPublicPath()

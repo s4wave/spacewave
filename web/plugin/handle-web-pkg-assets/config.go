@@ -1,7 +1,7 @@
 package bldr_web_plugin_handle_web_pkg_assets
 
 import (
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
@@ -23,10 +23,10 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 // Validate checks the config.
 func (c *Config) Validate() error {
 	if c.GetWebPluginId() == "" {
-		return errors.Wrap(plugin.ErrEmptyPluginID, "web_plugin_id")
+		return errors.Wrap(bldr_plugin.ErrEmptyPluginID, "web_plugin_id")
 	}
 	if c.GetHandlePluginId() == "" {
-		return errors.Wrap(plugin.ErrEmptyPluginID, "handle_plugin_id")
+		return errors.Wrap(bldr_plugin.ErrEmptyPluginID, "handle_plugin_id")
 	}
 	return nil
 }

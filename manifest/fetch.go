@@ -18,13 +18,13 @@ func NewFetchManifestRequest(dir FetchManifest) *FetchManifestRequest {
 }
 
 // ToDirective converts the request into a directive.
-func (r *FetchManifestRequest) ToDirective() FetchManifest {
-	buildTypes := make([]BuildType, len(r.GetBuildTypes()))
-	for i, btStr := range r.GetBuildTypes() {
+func (f *FetchManifestRequest) ToDirective() FetchManifest {
+	buildTypes := make([]BuildType, len(f.GetBuildTypes()))
+	for i, btStr := range f.GetBuildTypes() {
 		buildTypes[i] = BuildType(btStr)
 	}
 
-	return NewFetchManifest(r.GetManifestId(), buildTypes, r.GetPlatformIds(), r.GetRev())
+	return NewFetchManifest(f.GetManifestId(), buildTypes, f.GetPlatformIds(), f.GetRev())
 }
 
 // SetValueId sets the value id field.

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/hydra/unixfs"
-	wazero_exp_sys "github.com/tetratelabs/wazero/experimental/sys"
 	wazero_sys "github.com/tetratelabs/wazero/experimental/sys"
 	"github.com/tetratelabs/wazero/sys"
 )
@@ -32,13 +31,13 @@ import (
 type File struct {
 	ctx       context.Context
 	handle    *unixfs.FSHandle
-	flag      wazero_exp_sys.Oflag
+	flag      wazero_sys.Oflag
 	offset    int64  // current read/write offset
 	dirOffset uint64 // current directory reading offset
 }
 
 // NewFile constructs a new File backed by a UnixFS FSHandle.
-func NewFile(ctx context.Context, handle *unixfs.FSHandle, flag wazero_exp_sys.Oflag) *File {
+func NewFile(ctx context.Context, handle *unixfs.FSHandle, flag wazero_sys.Oflag) *File {
 	return &File{
 		ctx:    ctx,
 		handle: handle,
@@ -110,7 +109,7 @@ func (f *File) IsDir() (bool, wazero_sys.Errno) {
 //   - This might not match the underlying state of the file descriptor if
 //     the file was not opened via OpenFile.
 func (f *File) IsAppend() bool {
-	return f.flag&wazero_exp_sys.O_APPEND != 0
+	return f.flag&wazero_sys.O_APPEND != 0
 }
 
 // SetAppend toggles the append mode (O_APPEND) of this file.
@@ -143,15 +142,18 @@ func (f *File) SetAppend(enable bool) wazero_sys.Errno {
 
 	// Toggle the O_APPEND flag
 	if enable {
-		f.flag |= wazero_exp_sys.O_APPEND
+		f.flag |= wazero_sys.O_APPEND
 		// When enabling append mode, set offset to end of file
 		size, err := f.handle.GetSize(f.ctx)
 		if err != nil {
 			return UnixfsErrorToWazeroErrno(err)
 		}
+		if size > 0x7FFFFFFFFFFFFFFF {
+			return wazero_sys.EINVAL
+		}
 		f.offset = int64(size)
 	} else {
-		f.flag &^= wazero_exp_sys.O_APPEND
+		f.flag &^= wazero_sys.O_APPEND
 	}
 
 	return 0
@@ -209,7 +211,7 @@ func (f *File) Read(buf []byte) (n int, errno wazero_sys.Errno) {
 	}
 
 	// Check if file is readable
-	if f.flag&wazero_exp_sys.O_WRONLY != 0 {
+	if f.flag&wazero_sys.O_WRONLY != 0 {
 		return 0, wazero_sys.EBADF
 	}
 
@@ -266,7 +268,7 @@ func (f *File) Pread(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 	}
 
 	// Check if file is readable
-	if f.flag&wazero_exp_sys.O_WRONLY != 0 {
+	if f.flag&wazero_sys.O_WRONLY != 0 {
 		return 0, wazero_sys.EBADF
 	}
 
@@ -351,6 +353,9 @@ func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys
 		if err != nil {
 			return 0, UnixfsErrorToWazeroErrno(err)
 		}
+		if size > 0x7FFFFFFFFFFFFFFF {
+			return 0, wazero_sys.EINVAL
+		}
 		newOff = int64(size) + offset
 	default:
 		return 0, wazero_sys.EINVAL
@@ -386,7 +391,7 @@ func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys
 //     read the directory completely, the caller must repeat until the
 //     count read (`len(dirents)`) is less than `n`.
 //   - See /RATIONALE.md for design notes.
-func (f *File) Readdir(n int) (dirents []wazero_exp_sys.Dirent, errno wazero_exp_sys.Errno) {
+func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Errno) {
 	if f.handle == nil {
 		return nil, wazero_sys.EBADF
 	}
@@ -402,7 +407,7 @@ func (f *File) Readdir(n int) (dirents []wazero_exp_sys.Dirent, errno wazero_exp
 	}
 
 	// Collect directory entries starting from current offset
-	var entries []wazero_exp_sys.Dirent
+	var entries []wazero_sys.Dirent
 	var currentIndex uint64 = 0
 
 	// Determine limit: if n <= 0, read all remaining entries; otherwise limit to n
@@ -429,7 +434,7 @@ func (f *File) Readdir(n int) (dirents []wazero_exp_sys.Dirent, errno wazero_exp
 			return err // Skip this entry on error
 		}
 
-		dirent := wazero_exp_sys.Dirent{
+		dirent := wazero_sys.Dirent{
 			Ino:  0,
 			Name: ent.GetName(),
 			Type: fileInfo.Mode().Type(),
@@ -469,7 +474,7 @@ func (f *File) Write(buf []byte) (n int, errno wazero_sys.Errno) {
 	}
 
 	// Check if file is writable
-	if f.flag&wazero_exp_sys.O_RDONLY != 0 {
+	if f.flag&wazero_sys.O_RDONLY != 0 {
 		return 0, wazero_sys.EBADF
 	}
 
@@ -484,10 +489,13 @@ func (f *File) Write(buf []byte) (n int, errno wazero_sys.Errno) {
 	}
 
 	// If opened with O_APPEND, seek to end
-	if f.flag&wazero_exp_sys.O_APPEND != 0 {
+	if f.flag&wazero_sys.O_APPEND != 0 {
 		size, err := f.handle.GetSize(f.ctx)
 		if err != nil {
 			return 0, UnixfsErrorToWazeroErrno(err)
+		}
+		if size > 0x7FFFFFFFFFFFFFFF {
+			return 0, wazero_sys.EINVAL
 		}
 		f.offset = int64(size)
 	}
@@ -530,7 +538,7 @@ func (f *File) Pwrite(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 	}
 
 	// Check if file is writable
-	if f.flag&wazero_exp_sys.O_RDONLY != 0 {
+	if f.flag&wazero_sys.O_RDONLY != 0 {
 		return 0, wazero_sys.EBADF
 	}
 
@@ -658,7 +666,7 @@ func (f *File) Utimens(atim, mtim int64) wazero_sys.Errno {
 	}
 
 	// Only handle modification time updates, ignore access time
-	if mtim == wazero_exp_sys.UTIME_OMIT {
+	if mtim == wazero_sys.UTIME_OMIT {
 		return 0 // Nothing to do
 	}
 

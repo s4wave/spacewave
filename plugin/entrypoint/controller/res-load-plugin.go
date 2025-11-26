@@ -79,7 +79,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			// construct the rpc stream client
 			le.Debug("plugin loaded")
 			rpcClient := r.c.BuildRemotePluginClient(r.pluginID, false)
-			var val bldr_plugin.LoadPluginValue = bldr_plugin.NewRunningPlugin(rpcClient)
+			val := bldr_plugin.NewRunningPlugin(rpcClient)
 			r.runningPluginCtr.SetValue(val)
 			_, _ = handler.AddValue(val)
 			handler.MarkIdle(true)

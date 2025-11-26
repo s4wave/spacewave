@@ -157,7 +157,7 @@ func (r *LookupRpcClientResolver) Resolve(rctx context.Context, handler directiv
 			client = srpc.NewPrefixClient(client, []string{r.stripServiceIDPrefix})
 		}
 
-		var value bifrost_rpc.LookupRpcClientValue = client
+		value := client
 		r.rpcClientCtr.SetValue(&value)
 		_, _ = handler.AddValue(value)
 		handler.MarkIdle(true)

@@ -12,7 +12,7 @@ import (
 
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
-	bldr_web_bundler_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
+	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	bldr_web_bundler_esbuild_compiler "github.com/aperturerobotics/bldr/web/bundler/esbuild/compiler"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
@@ -34,7 +34,7 @@ func BuildEsbuildBundlerConfig(
 		var bundleEntrypoints []*bldr_web_bundler_esbuild.EsbuildBundleEntrypoint
 		for _, bundleVarEntrypoint := range bundleVar.GetEntrypointVars() {
 			varEsbuildFlags := bundleVarEntrypoint.GetEsbuildFlags()
-			varBuildOpts, err := bldr_web_bundler_esbuild_build.ParseEsbuildFlags(varEsbuildFlags)
+			varBuildOpts, err := bldr_esbuild_build.ParseEsbuildFlags(varEsbuildFlags)
 			if err != nil {
 				return nil, err
 			}

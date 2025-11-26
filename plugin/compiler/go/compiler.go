@@ -12,10 +12,8 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	plugin_host_configset "github.com/aperturerobotics/bldr/plugin/host/configset"
 	bldr_plugin_load "github.com/aperturerobotics/bldr/plugin/load"
@@ -109,7 +107,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Returns an optional PreBuildResult.
 type PreBuildHook func(
 	ctx context.Context,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
@@ -130,9 +128,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
-	args *manifest_builder.BuildManifestArgs,
+	args *bldr_manifest_builder.BuildManifestArgs,
 	buildHost bldr_manifest_builder.BuildManifestHost,
-) (*manifest_builder.BuilderResult, error) {
+) (*bldr_manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
@@ -192,7 +190,7 @@ func (c *Controller) BuildManifest(
 
 	// If no Go files changed, rebuild esbuild assets only (hot reload)
 	prevResult := args.GetPrevBuilderResult()
-	var updatedManifestMeta *manifest_builder.InputManifest
+	var updatedManifestMeta *bldr_manifest_builder.InputManifest
 	if !prevResult.GetManifestRef().GetEmpty() && !isRelease {
 		// Check out the previous result to disk.
 		prevManifestRef := prevResult.GetManifestRef()
@@ -338,7 +336,7 @@ func (c *Controller) BuildManifest(
 		"plugin build complete with %d input files",
 		len(updatedManifestMeta.Files),
 	)
-	result := manifest_builder.NewBuilderResult(
+	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
 		updatedManifestMeta,
@@ -382,7 +380,7 @@ func (c *Controller) BuildPlugin(
 	enableCompressionOpt enabled.Enabled,
 	baseEsbuildFlags []string,
 	devInfoFile string,
-) (*Analysis, *manifest_builder.InputManifest, error) {
+) (*Analysis, *bldr_manifest_builder.InputManifest, error) {
 	// plugin id
 	pluginID := pluginMeta.GetPluginId()
 	isRelease := buildType.IsRelease()
@@ -714,8 +712,8 @@ func (c *Controller) BuildPlugin(
 		if err := applyToConfigSet(
 			"web-pkgs-fs",
 			web_pkg_fs_controller.NewConfig(
-				plugin.PluginAssetsFsId(pluginID),
-				plugin.PluginAssetsWebPkgsDir,
+				bldr_plugin.PluginAssetsFsId(pluginID),
+				bldr_plugin.PluginAssetsWebPkgsDir,
 				true,
 				webPkgIDs,
 			),
@@ -898,7 +896,7 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 
-	inputManifest := &manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
+	inputManifest := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
 	inputFileKinds := map[InputFileKind][]string{
 		InputFileKind_InputFileKind_GO:    goSrcFiles,
 		InputFileKind_InputFileKind_ASSET: assetSrcFiles,
@@ -916,7 +914,7 @@ func (c *Controller) BuildPlugin(
 		}
 
 		for _, srcPath := range srcPaths {
-			inputManifest.Files = append(inputManifest.Files, &manifest_builder.InputManifest_File{
+			inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
 				Path:     srcPath,
 				Metadata: metaBin,
 			})
@@ -941,13 +939,13 @@ func (c *Controller) FastRebuildPlugin(
 	outDistPath,
 	outAssetsPath string,
 	baseEsbuildFlags []string,
-	prevInputManifest *manifest_builder.InputManifest,
-	changedFiles []*manifest_builder.InputManifest_File,
+	prevInputManifest *bldr_manifest_builder.InputManifest,
+	changedFiles []*bldr_manifest_builder.InputManifest_File,
 	devInfoFile string,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	buildHost bldr_manifest_builder.BuildManifestHost,
 	buildWorld world.Engine,
-) (*manifest_builder.InputManifest, error) {
+) (*bldr_manifest_builder.InputManifest, error) {
 	// Skip if there is no previous result.
 	if len(prevInputManifest.GetFiles()) == 0 {
 		return nil, nil
@@ -1274,9 +1272,10 @@ func buildViteGoVariableDefs(
 			for _, output := range outputs {
 				path := output.GetPath()
 				ext := filepath.Ext(path)
-				if ext == ".js" || ext == ".mjs" {
+				switch ext {
+				case ".js", ".mjs":
 					jsOutputPath = path
-				} else if ext == ".css" {
+				case ".css":
 					cssOutputPath = path
 				}
 			}
@@ -1346,4 +1345,4 @@ func writeDevInfoFile(le *logrus.Entry, outDistPath, devInfoFile string, devInfo
 }
 
 // _ is a type assertion
-var _ manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

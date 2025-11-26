@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -40,7 +40,7 @@ type Controller struct {
 	// c is the controller config
 	c *Config
 	// resultPromise contains the result of the compilation.
-	resultPromise *promise.PromiseContainer[*manifest_builder.BuilderResult]
+	resultPromise *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
 	// subManifestBuilderTrackers track building sub-manifests
 	subManifestBuilderTrackers *keyed.Keyed[string, *subManifestBuilderTracker]
 }
@@ -51,7 +51,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 		le:            le,
 		bus:           bus,
 		c:             cc,
-		resultPromise: promise.NewPromiseContainer[*manifest_builder.BuilderResult](),
+		resultPromise: promise.NewPromiseContainer[*bldr_manifest_builder.BuilderResult](),
 	}
 	c.subManifestBuilderTrackers = keyed.NewKeyedWithLogger(c.newSubManifestBuilderTracker, le)
 	return c
@@ -72,7 +72,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // GetResultPromise returns the result promise.
-func (c *Controller) GetResultPromise() *promise.PromiseContainer[*manifest_builder.BuilderResult] {
+func (c *Controller) GetResultPromise() *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult] {
 	return c.resultPromise
 }
 
@@ -97,10 +97,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// cast to a manifest_builder config
-	pconf, ok := conf.GetConfig().(manifest_builder.ControllerConfig)
+	pconf, ok := conf.GetConfig().(bldr_manifest_builder.ControllerConfig)
 	if !ok {
 		err := errors.Errorf(
-			"config must implement manifest_builder.ControllerConfig interface: %s",
+			"config must implement bldr_manifest_builder.ControllerConfig interface: %s",
 			conf.GetConfig().GetConfigID(),
 		)
 		c.resultPromise.SetResult(nil, err)
@@ -136,16 +136,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer ctrlRef.Release()
 
-	builderCtrl, ok := builderCtrlInter.(manifest_builder.Controller)
+	builderCtrl, ok := builderCtrlInter.(bldr_manifest_builder.Controller)
 	if !ok {
-		err := errors.Errorf("builder must implement manifest_builder.Controller: %#v", builderCtrlInter)
+		err := errors.Errorf("builder must implement bldr_manifest_builder.Controller: %#v", builderCtrlInter)
 		c.resultPromise.SetResult(nil, err)
 		return err
 	}
 
-	var prevResult *manifest_builder.BuilderResult
+	var prevResult *bldr_manifest_builder.BuilderResult
 	var prevErr error
-	var changedFiles []*manifest_builder.InputManifest_File
+	var changedFiles []*bldr_manifest_builder.InputManifest_File
 
 	// TODO: We do not increment the manifest revision when hot reloading.
 	// TODO: Should that be done here?
@@ -155,10 +155,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return context.Canceled
 		}
 
-		resultPromise := promise.NewPromise[*manifest_builder.BuilderResult]()
+		resultPromise := promise.NewPromise[*bldr_manifest_builder.BuilderResult]()
 		c.resultPromise.SetPromise(resultPromise)
 
-		args := &manifest_builder.BuildManifestArgs{
+		args := &bldr_manifest_builder.BuildManifestArgs{
 			BuilderConfig: builderConfig,
 
 			PrevBuilderResult: prevResult,
@@ -241,7 +241,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ignoreWatchPrefixes := []string{"vendor", "node_modules", ".bldr", "(disabled)"}
 
 		// build file watchlist
-		watchedFiles := make(map[string]*manifest_builder.InputManifest_File)
+		watchedFiles := make(map[string]*bldr_manifest_builder.InputManifest_File)
 	FilesLoop:
 		for _, inputFile := range inputFiles {
 			filePath := inputFile.GetPath()
@@ -275,7 +275,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// compare list of files with previous list of file
-		watchedSourcePaths := make(map[string]*manifest_builder.InputManifest_File, len(watchedFiles))
+		watchedSourcePaths := make(map[string]*bldr_manifest_builder.InputManifest_File, len(watchedFiles))
 		watchedSourceDirs := make(map[string]struct{}, len(watchedFiles))
 		for filePath, v := range watchedFiles {
 			sourcePath := filepath.Join(builderConfig.GetSourcePath(), filePath)
@@ -346,7 +346,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// build list of changed files
 		// DebounceFSWatcherEvents watches for Create, Rename, Write, Remove
 		// we know there is at least one event in happened
-		seenChangedFiles := make(map[*manifest_builder.InputManifest_File]struct{}, len(happened))
+		seenChangedFiles := make(map[*bldr_manifest_builder.InputManifest_File]struct{}, len(happened))
 		for _, event := range happened {
 			inputFile := watchedSourcePaths[event.Name]
 			if _, ok := seenChangedFiles[inputFile]; !ok && inputFile != nil {

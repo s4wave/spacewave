@@ -1,5 +1,4 @@
 //go:build js
-// +build js
 
 package plugin_entrypoint
 

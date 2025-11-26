@@ -5,7 +5,6 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
-	plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	"github.com/aperturerobotics/hydra/volume"
@@ -63,9 +62,9 @@ func NewPluginHostServer(
 // GetPluginInfo returns information about the currently running plugin.
 func (s *PluginHostServer) GetPluginInfo(
 	ctx context.Context,
-	req *plugin.GetPluginInfoRequest,
-) (*plugin.GetPluginInfoResponse, error) {
-	return &plugin.GetPluginInfoResponse{
+	req *bldr_plugin.GetPluginInfoRequest,
+) (*bldr_plugin.GetPluginInfoResponse, error) {
+	return &bldr_plugin.GetPluginInfoResponse{
 		PluginId: s.pluginID,
 		ManifestRef: bldr_manifest.NewManifestRef(
 			s.manifestSnapshot.GetManifest().GetMeta().CloneVT(),
@@ -77,8 +76,8 @@ func (s *PluginHostServer) GetPluginInfo(
 
 // LoadPlugin requests to send a LoadPlugin directive.
 func (s *PluginHostServer) LoadPlugin(
-	req *plugin.LoadPluginRequest,
-	strm plugin.SRPCPluginHost_LoadPluginStream,
+	req *bldr_plugin.LoadPluginRequest,
+	strm bldr_plugin.SRPCPluginHost_LoadPluginStream,
 ) error {
 	if err := req.Validate(); err != nil {
 		return err
@@ -93,21 +92,21 @@ func (s *PluginHostServer) LoadPlugin(
 // PluginRpc forwards an RPC call to a remote plugin.
 // The plugin will remain loaded as long as the RPC is active.
 // Component ID: plugin id
-func (s *PluginHostServer) PluginRpc(strm plugin.SRPCPluginHost_PluginRpcStream) error {
+func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcStream) error {
 	return rpcstream.HandleProxyRpcStream(
 		strm,
-		func(ctx context.Context, pluginID string) (rpcstream.RpcStreamCaller[plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
+		func(ctx context.Context, pluginID string) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
 			if pluginID == "" {
-				return nil, "", nil, plugin.ErrEmptyPluginID
+				return nil, "", nil, bldr_plugin.ErrEmptyPluginID
 			}
 			if pluginID == s.pluginID {
 				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
 			}
-			client, clientRef, err := plugin.ExPluginLoadWaitClient(ctx, s.b, pluginID, nil)
+			client, clientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, s.b, pluginID, nil)
 			if err != nil {
 				return nil, "", nil, err
 			}
-			srv := plugin.NewSRPCPluginClient(client)
+			srv := bldr_plugin.NewSRPCPluginClient(client)
 			return srv.PluginRpc, s.pluginID, clientRef.Release, nil
 		},
 	)
@@ -116,7 +115,7 @@ func (s *PluginHostServer) PluginRpc(strm plugin.SRPCPluginHost_PluginRpcStream)
 // PluginFsRpc accesses a FSCursorService to access the plugin assets or dist filesystems.
 // The plugin will remain loaded as long as the RPC is active.
 // Component ID: plugin-assets or plugin-dist
-func (s *PluginHostServer) PluginFsRpc(rpcStream plugin.SRPCPluginHost_PluginFsRpcStream) error {
+func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_PluginFsRpcStream) error {
 	return rpcstream.HandleRpcStream(
 		rpcStream,
 		func(
@@ -128,7 +127,7 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream plugin.SRPCPluginHost_PluginFsR
 				return nil, nil, errors.New("component id must be set to filesystem id")
 			}
 
-			pluginID, matchedPrefix, err := plugin.ValidatePluginUnixfsID(unixfsID, true)
+			pluginID, matchedPrefix, err := bldr_plugin.ValidatePluginUnixfsID(unixfsID, true)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -172,7 +171,7 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream plugin.SRPCPluginHost_PluginFsR
 // ExecController executes a config set on the host bus.
 func (s *PluginHostServer) ExecController(
 	req *controller_exec.ExecControllerRequest,
-	strm plugin.SRPCPluginHost_ExecControllerStream,
+	strm bldr_plugin.SRPCPluginHost_ExecControllerStream,
 ) error {
 	s.le.Debugf("plugin %q is applying a configset", s.pluginID)
 	defer s.le.Debugf("plugin %q exited applying a configset", s.pluginID)
@@ -182,4 +181,4 @@ func (s *PluginHostServer) ExecController(
 }
 
 // _ is a type assertion
-var _ plugin.SRPCPluginHostServer = ((*PluginHostServer)(nil))
+var _ bldr_plugin.SRPCPluginHostServer = ((*PluginHostServer)(nil))

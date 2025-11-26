@@ -74,7 +74,7 @@ func (t *remoteTracker) execute(ctx context.Context) error {
 	}
 	defer engineRef.Release()
 
-	var engine world.Engine = engineHandle
+	engine := engineHandle
 	resultPromise.SetResult(&engine, nil)
 
 	// wait for ctx to be canceled

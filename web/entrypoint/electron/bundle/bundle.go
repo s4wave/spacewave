@@ -11,7 +11,6 @@ import (
 	bldr_platform_npm "github.com/aperturerobotics/bldr/platform/npm"
 	"github.com/aperturerobotics/bldr/util/npm"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
-	bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	entrypoint_browser_bundle "github.com/aperturerobotics/bldr/web/entrypoint/browser/bundle"
 	web_pkg_external "github.com/aperturerobotics/bldr/web/pkg/external"
 	"github.com/aperturerobotics/util/exec"
@@ -30,12 +29,12 @@ func ElectronDefine(devMode bool) map[string]string {
 	}
 }
 
-// EsbuildLogLevel is the log level when bundling the electron bundle.
+// EsbuildLogLevel is the log level when bundling the electron entrypoint_browser_bundle.
 var EsbuildLogLevel = esbuild.LogLevelWarning
 
 // ElectronBuildOpts are general options for building for Electron.
 func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
-	opts := bundle.BrowserBuildOpts(bldrDistRoot, minify)
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify)
 	opts.Define = ElectronDefine(devMode)
 	opts.External = []string{"electron"}
 	opts.LogLevel = EsbuildLogLevel
@@ -46,7 +45,7 @@ func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildO
 //
 // Returns the path to the service worker .mjs file
 func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
-	return bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	return entrypoint_browser_bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
 }
 
 // BuildPreloadBundle builds the web renderer bundle files.

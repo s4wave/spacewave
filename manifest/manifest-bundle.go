@@ -50,8 +50,8 @@ func NewManifestBundleSubBlockCtor(r **ManifestBundle) block.SubBlockCtor {
 }
 
 // IsNil checks if the object is nil.
-func (t *ManifestBundle) IsNil() bool {
-	return t == nil
+func (m *ManifestBundle) IsNil() bool {
+	return m == nil
 }
 
 // Validate validates the ManifestBundle.

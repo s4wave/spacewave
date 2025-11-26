@@ -25,7 +25,7 @@ func TestParsePlatform(t *testing.T) {
 		t.Fail()
 	}
 
-	p, err = ParsePlatform("js/invalid/params")
+	_, err = ParsePlatform("js/invalid/params")
 	if err == nil {
 		t.Fail()
 	}

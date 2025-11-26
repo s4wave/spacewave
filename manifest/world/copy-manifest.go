@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/bifrost/peer"
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	manifest "github.com/aperturerobotics/bldr/manifest"
 	"github.com/aperturerobotics/hydra/block"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -34,8 +33,8 @@ func DeepCopyManifest(
 	destLinkObjKeys []string,
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
-) (*manifest.Manifest, *bucket.ObjectRef, error) {
-	var outManifest *manifest.Manifest
+) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
+	var outManifest *bldr_manifest.Manifest
 	var outRef *bucket.ObjectRef
 	writeErr := AccessManifest(
 		ctx,

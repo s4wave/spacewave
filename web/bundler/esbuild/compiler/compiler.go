@@ -11,9 +11,8 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
@@ -91,7 +90,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Returns an optional PreBuildResult.
 type PreBuildHook func(
 	ctx context.Context,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
@@ -111,18 +110,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
-	args *manifest_builder.BuildManifestArgs,
+	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
-) (*manifest_builder.BuilderResult, error) {
+) (*bldr_manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
-	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
+	meta, _, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
 
 	// Override buildPlatform to the "none" platform since esbuild produces .js without the plugin wrapper.
-	buildPlatform = bldr_platform.NewNonePlatform()
+	buildPlatform := bldr_platform.NewNonePlatform()
 	meta.PlatformId = buildPlatform.GetPlatformID()
 
 	platformID := meta.GetPlatformId()
@@ -148,7 +147,7 @@ func (c *Controller) BuildManifest(
 
 	// If no web package files changed, rebuild esbuild assets only (hot reload)
 	prevResult := args.GetPrevBuilderResult()
-	var updatedManifestMeta *manifest_builder.InputManifest
+	var updatedManifestMeta *bldr_manifest_builder.InputManifest
 	if !prevResult.GetManifestRef().GetEmpty() && !isRelease {
 		// Check out the previous result to disk.
 		prevManifestRef := prevResult.GetManifestRef()
@@ -282,20 +281,20 @@ func (c *Controller) BuildManifest(
 			return nil, err
 		}
 
-		updatedManifestMeta = &manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
+		updatedManifestMeta = &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
 		inputFileKinds := map[InputFileKind][]string{
 			InputFileKind_InputFileKind_ESBUILD: sourceFilesList,
 		}
 
 		// Run esbuild on the web pkgs (if any)
-		outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
+		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 		_, webPkgSrcFiles, err := web_pkg_esbuild.BuildWebPkgsEsbuild(
 			ctx,
 			le,
 			sourcePath,
 			webPkgRefs,
 			outWebPkgsPath,
-			plugin.PluginWebPkgHttpPrefix,
+			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
 		)
 		if err != nil {
@@ -316,7 +315,7 @@ func (c *Controller) BuildManifest(
 			}
 
 			for _, srcPath := range srcPaths {
-				updatedManifestMeta.Files = append(updatedManifestMeta.Files, &manifest_builder.InputManifest_File{
+				updatedManifestMeta.Files = append(updatedManifestMeta.Files, &bldr_manifest_builder.InputManifest_File{
 					Path:     srcPath,
 					Metadata: metaBin,
 				})
@@ -350,7 +349,7 @@ func (c *Controller) BuildManifest(
 		"build complete with %d input files",
 		len(updatedManifestMeta.Files),
 	)
-	result := manifest_builder.NewBuilderResult(
+	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
 		updatedManifestMeta,
@@ -375,9 +374,9 @@ func (c *Controller) FastRebuildBundle(
 	workingPath,
 	outDistPath,
 	outAssetsPath string,
-	prevInputManifest *manifest_builder.InputManifest,
-	changedFiles []*manifest_builder.InputManifest_File,
-) (*manifest_builder.InputManifest, error) {
+	prevInputManifest *bldr_manifest_builder.InputManifest,
+	changedFiles []*bldr_manifest_builder.InputManifest_File,
+) (*bldr_manifest_builder.InputManifest, error) {
 	// Skip if there is no previous result.
 	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
 		return nil, nil
@@ -515,7 +514,7 @@ func (c *Controller) FastRebuildBundle(
 	updatedInputMeta.EsbuildOutputs = updatedEsbuildOutputs
 
 	// drop all esbuild files from the set (we will add them back next)
-	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
+	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *bldr_manifest_builder.InputManifest_File) bool {
 		meta.Reset()
 		err := meta.UnmarshalVT(f.GetMetadata())
 		if err != nil {
@@ -535,7 +534,7 @@ func (c *Controller) FastRebuildBundle(
 		return nil, err
 	}
 	for _, srcPath := range esbuildSrcFiles {
-		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
+		updatedInputManifest.Files = append(updatedInputManifest.Files, &bldr_manifest_builder.InputManifest_File{
 			Path:     srcPath,
 			Metadata: esbuildFileMetaBin,
 		})
@@ -554,4 +553,4 @@ func (c *Controller) FastRebuildBundle(
 }
 
 // _ is a type assertion
-var _ manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

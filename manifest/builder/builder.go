@@ -68,9 +68,9 @@ func NewInputManifest(paths []string, meta []byte) *InputManifest {
 }
 
 // SortFiles sorts the files field on the input manifest.
-func (i *InputManifest) SortFiles() {
-	if i != nil {
-		slices.SortFunc(i.Files, func(a, b *InputManifest_File) int {
+func (m *InputManifest) SortFiles() {
+	if m != nil {
+		slices.SortFunc(m.Files, func(a, b *InputManifest_File) int {
 			return strings.Compare(a.GetPath(), b.GetPath())
 		})
 	}

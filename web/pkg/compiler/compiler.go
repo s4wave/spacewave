@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	plugin_compiler_go "github.com/aperturerobotics/bldr/plugin/compiler/go"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
@@ -120,4 +119,4 @@ func GetElectronApplicable(parsedPlatform bldr_platform.Platform) bool {
 }
 
 // _ is a type assertion
-var _ manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

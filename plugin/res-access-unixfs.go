@@ -82,7 +82,7 @@ func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h 
 	// Optionally pass a released function that may be called when the handle was released.
 	// Returns a release function.
 	// TODO: move this to a common place in unixfs_access or unixfs_rpc_client
-	var accessFunc unixfs_access.AccessUnixFSValue = func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+	accessFunc := func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
 		pluginHostClient, relFunc, err := h.WaitPluginHostClient(ctx, released)
 		if err != nil {
 			return nil, nil, err

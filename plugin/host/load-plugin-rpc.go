@@ -3,7 +3,7 @@ package plugin_host
 import (
 	"context"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -12,12 +12,12 @@ import (
 // HandleLoadPluginRpc handles an incoming LoadPlugin RPC request.
 func HandleLoadPluginRpc(
 	b bus.Bus,
-	req *plugin.LoadPluginRequest,
-	strm plugin.SRPCPluginHost_LoadPluginStream,
+	req *bldr_plugin.LoadPluginRequest,
+	strm bldr_plugin.SRPCPluginHost_LoadPluginStream,
 ) error {
 	pluginID := req.GetPluginId()
-	dir := plugin.NewLoadPlugin(pluginID)
-	resp := ccontainer.NewCContainerVT[*plugin.LoadPluginResponse](nil)
+	dir := bldr_plugin.NewLoadPlugin(pluginID)
+	resp := ccontainer.NewCContainerVT[*bldr_plugin.LoadPluginResponse](nil)
 
 	errCh := make(chan error, 1)
 	pushErr := func(err error) {
@@ -33,8 +33,8 @@ func HandleLoadPluginRpc(
 
 	var vals []directive.AttachedValue
 	updResp := func() {
-		resp.SetValue(&plugin.LoadPluginResponse{
-			PluginStatus: &plugin.PluginStatus{
+		resp.SetValue(&bldr_plugin.LoadPluginResponse{
+			PluginStatus: &bldr_plugin.PluginStatus{
 				PluginId: pluginID,
 				Running:  len(vals) != 0,
 			},
@@ -82,7 +82,7 @@ func HandleLoadPluginRpc(
 		updResp()
 	})()
 
-	var prevTx *plugin.LoadPluginResponse
+	var prevTx *bldr_plugin.LoadPluginResponse
 	for {
 		val, err := resp.WaitValueChange(reqCtx, prevTx, errCh)
 		if err != nil {

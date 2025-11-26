@@ -13,9 +13,8 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
@@ -104,7 +103,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Returns an optional PreBuildResult.
 type PreBuildHook func(
 	ctx context.Context,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
@@ -125,18 +124,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
-	args *manifest_builder.BuildManifestArgs,
+	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
-) (*manifest_builder.BuilderResult, error) {
+) (*bldr_manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
-	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
+	meta, _, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
 
 	// Override buildPlatform to the "none" platform since vite produces .js without the plugin wrapper.
-	buildPlatform = bldr_platform.NewNonePlatform()
+	buildPlatform := bldr_platform.NewNonePlatform()
 	meta.PlatformId = buildPlatform.GetPlatformID()
 
 	platformID := meta.GetPlatformId()
@@ -161,7 +160,7 @@ func (c *Controller) BuildManifest(
 	le.Debug("building vite bundle")
 
 	// Try fast rebuild first if we have a previous result and not in release mode
-	var updatedManifestMeta *manifest_builder.InputManifest
+	var updatedManifestMeta *bldr_manifest_builder.InputManifest
 	prevResult := args.GetPrevBuilderResult()
 	if !prevResult.GetManifestRef().GetEmpty() && !isRelease {
 		var err error
@@ -235,7 +234,7 @@ func (c *Controller) BuildManifest(
 		"build complete with %d input files",
 		len(updatedManifestMeta.Files),
 	)
-	result := manifest_builder.NewBuilderResult(
+	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
 		updatedManifestMeta,
@@ -257,10 +256,10 @@ type viteBuildResult struct {
 
 // bundleBuildResult holds the result of building a single bundle.
 type bundleBuildResult struct {
-	webPkgRefs  []*web_pkg.WebPkgRef
-	outputMeta  []*bldr_web_bundler_vite.ViteOutputMeta
-	srcFiles    []string
-	bundleMeta  *ViteBundleMeta
+	webPkgRefs []*web_pkg.WebPkgRef
+	outputMeta []*bldr_web_bundler_vite.ViteOutputMeta
+	srcFiles   []string
+	bundleMeta *ViteBundleMeta
 }
 
 // buildViteBundles builds all Vite bundles concurrently and returns the aggregated results.
@@ -433,7 +432,7 @@ func (c *Controller) buildInputManifest(
 	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
 	viteConfigPaths []string,
 	webPkgSrcFiles []string,
-) (*manifest_builder.InputManifest, error) {
+) (*bldr_manifest_builder.InputManifest, error) {
 	inputManifestMeta := &InputManifestMeta{
 		WebPkgRefs:      viteBuildResult.webPkgRefs,
 		WebPkgs:         webPkgs,
@@ -446,7 +445,7 @@ func (c *Controller) buildInputManifest(
 		return nil, err
 	}
 
-	updatedManifestMeta := &manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
+	updatedManifestMeta := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
 	inputFileKinds := map[InputFileKind][]string{
 		InputFileKind_InputFileKind_VITE: viteBuildResult.viteSrcFiles,
 	}
@@ -470,7 +469,7 @@ func (c *Controller) buildInputManifest(
 		}
 
 		for _, srcPath := range srcPathsCopy {
-			updatedManifestMeta.Files = append(updatedManifestMeta.Files, &manifest_builder.InputManifest_File{
+			updatedManifestMeta.Files = append(updatedManifestMeta.Files, &bldr_manifest_builder.InputManifest_File{
 				Path:     srcPath,
 				Metadata: metaBin,
 			})
@@ -486,7 +485,7 @@ func (c *Controller) buildInputManifest(
 func (c *Controller) tryFastRebuild(
 	ctx context.Context,
 	le *logrus.Entry,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	busEngine world.Engine,
 	manifestID,
 	sourcePath,
@@ -494,9 +493,9 @@ func (c *Controller) tryFastRebuild(
 	workingPath,
 	outDistPath,
 	outAssetsPath string,
-	prevResult *manifest_builder.BuilderResult,
-	changedFiles []*manifest_builder.InputManifest_File,
-) (*manifest_builder.InputManifest, error) {
+	prevResult *bldr_manifest_builder.BuilderResult,
+	changedFiles []*bldr_manifest_builder.InputManifest_File,
+) (*bldr_manifest_builder.InputManifest, error) {
 	// Check out the previous result to disk
 	prevManifestRef := prevResult.GetManifestRef()
 	_, err := builderConf.CheckoutManifest(
@@ -588,7 +587,7 @@ func (c *Controller) tryFastRebuild(
 	updatedInputMeta.ViteOutputs = viteBuildResult.viteOutputs
 
 	// Remove all vite files from the set (we will add them back next)
-	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *manifest_builder.InputManifest_File) bool {
+	updatedInputManifest.Files = slices.DeleteFunc(updatedInputManifest.Files, func(f *bldr_manifest_builder.InputManifest_File) bool {
 		meta.Reset()
 		err := meta.UnmarshalVT(f.GetMetadata())
 		if err != nil {
@@ -610,7 +609,7 @@ func (c *Controller) tryFastRebuild(
 		return nil, err
 	}
 	for _, srcPath := range viteSrcFilesCopy {
-		updatedInputManifest.Files = append(updatedInputManifest.Files, &manifest_builder.InputManifest_File{
+		updatedInputManifest.Files = append(updatedInputManifest.Files, &bldr_manifest_builder.InputManifest_File{
 			Path:     srcPath,
 			Metadata: viteFileMetaBin,
 		})
@@ -633,7 +632,7 @@ func (c *Controller) performFullRebuild(
 	ctx context.Context,
 	le *logrus.Entry,
 	conf *Config,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	busEngine world.Engine,
 	manifestID,
 	sourcePath,
@@ -643,7 +642,7 @@ func (c *Controller) performFullRebuild(
 	outAssetsPath string,
 	buildType bldr_manifest.BuildType,
 	isRelease bool,
-) (*manifest_builder.InputManifest, error) {
+) (*bldr_manifest_builder.InputManifest, error) {
 	// Clean/create build directories
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
@@ -699,14 +698,14 @@ func (c *Controller) performFullRebuild(
 	// Run esbuild on the web pkgs (if any)
 	var webPkgSrcFiles []string
 	if len(viteBuildResult.webPkgRefs) != 0 {
-		outWebPkgsPath := filepath.Join(outAssetsPath, plugin.PluginAssetsWebPkgsDir)
+		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 		_, webPkgSrcFiles, err = web_pkg_esbuild.BuildWebPkgsEsbuild(
 			ctx,
 			le,
 			sourcePath,
 			viteBuildResult.webPkgRefs,
 			outWebPkgsPath,
-			plugin.PluginWebPkgHttpPrefix,
+			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
 		)
 		if err != nil {
@@ -725,4 +724,4 @@ func (c *Controller) performFullRebuild(
 }
 
 // _ is a type assertion
-var _ manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

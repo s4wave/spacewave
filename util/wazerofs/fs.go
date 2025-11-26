@@ -17,7 +17,6 @@ import (
 	"github.com/aperturerobotics/hydra/unixfs"
 	unixfs_errors "github.com/aperturerobotics/hydra/unixfs/errors"
 	wazero_exp_sys "github.com/tetratelabs/wazero/experimental/sys"
-	wazero_sysfs "github.com/tetratelabs/wazero/experimental/sys"
 	wazero_sys "github.com/tetratelabs/wazero/sys"
 )
 
@@ -828,4 +827,4 @@ func (f *FS) Utimens(path string, atim, mtim int64) wazero_exp_sys.Errno {
 }
 
 // _ is a type assertion
-var _ wazero_sysfs.FS = ((*FS)(nil))
+var _ wazero_exp_sys.FS = ((*FS)(nil))

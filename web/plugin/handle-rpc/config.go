@@ -1,7 +1,7 @@
 package bldr_web_plugin_handle_rpc
 
 import (
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	handle_rpc_viaplugin "github.com/aperturerobotics/bldr/plugin/forward-rpc-service"
 	bldr_web_plugin "github.com/aperturerobotics/bldr/web/plugin"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -28,10 +28,10 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 // Validate checks the config.
 func (c *Config) Validate() error {
 	if c.GetWebPluginId() == "" {
-		return errors.Wrap(plugin.ErrEmptyPluginID, "web_plugin_id")
+		return errors.Wrap(bldr_plugin.ErrEmptyPluginID, "web_plugin_id")
 	}
 	if c.GetHandlePluginId() == "" {
-		return errors.Wrap(plugin.ErrEmptyPluginID, "handle_plugin_id")
+		return errors.Wrap(bldr_plugin.ErrEmptyPluginID, "handle_plugin_id")
 	}
 	if err := c.ToForwardConfig().Validate(); err != nil {
 		return err

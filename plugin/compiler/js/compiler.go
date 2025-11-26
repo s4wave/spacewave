@@ -14,14 +14,12 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_platform "github.com/aperturerobotics/bldr/platform"
 	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	bldr_plugin_compiler "github.com/aperturerobotics/bldr/plugin/compiler"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/aperturerobotics/bldr/web/bundler/esbuild"
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
-	bldr_web_bundler_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	bldr_web_bundler_esbuild_compiler "github.com/aperturerobotics/bldr/web/bundler/esbuild/compiler"
 	bldr_web_bundler_vite "github.com/aperturerobotics/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/aperturerobotics/bldr/web/bundler/vite/compiler"
@@ -103,7 +101,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Returns an optional PreBuildResult.
 type PreBuildHook func(
 	ctx context.Context,
-	builderConf *manifest_builder.BuilderConfig,
+	builderConf *bldr_manifest_builder.BuilderConfig,
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
@@ -123,9 +121,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 // BuildManifest compiles the manifest with the given builder args.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
-	args *manifest_builder.BuildManifestArgs,
+	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
-) (*manifest_builder.BuilderResult, error) {
+) (*bldr_manifest_builder.BuilderResult, error) {
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
@@ -447,7 +445,7 @@ func (c *Controller) BuildManifest(
 	}
 
 	// Parse the metafile to find the actual output path for our entrypoint
-	metafileData := &bldr_web_bundler_esbuild_build.EsbuildMetafile{}
+	metafileData := &bldr_esbuild_build.EsbuildMetafile{}
 	if err := json.Unmarshal([]byte(result.Metafile), metafileData); err != nil {
 		return nil, errors.Wrap(err, "failed to parse esbuild metafile")
 	}
@@ -499,7 +497,7 @@ func (c *Controller) BuildManifest(
 	// Create the InputManifest object
 	//
 	// NOTE: All input files are tracked by the sub-manifest system.
-	inputManifest := manifest_builder.NewInputManifest(nil, inputManifestMetaBin)
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, inputManifestMetaBin)
 
 	// -- Commit assets to the manifest store --
 	tx, err := buildWorld.NewTransaction(ctx, true)
@@ -527,7 +525,7 @@ func (c *Controller) BuildManifest(
 
 	// -- Finalize and return result --
 	le.Debug("js plugin build complete")
-	builderResult := manifest_builder.NewBuilderResult(
+	builderResult := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
 		committedManifestRef,
 		inputManifest, // Include the input manifest with metadata
@@ -625,4 +623,4 @@ func CreateEntrypointsFromViteOutputs(
 }
 
 // _ is a type assertion
-var _ manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = ((*Controller)(nil))

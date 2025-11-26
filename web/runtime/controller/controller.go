@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	plugin "github.com/aperturerobotics/bldr/plugin"
+	bldr_plugin "github.com/aperturerobotics/bldr/plugin"
 	web_document "github.com/aperturerobotics/bldr/web/document"
 	fetch "github.com/aperturerobotics/bldr/web/fetch"
 	web_pkg_http "github.com/aperturerobotics/bldr/web/pkg/http"
@@ -193,7 +193,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		c.le.Debugf("serve /b/ path: %s", rpath)
 
 		// /b/pkg/ is for Web module distribution files (like react)
-		bPkgPrefix := plugin.PluginWebPkgHttpPrefix
+		bPkgPrefix := bldr_plugin.PluginWebPkgHttpPrefix
 		if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
 			pkgPath := rpath[len(bPkgPrefix):]
 			c.ServeWebModuleHTTP(pkgPath, rw, req)
@@ -201,9 +201,9 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		}
 
 		// /b/pd/ is for Web plugin distribution files
-		bPdPrefix := plugin.PluginDistHttpPrefix
+		bPdPrefix := bldr_plugin.PluginDistHttpPrefix
 		if strings.HasPrefix(rpath, bPdPrefix) && len(rpath) > len(bPdPrefix) {
-			pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginDistHttpPrefix):])
+			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginDistHttpPrefix):])
 			if err != nil {
 				rw.WriteHeader(404)
 				_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
@@ -216,9 +216,9 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		}
 
 		// /b/pa/ is for Web plugin distribution files
-		bPaPrefix := plugin.PluginAssetsHttpPrefix
+		bPaPrefix := bldr_plugin.PluginAssetsHttpPrefix
 		if strings.HasPrefix(rpath, bPaPrefix) && len(rpath) > len(bPaPrefix) {
-			pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginAssetsHttpPrefix):])
+			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginAssetsHttpPrefix):])
 			if err != nil {
 				rw.WriteHeader(404)
 				_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
@@ -238,8 +238,8 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 
 	// /p/ is for plugin handlers
 	// /p/{plugin-id}/... will be forwarded to the loaded plugin.
-	if strings.HasPrefix(rpath, plugin.PluginHttpPrefix) {
-		pluginID, suffix, err := plugin.ParseHTTPPathPluginID(rpath[len(plugin.PluginHttpPrefix):])
+	if strings.HasPrefix(rpath, bldr_plugin.PluginHttpPrefix) {
+		pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginHttpPrefix):])
 		if err != nil {
 			rw.WriteHeader(404)
 			_, _ = rw.Write([]byte("bldr: invalid plugin id: " + err.Error()))
@@ -263,7 +263,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("forwarding http call to plugin")
-	rpcClient, rpcClientRef, err := plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, nil)
+	rpcClient, rpcClientRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, nil)
 	if err != nil {
 		rw.WriteHeader(500)
 		_, _ = rw.Write([]byte("bldr: load plugin failed: " + pluginID + ": " + err.Error()))
@@ -303,7 +303,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin dist filesystem")
 	// see: plugin/host/controller/plugin-tracker.go distFsID
-	unixFsID := plugin.PluginDistFsId(pluginID)
+	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
 	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
 	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
 	if err != nil {
@@ -331,7 +331,7 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin assets filesystem")
 	// see: plugin/host/controller/plugin-tracker.go assetsFsID
-	unixFsID := plugin.PluginAssetsFsId(pluginID)
+	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	handlerBuilder := unixfs_access_http.NewHTTPHandlerBuilder(c.bus, unixFsID, "", "", true)
 	handler, relHandler, err := handlerBuilder(ctx, ctxCancel)
 	if err != nil {

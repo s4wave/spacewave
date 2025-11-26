@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	manifest_builder_controller "github.com/aperturerobotics/bldr/manifest/builder/controller"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_project "github.com/aperturerobotics/bldr/project"
@@ -81,8 +81,8 @@ func (m *ManifestBuilderConfig) Validate() error {
 
 // NewManifestBuilderResult constructs a new ManifestBuilderResult.
 func NewManifestBuilderResult(
-	builderConf *manifest_builder.BuilderConfig,
-	builderRes *manifest_builder.BuilderResult,
+	builderConf *bldr_manifest_builder.BuilderConfig,
+	builderRes *bldr_manifest_builder.BuilderResult,
 ) *ManifestBuilderResult {
 	return &ManifestBuilderResult{
 		BuilderConfig: builderConf,
@@ -201,7 +201,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	// build plugin manifest metadata and builder config
 	meta.Rev = rev
 	manifestKey := bldr_manifest.NewManifestKey(storeObjKey, meta)
-	manifestBuilderConf := &manifest_builder.BuilderConfig{
+	manifestBuilderConf := &bldr_manifest_builder.BuilderConfig{
 		ProjectId:      projectConfig.GetId(),
 		ManifestMeta:   meta,
 		EngineId:       remoteConf.GetEngineId(),

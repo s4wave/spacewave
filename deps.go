@@ -1,5 +1,4 @@
 //go:build deps_only
-// +build deps_only
 
 package bldr
 

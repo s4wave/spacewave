@@ -311,11 +311,7 @@ func (h *WebHost) ExecutePlugin(
 		cleanupCtx, cleanupCtxCancel := context.WithTimeout(ctx, time.Second*3)
 		defer cleanupCtxCancel()
 
-		for {
-			if cleanupCtx.Err() != nil {
-				break
-			}
-
+		for cleanupCtx.Err() == nil {
 			removedInstances, err := removeWorkerInstances(ctx, doc)
 			if err != nil {
 				return err

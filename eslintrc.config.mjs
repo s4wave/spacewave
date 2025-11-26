@@ -24,6 +24,7 @@ export default defineConfig([
       '.bldr',
       '**/*.pb.ts',
       '**/*.esm.js',
+      '**/.test/**',
     ],
   },
   {

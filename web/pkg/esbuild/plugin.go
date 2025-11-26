@@ -9,7 +9,6 @@ import (
 	bldr_esbuild_build "github.com/aperturerobotics/bldr/web/bundler/esbuild/build"
 	web_pkg "github.com/aperturerobotics/bldr/web/pkg"
 	determine_cjs_exports "github.com/aperturerobotics/bldr/web/pkg/esbuild/determine-cjs-exports"
-	"github.com/evanw/esbuild/pkg/api"
 	esbuild_api "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -59,7 +58,7 @@ func BuildEsbuildPlugin(
 				}
 
 				// Use esbuild's resolution algorithm.
-				resolvePkgPath := func(path string, kind api.ResolveKind) (string, error) {
+				resolvePkgPath := func(path string, kind esbuild_api.ResolveKind) (string, error) {
 					res := pb.Resolve(path, esbuild_api.ResolveOptions{
 						Importer:  "bldr-pkg-resolve",
 						Namespace: "file",
@@ -80,7 +79,7 @@ func BuildEsbuildPlugin(
 				// First resolve the path to the root of the web pkg.
 				resPkgRoot, err := resolvePkgPath(
 					path.Join(webPkgID, "package.json"),
-					api.ResolveJSImportStatement,
+					esbuild_api.ResolveJSImportStatement,
 				)
 				if err != nil {
 					return result, err

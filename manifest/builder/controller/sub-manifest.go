@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
-	manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
+	bldr_manifest_builder "github.com/aperturerobotics/bldr/manifest/builder"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -39,9 +39,9 @@ type subManifestBuilderTracker struct {
 	restartFn func()
 	// resultPc is the result promise container that is returned from BuildSubManifest
 	// this pointer does not change
-	resultPc *promise.PromiseContainer[*manifest_builder.BuilderResult]
+	resultPc *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
 	// result is the current result
-	result *manifest_builder.BuilderResult
+	result *bldr_manifest_builder.BuilderResult
 	// resultErr is the current result error
 	resultErr error
 	// resultPcObserved indicates we set a result into resultPc already and returned resultPc to a the current BuildManifest iteration
@@ -57,7 +57,7 @@ func (c *Controller) newSubManifestBuilderTracker(subManifestID string) (keyed.R
 	}
 	tr.builderRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.ManifestConfig](c.le)
 	tr.builderRoutine.SetStateRoutine(tr.executeBuilderRoutine)
-	tr.resultPc = promise.NewPromiseContainer[*manifest_builder.BuilderResult]()
+	tr.resultPc = promise.NewPromiseContainer[*bldr_manifest_builder.BuilderResult]()
 	return tr.execute, tr
 }
 
@@ -70,7 +70,7 @@ func (t *subManifestBuilderTracker) execute(ctx context.Context) error {
 
 // setManifestConfig updates the manifest config and clears the result if needed
 // returns an error if ManifestConfig != current, current was set, and a result was already returned
-func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func()) (*promise.PromiseContainer[*manifest_builder.BuilderResult], error) {
+func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project.ManifestConfig, restartFn func()) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -90,7 +90,7 @@ func (t *subManifestBuilderTracker) setManifestConfig(manifestConf *bldr_project
 }
 
 // setResultLocked updates the result and calls restartFn if needed while mtx is locked
-func (t *subManifestBuilderTracker) setResultLocked(val *manifest_builder.BuilderResult, err error) {
+func (t *subManifestBuilderTracker) setResultLocked(val *bldr_manifest_builder.BuilderResult, err error) {
 	// if the result is identical do nothing
 	if t.result.EqualVT(val) && t.resultErr == err {
 		return
@@ -185,8 +185,6 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 			if err != nil {
 				return err
 			}
-		} else {
-			// No result yet.
 		}
 
 		select {

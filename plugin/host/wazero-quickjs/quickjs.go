@@ -297,7 +297,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		fsConfig = fsConfig.(wazero_exp_sysfs.FSConfig).WithSysFSMount(devFS, DevFsMount)
 
 		// Initialize the rpc client for calling the plugin.
-		var openStreamFn srpc.OpenStreamFunc = srpc.NewOpenStreamWithMuxedConn(muxedConn)
+		openStreamFn := srpc.NewOpenStreamWithMuxedConn(muxedConn)
 		pluginRpcClient := srpc.NewClient(openStreamFn)
 		if err := rpcInit(pluginRpcClient); err != nil {
 			return err

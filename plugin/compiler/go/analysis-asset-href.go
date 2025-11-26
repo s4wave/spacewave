@@ -5,7 +5,6 @@ package bldr_plugin_compiler_go
 import (
 	"flag"
 	"go/ast"
-	gast "go/ast"
 	"go/token"
 	"go/types"
 	"path/filepath"
@@ -42,7 +41,7 @@ func TrimAssetHrefArgs(value string) (string, bool) {
 // ParseAssetHrefComments parses the bldr:asset:ref comments for a variable.
 //
 // If no bldr:asset:href prefix is found, returns nil, false, nil
-func ParseAssetHrefComments(values []string, spec *gast.ValueSpec) (*AssetHrefArgs, bool, error) {
+func ParseAssetHrefComments(values []string, spec *ast.ValueSpec) (*AssetHrefArgs, bool, error) {
 	args, found, err := CombineShellComments(AssetHrefTag, values)
 	if err != nil || !found {
 		return nil, found, err

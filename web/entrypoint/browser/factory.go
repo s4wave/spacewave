@@ -1,5 +1,4 @@
 //go:build js
-// +build js
 
 package web_entrypoint_browser
 

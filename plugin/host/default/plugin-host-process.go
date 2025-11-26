@@ -6,7 +6,6 @@ import (
 	"context"
 
 	plugin_host_controller "github.com/aperturerobotics/bldr/plugin/host/controller"
-	host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_process "github.com/aperturerobotics/bldr/plugin/host/process"
 	plugin_host_quickjs "github.com/aperturerobotics/bldr/plugin/host/wazero-quickjs"
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -42,7 +41,7 @@ func StartPluginHost(
 	pluginsDistRoot string,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
-	pluginHostProcessConf := host_process.NewConfig(pluginsStateRoot, pluginsDistRoot)
+	pluginHostProcessConf := plugin_host_process.NewConfig(pluginsStateRoot, pluginsDistRoot)
 	processPluginHostCtrl, _, processPluginHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
 		b,

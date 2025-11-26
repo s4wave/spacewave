@@ -5,7 +5,6 @@ package bldr_plugin_compiler_go
 import (
 	"flag"
 	"go/ast"
-	gast "go/ast"
 	"go/token"
 	"go/types"
 	"io/fs"
@@ -47,7 +46,7 @@ func TrimAssetArgs(value string) (string, bool) {
 // ParseAssetComments parses the bldr:asset comments for a variable.
 //
 // If no bldr:asset prefix is found, returns nil, false, nil
-func ParseAssetComments(values []string, spec *gast.ValueSpec) (*AssetArgs, bool, error) {
+func ParseAssetComments(values []string, spec *ast.ValueSpec) (*AssetArgs, bool, error) {
 	args, found, err := CombineShellComments(AssetTag, values)
 	if err != nil || !found {
 		return nil, found, err

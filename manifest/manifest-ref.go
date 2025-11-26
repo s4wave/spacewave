@@ -38,8 +38,8 @@ func CreateManifestRef(
 }
 
 // IsNil checks if the object is nil.
-func (t *ManifestRef) IsNil() bool {
-	return t == nil
+func (m *ManifestRef) IsNil() bool {
+	return m == nil
 }
 
 // GetEmpty returns if the manifest and/or ref is empty.

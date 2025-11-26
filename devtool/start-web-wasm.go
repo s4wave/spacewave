@@ -41,20 +41,20 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
-	b, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
+	d, err := BuildDevtoolBus(ctx, le, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}
-	defer b.Release()
+	defer d.Release()
 
-	if err := b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
+	if err := d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath); err != nil {
 		return err
 	}
 
 	// execute the project controller
-	projCtrl, projCtrlRef, err := b.StartProjectController(
+	projCtrl, projCtrlRef, err := d.StartProjectController(
 		ctx,
-		b.GetBus(),
+		d.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
@@ -75,7 +75,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 	startupPlugins := currProjConf.GetStart().GetPlugins()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
-	return b.ExecuteWebWasm(
+	return d.ExecuteWebWasm(
 		ctx,
 		repoRoot,
 		a.MinifyEntrypoint,
@@ -87,7 +87,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) error {
 }
 
 // ExecuteWebWasm starts the application in the browser with wasm.
-func (b *DevtoolBus) ExecuteWebWasm(
+func (d *DevtoolBus) ExecuteWebWasm(
 	ctx context.Context,
 	repoRoot string,
 	minifyEntrypoint,
@@ -96,9 +96,9 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	appID string,
 	startPlugins []string,
 ) error {
-	le := b.GetLogger()
-	stateDir := b.GetStateRoot()
-	distSrcDir := b.GetDistSrcDir()
+	le := d.GetLogger()
+	stateDir := d.GetStateRoot()
+	distSrcDir := d.GetDistSrcDir()
 	entrypointDataDir := filepath.Join(stateDir, "entry")
 	entrypointDir := filepath.Join(entrypointDataDir, "web/wasm")
 
@@ -157,10 +157,10 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	// start the websocket transport for the devtool
 	linkWsPath := "/bldr-dev/web-wasm/link.ws"
 	infoPath := "/bldr-dev/web-wasm/info"
-	wsPeerID := b.peerID.String()
+	wsPeerID := d.peerID.String()
 	wsCtrl, _, wsRef, err := loader.WaitExecControllerRunning(
 		ctx,
-		b.GetBus(),
+		d.GetBus(),
 		resolver.NewLoadControllerWithConfig(&transport_websocket.Config{
 			TransportPeerId: wsPeerID,
 		}),
@@ -179,10 +179,10 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	ws := tpt.(*transport_websocket.WebSocket)
 
 	// start the hold open controller to keep links open
-	b.GetStaticResolver().AddFactory(link_holdopen_controller.NewFactory(b.GetBus()))
+	d.GetStaticResolver().AddFactory(link_holdopen_controller.NewFactory(d.GetBus()))
 	_, _, holdOpenRef, err := loader.WaitExecControllerRunning(
 		ctx,
-		b.GetBus(),
+		d.GetBus(),
 		resolver.NewLoadControllerWithConfig(&link_holdopen_controller.Config{}),
 		nil,
 	)
@@ -193,7 +193,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 
 	// handle incoming srpc requests
 	rpcServer, err := stream_srpc_server.NewServer(
-		b.GetBus(),
+		d.GetBus(),
 		le,
 		controller.NewInfo(
 			"devtool/web/rpc-server",
@@ -203,12 +203,12 @@ func (b *DevtoolBus) ExecuteWebWasm(
 		[]stream_srpc_server.RegisterFn{
 			// handle ManifestFetch requests via bus ManifestFetch.
 			func(mux srpc.Mux) error {
-				pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, b.GetBus())
+				pluginFetchViaBus := bldr_manifest.NewManifestFetchViaBus(le, d.GetBus())
 				return bldr_manifest.SRPCRegisterManifestFetch(mux, pluginFetchViaBus)
 			},
 			func(mux srpc.Mux) error {
 				// proxy the devtool host volume via RPC
-				proxyVol := volume_rpc_server.NewProxyVolume(ctx, b.GetVolume(), false)
+				proxyVol := volume_rpc_server.NewProxyVolume(ctx, d.GetVolume(), false)
 				return volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyVol, devtool_web.HostVolumeServiceIDPrefix)
 			},
 		},
@@ -221,7 +221,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	}
 
 	// start handling incoming srpc requests
-	relRpcServer, err := b.GetBus().AddController(ctx, rpcServer, nil)
+	relRpcServer, err := d.GetBus().AddController(ctx, rpcServer, nil)
 	if err != nil {
 		return err
 	}
@@ -232,7 +232,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	if devMode {
 		buildType := bldr_manifest.BuildType_DEV
 		for _, startPluginID := range startPlugins {
-			_, dir, err := b.b.AddDirective(
+			_, dir, err := d.GetBus().AddDirective(
 				bldr_manifest.NewFetchManifest(
 					startPluginID,
 					[]bldr_manifest.BuildType{buildType},
@@ -284,7 +284,7 @@ func (b *DevtoolBus) ExecuteWebWasm(
 	browserInit := &devtool_web.DevtoolInitBrowser{
 		AppId:             appID,
 		DevtoolPeerId:     wsPeerID,
-		DevtoolVolumeInfo: b.GetVolumeInfo(),
+		DevtoolVolumeInfo: d.GetVolumeInfo(),
 		StartPlugins:      startPlugins,
 	}
 	if err := browserInit.Validate(); err != nil {

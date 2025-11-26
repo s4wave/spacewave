@@ -10,7 +10,6 @@ import (
 
 	bldr_manifest "github.com/aperturerobotics/bldr/manifest"
 	bldr_manifest_world "github.com/aperturerobotics/bldr/manifest/world"
-	manifest_world "github.com/aperturerobotics/bldr/manifest/world"
 	bldr_project "github.com/aperturerobotics/bldr/project"
 	"github.com/aperturerobotics/hydra/bucket"
 	bucket_lookup "github.com/aperturerobotics/hydra/bucket/lookup"
@@ -96,7 +95,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		}
 
 		// search for all manifests for manifestIDs
-		var cmanifests map[string][]*manifest_world.CollectedManifest
+		var cmanifests map[string][]*bldr_manifest_world.CollectedManifest
 		var cmanifestErrs []error
 		if err := func() error {
 			wtx, err := remoteWorld.NewTransaction(ctx, false)
@@ -105,7 +104,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			}
 			defer wtx.Discard()
 
-			cmanifests, cmanifestErrs, err = manifest_world.CollectManifests(ctx, wtx, platformIDs, srcObjectKeys...)
+			cmanifests, cmanifestErrs, err = bldr_manifest_world.CollectManifests(ctx, wtx, platformIDs, srcObjectKeys...)
 			return err
 		}(); err != nil {
 			return err
@@ -117,19 +116,19 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		// filter by build type
 		if buildType != "" {
 			for manifestID, collectedManifests := range cmanifests {
-				cmanifests[manifestID] = manifest_world.FilterCollectedManifestsByBuildType(collectedManifests, buildType)
+				cmanifests[manifestID] = bldr_manifest_world.FilterCollectedManifestsByBuildType(collectedManifests, buildType)
 			}
 		}
 
 		// filter by platform ids if length > 1, if length == 1 we already filtered above
 		if len(platformIDs) > 1 {
-			manifest_world.FilterCollectedManifestsMapByPlatformID(cmanifests, platformIDs)
+			bldr_manifest_world.FilterCollectedManifestsMapByPlatformID(cmanifests, platformIDs)
 		}
 
 		// filter to just the latest manifest (first in list) for each platform id
 		if !publishTarget.GetAllManifestRevs() {
 			for manifestID, collectedManifests := range cmanifests {
-				cmanifests[manifestID] = manifest_world.FilterCollectedManifestsByFirst(collectedManifests)
+				cmanifests[manifestID] = bldr_manifest_world.FilterCollectedManifestsByFirst(collectedManifests)
 			}
 		}
 
