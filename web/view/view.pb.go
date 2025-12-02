@@ -463,6 +463,7 @@ func (this *SetRenderModeRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *SetRenderModeResponse) EqualVT(that *SetRenderModeResponse) bool {
 	if this == that {
 		return true
@@ -479,6 +480,7 @@ func (this *SetRenderModeResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *SetHtmlLinksRequest) EqualVT(that *SetHtmlLinksRequest) bool {
 	if this == that {
 		return true
@@ -527,6 +529,7 @@ func (this *SetHtmlLinksRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HtmlLink) EqualVT(that *HtmlLink) bool {
 	if this == that {
 		return true
@@ -549,6 +552,7 @@ func (this *HtmlLink) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *SetHtmlLinksResponse) EqualVT(that *SetHtmlLinksResponse) bool {
 	if this == that {
 		return true
@@ -565,6 +569,7 @@ func (this *SetHtmlLinksResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ResetWebViewRequest) EqualVT(that *ResetWebViewRequest) bool {
 	if this == that {
 		return true
@@ -581,6 +586,7 @@ func (this *ResetWebViewRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ResetWebViewResponse) EqualVT(that *ResetWebViewResponse) bool {
 	if this == that {
 		return true
@@ -597,6 +603,7 @@ func (this *ResetWebViewResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoveWebViewRequest) EqualVT(that *RemoveWebViewRequest) bool {
 	if this == that {
 		return true
@@ -613,6 +620,7 @@ func (this *RemoveWebViewRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoveWebViewResponse) EqualVT(that *RemoveWebViewResponse) bool {
 	if this == that {
 		return true
@@ -1644,6 +1652,7 @@ func (m *RemoveWebViewResponse) SizeVT() (n int) {
 func (x RenderMode) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *SetRenderModeRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SetRenderModeRequest {")
@@ -1686,6 +1695,7 @@ func (x *SetRenderModeRequest) MarshalProtoText() string {
 func (x *SetRenderModeRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *SetRenderModeResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SetRenderModeResponse {")
@@ -1696,6 +1706,7 @@ func (x *SetRenderModeResponse) MarshalProtoText() string {
 func (x *SetRenderModeResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *SetHtmlLinksRequest_SetLinksEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SetLinksEntry {")
@@ -1720,6 +1731,7 @@ func (x *SetHtmlLinksRequest_SetLinksEntry) MarshalProtoText() string {
 func (x *SetHtmlLinksRequest_SetLinksEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *SetHtmlLinksRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SetHtmlLinksRequest {")
@@ -1764,6 +1776,7 @@ func (x *SetHtmlLinksRequest) MarshalProtoText() string {
 func (x *SetHtmlLinksRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HtmlLink) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HtmlLink {")
@@ -1788,6 +1801,7 @@ func (x *HtmlLink) MarshalProtoText() string {
 func (x *HtmlLink) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *SetHtmlLinksResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("SetHtmlLinksResponse {")
@@ -1798,6 +1812,7 @@ func (x *SetHtmlLinksResponse) MarshalProtoText() string {
 func (x *SetHtmlLinksResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResetWebViewRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ResetWebViewRequest {")
@@ -1808,6 +1823,7 @@ func (x *ResetWebViewRequest) MarshalProtoText() string {
 func (x *ResetWebViewRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResetWebViewResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ResetWebViewResponse {")
@@ -1818,6 +1834,7 @@ func (x *ResetWebViewResponse) MarshalProtoText() string {
 func (x *ResetWebViewResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoveWebViewRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoveWebViewRequest {")
@@ -1828,6 +1845,7 @@ func (x *RemoveWebViewRequest) MarshalProtoText() string {
 func (x *RemoveWebViewRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoveWebViewResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoveWebViewResponse {")
@@ -1845,6 +1863,7 @@ func (x *RemoveWebViewResponse) MarshalProtoText() string {
 func (x *RemoveWebViewResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2001,6 +2020,7 @@ func (m *SetRenderModeRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *SetRenderModeResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2052,6 +2072,7 @@ func (m *SetRenderModeResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *SetHtmlLinksRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2284,6 +2305,7 @@ func (m *SetHtmlLinksRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HtmlLink) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2399,6 +2421,7 @@ func (m *HtmlLink) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *SetHtmlLinksResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2450,6 +2473,7 @@ func (m *SetHtmlLinksResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ResetWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2501,6 +2525,7 @@ func (m *ResetWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ResetWebViewResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2552,6 +2577,7 @@ func (m *ResetWebViewResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoveWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2603,6 +2629,7 @@ func (m *RemoveWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoveWebViewResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

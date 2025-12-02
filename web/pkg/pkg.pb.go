@@ -142,6 +142,7 @@ func (this *WebPkgInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebPkgRef) EqualVT(that *WebPkgRef) bool {
 	if this == that {
 		return true
@@ -465,6 +466,7 @@ func (x *WebPkgInfo) MarshalProtoText() string {
 func (x *WebPkgInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebPkgRef) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebPkgRef {")
@@ -515,6 +517,7 @@ func (x *WebPkgRef) MarshalProtoText() string {
 func (x *WebPkgRef) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WebPkgInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -598,6 +601,7 @@ func (m *WebPkgInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebPkgRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

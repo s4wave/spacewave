@@ -276,6 +276,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ManifestBuilderConfig) EqualVT(that *ManifestBuilderConfig) bool {
 	if this == that {
 		return true
@@ -304,6 +305,7 @@ func (this *ManifestBuilderConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ManifestBuilderResult) EqualVT(that *ManifestBuilderResult) bool {
 	if this == that {
 		return true
@@ -896,6 +898,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ManifestBuilderConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestBuilderConfig {")
@@ -934,6 +937,7 @@ func (x *ManifestBuilderConfig) MarshalProtoText() string {
 func (x *ManifestBuilderConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ManifestBuilderResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestBuilderResult {")
@@ -958,6 +962,7 @@ func (x *ManifestBuilderResult) MarshalProtoText() string {
 func (x *ManifestBuilderResult) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1217,6 +1222,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ManifestBuilderConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1396,6 +1402,7 @@ func (m *ManifestBuilderConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ManifestBuilderResult) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

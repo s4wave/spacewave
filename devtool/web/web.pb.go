@@ -334,6 +334,7 @@ func (x *DevtoolInitBrowser) MarshalProtoText() string {
 func (x *DevtoolInitBrowser) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *DevtoolInitBrowser) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

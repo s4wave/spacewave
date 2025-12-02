@@ -96,6 +96,7 @@ func (this *GetInfoRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetInfoResponse) EqualVT(that *GetInfoResponse) bool {
 	if this == that {
 		return true
@@ -302,6 +303,7 @@ func (x *GetInfoRequest) MarshalProtoText() string {
 func (x *GetInfoRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetInfoResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetInfoResponse {")
@@ -319,6 +321,7 @@ func (x *GetInfoResponse) MarshalProtoText() string {
 func (x *GetInfoResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *GetInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -370,6 +373,7 @@ func (m *GetInfoRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetInfoResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

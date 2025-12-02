@@ -290,6 +290,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 	if this == that {
 		return true
@@ -767,6 +768,7 @@ func (x *Config_HostConfigSetEntry) MarshalProtoText() string {
 func (x *Config_HostConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -858,6 +860,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PreBuildHookResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PreBuildHookResult {")
@@ -875,6 +878,7 @@ func (x *PreBuildHookResult) MarshalProtoText() string {
 func (x *PreBuildHookResult) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1240,6 +1244,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

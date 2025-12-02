@@ -695,6 +695,7 @@ func (this *HandleWebViewViaPluginRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebViewViaPluginResponse) EqualVT(that *HandleWebViewViaPluginResponse) bool {
 	if this == that {
 		return true
@@ -723,6 +724,7 @@ func (this *HandleWebViewViaPluginResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebViewViaPluginResponse_Ready) EqualVT(thatIface isHandleWebViewViaPluginResponse_Body) bool {
 	that, ok := thatIface.(*HandleWebViewViaPluginResponse_Ready)
 	if !ok {
@@ -780,6 +782,7 @@ func (this *HandleWebPkgViaPluginRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebPkgViaPluginResponse) EqualVT(that *HandleWebPkgViaPluginResponse) bool {
 	if this == that {
 		return true
@@ -808,6 +811,7 @@ func (this *HandleWebPkgViaPluginResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebPkgViaPluginResponse_Ready) EqualVT(thatIface isHandleWebPkgViaPluginResponse_Body) bool {
 	that, ok := thatIface.(*HandleWebPkgViaPluginResponse_Ready)
 	if !ok {
@@ -853,6 +857,7 @@ func (this *HandleRpcViaPluginRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleRpcViaPluginResponse) EqualVT(that *HandleRpcViaPluginResponse) bool {
 	if this == that {
 		return true
@@ -881,6 +886,7 @@ func (this *HandleRpcViaPluginResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleRpcViaPluginResponse_Ready) EqualVT(thatIface isHandleRpcViaPluginResponse_Body) bool {
 	that, ok := thatIface.(*HandleRpcViaPluginResponse_Ready)
 	if !ok {
@@ -917,6 +923,7 @@ func (this *HandleWebViewViaHandlersRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebViewViaHandlersResponse) EqualVT(that *HandleWebViewViaHandlersResponse) bool {
 	if this == that {
 		return true
@@ -945,6 +952,7 @@ func (this *HandleWebViewViaHandlersResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebViewViaHandlersResponse_Ready) EqualVT(thatIface isHandleWebViewViaHandlersResponse_Body) bool {
 	that, ok := thatIface.(*HandleWebViewViaHandlersResponse_Ready)
 	if !ok {
@@ -993,6 +1001,7 @@ func (this *HandleWebPkgsViaPluginAssetsRequest) EqualMessageVT(thatMsg any) boo
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebPkgsViaPluginAssetsResponse) EqualVT(that *HandleWebPkgsViaPluginAssetsResponse) bool {
 	if this == that {
 		return true
@@ -1021,6 +1030,7 @@ func (this *HandleWebPkgsViaPluginAssetsResponse) EqualMessageVT(thatMsg any) bo
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebPkgsViaPluginAssetsResponse_Ready) EqualVT(thatIface isHandleWebPkgsViaPluginAssetsResponse_Body) bool {
 	that, ok := thatIface.(*HandleWebPkgsViaPluginAssetsResponse_Ready)
 	if !ok {
@@ -1681,6 +1691,7 @@ func (m *HandleWebViewViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byt
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+
 func (m *HandleWebPkgViaPluginRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1805,6 +1816,7 @@ func (m *HandleWebPkgViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byte
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+
 func (m *HandleRpcViaPluginRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1928,6 +1940,7 @@ func (m *HandleRpcViaPluginResponse_Ready) MarshalToSizedBufferVT(dAtA []byte) (
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+
 func (m *HandleWebViewViaHandlersRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2030,6 +2043,7 @@ func (m *HandleWebViewViaHandlersResponse_Ready) MarshalToSizedBufferVT(dAtA []b
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+
 func (m *HandleWebPkgsViaPluginAssetsRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2145,6 +2159,7 @@ func (m *HandleWebPkgsViaPluginAssetsResponse_Ready) MarshalToSizedBufferVT(dAtA
 	dAtA[i] = 0x8
 	return len(dAtA) - i, nil
 }
+
 func (m *HandleWebViewViaPluginRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2185,6 +2200,7 @@ func (m *HandleWebViewViaPluginResponse_Ready) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *HandleWebPkgViaPluginRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2237,6 +2253,7 @@ func (m *HandleWebPkgViaPluginResponse_Ready) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *HandleRpcViaPluginRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2285,6 +2302,7 @@ func (m *HandleRpcViaPluginResponse_Ready) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *HandleWebViewViaHandlersRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2321,6 +2339,7 @@ func (m *HandleWebViewViaHandlersResponse_Ready) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (m *HandleWebPkgsViaPluginAssetsRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2367,6 +2386,7 @@ func (m *HandleWebPkgsViaPluginAssetsResponse_Ready) SizeVT() (n int) {
 	n += 2
 	return n
 }
+
 func (x *HandleWebViewViaPluginRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebViewViaPluginRequest {")
@@ -2391,6 +2411,7 @@ func (x *HandleWebViewViaPluginRequest) MarshalProtoText() string {
 func (x *HandleWebViewViaPluginRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebViewViaPluginResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebViewViaPluginResponse {")
@@ -2411,6 +2432,7 @@ func (x *HandleWebViewViaPluginResponse) MarshalProtoText() string {
 func (x *HandleWebViewViaPluginResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebPkgViaPluginRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebPkgViaPluginRequest {")
@@ -2461,6 +2483,7 @@ func (x *HandleWebPkgViaPluginRequest) MarshalProtoText() string {
 func (x *HandleWebPkgViaPluginRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebPkgViaPluginResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebPkgViaPluginResponse {")
@@ -2481,6 +2504,7 @@ func (x *HandleWebPkgViaPluginResponse) MarshalProtoText() string {
 func (x *HandleWebPkgViaPluginResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleRpcViaPluginRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleRpcViaPluginRequest {")
@@ -2519,6 +2543,7 @@ func (x *HandleRpcViaPluginRequest) MarshalProtoText() string {
 func (x *HandleRpcViaPluginRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleRpcViaPluginResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleRpcViaPluginResponse {")
@@ -2539,6 +2564,7 @@ func (x *HandleRpcViaPluginResponse) MarshalProtoText() string {
 func (x *HandleRpcViaPluginResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebViewViaHandlersRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebViewViaHandlersRequest {")
@@ -2556,6 +2582,7 @@ func (x *HandleWebViewViaHandlersRequest) MarshalProtoText() string {
 func (x *HandleWebViewViaHandlersRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebViewViaHandlersResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebViewViaHandlersResponse {")
@@ -2576,6 +2603,7 @@ func (x *HandleWebViewViaHandlersResponse) MarshalProtoText() string {
 func (x *HandleWebViewViaHandlersResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebPkgsViaPluginAssetsRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebPkgsViaPluginAssetsRequest {")
@@ -2613,6 +2641,7 @@ func (x *HandleWebPkgsViaPluginAssetsRequest) MarshalProtoText() string {
 func (x *HandleWebPkgsViaPluginAssetsRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebPkgsViaPluginAssetsResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebPkgsViaPluginAssetsResponse {")
@@ -2633,6 +2662,7 @@ func (x *HandleWebPkgsViaPluginAssetsResponse) MarshalProtoText() string {
 func (x *HandleWebPkgsViaPluginAssetsResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *HandleWebViewViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2748,6 +2778,7 @@ func (m *HandleWebViewViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebViewViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2820,6 +2851,7 @@ func (m *HandleWebViewViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebPkgViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2999,6 +3031,7 @@ func (m *HandleWebPkgViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebPkgViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3071,6 +3104,7 @@ func (m *HandleWebPkgViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleRpcViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3254,6 +3288,7 @@ func (m *HandleRpcViaPluginRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleRpcViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3326,6 +3361,7 @@ func (m *HandleRpcViaPluginResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebViewViaHandlersRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3413,6 +3449,7 @@ func (m *HandleWebViewViaHandlersRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebViewViaHandlersResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3485,6 +3522,7 @@ func (m *HandleWebViewViaHandlersResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebPkgsViaPluginAssetsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3632,6 +3670,7 @@ func (m *HandleWebPkgsViaPluginAssetsRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebPkgsViaPluginAssetsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

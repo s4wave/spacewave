@@ -521,6 +521,7 @@ func (this *ManifestMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Manifest) EqualVT(that *Manifest) bool {
 	if this == that {
 		return true
@@ -549,6 +550,7 @@ func (this *Manifest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ManifestRef) EqualVT(that *ManifestRef) bool {
 	if this == that {
 		return true
@@ -571,6 +573,7 @@ func (this *ManifestRef) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ManifestBundle) EqualVT(that *ManifestBundle) bool {
 	if this == that {
 		return true
@@ -607,6 +610,7 @@ func (this *ManifestBundle) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ManifestSnapshot) EqualVT(that *ManifestSnapshot) bool {
 	if this == that {
 		return true
@@ -629,6 +633,7 @@ func (this *ManifestSnapshot) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchManifestRequest) EqualVT(that *FetchManifestRequest) bool {
 	if this == that {
 		return true
@@ -669,6 +674,7 @@ func (this *FetchManifestRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchManifestValue) EqualVT(that *FetchManifestValue) bool {
 	if this == that {
 		return true
@@ -702,6 +708,7 @@ func (this *FetchManifestValue) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchManifestResponse) EqualVT(that *FetchManifestResponse) bool {
 	if this == that {
 		return true
@@ -1947,6 +1954,7 @@ func (x *ManifestMeta) MarshalProtoText() string {
 func (x *ManifestMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Manifest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Manifest {")
@@ -1985,6 +1993,7 @@ func (x *Manifest) MarshalProtoText() string {
 func (x *Manifest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ManifestRef) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestRef {")
@@ -2009,6 +2018,7 @@ func (x *ManifestRef) MarshalProtoText() string {
 func (x *ManifestRef) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ManifestBundle) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestBundle {")
@@ -2039,6 +2049,7 @@ func (x *ManifestBundle) MarshalProtoText() string {
 func (x *ManifestBundle) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ManifestSnapshot) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestSnapshot {")
@@ -2063,6 +2074,7 @@ func (x *ManifestSnapshot) MarshalProtoText() string {
 func (x *ManifestSnapshot) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchManifestRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchManifestRequest {")
@@ -2113,6 +2125,7 @@ func (x *FetchManifestRequest) MarshalProtoText() string {
 func (x *FetchManifestRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchManifestValue) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchManifestValue {")
@@ -2136,6 +2149,7 @@ func (x *FetchManifestValue) MarshalProtoText() string {
 func (x *FetchManifestValue) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchManifestResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchManifestResponse {")
@@ -2174,6 +2188,7 @@ func (x *FetchManifestResponse) MarshalProtoText() string {
 func (x *FetchManifestResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *ManifestMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2340,6 +2355,7 @@ func (m *ManifestMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Manifest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2531,6 +2547,7 @@ func (m *Manifest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ManifestRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2654,6 +2671,7 @@ func (m *ManifestRef) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ManifestBundle) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2775,6 +2793,7 @@ func (m *ManifestBundle) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ManifestSnapshot) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2898,6 +2917,7 @@ func (m *ManifestSnapshot) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FetchManifestRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3064,6 +3084,7 @@ func (m *FetchManifestRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FetchManifestValue) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3149,6 +3170,7 @@ func (m *FetchManifestValue) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FetchManifestResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

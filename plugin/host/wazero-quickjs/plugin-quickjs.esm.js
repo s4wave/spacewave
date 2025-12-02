@@ -7837,7 +7837,7 @@ createMessageType({
 
 // ../../plugin.pb.ts
 var PluginStatus = createMessageType({
-  typeName: "bldr.bldr_plugin.PluginStatus",
+  typeName: "bldr.plugin.PluginStatus",
   fields: [
     { no: 1, name: "plugin_id", kind: "scalar", T: ScalarType.STRING },
     { no: 2, name: "running", kind: "scalar", T: ScalarType.BOOL }
@@ -7845,12 +7845,12 @@ var PluginStatus = createMessageType({
   packedByDefault: true
 });
 var GetPluginInfoRequest = createMessageType({
-  typeName: "bldr.bldr_plugin.GetPluginInfoRequest",
+  typeName: "bldr.plugin.GetPluginInfoRequest",
   fields: [],
   packedByDefault: true
 });
 var GetPluginInfoResponse = createMessageType({
-  typeName: "bldr.bldr_plugin.GetPluginInfoResponse",
+  typeName: "bldr.plugin.GetPluginInfoResponse",
   fields: [
     { no: 1, name: "plugin_id", kind: "scalar", T: ScalarType.STRING },
     { no: 2, name: "manifest_ref", kind: "message", T: () => ManifestRef },
@@ -7859,14 +7859,14 @@ var GetPluginInfoResponse = createMessageType({
   packedByDefault: true
 });
 var LoadPluginRequest = createMessageType({
-  typeName: "bldr.bldr_plugin.LoadPluginRequest",
+  typeName: "bldr.plugin.LoadPluginRequest",
   fields: [
     { no: 1, name: "plugin_id", kind: "scalar", T: ScalarType.STRING }
   ],
   packedByDefault: true
 });
 var LoadPluginResponse = createMessageType({
-  typeName: "bldr.bldr_plugin.LoadPluginResponse",
+  typeName: "bldr.plugin.LoadPluginResponse",
   fields: [
     { no: 1, name: "plugin_status", kind: "message", T: () => PluginStatus }
   ],

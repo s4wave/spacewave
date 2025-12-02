@@ -199,6 +199,7 @@ func (this *WebEntrypoint) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebBundlerOutput) EqualVT(that *WebBundlerOutput) bool {
 	if this == that {
 		return true
@@ -221,6 +222,7 @@ func (this *WebBundlerOutput) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebPkgRefConfig) EqualVT(that *WebPkgRefConfig) bool {
 	if this == that {
 		return true
@@ -651,6 +653,7 @@ func (x *WebEntrypoint) MarshalProtoText() string {
 func (x *WebEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebBundlerOutput) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebBundlerOutput {")
@@ -675,6 +678,7 @@ func (x *WebBundlerOutput) MarshalProtoText() string {
 func (x *WebBundlerOutput) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebPkgRefConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebPkgRefConfig {")
@@ -712,6 +716,7 @@ func (x *WebPkgRefConfig) MarshalProtoText() string {
 func (x *WebPkgRefConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WebEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -827,6 +832,7 @@ func (m *WebEntrypoint) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebBundlerOutput) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -942,6 +948,7 @@ func (m *WebBundlerOutput) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebPkgRefConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

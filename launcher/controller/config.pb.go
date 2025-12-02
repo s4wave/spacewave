@@ -286,6 +286,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HttpEndpoint) EqualVT(that *HttpEndpoint) bool {
 	if this == that {
 		return true
@@ -889,6 +890,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HttpEndpoint_HeadersEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HeadersEntry {")
@@ -913,6 +915,7 @@ func (x *HttpEndpoint_HeadersEntry) MarshalProtoText() string {
 func (x *HttpEndpoint_HeadersEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HttpEndpoint) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HttpEndpoint {")
@@ -944,6 +947,7 @@ func (x *HttpEndpoint) MarshalProtoText() string {
 func (x *HttpEndpoint) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1289,6 +1293,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HttpEndpoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

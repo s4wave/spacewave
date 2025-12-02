@@ -425,6 +425,7 @@ func (this *BuilderConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BuilderResult) EqualVT(that *BuilderResult) bool {
 	if this == that {
 		return true
@@ -450,6 +451,7 @@ func (this *BuilderResult) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *InputManifest_File) EqualVT(that *InputManifest_File) bool {
 	if this == that {
 		return true
@@ -472,6 +474,7 @@ func (this *InputManifest_File) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *InputManifest) EqualVT(that *InputManifest) bool {
 	if this == that {
 		return true
@@ -508,6 +511,7 @@ func (this *InputManifest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BuildManifestArgs) EqualVT(that *BuildManifestArgs) bool {
 	if this == that {
 		return true
@@ -1479,6 +1483,7 @@ func (x *BuilderConfig) MarshalProtoText() string {
 func (x *BuilderConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BuilderResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuilderResult {")
@@ -1510,6 +1515,7 @@ func (x *BuilderResult) MarshalProtoText() string {
 func (x *BuilderResult) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *InputManifest_File) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("File {")
@@ -1536,6 +1542,7 @@ func (x *InputManifest_File) MarshalProtoText() string {
 func (x *InputManifest_File) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *InputManifest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputManifest {")
@@ -1568,6 +1575,7 @@ func (x *InputManifest) MarshalProtoText() string {
 func (x *InputManifest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BuildManifestArgs) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildManifestArgs {")
@@ -1605,6 +1613,7 @@ func (x *BuildManifestArgs) MarshalProtoText() string {
 func (x *BuildManifestArgs) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *BuilderConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1948,6 +1957,7 @@ func (m *BuilderConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BuilderResult) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2107,6 +2117,7 @@ func (m *BuilderResult) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *InputManifest_File) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2224,6 +2235,7 @@ func (m *InputManifest_File) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *InputManifest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2343,6 +2355,7 @@ func (m *InputManifest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BuildManifestArgs) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

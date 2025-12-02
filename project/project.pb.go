@@ -837,6 +837,7 @@ func (this *ProjectConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ManifestConfig) EqualVT(that *ManifestConfig) bool {
 	if this == that {
 		return true
@@ -859,6 +860,7 @@ func (this *ManifestConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *StartConfig) EqualVT(that *StartConfig) bool {
 	if this == that {
 		return true
@@ -887,6 +889,7 @@ func (this *StartConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BuildConfig) EqualVT(that *BuildConfig) bool {
 	if this == that {
 		return true
@@ -921,6 +924,7 @@ func (this *BuildConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoteConfig) EqualVT(that *RemoteConfig) bool {
 	if this == that {
 		return true
@@ -975,6 +979,7 @@ func (this *RemoteConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PublishConfig) EqualVT(that *PublishConfig) bool {
 	if this == that {
 		return true
@@ -1056,6 +1061,7 @@ func (this *PublishConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PublishStorageConfig) EqualVT(that *PublishStorageConfig) bool {
 	if this == that {
 		return true
@@ -2848,6 +2854,7 @@ func (x *ProjectConfig_ManifestsEntry) MarshalProtoText() string {
 func (x *ProjectConfig_ManifestsEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ProjectConfig_BuildEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildEntry {")
@@ -2872,6 +2879,7 @@ func (x *ProjectConfig_BuildEntry) MarshalProtoText() string {
 func (x *ProjectConfig_BuildEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ProjectConfig_RemotesEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemotesEntry {")
@@ -2896,6 +2904,7 @@ func (x *ProjectConfig_RemotesEntry) MarshalProtoText() string {
 func (x *ProjectConfig_RemotesEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ProjectConfig_PublishEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PublishEntry {")
@@ -2920,6 +2929,7 @@ func (x *ProjectConfig_PublishEntry) MarshalProtoText() string {
 func (x *ProjectConfig_PublishEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ProjectConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ProjectConfig {")
@@ -3000,6 +3010,7 @@ func (x *ProjectConfig) MarshalProtoText() string {
 func (x *ProjectConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ManifestConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestConfig {")
@@ -3024,6 +3035,7 @@ func (x *ManifestConfig) MarshalProtoText() string {
 func (x *ManifestConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *StartConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("StartConfig {")
@@ -3054,6 +3066,7 @@ func (x *StartConfig) MarshalProtoText() string {
 func (x *StartConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BuildConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildConfig {")
@@ -3090,6 +3103,7 @@ func (x *BuildConfig) MarshalProtoText() string {
 func (x *BuildConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoteConfig_HostConfigSetEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HostConfigSetEntry {")
@@ -3114,6 +3128,7 @@ func (x *RemoteConfig_HostConfigSetEntry) MarshalProtoText() string {
 func (x *RemoteConfig_HostConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoteConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoteConfig {")
@@ -3172,6 +3187,7 @@ func (x *RemoteConfig) MarshalProtoText() string {
 func (x *RemoteConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PublishConfig_ManifestStorageEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ManifestStorageEntry {")
@@ -3196,6 +3212,7 @@ func (x *PublishConfig_ManifestStorageEntry) MarshalProtoText() string {
 func (x *PublishConfig_ManifestStorageEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PublishConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PublishConfig {")
@@ -3293,6 +3310,7 @@ func (x *PublishConfig) MarshalProtoText() string {
 func (x *PublishConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PublishStorageConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PublishStorageConfig {")
@@ -3324,6 +3342,7 @@ func (x *PublishStorageConfig) MarshalProtoText() string {
 func (x *PublishStorageConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3959,6 +3978,7 @@ func (m *ProjectConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ManifestConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4065,6 +4085,7 @@ func (m *ManifestConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4168,6 +4189,7 @@ func (m *StartConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4283,6 +4305,7 @@ func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoteConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4591,6 +4614,7 @@ func (m *RemoteConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4987,6 +5011,7 @@ func (m *PublishConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PublishStorageConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

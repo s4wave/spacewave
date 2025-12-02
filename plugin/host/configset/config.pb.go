@@ -335,6 +335,7 @@ func (x *Config_ConfigSetEntry) MarshalProtoText() string {
 func (x *Config_ConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -359,6 +360,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

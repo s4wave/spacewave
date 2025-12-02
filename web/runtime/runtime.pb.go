@@ -469,6 +469,7 @@ func (this *WebRuntimeHostInit) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WatchWebRuntimeStatusRequest) EqualVT(that *WatchWebRuntimeStatusRequest) bool {
 	if this == that {
 		return true
@@ -485,6 +486,7 @@ func (this *WatchWebRuntimeStatusRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebRuntimeStatus) EqualVT(that *WebRuntimeStatus) bool {
 	if this == that {
 		return true
@@ -524,6 +526,7 @@ func (this *WebRuntimeStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebDocumentStatus) EqualVT(that *WebDocumentStatus) bool {
 	if this == that {
 		return true
@@ -549,6 +552,7 @@ func (this *WebDocumentStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CreateWebDocumentRequest) EqualVT(that *CreateWebDocumentRequest) bool {
 	if this == that {
 		return true
@@ -568,6 +572,7 @@ func (this *CreateWebDocumentRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CreateWebDocumentResponse) EqualVT(that *CreateWebDocumentResponse) bool {
 	if this == that {
 		return true
@@ -587,6 +592,7 @@ func (this *CreateWebDocumentResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoveWebDocumentRequest) EqualVT(that *RemoveWebDocumentRequest) bool {
 	if this == that {
 		return true
@@ -606,6 +612,7 @@ func (this *RemoveWebDocumentRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoveWebDocumentResponse) EqualVT(that *RemoveWebDocumentResponse) bool {
 	if this == that {
 		return true
@@ -625,6 +632,7 @@ func (this *RemoveWebDocumentResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebRuntimeClientInit) EqualVT(that *WebRuntimeClientInit) bool {
 	if this == that {
 		return true
@@ -1686,6 +1694,7 @@ func (m *WebRuntimeClientInit) SizeVT() (n int) {
 func (x WebRuntimeClientType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *WebRuntimeHostInit) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebRuntimeHostInit {")
@@ -1703,6 +1712,7 @@ func (x *WebRuntimeHostInit) MarshalProtoText() string {
 func (x *WebRuntimeHostInit) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WatchWebRuntimeStatusRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WatchWebRuntimeStatusRequest {")
@@ -1713,6 +1723,7 @@ func (x *WatchWebRuntimeStatusRequest) MarshalProtoText() string {
 func (x *WatchWebRuntimeStatusRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebRuntimeStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebRuntimeStatus {")
@@ -1750,6 +1761,7 @@ func (x *WebRuntimeStatus) MarshalProtoText() string {
 func (x *WebRuntimeStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebDocumentStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebDocumentStatus {")
@@ -1781,6 +1793,7 @@ func (x *WebDocumentStatus) MarshalProtoText() string {
 func (x *WebDocumentStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CreateWebDocumentRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CreateWebDocumentRequest {")
@@ -1798,6 +1811,7 @@ func (x *CreateWebDocumentRequest) MarshalProtoText() string {
 func (x *CreateWebDocumentRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CreateWebDocumentResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CreateWebDocumentResponse {")
@@ -1815,6 +1829,7 @@ func (x *CreateWebDocumentResponse) MarshalProtoText() string {
 func (x *CreateWebDocumentResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoveWebDocumentRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoveWebDocumentRequest {")
@@ -1832,6 +1847,7 @@ func (x *RemoveWebDocumentRequest) MarshalProtoText() string {
 func (x *RemoveWebDocumentRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoveWebDocumentResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoveWebDocumentResponse {")
@@ -1849,6 +1865,7 @@ func (x *RemoveWebDocumentResponse) MarshalProtoText() string {
 func (x *RemoveWebDocumentResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebRuntimeClientInit) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebRuntimeClientInit {")
@@ -1882,6 +1899,7 @@ func (x *WebRuntimeClientInit) MarshalProtoText() string {
 func (x *WebRuntimeClientInit) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WebRuntimeHostInit) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1965,6 +1983,7 @@ func (m *WebRuntimeHostInit) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WatchWebRuntimeStatusRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2016,6 +2035,7 @@ func (m *WatchWebRuntimeStatusRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebRuntimeStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2141,6 +2161,7 @@ func (m *WebRuntimeStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2264,6 +2285,7 @@ func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CreateWebDocumentRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2347,6 +2369,7 @@ func (m *CreateWebDocumentRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CreateWebDocumentResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2418,6 +2441,7 @@ func (m *CreateWebDocumentResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoveWebDocumentRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2501,6 +2525,7 @@ func (m *RemoveWebDocumentRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoveWebDocumentResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2572,6 +2597,7 @@ func (m *RemoveWebDocumentResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebRuntimeClientInit) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -1132,6 +1132,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 	if this == that {
 		return true
@@ -1151,6 +1152,7 @@ func (this *PreBuildHookResult) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *InputFileMeta) EqualVT(that *InputFileMeta) bool {
 	if this == that {
 		return true
@@ -1170,6 +1172,7 @@ func (this *InputFileMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 	if this == that {
 		return true
@@ -1312,6 +1315,7 @@ func (this *InputManifestMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EsbuildBundleVarMeta) EqualVT(that *EsbuildBundleVarMeta) bool {
 	if this == that {
 		return true
@@ -1348,6 +1352,7 @@ func (this *EsbuildBundleVarMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EsbuildEntrypointVar) EqualVT(that *EsbuildEntrypointVar) bool {
 	if this == that {
 		return true
@@ -1385,6 +1390,7 @@ func (this *EsbuildEntrypointVar) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ViteBundleVarMeta) EqualVT(that *ViteBundleVarMeta) bool {
 	if this == that {
 		return true
@@ -1421,6 +1427,7 @@ func (this *ViteBundleVarMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ViteEntrypointVar) EqualVT(that *ViteEntrypointVar) bool {
 	if this == that {
 		return true
@@ -3617,12 +3624,15 @@ func (m *ViteEntrypointVar) SizeVT() (n int) {
 func (x InputFileKind) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x EsbuildVarType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x ViteVarType) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Config_ConfigSetEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ConfigSetEntry {")
@@ -3647,6 +3657,7 @@ func (x *Config_ConfigSetEntry) MarshalProtoText() string {
 func (x *Config_ConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config_HostConfigSetEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HostConfigSetEntry {")
@@ -3671,6 +3682,7 @@ func (x *Config_HostConfigSetEntry) MarshalProtoText() string {
 func (x *Config_HostConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config_BuildTypesEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildTypesEntry {")
@@ -3695,6 +3707,7 @@ func (x *Config_BuildTypesEntry) MarshalProtoText() string {
 func (x *Config_BuildTypesEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -3861,6 +3874,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PreBuildHookResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PreBuildHookResult {")
@@ -3878,6 +3892,7 @@ func (x *PreBuildHookResult) MarshalProtoText() string {
 func (x *PreBuildHookResult) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *InputFileMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputFileMeta {")
@@ -3897,6 +3912,7 @@ func (x *InputFileMeta) MarshalProtoText() string {
 func (x *InputFileMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *InputManifestMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputManifestMeta {")
@@ -4025,6 +4041,7 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 func (x *InputManifestMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EsbuildBundleVarMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EsbuildBundleVarMeta {")
@@ -4055,6 +4072,7 @@ func (x *EsbuildBundleVarMeta) MarshalProtoText() string {
 func (x *EsbuildBundleVarMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EsbuildEntrypointVar) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EsbuildEntrypointVar {")
@@ -4108,6 +4126,7 @@ func (x *EsbuildEntrypointVar) MarshalProtoText() string {
 func (x *EsbuildEntrypointVar) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ViteBundleVarMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ViteBundleVarMeta {")
@@ -4138,6 +4157,7 @@ func (x *ViteBundleVarMeta) MarshalProtoText() string {
 func (x *ViteBundleVarMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ViteEntrypointVar) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ViteEntrypointVar {")
@@ -4205,6 +4225,7 @@ func (x *ViteEntrypointVar) MarshalProtoText() string {
 func (x *ViteEntrypointVar) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4966,6 +4987,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5053,6 +5075,7 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *InputFileMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5123,6 +5146,7 @@ func (m *InputFileMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5498,6 +5522,7 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EsbuildBundleVarMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5615,6 +5640,7 @@ func (m *EsbuildBundleVarMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EsbuildEntrypointVar) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5813,6 +5839,7 @@ func (m *EsbuildEntrypointVar) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ViteBundleVarMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5930,6 +5957,7 @@ func (m *ViteBundleVarMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ViteEntrypointVar) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

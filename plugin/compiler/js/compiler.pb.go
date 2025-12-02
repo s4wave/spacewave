@@ -974,6 +974,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PreBuildHookResult) EqualVT(that *PreBuildHookResult) bool {
 	if this == that {
 		return true
@@ -993,6 +994,7 @@ func (this *PreBuildHookResult) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 	if this == that {
 		return true
@@ -1135,6 +1137,7 @@ func (this *InputManifestMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *JsModule) EqualVT(that *JsModule) bool {
 	if this == that {
 		return true
@@ -1172,6 +1175,7 @@ func (this *JsModule) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BackendEntrypoint) EqualVT(that *BackendEntrypoint) bool {
 	if this == that {
 		return true
@@ -1194,6 +1198,7 @@ func (this *BackendEntrypoint) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FrontendEntrypoint) EqualVT(that *FrontendEntrypoint) bool {
 	if this == that {
 		return true
@@ -2999,6 +3004,7 @@ func (m *FrontendEntrypoint) SizeVT() (n int) {
 func (x JsModuleKind) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *Config_HostConfigSetEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HostConfigSetEntry {")
@@ -3023,6 +3029,7 @@ func (x *Config_HostConfigSetEntry) MarshalProtoText() string {
 func (x *Config_HostConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config_BuildTypesEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildTypesEntry {")
@@ -3047,6 +3054,7 @@ func (x *Config_BuildTypesEntry) MarshalProtoText() string {
 func (x *Config_BuildTypesEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Config) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("Config {")
@@ -3210,6 +3218,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PreBuildHookResult) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PreBuildHookResult {")
@@ -3227,6 +3236,7 @@ func (x *PreBuildHookResult) MarshalProtoText() string {
 func (x *PreBuildHookResult) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *InputManifestMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("InputManifestMeta {")
@@ -3355,6 +3365,7 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 func (x *InputManifestMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *JsModule) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("JsModule {")
@@ -3408,6 +3419,7 @@ func (x *JsModule) MarshalProtoText() string {
 func (x *JsModule) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BackendEntrypoint) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BackendEntrypoint {")
@@ -3432,6 +3444,7 @@ func (x *BackendEntrypoint) MarshalProtoText() string {
 func (x *BackendEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FrontendEntrypoint) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FrontendEntrypoint {")
@@ -3470,6 +3483,7 @@ func (x *FrontendEntrypoint) MarshalProtoText() string {
 func (x *FrontendEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4119,6 +4133,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4206,6 +4221,7 @@ func (m *PreBuildHookResult) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4577,6 +4593,7 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *JsModule) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4751,6 +4768,7 @@ func (m *JsModule) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BackendEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4866,6 +4884,7 @@ func (m *BackendEntrypoint) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FrontendEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

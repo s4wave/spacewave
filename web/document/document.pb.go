@@ -538,6 +538,7 @@ func (this *WatchWebDocumentStatusRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebDocumentStatus) EqualVT(that *WebDocumentStatus) bool {
 	if this == that {
 		return true
@@ -597,6 +598,7 @@ func (this *WebDocumentStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebViewStatus) EqualVT(that *WebViewStatus) bool {
 	if this == that {
 		return true
@@ -625,6 +627,7 @@ func (this *WebViewStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebWorkerStatus) EqualVT(that *WebWorkerStatus) bool {
 	if this == that {
 		return true
@@ -650,6 +653,7 @@ func (this *WebWorkerStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CreateWebViewRequest) EqualVT(that *CreateWebViewRequest) bool {
 	if this == that {
 		return true
@@ -669,6 +673,7 @@ func (this *CreateWebViewRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CreateWebViewResponse) EqualVT(that *CreateWebViewResponse) bool {
 	if this == that {
 		return true
@@ -688,6 +693,7 @@ func (this *CreateWebViewResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CreateWebWorkerRequest) EqualVT(that *CreateWebWorkerRequest) bool {
 	if this == that {
 		return true
@@ -716,6 +722,7 @@ func (this *CreateWebWorkerRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *CreateWebWorkerResponse) EqualVT(that *CreateWebWorkerResponse) bool {
 	if this == that {
 		return true
@@ -738,6 +745,7 @@ func (this *CreateWebWorkerResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoveWebWorkerRequest) EqualVT(that *RemoveWebWorkerRequest) bool {
 	if this == that {
 		return true
@@ -757,6 +765,7 @@ func (this *RemoveWebWorkerRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RemoveWebWorkerResponse) EqualVT(that *RemoveWebWorkerResponse) bool {
 	if this == that {
 		return true
@@ -2051,6 +2060,7 @@ func (x *WatchWebDocumentStatusRequest) MarshalProtoText() string {
 func (x *WatchWebDocumentStatusRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebDocumentStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebDocumentStatus {")
@@ -2108,6 +2118,7 @@ func (x *WebDocumentStatus) MarshalProtoText() string {
 func (x *WebDocumentStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebViewStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebViewStatus {")
@@ -2146,6 +2157,7 @@ func (x *WebViewStatus) MarshalProtoText() string {
 func (x *WebViewStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebWorkerStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebWorkerStatus {")
@@ -2177,6 +2189,7 @@ func (x *WebWorkerStatus) MarshalProtoText() string {
 func (x *WebWorkerStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CreateWebViewRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CreateWebViewRequest {")
@@ -2194,6 +2207,7 @@ func (x *CreateWebViewRequest) MarshalProtoText() string {
 func (x *CreateWebViewRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CreateWebViewResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CreateWebViewResponse {")
@@ -2211,6 +2225,7 @@ func (x *CreateWebViewResponse) MarshalProtoText() string {
 func (x *CreateWebViewResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CreateWebWorkerRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CreateWebWorkerRequest {")
@@ -2251,6 +2266,7 @@ func (x *CreateWebWorkerRequest) MarshalProtoText() string {
 func (x *CreateWebWorkerRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *CreateWebWorkerResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("CreateWebWorkerResponse {")
@@ -2275,6 +2291,7 @@ func (x *CreateWebWorkerResponse) MarshalProtoText() string {
 func (x *CreateWebWorkerResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoveWebWorkerRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoveWebWorkerRequest {")
@@ -2292,6 +2309,7 @@ func (x *RemoveWebWorkerRequest) MarshalProtoText() string {
 func (x *RemoveWebWorkerRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RemoveWebWorkerResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RemoveWebWorkerResponse {")
@@ -2309,6 +2327,7 @@ func (x *RemoveWebWorkerResponse) MarshalProtoText() string {
 func (x *RemoveWebWorkerResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WatchWebDocumentStatusRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2360,6 +2379,7 @@ func (m *WatchWebDocumentStatusRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2539,6 +2559,7 @@ func (m *WebDocumentStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebViewStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2694,6 +2715,7 @@ func (m *WebViewStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebWorkerStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2817,6 +2839,7 @@ func (m *WebWorkerStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CreateWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2900,6 +2923,7 @@ func (m *CreateWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CreateWebViewResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2971,6 +2995,7 @@ func (m *CreateWebViewResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3140,6 +3165,7 @@ func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *CreateWebWorkerResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3231,6 +3257,7 @@ func (m *CreateWebWorkerResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoveWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3314,6 +3341,7 @@ func (m *RemoveWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RemoveWebWorkerResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

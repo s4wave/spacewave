@@ -13,7 +13,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/cli v1.0.1
-	github.com/aperturerobotics/common v0.22.13 // latest
+	github.com/aperturerobotics/common v0.24.0 // latest
 	github.com/aperturerobotics/hydra v0.0.0-20251113003724-f46810df9433 // master
 	github.com/aperturerobotics/protobuf-go-lite v0.11.0 // master
 )
@@ -29,13 +29,13 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/tetratelabs/wazero v1.9.0
 	golang.org/x/mod v0.30.0 // latest
-	golang.org/x/tools v0.38.0 // latest
+	golang.org/x/tools v0.39.0 // latest
 )
 
 // Note: the below is from the Hydra go.mod
 
 require (
-	github.com/aperturerobotics/bifrost v0.43.4 // master
+	github.com/aperturerobotics/bifrost v0.43.5-0.20251122005342-06e64dd41183 // master
 	github.com/aperturerobotics/cayley v0.10.0 // latest
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // indirect; master
 	github.com/aperturerobotics/go-kvfile v0.9.2 // master
@@ -73,15 +73,15 @@ require (
 	github.com/restic/chunker v0.4.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.18.0
 )
 
 // Note: the below is from the Bifrost go.mod
 
 require (
-	github.com/aperturerobotics/controllerbus v0.51.4-0.20251113002647-ff3f278bc709 // latest
+	github.com/aperturerobotics/controllerbus v0.51.4-0.20251122005227-10a046324797 // latest
 	github.com/aperturerobotics/entitygraph v0.11.0 // indirect; latest
-	github.com/aperturerobotics/starpc v0.39.10 // latest
+	github.com/aperturerobotics/starpc v0.41.0 // latest
 	github.com/aperturerobotics/util v1.31.4 // latest
 )
 
@@ -101,7 +101,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coder/websocket v1.8.14
 	github.com/klauspost/compress v1.18.1
-	github.com/libp2p/go-libp2p v0.44.0
+	github.com/libp2p/go-libp2p v0.45.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.16.1 // indirect
 	github.com/oklog/ulid/v2 v2.1.0
@@ -110,10 +110,10 @@ require (
 	github.com/pion/sdp/v3 v3.0.16 // indirect
 	github.com/pion/webrtc/v4 v4.1.6 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.55.0 // indirect
+	github.com/quic-go/quic-go v0.56.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/crypto v0.43.0
+	golang.org/x/crypto v0.44.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
@@ -168,8 +168,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	modernc.org/libc v1.66.3 // indirect

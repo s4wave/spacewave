@@ -12,7 +12,7 @@ export const protobufPackage = 'bldr.plugin'
 /**
  * PluginStatus holds basic status for a plugin.
  *
- * @generated from message bldr.bldr_plugin.PluginStatus
+ * @generated from message bldr.plugin.PluginStatus
  */
 export interface PluginStatus {
   /**
@@ -31,7 +31,7 @@ export interface PluginStatus {
 
 // PluginStatus contains the message type declaration for PluginStatus.
 export const PluginStatus: MessageType<PluginStatus> = createMessageType({
-  typeName: 'bldr.bldr_plugin.PluginStatus',
+  typeName: 'bldr.plugin.PluginStatus',
   fields: [
     { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'running', kind: 'scalar', T: ScalarType.BOOL },
@@ -42,14 +42,14 @@ export const PluginStatus: MessageType<PluginStatus> = createMessageType({
 /**
  * GetPluginInfoRequest is a request to return the information for the current plugin.
  *
- * @generated from message bldr.bldr_plugin.GetPluginInfoRequest
+ * @generated from message bldr.plugin.GetPluginInfoRequest
  */
 export interface GetPluginInfoRequest {}
 
 // GetPluginInfoRequest contains the message type declaration for GetPluginInfoRequest.
 export const GetPluginInfoRequest: MessageType<GetPluginInfoRequest> =
   createMessageType({
-    typeName: 'bldr.bldr_plugin.GetPluginInfoRequest',
+    typeName: 'bldr.plugin.GetPluginInfoRequest',
     fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -57,7 +57,7 @@ export const GetPluginInfoRequest: MessageType<GetPluginInfoRequest> =
 /**
  * GetPluginInfoResponse is the response to the GetPluginInfo request.
  *
- * @generated from message bldr.bldr_plugin.GetPluginInfoResponse
+ * @generated from message bldr.plugin.GetPluginInfoResponse
  */
 export interface GetPluginInfoResponse {
   /**
@@ -84,7 +84,7 @@ export interface GetPluginInfoResponse {
 // GetPluginInfoResponse contains the message type declaration for GetPluginInfoResponse.
 export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
   createMessageType({
-    typeName: 'bldr.bldr_plugin.GetPluginInfoResponse',
+    typeName: 'bldr.plugin.GetPluginInfoResponse',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
@@ -96,7 +96,7 @@ export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
 /**
  * LoadPluginRequest is a request to load a plugin while the RPC is active.
  *
- * @generated from message bldr.bldr_plugin.LoadPluginRequest
+ * @generated from message bldr.plugin.LoadPluginRequest
  */
 export interface LoadPluginRequest {
   /**
@@ -110,7 +110,7 @@ export interface LoadPluginRequest {
 // LoadPluginRequest contains the message type declaration for LoadPluginRequest.
 export const LoadPluginRequest: MessageType<LoadPluginRequest> =
   createMessageType({
-    typeName: 'bldr.bldr_plugin.LoadPluginRequest',
+    typeName: 'bldr.plugin.LoadPluginRequest',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
@@ -120,13 +120,13 @@ export const LoadPluginRequest: MessageType<LoadPluginRequest> =
 /**
  * LoadPluginResponse is a status response to a LoadPlugin request.
  *
- * @generated from message bldr.bldr_plugin.LoadPluginResponse
+ * @generated from message bldr.plugin.LoadPluginResponse
  */
 export interface LoadPluginResponse {
   /**
    * PluginStatus contains the current plugin status object.
    *
-   * @generated from field: bldr.bldr_plugin.PluginStatus plugin_status = 1;
+   * @generated from field: bldr.plugin.PluginStatus plugin_status = 1;
    */
   pluginStatus?: PluginStatus
 }
@@ -134,7 +134,7 @@ export interface LoadPluginResponse {
 // LoadPluginResponse contains the message type declaration for LoadPluginResponse.
 export const LoadPluginResponse: MessageType<LoadPluginResponse> =
   createMessageType({
-    typeName: 'bldr.bldr_plugin.LoadPluginResponse',
+    typeName: 'bldr.plugin.LoadPluginResponse',
     fields: [
       { no: 1, name: 'plugin_status', kind: 'message', T: () => PluginStatus },
     ] as readonly PartialFieldInfo[],

@@ -390,6 +390,7 @@ func (x *WebWorkerWasmPluginInit_EnvEntry) MarshalProtoText() string {
 func (x *WebWorkerWasmPluginInit_EnvEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebWorkerWasmPluginInit) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebWorkerWasmPluginInit {")
@@ -434,6 +435,7 @@ func (x *WebWorkerWasmPluginInit) MarshalProtoText() string {
 func (x *WebWorkerWasmPluginInit) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WebWorkerWasmPluginInit) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

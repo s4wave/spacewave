@@ -169,6 +169,7 @@ func (this *StoreManifestOp) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ExtractManifestBundleOp) EqualVT(that *ExtractManifestBundleOp) bool {
 	if this == that {
 		return true
@@ -536,6 +537,7 @@ func (x *StoreManifestOp) MarshalProtoText() string {
 func (x *StoreManifestOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ExtractManifestBundleOp) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ExtractManifestBundleOp {")
@@ -573,6 +575,7 @@ func (x *ExtractManifestBundleOp) MarshalProtoText() string {
 func (x *ExtractManifestBundleOp) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *StoreManifestOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -724,6 +727,7 @@ func (m *StoreManifestOp) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ExtractManifestBundleOp) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

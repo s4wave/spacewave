@@ -375,6 +375,7 @@ func (x *DistMeta) MarshalProtoText() string {
 func (x *DistMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *DistMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -106,6 +106,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ExampleProps) EqualVT(that *ExampleProps) bool {
 	if this == that {
 		return true
@@ -337,6 +338,7 @@ func (x *Config) MarshalProtoText() string {
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ExampleProps) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ExampleProps {")
@@ -354,6 +356,7 @@ func (x *ExampleProps) MarshalProtoText() string {
 func (x *ExampleProps) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -425,6 +428,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ExampleProps) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

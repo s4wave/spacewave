@@ -179,6 +179,7 @@ func (this *EsbuildBundleEntrypoint) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EsbuildOutputMeta) EqualVT(that *EsbuildOutputMeta) bool {
 	if this == that {
 		return true
@@ -545,6 +546,7 @@ func (x *EsbuildBundleEntrypoint) MarshalProtoText() string {
 func (x *EsbuildBundleEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EsbuildOutputMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EsbuildOutputMeta {")
@@ -590,6 +592,7 @@ func (x *EsbuildOutputMeta) MarshalProtoText() string {
 func (x *EsbuildOutputMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *EsbuildBundleEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -737,6 +740,7 @@ func (m *EsbuildBundleEntrypoint) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EsbuildOutputMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

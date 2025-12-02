@@ -140,6 +140,7 @@ func (x *StorageInfo) MarshalProtoText() string {
 func (x *StorageInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *StorageInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

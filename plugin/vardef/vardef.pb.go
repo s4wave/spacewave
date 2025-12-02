@@ -211,6 +211,7 @@ func (this *PluginDevInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PluginVar) EqualVT(that *PluginVar) bool {
 	if this == that {
 		return true
@@ -243,6 +244,7 @@ func (this *PluginVar) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PluginVar_StringValue) EqualVT(thatIface isPluginVar_Body) bool {
 	that, ok := thatIface.(*PluginVar_StringValue)
 	if !ok {
@@ -539,6 +541,7 @@ func (m *PluginVar_StringValue) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	dAtA[i] = 0x1a
 	return len(dAtA) - i, nil
 }
+
 func (m *PluginVar_WebBundlerOutput) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -562,6 +565,7 @@ func (m *PluginVar_WebBundlerOutput) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *PluginDevInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -609,6 +613,7 @@ func (m *PluginVar_StringValue) SizeVT() (n int) {
 	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	return n
 }
+
 func (m *PluginVar_WebBundlerOutput) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -623,6 +628,7 @@ func (m *PluginVar_WebBundlerOutput) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (x *PluginDevInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginDevInfo {")
@@ -646,6 +652,7 @@ func (x *PluginDevInfo) MarshalProtoText() string {
 func (x *PluginDevInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PluginVar) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginVar {")
@@ -688,6 +695,7 @@ func (x *PluginVar) MarshalProtoText() string {
 func (x *PluginVar) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *PluginDevInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -773,6 +781,7 @@ func (m *PluginDevInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PluginVar) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

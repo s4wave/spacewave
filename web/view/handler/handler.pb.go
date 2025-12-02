@@ -247,6 +247,7 @@ func (this *WebViewHandlersConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebViewHandlerConfig) EqualVT(that *WebViewHandlerConfig) bool {
 	if this == that {
 		return true
@@ -281,6 +282,7 @@ func (this *WebViewHandlerConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WebViewHandlerConfig_SetRenderMode) EqualVT(thatIface isWebViewHandlerConfig_Handler) bool {
 	that, ok := thatIface.(*WebViewHandlerConfig_SetRenderMode)
 	if !ok {
@@ -656,6 +658,7 @@ func (m *WebViewHandlerConfig_SetRenderMode) MarshalToSizedBufferVT(dAtA []byte)
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *WebViewHandlerConfig_SetHtmlLinks) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -679,6 +682,7 @@ func (m *WebViewHandlerConfig_SetHtmlLinks) MarshalToSizedBufferVT(dAtA []byte) 
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *WebViewHandlersConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -738,6 +742,7 @@ func (m *WebViewHandlerConfig_SetRenderMode) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *WebViewHandlerConfig_SetHtmlLinks) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -752,6 +757,7 @@ func (m *WebViewHandlerConfig_SetHtmlLinks) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (x *WebViewHandlersConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebViewHandlersConfig {")
@@ -789,6 +795,7 @@ func (x *WebViewHandlersConfig) MarshalProtoText() string {
 func (x *WebViewHandlersConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WebViewHandlerConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WebViewHandlerConfig {")
@@ -831,6 +838,7 @@ func (x *WebViewHandlerConfig) MarshalProtoText() string {
 func (x *WebViewHandlerConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WebViewHandlersConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -988,6 +996,7 @@ func (m *WebViewHandlersConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WebViewHandlerConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

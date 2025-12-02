@@ -113,6 +113,7 @@ func (this *PrototypeRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PrototypeResponse) EqualVT(that *PrototypeResponse) bool {
 	if this == that {
 		return true
@@ -361,6 +362,7 @@ func (x *PrototypeRequest) MarshalProtoText() string {
 func (x *PrototypeRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PrototypeResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PrototypeResponse {")
@@ -385,6 +387,7 @@ func (x *PrototypeResponse) MarshalProtoText() string {
 func (x *PrototypeResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *PrototypeRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -468,6 +471,7 @@ func (m *PrototypeRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PrototypeResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

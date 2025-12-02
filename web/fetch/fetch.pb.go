@@ -640,6 +640,7 @@ func (this *FetchRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchRequest_RequestInfo) EqualVT(thatIface isFetchRequest_Body) bool {
 	that, ok := thatIface.(*FetchRequest_RequestInfo)
 	if !ok {
@@ -748,6 +749,7 @@ func (this *FetchRequestInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchRequestData) EqualVT(that *FetchRequestData) bool {
 	if this == that {
 		return true
@@ -770,6 +772,7 @@ func (this *FetchRequestData) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchResponse) EqualVT(that *FetchResponse) bool {
 	if this == that {
 		return true
@@ -798,6 +801,7 @@ func (this *FetchResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *FetchResponse_ResponseInfo) EqualVT(thatIface isFetchResponse_Body) bool {
 	that, ok := thatIface.(*FetchResponse_ResponseInfo)
 	if !ok {
@@ -891,6 +895,7 @@ func (this *ResponseInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ResponseData) EqualVT(that *ResponseData) bool {
 	if this == that {
 		return true
@@ -1539,6 +1544,7 @@ func (m *FetchRequest_RequestInfo) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *FetchRequest_RequestData) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1562,6 +1568,7 @@ func (m *FetchRequest_RequestData) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *FetchRequestInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1802,6 +1809,7 @@ func (m *FetchResponse_ResponseInfo) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *FetchResponse_ResponseData) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1825,6 +1833,7 @@ func (m *FetchResponse_ResponseData) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *ResponseInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1993,6 +2002,7 @@ func (m *FetchRequest_RequestInfo) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *FetchRequest_RequestData) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2007,6 +2017,7 @@ func (m *FetchRequest_RequestData) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *FetchRequestInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2108,6 +2119,7 @@ func (m *FetchResponse_ResponseInfo) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *FetchResponse_ResponseData) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2122,6 +2134,7 @@ func (m *FetchResponse_ResponseData) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *ResponseInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2202,6 +2215,7 @@ func (x *FetchRequest) MarshalProtoText() string {
 func (x *FetchRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchRequestInfo_HeadersEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HeadersEntry {")
@@ -2226,6 +2240,7 @@ func (x *FetchRequestInfo_HeadersEntry) MarshalProtoText() string {
 func (x *FetchRequestInfo_HeadersEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchRequestInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchRequestInfo {")
@@ -2320,6 +2335,7 @@ func (x *FetchRequestInfo) MarshalProtoText() string {
 func (x *FetchRequestInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchRequestData) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchRequestData {")
@@ -2346,6 +2362,7 @@ func (x *FetchRequestData) MarshalProtoText() string {
 func (x *FetchRequestData) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *FetchResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("FetchResponse {")
@@ -2374,6 +2391,7 @@ func (x *FetchResponse) MarshalProtoText() string {
 func (x *FetchResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResponseInfo_HeadersEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HeadersEntry {")
@@ -2398,6 +2416,7 @@ func (x *ResponseInfo_HeadersEntry) MarshalProtoText() string {
 func (x *ResponseInfo_HeadersEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResponseInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ResponseInfo {")
@@ -2457,6 +2476,7 @@ func (x *ResponseInfo) MarshalProtoText() string {
 func (x *ResponseInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ResponseData) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ResponseData {")
@@ -2483,6 +2503,7 @@ func (x *ResponseData) MarshalProtoText() string {
 func (x *ResponseData) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *FetchRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2616,6 +2637,7 @@ func (m *FetchRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FetchRequestInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3102,6 +3124,7 @@ func (m *FetchRequestInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FetchRequestData) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3207,6 +3230,7 @@ func (m *FetchRequestData) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *FetchResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3340,6 +3364,7 @@ func (m *FetchResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ResponseInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3641,6 +3666,7 @@ func (m *ResponseInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ResponseData) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

@@ -510,6 +510,7 @@ func (this *WebPkgRef) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
 	if this == that {
 		return true
@@ -596,6 +597,7 @@ func (this *BuildRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ViteBuildRequestEntrypoint) EqualVT(that *ViteBuildRequestEntrypoint) bool {
 	if this == that {
 		return true
@@ -618,6 +620,7 @@ func (this *ViteBuildRequestEntrypoint) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *BuildResponse) EqualVT(that *BuildResponse) bool {
 	if this == that {
 		return true
@@ -692,6 +695,7 @@ func (this *BuildResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *EntrypointOutput) EqualVT(that *EntrypointOutput) bool {
 	if this == that {
 		return true
@@ -732,6 +736,7 @@ func (this *EntrypointOutput) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ViteOutputMeta) EqualVT(that *ViteOutputMeta) bool {
 	if this == that {
 		return true
@@ -1937,6 +1942,7 @@ func (x *WebPkgRef) MarshalProtoText() string {
 func (x *WebPkgRef) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BuildRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildRequest {")
@@ -2041,6 +2047,7 @@ func (x *BuildRequest) MarshalProtoText() string {
 func (x *BuildRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ViteBuildRequestEntrypoint) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ViteBuildRequestEntrypoint {")
@@ -2065,6 +2072,7 @@ func (x *ViteBuildRequestEntrypoint) MarshalProtoText() string {
 func (x *ViteBuildRequestEntrypoint) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *BuildResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("BuildResponse {")
@@ -2141,6 +2149,7 @@ func (x *BuildResponse) MarshalProtoText() string {
 func (x *BuildResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *EntrypointOutput) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("EntrypointOutput {")
@@ -2191,6 +2200,7 @@ func (x *EntrypointOutput) MarshalProtoText() string {
 func (x *EntrypointOutput) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ViteOutputMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ViteOutputMeta {")
@@ -2215,6 +2225,7 @@ func (x *ViteOutputMeta) MarshalProtoText() string {
 func (x *ViteOutputMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *WebPkgRef) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2362,6 +2373,7 @@ func (m *WebPkgRef) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2737,6 +2749,7 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ViteBuildRequestEntrypoint) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2852,6 +2865,7 @@ func (m *ViteBuildRequestEntrypoint) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *BuildResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3087,6 +3101,7 @@ func (m *BuildResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *EntrypointOutput) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3266,6 +3281,7 @@ func (m *EntrypointOutput) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ViteOutputMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

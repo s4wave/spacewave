@@ -375,6 +375,7 @@ func (this *DistConfig) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *LauncherInfo) EqualVT(that *LauncherInfo) bool {
 	if this == that {
 		return true
@@ -394,6 +395,7 @@ func (this *LauncherInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RecheckDistConfigRequest) EqualVT(that *RecheckDistConfigRequest) bool {
 	if this == that {
 		return true
@@ -410,6 +412,7 @@ func (this *RecheckDistConfigRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *RecheckDistConfigResponse) EqualVT(that *RecheckDistConfigResponse) bool {
 	if this == that {
 		return true
@@ -426,6 +429,7 @@ func (this *RecheckDistConfigResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *WatchLauncherInfoRequest) EqualVT(that *WatchLauncherInfoRequest) bool {
 	if this == that {
 		return true
@@ -442,6 +446,7 @@ func (this *WatchLauncherInfoRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PushDistConfigRequest) EqualVT(that *PushDistConfigRequest) bool {
 	if this == that {
 		return true
@@ -461,6 +466,7 @@ func (this *PushDistConfigRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PushDistConfigResponse) EqualVT(that *PushDistConfigResponse) bool {
 	if this == that {
 		return true
@@ -1308,6 +1314,7 @@ func (x *DistConfig_LauncherConfigSetEntry) MarshalProtoText() string {
 func (x *DistConfig_LauncherConfigSetEntry) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *DistConfig) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DistConfig {")
@@ -1346,6 +1353,7 @@ func (x *DistConfig) MarshalProtoText() string {
 func (x *DistConfig) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *LauncherInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("LauncherInfo {")
@@ -1363,6 +1371,7 @@ func (x *LauncherInfo) MarshalProtoText() string {
 func (x *LauncherInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RecheckDistConfigRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RecheckDistConfigRequest {")
@@ -1373,6 +1382,7 @@ func (x *RecheckDistConfigRequest) MarshalProtoText() string {
 func (x *RecheckDistConfigRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *RecheckDistConfigResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("RecheckDistConfigResponse {")
@@ -1383,6 +1393,7 @@ func (x *RecheckDistConfigResponse) MarshalProtoText() string {
 func (x *RecheckDistConfigResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *WatchLauncherInfoRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WatchLauncherInfoRequest {")
@@ -1393,6 +1404,7 @@ func (x *WatchLauncherInfoRequest) MarshalProtoText() string {
 func (x *WatchLauncherInfoRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PushDistConfigRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PushDistConfigRequest {")
@@ -1410,6 +1422,7 @@ func (x *PushDistConfigRequest) MarshalProtoText() string {
 func (x *PushDistConfigRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PushDistConfigResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PushDistConfigResponse {")
@@ -1448,6 +1461,7 @@ func (x *PushDistConfigResponse) MarshalProtoText() string {
 func (x *PushDistConfigResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *DistConfig) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1679,6 +1693,7 @@ func (m *DistConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *LauncherInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1766,6 +1781,7 @@ func (m *LauncherInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RecheckDistConfigRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1817,6 +1833,7 @@ func (m *RecheckDistConfigRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *RecheckDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1868,6 +1885,7 @@ func (m *RecheckDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *WatchLauncherInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1919,6 +1937,7 @@ func (m *WatchLauncherInfoRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PushDistConfigRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2002,6 +2021,7 @@ func (m *PushDistConfigRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PushDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

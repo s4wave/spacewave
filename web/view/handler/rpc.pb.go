@@ -148,6 +148,7 @@ func (this *HandleWebViewRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *HandleWebViewResponse) EqualVT(that *HandleWebViewResponse) bool {
 	if this == that {
 		return true
@@ -457,6 +458,7 @@ func (x *HandleWebViewRequest) MarshalProtoText() string {
 func (x *HandleWebViewRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *HandleWebViewResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("HandleWebViewResponse {")
@@ -474,6 +476,7 @@ func (x *HandleWebViewResponse) MarshalProtoText() string {
 func (x *HandleWebViewResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *HandleWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -641,6 +644,7 @@ func (m *HandleWebViewRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *HandleWebViewResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
