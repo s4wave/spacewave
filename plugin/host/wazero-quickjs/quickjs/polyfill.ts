@@ -1,6 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { QuickjsGlobalScope } from './quickjs.js'
-import { createEvent } from './polyfill-event.js'
+import {
+  createEvent,
+  createEventTarget,
+  createCustomEvent,
+} from './polyfill-event.js'
 import { createAbortController } from './polyfill-abort-controller.js'
 import { createSymbolPolyfills } from './polyfill-symbol.js'
 import { TextEncoder, TextDecoder } from './text-encoding.js'
@@ -20,6 +23,10 @@ export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   AbortController: new () => AbortController
   // Event is the polyfilled event constructor type.
   Event: typeof Event
+  // EventTarget is the polyfilled EventTarget constructor type.
+  EventTarget: typeof EventTarget
+  // CustomEvent is the polyfilled CustomEvent constructor type.
+  CustomEvent: typeof CustomEvent
   // TextEncoder is the polyfilled text encoder type.
   TextEncoder: typeof TextEncoder
   // TextDecoder is the polyfilled text encoder type.
@@ -92,6 +99,8 @@ export function applyPolyfills(
   target.console = createQuickjsConsole(target.console)
   target.performance = createQuickjsPerformance(target.performance)
   target.Event = createEvent() as typeof Event
+  target.EventTarget = createEventTarget()
+  target.CustomEvent = createCustomEvent()
   target.AbortController = createAbortController()
   target.TextEncoder = TextEncoder
   target.TextDecoder = TextDecoder

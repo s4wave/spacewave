@@ -19,6 +19,26 @@ func main() {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Build banner.js into an IIFE that applies Symbol polyfills and sets
+	// Event, EventTarget, CustomEvent on globalThis. This runs before any
+	// bundled module code, ensuring classes like `class Foo extends Event`
+	// work at import time.
+	bannerResult := esbuild_api.Build(esbuild_api.BuildOptions{
+		EntryPoints:  []string{"./quickjs/banner.ts"},
+		Bundle:       true,
+		Format:       esbuild_api.FormatIIFE,
+		Platform:     esbuild_api.PlatformBrowser,
+		Write:        false,
+		MinifySyntax: true,
+	})
+
+	if len(bannerResult.Errors) > 0 {
+		le.WithField("errors", bannerResult.Errors).Fatal("esbuild banner build failed")
+		return
+	}
+
+	banner := string(bannerResult.OutputFiles[0].Contents)
+
 	result := esbuild_api.Build(esbuild_api.BuildOptions{
 		EntryPoints: []string{"./plugin-quickjs.ts"},
 		Outfile:     "./plugin-quickjs.esb.js",
@@ -28,6 +48,11 @@ func main() {
 		Platform:    esbuild_api.PlatformBrowser,
 		Write:       true,
 		LogLevel:    esbuild_api.LogLevelInfo,
+		// Use banner to inject Event/EventTarget polyfills at the very top.
+		// This ensures classes extending Event work before any module code runs.
+		Banner: map[string]string{
+			"js": banner,
+		},
 	})
 
 	if len(result.Errors) > 0 {

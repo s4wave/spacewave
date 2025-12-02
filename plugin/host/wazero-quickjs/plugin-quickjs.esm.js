@@ -1,4 +1,298 @@
 /* eslint-disable */
+(() => {
+  // quickjs/polyfill-symbol.ts
+  function createSymbolPolyfills() {
+    Symbol.asyncIterator || Object.defineProperty(Symbol, "asyncIterator", {
+      value: Symbol("Symbol.asyncIterator"),
+      writable: false,
+      enumerable: false,
+      configurable: false
+    }), Symbol.dispose || Object.defineProperty(Symbol, "dispose", {
+      value: Symbol("Symbol.dispose"),
+      writable: false,
+      enumerable: false,
+      configurable: false
+    }), Symbol.asyncDispose || Object.defineProperty(Symbol, "asyncDispose", {
+      value: Symbol("Symbol.asyncDispose"),
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  }
+
+  // quickjs/event-target.js
+  var privateData = /* @__PURE__ */ new WeakMap();
+  function pd(event) {
+    let retv = privateData.get(event);
+    if (!retv)
+      throw new Error("'this' is expected an Event object, but got " + event);
+    return retv;
+  }
+  function setCancelFlag(data) {
+    if (data.passiveListener !== null) {
+      console.error(
+        "Unable to preventDefault inside passive event listener invocation.",
+        data.passiveListener
+      );
+      return;
+    }
+    data.eventInit.cancelable && (data.canceled = true);
+  }
+  var Event = class {
+    constructor(eventType, eventInit = {}) {
+      if (eventInit && typeof eventInit != "object")
+        throw TypeError("Value must be an object.");
+      privateData.set(this, {
+        eventInit,
+        eventPhase: 2,
+        eventType: String(eventType),
+        currentTarget: null,
+        canceled: false,
+        stopped: false,
+        immediateStopped: false,
+        passiveListener: null,
+        timeStamp: Date.now()
+      }), Object.defineProperty(this, "isTrusted", { value: false, enumerable: true });
+    }
+    /**
+     * The type of this event.
+     * @type {string}
+     */
+    get type() {
+      return pd(this).eventType;
+    }
+    /**
+     * The target of this event.
+     * @type {EventTarget}
+     */
+    get target() {
+      return this.currentTarget;
+    }
+    /**
+     * The target of this event.
+     * @type {EventTarget}
+     */
+    get currentTarget() {
+      return pd(this).currentTarget;
+    }
+    /**
+     * @returns {EventTarget[]} The composed path of this event.
+     */
+    composedPath() {
+      let currentTarget = pd(this).currentTarget;
+      return currentTarget ? [currentTarget] : [];
+    }
+    /**
+     * Constant of NONE.
+     * @type {number}
+     */
+    get NONE() {
+      return 0;
+    }
+    /**
+     * Constant of CAPTURING_PHASE.
+     * @type {number}
+     */
+    get CAPTURING_PHASE() {
+      return 1;
+    }
+    /**
+     * Constant of AT_TARGET.
+     * @type {number}
+     */
+    get AT_TARGET() {
+      return 2;
+    }
+    /**
+     * Constant of BUBBLING_PHASE.
+     * @type {number}
+     */
+    get BUBBLING_PHASE() {
+      return 3;
+    }
+    /**
+     * The target of this event.
+     * @type {number}
+     */
+    get eventPhase() {
+      return pd(this).eventPhase;
+    }
+    /**
+     * Stop event bubbling.
+     * @returns {void}
+     */
+    stopPropagation() {
+      pd(this).stopped = true;
+    }
+    /**
+     * Stop event bubbling.
+     * @returns {void}
+     */
+    stopImmediatePropagation() {
+      let data = pd(this);
+      data.stopped = true, data.immediateStopped = true;
+    }
+    /**
+     * The flag to be bubbling.
+     * @type {boolean}
+     */
+    get bubbles() {
+      return !!pd(this).eventInit.bubbles;
+    }
+    /**
+     * The flag to be cancelable.
+     * @type {boolean}
+     */
+    get cancelable() {
+      return !!pd(this).eventInit.cancelable;
+    }
+    /**
+     * Cancel this event.
+     * @returns {void}
+     */
+    preventDefault() {
+      setCancelFlag(pd(this));
+    }
+    /**
+     * The flag to indicate cancellation state.
+     * @type {boolean}
+     */
+    get defaultPrevented() {
+      return pd(this).canceled;
+    }
+    /**
+     * The flag to be composed.
+     * @type {boolean}
+     */
+    get composed() {
+      return !!pd(this).eventInit.composed;
+    }
+    /**
+     * The unix time of this event.
+     * @type {number}
+     */
+    get timeStamp() {
+      return pd(this).timeStamp;
+    }
+  }, CustomEvent = class extends Event {
+    /**
+     * Any data passed when initializing the event.
+     * @type {any}
+     */
+    get detail() {
+      return !!pd(this).eventInit.detail;
+    }
+  };
+  function isStopped(event) {
+    return pd(event).immediateStopped;
+  }
+  function setEventPhase(event, eventPhase) {
+    pd(event).eventPhase = eventPhase;
+  }
+  function setCurrentTarget(event, currentTarget) {
+    pd(event).currentTarget = currentTarget;
+  }
+  function setPassiveListener(event, passiveListener) {
+    pd(event).passiveListener = passiveListener;
+  }
+  var listenersMap = /* @__PURE__ */ new WeakMap(), CAPTURE = 1, BUBBLE = 2, ATTRIBUTE = 3;
+  function isObject(x) {
+    return x !== null && typeof x == "object";
+  }
+  function getListeners(eventTarget) {
+    let listeners = listenersMap.get(eventTarget);
+    if (!listeners)
+      throw new TypeError(
+        "'this' is expected an EventTarget object, but got another value."
+      );
+    return listeners;
+  }
+  var EventTarget = class {
+    constructor() {
+      this.__init();
+    }
+    __init() {
+      listenersMap.set(this, /* @__PURE__ */ new Map());
+    }
+    /**
+     * Add a given listener to this event target.
+     * @param {string} eventName The event name to add.
+     * @param {Function} listener The listener to add.
+     * @param {boolean|{capture?:boolean,passive?:boolean,once?:boolean}} [options] The options for this listener.
+     * @returns {void}
+     */
+    addEventListener(eventName, listener, options) {
+      if (!listener)
+        return;
+      if (typeof listener != "function" && !isObject(listener))
+        throw new TypeError("'listener' should be a function or an object.");
+      let listeners = getListeners(this ?? globalThis), optionsIsObj = isObject(options), listenerType = (optionsIsObj ? !!options.capture : !!options) ? CAPTURE : BUBBLE, newNode = {
+        listener,
+        listenerType,
+        passive: optionsIsObj && !!options.passive,
+        once: optionsIsObj && !!options.once,
+        next: null
+      }, node = listeners.get(eventName);
+      if (node === void 0) {
+        listeners.set(eventName, newNode);
+        return;
+      }
+      let prev = null;
+      for (; node; ) {
+        if (node.listener === listener && node.listenerType === listenerType)
+          return;
+        prev = node, node = node.next;
+      }
+      prev.next = newNode;
+    }
+    /**
+     * Remove a given listener from this event target.
+     * @param {string} eventName The event name to remove.
+     * @param {Function} listener The listener to remove.
+     * @param {boolean|{capture?:boolean,passive?:boolean,once?:boolean}} [options] The options for this listener.
+     * @returns {void}
+     */
+    removeEventListener(eventName, listener, options) {
+      if (!listener)
+        return;
+      let listeners = getListeners(this ?? globalThis), listenerType = (isObject(options) ? !!options.capture : !!options) ? CAPTURE : BUBBLE, prev = null, node = listeners.get(eventName);
+      for (; node; ) {
+        if (node.listener === listener && node.listenerType === listenerType) {
+          prev !== null ? prev.next = node.next : node.next !== null ? listeners.set(eventName, node.next) : listeners.delete(eventName);
+          return;
+        }
+        prev = node, node = node.next;
+      }
+    }
+    /**
+     * Dispatch a given event.
+     * @param {Event|{type:string}} event The event to dispatch.
+     * @returns {boolean} `false` if canceled.
+     */
+    dispatchEvent(event) {
+      if (typeof event != "object")
+        throw new TypeError("Argument 1 of EventTarget.dispatchEvent is not an object.");
+      if (!(event instanceof Event))
+        throw new TypeError("Argument 1 of EventTarget.dispatchEvent does not implement interface Event.");
+      let self = this ?? globalThis;
+      setCurrentTarget(event, self);
+      let listeners = getListeners(self), eventName = event.type, node = listeners.get(eventName);
+      if (!node)
+        return true;
+      let prev = null;
+      for (; node && (node.once ? prev !== null ? prev.next = node.next : node.next !== null ? listeners.set(eventName, node.next) : listeners.delete(eventName) : prev = node, setPassiveListener(event, node.passive ? node.listener : null), typeof node.listener == "function" ? node.listener.call(self, event) : node.listenerType !== ATTRIBUTE && typeof node.listener.handleEvent == "function" && node.listener.handleEvent(event), !isStopped(event)); )
+        node = node.next;
+      return setPassiveListener(event, null), setEventPhase(event, 0), !event.defaultPrevented;
+    }
+  };
+
+  // quickjs/banner.ts
+  createSymbolPolyfills();
+  globalThis.Event = Event;
+  globalThis.EventTarget = EventTarget;
+  globalThis.CustomEvent = CustomEvent;
+})();
+
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -6028,76 +6322,13 @@ async function writeSourceToFd(os, source, filePath) {
 
 // quickjs/polyfill-event.ts
 function createEvent() {
-  class EventImpl {
-    type;
-    target = null;
-    currentTarget = null;
-    bubbles;
-    cancelable;
-    _defaultPrevented = false;
-    composed;
-    isTrusted;
-    timeStamp;
-    _dispatched = false;
-    _stopPropagation = false;
-    _stopImmediatePropagation = false;
-    // Event phase constants
-    static NONE = 0;
-    static CAPTURING_PHASE = 1;
-    static AT_TARGET = 2;
-    static BUBBLING_PHASE = 3;
-    constructor(type, eventInitDict) {
-      if (typeof type !== "string") {
-        throw new TypeError("Event constructor: type must be a string");
-      }
-      this.type = type;
-      this.bubbles = eventInitDict?.bubbles ?? false;
-      this.cancelable = eventInitDict?.cancelable ?? false;
-      this.composed = eventInitDict?.composed ?? false;
-      this.isTrusted = false;
-      this.timeStamp = Date.now();
-    }
-    get defaultPrevented() {
-      return this._defaultPrevented;
-    }
-    preventDefault() {
-      if (this.cancelable) {
-        this._defaultPrevented = true;
-      }
-    }
-    stopPropagation() {
-      this._stopPropagation = true;
-    }
-    stopImmediatePropagation() {
-      this._stopPropagation = true;
-      this._stopImmediatePropagation = true;
-    }
-  }
-  Object.defineProperty(EventImpl, "NONE", {
-    value: 0,
-    writable: false,
-    enumerable: true,
-    configurable: false
-  });
-  Object.defineProperty(EventImpl, "CAPTURING_PHASE", {
-    value: 1,
-    writable: false,
-    enumerable: true,
-    configurable: false
-  });
-  Object.defineProperty(EventImpl, "AT_TARGET", {
-    value: 2,
-    writable: false,
-    enumerable: true,
-    configurable: false
-  });
-  Object.defineProperty(EventImpl, "BUBBLING_PHASE", {
-    value: 3,
-    writable: false,
-    enumerable: true,
-    configurable: false
-  });
-  return EventImpl;
+  return globalThis.Event;
+}
+function createEventTarget() {
+  return globalThis.EventTarget;
+}
+function createCustomEvent() {
+  return globalThis.CustomEvent;
 }
 
 // quickjs/polyfill-abort-controller.ts
@@ -6196,6 +6427,14 @@ function createAbortController() {
 
 // quickjs/polyfill-symbol.ts
 function createSymbolPolyfills() {
+  if (!Symbol.asyncIterator) {
+    Object.defineProperty(Symbol, "asyncIterator", {
+      value: Symbol("Symbol.asyncIterator"),
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+  }
   if (!Symbol.dispose) {
     Object.defineProperty(Symbol, "dispose", {
       value: Symbol("Symbol.dispose"),
@@ -7390,6 +7629,8 @@ function applyPolyfills(to) {
   target.console = createQuickjsConsole(target.console);
   target.performance = createQuickjsPerformance(target.performance);
   target.Event = createEvent();
+  target.EventTarget = createEventTarget();
+  target.CustomEvent = createCustomEvent();
   target.AbortController = createAbortController();
   target.TextEncoder = TextEncoder2;
   target.TextDecoder = TextDecoder2;
