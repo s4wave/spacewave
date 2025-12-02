@@ -34,6 +34,7 @@ export class WebRuntimeClient {
     private openClientCh: OpenChannelFn,
     private handleIncomingStream: HandleStreamFunc | null,
     private handleDisconnected: HandleDisconnectedFn | null,
+    private disableWebLocks?: boolean,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
   }
@@ -116,6 +117,7 @@ export class WebRuntimeClient {
       webRuntimeId: this.webRuntimeId,
       clientUuid: this.clientId,
       clientType: this.clientType,
+      disableWebLocks: this.disableWebLocks,
     })
     port.onmessage = (ev) => {
       const data = ev.data

@@ -267,6 +267,9 @@ type WebRuntimeClientInit struct {
 	ClientUuid string `protobuf:"bytes,2,opt,name=client_uuid,json=clientUuid,proto3" json:"clientUuid,omitempty"`
 	// ClientType is the type of the client.
 	ClientType WebRuntimeClientType `protobuf:"varint,3,opt,name=client_type,json=clientType,proto3" json:"clientType,omitempty"`
+	// DisableWebLocks disables Web Locks API for disconnect detection.
+	// Set when WebRuntime and WebDocument don't share the same lock namespace.
+	DisableWebLocks bool `protobuf:"varint,4,opt,name=disable_web_locks,json=disableWebLocks,proto3" json:"disableWebLocks,omitempty"`
 }
 
 func (x *WebRuntimeClientInit) Reset() {
@@ -294,6 +297,13 @@ func (x *WebRuntimeClientInit) GetClientType() WebRuntimeClientType {
 		return x.ClientType
 	}
 	return WebRuntimeClientType_WebRuntimeClientType_UNKNOWN
+}
+
+func (x *WebRuntimeClientInit) GetDisableWebLocks() bool {
+	if x != nil {
+		return x.DisableWebLocks
+	}
+	return false
 }
 
 func (m *WebRuntimeHostInit) CloneVT() *WebRuntimeHostInit {
@@ -440,6 +450,7 @@ func (m *WebRuntimeClientInit) CloneVT() *WebRuntimeClientInit {
 	r.WebRuntimeId = m.WebRuntimeId
 	r.ClientUuid = m.ClientUuid
 	r.ClientType = m.ClientType
+	r.DisableWebLocks = m.DisableWebLocks
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -646,6 +657,9 @@ func (this *WebRuntimeClientInit) EqualVT(that *WebRuntimeClientInit) bool {
 		return false
 	}
 	if this.ClientType != that.ClientType {
+		return false
+	}
+	if this.DisableWebLocks != that.DisableWebLocks {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1099,6 +1113,11 @@ func (x *WebRuntimeClientInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("clientType")
 		x.ClientType.MarshalProtoJSON(s)
 	}
+	if x.DisableWebLocks || s.HasField("disableWebLocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disableWebLocks")
+		s.WriteBool(x.DisableWebLocks)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1125,6 +1144,9 @@ func (x *WebRuntimeClientInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "client_type", "clientType":
 			s.AddField("client_type")
 			x.ClientType.UnmarshalProtoJSON(s)
+		case "disable_web_locks", "disableWebLocks":
+			s.AddField("disable_web_locks")
+			x.DisableWebLocks = s.ReadBool()
 		}
 	})
 }
@@ -1528,6 +1550,16 @@ func (m *WebRuntimeClientInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.DisableWebLocks {
+		i--
+		if m.DisableWebLocks {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.ClientType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClientType))
 		i--
@@ -1686,6 +1718,9 @@ func (m *WebRuntimeClientInit) SizeVT() (n int) {
 	}
 	if m.ClientType != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ClientType))
+	}
+	if m.DisableWebLocks {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1891,6 +1926,13 @@ func (x *WebRuntimeClientInit) MarshalProtoText() string {
 		sb.WriteString("\"")
 		sb.WriteString(WebRuntimeClientType(x.ClientType).String())
 		sb.WriteString("\"")
+	}
+	if x.DisableWebLocks != false {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("disable_web_locks: ")
+		sb.WriteString(strconv.FormatBool(x.DisableWebLocks))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2710,6 +2752,26 @@ func (m *WebRuntimeClientInit) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableWebLocks", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisableWebLocks = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

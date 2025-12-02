@@ -309,6 +309,13 @@ export interface WebRuntimeClientInit {
    * @generated from field: web.runtime.WebRuntimeClientType client_type = 3;
    */
   clientType?: WebRuntimeClientType
+  /**
+   * DisableWebLocks disables Web Locks API for disconnect detection.
+   * Set when WebRuntime and WebDocument don't share the same lock namespace.
+   *
+   * @generated from field: bool disable_web_locks = 4;
+   */
+  disableWebLocks?: boolean
 }
 
 // WebRuntimeClientInit contains the message type declaration for WebRuntimeClientInit.
@@ -324,6 +331,7 @@ export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =
         kind: 'enum',
         T: WebRuntimeClientType_Enum,
       },
+      { no: 4, name: 'disable_web_locks', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

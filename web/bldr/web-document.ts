@@ -388,6 +388,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private closed?: true | Error
   // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
   private readonly sharedWorkerPath: string
+  // abortController aborts the Web Lock request on close.
+  private abortController?: AbortController
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -448,6 +450,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.openWebRuntimeClient.bind(this),
       this.handleWebRuntimeOpenStream.bind(this),
       this.handleWebRuntimeClientDisconnected.bind(this),
+      this.isElectron,
     )
 
     // add a global shutdown callback to terminate this
@@ -553,6 +556,24 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // set the conn on the client to start accepting rpcs
     this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
+
+    // Acquire a Web Lock to enable reliable disconnect detection.
+    // The WebRuntime (SharedWorker) will try to acquire the same lock.
+    // When this page closes (or crashes), the lock is released and the
+    // WebRuntime can detect the disconnect without relying on timeouts.
+    if (!this.isElectron && 'locks' in navigator) {
+      this.abortController = new AbortController()
+      const lockName = `bldr-doc-${this.webDocumentUuid}`
+      navigator.locks
+        .request(lockName, { signal: this.abortController.signal }, () => {
+          // Hold the lock until the page closes or abort is called.
+          // This promise never resolves while the page is open.
+          return new Promise<void>(() => {})
+        })
+        .catch(() => {
+          // Lock request was aborted (during close) - this is expected.
+        })
+    }
 
     // trigger starting the connection to the WebRuntime
     this.taskEnsureWebRuntimeConn()
@@ -764,6 +785,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     if (this.closedCallback) {
       this.closedCallback(err)
+    }
+
+    // Release the Web Lock last, after all cleanup is done.
+    if (this.abortController) {
+      this.abortController.abort()
+      this.abortController = undefined
     }
   }
 

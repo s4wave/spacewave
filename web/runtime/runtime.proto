@@ -133,4 +133,7 @@ message WebRuntimeClientInit {
   string client_uuid = 2;
   // ClientType is the type of the client.
   WebRuntimeClientType client_type = 3;
+  // DisableWebLocks disables Web Locks API for disconnect detection.
+  // Set when WebRuntime and WebDocument don't share the same lock namespace.
+  bool disable_web_locks = 4;
 }

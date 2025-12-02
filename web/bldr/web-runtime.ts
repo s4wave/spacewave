@@ -54,6 +54,8 @@ class WebRuntimeClientInstance {
 
   // closed indicates the instance is closed.
   private closed?: true
+  // abortController aborts the Web Lock request on close.
+  private abortController?: AbortController
 
   // isClosed checks if the instance is closed.
   public get isClosed(): boolean {
@@ -70,6 +72,36 @@ class WebRuntimeClientInstance {
     )
     port.onmessage = this.onClientMessage.bind(this)
     port.start()
+
+    // For WebDocument clients, use Web Locks API to detect disconnection.
+    // When the WebDocument closes (or crashes), it releases its lock, and
+    // this lock request will succeed, allowing us to clean up immediately.
+    const clientUuid = init.clientUuid
+    if (
+      clientUuid &&
+      !init.disableWebLocks &&
+      init.clientType ===
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
+      typeof navigator !== 'undefined' &&
+      'locks' in navigator
+    ) {
+      this.abortController = new AbortController()
+      const lockName = `bldr-doc-${clientUuid}`
+      navigator.locks
+        .request(lockName, { signal: this.abortController.signal }, () => {
+          // Lock acquired means the WebDocument has disconnected.
+          if (!this.closed) {
+            console.log(
+              `WebRuntime: detected client disconnect via Web Lock: ${clientUuid}`,
+            )
+            this.close()
+          }
+          return Promise.resolve()
+        })
+        .catch(() => {
+          // Lock request was aborted (during close) - this is expected.
+        })
+    }
   }
 
   // openStream opens a RPC stream with the remote client.
@@ -113,6 +145,17 @@ class WebRuntimeClientInstance {
 
   // close closes the client.
   public close() {
+    if (this.closed) {
+      return
+    }
+    this.closed = true
+
+    // Abort the Web Lock request if active.
+    if (this.abortController) {
+      this.abortController.abort()
+      this.abortController = undefined
+    }
+
     this._resolveWaitClosed!()
     try {
       this.port.close()
