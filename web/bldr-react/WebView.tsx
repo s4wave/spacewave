@@ -1,4 +1,6 @@
 import React, {
+  Activity,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -51,6 +53,8 @@ interface IWebViewProps {
 interface IWebViewHtmlLink {
   id: string
   link: HtmlLink
+  // loaded indicates this stylesheet has fired its onload event.
+  loaded?: boolean
 }
 
 interface IWebViewState {
@@ -69,37 +73,14 @@ interface IWebViewState {
   htmlLinks: IWebViewHtmlLink[]
   // reg is the web view registration
   reg?: WebViewRegistration
+  // cssLoaded indicates all stylesheet links have finished loading.
+  cssLoaded?: boolean
 }
 
 // canCloseWindow checks if window.close will (probably) work.
 // https://stackoverflow.com/a/50593730
 export function canCloseWindow() {
   return window.opener != null || window.history.length == 1
-}
-
-// getLinkPreloadAsValue maps a link rel value to the appropriate 'as' attribute value for preloading
-const getLinkPreloadAsValue = (rel: string | undefined): string | undefined => {
-  switch (rel) {
-    case 'stylesheet':
-      return 'style'
-    case 'script':
-      return 'script'
-    case 'font':
-      return 'font'
-    case 'image':
-      return 'image'
-    case 'fetch':
-      return 'fetch'
-    case 'track':
-      return 'track'
-    case 'shortcut icon':
-    case 'icon':
-      // NOTE: There is no valid option for "icon" and if we use "image" there is a warning.
-      // https://fetch.spec.whatwg.org/#concept-request-destination
-      return undefined
-    default:
-      return undefined
-  }
 }
 
 // useMemoManual signals to the React Compiler we want this to be manually memoized.
@@ -212,11 +193,15 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
               removeLink(addID)
               const link = options.setLinks[addID]
               if (link) {
-                links.push({ id: addID, link })
+                links.push({ id: addID, link, loaded: false })
               }
             }
           }
-          return { ...prev, htmlLinks: links }
+          // Check if all stylesheets are loaded (or if there are none)
+          const hasUnloadedStylesheets = links.some(
+            (l) => l.link.rel === 'stylesheet' && !l.loaded,
+          )
+          return { ...prev, htmlLinks: links, cssLoaded: !hasUnloadedStylesheets }
         })
       },
       // resetView resets the web view to the initial state.
@@ -266,6 +251,19 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     [bldrWebView, bldrWebDocument],
   )
 
+  // onLinkLoad marks a stylesheet as loaded and updates cssLoaded state.
+  const onLinkLoad = useCallback((linkId: string) => {
+    setWebViewState((prev) => {
+      const links = prev.htmlLinks.map((link) =>
+        link.id === linkId ? { ...link, loaded: true } : link,
+      )
+      const hasUnloadedStylesheets = links.some(
+        (l) => l.link.rel === 'stylesheet' && !l.loaded,
+      )
+      return { ...prev, htmlLinks: links, cssLoaded: !hasUnloadedStylesheets }
+    })
+  }, [])
+
   /* eslint-disable */
   useLayoutEffect(() => {
     let nextReg: WebViewRegistration | null = null
@@ -308,6 +306,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           <br />
           Render Mode: {webViewState.renderMode}
           <br />
+          CSS Loaded: {webViewState.cssLoaded ? 'true' : 'false'}
+          <br />
           {webViewState.scriptPath ?
             <>
               Script Path: {webViewState.scriptPath}
@@ -316,52 +316,63 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           : undefined}
         </DebugInfo>
       : undefined}
-      {(!webViewState.ready || !isComponentReady) && props.loading ?
+      {/* Show loading while CSS is loading or component not ready */}
+      {(!webViewState.ready ||
+        !webViewState.cssLoaded ||
+        !isComponentReady) &&
+      props.loading ?
         props.loading
       : null}
-      {/* Preload resources before component is ready to optimize loading */}
-      {webViewState.ready && !isComponentReady ?
-        webViewState.htmlLinks.map((ilink) => {
-          const as = getLinkPreloadAsValue(ilink.link.rel)
-          return as && ilink.link.href ?
-              <link
-                key={`preload-${ilink.id}`}
-                href={ilink.link.href}
-                rel="preload"
-                as={as}
-              />
-            : undefined
-        })
-      : undefined}
-      {/* Render actual link tags once component is ready */}
-      {webViewState.ready && isComponentReady ?
+      {/* Render stylesheets immediately when ready with onload tracking */}
+      {webViewState.ready ?
         webViewState.htmlLinks
-          .filter((ilink) => !!ilink.link.href)
+          .filter(
+            (ilink) => ilink.link.rel === 'stylesheet' && !!ilink.link.href,
+          )
+          .map((ilink) => (
+            <link
+              key={ilink.id}
+              href={ilink.link.href}
+              rel="stylesheet"
+              onLoad={() => onLinkLoad(ilink.id)}
+              onError={() => onLinkLoad(ilink.id)}
+            />
+          ))
+      : undefined}
+      {/* Render non-stylesheet links immediately */}
+      {webViewState.ready ?
+        webViewState.htmlLinks
+          .filter(
+            (ilink) => ilink.link.rel !== 'stylesheet' && !!ilink.link.href,
+          )
           .map((ilink) => (
             <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />
           ))
       : undefined}
+      {/* Render component inside Activity - hidden until CSS loads */}
       {webViewState.ready &&
         webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
         !!webViewState.scriptPath && (
-          <ReactComponentContainer
+          <Activity mode={webViewState.cssLoaded ? 'visible' : 'hidden'}>
+            <ReactComponentContainer
+              key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
+              scriptPath={webViewState.scriptPath}
+              componentProps={webViewState.props}
+              onReady={() => setIsComponentReady(true)}
+            />
+          </Activity>
+        )}
+      {webViewState.ready &&
+      webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
+      webViewState.scriptPath ?
+        <Activity mode={webViewState.cssLoaded ? 'visible' : 'hidden'}>
+          <FunctionComponentContainer
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
             scriptPath={webViewState.scriptPath}
             componentProps={webViewState.props}
             onReady={() => setIsComponentReady(true)}
           />
-        )}
-      {(
-        webViewState.ready &&
-        webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
-        webViewState.scriptPath
-      ) ?
-        <FunctionComponentContainer
-          key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
-          scriptPath={webViewState.scriptPath}
-          componentProps={webViewState.props}
-          onReady={() => setIsComponentReady(true)}
-        />
+        </Activity>
       : undefined}
     </BldrContext.Provider>
   )
