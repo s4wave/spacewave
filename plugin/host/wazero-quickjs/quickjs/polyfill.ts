@@ -42,26 +42,26 @@ export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
    * @param func - Function to call
    * @param delay - Delay in milliseconds
    */
-  setTimeout(func: () => void, delay: number): any
+  setTimeout(func: () => void, delay: number): NodeJS.Timeout
 
   /**
    * Cancel a timer.
    * @param handle - Timer handle
    */
-  clearTimeout(handle: any): void
+  clearTimeout(handle: NodeJS.Timeout): void
 
   /**
    * Call the function func periodically with the given interval. Return a handle to the timer.
    * @param func - Function to call
    * @param delay - Interval in milliseconds
    */
-  setInterval(func: () => void, delay: number): any
+  setInterval(func: () => void, delay: number): NodeJS.Timeout
 
   /**
    * Cancel an interval timer.
    * @param handle - Timer handle
    */
-  clearInterval(handle: any): void
+  clearInterval(handle: NodeJS.Timeout): void
 
   // global is the polyfilled global reference.
   global: QuickjsPolyfillGlobalScope

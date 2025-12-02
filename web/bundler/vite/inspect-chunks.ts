@@ -28,7 +28,7 @@ async function main() {
       { root: string; subPaths: Set<string> }
     >()
 
-    const { viteOutput, analysis, result } = await buildAndAnalyze(
+    const { viteOutput } = await buildAndAnalyze(
       config,
       rootDir,
       webPkgRefs,

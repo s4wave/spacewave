@@ -32,7 +32,7 @@ async function main() {
     >()
 
     // Run the build
-    const { viteOutput, analysis, result } = await buildAndAnalyze(
+    const { viteOutput, result } = await buildAndAnalyze(
       config,
       rootDir,
       webPkgRefs,

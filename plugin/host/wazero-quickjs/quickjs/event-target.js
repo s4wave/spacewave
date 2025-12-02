@@ -317,7 +317,7 @@ const ATTRIBUTE = 3;
  * @returns {boolean} `true` if the value is an object.
  */
 function isObject(x) {
-    return x !== null && typeof x === 'object'; // eslint-disable-line no-restricted-syntax
+    return x !== null && typeof x === 'object';  
 }
 
 /**
@@ -363,7 +363,7 @@ function defineEventAttributeDescriptor(eventName) {
 
         set(listener) {
             if (typeof listener !== 'function' && !isObject(listener)) {
-                listener = null; // eslint-disable-line no-param-reassign
+                listener = null;  
             }
 
             const listeners = getListeners(this);

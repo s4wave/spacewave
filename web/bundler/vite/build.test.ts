@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { analyzeManifest, buildAndAnalyze } from './build.js'
+import { analyzeManifest } from './build.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 import os from 'os'
 import type { OutputChunk, OutputAsset } from 'rollup'
-import type { UserConfig } from 'vite'
 
 describe('Vite Build - Transitive Dependency Tracking', () => {
   let testDir: string
@@ -269,25 +268,6 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
 
   describe('buildAndAnalyze integration', () => {
     it('should return all input files including transitive dependencies', async () => {
-      // Create a simple vite config for testing
-      const config: UserConfig = {
-        root: testDir,
-        build: {
-          outDir: distDir,
-          manifest: true,
-          rollupOptions: {
-            input: {
-              A: path.join(testDir, 'A.tsx'),
-            },
-          },
-        },
-      }
-
-      const webPkgRefs = new Map<
-        string,
-        { root: string; subPaths: Set<string> }
-      >()
-
       // Note: This will actually run Vite build, which requires proper setup
       // For now, we'll test the analysis part with mocked data
       // In a real scenario, you'd need a complete vite setup
