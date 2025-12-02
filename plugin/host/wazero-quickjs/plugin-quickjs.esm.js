@@ -180,7 +180,7 @@
      * @type {any}
      */
     get detail() {
-      return !!pd(this).eventInit.detail;
+      return pd(this).eventInit.detail;
     }
   };
   function isStopped(event) {

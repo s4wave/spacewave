@@ -242,7 +242,7 @@ class CustomEvent extends Event {
      * @type {any}
      */
     get detail() {
-        return Boolean(pd(this).eventInit.detail);
+        return pd(this).eventInit.detail;
     }
 }
 
