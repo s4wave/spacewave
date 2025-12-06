@@ -87,6 +87,45 @@ export function canCloseWindow() {
 // see: https://github.com/facebook/react/issues/34172#issuecomment-3367496138
 const useMemoManual = useMemo
 
+interface IStylesheetLinkProps {
+  id: string
+  href: string
+  onLoad: (id: string) => void
+}
+
+// StylesheetLink renders a stylesheet link and handles the load event.
+// It checks if the stylesheet is already loaded from cache on mount.
+function StylesheetLink({ id, href, onLoad }: IStylesheetLinkProps) {
+  const ref = useRef<HTMLLinkElement>(null)
+
+  useEffect(() => {
+    const link = ref.current
+    if (!link) {
+      return
+    }
+    // Check if the stylesheet is already loaded (cached).
+    // When a stylesheet is cached, onload may fire before we attach the handler.
+    // The sheet property is set once the stylesheet is fully loaded and parsed.
+    if (link.sheet) {
+      onLoad(id)
+    }
+  }, [id, href, onLoad])
+
+  const handleLoad = useCallback(() => {
+    onLoad(id)
+  }, [id, onLoad])
+
+  return (
+    <link
+      ref={ref}
+      href={href}
+      rel="stylesheet"
+      onLoad={handleLoad}
+      onError={handleLoad}
+    />
+  )
+}
+
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export const WebView: React.FC<IWebViewProps> = (props) => {
@@ -201,7 +240,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           const hasUnloadedStylesheets = links.some(
             (l) => l.link.rel === 'stylesheet' && !l.loaded,
           )
-          return { ...prev, htmlLinks: links, cssLoaded: !hasUnloadedStylesheets }
+          return {
+            ...prev,
+            htmlLinks: links,
+            cssLoaded: !hasUnloadedStylesheets,
+          }
         })
       },
       // resetView resets the web view to the initial state.
@@ -317,10 +360,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         </DebugInfo>
       : undefined}
       {/* Show loading while CSS is loading or component not ready */}
-      {(!webViewState.ready ||
-        !webViewState.cssLoaded ||
-        !isComponentReady) &&
-      props.loading ?
+      {(
+        (!webViewState.ready || !webViewState.cssLoaded || !isComponentReady) &&
+        props.loading
+      ) ?
         props.loading
       : null}
       {/* Render stylesheets immediately when ready with onload tracking */}
@@ -330,12 +373,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             (ilink) => ilink.link.rel === 'stylesheet' && !!ilink.link.href,
           )
           .map((ilink) => (
-            <link
+            <StylesheetLink
               key={ilink.id}
-              href={ilink.link.href}
-              rel="stylesheet"
-              onLoad={() => onLinkLoad(ilink.id)}
-              onError={() => onLinkLoad(ilink.id)}
+              id={ilink.id}
+              href={ilink.link.href!}
+              onLoad={onLinkLoad}
             />
           ))
       : undefined}
@@ -362,9 +404,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             />
           </Activity>
         )}
-      {webViewState.ready &&
-      webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
-      webViewState.scriptPath ?
+      {(
+        webViewState.ready &&
+        webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
+        webViewState.scriptPath
+      ) ?
         <Activity mode={webViewState.cssLoaded ? 'visible' : 'hidden'}>
           <FunctionComponentContainer
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
