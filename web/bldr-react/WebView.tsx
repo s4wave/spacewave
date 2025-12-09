@@ -374,7 +374,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           )
           .map((ilink) => (
             <StylesheetLink
-              key={ilink.id}
+              key={`${webViewState.refreshNonce} -> ${ilink.id}`}
               id={ilink.id}
               href={ilink.link.href!}
               onLoad={onLinkLoad}
