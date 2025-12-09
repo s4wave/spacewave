@@ -165,7 +165,8 @@ export class BldrElectronApp {
   }
 
   // createWindow creates a new browser window.
-  private createWindow(webDocumentId?: string) {
+  // hash is an optional URL hash to navigate to after loading (without the # prefix).
+  private createWindow(webDocumentId?: string, hash?: string) {
     const preload = path.join(this.distPath, 'preload.mjs')
     const nwindow = new electron.BrowserWindow({
       // Only show the OS window frame on MacOS.
@@ -189,11 +190,55 @@ export class BldrElectronApp {
     })
 
     nwindow.webContents.openDevTools()
-    const url =
+
+    // Build URL with optional hash
+    let url =
       webDocumentId ?
         `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
       : `${APP_SCHEME}://index.html`
+
+    if (hash) {
+      url += `#${hash}`
+    }
+
     nwindow.loadURL(url)
+
+    // Handle window.open() calls - only allow same-origin with different hash
+    nwindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+      try {
+        const parsed = new URL(targetUrl)
+        const currentOrigin = new URL(nwindow.webContents.getURL()).origin
+
+        // Only allow same-origin URLs (or app:// protocol URLs)
+        const isSameOrigin = parsed.origin === currentOrigin
+        const isAppProtocol = parsed.protocol === `${APP_SCHEME}:`
+
+        if (!isSameOrigin && !isAppProtocol) {
+          // Deny external URLs for security
+          return { action: 'deny' }
+        }
+
+        // Extract hash (remove leading #)
+        const hash = parsed.hash ? parsed.hash.slice(1) : ''
+
+        // Create popout window with preserved hash
+        const popoutDocId = `popout-${Date.now()}`
+        const popoutWindow = this.createWindow(popoutDocId, hash)
+        this.browserWindows[popoutDocId] = popoutWindow
+
+        popoutWindow.on('closed', () => {
+          if (this.browserWindows[popoutDocId] === popoutWindow) {
+            delete this.browserWindows[popoutDocId]
+            this.webRuntime.removeConnection(popoutDocId)
+          }
+        })
+      } catch {
+        // Invalid URL, deny
+      }
+
+      // Deny the default behavior, we handle it ourselves
+      return { action: 'deny' }
+    })
 
     return nwindow
   }
