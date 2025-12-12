@@ -72,6 +72,9 @@ export function createSocketConnection(
 
   // Handle socket data
   socket.on('data', (data) => {
+    if (typeof data === 'string') {
+      throw new Error('unexpected string data from socket')
+    }
     socketRx.push(data)
   })
 
