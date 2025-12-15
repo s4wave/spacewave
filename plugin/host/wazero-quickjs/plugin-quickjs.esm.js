@@ -738,34 +738,27 @@ function _pushable(getNext, options) {
   return pushable2;
 }
 
-// ../../../node_modules/race-signal/dist/src/index.js
-var AbortError2 = class extends Error {
-  type;
-  code;
-  constructor(message, code, name) {
-    super(message ?? "The operation was aborted");
-    this.type = "aborted";
-    this.name = name ?? "AbortError";
-    this.code = code ?? "ABORT_ERR";
-  }
-};
+// ../../../node_modules/it-queueless-pushable/node_modules/race-signal/dist/src/index.js
+function defaultTranslate(signal) {
+  return signal.reason;
+}
 async function raceSignal(promise, signal, opts) {
   if (signal == null) {
     return promise;
   }
+  const translateError = opts?.translateError ?? defaultTranslate;
   if (signal.aborted) {
     promise.catch(() => {
     });
-    return Promise.reject(new AbortError2(opts?.errorMessage, opts?.errorCode, opts?.errorName));
+    return Promise.reject(translateError(signal));
   }
   let listener;
-  const error = new AbortError2(opts?.errorMessage, opts?.errorCode, opts?.errorName);
   try {
     return await Promise.race([
       promise,
       new Promise((resolve, reject) => {
         listener = () => {
-          reject(error);
+          reject(translateError(signal));
         };
         signal.addEventListener("abort", listener);
       })
@@ -4526,7 +4519,7 @@ var Client = class {
 };
 
 // ../../../node_modules/@libp2p/interface/dist/src/errors.js
-var AbortError3 = class extends Error {
+var AbortError2 = class extends Error {
   static name = "AbortError";
   constructor(message = "The operation was aborted") {
     super(message);
@@ -4590,6 +4583,45 @@ function getIterator(obj) {
     }
   }
   throw new Error("argument is not an iterator or iterable");
+}
+
+// ../../../node_modules/race-signal/dist/src/index.js
+var AbortError3 = class extends Error {
+  type;
+  code;
+  constructor(message, code, name) {
+    super(message ?? "The operation was aborted");
+    this.type = "aborted";
+    this.name = name ?? "AbortError";
+    this.code = code ?? "ABORT_ERR";
+  }
+};
+async function raceSignal2(promise, signal, opts) {
+  if (signal == null) {
+    return promise;
+  }
+  if (signal.aborted) {
+    promise.catch(() => {
+    });
+    return Promise.reject(new AbortError3(opts?.errorMessage, opts?.errorCode, opts?.errorName));
+  }
+  let listener;
+  const error = new AbortError3(opts?.errorMessage, opts?.errorCode, opts?.errorName);
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((resolve, reject) => {
+        listener = () => {
+          reject(error);
+        };
+        signal.addEventListener("abort", listener);
+      })
+    ]);
+  } finally {
+    if (listener != null) {
+      signal.removeEventListener("abort", listener);
+    }
+  }
 }
 
 // ../../../node_modules/@chainsafe/libp2p-yamux/dist/src/errors.js
@@ -5027,7 +5059,7 @@ var AbstractStream = class {
     }
     this.log.trace("closing gracefully");
     this.status = "closing";
-    await raceSignal(Promise.all([
+    await raceSignal2(Promise.all([
       this.closeWrite(options),
       this.closeRead(options),
       this.closed.promise
@@ -5059,15 +5091,15 @@ var AbstractStream = class {
     this.log.trace('closing writable end of stream with starting write status "%s"', this.writeStatus);
     if (this.writeStatus === "ready") {
       this.log.trace("sink was never sunk, sink an empty array");
-      await raceSignal(this.sink([]), options.signal);
+      await raceSignal2(this.sink([]), options.signal);
     }
     if (this.writeStatus === "writing") {
       if (this.sendingData != null) {
-        await raceSignal(this.sendingData.promise, options.signal);
+        await raceSignal2(this.sendingData.promise, options.signal);
       }
       this.log.trace("aborting source passed to .sink");
       this.sinkController.abort();
-      await raceSignal(this.sinkEnd.promise, options.signal);
+      await raceSignal2(this.sinkEnd.promise, options.signal);
     }
     this.writeStatus = "closed";
     this.log.trace("closed writable end of stream");
@@ -5233,6 +5265,7 @@ function forEach(source, fn) {
   const res = fn(value, index++);
   if (typeof res?.then === "function") {
     return (async function* () {
+      await res;
       yield value;
       for (const val of peekable2) {
         const res2 = fn(val, index++);
@@ -5384,7 +5417,7 @@ var YamuxStream = class extends AbstractStream {
     let reject;
     const abort = () => {
       if (this.status === "open" || this.status === "closing") {
-        reject(new AbortError3("Stream aborted"));
+        reject(new AbortError2("Stream aborted"));
       } else {
         resolve();
       }
@@ -5771,7 +5804,7 @@ var YamuxMuxer = class {
     while (true) {
       let timeoutId;
       try {
-        await raceSignal(new Promise((resolve) => {
+        await raceSignal2(new Promise((resolve) => {
           timeoutId = setTimeout(resolve, this.config.keepAliveInterval);
         }), this.closeController.signal);
         this.ping().catch((e) => this.log?.error("ping error: %s", e));
