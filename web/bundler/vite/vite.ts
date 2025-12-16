@@ -1,9 +1,11 @@
 import path, { resolve } from 'path'
 import fs from 'fs'
+import net from 'net'
 import { Server, StreamConn, createHandler, createMux } from 'starpc'
 import {
   buildPipeName,
-  connectToPipe,
+  createSocketConnection,
+  startSocketSender,
 } from '../../../util/pipesock/pipesock.js'
 import { ViteBundler, ViteBundlerDefinition } from './vite_srpc.pb.js'
 import { BuildRequest, BuildResponse } from './vite.pb.js'
@@ -250,6 +252,55 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
   }
 }
 
+// sleep returns a promise that resolves after the specified milliseconds.
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// connectWithRetry attempts to connect to the pipe with exponential backoff.
+async function connectWithRetry(
+  ipcPath: string,
+  maxRetries = 5,
+): Promise<net.Socket> {
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms (capped at 2000ms)
+    const backoffMs = Math.min(100 * Math.pow(2, attempt), 2000)
+
+    if (attempt > 0) {
+      console.log(
+        `[vite] retrying connection in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})`,
+      )
+      await sleep(backoffMs)
+    }
+
+    const result = await new Promise<{ socket: net.Socket } | { error: Error }>(
+      (resolve) => {
+        const sock = net.connect(ipcPath, () => {
+          resolve({ socket: sock })
+        })
+        sock.once('error', (err) => {
+          lastError = err
+          sock.destroy()
+          resolve({ error: err })
+        })
+      },
+    )
+
+    if ('socket' in result) {
+      console.log(`[vite] connected to pipe: ${ipcPath}`)
+      return result.socket
+    }
+
+    console.warn(
+      `[vite] connection attempt ${attempt + 1} failed: ${result.error}`,
+    )
+  }
+
+  throw lastError || new Error('failed to connect after retries')
+}
+
 async function main() {
   const args = parseArgs()
   const bundleId = args['bundle-id'] || ''
@@ -287,12 +338,16 @@ async function main() {
   // Create stream connection
   const streamConn = new StreamConn(srpcServer, { direction: 'inbound' })
 
-  // Connect to the pipe and set up bidirectional communication
-  const socket = connectToPipe(ipcPath, streamConn)
+  // Connect to the pipe
+  const socket = await connectWithRetry(ipcPath)
 
-  // Handle connection errors
+  // Set up bidirectional communication after successful connection
+  const connection = createSocketConnection(socket, streamConn)
+  startSocketSender(connection)
+
+  // Handle socket errors after connection is established
   socket.on('error', (err) => {
-    console.error(`[vite] connection error: ${err}`)
+    console.error(`[vite] socket error: ${err}`)
     process.exit(1)
   })
 }

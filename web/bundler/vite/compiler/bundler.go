@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aperturerobotics/bifrost/util/randstring"
 	"github.com/aperturerobotics/bldr/util/node"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
@@ -95,7 +96,9 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		),
 		pipeUuidBin[:],
 	)
-	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4]
+	// Include a unique instance suffix to prevent race conditions when restarting.
+	// Without this, the old instance's cleanup could delete the new instance's pipe file.
+	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
 
 	// Compile the vite compiler host with esbuild to the working dir.
 	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
