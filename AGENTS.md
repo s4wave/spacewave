@@ -273,6 +273,21 @@ yarn gen
 
 This will run protoc and re-generate `*.pb.go` and `*.pb.ts` files.
 
+### Dist Sources (Embedded TypeScript Files)
+
+When adding new TypeScript files that need to be bundled for the Electron or browser entrypoints, you must add them to the `//go:embed` directives in `dist.go`.
+
+The `DistSources` embed.FS contains TypeScript sources used by esbuild during the build process. If a new `.pb.ts` file or other TypeScript module is imported by files in `web/electron/` or `web/entrypoint/`, it must be explicitly embedded.
+
+Example - if you add a new protobuf that needs to be imported:
+
+```go
+// In dist.go, add the embed directive:
+//go:embed web/plugin/electron/electron.pb.ts
+```
+
+Without this, esbuild will fail with "Could not resolve" errors when building the Electron or browser bundles.
+
 ### Proto comments
 
 Always add comments to .proto files:
