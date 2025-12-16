@@ -3,9 +3,63 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 'electron'
+
+/**
+ * ExternalLinks configures how external links are handled.
+ *
+ * @generated from enum electron.ExternalLinks
+ */
+export enum ExternalLinks {
+  /**
+   * EXTERNAL_LINKS_OS_BROWSER opens external links in the OS default browser.
+   *
+   * @generated from enum value: EXTERNAL_LINKS_OS_BROWSER = 0;
+   */
+  OS_BROWSER = 0,
+
+  /**
+   * EXTERNAL_LINKS_DENY denies all external link navigation.
+   *
+   * @generated from enum value: EXTERNAL_LINKS_DENY = 1;
+   */
+  DENY = 1,
+}
+
+// ExternalLinks_Enum is the enum type for ExternalLinks.
+export const ExternalLinks_Enum = createEnumType('electron.ExternalLinks', [
+  { no: 0, name: 'EXTERNAL_LINKS_OS_BROWSER' },
+  { no: 1, name: 'EXTERNAL_LINKS_DENY' },
+])
+
+/**
+ * ElectronInit is passed from Go to the Electron main process on startup.
+ *
+ * @generated from message electron.ElectronInit
+ */
+export interface ElectronInit {
+  /**
+   * ExternalLinks configures how external links are handled.
+   *
+   * @generated from field: electron.ExternalLinks external_links = 1;
+   */
+  externalLinks?: ExternalLinks
+}
+
+// ElectronInit contains the message type declaration for ElectronInit.
+export const ElectronInit: MessageType<ElectronInit> = createMessageType({
+  typeName: 'electron.ElectronInit',
+  fields: [
+    { no: 1, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
 
 /**
  * Config is the configuration for the electron runtime.
@@ -49,6 +103,12 @@ export interface Config {
    * @generated from field: repeated string electron_flags = 4;
    */
   electronFlags?: string[]
+  /**
+   * ExternalLinks configures how external links are handled.
+   *
+   * @generated from field: electron.ExternalLinks external_links = 6;
+   */
+  externalLinks?: ExternalLinks
 }
 
 // Config contains the message type declaration for Config.
@@ -66,6 +126,7 @@ export const Config: MessageType<Config> = createMessageType({
       T: ScalarType.STRING,
       repeated: true,
     },
+    { no: 6, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

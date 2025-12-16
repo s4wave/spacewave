@@ -68,6 +68,9 @@ func (t *Factory) Construct(
 		cc.GetRendererPath(),
 		webRuntimeId,
 		cc.GetElectronFlags(),
+		&ElectronInit{
+			ExternalLinks: cc.GetExternalLinks(),
+		},
 	)
 }
 

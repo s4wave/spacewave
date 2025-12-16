@@ -1,6 +1,20 @@
 syntax = "proto3";
 package electron;
 
+// ExternalLinks configures how external links are handled.
+enum ExternalLinks {
+  // EXTERNAL_LINKS_OS_BROWSER opens external links in the OS default browser.
+  EXTERNAL_LINKS_OS_BROWSER = 0;
+  // EXTERNAL_LINKS_DENY denies all external link navigation.
+  EXTERNAL_LINKS_DENY = 1;
+}
+
+// ElectronInit is passed from Go to the Electron main process on startup.
+message ElectronInit {
+  // ExternalLinks configures how external links are handled.
+  ExternalLinks external_links = 1;
+}
+
 // Config is the configuration for the electron runtime.
 message Config {
   // ElectronPath is the path to the electron binary.
@@ -23,4 +37,7 @@ message Config {
 
   // ElectronFlags are additional flags to pass to electron.
   repeated string electron_flags = 4;
+
+  // ExternalLinks configures how external links are handled.
+  ExternalLinks external_links = 6;
 }

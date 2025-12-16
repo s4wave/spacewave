@@ -37,6 +37,7 @@ type Controller struct {
 	runtimeUuid  string
 
 	extraElectronArgs []string
+	electronInit      *ElectronInit
 
 	execSema    *semaphore.Weighted
 	electronCtr *ccontainer.CContainer[*Electron]
@@ -50,6 +51,7 @@ func NewController(
 	electronPath, workdirPath, rendererPath,
 	runtimeUuid string,
 	extraElectronArgs []string,
+	electronInit *ElectronInit,
 ) (*Controller, error) {
 	return &Controller{
 		le:  le,
@@ -60,6 +62,7 @@ func NewController(
 		rendererPath:      rendererPath,
 		runtimeUuid:       runtimeUuid,
 		extraElectronArgs: extraElectronArgs,
+		electronInit:      electronInit,
 
 		execSema:    semaphore.NewWeighted(1),
 		electronCtr: ccontainer.NewCContainer[*Electron](nil),
@@ -102,6 +105,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 		r.rendererPath,
 		r.runtimeUuid,
 		r.extraElectronArgs,
+		r.electronInit,
 	)
 	if err != nil {
 		return err

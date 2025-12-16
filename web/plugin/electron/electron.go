@@ -2,6 +2,7 @@ package electron
 
 import (
 	"context"
+	"encoding/base64"
 	"net"
 	"os"
 	oexec "os/exec"
@@ -35,6 +36,7 @@ func RunElectron(
 	rendererPath,
 	runtimeUuid string,
 	extraElectronFlags []string,
+	electronInit *ElectronInit,
 ) (*Electron, error) {
 	le.Debug("listening on ipc socket")
 	pipeRoot := workdirPath
@@ -56,6 +58,18 @@ func RunElectron(
 
 	cmd := exec.NewCmd(ctx, electronPath, electronArgs...)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
+
+	// Pass ElectronInit as base64-encoded protobuf via env var
+	if electronInit != nil {
+		initBytes, err := electronInit.MarshalVT()
+		if err != nil {
+			_ = pipeListener.Close()
+			_ = smc.CloseWithErr(err)
+			return nil, err
+		}
+		cmd.Env = append(cmd.Env, "BLDR_ELECTRON_INIT="+base64.StdEncoding.EncodeToString(initBytes))
+	}
+
 	cmd.Stdout = le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = le.WriterLevel(logrus.DebugLevel)
 

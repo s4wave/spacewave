@@ -1,5 +1,10 @@
 import electron from 'electron'
 import path from 'path'
+
+import {
+  ElectronInit,
+  type ElectronInit as ElectronInitType,
+} from '../../plugin/electron/electron.pb.js'
 import { BldrElectronApp } from './app.js'
 
 // BLDR_DEBUG is set if this is a debug build.
@@ -19,5 +24,12 @@ if (typeof BLDR_DEBUG === 'boolean' && BLDR_DEBUG) {
   app.commandLine.appendSwitch('--unsafely-disable-devtools-self-xss-warnings')
 }
 
+// Decode ElectronInit from base64-encoded env var
+let electronInit: ElectronInitType = {}
+const initB64 = process.env['BLDR_ELECTRON_INIT']
+if (initB64) {
+  electronInit = ElectronInit.fromBinary(Buffer.from(initB64, 'base64'))
+}
+
 const webRuntimeId: string = process.env['BLDR_RUNTIME_ID'] || 'default'
-new BldrElectronApp(electron.app, webRuntimeId).init()
+new BldrElectronApp(electron.app, webRuntimeId, electronInit).init()

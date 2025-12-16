@@ -1,6 +1,6 @@
 import os from 'os'
 import path from 'path'
-import electron, { ipcMain, nativeTheme } from 'electron'
+import electron, { ipcMain, nativeTheme, shell } from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
 
@@ -20,6 +20,10 @@ import {
   buildPipeName,
   connectToPipe,
 } from '../../../util/pipesock/pipesock.js'
+import {
+  ExternalLinks,
+  type ElectronInit,
+} from '../../plugin/electron/electron.pb.js'
 
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
@@ -39,6 +43,8 @@ export class BldrElectronApp {
   public readonly serviceWorkerHostClient: SRPCClient
   // serviceWorkerHostClient is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
   public readonly serviceWorkerHostServiceClient: ServiceWorkerHostClient
+  // electronInit contains initialization config from Go runtime.
+  private readonly electronInit: ElectronInit
 
   // browserWindows contains the list of created browser windows.
   private browserWindows: Record<string, electron.BrowserWindow> = {}
@@ -48,8 +54,13 @@ export class BldrElectronApp {
     return this.app.getAppPath()
   }
 
-  constructor(app: Electron.App, webRuntimeID: string) {
+  constructor(
+    app: Electron.App,
+    webRuntimeID: string,
+    electronInit: ElectronInit,
+  ) {
     this.app = app
+    this.electronInit = electronInit
 
     // openStreamCtr will contain the runtime open stream func.
     this.webRuntimeHostOpenStreamCtr = new OpenStreamCtr(undefined)
@@ -203,20 +214,28 @@ export class BldrElectronApp {
 
     nwindow.loadURL(url)
 
+    // Handle navigation to external URLs (clicked links)
+    nwindow.webContents.on('will-navigate', (event, targetUrl) => {
+      if (!this.isInternalUrl(targetUrl)) {
+        event.preventDefault()
+        if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
+          shell.openExternal(targetUrl)
+        }
+      }
+    })
+
     // Handle window.open() calls - only allow same-origin with different hash
     nwindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+      // Handle external URLs
+      if (!this.isInternalUrl(targetUrl)) {
+        if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
+          shell.openExternal(targetUrl)
+        }
+        return { action: 'deny' }
+      }
+
       try {
         const parsed = new URL(targetUrl)
-        const currentOrigin = new URL(nwindow.webContents.getURL()).origin
-
-        // Only allow same-origin URLs (or app:// protocol URLs)
-        const isSameOrigin = parsed.origin === currentOrigin
-        const isAppProtocol = parsed.protocol === `${APP_SCHEME}:`
-
-        if (!isSameOrigin && !isAppProtocol) {
-          // Deny external URLs for security
-          return { action: 'deny' }
-        }
 
         // Extract hash (remove leading #)
         const hash = parsed.hash ? parsed.hash.slice(1) : ''
@@ -241,6 +260,16 @@ export class BldrElectronApp {
     })
 
     return nwindow
+  }
+
+  // isInternalUrl checks if a URL is internal to the app.
+  private isInternalUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url)
+      return parsed.protocol === `${APP_SCHEME}:`
+    } catch {
+      return false
+    }
   }
 
   // runtimeCreateWebDocument is called by the WebRuntimeHost to create a new WebDocument.

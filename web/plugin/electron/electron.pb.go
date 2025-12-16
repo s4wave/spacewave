@@ -15,6 +15,62 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// ExternalLinks configures how external links are handled.
+type ExternalLinks int32
+
+const (
+	// EXTERNAL_LINKS_OS_BROWSER opens external links in the OS default browser.
+	ExternalLinks_EXTERNAL_LINKS_OS_BROWSER ExternalLinks = 0
+	// EXTERNAL_LINKS_DENY denies all external link navigation.
+	ExternalLinks_EXTERNAL_LINKS_DENY ExternalLinks = 1
+)
+
+// Enum value maps for ExternalLinks.
+var (
+	ExternalLinks_name = map[int32]string{
+		0: "EXTERNAL_LINKS_OS_BROWSER",
+		1: "EXTERNAL_LINKS_DENY",
+	}
+	ExternalLinks_value = map[string]int32{
+		"EXTERNAL_LINKS_OS_BROWSER": 0,
+		"EXTERNAL_LINKS_DENY":       1,
+	}
+)
+
+func (x ExternalLinks) Enum() *ExternalLinks {
+	p := new(ExternalLinks)
+	*p = x
+	return p
+}
+
+func (x ExternalLinks) String() string {
+	name, valid := ExternalLinks_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// ElectronInit is passed from Go to the Electron main process on startup.
+type ElectronInit struct {
+	unknownFields []byte
+	// ExternalLinks configures how external links are handled.
+	ExternalLinks ExternalLinks `protobuf:"varint,1,opt,name=external_links,json=externalLinks,proto3" json:"externalLinks,omitempty"`
+}
+
+func (x *ElectronInit) Reset() {
+	*x = ElectronInit{}
+}
+
+func (*ElectronInit) ProtoMessage() {}
+
+func (x *ElectronInit) GetExternalLinks() ExternalLinks {
+	if x != nil {
+		return x.ExternalLinks
+	}
+	return ExternalLinks_EXTERNAL_LINKS_OS_BROWSER
+}
+
 // Config is the configuration for the electron runtime.
 type Config struct {
 	unknownFields []byte
@@ -34,6 +90,8 @@ type Config struct {
 	WebRuntimeId string `protobuf:"bytes,3,opt,name=web_runtime_id,json=webRuntimeId,proto3" json:"webRuntimeId,omitempty"`
 	// ElectronFlags are additional flags to pass to electron.
 	ElectronFlags []string `protobuf:"bytes,4,rep,name=electron_flags,json=electronFlags,proto3" json:"electronFlags,omitempty"`
+	// ExternalLinks configures how external links are handled.
+	ExternalLinks ExternalLinks `protobuf:"varint,6,opt,name=external_links,json=externalLinks,proto3" json:"externalLinks,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -77,6 +135,29 @@ func (x *Config) GetElectronFlags() []string {
 	return nil
 }
 
+func (x *Config) GetExternalLinks() ExternalLinks {
+	if x != nil {
+		return x.ExternalLinks
+	}
+	return ExternalLinks_EXTERNAL_LINKS_OS_BROWSER
+}
+
+func (m *ElectronInit) CloneVT() *ElectronInit {
+	if m == nil {
+		return (*ElectronInit)(nil)
+	}
+	r := new(ElectronInit)
+	r.ExternalLinks = m.ExternalLinks
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ElectronInit) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -86,6 +167,7 @@ func (m *Config) CloneVT() *Config {
 	r.WorkdirPath = m.WorkdirPath
 	r.RendererPath = m.RendererPath
 	r.WebRuntimeId = m.WebRuntimeId
+	r.ExternalLinks = m.ExternalLinks
 	if rhs := m.ElectronFlags; rhs != nil {
 		r.ElectronFlags = slices.Clone(rhs)
 	}
@@ -97,6 +179,26 @@ func (m *Config) CloneVT() *Config {
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *ElectronInit) EqualVT(that *ElectronInit) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ExternalLinks != that.ExternalLinks {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ElectronInit) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ElectronInit)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *Config) EqualVT(that *Config) bool {
@@ -126,6 +228,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.WorkdirPath != that.WorkdirPath {
 		return false
 	}
+	if this.ExternalLinks != that.ExternalLinks {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -135,6 +240,88 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the ExternalLinks to JSON.
+func (x ExternalLinks) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), ExternalLinks_name)
+}
+
+// MarshalText marshals the ExternalLinks to text.
+func (x ExternalLinks) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), ExternalLinks_name)), nil
+}
+
+// MarshalJSON marshals the ExternalLinks to JSON.
+func (x ExternalLinks) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ExternalLinks from JSON.
+func (x *ExternalLinks) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(ExternalLinks_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read ExternalLinks enum: %v", err)
+		return
+	}
+	*x = ExternalLinks(v)
+}
+
+// UnmarshalText unmarshals the ExternalLinks from text.
+func (x *ExternalLinks) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), ExternalLinks_value)
+	if err != nil {
+		return err
+	}
+	*x = ExternalLinks(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the ExternalLinks from JSON.
+func (x *ExternalLinks) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ElectronInit message to JSON.
+func (x *ElectronInit) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ExternalLinks != 0 || s.HasField("externalLinks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("externalLinks")
+		x.ExternalLinks.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ElectronInit to JSON.
+func (x *ElectronInit) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ElectronInit message from JSON.
+func (x *ElectronInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "external_links", "externalLinks":
+			s.AddField("external_links")
+			x.ExternalLinks.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ElectronInit from JSON.
+func (x *ElectronInit) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -169,6 +356,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("workdirPath")
 		s.WriteString(x.WorkdirPath)
+	}
+	if x.ExternalLinks != 0 || s.HasField("externalLinks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("externalLinks")
+		x.ExternalLinks.MarshalProtoJSON(s)
 	}
 	s.WriteObjectEnd()
 }
@@ -206,6 +398,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "workdir_path", "workdirPath":
 			s.AddField("workdir_path")
 			x.WorkdirPath = s.ReadString()
+		case "external_links", "externalLinks":
+			s.AddField("external_links")
+			x.ExternalLinks.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -213,6 +408,44 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *ElectronInit) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ElectronInit) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ElectronInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExternalLinks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExternalLinks))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
@@ -244,6 +477,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExternalLinks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExternalLinks))
+		i--
+		dAtA[i] = 0x30
 	}
 	if len(m.WorkdirPath) > 0 {
 		i -= len(m.WorkdirPath)
@@ -285,6 +523,19 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ElectronInit) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ExternalLinks != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExternalLinks))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -313,8 +564,35 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.ExternalLinks != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExternalLinks))
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x ExternalLinks) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *ElectronInit) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ElectronInit {")
+	if x.ExternalLinks != 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("external_links: ")
+		sb.WriteString("\"")
+		sb.WriteString(ExternalLinks(x.ExternalLinks).String())
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ElectronInit) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -361,12 +639,92 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("workdir_path: ")
 		sb.WriteString(strconv.Quote(x.WorkdirPath))
 	}
+	if x.ExternalLinks != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("external_links: ")
+		sb.WriteString("\"")
+		sb.WriteString(ExternalLinks(x.ExternalLinks).String())
+		sb.WriteString("\"")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *Config) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *ElectronInit) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ElectronInit: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ElectronInit: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExternalLinks", wireType)
+			}
+			m.ExternalLinks = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ExternalLinks |= ExternalLinks(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *Config) UnmarshalVT(dAtA []byte) error {
@@ -558,6 +916,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.WorkdirPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExternalLinks", wireType)
+			}
+			m.ExternalLinks = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ExternalLinks |= ExternalLinks(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
