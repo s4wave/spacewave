@@ -1,7 +1,7 @@
 ## IMPORTANT
 
 - Try to keep things in one function unless composable or reusable
-- Always use yarn instead of npm or pnpm
+- Always use bun instead of npm, yarn, or pnpm
 - DO NOT do unnecessary destructuring of variables
 - DO NOT use `else` statements unless necessary
 - DO NOT use `try`/`catch` if it can be avoided
@@ -266,9 +266,9 @@ return lookupBlockTypeResolver{
 After changing .proto files you must re-generate the protobufs:
 
 ```
-# Note: `yarn gen` won't see the .proto file unless it's in the index
+# Note: `bun gen` won't see the .proto file unless it's in the index
 git add path/to/changed/file.proto
-yarn gen
+bun gen
 ```
 
 This will run protoc and re-generate `*.pb.go` and `*.pb.ts` files.
@@ -355,8 +355,8 @@ The protobuf compiler resolves these paths by looking through Go module dependen
 After making code changes, verify they compile correctly:
 
 ```
-yarn typecheck
-yarn lint
+bun run typecheck
+bun run lint
 go build ./...
 ```
 

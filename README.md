@@ -17,12 +17,12 @@ The bundler can deploy to many target environments:
 
 Uses the Aperture Robotics stack to implement a full peer-to-peer application:
 
- - [ControllerBus]: communicating controllers w/ declarative config.
- - [Bifrost]: p2p communications + pub-sub with pluggable transports.
- - [Hydra]: storage engine with advanced p2p block-graph structures.
- - [Identity] and [Auth]: public-key identity and key derivation.
- - [staRPC]: bi-directional streaming RPCs between TypeScript and Go.
- - [rGraphQL]: live-updating streaming GraphQL requests w/ lazy-loading.
+- [ControllerBus]: communicating controllers w/ declarative config.
+- [Bifrost]: p2p communications + pub-sub with pluggable transports.
+- [Hydra]: storage engine with advanced p2p block-graph structures.
+- [Identity] and [Auth]: public-key identity and key derivation.
+- [staRPC]: bi-directional streaming RPCs between TypeScript and Go.
+- [rGraphQL]: live-updating streaming GraphQL requests w/ lazy-loading.
 
 [ControllerBus]: https://github.com/aperturerobotics/controllerbus
 [Bifrost]: https://github.com/aperturerobotics/bifrost
@@ -41,7 +41,7 @@ Supports advanced data structures (even in the web browser) including:
 - **Kvtx**: transactional key/value store (i.e. AVL tree).
 - **Sql**: SQL data store backed by GenjiDB or go-mysql-server.
 - **UnixFS**: directories, files, permissions, FUSE mounts.
-- **World**: key/value store coupled with a graph database + changelog. 
+- **World**: key/value store coupled with a graph database + changelog.
 
 Each UI and application module is bundled separately and can use any linting,
 compilation, and frontend approaches.
@@ -50,16 +50,16 @@ compilation, and frontend approaches.
 
 Main concepts in the development workflow:
 
- - **Entrypoint**: manages executing plugins and starting the initial plugin.
- - **Plugin**: contains **controller** factories and a startup **ConfigSet**.
- - **Controller**: goroutine managing a portion of the application logic.
- - **ConfigSet**: list of controllers to start with configuration objects.
+- **Entrypoint**: manages executing plugins and starting the initial plugin.
+- **Plugin**: contains **controller** factories and a startup **ConfigSet**.
+- **Controller**: goroutine managing a portion of the application logic.
+- **ConfigSet**: list of controllers to start with configuration objects.
 
 The bldr developer tool has the following major command categories:
 
- - **start**: starts applications in development mode
- - **deploy**: pushes plugins to a plugin registry
- - **dist**: bundles distribution archives (release tarballs)
+- **start**: starts applications in development mode
+- **deploy**: pushes plugins to a plugin registry
+- **dist**: bundles distribution archives (release tarballs)
 
 The bldr developer tool uses Go and **esbuild** to bundle Go, JavaScript,
 TypeScript, and other assets into **Plugins**.
@@ -75,15 +75,15 @@ The **LoadPlugin** directive instructs the plugin host to load a plugin by ID.
 
 The **web** layer for bldr adds additional concepts:
 
- - **WebDocument**: browser page, tab, or Electron BrowserWindow.
- - **WebView**: location in the WebDocument where Go can load components.
- - **WebRuntime**: interface to access the Go runtime from JavaScript.
+- **WebDocument**: browser page, tab, or Electron BrowserWindow.
+- **WebView**: location in the WebDocument where Go can load components.
+- **WebRuntime**: interface to access the Go runtime from JavaScript.
 
 It uses the following browser mechanics:
 
- - **BroadcastChannel**: communications channel between two Js components.
- - **SharedWorker**: parallel background worker shared between all tabs.
- - **ServiceWorker**: intercepts HTTP requests and forwards to Go runtime.
+- **BroadcastChannel**: communications channel between two Js components.
+- **SharedWorker**: parallel background worker shared between all tabs.
+- **ServiceWorker**: intercepts HTTP requests and forwards to Go runtime.
 
 When running as a native application the Go process is the initial entrypoint to
 the application, and will start the WebRuntime as a sub-process. For example:
@@ -167,49 +167,48 @@ Flags can also be specified in the plugin compiler config with "esbuildFlags".
 
 bldr will set the following build tags:
 
- - `bldr_analyze`: set while analyzing the code for factories
- - `build_type_dev`: set during development build
- - `build_type_release`: set during release build
+- `bldr_analyze`: set while analyzing the code for factories
+- `build_type_dev`: set during development build
+- `build_type_release`: set during release build
 
 ## Developing
 
 You need the following tools installed:
 
- - [Go](https://golang.org) >= 1.22
- - [Node](https://nodejs.org)
- - Yarn `npm install -g yarn`
+- [Go](https://golang.org) >= 1.22
+- [Bun](https://bun.sh)
 
 Initial setup:
 
 ```bash
 # download deps
-yarn
+bun install
 ```
 
 Here are some of the available ways to start the app:
 
 ```
 # start web application
-yarn start:web
+bun start:web
 
 # start web application in wasm mode
-yarn start:web:wasm
+bun start:web:wasm
 
 # start native application
-yarn start:native
+bun start:native
 
 # build web (wasm) distribution bundle & serve
-yarn start:web:release
+bun start:web:release
 
 # build release bundle for all platforms
-yarn build:cross
+bun build:cross
 ```
 
 In Chromium: to view the SharedWorker developer tools:
 
- - Open chrome://inspect
- - Select "Shared workers"
- - Click "inspect" on the SharedWorker
+- Open chrome://inspect
+- Select "Shared workers"
+- Click "inspect" on the SharedWorker
 
 ### VSCode Debugging
 

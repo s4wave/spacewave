@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/bifrost/util/randstring"
-	"github.com/aperturerobotics/bldr/util/node"
+	"github.com/aperturerobotics/bldr/util/bun"
 	"github.com/aperturerobotics/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/aperturerobotics/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/aperturerobotics/bldr/web/bundler"
@@ -154,8 +154,18 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	go smc.AcceptPump(pipeListener)
 	defer smc.Close()
 
-	// Set up the node process
-	cmd := node.NodeExec(ctx, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid)
+	// Derive the bun state directory from the working path
+	// Working path is typically .bldr/build/..., so we go up to .bldr/bun
+	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
+
+	// Set up the bun process
+	cmd, err := bun.BunExec(ctx, t.le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid)
+	if err != nil {
+		if ctx.Err() == nil {
+			t.instancePromiseCtr.SetResult(nil, err)
+		}
+		return err
+	}
 	cmd.Env = os.Environ()
 	cmd.Dir = filepath.Dir(viteScriptPath)
 	cmd.Stdout = t.le.WriterLevel(logrus.DebugLevel)
