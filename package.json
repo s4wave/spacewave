@@ -105,6 +105,7 @@
     "workbox-window": "^7.4.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "0.5.2"
+    "@aptre/protobuf-es-lite": "0.5.2",
+    "@libp2p/interface": "^2.6.1"
   }
 }
