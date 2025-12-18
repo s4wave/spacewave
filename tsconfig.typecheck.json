@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "types/**/*",
+    "web/**/*",
+    "sdk/**/*",
+    "plugin/**/*",
+    "example/**/*",
+    "entrypoint/**/*",
+    "util/**/*"
+  ],
+  "exclude": ["node_modules", "vendor", "dist", "prototypes", "**/*.test.ts"]
+}

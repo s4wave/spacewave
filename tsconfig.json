@@ -3,25 +3,29 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react",
-    "baseUrl": "./",
-    "paths": {
-      "@go/*": ["./vendor/*"],
-      "@aptre/bldr": ["./web/bldr/index.js"],
-      "@aptre/bldr-react": ["./web/bldr-react/index.js"],
-      "@aptre/bldr-sdk": ["./sdk/plugin.ts"],
-      "@aptre/bldr-sdk/*": ["./sdk/*"]
-    },
+    "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "importsNotUsedAsValues": "remove",
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "lib": ["webworker", "dom"]
+    "lib": ["webworker", "dom"],
+    "paths": {
+      "@go/github.com/aperturerobotics/starpc/echo/index.js": [
+        "./node_modules/starpc/dist/echo/index.d.ts"
+      ],
+      "@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js": [
+        "./node_modules/starpc/dist/rpcstream/rpcstream.pb.d.ts"
+      ],
+      "@go/*": ["./vendor/*"],
+      "@aptre/bldr": ["./web/bldr/index.js"],
+      "@aptre/bldr-react": ["./web/bldr-react/index.js"],
+      "@aptre/bldr-sdk": ["./sdk/plugin.ts"],
+      "@aptre/bldr-sdk/*": ["./sdk/*"],
+      "web/*": ["./web/*"]
+    }
   },
   "exclude": ["node_modules", "vendor", "dist", "prototypes"]
 }

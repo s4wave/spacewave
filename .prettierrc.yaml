@@ -1,3 +1,23 @@
 semi: false
 singleQuote: true
 experimentalTernaries: true
+overrides:
+  - files:
+      - '*.json'
+      - '*.jsonc'
+      - '*.json5'
+      - '.prettierrc'
+      - '.eslintrc'
+      - 'tsconfig.json'
+      - 'tsconfig.typecheck.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'bun.lock'
+    options:
+      tabWidth: 2
+      printWidth: 100
+  - files:
+      - '*.yml'
+      - '*.yaml'
+    options:
+      tabWidth: 2
