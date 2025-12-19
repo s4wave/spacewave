@@ -31,3 +31,4 @@ __debug_bin*
 /.tools/
 *@*.local*
 .env
+*.test
